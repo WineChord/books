@@ -1,82 +1,114 @@
 # Chapter 2: Repository Topography
 
-Codex is organized as a small JavaScript package wrapped around a large Rust
-workspace. That shape is practical: npm is a familiar distribution channel for
-CLI tools, while Rust is a strong fit for a cross-platform terminal program
-that must manage processes, files, async streams, and platform sandboxes.
-
-## The outer shell
-
-At the root, the repository has a monorepo maintenance
-[`package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/package.json)
-and a CLI package under
-[`codex-cli`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli).
-The wrapper script
-[`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L175)
-spawns the native binary. Think of it as a launcher, not the brain.
-
-The brain is the Rust workspace declared in
-[`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1).
-The workspace lists many crates because Codex has many responsibilities:
-configuration, login, protocol, TUI, app server, model providers, MCP, tools,
-execution policy, sandboxing, rollout storage, and more.
-
-## A map of crate families
-
-The names are easier to remember if you group them by role:
-
-<div class="source-grid">
-  <div class="source-card">
-    <h3>Entrypoints</h3>
-    <p><code>cli</code>, <code>tui</code>, <code>exec</code>, <code>app-server</code>.</p>
-  </div>
-  <div class="source-card">
-    <h3>Runtime</h3>
-    <p><code>core</code>, <code>protocol</code>, <code>thread-store</code>, <code>rollout</code>.</p>
-  </div>
-  <div class="source-card">
-    <h3>External I/O</h3>
-    <p><code>codex-api</code>, <code>model-provider</code>, <code>codex-mcp</code>, <code>connectors</code>.</p>
-  </div>
-  <div class="source-card">
-    <h3>Boundaries</h3>
-    <p><code>exec</code>, <code>execpolicy</code>, <code>sandboxing</code>, <code>linux-sandbox</code>.</p>
-  </div>
+<div class="chapter-lede">
+  <p><strong>You are here:</strong> the product loop now needs a physical map.</p>
+  <p><strong>Problem:</strong> a Rust workspace can look like a flat pile of crates unless you group them by responsibility.</p>
+  <p><strong>Mental model:</strong> Codex is a city: gates, roads, dispatch centers, workshops, guard posts, and public service desks.</p>
 </div>
 
-This grouping is not official terminology; it is a reading aid. The important
-point is that Codex separates user surfaces from the core runtime. A terminal
-UI and a headless app server can share the same lower-level session logic.
+Codex is organized as a workspace, not as one giant binary. That matters
+because workspace boundaries reveal ownership. The CLI should not know every
+detail of patch application. The TUI should not own the model loop. The
+protocol crate should not depend on terminal rendering.
 
-## Why there are many small crates
+## Evidence Map
 
-Beginners often expect one application to be one package. Rust workspaces
-encourage a different style: split code by stable responsibility. For Codex,
-that has several benefits.
+<div class="evidence-map">
 
-First, build boundaries make dependencies explicit. A sandboxing crate can
-depend on process and platform utilities without dragging UI code with it.
-Second, tests can focus on smaller units. Third, the project can expose some
-crates as reusable libraries while keeping other modules private.
+| Concept | Source | Why it matters |
+| --- | --- | --- |
+| Rust workspace | [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1) | Lists the crate-level units of ownership. |
+| npm launcher | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15) | Shows the JavaScript installation wrapper around native binaries. |
+| App-server crate | [`app-server/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/lib.rs#L433) | Exposes a headless service surface for other clients. |
+| Core runtime | [`core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) | Owns the main agent runtime. |
 
-The root of the core library,
-[`codex-rs/core/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/lib.rs#L1),
-is a useful table of contents. It lists modules for sessions, tools, config,
-MCP, skills, sandboxing, rollout, safety, and thread management. The module
-list is dense, but it tells you what the core crate owns.
+</div>
 
-## The first architectural lesson
+## The Main Families
 
-The repository is not arranged around screens. It is arranged around
-capabilities and contracts. The CLI is a door. The TUI is a door. App-server
-is another door. Behind those doors, the same source tree needs to answer:
+| Family | Representative crates or paths | Responsibility |
+| --- | --- | --- |
+| Installation and entry | `codex-cli`, `codex-rs/cli` | Start the right binary, parse commands, route user modes. |
+| Protocol | `protocol`, `app-server-protocol` | Define typed operations, events, app-server requests, responses, and generated schemas. |
+| Runtime | `core`, `exec`, `apply-patch` | Manage sessions, turns, model calls, tools, subprocesses, and edits. |
+| User surfaces | `tui`, `app-server`, `app-server-client` | Render interactive terminal state or serve external clients. |
+| Integration | `codex-mcp`, `config`, `plugin`, `core-skills` | Load MCP servers, plugins, skills, and configuration. |
+| Safety and execution | `sandboxing`, `linux-sandbox`, `execpolicy`, `cloud-requirements` | Bound filesystem, network, approval, and environment behavior. |
+| Observability and storage | `analytics`, `rollout-trace`, `agent-graph-store` | Record what happened for debugging, telemetry, and trace analysis. |
 
-- What user intent arrived?
-- Which configuration and permissions apply?
-- Which model and tools are available?
-- How are tool calls supervised?
-- How are events persisted and returned?
+This table is more useful than an alphabetical crate list because it gives you
+a question for each file: "Which family should own this responsibility?" When
+you find a file that seems to cross families, slow down. Those crossings are
+often the most important design decisions.
 
-Once you see the repository this way, a long list of crates becomes a set of
-systems with clear jobs.
+## Inbound and Outbound Thinking
 
+For each crate, ask two questions:
+
+1. Who calls into this crate?
+2. What does this crate call out to?
+
+The protocol crates are mostly inbound contracts: many layers use them, but
+they should stay light and stable. The core crate is a hub: it receives
+operations, calls model clients, dispatches tools, talks to MCP, emits events,
+and asks safety layers for decisions. The TUI is a client of protocol events:
+it should render state rather than own the agent loop.
+
+This is a practical way to read dependencies. You do not need to understand
+all crates at once. You only need to understand the direction of knowledge.
+Entry layers know how a user arrives. Runtime layers know how work proceeds.
+Boundary layers know what is allowed. Surface layers know what to show.
+
+## The Recurring Scenario on the Map
+
+When the user asks for a code change, the route is roughly:
+
+<div class="flow">
+  <div><strong>CLI/TUI</strong>Accept the prompt and current settings.</div>
+  <div><strong>Protocol</strong>Represent the request as typed data.</div>
+  <div><strong>Core</strong>Create or reuse a session and run a turn.</div>
+  <div><strong>Tools</strong>Read files, run commands, apply patches, or call MCP.</div>
+  <div><strong>Surface</strong>Render progress, approvals, diffs, and completion.</div>
+</div>
+
+The important point is not that every request uses every crate. The important
+point is that each crate family has a reason to exist.
+
+<div class="apply-this">
+
+## Apply This
+
+- Group a large repository by responsibility before reading files.
+- Look for ownership boundaries, not just module names.
+- Use inbound/outbound questions to detect architectural hubs.
+- Expect safety and UI to be separate concerns, even when they meet at runtime.
+
+</div>
+
+## Read the Source Next
+
+- [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1):
+  identify crate families.
+- [`app-server/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/README.md#L1):
+  inspect the external API surface.
+- [`linux-sandbox/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/README.md#L1):
+  see how one safety component documents its boundary.
+
+<div class="exercise-box">
+
+## Reading Exercise
+
+Pick five crates from `codex-rs/Cargo.toml`. For each one, write a one-line
+responsibility and name one crate family from the table above. If a crate does
+not fit, that is a signal to inspect it more carefully.
+
+</div>
+
+<div class="next-step">
+
+## What Comes Next
+
+The next chapter starts at the visible entrance: how the installed command and
+Rust CLI route users into the rest of the system.
+
+</div>

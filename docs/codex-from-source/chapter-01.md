@@ -1,91 +1,125 @@
 # Chapter 1: Reading Strategy
 
+<div class="chapter-lede">
+  <p><strong>You are here:</strong> before reading individual functions, build a map of the product loop.</p>
+  <p><strong>Problem:</strong> Codex is large enough that a beginner can drown in files before seeing the system shape.</p>
+  <p><strong>Mental model:</strong> follow one user request as it becomes messages, model calls, tool calls, guarded side effects, and UI events.</p>
+</div>
+
 The easiest way to get lost in Codex is to begin with the biggest file. A
 better approach is to follow one ordinary user action:
 
-> A user types a prompt into Codex and expects useful code work to happen.
+> A user asks Codex to change code and expects useful, reviewable work.
 
-That sentence already contains the whole architecture. Codex needs an entry
-point to receive the prompt, a protocol to represent the request, a session
-runtime to talk to a model, a tool layer to inspect or change files, and a
-surface that reports progress back to the user.
+That sentence contains the whole architecture. Codex needs an entry point to
+receive intent, a protocol to represent it, a session runtime to talk to a
+model, a tool layer to inspect or change files, safety boundaries to supervise
+side effects, and user surfaces that report progress.
 
-## Start from the product loop
+## Evidence Map
 
-The public OpenAI Codex launch material describes a coding agent that can read
-and edit files, run commands, show evidence, and ask the user to review the
-result. The ReAct paper gives a useful mental model for this kind of system:
-reasoning and acting are interleaved, and actions produce observations that
-shape the next step. We should not claim Codex is a literal implementation of
-that paper. But the conceptual loop is still helpful:
+<div class="evidence-map">
 
-<div class="flow">
-  <div><strong>User intent</strong>A task enters through CLI, TUI, exec, or app-server.</div>
-  <div><strong>Agent state</strong>The session builds context and model instructions.</div>
-  <div><strong>Action</strong>The model asks for tools such as shell or patch.</div>
-  <div><strong>Observation</strong>Tool output returns to the model and UI.</div>
-  <div><strong>Decision</strong>The loop continues, finishes, or asks for approval.</div>
+| Concept | Source | Why it matters |
+| --- | --- | --- |
+| User-facing modes | [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) | Shows how many ways a user can enter the system. |
+| Runtime requests | [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) | Names the operations the core runtime accepts. |
+| Runtime responses | [`EventMsg`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1090) | Names the facts clients can observe. |
+| Session facade | [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) | Gives the compact send/receive shape of the runtime. |
+
 </div>
 
-Source reading becomes easier once you keep that loop in your head. You can
-ask, for every file: "Is this file receiving intent, carrying state, executing
-action, observing results, or enforcing a boundary?"
+## Start from the Product Loop
 
-## The first three anchors
+The public Codex material describes an agent that can read files, run commands,
+edit code, and show evidence for review. The ReAct paper is useful background
+because it explains the broader idea of interleaving reasoning, actions, and
+observations. Codex should not be described as a direct implementation of that
+paper, but the mental loop transfers well:
 
-Codex has many crates, but the first three anchors are stable:
+<div class="flow">
+  <div><strong>Intent</strong>The user request enters through CLI, TUI, exec, or app-server.</div>
+  <div><strong>State</strong>The session collects history, configuration, instructions, and tools.</div>
+  <div><strong>Action</strong>The model emits structured response items and tool calls.</div>
+  <div><strong>Observation</strong>Tool output becomes protocol data and visible UI progress.</div>
+  <div><strong>Decision</strong>The runtime continues, compacts, asks approval, or completes.</div>
+</div>
 
-- The npm wrapper in
-  [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15)
-  selects a native binary for the current platform.
-- The Rust CLI router in
-  [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106)
-  defines the top-level commands a user can run.
-- The internal protocol in
-  [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403)
-  defines operations and events that move through the system.
+When you read a file, ask which role it plays in that loop. Is the file
+receiving intent, carrying state, executing action, recording observation, or
+enforcing a boundary? This question prevents every helper from looking equally
+important.
 
-Those three files answer three beginner questions: how does the program
-start, what modes does it expose, and what messages does it pass around?
+## Read Types Before Reading Functions
 
-## Read types before reading functions
+Rust systems often reveal their design through types. A function body explains
+how work happens. A public enum explains what work is possible. That is why
+this book starts with `Subcommand`, `Op`, `Submission`, `Event`, and
+`EventMsg`.
 
-Rust systems often reveal their design through types. Before reading every
-branch of a long function, first inspect the enums and structs that appear at
-module boundaries. In Codex, several types are especially important:
+`Subcommand` is the user-facing menu. It tells you Codex is not only an
+interactive TUI; it also has exec mode, MCP commands, app-server mode, login
+paths, cloud task support, sandbox debugging, and more. `Op` is the runtime
+menu. It shows the core can receive user turns, interruptions, approvals,
+dynamic tool responses, MCP refreshes, review requests, shell commands, and
+thread rollback requests. `EventMsg` is the observable menu. It tells clients
+what they can render or respond to.
 
-- `Subcommand` describes the user-facing modes.
-- `ClientRequest` and `ServerNotification` describe app-server traffic.
-- `Op`, `Submission`, `Event`, and `EventMsg` describe the core runtime API.
-- `Codex` is the session facade that accepts submissions and emits events.
+The design lesson is simple: a type is a contract. If a request crosses a
+boundary as an enum variant, readers can reason about that boundary without
+knowing every private helper behind it.
 
-The pattern is simple: a type is a contract. If two modules agree on a type,
-they can evolve internally without forcing every caller to know every detail.
-This is why source reading should follow contracts first and implementation
-second.
+## The First Reading Path
 
-## What to avoid
+Start with this path before opening random files:
 
-Do not begin by memorizing all crates. Also do not treat every file as equally
-important. Codex is a production codebase; it contains tests, platform
-helpers, migration code, UI details, and product-specific branches. Those
-matter, but they are not the spine.
+| Step | Read | Question |
+| --- | --- | --- |
+| 1 | `codex-cli/bin/codex.js` | How does the installed command find the native binary? |
+| 2 | `cli/src/main.rs` | Which mode owns this user request? |
+| 3 | `protocol/src/protocol.rs` | Which operation represents the request? |
+| 4 | `core/src/session/mod.rs` | How is the operation submitted to the session? |
+| 5 | `core/src/session/turn.rs` | How does a turn become model calls and tool calls? |
+| 6 | `core/src/tools` | Which side effects are allowed, denied, or reported? |
 
-The spine for a first reading is:
+Do not memorize every crate yet. The first goal is to see the spine.
 
-1. command dispatch,
-2. app-server request routing,
-3. core session submission,
-4. turn orchestration,
-5. tool execution,
-6. event notification.
+<div class="apply-this">
 
-Once that path is clear, the surrounding systems become easier to place.
+## Apply This
 
-## Reading exercise
+- Read public boundary types before private helpers.
+- Carry one realistic user scenario across the codebase.
+- Separate product vocabulary from implementation vocabulary.
+- Treat "what can happen" as more important than "which file is biggest."
 
-Open the source links for `Subcommand`, `Op`, and `EventMsg`. Without reading
-any function bodies, write down what kinds of work the program must support.
-Then read one handler for each kind of work. This trains you to derive design
-from public boundaries instead of drowning in implementation detail.
+</div>
 
+## Read the Source Next
+
+- [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106):
+  list the user-visible modes.
+- [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403):
+  group runtime operations by user turn, approval, MCP, review, and control.
+- [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364):
+  notice the queue-pair shape.
+
+<div class="exercise-box">
+
+## Reading Exercise
+
+Open `Subcommand`, `Op`, and `EventMsg`. Without reading function bodies, write
+down five capabilities Codex must support. Then check whether those
+capabilities appear in the sidebar chapters of this book.
+
+</div>
+
+<div class="next-step">
+
+## What Comes Next
+
+Now that you have a reading strategy, the next chapter maps the repository so
+you know which crates own entry, protocol, runtime, tools, safety, and user
+surfaces.
+
+</div>

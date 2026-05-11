@@ -1,80 +1,107 @@
 # Chapter 3: CLI Entrypoint
 
-The top-level command is the program's front desk. It does not perform every
-task itself. Its job is to understand what the user asked for and hand the
-request to the right subsystem.
-
-## The Clap model
-
-Codex uses `clap`, a Rust command-line parsing library. The central type is
-`MultitoolCli` in
-[`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L79).
-The name is accurate: the binary is one executable with many tools inside it.
-
-The `Subcommand` enum begins around
-[`main.rs#L106`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106).
-Each variant is a user-facing mode: interactive TUI, non-interactive exec,
-review, login, MCP management, plugin management, app server, sandbox helpers,
-debug tools, and more.
-
-Enums are a good fit here. A command either is `Exec`, or `Login`, or
-`McpServer`, and the compiler can force the routing code to consider the
-known cases.
-
-## Dispatch, not ownership
-
-The actual dispatch happens lower in the same file near
-[`cli_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L803).
-The important design idea is that the CLI does not own all behavior. It calls
-into other crates:
-
-<div class="flow">
-  <div><strong>No subcommand</strong>Launch the interactive terminal UI.</div>
-  <div><strong><code>exec</code></strong>Run non-interactive automation.</div>
-  <div><strong><code>app-server</code></strong>Expose JSON-RPC transport.</div>
-  <div><strong><code>mcp</code></strong>Manage MCP server configuration.</div>
+<div class="chapter-lede">
+  <p><strong>You are here:</strong> the user has typed a command, but no agent loop has started yet.</p>
+  <p><strong>Problem:</strong> entry code must translate messy command-line reality into clean runtime choices.</p>
+  <p><strong>Mental model:</strong> the CLI is a train station: it sells tickets, checks the platform, and sends passengers to the right line.</p>
 </div>
 
-This keeps the command parser from becoming an application monolith. The CLI
-decides where to go; the destination crate decides how to work.
+Entrypoints should be thin, but not trivial. They handle platform selection,
+arguments, configuration overrides, authentication commands, sandbox debug
+tools, MCP management, app-server mode, and ordinary interactive use. Their
+job is not to implement the whole agent. Their job is to pick the right owner.
 
-## The three major user surfaces
+## Evidence Map
 
-Codex has three surfaces worth separating:
+<div class="evidence-map">
 
-1. Interactive TUI, launched through
-   [`codex_tui::run_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/lib.rs#L710).
-2. Non-interactive exec, implemented around
-   [`codex_exec::run_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec/src/lib.rs#L233).
-3. App server, bootstrapped through
-   [`run_main_with_transport_options`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/lib.rs#L433).
+| Concept | Source | Why it matters |
+| --- | --- | --- |
+| Native binary selection | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15) | The npm package launches a platform-specific binary rather than implementing the agent in JavaScript. |
+| Top-level CLI modes | [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) | Defines the major user-visible routes. |
+| App-server route | [`Subcommand::AppServer`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L130) | Shows that Codex can run as a headless service, not only as a TUI. |
+| MCP CLI | [`mcp_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/mcp_cmd.rs#L39) | Shows management commands for external MCP servers. |
 
-The source becomes easier once you stop thinking of the TUI as "the app."
-The TUI is one client. Exec is another client. App-server clients are another
-class of clients. They all need a way to create threads, start turns, receive
-events, and answer approval requests.
+</div>
 
-## Configuration enters early
+## Command Dispatch Table
 
-CLI parsing also collects overrides. A user may pass flags that affect model
-selection, sandbox behavior, approval mode, working directory, or profile
-choice. Those flags do not execute the agent loop by themselves. They become
-part of effective configuration that later modules consume.
+| User-facing path | CLI representation | Destination idea |
+| --- | --- | --- |
+| `codex` with no subcommand | default branch after parsing | Start the interactive terminal experience. |
+| `codex exec ...` | exec-style subcommand | Run a non-interactive turn for automation. |
+| `codex app-server` | `Subcommand::AppServer` | Start a JSON-RPC service surface. |
+| `codex mcp ...` | `Subcommand::Mcp` | Manage MCP server configuration and auth. |
+| login/logout/auth commands | auth-oriented subcommands | Update account state before runtime use. |
+| sandbox/debug commands | debug-oriented subcommands | Help diagnose execution boundaries. |
 
-This is a common systems pattern: entrypoints should normalize input quickly,
-then pass typed configuration downward. The alternative is for every module to
-parse raw command-line strings, which would couple everything to the CLI.
+This dispatch table is a reading technique. Once you know which branch owns a
+mode, you can stop reading unrelated branches. A beginner should not try to
+understand app-server routing while reading login behavior.
 
-## Reading exercise
+## Configuration Is Also Input
 
-Read the `Subcommand` enum and classify each variant as one of:
+The user's text prompt is not the only input. Codex also receives working
+directory, model choice, approval policy, sandbox policy, feature flags,
+profiles, environment choices, and persisted config layers. These settings
+shape what the session may do later.
 
-- user interface,
-- automation,
-- account/configuration,
-- integration,
-- debugging/safety.
+That is why entry code matters. It is the last place where command-line flags
+and environment assumptions are still close to the user. Later layers should
+receive typed configuration, not re-parse raw command-line strings.
 
-Then inspect where each variant is dispatched. You will see the project
-boundaries emerge from the routing table.
+| Setting | Why it matters later |
+| --- | --- |
+| `cwd` | Determines which repository tools inspect and which paths sandbox rules interpret. |
+| Model | Shapes model instructions, streaming behavior, and possible reasoning settings. |
+| Approval policy | Controls when shell or file-changing tools ask for permission. |
+| Sandbox policy | Controls filesystem, network, and platform execution constraints. |
+| MCP config | Determines which external tools may appear in a turn. |
 
+## Thin Does Not Mean Dumb
+
+A good entrypoint avoids deep business logic, but it still enforces a clean
+handoff. In Codex, the CLI knows enough to parse modes and prepare runtime
+arguments. The core session knows how to run turns. The app-server knows how
+to route JSON-RPC requests. This separation keeps the CLI from becoming the
+only place where product behavior can evolve.
+
+<div class="apply-this">
+
+## Apply This
+
+- Keep entrypoints as routers, not as hidden runtimes.
+- Treat configuration as first-class input.
+- Build command dispatch tables when reading large CLIs.
+- Let specialized crates own specialized behavior.
+
+</div>
+
+## Read the Source Next
+
+- [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15):
+  inspect the native-binary handoff.
+- [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106):
+  classify user-facing modes.
+- [`McpCli`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/mcp_cmd.rs#L39):
+  see how one subcommand family gets its own module.
+
+<div class="exercise-box">
+
+## Reading Exercise
+
+Choose three `Subcommand` variants. For each one, find the match branch that
+handles it and name the crate or module that owns the real behavior. This
+trains the habit of separating routing from implementation.
+
+</div>
+
+<div class="next-step">
+
+## What Comes Next
+
+After entry code chooses a path, Codex needs stable messages. The next chapter
+studies the protocol layer that turns product behavior into typed operations,
+events, requests, and notifications.
+
+</div>

@@ -1,63 +1,84 @@
-# 第四章：协议层
+# 第 4 章：协议层
 
-大型 agent 应用需要共享词汇表。没有它，每一层都会传松散字符串和 JSON blob。
-Codex 为核心循环定义了类型化消息，也为 app-server 客户端定义了类型化 JSON-RPC
-消息。
-
-## 内部操作和事件
-
-核心协议位于
-[`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403)。
-关键类型是：
-
-- `Op`：提交给 session 的操作。
-- `Submission`：带元数据的提交。
-- `Event`：运行时发出的事件。
-- `EventMsg`：实际事件负载。
-
-这让 Codex 形成一种节奏：客户端提交操作，session 发出事件。
-
-<div class="flow">
-  <div><strong>提交</strong><code>Op::UserInput</code> 等操作进入。</div>
-  <div><strong>运行</strong>session 推进 turn 或 task。</div>
-  <div><strong>发事件</strong><code>EventMsg</code> 汇报进度或请求动作。</div>
-  <div><strong>响应</strong>客户端渲染、审批、中断或 steer。</div>
+<div class="chapter-lede">
+  <p><strong>你在这里：</strong>用户意图到达边界，必须变成结构化数据。</p>
+  <p><strong>问题：</strong>多个客户端都要驱动 Codex，但不能依赖 runtime 私有实现。</p>
+  <p><strong>心智模型：</strong>协议是产品语法；runtime 只是这个语法的一个说话者。</p>
 </div>
 
-对初学者来说，重点是：协议让异步系统变得可理解。UI 不需要知道模型 client 的所有
-内部字段，只要知道自己可能收到哪些事件、能发送哪些操作。
+Codex 不只有一个协议接入面。Core protocol 用 submissions 和 events 连接客户端与 agent session。App-server protocol 暴露 JSON-RPC service，包含 client requests、server requests、responses 和 notifications。它们目的有重叠，但服务不同读者。
 
-## App-server 协议
+## 证据表
 
-Codex 还在
-[`app-server-protocol/src/protocol/common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L178)
-定义 app-server 协议。两个核心概念是 `ClientRequest` 和 `ServerNotification`。
+<div class="evidence-map">
 
-这个协议比核心协议更宽，因为它是外部 API 面。它要描述 thread 创建、turn 启动、
-thread 读取、模型列表、MCP resource、插件安装、权限请求等客户端可见流程。
+| 概念 | 源码 | 为什么重要 |
+| --- | --- | --- |
+| Submission queue entry | [`Submission`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123) | 用 id 和 trace context 包装 operation。 |
+| Core operations | [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) | 定义 session 可以接收什么。 |
+| app-server requests | [`client_request_definitions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L637) | 定义暴露给 app clients 的 JSON-RPC methods。 |
+| app-server notifications | [`server_notification_definitions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1440) | 定义 app clients 能异步观察什么。 |
 
-Thread 和 turn 的请求形状在 v2 模块里，比如
-[`thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/thread.rs#L95)
-和
-[`turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/turn.rs#L49)。
-这层分离很重要：app 客户端看到稳定的请求和通知类型，core 则保留自己的运行时词汇。
+</div>
 
-## 为什么有两套协议
+## Core Protocol 与 App-Server Protocol
 
-app-server 消息和 core session 消息看起来有点重复，但它们面对的读者不同。
+| 层 | 主要读者 | 形状 | 例子 |
+| --- | --- | --- | --- |
+| Core protocol | Rust 系统内的 runtime clients | `Submission { id, op, trace }` 和 `Event` | `Op::UserInputWithTurnContext`, `Op::ExecApproval`, `EventMsg::TurnComplete` |
+| App-server protocol | 使用 JSON-RPC 的外部客户端 | method names, params, responses, notifications | `turn/start`, `item/commandExecution/requestApproval`, `turn/completed` |
 
-app-server 协议是产品边界，面向客户端，必须稳定、可序列化、版本化。core 协议是
-运行时边界，面向应用内部，更关注 session 实际会处理哪些操作。
+Core protocol 更靠近 Agent。它谈 user input、interruptions、approvals、dynamic tool responses、MCP refresh、review requests、compaction、rollback 和 user shell commands。App-server protocol 更靠近客户端，必须描述 request serialization、method names、response payloads、notifications 和 experimental gates。
 
-可以把它想成餐厅：菜单是 app-server 协议，公开、面向顾客、相对稳定；厨房单据是
-core 协议，给真正做菜的人看，精确描述接下来要做什么。
+## Queue Pair 模式
 
-## 协议本身就是文档
+Core 层使用 submission queue 和 event queue。这不是偶然实现细节，而是一种产品形状：客户端提交工作，并独立监听进度。
 
-协议文件是源码树里最好的文档之一。它告诉你系统认为“可能发生什么”。在 Codex 中，
-事件类型暴露出系统预期会处理模型流、工具调用、审批、错误、thread 状态变化、turn
-生命周期和持久化历史。
+<div class="flow">
+  <div><strong>Client</strong>构造 `Op`。</div>
+  <div><strong>Submission</strong>加上 id 和 trace context。</div>
+  <div><strong>Session</strong>消费 queued work。</div>
+  <div><strong>Event</strong>发出类型化进度和结果。</div>
+  <div><strong>Surface</strong>渲染或转发 event。</div>
+</div>
 
-读一个新功能时，可以先问：哪个协议类型变了？如果没有边界类型变化，它可能是内部
-功能。如果请求或事件变了，它就影响客户端。
+Agent 工作不是瞬时的。一次 turn 可能流式输出 token、请求审批、运行子进程、发出局部 diff、调用 MCP tool，并且可以被中断。简单 request/response 函数会隐藏太多生命周期。
 
+## 协议是兼容性边界
+
+协议是兼容性最敏感的位置。内部 helper 改了，但 `Op` 和 event 行为保持一致，客户端通常还能继续工作。协议 variant 含义变化时，影响范围就大得多。
+
+这也是 app-server protocol 里生成 schema 很重要的原因。它把 Rust 类型定义转成客户端可见契约。Web client、editor integration 或测试客户端不应该为了知道 `turn/start` 接收什么而 import 私有 Rust 模块。
+
+<div class="apply-this">
+
+## Apply This
+
+- 用协议类型保护客户端，避免它们依赖私有 runtime 细节。
+- 当工作有进度、审批或取消时，优先使用异步 event stream。
+- 区分 core runtime 词汇和外部 JSON-RPC 词汇。
+- 把生成 schema 当成产品接入面，而不是开发便利。
+
+</div>
+
+## 接下来读源码
+
+- [`Submission`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123)：查看最小 queued unit。
+- [`Op::UserInputWithTurnContext`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L445)：看 user turn 如何携带 settings。
+- [`McpServerToolCall`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L843)：比较 app-server method 命名与 core operation。
+
+<div class="exercise-box">
+
+## 阅读练习
+
+选择一个动作，例如中断 turn 或批准命令。找到它的 core `Op` variant，再找到最接近的 app-server request 或 server request。写下哪个层更靠近 Agent，哪个层更靠近外部客户端。
+
+</div>
+
+<div class="next-step">
+
+## 下一章
+
+消息清楚之后，下一章进入 core session facade：它接收 submissions 并发出 events。
+
+</div>

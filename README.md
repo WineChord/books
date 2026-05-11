@@ -17,11 +17,9 @@ npm run dev
 Build and verify the static output:
 
 ```bash
-npm run build
-npm run check:dist
+npm run verify
 ```
 
 The repository intentionally does not include a `CNAME` file. GitHub Pages
 project sites inherit the custom domain configured on
 `WineChord/WineChord.github.io`.
-

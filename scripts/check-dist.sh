@@ -15,3 +15,4 @@ if grep -RInE 'href="file:|src="file:' "$dist"; then
   exit 1
 fi
 
+node scripts/check-dist.mjs

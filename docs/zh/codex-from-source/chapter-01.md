@@ -1,75 +1,94 @@
-# 第一章：阅读策略
+# 第 1 章：阅读策略
 
-读 Codex 最容易迷路的方式，是一上来就打开最大的文件。更好的方法是跟踪一个最普通
-的用户动作：
+<div class="chapter-lede">
+  <p><strong>你在这里：</strong>在阅读具体函数之前，先建立产品循环地图。</p>
+  <p><strong>问题：</strong>Codex 足够大，初学者很容易还没看清系统形状就被文件淹没。</p>
+  <p><strong>心智模型：</strong>追踪一次用户请求如何变成消息、模型调用、工具调用、受保护的副作用和 UI 事件。</p>
+</div>
 
-> 用户在 Codex 里输入一个任务，希望它完成一段有用的软件工程工作。
+阅读 Codex 最容易犯的错，是一上来找最大的文件。更稳的方法是跟随一个普通动作：
 
-这句话已经包含了整个架构。Codex 需要一个入口接收任务，一个协议表示请求，一个
-会话运行时和模型交互，一个工具层读写文件或运行命令，还需要一个界面把进度报告给
-用户。
+> 用户要求 Codex 修改代码，并期待得到有用、可审查的工作结果。
+
+这一句话已经包含整个架构。Codex 需要入口接收意图，需要协议表达意图，需要 session runtime 调模型，需要工具层检查或修改文件，需要安全边界监督副作用，还需要接入面把进度报告给用户。
+
+## 证据表
+
+<div class="evidence-map">
+
+| 概念 | 源码 | 为什么重要 |
+| --- | --- | --- |
+| 用户可见模式 | [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) | 展示用户能从哪些入口进入系统。 |
+| Runtime 请求 | [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) | 命名 core runtime 能接收的操作。 |
+| Runtime 响应 | [`EventMsg`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1090) | 命名客户端能观察到的事实。 |
+| Session facade | [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) | 给出 runtime 的发送/接收形状。 |
+
+</div>
 
 ## 从产品循环开始
 
-OpenAI 对 Codex 的公开介绍中反复出现几个动作：读文件、改文件、运行命令、展示
-证据、让用户 review。ReAct 论文给了一个有用的心智模型：推理和行动交替发生，
-行动产生观察，观察再影响下一步。我们不能说 Codex 严格实现了 ReAct 论文，但这个
-循环很适合作为读源码的地图。
+公开 Codex 材料描述的是一个能读文件、运行命令、编辑代码并展示审查证据的软件工程 Agent。ReAct 论文提供了一个有用背景：推理、行动、观察会交替发生。我们不应说 Codex 是那篇论文的直接实现，但这个循环对理解系统很有帮助：
 
 <div class="flow">
-  <div><strong>用户意图</strong>任务从 CLI、TUI、exec 或 app-server 进入。</div>
-  <div><strong>Agent 状态</strong>会话构造上下文和模型指令。</div>
-  <div><strong>行动</strong>模型请求 shell、patch 等工具。</div>
-  <div><strong>观察</strong>工具输出回到模型和 UI。</div>
-  <div><strong>决策</strong>循环继续、结束，或请求审批。</div>
+  <div><strong>意图</strong>用户请求从 CLI、TUI、exec 或 app-server 进入。</div>
+  <div><strong>状态</strong>Session 收集历史、配置、指令和工具。</div>
+  <div><strong>行动</strong>模型产生结构化 response items 和 tool calls。</div>
+  <div><strong>观察</strong>工具输出变成协议数据和 UI 进度。</div>
+  <div><strong>决策</strong>Runtime 继续、压缩上下文、请求审批或完成。</div>
 </div>
 
-读每个文件时都可以问一句：这个文件是在接收意图、承载状态、执行行动、观察结果，
-还是 enforcing 某种边界？
-
-## 最先抓住三个锚点
-
-Codex 有很多 crate，但最先应该抓住三个锚点：
-
-- npm 包装器
-  [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15)
-  会选择当前平台对应的原生可执行文件。
-- Rust CLI 路由器
-  [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106)
-  定义用户能运行的顶层命令。
-- 内部协议
-  [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403)
-  定义系统内部传递的操作和事件。
-
-这三个文件分别回答三个初学者问题：程序怎么启动、暴露哪些模式、内部用什么消息
-沟通。
+读任何文件时都问一句：这个文件是在接收意图、承载状态、执行行动、记录观察，还是守住边界？这个问题能避免你把每个 helper 都看得一样重要。
 
 ## 先读类型，再读函数
 
-Rust 系统常常通过类型暴露设计。不要一开始就读完每个长函数的每个分支，先看模块
-边界上的 enum 和 struct。Codex 里尤其重要的类型包括：
+Rust 系统经常通过类型暴露设计。函数体说明“怎么做”，公开 enum 说明“能做什么”。所以本书从 `Subcommand`、`Op`、`Submission`、`Event`、`EventMsg` 开始。
 
-- `Subcommand`：用户能选择的命令模式。
-- `ClientRequest` 和 `ServerNotification`：app-server 的请求和通知。
-- `Op`、`Submission`、`Event`、`EventMsg`：核心运行时 API。
-- `Codex`：接收提交、发出事件的会话门面。
+`Subcommand` 是用户可见菜单。它告诉你 Codex 不只是 TUI，还有 exec mode、MCP commands、app-server mode、login、cloud task、sandbox debug 等路径。`Op` 是 runtime 菜单，展示 core 能接收用户 turn、中断、审批、dynamic tool response、MCP refresh、review、thread rollback 和用户 shell command。`EventMsg` 是可观察菜单，告诉客户端能渲染或响应什么。
 
-类型就是契约。两个模块只要在类型上达成一致，就可以各自演进内部实现。这就是为什么
-源码阅读应该先顺着契约走，再深入实现。
+设计经验很简单：类型就是契约。如果一个请求以 enum variant 的形式跨越边界，读者就能在不知道所有私有 helper 的情况下推理这个边界。
 
-## 不要一开始就做什么
+## 第一条阅读路径
 
-不要试图背下所有 crate。也不要把所有文件看成一样重要。Codex 是生产代码库，里面
-有测试、平台辅助、迁移逻辑、UI 细节和产品分支。这些都重要，但不是主干。
+| 步骤 | 阅读 | 问题 |
+| --- | --- | --- |
+| 1 | `codex-cli/bin/codex.js` | 安装后的命令如何找到 native binary？ |
+| 2 | `cli/src/main.rs` | 哪个模式拥有这个用户请求？ |
+| 3 | `protocol/src/protocol.rs` | 哪个 operation 表示这个请求？ |
+| 4 | `core/src/session/mod.rs` | operation 如何提交给 session？ |
+| 5 | `core/src/session/turn.rs` | turn 如何变成模型调用和工具调用？ |
+| 6 | `core/src/tools` | 哪些副作用被允许、拒绝或上报？ |
 
-第一次阅读的主干是：
+不要先背所有 crate。第一目标是看见主干。
 
-1. 命令分发，
-2. app-server 请求路由，
-3. core 会话提交，
-4. turn 编排，
-5. 工具执行，
-6. 事件通知。
+<div class="apply-this">
 
-这条路径清楚之后，周围系统就容易归位。
+## Apply This
 
+- 先读公开边界类型，再读私有 helper。
+- 用一个真实用户场景贯穿代码库。
+- 区分产品词汇和实现词汇。
+- 先理解“可能发生什么”，再研究“哪个文件最大”。
+
+</div>
+
+## 接下来读源码
+
+- [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106)：列出用户可见模式。
+- [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403)：按 user turn、approval、MCP、review、control 分组。
+- [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364)：注意 queue-pair 形状。
+
+<div class="exercise-box">
+
+## 阅读练习
+
+打开 `Subcommand`、`Op` 和 `EventMsg`。先不读函数体，写下 Codex 至少必须支持的五种能力。然后检查这些能力是否能在本书目录中找到对应章节。
+
+</div>
+
+<div class="next-step">
+
+## 下一章
+
+有了阅读策略之后，下一章会画出仓库地图，让你知道哪些 crate 负责入口、协议、runtime、工具、安全和用户接入面。
+
+</div>

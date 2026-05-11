@@ -1,63 +1,85 @@
-# 第八章：MCP、Apps 与 Skills
+# 第 8 章：补丁与 Turn Diff
 
-Codex 能连接内置工具之外的能力时，价值会明显增加。扩展体系有几层：MCP server
-暴露外部能力，apps/connectors 打包集成，skills 提供本地指令和流程，新一些的
-extension API 则让一等扩展贡献运行时能力。
-
-## 一句话理解 MCP
-
-Model Context Protocol 是一个基于 JSON-RPC 的标准，用来把 AI 应用连接到外部工具、
-资源和 prompts。在 Codex 里，MCP 不只是文档概念；它有配置类型、client 生命周期、
-工具发现、审批元数据和执行路径。
-
-面向用户的 MCP 配置建模在
-[`config/src/mcp_types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/mcp_types.rs#L118)。
-运行时 client 管理在
-[`codex-mcp/src/rmcp_client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/rmcp_client.rs#L135)。
-真正的 MCP tool call 经过
-[`core/src/mcp_tool_call.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/mcp_tool_call.rs#L560)。
-
-## Host-client-server 结构
-
-MCP 文档描述了 host、client 和 server。Codex 是 host 应用，会为配置好的 server
-创建 client。server 暴露能力。模型请求某个工具时，Codex 再通过自己的审批和沙箱
-元数据来中介调用。
-
-<div class="flow">
-  <div><strong>配置</strong>用户声明 MCP server。</div>
-  <div><strong>Client</strong>Codex 启动或连接它。</div>
-  <div><strong>发现</strong>工具、资源、prompt 变得可用。</div>
-  <div><strong>调用</strong>模型请求某个能力。</div>
-  <div><strong>中介</strong>Codex 应用审批和报告规则。</div>
+<div class="chapter-lede">
+  <p><strong>你在这里：</strong>Codex 已经能路由工具调用，现在研究编辑路径。</p>
+  <p><strong>问题：</strong>让模型直接写任意文件，会很难审查、审批和解释。</p>
+  <p><strong>心智模型：</strong>patch 是文件变化的收据：结构化、可检查，并绑定到某次 turn。</p>
 </div>
 
-这是 Codex 反复出现的设计：外部能力不是裸露接入，而是通过类型化边界进入系统。
+Patch path 是 Codex 设计品味最清晰的例子之一。它把 patch grammar 和 agent-facing runtime behavior 分开，并跟踪 committed deltas，让用户接入面不用重读整个 workspace 也能展示变化。
 
-## Skills 和本地指令
+## 证据表
 
-Skills 是另一种扩展。它不一定暴露运行时工具，而是描述专门的工作流、约束或本地知识，
-让 Codex 加载进上下文。核心库从
-[`core/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/lib.rs#L67)
-导出了 skill 构建和注入函数。
+<div class="evidence-map">
 
-这个区分很有用：
+| 概念 | 源码 | 为什么重要 |
+| --- | --- | --- |
+| Patch tool spec | [`create_apply_patch_freeform_tool`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L293) | 把 patch 能力作为 freeform tool 暴露。 |
+| Patch handler | [`ApplyPatchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L286) | 连接 patch input、permissions、events 和 orchestration。 |
+| Verified parsing | [`maybe_parse_apply_patch_verified`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L368) | 在计算变化和审批前重新解析并验证。 |
+| Turn diff tracker | [`TurnDiffTracker`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L16) | 从 committed patch deltas 维护内存 diff。 |
 
-- MCP tools 增加可调用外部能力。
-- Skills 增加流程性或领域知识。
-- Apps/connectors 为更丰富的客户端环境打包集成。
-- Extension API 在 Codex 内部贡献结构化能力。
+</div>
 
-## Subagents 和 extensions
+## 为什么用 Patch，而不是直接写文件？
 
-源码里还有 subagent handler：
-[`core/src/tools/handlers/multi_agents_v2/spawn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L16)，
-以及 extension registry：
-[`ext/extension-api/src/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ext/extension-api/src/registry.rs#L11)。
-这些功能从另一个角度说明：agent 能协调更多工作之后，平台就需要明确的注册、归属、
-归因和事件流。
+直接写 API 对模型简单，但对用户不好。它只说“把这个文件替换成那段内容”，系统事后还要重建发生了什么。Patch 会说清楚操作类型：add、delete、update、move、带上下文的 hunks。这个结构支持审批、展示、部分失败处理和 review。
 
-## 设计经验
+| 直接写文件 | 结构化 patch |
+| --- | --- |
+| 容易调用 | 生成稍难 |
+| 执行前难审查 | 天然是 diff |
+| 难绑定审批范围 | 文件路径和操作显式 |
+| 容易隐藏大范围替换 | 上下文和 hunks 暴露意图 |
+| 需要事后比较 | 编辑本身就是比较 |
 
-重点不是“所有事情都用 MCP”。重点是 agent 能力需要可发现性、schema、生命周期管理
-和权限边界。Codex 源码给出了这些要求在真实 CLI agent 中的具体实现样本。
+## Handler 的责任
 
+`ApplyPatchHandler` 不只是 adapter。它声明工具名、标记 mutating、发出 hook payload、消费 streamed argument diffs、提取文件路径、计算 effective permissions、启动 UI events，并委托 `ToolOrchestrator` 执行。
+
+<div class="flow">
+  <div><strong>Grammar</strong>patch crate 理解 patch 语法。</div>
+  <div><strong>Handler</strong>core tool handler 理解 sessions 和 turns。</div>
+  <div><strong>Policy</strong>permission 和 sandbox policy 决定是否可执行。</div>
+  <div><strong>Runtime</strong>orchestrator 执行或拒绝 patch。</div>
+  <div><strong>Diff</strong>turn tracker 记录 committed delta。</div>
+</div>
+
+## Turn Diff Tracking
+
+`TurnDiffTracker` 从 committed patch mutations 跟踪当前 turn 的 net text diff。它记录 baseline content、current content、rename origins 和 invalidation state。能证明 delta 精确时，它渲染 unified diff；不能证明时，它 invalidates，而不是展示自信但误导的 diff。
+
+这是重要安全习惯：runtime 不能产生准确证据时，应该通过状态诚实表达，而不是伪装确定。
+
+<div class="apply-this">
+
+## Apply This
+
+- 用结构化 edit operation，而不是 opaque file write。
+- 把 grammar parsing 与 agent runtime behavior 分开。
+- 跟踪 exact delta，无法保证精确时要 invalidate。
+- 让编辑证据同时对模型和用户接入面可见。
+
+</div>
+
+## 接下来读源码
+
+- [`ApplyPatchHandler::handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L337)：跟踪 patch 从 payload 到 runtime invocation。
+- [`effective_patch_permissions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L252)：看路径和权限如何派生。
+- [`TurnDiffTracker::track_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L49)：查看 exact-delta tracking。
+
+<div class="exercise-box">
+
+## 阅读练习
+
+阅读 `ApplyPatchHandler::handle`，画出从 raw patch text 到 committed delta 的五步路径，并标出 parsing、permission calculation、approval、execution 和 diff tracking 分别发生在哪里。
+
+</div>
+
+<div class="next-step">
+
+## 下一章
+
+Patch execution 会引入风险。下一章研究审批控制面：工具何时可运行、何时必须询问、何时必须停止。
+
+</div>

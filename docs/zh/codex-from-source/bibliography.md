@@ -61,9 +61,11 @@
   [Artificial Intelligence Risk Management Framework 1.0](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10),
   2023 年 1 月 26 日。用于一般风险管理表述。
 - containers/bubblewrap,
-  [README](https://github.com/containers/bubblewrap/blob/main/README.md)。用于 Linux
+  [README](https://github.com/containers/bubblewrap/blob/f4cbeb44f293d21ef93aaf88b9bd2f4e229748ad/README.md)。用于 Linux
   沙箱背景。
 - GitHub Docs,
   [About custom domains and GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/about-custom-domains-and-github-pages)。
   用于用户站点 custom domain 下的 project site 行为说明。
-
+- Claude Code from Source,
+  [Architecture, Patterns & Internals](https://claude-code-from-source.com/)。
+  仅用于学习书籍结构上的优点：分部导航、学习目标、过程透明度、架构图和每章可迁移模式。

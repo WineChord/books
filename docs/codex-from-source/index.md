@@ -2,56 +2,132 @@
 layout: home
 hero:
   name: Codex From Source
-  text: A bilingual source-code reading book.
-  tagline: "Learn how OpenAI Codex CLI turns a prompt into a supervised software-engineering loop: protocol, runtime, tools, approvals, sandboxes, MCP, TUI, and app-server integration."
+  text: Read the OpenAI Codex CLI as a production agent system.
+  tagline: "A bilingual, source-pinned book that follows one user request through command entry, protocol messages, session runtime, model streaming, tool execution, approvals, sandboxes, MCP, skills, the TUI, and the app-server."
 actions:
   - theme: brand
-    text: Start with the Preface
+    text: Start reading
     link: /codex-from-source/preface
+  - theme: alt
+    text: Pattern index
+    link: /codex-from-source/patterns
   - theme: alt
     text: 中文版
     link: /zh/codex-from-source/
 features:
-  - title: Beginner First
-    details: Each chapter starts from the concrete user experience before descending into Rust modules and control flow.
-  - title: Deep Source Links
-    details: Code references are pinned to a specific public openai/codex commit.
-  - title: Agent Context
-    details: The book connects Codex internals to ReAct, tool calling, MCP, and sandboxing literature.
+  - title: Source-Pinned
+    details: Every Codex source claim links to the public openai/codex repository at one fixed commit.
+  - title: Beginner-First
+    details: Chapters explain Rust, async, protocols, and tool calls from their first principles before zooming into files.
+  - title: Transferable
+    details: Each chapter ends with patterns you can reuse when designing your own agentic system.
 ---
 
-<div class="book-grid">
-  <div class="book-card">
-    <h3>Current source snapshot</h3>
-    <p>
-      The analysis is pinned to
-      <a href="https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3"><code>569ff6a1c400bd514ff79f5f1050a684dc3afde3</code></a>.
-    </p>
+## What You Will Trace
+
+The book carries one ordinary scenario through the architecture:
+
+> A developer asks Codex to change code, Codex reads the repository, proposes
+> tool calls, asks for permission when needed, applies a patch, reports the
+> diff, and returns control to the user.
+
+That one path is enough to expose the system. It touches command dispatch,
+typed protocol boundaries, the session queue pair, model streaming, tool
+routing, approval policy, sandbox selection, patch tracking, MCP/app
+integration, and user-facing event rendering.
+
+<ArchitectureMap />
+
+## What You Will Learn
+
+<div class="pattern-grid">
+  <div class="pattern-card">
+    <h3>The Agent Loop</h3>
+    <p>How a turn becomes a repeated prepare, sample, act, observe cycle instead of a single model call.</p>
   </div>
-  <div class="book-card">
-    <h3>Reading path</h3>
-    <p>
-      Start with the command line, then follow messages into the core session,
-      tools, approval checks, and user interfaces.
-    </p>
+  <div class="pattern-card">
+    <h3>Typed Protocols</h3>
+    <p>Why Codex uses operations, submissions, events, JSON-RPC requests, and generated schemas as product contracts.</p>
   </div>
-  <div class="book-card">
-    <h3>Scope</h3>
-    <p>
-      This book studies the open-source CLI repository, not OpenAI's private
-      hosted service or model internals.
-    </p>
+  <div class="pattern-card">
+    <h3>Tool Execution</h3>
+    <p>How shell, patch, MCP, and dynamic tools pass through routing, hooks, approvals, cancellation, and reporting.</p>
+  </div>
+  <div class="pattern-card">
+    <h3>Safety Boundaries</h3>
+    <p>How approval modes, permission profiles, Guardian review, platform sandboxes, and network policy layer together.</p>
+  </div>
+  <div class="pattern-card">
+    <h3>Extension Surfaces</h3>
+    <p>How skills, plugins, apps, MCP servers, and explicit mentions add capability without rewriting the central loop.</p>
+  </div>
+  <div class="pattern-card">
+    <h3>Client Surfaces</h3>
+    <p>How the TUI and app-server reuse the same core runtime while serving very different client experiences.</p>
   </div>
 </div>
 
-## Chapters
+## Table of Contents
 
-1. [Reading Strategy](chapter-01)
-2. [Repository Topography](chapter-02)
-3. [CLI Entrypoint](chapter-03)
-4. [Protocol](chapter-04)
-5. [Session Runtime](chapter-05)
-6. [Tools and Patches](chapter-06)
-7. [Sandboxing and Approval](chapter-07)
-8. [MCP, Apps, and Skills](chapter-08)
-9. [TUI and App Server](chapter-09)
+<div class="part-toc">
+  <section>
+    <h3>Part I: Map the System</h3>
+    <p>Start from the visible product and learn where the important contracts live.</p>
+    <ol>
+      <li><a href="chapter-01">Reading Strategy</a></li>
+      <li><a href="chapter-02">Repository Topography</a></li>
+      <li><a href="chapter-03">CLI Entrypoint</a></li>
+      <li><a href="chapter-04">Protocol</a></li>
+    </ol>
+  </section>
+  <section>
+    <h3>Part II: Follow a Turn</h3>
+    <p>Trace the runtime from session creation to the repeated model-tool loop.</p>
+    <ol start="5">
+      <li><a href="chapter-05">Session Facade</a></li>
+      <li><a href="chapter-06">Turn Loop and Streaming</a></li>
+    </ol>
+  </section>
+  <section>
+    <h3>Part III: Execute Tools</h3>
+    <p>Understand how a model request becomes a supervised filesystem or process side effect.</p>
+    <ol start="7">
+      <li><a href="chapter-07">Tool Registry and Dispatch</a></li>
+      <li><a href="chapter-08">Patches and Turn Diffs</a></li>
+      <li><a href="chapter-09">Approval Control Plane</a></li>
+    </ol>
+  </section>
+  <section>
+    <h3>Part IV: Boundaries and Surfaces</h3>
+    <p>Study the runtime boundaries that make the agent usable from terminals, apps, plugins, and MCP servers.</p>
+    <ol start="10">
+      <li><a href="chapter-10">Sandboxes and Runtime Boundaries</a></li>
+      <li><a href="chapter-11">MCP, Apps, Skills, Plugins</a></li>
+      <li><a href="chapter-12">TUI and App Server</a></li>
+    </ol>
+  </section>
+</div>
+
+## Who This Is For
+
+- **New source readers** who want to learn how to read a large Rust system by
+  following types, queues, and module boundaries.
+- **Agent builders** who want transferable patterns for tool APIs, approval
+  flows, sandboxing, memory, extension loading, and UI event streams.
+- **Technical reviewers** who want a grounded map before they audit security,
+  compatibility, or operational behavior.
+
+## Source Policy
+
+The Codex snapshot is
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+The book avoids local source paths. Code links point to public GitHub URLs, and
+the repository includes automated checks that reject private paths and
+branch-based Codex links.
+
+## Reference Pages
+
+- [Pattern Index](patterns)
+- [Source Atlas](source-atlas)
+- [Bibliography](bibliography)
+- [Production Pipeline](pipeline)

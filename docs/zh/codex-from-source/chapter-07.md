@@ -1,56 +1,92 @@
-# 第七章：沙箱与审批
+# 第 7 章：工具注册与分发
 
-运行模型选择的命令很强大，也有风险。Codex 用多层机制降低风险：审批模式、执行策略、
-沙箱选择、平台相关命令改写，以及用户可见事件。这些机制都不能让任意命令执行绝对
-安全；它们是在降低影响范围，并让决策更可检查。
-
-## 审批是控制平面
-
-审批不是附加功能，而是工具执行路径的一部分。
-[`core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50)
-里的 orchestrator 会用审批和沙箱行为包裹工具执行。
-[`core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251)
-把策略决策接入 shell 命令审批。
-
-策略解析器本身在
-[`execpolicy/src/parser.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/execpolicy/src/parser.rs#L38)。
-这是把策略语言和运行时 enforcement 分开的好例子。
-
-## 沙箱选择
-
-sandboxing crate 里有一个 manager，负责选择并变换执行请求。见
-[`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L134)。
-manager 抽象了平台差异：Linux、macOS、Windows 和外部沙箱模式的机制并不相同。
-
-Linux 下 Codex 有
-[`linux-sandbox`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L147)
-辅助路径。macOS 下 seatbelt 参数构造在
-[`sandboxing/src/seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L602)。
-
-抽象很重要，因为用户看到的概念很简单：“用这些权限运行这个命令”。操作系统现实并不
-简单。
-
-## 从命令到受控进程
-
-<div class="flow">
-  <div><strong>模型请求</strong>模型请求 shell 类动作。</div>
-  <div><strong>策略</strong>Codex 检查审批和 exec policy。</div>
-  <div><strong>沙箱</strong>请求被映射到平台约束。</div>
-  <div><strong>进程</strong>子进程运行并流式输出。</div>
-  <div><strong>事件</strong>结果回到模型和 UI。</div>
+<div class="chapter-lede">
+  <p><strong>你在这里：</strong>模型已经请求行动，Codex 必须决定哪个实现拥有这个请求。</p>
+  <p><strong>问题：</strong>工具是强副作用，所以需要 schema、routing、mutability、hooks、cancellation、concurrency、output formatting 和 telemetry。</p>
+  <p><strong>心智模型：</strong>工具是产品契约，不只是函数指针。</p>
 </div>
 
-[`core/src/exec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec.rs#L395)
-中的进程执行路径因此不只是进程启动器。它是用户意图、模型选择、权限、环境和操作系统
-约束交汇的地方。
+工具让 Codex 从语言跨入本地环境。模型可以提出 shell command、patch、MCP call 或 dynamic client-side tool，但 runtime 决定如何验证、监督、执行和报告。
 
-## 安全表述要诚实
+<ToolPipeline />
 
-OWASP LLM Top 10 提供了很有用的风险词汇，比如 prompt injection、excessive agency、
-敏感信息泄露和不安全工具设计。Codex 的架构用审批、沙箱、工具边界和日志缓解其中
-一些风险。但正确的动词是“缓解”，不是“消除”。
+## 证据表
 
-这在工程上很重要。如果一个系统可以运行命令、读文件、改仓库，安全故事就必须分层。
-沙箱限制进程能接触什么；审批给人类阻止危险操作的机会；策略文件编码可重复规则；
-事件日志支持事后 review。任何一层单独都不够。
+<div class="evidence-map">
 
+| 概念 | 源码 | 为什么重要 |
+| --- | --- | --- |
+| Tool handler trait | [`ToolHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L38) | 声明工具名、spec、mutability、hooks、diff consumer 和 execution。 |
+| Registry | [`ToolRegistry`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L220) | 把 tool names 映射到 erased handlers。 |
+| Dispatch accounting | [`dispatch_any`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L263) | 跟踪 active turn tool calls、metrics tags、MCP origin 和 handler lookup。 |
+| Parallel runtime | [`ToolCallRuntime`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L27) | 用共享锁控制并行与串行 tool calls。 |
+
+</div>
+
+## 把 Trait 当作清单
+
+`ToolHandler` 是安全工具设计清单：
+
+| 方法或概念 | 回答什么问题 |
+| --- | --- |
+| `tool_name` | 模型或 router 使用什么名字？ |
+| `spec` | 暴露什么 schema 和 description？ |
+| `supports_parallel_tool_calls` | 能否和其他工具一起运行？ |
+| `is_mutating` | 这个 invocation 是否可能改变用户环境？ |
+| `pre_tool_use_payload` | 执行前 hooks 应该看到什么？ |
+| `post_tool_use_payload` | 执行后 hooks 应该看到什么？ |
+| `create_diff_consumer` | streamed arguments 是否能产生 live UI events？ |
+| `handle` | 真正执行什么工作？ |
+
+这就是为什么工具是产品契约。模型可见名字只是其中一块；生产级工具还必须描述安全、观测、扩展 hooks 和输出转换。
+
+## Registry 与 Type Erasure
+
+不同工具返回不同输出类型，但 runtime 需要一个统一 registry。Codex 用内部 erased handler 层解决：具体 `ToolHandler` 变成 `AnyToolHandler`，最终结果变成 `AnyToolResult`。这样 router 可以统一处理 shell、patch、MCP 等工具，同时把具体逻辑保留在 handler 内。
+
+对初学者来说，type erasure 可以理解为：具体行为留在工具里，但 registry 只看到一个共同盒子。
+
+## 并行分发是保守的
+
+`ToolCallRuntime` 询问 router 某个 call 是否支持 parallel execution。如果支持，拿 read lock；否则拿 write lock。多个 read lock 可以共存，而 write lock 会排除其他工作。
+
+| 工具分类 | 锁形状 | 产品含义 |
+| --- | --- | --- |
+| parallel-safe | shared read lock | 可以和其他安全调用并行 |
+| not parallel-safe | exclusive write lock | 串行执行以避免冲突副作用 |
+| cancelled | cancellation branch | 返回 aborted tool output，而不是卡住 |
+
+这个实现很小，但思想重要：并发不是全局开关，而是具体 tool call 的属性。
+
+<div class="apply-this">
+
+## Apply This
+
+- 围绕 schema、安全、hooks、execution 和 reporting 设计工具接口。
+- 把工具特定逻辑留在 handler 内，对 registry 暴露统一形状。
+- 对未知或 mutating work 默认保守串行。
+- 让可恢复的工具失败成为模型可观察结果。
+
+</div>
+
+## 接下来读源码
+
+- [`ToolHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L38)：把每个方法当作设计要求。
+- [`AnyToolResult::into_response`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L119)：看工具输出如何变成模型输入。
+- [`handle_tool_call_with_source`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L83)：查看取消和锁选择。
+
+<div class="exercise-box">
+
+## 阅读练习
+
+选择一个 tool handler，回答：模型可见名字是什么？是否会修改状态？是否支持 parallel calls？暴露哪些 hook payload？答不清的地方，就是值得深入审查的工具契约。
+
+</div>
+
+<div class="next-step">
+
+## 下一章
+
+有一个工具值得单独讲：`apply_patch`。它是模型意图变成具体文件变化、审批事件和 turn-level diff 的路径。
+
+</div>

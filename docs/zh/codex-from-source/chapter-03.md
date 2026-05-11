@@ -1,60 +1,84 @@
-# 第三章：CLI 入口
+# 第 3 章：CLI 入口
 
-顶层命令是程序的前台。它不负责亲自完成所有工作，而是理解用户要什么，然后把请求
-交给合适的子系统。
-
-## Clap 模型
-
-Codex 使用 `clap` 这个 Rust 命令行解析库。核心类型是
-[`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L79)
-里的 `MultitoolCli`。这个名字很准确：一个 `codex` 可执行文件里包含许多工具。
-
-`Subcommand` enum 从
-[`main.rs#L106`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106)
-附近开始。每个 variant 都是一种用户可见模式：交互式 TUI、非交互 exec、review、
-登录、MCP 管理、插件管理、app-server、沙箱辅助、调试工具等等。
-
-enum 很适合这里。一个命令要么是 `Exec`，要么是 `Login`，要么是 `McpServer`。编译器
-能帮助路由代码覆盖已知情况。
-
-## 分发，而不是全权拥有
-
-真正的分发逻辑在同一个文件更靠后的
-[`cli_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L803)。
-重要的设计点是：CLI 不拥有所有行为，它会调用其他 crate。
-
-<div class="flow">
-  <div><strong>无子命令</strong>启动交互式终端 UI。</div>
-  <div><strong><code>exec</code></strong>运行非交互自动化。</div>
-  <div><strong><code>app-server</code></strong>暴露 JSON-RPC 传输。</div>
-  <div><strong><code>mcp</code></strong>管理 MCP server 配置。</div>
+<div class="chapter-lede">
+  <p><strong>你在这里：</strong>用户已经输入命令，但 Agent loop 还没有开始。</p>
+  <p><strong>问题：</strong>入口代码要把复杂命令行现实转换成干净的 runtime 选择。</p>
+  <p><strong>心智模型：</strong>CLI 像火车站：卖票、查站台、把乘客送到正确线路。</p>
 </div>
 
-这样命令解析器不会变成应用巨石。CLI 决定去哪里，目标 crate 决定怎么工作。
+入口应该薄，但不等于简单。它处理平台选择、参数、配置覆盖、认证命令、沙箱调试工具、MCP 管理、app-server mode 和普通交互使用。它的职责不是实现整个 Agent，而是选对真正的 owner。
 
-## 三个主要用户界面
+## 证据表
 
-Codex 有三个应该分开理解的入口：
+<div class="evidence-map">
 
-1. 交互式 TUI，通过
-   [`codex_tui::run_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/lib.rs#L710)
-   启动。
-2. 非交互 exec，核心实现在
-   [`codex_exec::run_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec/src/lib.rs#L233)
-   附近。
-3. app-server，通过
-   [`run_main_with_transport_options`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/lib.rs#L433)
-   启动。
+| 概念 | 源码 | 为什么重要 |
+| --- | --- | --- |
+| Native binary selection | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15) | npm package 启动平台相关 binary，而不是用 JavaScript 实现 Agent。 |
+| 顶层 CLI 模式 | [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) | 定义主要用户入口。 |
+| app-server route | [`Subcommand::AppServer`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L130) | 说明 Codex 不只是 TUI，也能作为 headless service 运行。 |
+| MCP CLI | [`mcp_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/mcp_cmd.rs#L39) | 展示外部 MCP servers 的管理命令。 |
 
-不要把 TUI 当成“整个应用”。TUI 是一个客户端，exec 是另一个客户端，app-server 的
-调用方又是一类客户端。它们都需要创建 thread、启动 turn、接收 event、回答 approval。
+</div>
 
-## 配置很早就进入系统
+## 命令分发表
 
-CLI 解析还会收集配置覆盖项。用户可能通过参数影响模型选择、沙箱行为、审批模式、
-工作目录或 profile。这些参数不会自己执行 agent 循环，而是变成后续模块读取的有效
-配置。
+| 用户路径 | CLI 表示 | 目标 |
+| --- | --- | --- |
+| `codex` 无子命令 | 解析后的默认分支 | 启动交互式终端体验。 |
+| `codex exec ...` | exec-style subcommand | 为自动化运行非交互 turn。 |
+| `codex app-server` | `Subcommand::AppServer` | 启动 JSON-RPC service 接入面。 |
+| `codex mcp ...` | `Subcommand::Mcp` | 管理 MCP server 配置和认证。 |
+| login/logout/auth | auth subcommands | 在运行时使用前更新账号状态。 |
+| sandbox/debug | debug subcommands | 诊断执行边界。 |
 
-这是一种常见系统模式：入口尽快把输入规范化，然后向下传递类型化配置。否则每个模块
-都要解析原始命令行字符串，耦合会迅速扩大。
+这个表是一种阅读技巧。知道哪个分支拥有哪个模式之后，就可以停止阅读无关分支。初学者不应该在读 login 行为时顺手陷入 app-server routing。
 
+## 配置也是输入
+
+用户文字不是唯一输入。Codex 还接收工作目录、模型选择、approval policy、sandbox policy、feature flags、profiles、环境选择和持久配置层。这些设置会塑造后续 session 能做什么。
+
+| 设置 | 后续影响 |
+| --- | --- |
+| `cwd` | 决定工具检查哪个仓库，也决定沙箱规则如何解释路径。 |
+| Model | 影响模型指令、流式行为和 reasoning 设置。 |
+| Approval policy | 控制 shell 或改文件工具何时请求权限。 |
+| Sandbox policy | 控制文件系统、网络和平台执行约束。 |
+| MCP config | 决定 turn 里可能出现哪些外部工具。 |
+
+## 薄不等于笨
+
+好入口会避免深业务逻辑，但仍然要完成干净交接。Codex CLI 知道如何解析模式和准备 runtime 参数；core session 知道如何运行 turn；app-server 知道如何路由 JSON-RPC 请求。这个分离避免 CLI 变成所有产品行为唯一可演进的位置。
+
+<div class="apply-this">
+
+## Apply This
+
+- 让入口成为 router，而不是隐藏 runtime。
+- 把配置视为一等输入。
+- 阅读大型 CLI 时建立 command dispatch table。
+- 让专门 crate 拥有专门行为。
+
+</div>
+
+## 接下来读源码
+
+- [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15)：查看 native-binary handoff。
+- [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106)：给用户模式分类。
+- [`McpCli`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/mcp_cmd.rs#L39)：观察一个 subcommand family 如何独立成模块。
+
+<div class="exercise-box">
+
+## 阅读练习
+
+选择三个 `Subcommand` variants。分别找到处理它们的 match branch，并写下真正拥有行为的 crate 或 module。这个练习训练你区分“路由”和“实现”。
+
+</div>
+
+<div class="next-step">
+
+## 下一章
+
+入口代码选好路径后，Codex 需要稳定消息。下一章会研究协议层：产品行为如何变成类型化 operation、event、request 和 notification。
+
+</div>

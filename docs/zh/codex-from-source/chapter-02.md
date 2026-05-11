@@ -1,75 +1,92 @@
-# 第二章：仓库地形
+# 第 2 章：仓库地形
 
-Codex 的组织方式是：外层一个小的 JavaScript 包，里面包着一个大的 Rust workspace。
-这个选择很现实。npm 是很多开发者熟悉的 CLI 分发渠道，而 Rust 适合实现跨平台终端
-程序、进程管理、文件操作、异步流和平台沙箱。
-
-## 外层壳
-
-仓库根目录有用于维护 monorepo 的
-[`package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/package.json)，
-CLI 包位于
-[`codex-cli`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli)。
-包装脚本
-[`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L175)
-负责启动原生 binary。它像启动器，不是大脑。
-
-真正的大脑是
-[`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1)
-声明的 Rust workspace。workspace 里有很多 crate，因为 Codex 要处理配置、登录、
-协议、TUI、app-server、模型 provider、MCP、工具、执行策略、沙箱、rollout 存储等
-一系列职责。
-
-## 按角色给 crate 分组
-
-为了读起来不乱，可以先按角色分组：
-
-<div class="source-grid">
-  <div class="source-card">
-    <h3>入口</h3>
-    <p><code>cli</code>、<code>tui</code>、<code>exec</code>、<code>app-server</code>。</p>
-  </div>
-  <div class="source-card">
-    <h3>运行时</h3>
-    <p><code>core</code>、<code>protocol</code>、<code>thread-store</code>、<code>rollout</code>。</p>
-  </div>
-  <div class="source-card">
-    <h3>外部 I/O</h3>
-    <p><code>codex-api</code>、<code>model-provider</code>、<code>codex-mcp</code>、<code>connectors</code>。</p>
-  </div>
-  <div class="source-card">
-    <h3>边界</h3>
-    <p><code>exec</code>、<code>execpolicy</code>、<code>sandboxing</code>、<code>linux-sandbox</code>。</p>
-  </div>
+<div class="chapter-lede">
+  <p><strong>你在这里：</strong>产品循环需要落到实际目录和 crate 上。</p>
+  <p><strong>问题：</strong>Rust workspace 如果不按责任分组，看起来就是一堆平铺的 crates。</p>
+  <p><strong>心智模型：</strong>Codex 像一座城市：入口、道路、调度中心、工坊、守卫岗和公共服务台。</p>
 </div>
 
-这不是官方术语，而是阅读辅助。重点是：Codex 把用户界面和核心运行时分开。终端 UI
-和 headless app-server 可以共享同一套底层会话逻辑。
+Codex 不是一个巨大二进制里塞满所有逻辑，而是一个 Rust workspace。workspace 边界很重要，因为它们暴露所有权。CLI 不应该知道 patch application 的每个细节；TUI 不应该拥有模型循环；protocol crate 不应该依赖终端渲染。
 
-## 为什么有很多小 crate
+## 证据表
 
-初学者常常以为一个应用就应该是一个包。Rust workspace 鼓励另一种风格：按稳定职责
-拆分代码。对 Codex 来说，这有几个好处。
+<div class="evidence-map">
 
-第一，构建边界让依赖关系更明确。沙箱 crate 可以依赖进程和平台工具，但不需要拖入
-UI 代码。第二，测试可以聚焦更小单元。第三，有些 crate 可以作为可复用库暴露出来，
-而其他模块保持私有。
+| 概念 | 源码 | 为什么重要 |
+| --- | --- | --- |
+| Rust workspace | [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1) | 列出 crate 级所有权单元。 |
+| npm launcher | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15) | 展示 JavaScript 安装壳如何启动 native binary。 |
+| app-server crate | [`app-server/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/lib.rs#L433) | 暴露供其他客户端使用的 headless service 接入面。 |
+| core runtime | [`core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) | 拥有主要 Agent runtime。 |
 
-核心库入口
-[`codex-rs/core/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/lib.rs#L1)
-本身就是一张目录表。里面列出了 session、tools、config、MCP、skills、sandboxing、
-rollout、safety、thread manager 等模块。
+</div>
 
-## 第一条架构经验
+## 主要家族
 
-这个仓库不是按页面组织的，而是按能力和契约组织的。CLI 是一扇门。TUI 是一扇门。
-App-server 是另一扇门。门后面同一套源码需要回答：
+| 家族 | 代表路径 | 责任 |
+| --- | --- | --- |
+| 安装与入口 | `codex-cli`, `codex-rs/cli` | 启动正确二进制、解析命令、路由用户模式。 |
+| 协议 | `protocol`, `app-server-protocol` | 定义 operation、event、app-server request、response 和 schema。 |
+| 运行时 | `core`, `exec`, `apply-patch` | 管理 sessions、turns、model calls、tools、subprocesses 和 edits。 |
+| 用户接入面 | `tui`, `app-server`, `app-server-client` | 渲染交互终端状态或服务外部客户端。 |
+| 集成 | `codex-mcp`, `config`, `plugin`, `core-skills` | 加载 MCP servers、plugins、skills 和配置。 |
+| 安全与执行 | `sandboxing`, `linux-sandbox`, `execpolicy`, `cloud-requirements` | 约束文件系统、网络、审批和环境行为。 |
+| 观测与存储 | `analytics`, `rollout-trace`, `agent-graph-store` | 记录调试、telemetry 和 trace 分析所需信息。 |
 
-- 用户意图是什么？
-- 哪些配置和权限生效？
-- 当前可用的模型和工具是什么？
-- 工具调用如何被监督？
-- 事件如何持久化并回传？
+这个表比字母顺序的 crate 列表更有用，因为它给每个文件一个问题：“这个责任应该属于哪个家族？”如果某个文件跨越了多个家族，就应该慢下来读，它往往是关键设计点。
 
-这样看，长长的 crate 列表就不再是噪声，而是一组职责明确的系统。
+## Inbound / Outbound 阅读法
 
+对每个 crate 问两个问题：
+
+1. 谁会调用这个 crate？
+2. 这个 crate 又调用谁？
+
+Protocol crates 多数是 inbound contract：很多层使用它们，但它们应该保持轻和稳定。Core crate 是枢纽：接收 operations、调用 model clients、分发 tools、连接 MCP、发出 events、请求安全层做决定。TUI 是 protocol events 的客户端：它应该渲染状态，而不是拥有 Agent loop。
+
+## 场景在地图上的路径
+
+当用户要求改代码时，大致路径是：
+
+<div class="flow">
+  <div><strong>CLI/TUI</strong>接收 prompt 和当前设置。</div>
+  <div><strong>Protocol</strong>把请求表达成类型化数据。</div>
+  <div><strong>Core</strong>创建或复用 session 并运行 turn。</div>
+  <div><strong>Tools</strong>读文件、运行命令、应用补丁或调用 MCP。</div>
+  <div><strong>Surface</strong>渲染进度、审批、diff 和完成状态。</div>
+</div>
+
+重点不是每次请求都会用到每个 crate，而是每个 crate 家族都有存在理由。
+
+<div class="apply-this">
+
+## Apply This
+
+- 先按责任给大型仓库分组。
+- 关注所有权边界，不只看模块名。
+- 用 inbound/outbound 问题识别架构枢纽。
+- 期待安全和 UI 是分离关注点，即使它们会在运行时相遇。
+
+</div>
+
+## 接下来读源码
+
+- [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1)：识别 crate 家族。
+- [`app-server/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/README.md#L1)：查看外部 API 接入面。
+- [`linux-sandbox/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/README.md#L1)：看一个安全组件如何描述边界。
+
+<div class="exercise-box">
+
+## 阅读练习
+
+从 `codex-rs/Cargo.toml` 里选五个 crate。给每个 crate 写一句责任说明，并把它归入上表的一个家族。归不进去的 crate，往往值得更仔细阅读。
+
+</div>
+
+<div class="next-step">
+
+## 下一章
+
+下一章从最可见的入口开始：安装后的命令和 Rust CLI 如何把用户路由进系统其他部分。
+
+</div>

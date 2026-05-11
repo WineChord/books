@@ -2,6 +2,33 @@ import { defineConfig } from "vitepress";
 
 const sourceCommit = "569ff6a1c400bd514ff79f5f1050a684dc3afde3";
 const sourceBase = `https://github.com/openai/codex/blob/${sourceCommit}/`;
+const siteOrigin = "https://www.wineandchord.com";
+const siteBase = "/books/";
+
+function pageUrl(relativePath: string): string {
+  if (relativePath === "index.md") {
+    return `${siteOrigin}${siteBase}`;
+  }
+
+  const withoutIndex = relativePath.replace(/(^|\/)index\.md$/, "$1");
+  const withoutExtension = withoutIndex.replace(/\.md$/, "");
+  const normalized = withoutExtension.endsWith("/")
+    ? withoutExtension
+    : `${withoutExtension}/`;
+  return `${siteOrigin}${siteBase}${normalized}`;
+}
+
+function pageDescription(relativePath: string): string {
+  if (relativePath.startsWith("zh/")) {
+    return "一本中英文双语的 OpenAI Codex CLI 源码剖析在线书。";
+  }
+
+  if (relativePath === "index.md") {
+    return "Long-form online books from WineChord.";
+  }
+
+  return "A bilingual source-code reading book about OpenAI Codex CLI.";
+}
 
 export default defineConfig({
   title: "Codex From Source",
@@ -12,7 +39,29 @@ export default defineConfig({
   lastUpdated: true,
   metaChunk: true,
   sitemap: {
-    hostname: "https://www.wineandchord.com/books/",
+    hostname: `${siteOrigin}${siteBase}`,
+  },
+  transformPageData(pageData) {
+    const url = pageUrl(pageData.relativePath);
+    const description = pageData.description
+      || pageData.frontmatter.description
+      || pageDescription(pageData.relativePath);
+    const title = pageData.title || "Codex From Source";
+    const head = pageData.frontmatter.head || [];
+
+    pageData.frontmatter.head = [
+      ...head,
+      ["link", { rel: "canonical", href: url }],
+      ["meta", { name: "description", content: description }],
+      ["meta", { property: "og:type", content: "article" }],
+      ["meta", { property: "og:site_name", content: "WineChord Books" }],
+      ["meta", { property: "og:title", content: title }],
+      ["meta", { property: "og:description", content: description }],
+      ["meta", { property: "og:url", content: url }],
+      ["meta", { name: "twitter:card", content: "summary_large_image" }],
+      ["meta", { name: "twitter:title", content: title }],
+      ["meta", { name: "twitter:description", content: description }],
+    ];
   },
   head: [
     ["link", { rel: "icon", href: "/books/favicon.svg" }],
@@ -110,31 +159,52 @@ export default defineConfig({
                   link: "/codex-from-source/chapter-05",
                 },
                 {
-                  text: "6. Tools and Patches",
+                  text: "6. Turn Loop and Streaming",
                   link: "/codex-from-source/chapter-06",
                 },
               ],
             },
             {
-              text: "Part III: Boundaries",
+              text: "Part III: Tools",
               items: [
                 {
-                  text: "7. Sandboxing and Approval",
+                  text: "7. Tool Registry and Dispatch",
                   link: "/codex-from-source/chapter-07",
                 },
                 {
-                  text: "8. MCP, Apps, and Skills",
+                  text: "8. Patches and Turn Diffs",
                   link: "/codex-from-source/chapter-08",
                 },
                 {
-                  text: "9. TUI and App Server",
+                  text: "9. Approval Control Plane",
                   link: "/codex-from-source/chapter-09",
+                },
+              ],
+            },
+            {
+              text: "Part IV: Boundaries and Surfaces",
+              items: [
+                {
+                  text: "10. Sandboxes and Runtime Boundaries",
+                  link: "/codex-from-source/chapter-10",
+                },
+                {
+                  text: "11. MCP, Apps, Skills, Plugins",
+                  link: "/codex-from-source/chapter-11",
+                },
+                {
+                  text: "12. TUI and App Server",
+                  link: "/codex-from-source/chapter-12",
                 },
               ],
             },
             {
               text: "Reference",
               items: [
+                {
+                  text: "Pattern Index",
+                  link: "/codex-from-source/patterns",
+                },
                 {
                   text: "Source Atlas",
                   link: "/codex-from-source/source-atlas",
@@ -200,31 +270,52 @@ export default defineConfig({
                   link: "/zh/codex-from-source/chapter-05",
                 },
                 {
-                  text: "6. 工具与补丁",
+                  text: "6. Turn 循环与流式输出",
                   link: "/zh/codex-from-source/chapter-06",
                 },
               ],
             },
             {
-              text: "第三部：边界",
+              text: "第三部：工具系统",
               items: [
                 {
-                  text: "7. 沙箱与审批",
+                  text: "7. 工具注册与分发",
                   link: "/zh/codex-from-source/chapter-07",
                 },
                 {
-                  text: "8. MCP、Apps 与 Skills",
+                  text: "8. 补丁与 Turn Diff",
                   link: "/zh/codex-from-source/chapter-08",
                 },
                 {
-                  text: "9. TUI 与 App Server",
+                  text: "9. 审批控制面",
                   link: "/zh/codex-from-source/chapter-09",
+                },
+              ],
+            },
+            {
+              text: "第四部：边界与接入面",
+              items: [
+                {
+                  text: "10. 沙箱与运行时边界",
+                  link: "/zh/codex-from-source/chapter-10",
+                },
+                {
+                  text: "11. MCP、Apps、Skills、Plugins",
+                  link: "/zh/codex-from-source/chapter-11",
+                },
+                {
+                  text: "12. TUI 与 app-server",
+                  link: "/zh/codex-from-source/chapter-12",
                 },
               ],
             },
             {
               text: "附录",
               items: [
+                {
+                  text: "模式索引",
+                  link: "/zh/codex-from-source/patterns",
+                },
                 {
                   text: "源码索引",
                   link: "/zh/codex-from-source/source-atlas",

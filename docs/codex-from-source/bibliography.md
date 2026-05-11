@@ -71,9 +71,13 @@
   [Artificial Intelligence Risk Management Framework 1.0](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10),
   January 26, 2023. Used for general risk-management language.
 - containers/bubblewrap,
-  [README](https://github.com/containers/bubblewrap/blob/main/README.md).
+  [README](https://github.com/containers/bubblewrap/blob/f4cbeb44f293d21ef93aaf88b9bd2f4e229748ad/README.md).
   Used for Linux sandboxing context.
 - GitHub Docs,
   [About custom domains and GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/about-custom-domains-and-github-pages).
   Used for project-site custom-domain behavior under a user site.
-
+- Claude Code from Source,
+  [Architecture, Patterns & Internals](https://claude-code-from-source.com/).
+  Used only as a benchmark for book structure: part-based navigation,
+  learning outcomes, process transparency, visual architecture maps, and
+  chapter-level transferable patterns.

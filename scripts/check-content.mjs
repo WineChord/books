@@ -11,6 +11,7 @@ const root = process.cwd();
 const docsDir = join(root, "docs");
 const enBookDir = join(docsDir, "codex-from-source");
 const zhBookDir = join(docsDir, "zh", "codex-from-source");
+const vitepressConfig = readFileSync(join(docsDir, ".vitepress", "config.ts"), "utf8");
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -40,6 +41,28 @@ assert(
   `English and Chinese chapter files differ:\nEN ${enFiles}\nZH ${zhFiles}`,
 );
 
+const configuredCommit = vitepressConfig.match(
+  /const sourceCommit = "([0-9a-f]{40})";/,
+)?.[1];
+assert(
+  configuredCommit === sourceCommit,
+  `config.ts sourceCommit (${configuredCommit}) differs from check-content (${sourceCommit})`,
+);
+
+for (const file of enFiles) {
+  const page = file.replace(/\.md$/, "");
+  const enLink = `/codex-from-source/${page === "index" ? "" : page}`;
+  const zhLink = `/zh/codex-from-source/${page === "index" ? "" : page}`;
+  assert(
+    vitepressConfig.includes(enLink),
+    `English sidebar/nav is missing ${enLink}`,
+  );
+  assert(
+    vitepressConfig.includes(zhLink),
+    `Chinese sidebar/nav is missing ${zhLink}`,
+  );
+}
+
 const files = walk(docsDir).filter((path) => path.endsWith(".md"));
 
 for (const file of files) {
@@ -47,6 +70,10 @@ for (const file of files) {
   const body = readFileSync(file, "utf8");
 
   assert(!privatePattern.test(body), `${rel} contains a private local path`);
+  assert(
+    !/https:\/\/github\.com\/openai\/codex\/(?:blob|tree)\/(?:main|master)\b/.test(body),
+    `${rel} contains a branch-based Codex source link`,
+  );
 
   const sourceLinks = body.match(/https:\/\/github\.com\/openai\/codex\/(?:blob|tree)\/[^)\s]+/g) ?? [];
   for (const link of sourceLinks) {
