@@ -201,7 +201,7 @@ chosen platform/backend actually enforces it.
 | Preference | Tool requests can prefer sandboxing automatically, require it, or forbid it. |
 | Override | Some decisions can bypass the first sandbox attempt, but only through explicit policy. |
 | macOS | Seatbelt profiles enforce file and network limits and protect sensitive roots such as repository or Codex metadata where configured. |
-| Linux | The runtime can choose Landlock or bubblewrap-like helpers; missing helper or unsupported environment can fail closed. |
+| Linux | The runtime can choose Landlock or bubblewrap-like helpers; platform sandbox selection can fall back to `SandboxType::None`, while helper launch failures remain execution errors. |
 | Windows | Elevated, unelevated, and restricted-token behavior differ; compatibility limits can force refusal rather than unsafe fallback. |
 | External sandbox | The runtime may know it is already inside a sandbox and preserve only the network semantics it can reason about. |
 | Remote exec | Remote execution can participate in the filesystem/sandbox story instead of using local process launch. |

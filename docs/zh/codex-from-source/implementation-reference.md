@@ -180,7 +180,7 @@ Patch 有三层：
 | Preference | 工具请求可以自动选择 sandbox、要求 sandbox，或禁止 sandbox。 |
 | Override | 某些决策可绕过第一次 sandbox attempt，但必须来自显式策略。 |
 | macOS | Seatbelt profile 约束文件和网络，并可保护 `.git`、`.codex` 等敏感根。 |
-| Linux | runtime 可选择 Landlock 或 bubblewrap 类 helper；helper 缺失或环境不支持时可 fail closed。 |
+| Linux | runtime 可选择 Landlock 或 bubblewrap 类 helper；平台 sandbox 选择可 fallback 到 `SandboxType::None`，而 helper 启动失败仍是执行错误。 |
 | Windows | elevated、unelevated、restricted-token 行为不同；兼容性限制可能要求拒绝，而不是不安全 fallback。 |
 | External sandbox | runtime 可知道自己已在外部 sandbox 中，只保留能推理的网络语义。 |
 | Remote exec | 远端执行也可能参与 filesystem/sandbox 语义，而不是本地启动进程。 |
