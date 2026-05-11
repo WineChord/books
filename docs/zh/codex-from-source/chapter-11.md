@@ -46,6 +46,39 @@ Model Context Protocol 重要，是因为它给外部 servers 一个标准方式
 
 标准减少集成形状，但不会消除集成劳动。
 
+## MCP Client Runtime
+
+Codex 可以启动并管理配置好的 MCP servers。Server config 包含 transport、env vars、disabled/required 状态、timeouts、OAuth/auth status、default tool approval 和 per-tool overrides。Connection manager 会跟踪 startup progress，发出 startup update/complete events，列出 tools，并在 startup pending 或 failed 时使用 cached Codex Apps tool snapshots。
+
+| MCP client 细节 | 为什么重要 |
+| --- | --- |
+| stdio vs streamable HTTP | transport 改变 launch、auth 和 lifecycle |
+| env var sourcing | secrets 和环境设置必须显式处理 |
+| allow/deny filters | 不是 server 的每个 tool 都一定暴露给模型 |
+| per-tool approval | MCP tools 也进入同一套 approval control plane |
+| elicitation policy | MCP server 请求用户输入时也受 approval settings 管理 |
+
+## Codex 作为 MCP Server
+
+Codex 不只是 MCP client。CLI 也有 MCP-server mode，让外部 MCP clients 可以调用 Codex。这条路径有自己的 message processor 和 tool runner，会暴露 `codex`、`codex-reply` 等工具，创建来自 MCP source 的 session，返回 `threadId` 等 structured content，并有不同于 TUI 的 approval/elicitation 行为。
+
+| 方向 | 含义 |
+| --- | --- |
+| Codex as MCP client | Codex 调用外部 servers 的 tools 和 resources。 |
+| Codex as MCP server | 外部 clients 把 Codex 当作 tool provider 来调用。 |
+
+## Apps、Connectors 与 Plugins
+
+Apps/connectors 不是静态 catalog。列出 app capability 时会受认证、feature flags、workspace policy、plugin availability、cached MCP tool information 和 connector accessibility 影响。Plugins 可以打包 skills、hooks、apps 和 MCP servers；它们可能来自 curated marketplace 或本地 plugin roots，也可能因策略不可用、被安装、禁用、分享或卸载。
+
+## Skill Discovery and Injection
+
+Skill 是 instruction bundle，但源码把 loading 和 injection 分开处理。Skill 可以来自 bundled skills、user skill roots、plugin skill roots、显式 structured input 或 dependency resolution。Disabled paths 和 missing dependencies 都会影响结果。Injection 再把选中的 skill content 转成 model-visible turn context。
+
+## Mention Resolution
+
+Mentions 是用户输入中的结构化引用。`$skill`、plugin mention 和 `[app](app://id)` 是不同路径。它们会影响哪些 instructions 被注入、哪些 plugin/app 能力被列出、哪些 MCP tools 被暴露。Turn loop 在 sampling 前收集这些信息，让模型在本次 turn 中看见可用能力。
+
 ## 术语规则
 
 - **Skill**：可以注入 turn 的指令。
@@ -55,9 +88,22 @@ Model Context Protocol 重要，是因为它给外部 servers 一个标准方式
 
 术语分清楚，源码才好读。
 
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| 问题 | 第 11 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 正被配置或显式 mention 的外部能力增强。 |
+| 什么数据结构携带它？ | MCP server configs、app metadata、plugin manifests、skill files、mentions、tool inventories 和 injected context items。 |
+| 谁拥有下一步决策？ | config/feature gates、auth availability、plugin/app managers、skill loaders、MCP connection manager 和 turn loop。 |
+| 这里可能怎么失败？ | disabled server、auth/OAuth failure、startup timeout、missing skill dependency、unavailable app、denied elicitation、plugin policy block 或 stale cache。 |
+
+</div>
+
 <div class="apply-this">
 
-## Apply This
+## 应用到实践
 
 - 在 turn boundary 显式引入 extension capability。
 - 区分 instruction extensions 和 tool extensions。
@@ -74,7 +120,15 @@ Model Context Protocol 重要，是因为它给外部 servers 一个标准方式
 
 <div class="exercise-box">
 
-## 阅读练习
+## 自检题
+
+不打开源码回答：Codex 作为 MCP client 和作为 MCP server 有什么区别？再把 skill、plugin、app、mention、MCP tool 分类为增加 instructions、tools、metadata 还是 runtime participant。
+
+</div>
+
+<div class="exercise-box">
+
+## 可选源码实验
 
 选择一个能力：“invoke a skill”、“list MCP server status” 或 “read a plugin skill”。找到 CLI 或 app-server 入口，再追踪它如何变成 turn context、catalog data 或 tool call。
 

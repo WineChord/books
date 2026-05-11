@@ -9,6 +9,9 @@ actions:
     text: 从前言开始
     link: /zh/codex-from-source/preface
   - theme: alt
+    text: 阅读地图
+    link: /zh/codex-from-source/reader-map
+  - theme: alt
     text: 模式索引
     link: /zh/codex-from-source/patterns
   - theme: alt
@@ -19,8 +22,8 @@ features:
     details: 所有 Codex 源码论断都链接到公开 openai/codex 仓库的同一个 commit。
   - title: 初学者友好
     details: 每章先解释 Rust、异步、协议和工具调用的基本概念，再深入具体文件。
-  - title: 可迁移
-    details: 每章都会提炼可以复用到其他 Agent 系统的工程模式。
+  - title: 源码等价
+    details: 实现参考页集中整理运行时、协议、工具、配置、安全、扩展和客户端细节，让源码链接成为证据而不是作业。
 ---
 
 ## 你将追踪什么
@@ -32,6 +35,10 @@ features:
 这个路径足以暴露系统主干：命令分发、类型化协议、session queue pair、模型流式输出、工具路由、审批策略、沙箱选择、补丁跟踪、MCP/app 集成，以及面向用户的事件渲染。
 
 <ArchitectureMap />
+
+## 源码等价阅读标准
+
+默认路径不是“打开源码跟着看”。默认路径是：读书、回答自检题，需要行级验证时再打开固定源码链接。[阅读地图](reader-map)提供 30 分钟路径、2 小时路径和可选源码审计路径。[实现参考](implementation-reference)集中整理源码读者会从多个文件里获得的密集事实。
 
 ## 你将学到什么
 
@@ -119,5 +126,6 @@ Codex 源码快照固定为
 
 - [模式索引](patterns)
 - [源码索引](source-atlas)
+- [实现参考](implementation-reference)
 - [参考文献](bibliography)
 - [写作流水线](pipeline)

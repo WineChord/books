@@ -28,6 +28,7 @@
 | `codex` 无子命令 | 解析后的默认分支 | 启动交互式终端体验。 |
 | `codex exec ...` | exec-style subcommand | 为自动化运行非交互 turn。 |
 | `codex app-server` | `Subcommand::AppServer` | 启动 JSON-RPC service 接入面。 |
+| `codex mcp-server` | MCP-server subcommand | 把 Codex 自身作为 MCP server 暴露给外部 MCP clients。 |
 | `codex mcp ...` | `Subcommand::Mcp` | 管理 MCP server 配置和认证。 |
 | login/logout/auth | auth subcommands | 在运行时使用前更新账号状态。 |
 | sandbox/debug | debug subcommands | 诊断执行边界。 |
@@ -46,13 +47,36 @@
 | Sandbox policy | 控制文件系统、网络和平台执行约束。 |
 | MCP config | 决定 turn 里可能出现哪些外部工具。 |
 
+配置还有层级和来源。源码读者会追问一个值来自默认值、用户 config、profile、CLI override、managed requirement、environment variable，还是 app-server config write。Auth 也类似：login state、API keys、connector credentials、MCP OAuth credentials 和 account/rate-limit requests 都会影响后续 runtime。
+
+| 入口相关关注点 | 为什么影响后续行为 |
+| --- | --- |
+| config loader | 把 defaults、profiles、overrides 和 requirements 合并成类型化设置 |
+| login/auth library | 在模型调用或 app-server 请求前提供账号状态 |
+| app-server config writes | 可改变持久设置，并要求 runtime cache reload |
+| MCP OAuth | 决定配置的 MCP/app tools 是否可用 |
+| managed constraints | 可能强制或禁用行为，覆盖本地用户偏好 |
+
 ## 薄不等于笨
 
 好入口会避免深业务逻辑，但仍然要完成干净交接。Codex CLI 知道如何解析模式和准备 runtime 参数；core session 知道如何运行 turn；app-server 知道如何路由 JSON-RPC 请求。这个分离避免 CLI 变成所有产品行为唯一可演进的位置。
 
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| 问题 | 第 3 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 已通过安装后的命令或 Rust CLI mode 进入。 |
+| 什么数据结构携带它？ | Subcommand parsing、config layers、auth state、cwd、model、approval、sandbox 和 app/MCP settings。 |
+| 谁拥有下一步决策？ | CLI routing 选择 TUI、exec、app-server、MCP server/client management、login 或 debug owner。 |
+| 这里可能怎么失败？ | config 无效、auth 缺失、managed constraints、mode 不支持、cwd 错误，或路由到错误 owner。 |
+
+</div>
+
 <div class="apply-this">
 
-## Apply This
+## 应用到实践
 
 - 让入口成为 router，而不是隐藏 runtime。
 - 把配置视为一等输入。
@@ -69,7 +93,15 @@
 
 <div class="exercise-box">
 
-## 阅读练习
+## 自检题
+
+不打开源码回答：为什么 `codex exec` 不是“没有图形的 TUI”？列出五个会改变后续 turn 的非 prompt 输入。
+
+</div>
+
+<div class="exercise-box">
+
+## 可选源码实验
 
 选择三个 `Subcommand` variants。分别找到处理它们的 match branch，并写下真正拥有行为的 crate 或 module。这个练习训练你区分“路由”和“实现”。
 

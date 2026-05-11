@@ -128,6 +128,10 @@ export default defineConfig({
                   text: "Preface",
                   link: "/codex-from-source/preface",
                 },
+                {
+                  text: "Reader Map",
+                  link: "/codex-from-source/reader-map",
+                },
               ],
             },
             {
@@ -145,15 +149,15 @@ export default defineConfig({
                   text: "3. CLI Entrypoint",
                   link: "/codex-from-source/chapter-03",
                 },
+                {
+                  text: "4. Protocol",
+                  link: "/codex-from-source/chapter-04",
+                },
               ],
             },
             {
               text: "Part II: The Agent Loop",
               items: [
-                {
-                  text: "4. Protocol",
-                  link: "/codex-from-source/chapter-04",
-                },
                 {
                   text: "5. Session Runtime",
                   link: "/codex-from-source/chapter-05",
@@ -210,6 +214,10 @@ export default defineConfig({
                   link: "/codex-from-source/source-atlas",
                 },
                 {
+                  text: "Implementation Reference",
+                  link: "/codex-from-source/implementation-reference",
+                },
+                {
                   text: "Bibliography",
                   link: "/codex-from-source/bibliography",
                 },
@@ -239,6 +247,10 @@ export default defineConfig({
               items: [
                 { text: "总览", link: "/zh/codex-from-source/" },
                 { text: "前言", link: "/zh/codex-from-source/preface" },
+                {
+                  text: "阅读地图",
+                  link: "/zh/codex-from-source/reader-map",
+                },
               ],
             },
             {
@@ -256,15 +268,15 @@ export default defineConfig({
                   text: "3. CLI 入口",
                   link: "/zh/codex-from-source/chapter-03",
                 },
+                {
+                  text: "4. 协议层",
+                  link: "/zh/codex-from-source/chapter-04",
+                },
               ],
             },
             {
               text: "第二部：Agent 循环",
               items: [
-                {
-                  text: "4. 协议层",
-                  link: "/zh/codex-from-source/chapter-04",
-                },
                 {
                   text: "5. 会话运行时",
                   link: "/zh/codex-from-source/chapter-05",
@@ -319,6 +331,10 @@ export default defineConfig({
                 {
                   text: "源码索引",
                   link: "/zh/codex-from-source/source-atlas",
+                },
+                {
+                  text: "实现参考",
+                  link: "/zh/codex-from-source/implementation-reference",
                 },
                 {
                   text: "参考文献",

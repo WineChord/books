@@ -57,6 +57,55 @@ handler.
 For a beginner, "type erasure" simply means: keep specific behavior inside the
 tool, but expose a common box to the registry.
 
+## Tool Inventory Is Planned
+
+The model-visible tool list is not just "all handlers in a map." Codex builds
+tool specs from runtime state, feature gates, app/plugin availability, hosted
+tools, local tools, deferred MCP tools, dynamic client-owned tools, and
+unavailable-tool placeholders.
+
+| Inventory source | What it contributes |
+| --- | --- |
+| built-in local tools | shell, patch, view image, plan updates, permission requests, and similar core capabilities |
+| hosted tools | provider-hosted search or image generation specs when available |
+| MCP tools | server-provided tools, sometimes direct and sometimes deferred until the runtime can expose them |
+| dynamic tools | tools executed by a client surface through request/response events |
+| discoverable tools | plugin or app tools the model can request to install or enable |
+| unavailable placeholders | names the model might know but should not call in the current state |
+| code-mode tools | specialized or nested tools that only appear in specific execution modes |
+
+This planning step is why source readers distinguish spec planning, router,
+registry, handler, and orchestrator.
+
+## Shell and Exec Are a Family
+
+The word "shell" hides several concrete paths:
+
+| Path | Runtime meaning |
+| --- | --- |
+| local shell tool | model-requested command with cwd, env, approval, sandbox, timeout, output events |
+| unified `exec_command` | richer command tool with PTY/process id, stdin, timeout, and apply-patch interception |
+| `write_stdin` | input sent to an existing exec session rather than a new command |
+| user shell command | user-requested shell action queued through session/thread operations |
+| remote or container backend | command execution delegated to a backend rather than the local OS directly |
+
+This distinction matters for approvals, cancellation, event rendering, and
+resume behavior. A tool timeout, a user interrupt, and a `write_stdin` to a
+running process are different runtime facts.
+
+## Hooks and Dynamic Tools
+
+Pre-tool hooks can block execution before the side effect happens. Post-tool
+hooks can replace model-visible output or stop follow-up behavior. Permission
+hooks can decide before Guardian or user approval. That makes hooks a policy
+engine, not only lifecycle notifications.
+
+Dynamic tools add another bridge: the core runtime can emit a
+`DynamicToolCallRequest`, wait for a client-owned implementation to respond,
+and then convert that response into a model-visible observation. If the client
+does not answer or cancels, the runtime still needs a structured fallback
+result.
+
 ## Parallel Dispatch Is Conservative
 
 `ToolCallRuntime` asks the router whether a call supports parallel execution.
@@ -81,6 +130,19 @@ structured failure output to the model. That lets the model observe the
 failure and decide what to do next. Fatal errors become runtime errors because
 continuing would be unsafe or meaningless.
 
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 7 answer |
+| --- | --- |
+| Where is the user request now? | The model has turned it into one or more tool calls. |
+| What carries it? | tool specs, tool call payloads, router invocations, registry handlers, hook payloads, and tool futures. |
+| Who decides next? | The router/registry selects the handler; the orchestrator and hooks decide whether and how execution proceeds. |
+| What can fail here? | missing tool, invalid arguments, hook block, dynamic client timeout, cancellation, recoverable tool failure, or fatal runtime error. |
+
+</div>
+
 <div class="apply-this">
 
 ## Apply This
@@ -103,7 +165,17 @@ continuing would be unsafe or meaningless.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why does Codex need both a tool registry and a
+tool orchestrator? Then classify shell, patch, MCP, dynamic tools, and hosted
+tools by who executes them and who sees the result.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Pick one tool handler and answer: What is its model-visible name? Does it
 mutate state? Does it support parallel calls? What hook payloads does it

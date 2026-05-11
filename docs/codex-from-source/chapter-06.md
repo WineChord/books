@@ -47,6 +47,28 @@ turn.
 | Sampling | build `ResponseItem` input from history | keep model input derived from a single recorded history model |
 | Follow-up | continue when tools, pending input, or compaction require it | make acting and observing iterative |
 
+## The Turn State Machine
+
+For source-equivalent understanding, read `run_turn` as a state machine:
+
+| State | Entry condition | Exit condition |
+| --- | --- | --- |
+| Empty-input guard | no user input and no pending continuation | return without starting fake work |
+| Pre-sampling compaction | token pressure exists before the model call | compact, reset baseline, or fail visibly |
+| Context baseline update | new user/context items entered the turn | history and rollout know what changed |
+| Extension preparation | apps, plugins, MCP tools, or skills are mentioned or configured | tools/instructions are injected for this turn only |
+| Dependency prompts | a skill or extension requires unavailable capability | prompt, install, skip, or continue with reduced context |
+| User-prompt hooks | policy wants to inspect input before sampling | continue, block, or report hook failure |
+| Sampling | history and active context become a model request | stream events, tool calls, errors, or final text |
+| Tool follow-up | model emitted tool calls or dynamic requests | dispatch tools, collect observations, decide whether to sample again |
+| Pending input drain | input arrived while the turn was active | requeue, attach, or block so input is not lost |
+| Mid-turn compaction | follow-up is needed but context is too large | compact and continue with a reset model client |
+| Stop hooks | model appears done | allow completion, request continuation, or report hook failure |
+| After-agent hooks | turn is about to settle | run cleanup or policy reactions before completion |
+
+This table is the practical replacement for reading the whole function. The
+important lesson is that each phase has its own owner and failure behavior.
+
 ## Streaming Changes the Product
 
 Streaming is not only a UI optimization. It changes the runtime contract.
@@ -59,6 +81,19 @@ A streaming call is like watching the letter being written, with structured
 sections arriving along the way. Codex needs the second shape because tools,
 progress, cancellation, and UI updates are all part of the product.
 
+Under the hood, streaming has its own pipeline:
+
+| Piece | Role |
+| --- | --- |
+| model client session | normalizes communication with the selected provider |
+| transport choice | WebSocket may be preferred, but HTTPS-style streaming remains a fallback path |
+| retry/recovery | authentication, disconnect, overload, and retryable stream errors are not all handled the same way |
+| response-event mapping | provider events become runtime items, message deltas, reasoning deltas, tool calls, and stream errors |
+| dropped consumer handling | when the receiver goes away, stream and tool work must be cancelled rather than leaked |
+
+This is why "streaming" belongs in runtime architecture, not only UI
+architecture.
+
 ## Compaction Is a Runtime Decision
 
 Agent conversations can exceed context limits. Codex checks token usage after
@@ -67,12 +102,55 @@ This is another reason the turn loop is not a simple function. It must decide
 whether to continue with the same context, compact and retry, drain pending
 input, or stop.
 
+There are several compaction shapes:
+
+| Shape | Meaning |
+| --- | --- |
+| manual compaction | user or client explicitly asks to compress thread history |
+| pre-turn compaction | context is already too large before sampling starts |
+| mid-turn compaction | the model still needs follow-up, but the current context cannot fit |
+| model-downshift compaction | runtime changes model/session behavior after compaction constraints |
+| remote compaction | compaction is delegated to a remote service path when configured |
+| baseline reset | compacted history replaces prior context and requires reinjection accounting |
+
+Compaction is therefore history surgery plus model-session management, not a
+generic summary helper.
+
 ## Stop Hooks and After-Agent Hooks
 
 Stopping is also a process. Before a completed turn becomes final, Codex runs
 stop hooks and after-agent hooks. A hook can request continuation, block, or
 fail in ways the runtime must report. This makes lifecycle hooks part of the
 turn protocol rather than an afterthought bolted onto the UI.
+
+## Cancellation and Error Exits
+
+Cancellation happens at several layers: the model stream can be dropped, tool
+futures can be aborted, exec sessions can time out, dynamic tools can be
+cancelled by the client surface, Guardian review can time out, and pending
+input can be drained or requeued. The turn loop must report a final outcome
+only after it has made those in-flight paths safe.
+
+| Exit | How to think about it |
+| --- | --- |
+| model stream error | may retry, refresh auth, or emit a structured stream error |
+| tool cancellation | should return an aborted tool result when the model can use it |
+| hook failure | may block, continue, or request another model step depending on hook kind |
+| fatal runtime error | ends the task because continuing would corrupt state or mislead clients |
+| user interrupt | aborts current work without necessarily destroying background terminal processes |
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 6 answer |
+| --- | --- |
+| Where is the user request now? | It is inside a running turn state machine. |
+| What carries it? | recorded history, turn context, model client session, response items, tool futures, and pending-input queues. |
+| Who decides next? | `run_turn` decides whether to sample, dispatch tools, compact, run hooks, continue, abort, or complete. |
+| What can fail here? | stream transport, authentication, token budget, hook behavior, tool futures, pending input handling, compaction, and cancellation cleanup. |
+
+</div>
 
 <div class="apply-this">
 
@@ -96,7 +174,17 @@ turn protocol rather than an afterthought bolted onto the UI.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why can a turn need to sample the model more
+than once? Name at least four reasons a turn can continue, stop, compact, or
+abort.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Open `run_turn` and write down every place where the loop can stop, continue,
 or return `None`. For each branch, decide whether the reason is user input,

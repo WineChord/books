@@ -38,6 +38,41 @@ review requests, compaction, rollback, and user shell commands. The app-server
 protocol is close to clients. It must describe request serialization, method
 names, response payloads, notifications, and experimental gates.
 
+## Event Model Taxonomy
+
+A source reader does not remember `EventMsg` as one huge enum. They group it
+by runtime meaning:
+
+| Event family | Examples | What it teaches |
+| --- | --- | --- |
+| lifecycle | turn started/completed/aborted, shutdown complete | work has explicit beginning and ending |
+| text/reasoning | agent message, content deltas, reasoning summaries, raw reasoning | streamed output is typed before it becomes UI text |
+| item lifecycle | item started/completed, raw response item | modern item events coexist with legacy event names for compatibility |
+| tools | exec begin/output/end, MCP begin/end, web/image begin/end, patch begin/update/end | side effects are observable before final answer |
+| approvals | exec approval, patch approval, permission request, user input request, Guardian assessment | decision points are protocol events |
+| context/history | context compacted, thread rolled back, token count, goal update | state changes are visible to clients |
+| errors/warnings | error, warning, stream error, deprecation notice | failure is typed, not just printed |
+| realtime/collab | realtime audio/text events, collab spawn/wait/close/resume | the same protocol family covers advanced workflows |
+
+The `Event { id, msg }` wrapper is also important: emitted events can be
+correlated with submitted work. That is why UI surfaces can show progress,
+approval prompts, tool results, and completion for the right turn.
+
+## App-Server Protocol Families
+
+The app-server layer has three directions:
+
+| Type | Direction | Examples |
+| --- | --- | --- |
+| `ClientRequest` | client to server | thread start/resume/fork, turn start, config/account/model requests, MCP/app/plugin/skill/catalog calls |
+| `ServerRequest` | server asks client/user | command approval, patch approval, user input, permission request, MCP elicitation, auth refresh, dynamic tool execution |
+| `ServerNotification` | server broadcasts state | thread status, turn started/completed, item updates, token usage, command output, turn diff, compaction |
+
+Requests also have serialization scopes. Some are global, some are
+thread-scoped, and some depend on a thread or path. Experimental methods must
+be gated. Initialization, notification opt-out, auth, and backpressure are
+part of the protocol contract, not implementation trivia.
+
 ## The Queue Pair Pattern
 
 At the core level, Codex uses a submission queue and an event queue. That is
@@ -56,6 +91,19 @@ This shape is useful because agent work is not instantaneous. A turn can
 stream tokens, ask for approval, run subprocesses, emit partial diffs, call MCP
 tools, and be interrupted. A request/response function alone would hide too
 much of that lifecycle.
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 4 answer |
+| --- | --- |
+| Where is the user request now? | It has become a typed protocol message. |
+| What carries it? | Core `Submission`/`Op`, app-server `ClientRequest`, and emitted `Event`/`EventMsg` or notifications. |
+| Who decides next? | The session consumes core operations; app-server processors route external requests; clients answer server requests. |
+| What can fail here? | Unsupported operation, invalid params, experimental gate, missing response to a server request, or event compatibility mismatch. |
+
+</div>
 
 ## Protocols as Compatibility Boundaries
 
@@ -90,7 +138,17 @@ know what `turn/start` accepts.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: name one `ClientRequest`, one `ServerRequest`,
+and one `ServerNotification`, and explain why all three directions are needed.
+Then group five runtime events into the taxonomy above.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Pick one action, such as interrupting a turn or approving a command. Find its
 core `Op` variant and then find the nearest app-server request or server

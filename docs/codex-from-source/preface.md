@@ -1,10 +1,15 @@
 # Preface
 
-This book is a guided source-code reading of the open-source
+This book is a source-equivalent guide to the open-source
 [OpenAI Codex repository](https://github.com/openai/codex). It is not a
 description of OpenAI's private model training stack, hosted cloud service, or
 internal backend. The source snapshot used throughout the book is
 [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+
+The intended default is that you can read the book without opening the source
+and still learn the architecture, control flow, data contracts, failure paths,
+policy layers, and client surfaces a source reader would retain. Source links
+remain available as evidence and for line-level auditing.
 
 Codex is interesting because it is not just a chat wrapper. It is a local
 software-engineering agent with a command-line interface, a terminal UI, typed
@@ -82,7 +87,14 @@ the link should show the same code every time you revisit it.
 
 ## How to Use the Exercises
 
-Each chapter ends with a short reading exercise. Do the exercise before
-opening every file in the atlas. The goal is to train a source-reading habit:
-start with public types and boundary functions, predict the design, then read
-implementation details to confirm or correct that prediction.
+Each chapter now separates two activities:
+
+| Activity | Purpose |
+| --- | --- |
+| Self-Check | Answer from the book alone. If you cannot, the chapter is under-explained. |
+| Optional Source Lab | Open pinned links only when you want line-level verification or audit evidence. |
+
+Start with the [Reader Map](reader-map). It gives a 30-minute path, a 2-hour
+path, and an optional source-audit path. The goal is not to force you into the
+repository; it is to make the repository's important knowledge available in
+book form.

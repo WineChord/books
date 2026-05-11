@@ -46,6 +46,27 @@
 
 对初学者来说，type erasure 可以理解为：具体行为留在工具里，但 registry 只看到一个共同盒子。
 
+## 工具清单是规划出来的
+
+模型可见的工具列表不是“registry 里有什么就全给模型”。Codex 会根据运行时状态、feature gates、app/plugin 可用性、hosted tools、本地工具、deferred MCP tools、dynamic client-owned tools 和 unavailable-tool placeholders 生成工具 spec。
+
+| 来源 | 贡献什么 |
+| --- | --- |
+| 内置本地工具 | shell、patch、view image、plan update、permission request 等核心能力 |
+| hosted tools | provider 托管的 web search、image generation 等能力 |
+| MCP tools | server 提供的工具，有时直接暴露，有时延迟暴露 |
+| dynamic tools | 由客户端接入面执行，再把结果返回 core runtime |
+| discoverable tools | 模型可以请求安装或启用的 plugin/app 工具 |
+| unavailable placeholders | 告诉模型某些名字当前不可调用 |
+
+## Shell 与 Exec 是一组路径
+
+“shell”不是单一路径。local shell tool、unified `exec_command`、`write_stdin`、用户 shell command、remote/container backend 都有不同生命周期。它们在 approval、sandbox、timeout、PTY/process id、stdin、输出截断、取消和 resume 上的语义不同。
+
+## Hooks 与 Dynamic Tools
+
+Pre-tool hook 可以在副作用发生前阻止执行；post-tool hook 可以替换模型可见输出或阻止 follow-up；permission hook 可以在 Guardian 或用户审批前先做决定。Dynamic tools 则让 core runtime 发出 `DynamicToolCallRequest`，等待客户端执行并返回 `DynamicToolCallResponse`。如果客户端取消或没有响应，runtime 仍需给出结构化 fallback result。
+
 ## 并行分发是保守的
 
 `ToolCallRuntime` 询问 router 某个 call 是否支持 parallel execution。如果支持，拿 read lock；否则拿 write lock。多个 read lock 可以共存，而 write lock 会排除其他工作。
@@ -58,9 +79,26 @@
 
 这个实现很小，但思想重要：并发不是全局开关，而是具体 tool call 的属性。
 
+## 失败仍然是工具结果
+
+dispatch 层区分 fatal runtime failure 和 model-visible tool failure。可恢复工具失败应作为结构化失败输出返回给模型，让模型观察后决定下一步；只有继续会不安全或无意义时，才升级为 runtime error。
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| 问题 | 第 7 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 模型已经把它变成一个或多个工具调用。 |
+| 什么数据结构携带它？ | tool specs、tool call payloads、router invocations、registry handlers、hook payloads 和 tool futures。 |
+| 谁拥有下一步决策？ | router/registry 选择 handler；orchestrator 和 hooks 决定是否以及如何执行。 |
+| 这里可能怎么失败？ | 工具不存在、参数无效、hook block、dynamic client timeout、取消、可恢复工具失败或 fatal runtime error。 |
+
+</div>
+
 <div class="apply-this">
 
-## Apply This
+## 应用到实践
 
 - 围绕 schema、安全、hooks、execution 和 reporting 设计工具接口。
 - 把工具特定逻辑留在 handler 内，对 registry 暴露统一形状。
@@ -77,7 +115,15 @@
 
 <div class="exercise-box">
 
-## 阅读练习
+## 自检题
+
+不打开源码回答：为什么 Codex 既需要 tool registry，又需要 tool orchestrator？再按“谁执行、谁看到结果”分类 shell、patch、MCP、dynamic tools 和 hosted tools。
+
+</div>
+
+<div class="exercise-box">
+
+## 可选源码实验
 
 选择一个 tool handler，回答：模型可见名字是什么？是否会修改状态？是否支持 parallel calls？暴露哪些 hook payload？答不清的地方，就是值得深入审查的工具契约。
 

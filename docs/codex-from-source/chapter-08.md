@@ -76,6 +76,37 @@ because users do not only care whether the model produced a final answer. They
 care which files changed, whether approval was required, what content was
 applied, and how the final turn differs from the starting point.
 
+## Runtime Equivalents Source Readers Notice
+
+`apply_patch` can appear through more than one user-visible route. It may be a
+freeform patch tool call, a command intercepted from shell-like text, or a
+delegated runtime operation in a remote environment. Codex still tries to make
+these routes converge on the same semantics: parse the patch, compute paths,
+apply permission rules, emit patch lifecycle events, and update the turn diff
+when a committed delta is known.
+
+| Runtime detail | Why it matters |
+| --- | --- |
+| streamed argument diffs | UI can show patch text as it is being formed, not only after execution |
+| shell/unified-exec interception | a model's shell-style patch command can still be governed as a patch |
+| effective patch permissions | granted turn/session permissions can narrow or expand what files are allowed |
+| remote filesystem handling | patch application may need the environment that owns the workspace |
+| output vs delegate invocation | some paths return output directly; others delegate to runtime execution |
+| failed or declined attempts | model-visible results and user events still need to explain what happened |
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 8 answer |
+| --- | --- |
+| Where is the user request now? | It has become a structured edit proposal. |
+| What carries it? | patch text, verified patch operations, permission calculations, patch events, and turn diff state. |
+| Who decides next? | The patch handler and orchestrator decide approval/execution; the diff tracker decides whether the resulting diff is exact. |
+| What can fail here? | parse error, shell-parse mismatch, denied permission, approval denial, remote filesystem issue, partial application, or inexact diff tracking. |
+
+</div>
+
 <div class="apply-this">
 
 ## Apply This
@@ -98,7 +129,17 @@ applied, and how the final turn differs from the starting point.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why is a structured patch safer to review than
+a direct file write? Then explain why a failed patch attempt still needs a
+model-visible result.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Read `ApplyPatchHandler::handle` and draw a five-step path from raw patch text
 to committed delta. Mark where parsing, permission calculation, approval,

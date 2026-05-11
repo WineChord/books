@@ -9,6 +9,9 @@ actions:
     text: Start reading
     link: /codex-from-source/preface
   - theme: alt
+    text: Reader map
+    link: /codex-from-source/reader-map
+  - theme: alt
     text: Pattern index
     link: /codex-from-source/patterns
   - theme: alt
@@ -19,8 +22,8 @@ features:
     details: Every Codex source claim links to the public openai/codex repository at one fixed commit.
   - title: Beginner-First
     details: Chapters explain Rust, async, protocols, and tool calls from their first principles before zooming into files.
-  - title: Transferable
-    details: Each chapter ends with patterns you can reuse when designing your own agentic system.
+  - title: Source-Equivalent
+    details: Reference tables collect runtime, protocol, tool, config, security, extension, and client details so source links are evidence rather than homework.
 ---
 
 ## What You Will Trace
@@ -37,6 +40,15 @@ routing, approval policy, sandbox selection, patch tracking, MCP/app
 integration, and user-facing event rendering.
 
 <ArchitectureMap />
+
+## Source-Equivalent Reading Standard
+
+The default path is not "open the source and follow along." The default path
+is: read the book, answer the self-checks, and use the pinned source links only
+when you want line-level verification. The [Reader Map](reader-map) gives a
+30-minute path, a 2-hour path, and an optional source-audit path. The
+[Implementation Reference](implementation-reference) collects the dense facts
+that a source reader would otherwise discover across many files.
 
 ## What You Will Learn
 
@@ -129,5 +141,6 @@ branch-based Codex links.
 
 - [Pattern Index](patterns)
 - [Source Atlas](source-atlas)
+- [Implementation Reference](implementation-reference)
 - [Bibliography](bibliography)
 - [Production Pipeline](pipeline)

@@ -64,6 +64,45 @@ This layered design reduces hardcoded case-by-case logic. A new tool can fit
 into the same control plane by declaring its approval payload and runtime
 behavior.
 
+## Permission Profiles and Approval Requirements
+
+Modern Codex approval is not only a boolean prompt. Tool execution also flows
+through permission profiles, additional permissions, sandbox permissions,
+cached approvals, and request-permissions tools.
+
+| Layer | Source-equivalent meaning |
+| --- | --- |
+| approval requirement | the immediate decision: allowed, denied, prompt required, or policy amendment needed |
+| permission profile | the filesystem/network access shape the runtime should enforce or request |
+| additional permissions | turn or session grants that can extend a baseline profile |
+| approval store | remembered decisions that prevent equivalent prompts from repeating endlessly |
+| request permissions tool | a model-visible way to ask for more access, itself governed by policy |
+| exec-policy amendment | a proposed rule change rather than one ad hoc command approval |
+
+This is the main correction to the beginner mental model: sandbox mode is not
+the entire permission system. It is one projection of a richer policy stack.
+
+## Guardian and Network Approval
+
+Guardian is an automated review layer for approval-like requests. It can
+evaluate shell, unified exec, apply patch, network access, MCP tool calls, and
+request-permissions flows. A robust system treats reviewer timeout or failure
+as fail-closed unless a policy explicitly says otherwise.
+
+Network approval is also not one flag. Access can be immediate or deferred,
+can use managed proxy registration, can depend on host approval caches, and
+can cancel a command when denied. A sandbox denial can carry network policy
+information that affects whether a retry is possible.
+
+| Decision source | Examples |
+| --- | --- |
+| static policy | `AskForApproval`, granular approval config, permission profile |
+| hook | permission-request hook allowing, denying, or amending behavior |
+| Guardian | automatic safety review with timeout/failure behavior |
+| user | explicit approval or denial through a client surface |
+| cache | prior approved equivalent request |
+| network policy | host/proxy decision that may cancel or amend execution |
+
 ## Security Language Should Stay Honest
 
 Approval does not make arbitrary command execution safe. It makes decisions
@@ -74,6 +113,19 @@ is a deliberate escalation, not a casual fallback.
 Use precise verbs: approvals **gate** actions, sandboxes **limit** actions,
 logs **explain** actions, and tests **check** expected policy behavior. None of
 these magically eliminates risk alone.
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 9 answer |
+| --- | --- |
+| Where is the user request now? | It is waiting at the policy/control plane before or during tool execution. |
+| What carries it? | approval payloads, permission profiles, hooks, Guardian review requests, network policy decisions, and cached approvals. |
+| Who decides next? | Static policy, hooks, Guardian, cache, network policy, or the user can decide depending on request type. |
+| What can fail here? | policy denial, hook failure, Guardian timeout, user denial, network denial, stale cache, or unsafe escalation. |
+
+</div>
 
 <div class="apply-this">
 
@@ -97,7 +149,17 @@ these magically eliminates risk alone.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why are approval policy, permission profile,
+network policy, Guardian, and sandbox five different layers? Give one failure
+each layer can catch or cause.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Create a two-column note: "decision made by tool" and "decision made by
 orchestrator." Read `ToolOrchestrator::run` and place each approval or sandbox

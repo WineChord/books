@@ -51,9 +51,38 @@ Patch path 是 Codex 设计品味最清晰的例子之一。它把 patch grammar
 
 这是重要安全习惯：runtime 不能产生准确证据时，应该通过状态诚实表达，而不是伪装确定。
 
+## Patch Events 也是 UI 合同
+
+Patch path 会在执行前、执行中和执行后发事件。用户关心的不只是最终回答，还包括哪些文件会改、是否需要审批、应用了什么内容，以及本次 turn 相比起点的 diff。Patch begin/update/end、approval request、apply result 和 turn diff 都是 UI 合同的一部分。
+
+## 源码读者会注意的 runtime 等价路径
+
+`apply_patch` 可能通过 freeform patch tool call 出现，也可能从 shell-like command 文本中被拦截，或在远端环境中委托给 runtime 执行。Codex 仍然尽量让这些路径收敛到同一套语义：解析 patch、计算路径、应用 permission rules、发 patch lifecycle events，并在知道 committed delta 时更新 turn diff。
+
+| 细节 | 为什么重要 |
+| --- | --- |
+| streamed argument diffs | UI 能看到 patch 文本逐步形成，而不是只看到最终结果 |
+| shell/unified-exec interception | shell 风格 patch command 仍可按 patch 语义治理 |
+| effective patch permissions | turn/session 已授权权限会影响文件允许范围 |
+| remote filesystem handling | patch 必须在拥有 workspace 的环境中执行 |
+| failed/declined attempts | 失败或拒绝也需要模型可见结果和用户可见事件 |
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| 问题 | 第 8 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 已变成结构化编辑提案。 |
+| 什么数据结构携带它？ | patch text、verified patch operations、permission calculations、patch events 和 turn diff state。 |
+| 谁拥有下一步决策？ | patch handler 和 orchestrator 决定审批/执行；diff tracker 判断结果 diff 是否精确。 |
+| 这里可能怎么失败？ | parse error、shell-parse mismatch、permission denial、approval denial、remote filesystem issue、partial application 或 inexact diff tracking。 |
+
+</div>
+
 <div class="apply-this">
 
-## Apply This
+## 应用到实践
 
 - 用结构化 edit operation，而不是 opaque file write。
 - 把 grammar parsing 与 agent runtime behavior 分开。
@@ -70,7 +99,15 @@ Patch path 是 Codex 设计品味最清晰的例子之一。它把 patch grammar
 
 <div class="exercise-box">
 
-## 阅读练习
+## 自检题
+
+不打开源码回答：为什么结构化 patch 比直接写文件更容易审查？为什么失败的 patch attempt 仍然需要模型可见结果？
+
+</div>
+
+<div class="exercise-box">
+
+## 可选源码实验
 
 阅读 `ApplyPatchHandler::handle`，画出从 raw patch text 到 committed delta 的五步路径，并标出 parsing、permission calculation、approval、execution 和 diff tracking 分别发生在哪里。
 

@@ -84,6 +84,19 @@ Start with this path before opening random files:
 
 Do not memorize every crate yet. The first goal is to see the spine.
 
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 1 answer |
+| --- | --- |
+| Where is the user request now? | It is still a product scenario being turned into source-reading questions. |
+| What carries it? | The recurring scenario, product loop, and first protocol boundary types. |
+| Who decides next? | The reader chooses the spine: entry, protocol, session, turn, tools, and surfaces. |
+| What can fail here? | Reading can drift into random helper files before the product contract is clear. |
+
+</div>
+
 <div class="apply-this">
 
 ## Apply This
@@ -106,7 +119,17 @@ Do not memorize every crate yet. The first goal is to see the spine.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why should a reader start with product loops
+and protocol types before private helper functions? Name three capabilities
+that must exist if Codex can modify a file safely.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Open `Subcommand`, `Op`, and `EventMsg`. Without reading function bodies, write
 down five capabilities Codex must support. Then check whether those

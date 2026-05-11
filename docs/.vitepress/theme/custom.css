@@ -113,7 +113,10 @@ a[data-source-link="codex"]::after {
 
 .apply-this,
 .next-step,
-.exercise-box {
+.exercise-box,
+.trace-ledger,
+.self-check,
+.source-equivalence {
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
   padding: 16px 18px;
@@ -131,6 +134,18 @@ a[data-source-link="codex"]::after {
 
 .exercise-box {
   border-left: 4px solid #ca8a04;
+}
+
+.trace-ledger {
+  border-left: 4px solid #10b981;
+}
+
+.self-check {
+  border-left: 4px solid #f59e0b;
+}
+
+.source-equivalence {
+  border-left: 4px solid #3b82f6;
 }
 
 .pattern-grid {

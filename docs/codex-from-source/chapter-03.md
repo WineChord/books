@@ -31,6 +31,7 @@ job is not to implement the whole agent. Their job is to pick the right owner.
 | `codex` with no subcommand | default branch after parsing | Start the interactive terminal experience. |
 | `codex exec ...` | exec-style subcommand | Run a non-interactive turn for automation. |
 | `codex app-server` | `Subcommand::AppServer` | Start a JSON-RPC service surface. |
+| `codex mcp-server` | MCP-server subcommand | Expose Codex itself as an MCP server to external MCP clients. |
 | `codex mcp ...` | `Subcommand::Mcp` | Manage MCP server configuration and auth. |
 | login/logout/auth commands | auth-oriented subcommands | Update account state before runtime use. |
 | sandbox/debug commands | debug-oriented subcommands | Help diagnose execution boundaries. |
@@ -58,6 +59,21 @@ receive typed configuration, not re-parse raw command-line strings.
 | Sandbox policy | Controls filesystem, network, and platform execution constraints. |
 | MCP config | Determines which external tools may appear in a turn. |
 
+Configuration also has layers and origins. Source readers know to ask whether
+a value came from a default, user config file, profile, command-line override,
+managed requirement, environment variable, or app-server config write. Auth is
+similar: login state, API keys, connector credentials, MCP OAuth credentials,
+and account/rate-limit requests are all entry-adjacent facts even when the
+actual storage lives in another crate.
+
+| Entry-adjacent concern | Why it matters later |
+| --- | --- |
+| config loader | merges defaults, profiles, overrides, and requirements into typed settings |
+| login/auth library | supplies account state before model or app-server calls can succeed |
+| app-server config writes | can change persistent settings and require runtime cache reload |
+| MCP OAuth | affects whether configured MCP/app tools are usable |
+| managed constraints | can disable or force behavior regardless of local user preference |
+
 ## Thin Does Not Mean Dumb
 
 A good entrypoint avoids deep business logic, but it still enforces a clean
@@ -65,6 +81,19 @@ handoff. In Codex, the CLI knows enough to parse modes and prepare runtime
 arguments. The core session knows how to run turns. The app-server knows how
 to route JSON-RPC requests. This separation keeps the CLI from becoming the
 only place where product behavior can evolve.
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 3 answer |
+| --- | --- |
+| Where is the user request now? | It has entered through the installed command or Rust CLI mode. |
+| What carries it? | Subcommand parsing, config layers, auth state, cwd, model, approval, sandbox, and app/MCP settings. |
+| Who decides next? | CLI routing chooses TUI, exec, app-server, MCP server/client management, login, or debug ownership. |
+| What can fail here? | Invalid config, missing auth, managed constraints, unsupported mode, bad cwd, or routing to the wrong owner. |
+
+</div>
 
 <div class="apply-this">
 
@@ -88,7 +117,16 @@ only place where product behavior can evolve.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why is `codex exec` not simply "TUI without
+graphics"? Then list five non-prompt inputs that can change a future turn.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Choose three `Subcommand` variants. For each one, find the match branch that
 handles it and name the crate or module that owns the real behavior. This

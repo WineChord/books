@@ -74,6 +74,19 @@ When the user asks for a code change, the route is roughly:
 The important point is not that every request uses every crate. The important
 point is that each crate family has a reason to exist.
 
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 2 answer |
+| --- | --- |
+| Where is the user request now? | It is being placed inside the repository ownership map. |
+| What carries it? | Crate boundaries, dependency direction, and public protocol surfaces. |
+| Who decides next? | Ownership boundaries decide whether entry, protocol, runtime, tools, safety, or presentation should handle the next step. |
+| What can fail here? | A reader can assign behavior to the wrong crate, especially by confusing UI presentation with runtime ownership. |
+
+</div>
+
 <div class="apply-this">
 
 ## Apply This
@@ -96,7 +109,17 @@ point is that each crate family has a reason to exist.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why should UI crates consume protocol events
+instead of owning the agent loop? Explain inbound and outbound dependencies in
+one sentence each.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Pick five crates from `codex-rs/Cargo.toml`. For each one, write a one-line
 responsibility and name one crate family from the table above. If a crate does

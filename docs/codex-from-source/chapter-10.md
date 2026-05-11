@@ -52,6 +52,22 @@ That means sandboxing is not only a boolean. A tool can prefer sandboxed
 execution, a policy can demand limits, a platform can support a particular
 mechanism, and a denial can trigger an approval path for a retry.
 
+Source readers also track sandbox preference and override:
+
+| Control | Meaning |
+| --- | --- |
+| auto preference | use a sandbox when policy and platform make it appropriate |
+| require preference | request the platform sandbox path, but fall back to `SandboxType::None` when no platform sandbox is available in this snapshot |
+| forbid preference | a tool path explicitly cannot run inside the sandbox shape |
+| bypass first attempt | skip the initial sandboxed attempt only through explicit policy |
+| effective permission profile | transform the selected profile into the platform/backend's enforceable form |
+
+The important product behavior is honesty about fallback. Some security
+systems fail closed, but this selection path does not always do that: when the
+platform sandbox cannot be selected, the manager can return `SandboxType::None`.
+That means later approval, permission, event, and policy layers must not claim
+that OS sandbox enforcement happened.
+
 ## Platform Reality
 
 Linux, macOS, Windows, and remote environments do not share one sandbox
@@ -63,12 +79,38 @@ On Windows, app-server protocol includes sandbox readiness and setup concepts.
 The design lesson is that cross-platform safety should not be hand-waved. It
 needs explicit adapters and honest fallbacks.
 
+| Platform path | Practical behavior |
+| --- | --- |
+| macOS seatbelt | profile construction narrows filesystem and network access and can protect sensitive roots |
+| Linux Landlock/helper | capability depends on kernel/helper support; unavailable platform sandbox can become `SandboxType::None`, while helper launch errors are still execution errors |
+| Windows elevated vs restricted token | enforcement differs by privilege and backend support |
+| WSL or unusual Linux hosts | some helper paths are rejected because they cannot provide expected guarantees |
+| remote execution | sandbox and filesystem semantics belong to the remote environment, not only the local process |
+
 ## Denial and Retry
 
 A sandbox denial is not just a process failure. It can be a policy signal.
 The orchestrator may surface the denial, ask for additional approval, or retry
 without the sandbox only when the policy and decision path allow it. This is
 why approval and sandboxing are separate chapters but connected at runtime.
+
+Denial may include a network policy decision. If network access is what failed,
+the runtime can ask for host/network approval, cancel the attempt, or apply a
+network policy amendment before retry. A denial without an approved path should
+remain a denial.
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 10 answer |
+| --- | --- |
+| Where is the user request now? | It is being transformed into a platform/backend-specific execution attempt. |
+| What carries it? | sandbox policy, permission profile, network decision, process launch config, and platform adapter output. |
+| Who decides next? | sandbox manager, platform adapter, network policy, and orchestrator retry logic. |
+| What can fail here? | unsupported or unavailable sandbox selection, missing helper during launch, denied network, incompatible Windows mode, or unsafe assumptions after `SandboxType::None`. |
+
+</div>
 
 <div class="apply-this">
 
@@ -92,7 +134,17 @@ why approval and sandboxing are separate chapters but connected at runtime.
 
 <div class="exercise-box">
 
-## Reading Exercise
+## Self-Check
+
+Answer without opening source: why is `SandboxType::None` different from a
+sandbox denial? Explain why clients must not describe a command as sandboxed
+just because the initial preference requested sandboxing.
+
+</div>
+
+<div class="exercise-box">
+
+## Optional Source Lab
 
 Pick a command that reads files and a command that writes files. Without
 running anything, trace which layers would care: approval policy, exec policy,
