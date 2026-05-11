@@ -1,0 +1,15 @@
+{
+  "name": "winechord-books",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev docs --host 127.0.0.1",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs --host 127.0.0.1",
+    "check:content": "node scripts/check-content.mjs",
+    "check:dist": "bash scripts/check-dist.sh"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}
