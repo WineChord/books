@@ -16,6 +16,7 @@
 | Phase 5: Editorial Review | 已完成 | 多轮 reviewer 反馈 |
 | Phase 6: Revision | 已完成 | 根据审稿反馈修订 |
 | Phase 7: Source Code Audit | 已完成 | 审计伪代码和源码泄漏 |
+| Visual Experience Spec | 进行中 | [视觉理解与交互标准](visual-experience-spec)、[章节记录](visual-spec-records)、[实现台账](visual-implementation-ledger) |
 
 ## Phase 1 Research Notes
 
@@ -35,3 +36,10 @@
 ## 当前状态
 
 大纲已批准，正文已完成，后续更新应优先修改正式章节和源码索引。
+
+下一项大改进是视觉理解层。准出标准见 [视觉体验规范](visual-experience-spec)：每个
+核心 runtime 概念都应该变成美观、可交互、可访问的解释界面，而不只是正文加 Mermaid。
+
+机器可读 canonical contract 位于 `src/visual/visual-specs.mjs`；reviewer-facing index
+是 [章节 VisualSpec 记录](visual-spec-records)。实现进度必须记录在
+[视觉实现台账](visual-implementation-ledger) 中。

@@ -18,6 +18,7 @@ Source snapshot: `569ff6a1c400bd514ff79f5f1050a684dc3afde3`.
 | Phase 5: Editorial Review | Complete | Multiple reviewer passes |
 | Phase 6: Revision | Complete | Review feedback applied |
 | Phase 7: Source Code Audit | Complete | Pseudocode and source leakage audited |
+| Visual Experience Spec | Active | [Visual comprehension and interaction standard](visual-experience-spec), [chapter records](visual-spec-records), [implementation ledger](visual-implementation-ledger) |
 
 ## Phase 1 Research Notes
 
@@ -40,3 +41,12 @@ and should not be polished into the final book directly.
 The outline was approved, the chapters were written, and the publication pass
 now lives in the main book pages. Future work should update the final chapters,
 source atlas, and implementation reference first.
+
+The next major improvement is the visual comprehension layer. The governing
+standard is [Visual Experience Spec](visual-experience-spec): every central
+runtime concept should become a beautiful, interactive, accessible explanation,
+not merely prose plus Mermaid.
+
+The canonical machine-readable contract lives in `src/visual/visual-specs.mjs`;
+the reviewer-facing index is [Chapter VisualSpec Records](visual-spec-records).
+Implementation status must be tracked in the [Visual Implementation Ledger](visual-implementation-ledger).

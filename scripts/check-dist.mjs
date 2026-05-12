@@ -1,6 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
+import {
+  chapterVisualSpecs,
+  sourceSnapshot,
+  visualSpecStatus,
+} from "../src/visual/visual-specs.mjs";
+
 const distDir = path.join(process.cwd(), "dist");
 const base = "/books/";
 const siteOrigin = "https://www.wineandchord.com";
@@ -95,6 +101,16 @@ assert(
 const htmlFiles = walk(distDir).filter((file) => file.endsWith(".html"));
 const forbiddenPublicationPattern =
   /book-rewrite-prompt|\/rewrite\/|codex-from-source_rewrite|zh_codex-from-source_rewrite|vitepress/i;
+const forbiddenPublicationTokens = [
+  "chapterVisualSpecs",
+  "visualSpecStatus",
+  "sourceSnapshot",
+  "sourceEvidenceRefs",
+  visualSpecStatus.scope,
+  visualSpecStatus.approvalTarget,
+  ...chapterVisualSpecs.map((spec) => spec.id),
+  ...chapterVisualSpecs.map((spec) => spec.primaryInteractive.component),
+];
 
 for (const file of walk(distDir)) {
   if (!/\.(?:html|js|json|xml|css)$/.test(file)) {
@@ -107,6 +123,12 @@ for (const file of walk(distDir)) {
       && !forbiddenPublicationPattern.test(rel),
     `${rel} exposes internal or obsolete publication material`,
   );
+  for (const token of forbiddenPublicationTokens) {
+    assert(
+      !body.includes(token) && !rel.includes(token),
+      `${rel} exposes internal visual spec token: ${token}`,
+    );
+  }
 }
 
 for (const file of htmlFiles) {
