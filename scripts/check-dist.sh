@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-dist="docs/.vitepress/dist"
+dist="dist"
 
 test -d "$dist"
 

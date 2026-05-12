@@ -12,20 +12,6 @@ thread 可以 spawn 子 thread，可以 assign 或 send 工作，可以 wait 等
 客户端的事件形态，以及可持久化的 trace 形态。Codex 把这些关注点分开，
 所以协作关系可以恢复、调试和渲染，而不是依赖终端文本或隐藏的全局调度器。
 
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Graph edge status | [`codex-rs/agent-graph-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7) |
-| Local graph store | [`codex-rs/agent-graph-store/src/local.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/local.rs#L13) |
-| Agent trace reducer | [`codex-rs/rollout-trace/src/reducer/tool/agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L1) |
-| Session multi-agent integration | [`codex-rs/core/src/session/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/multi_agents.rs#L1) |
-| Multi-agent tool handlers | [`codex-rs/core/src/tools/handlers/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents.rs#L1) |
-
-</div>
-
 ## 协作单位仍然是 Thread
 
 单个 Codex turn 本身已经包含很多部件：模型输入、流式输出、工具调用、
@@ -253,3 +239,17 @@ Multi-agent Codex 仍然是 Codex：threads、turns、tools、events 和可 repl
 状态。新增的是 interaction graph，它记录跨 thread 边界的信息流。第 21 章
 会把同一原则推进到 cloud tasks：工作可以远程运行，但仍然必须以类型化 task
 state、签名身份和本地验证过的 patch 回到用户手中。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Graph edge status | [`codex-rs/agent-graph-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7) |
+| Local graph store | [`codex-rs/agent-graph-store/src/local.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/local.rs#L13) |
+| Agent trace reducer | [`codex-rs/rollout-trace/src/reducer/tool/agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L1) |
+| Session multi-agent integration | [`codex-rs/core/src/session/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/multi_agents.rs#L1) |
+| Multi-agent tool handlers | [`codex-rs/core/src/tools/handlers/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents.rs#L1) |
+
+</div>

@@ -8,20 +8,6 @@
 
 这句话解释了协议、turn loop、工具路由、审批、沙箱、app-server、TUI、扩展、记忆、云任务、生成 schema 和 CI 治理。当某个设计看起来啰嗦时，它通常是在压力下维护这个赌注。
 
-<div class="source-equivalence">
-
-## 源码地图
-
-结语综合全书，不引入新的子系统。它的规范源码锚点就是各章反复使用的源码族：
-[`protocol`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src)、
-[`core session runtime`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session)、
-[`app-server`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src)、
-[`tool execution`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools)、
-[`rollout trace`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src)
-和 [repository governance](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github)。
-
-</div>
-
 ## 五个可迁移教训
 
 ### 1. 把产品词汇放进类型
@@ -83,3 +69,17 @@ graph TD
 系统不是一次模型调用。它是一个为模型驱动 worker 提供的有边界运行环境。worker 越有能力，边界就越有价值。
 
 这就是最值得偷走的架构经验。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+结语综合全书，不引入新的子系统。它的规范源码锚点就是各章反复使用的源码族：
+[`protocol`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src)、
+[`core session runtime`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session)、
+[`app-server`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src)、
+[`tool execution`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools)、
+[`rollout trace`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src)
+和 [repository governance](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github)。
+
+</div>

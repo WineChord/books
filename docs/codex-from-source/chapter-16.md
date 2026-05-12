@@ -15,21 +15,6 @@ to an app-server session, receives protocol notifications and requests,
 updates chat state, and renders the result inside a live terminal viewport
 while preserving real scrollback.
 
-
-<div class="source-equivalence">
-
-## Source Map
-
-| Concept | Source anchor |
-| --- | --- |
-| TUI chat widget | [`codex-rs/tui/src/chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658) |
-| Bottom pane state | [`codex-rs/tui/src/bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199) |
-| TUI app-server session | [`codex-rs/tui/src/app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148) |
-| App events | [`codex-rs/tui/src/app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L72) |
-| Rendering tests | [`codex-rs/tui/src/chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34) |
-
-</div>
-
 ## Inline, Not Fullscreen
 
 The TUI is inline by default. It does not behave like a classic fullscreen
@@ -309,3 +294,17 @@ the contract, SDKs and daemons make that contract reachable, and the terminal
 UI proves that a rich interactive surface can still be an event renderer
 rather than a second runtime. Part V turns from clients to extension points:
 the protocols and packages that add new capability to the system.
+
+<div class="source-equivalence">
+
+## Source Map
+
+| Concept | Source anchor |
+| --- | --- |
+| TUI chat widget | [`codex-rs/tui/src/chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658) |
+| Bottom pane state | [`codex-rs/tui/src/bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199) |
+| TUI app-server session | [`codex-rs/tui/src/app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148) |
+| App events | [`codex-rs/tui/src/app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L72) |
+| Rendering tests | [`codex-rs/tui/src/chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34) |
+
+</div>

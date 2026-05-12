@@ -13,21 +13,6 @@ linters, generated checks, workflow lanes, and release gates. This chapter
 explains why those checks belong in the design and how to steal the pattern
 without turning CI into a slow wall of noise.
 
-<div class="source-equivalence">
-
-## Source Map
-
-| Concept | Source anchor |
-| --- | --- |
-| Main CI workflow | [`.github/workflows/rust-ci.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-ci.yml#L46) |
-| Full CI matrix | [`.github/workflows/rust-ci-full.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-ci-full.yml#L152) |
-| Bazel verification workflow | [`.github/workflows/bazel.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314) |
-| Blob-size policy | [`scripts/check_blob_size.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/scripts/check_blob_size.py#L1) |
-| TUI/core boundary check | [`.github/scripts/verify_tui_core_boundary.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_tui_core_boundary.py#L1) |
-| Cargo workspace governance | [`.github/scripts/verify_cargo_workspace_manifests.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_cargo_workspace_manifests.py#L1) |
-
-</div>
-
 ## Policy Is Architecture with a Failing Exit Code
 
 Every chapter in this book described a boundary: protocol before clients,
@@ -136,16 +121,18 @@ Did the source contract change intentionally? Did an experimental field leak
 into the stable schema?
 
 ```mermaid
-stateDiagram-v2
-  [*] --> SourceChanged
-  SourceChanged --> Regenerated: generator run
-  SourceChanged --> DriftDetected: committed output stale
-  Regenerated --> Reviewable: diff includes code and contract
-  DriftDetected --> Blocked: CI failure
-  Reviewable --> Accepted: reviewer accepts contract change
-  Reviewable --> Reworked: contract change was accidental
-  Reworked --> SourceChanged
-  Accepted --> [*]
+flowchart TD
+    StartState([Start])
+    EndState([End])
+    StartState --> SourceChanged
+    SourceChanged -->|generator run| Regenerated
+    SourceChanged -->|committed output stale| DriftDetected
+    Regenerated -->|diff includes code and contract| Reviewable
+    DriftDetected -->|CI failure| Blocked
+    Reviewable -->|reviewer accepts contract change| Accepted
+    Reviewable -->|contract change was accidental| Reworked
+    Reworked --> SourceChanged
+    Accepted --> EndState
 ```
 
 The state machine is small, but it changes behavior. A contract change becomes
@@ -192,3 +179,18 @@ The book now has all of its machinery: contracts, runtime, tools, clients,
 extensions, coordination, memory, build, packaging, and governance. The
 epilogue steps back from Codex and names the transferable architectural lessons
 that matter even if your system is not an AI coding agent.
+
+<div class="source-equivalence">
+
+## Source Map
+
+| Concept | Source anchor |
+| --- | --- |
+| Main CI workflow | [`.github/workflows/rust-ci.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-ci.yml#L46) |
+| Full CI matrix | [`.github/workflows/rust-ci-full.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-ci-full.yml#L152) |
+| Bazel verification workflow | [`.github/workflows/bazel.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314) |
+| Blob-size policy | [`scripts/check_blob_size.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/scripts/check_blob_size.py#L1) |
+| TUI/core boundary check | [`.github/scripts/verify_tui_core_boundary.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_tui_core_boundary.py#L1) |
+| Cargo workspace governance | [`.github/scripts/verify_cargo_workspace_manifests.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_cargo_workspace_manifests.py#L1) |
+
+</div>

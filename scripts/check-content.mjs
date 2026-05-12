@@ -11,7 +11,10 @@ const root = process.cwd();
 const docsDir = join(root, "docs");
 const enBookDir = join(docsDir, "codex-from-source");
 const zhBookDir = join(docsDir, "zh", "codex-from-source");
-const vitepressConfig = readFileSync(join(docsDir, ".vitepress", "config.ts"), "utf8");
+const bookConfigPath = join(root, "src", "book.config.ts");
+const contentConfigPath = join(root, "src", "content.config.ts");
+const packagePath = join(root, "package.json");
+const packageLockPath = join(root, "package-lock.json");
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -29,41 +32,101 @@ function assert(condition, message) {
   }
 }
 
-const enFiles = readdirSync(enBookDir)
-  .filter((name) => name.endsWith(".md"))
-  .sort();
-const zhFiles = readdirSync(zhBookDir)
-  .filter((name) => name.endsWith(".md"))
-  .sort();
+function publicBookFiles(dir) {
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".md"))
+    .filter((name) => name !== "index.md")
+    .filter((name) => name !== "book-rewrite-prompt.md")
+    .sort();
+}
+
+function countApplyItems(body) {
+  const heading = body.search(/^## .*(?:Apply This|应用模式|应用到实践).*$/m);
+  if (heading === -1) {
+    return 0;
+  }
+  const section = body.slice(heading);
+  const nextHeading = section.slice(1).search(/^## /m);
+  const applySection =
+    nextHeading === -1 ? section : section.slice(0, nextHeading + 1);
+  return applySection.match(/^\d+\.\s+/gm)?.length ?? 0;
+}
+
+function checkChapterContract(file, body) {
+  assert(
+    body.includes('<div class="source-equivalence">'),
+    `${file} is missing its source-equivalence block`,
+  );
+  assert(
+    countApplyItems(body) === 5,
+    `${file} must have exactly five Apply This items`,
+  );
+}
+
+const enFiles = publicBookFiles(enBookDir);
+const zhFiles = publicBookFiles(zhBookDir);
 
 assert(
   JSON.stringify(enFiles) === JSON.stringify(zhFiles),
-  `English and Chinese chapter files differ:\nEN ${enFiles}\nZH ${zhFiles}`,
+  `English and Chinese public files differ:\nEN ${enFiles}\nZH ${zhFiles}`,
 );
 
-const configuredCommit = vitepressConfig.match(
-  /const sourceCommit = "([0-9a-f]{40})";/,
+const bookConfig = readFileSync(bookConfigPath, "utf8");
+const contentConfig = readFileSync(contentConfigPath, "utf8");
+const packageJson = readFileSync(packagePath, "utf8");
+const packageLock = readFileSync(packageLockPath, "utf8");
+
+const configuredCommit = bookConfig.match(
+  /sourceCommit = "([0-9a-f]{40})"/,
 )?.[1];
 assert(
   configuredCommit === sourceCommit,
-  `config.ts sourceCommit (${configuredCommit}) differs from check-content (${sourceCommit})`,
+  `book.config.ts sourceCommit (${configuredCommit}) differs from check-content (${sourceCommit})`,
 );
 
-for (const file of enFiles) {
-  if (file === "book-rewrite-prompt.md") {
-    continue;
-  }
+assert(
+  contentConfig.includes("**/book-rewrite-prompt.md"),
+  "content collection must exclude book-rewrite-prompt.md",
+);
+assert(
+  contentConfig.includes("**/rewrite/**"),
+  "content collection must exclude rewrite research material",
+);
+assert(
+  !packageJson.includes("vitepress"),
+  "package.json must not depend on VitePress after the Astro migration",
+);
+assert(
+  !packageLock.includes("vitepress"),
+  "package-lock.json must not lock VitePress after the Astro migration",
+);
 
+const configuredPaths = new Set(
+  [...bookConfig.matchAll(/\b(?:path|zhPath): "([^"]+)"/g)].map(
+    (match) => match[1],
+  ),
+);
+
+for (const match of bookConfig.matchAll(/\bchapter\((\d+),/g)) {
+  const file = String(Number(match[1])).padStart(2, "0");
+  configuredPaths.add(`codex-from-source/chapter-${file}`);
+  configuredPaths.add(`zh/codex-from-source/chapter-${file}`);
+}
+
+for (const match of bookConfig.matchAll(/\b(?:front|reference)\("([^"]+)"/g)) {
+  configuredPaths.add(`codex-from-source/${match[1]}`);
+  configuredPaths.add(`zh/codex-from-source/${match[1]}`);
+}
+
+for (const file of enFiles) {
   const page = file.replace(/\.md$/, "");
-  const enLink = `/codex-from-source/${page === "index" ? "" : page}`;
-  const zhLink = `/zh/codex-from-source/${page === "index" ? "" : page}`;
   assert(
-    vitepressConfig.includes(enLink),
-    `English sidebar/nav is missing ${enLink}`,
+    configuredPaths.has(`codex-from-source/${page}`),
+    `book.config.ts is missing English page metadata for ${page}`,
   );
   assert(
-    vitepressConfig.includes(zhLink),
-    `Chinese sidebar/nav is missing ${zhLink}`,
+    configuredPaths.has(`zh/codex-from-source/${page}`),
+    `book.config.ts is missing Chinese page metadata for ${page}`,
   );
 }
 
@@ -79,12 +142,18 @@ for (const file of files) {
     `${rel} contains a branch-based Codex source link`,
   );
 
-  const sourceLinks = body.match(/https:\/\/github\.com\/openai\/codex\/(?:blob|tree)\/[^)\s]+/g) ?? [];
+  const sourceLinks =
+    body.match(/https:\/\/github\.com\/openai\/codex\/(?:blob|tree)\/[^)\s]+/g)
+    ?? [];
   for (const link of sourceLinks) {
     if (link.startsWith(sourceBlob) || link.startsWith(sourceTree)) {
       continue;
     }
     throw new Error(`${rel} contains an unpinned Codex source link: ${link}`);
+  }
+
+  if (/codex-from-source\/chapter-\d+\.md$/.test(rel)) {
+    checkChapterContract(rel, body);
   }
 }
 

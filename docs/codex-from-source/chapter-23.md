@@ -15,20 +15,6 @@ for local development and the shipping release workflow, Bazel supplies a
 hermetic verification overlay, and schema generation speaks for every client
 that integrates with Codex without linking the runtime.
 
-<div class="source-equivalence">
-
-## Source Map
-
-| Concept | Source anchor |
-| --- | --- |
-| Cargo workspace | [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1) |
-| Bazel module | [`MODULE.bazel`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/MODULE.bazel#L1) |
-| Bazel crate macros | [`defs.bzl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/defs.bzl#L66) |
-| Bazel release-build verification | [`.github/workflows/bazel.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314) |
-| App-server schema export | [`codex-rs/app-server-protocol/src/bin/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/bin/export.rs#L1) |
-
-</div>
-
 ## The Problem This Layer Solves
 
 An agent runtime is unusually sensitive to build drift. A normal CLI can often
@@ -252,3 +238,17 @@ Cargo, Bazel, and generated schemas agree on the product, the release pipeline
 still has to turn Cargo-built artifacts and verified assumptions into npm
 packages, standalone installers, signed archives, bundled helpers, and
 platform-specific native dependencies.
+
+<div class="source-equivalence">
+
+## Source Map
+
+| Concept | Source anchor |
+| --- | --- |
+| Cargo workspace | [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1) |
+| Bazel module | [`MODULE.bazel`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/MODULE.bazel#L1) |
+| Bazel crate macros | [`defs.bzl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/defs.bzl#L66) |
+| Bazel release-build verification | [`.github/workflows/bazel.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314) |
+| App-server schema export | [`codex-rs/app-server-protocol/src/bin/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/bin/export.rs#L1) |
+
+</div>

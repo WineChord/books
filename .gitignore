@@ -1,6 +1,5 @@
 node_modules/
-docs/.vitepress/cache/
-docs/.vitepress/dist/
+.astro/
+dist/
 .DS_Store
 npm-debug.log*
-

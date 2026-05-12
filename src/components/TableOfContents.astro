@@ -1,0 +1,43 @@
+---
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+  lang: "en" | "zh";
+}
+
+const { headings, lang } = Astro.props;
+const tocHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
+---
+
+{tocHeadings.length > 0 && (
+  <aside class="hidden w-60 shrink-0 xl:block">
+    <div class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto px-4 py-6">
+      <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
+        {lang === "zh" ? "本页目录" : "On this page"}
+      </p>
+      <ul class="space-y-1">
+        {tocHeadings.map((heading) => (
+          <li>
+            <a
+              href={`#${heading.slug}`}
+              data-toc-link
+              class:list={[
+                "block text-sm text-muted transition-colors hover:text-terracotta",
+                heading.depth === 3 ? "pl-3 text-xs" : "",
+              ]}
+            >
+              {heading.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </aside>
+)}
+
+<script src="../scripts/toc-highlight.ts"></script>

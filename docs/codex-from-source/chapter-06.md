@@ -11,21 +11,6 @@ hooks, compaction, and cancellation become agent behavior.
   <p><strong>Mental model:</strong> the loop alternates between deciding what the model may see and deciding what the runtime may do.</p>
 </div>
 
-
-<div class="source-equivalence">
-
-## Source Map
-
-| Concept | Source anchor |
-| --- | --- |
-| Turn loop implementation | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139) |
-| Prompt hook ordering | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L313) |
-| Accepted prompt recording | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L328) |
-| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
-| Context manager | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
-
-</div>
-
 ## The Shape of a Turn
 
 A turn begins when the submission loop decides that user input should become
@@ -110,24 +95,26 @@ record observations, repair context when needed, inspect stop hooks, and then
 either continue or settle.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Prepare
-    Prepare --> Blocked: prompt hook rejects
-    Prepare --> Sample: hooks accepted, context and input recorded
-    Sample --> Stream: provider accepts request
-    Sample --> Abort: cancellation or fatal request error
-    Stream --> DispatchTools: completed tool calls
-    Stream --> Compact: follow-up needed and context limit hit
-    Stream --> StopHooks: no immediate follow-up
+flowchart TD
+    StartState([Start])
+    EndState([End])
+    StartState --> Prepare
+    Prepare -->|prompt hook rejects| Blocked
+    Prepare -->|hooks accepted, context and input recorded| Sample
+    Sample -->|provider accepts request| Stream
+    Sample -->|cancellation or fatal request error| Abort
+    Stream -->|completed tool calls| DispatchTools
+    Stream -->|follow-up needed and context limit hit| Compact
+    Stream -->|no immediate follow-up| StopHooks
     DispatchTools --> RecordObservations
-    RecordObservations --> Compact: continuation would overflow context
-    RecordObservations --> Sample: tool observations recorded
-    Compact --> Sample: compacted history installed
-    StopHooks --> Sample: hook adds model-visible context
-    StopHooks --> Complete: no continuation reason remains
-    Blocked --> [*]
-    Abort --> [*]
-    Complete --> [*]
+    RecordObservations -->|continuation would overflow context| Compact
+    RecordObservations -->|tool observations recorded| Sample
+    Compact -->|compacted history installed| Sample
+    StopHooks -->|hook adds model-visible context| Sample
+    StopHooks -->|no continuation reason remains| Complete
+    Blocked --> EndState
+    Abort --> EndState
+    Complete --> EndState
 ```
 
 The loop has one governing rule: continue only for a concrete reason. The
@@ -271,3 +258,17 @@ recorded context into model requests, model events into runtime work, and
 runtime observations back into context. Chapter 7 moves one layer down to the
 model side of that loop: providers, transports, streaming event normalization,
 model metadata, realtime paths, and backend task APIs.
+
+<div class="source-equivalence">
+
+## Source Map
+
+| Concept | Source anchor |
+| --- | --- |
+| Turn loop implementation | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139) |
+| Prompt hook ordering | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L313) |
+| Accepted prompt recording | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L328) |
+| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
+| Context manager | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
+
+</div>

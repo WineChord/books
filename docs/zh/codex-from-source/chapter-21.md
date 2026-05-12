@@ -11,20 +11,6 @@ backend task workflow，有自己的身份、环境、attempts、diffs 和本地
 state，并可能把返回的 patch 应用到当前工作树。这两个体验相关，但不是同一
 个执行边界。
 
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Cloud task API | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22) |
-| HTTP backend client | [`codex-rs/cloud-tasks-client/src/http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L24) |
-| Mock backend | [`codex-rs/cloud-tasks-mock-client/src/mock.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-mock-client/src/mock.rs#L1) |
-| Agent identity material | [`codex-rs/agent-identity/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40) |
-| Local diff discipline | [`codex-rs/core/src/turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) |
-
-</div>
-
 ## Task Workflow 是 Backend Contract
 
 Cloud task client 围绕一个小的 backend interface 组织。它能 list tasks、
@@ -287,3 +273,17 @@ Cloud tasks 把 Codex 扩展到单个本地 turn 之外，但没有模糊 runtim
 远程工作通过 backend contracts 创建、列出、检查和授权；本地 mutation 仍然
 经过本地 patch checks。第 22 章会把同样的分离用于长期状态：memories 有用，
 是因为它们是受控 side channel，而不是偷偷变成另一份 chat history。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Cloud task API | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22) |
+| HTTP backend client | [`codex-rs/cloud-tasks-client/src/http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L24) |
+| Mock backend | [`codex-rs/cloud-tasks-mock-client/src/mock.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-mock-client/src/mock.rs#L1) |
+| Agent identity material | [`codex-rs/agent-identity/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40) |
+| Local diff discipline | [`codex-rs/core/src/turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) |
+
+</div>

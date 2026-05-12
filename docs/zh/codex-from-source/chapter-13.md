@@ -4,23 +4,6 @@
 
 Sandbox 架构有三个阶段。第一，Codex 把 permission profile 解析成 filesystem policy 和 network policy。第二，sandbox manager 判断当前工具是否需要 platform sandbox，并在需要时改写 command。第三，platform helper 按该操作系统能表达的方式执行改写后的 command。
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Sandbox type selection | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23) |
-| Platform sandbox choice | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L48) |
-| macOS Seatbelt policy | [`codex-rs/sandboxing/src/seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L31) |
-| Linux helper entry | [`codex-rs/linux-sandbox/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/main.rs#L4) |
-| Linux proxy routing | [`codex-rs/linux-sandbox/src/proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L169) |
-| Windows sandbox setup | [`codex-rs/windows-sandbox-rs/src/setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L85) |
-| Network proxy policy | [`codex-rs/network-proxy/src/config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/config.rs#L271) |
-
-</div>
-
 ## Policy、Transform、Enforcement
 
 ```mermaid
@@ -104,7 +87,7 @@ Codex 的 managed network proxy 是 application-level boundary。它可以运行
 
 某些 shell 路径在 sandbox denial 后需要请求 unsandboxed 或 escalated execution。Codex 把这当作新的风险决策。Shell escalation adapter 会把 wrapper protocol 和最终 process spawn 分开，通常通过 local socket 或 inherited channel 完成。这样 runtime 仍能围绕 escalation 保持 approval 和 audit semantics，而不是让 shell 静默逃出自己的 sandbox。
 
-## 应用到实践（Apply This）
+## 应用到实践
 
 1. **区分授权与隔离。** Approval 允许动作继续；sandboxing 限制动作还能做什么。
 2. **执行前编译策略。** 先把 profiles 解析成 filesystem/network policy，再做平台 transform。
@@ -113,3 +96,19 @@ Codex 的 managed network proxy 是 application-level boundary。它可以运行
 5. **无法验证隔离时拒绝。** Backend 不能执行请求边界时，fail closed，而不是无标记运行。
 
 第三部分到这里结束：模型提出动作，Codex 路由它、治理它，通过结构化协议完成 mutation，经过 approval gates，最后把 policy 降低为平台执行。第四部分会打开 runtime 给更多客户端，让它们共享同一套 thread 和 side-effect model。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Sandbox type selection | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23) |
+| Platform sandbox choice | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L48) |
+| macOS Seatbelt policy | [`codex-rs/sandboxing/src/seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L31) |
+| Linux helper entry | [`codex-rs/linux-sandbox/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/main.rs#L4) |
+| Linux proxy routing | [`codex-rs/linux-sandbox/src/proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L169) |
+| Windows sandbox setup | [`codex-rs/windows-sandbox-rs/src/setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L85) |
+| Network proxy policy | [`codex-rs/network-proxy/src/config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/config.rs#L271) |
+
+</div>

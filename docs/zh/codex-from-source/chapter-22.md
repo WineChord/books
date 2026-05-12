@@ -11,20 +11,6 @@ consolidation 的受限 internal agent。
 未来 prompt。Codex 把 memory 当成显式子系统，是为了让 runtime 获得长期
 context 的好处，同时仍然控制哪些内容能被读、被写、被引用。
 
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Memory usage kinds | [`codex-rs/memories/read/src/usage.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/usage.rs#L8) |
-| Citation parser | [`codex-rs/memories/read/src/citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L1) |
-| Read-only MCP memory service | [`codex-rs/memories/mcp/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/mcp/src) |
-| Stage 1 extraction | [`codex-rs/memories/write/src/phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L1) |
-| Stage 2 consolidation | [`codex-rs/memories/write/src/phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L1) |
-
-</div>
-
 ## Memory 有独立 Read Path 和 Write Path
 
 Read path 帮助当前 session 使用已有 memory。它在 summary file 存在时构建
@@ -282,3 +268,17 @@ Memories 完成了第六部的主题。Multi-agent work 需要 interaction edges
 cloud work 需要 task contracts 和 signed identity；长期 context 需要受控的
 read/write channels。三个场景里，Codex 都拒绝把 state 隐藏在自然语言里。
 可靠架构来自命名 state、记录边界，并让模型在这些边界内工作。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Memory usage kinds | [`codex-rs/memories/read/src/usage.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/usage.rs#L8) |
+| Citation parser | [`codex-rs/memories/read/src/citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L1) |
+| Read-only MCP memory service | [`codex-rs/memories/mcp/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/mcp/src) |
+| Stage 1 extraction | [`codex-rs/memories/write/src/phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L1) |
+| Stage 2 consolidation | [`codex-rs/memories/write/src/phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L1) |
+
+</div>

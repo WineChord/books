@@ -4,21 +4,6 @@
 
 关键设计点是：Codex 不把“运行命令”当成单个原语。它把命令执行看成一条 pipeline。最终进程可能在本机运行，可能在平台 sandbox 中运行，也可能通过 `exec-server` 抽象表示远端 executor 及其文件系统。
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Shell handler | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L31) |
-| Unified exec handler | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L48) |
-| Exec policy manager | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251) |
-| Exec-server RPC client | [`codex-rs/exec-server/src/rpc.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/rpc.rs#L234) |
-| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L38) |
-
-</div>
-
 ## Shell 工具只是入口
 
 Codex 有多个 shell 相邻入口，因为不同客户端和模型表面需要的交互形状不同。
@@ -112,7 +97,7 @@ Shell execution 还依赖 environment management：当前工作目录、选定 e
 
 架构含义很直接：`exec-server` 不只是 helper binary。它是运行时关于“工作发生在哪里”“哪个文件系统是权威”“进程输出如何排序”的抽象。
 
-## 应用到实践（Apply This）
+## 应用到实践
 
 1. **先解析再决策。** 有结构化 command facts 时，不要直接对原始 shell 文本套 policy。
 2. **显式规则先于启发式。** 组织策略应覆盖 fallback safety guesses。
@@ -121,3 +106,17 @@ Shell execution 还依赖 environment management：当前工作目录、选定 e
 5. **显式携带环境事实。** cwd、env、timeout、TTY 和 selected executor 都应属于 request。
 
 第 11 章会把一种修改路径从 shell stream 中拿出来，作为独立协议讨论：patch。这个分离让 Codex 能审查并应用文件编辑，而不是把编辑降级成不透明命令文本。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Shell handler | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L31) |
+| Unified exec handler | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L48) |
+| Exec policy manager | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251) |
+| Exec-server RPC client | [`codex-rs/exec-server/src/rpc.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/rpc.rs#L234) |
+| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L38) |
+
+</div>

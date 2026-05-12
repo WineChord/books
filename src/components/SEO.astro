@@ -1,0 +1,29 @@
+---
+import { siteDescription, siteTitle } from "../book.config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonicalPath?: string;
+}
+
+const { title = siteTitle, description = siteDescription, canonicalPath = "" } = Astro.props;
+const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://www.wineandchord.com";
+const base = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const canonical = `${site}${base}${canonicalPath}`;
+const fullTitle = title === siteTitle ? title : `${title} | ${siteTitle}`;
+---
+
+<title>{fullTitle}</title>
+<link rel="canonical" href={canonical} />
+<meta name="description" content={description} />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="WineChord Books" />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />

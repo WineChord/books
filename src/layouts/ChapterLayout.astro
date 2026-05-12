@@ -1,0 +1,74 @@
+---
+import Header from "../components/Header.astro";
+import ReadingProgress from "../components/ReadingProgress.astro";
+import Sidebar from "../components/Sidebar.astro";
+import TableOfContents from "../components/TableOfContents.astro";
+import ChapterNav from "../components/ChapterNav.astro";
+import BaseLayout from "./BaseLayout.astro";
+import type { PageConfig, PartConfig } from "../book.config";
+import { getAdjacentPages, isFirstChapterOfPart, localizePage } from "../book.config";
+import { canonicalPath } from "../urls";
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  page: PageConfig;
+  currentPath: string;
+  lang: "en" | "zh";
+  headings: Heading[];
+  part?: PartConfig;
+  hasMermaid?: boolean;
+}
+
+const { page, currentPath, lang, headings, part, hasMermaid = false } = Astro.props;
+const localized = localizePage(page, lang);
+const alternatePath = lang === "zh" ? page.path : page.zhPath;
+const adjacent = getAdjacentPages(page, lang);
+const showPartHeader = page.number && part && isFirstChapterOfPart(page.number);
+---
+
+<BaseLayout
+  title={localized.title}
+  description={localized.description}
+  canonicalPath={canonicalPath(localized.path)}
+  lang={lang}
+>
+  <ReadingProgress />
+  <Header lang={lang} alternatePath={alternatePath} showMenu />
+
+  <div id="chapter-layout" class="mx-auto flex max-w-[92rem]">
+    <Sidebar currentPath={currentPath} lang={lang} />
+
+    <main class="min-w-0 flex-1 px-4 py-8 transition-all duration-200 md:px-8 lg:px-12">
+      {showPartHeader && (
+        <div class="mb-8 border-b border-border pb-6 dark:border-[#333]">
+          <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-terracotta">
+            {lang === "zh" ? `第 ${part!.number} 部` : `Part ${part!.number}`}
+          </p>
+          <h2 class="font-serif text-2xl font-bold text-charcoal dark:text-cream">
+            {lang === "zh" ? part!.zhTitle : part!.title}
+          </h2>
+          <p class="mt-2 text-sm italic text-muted">
+            {lang === "zh" ? part!.zhEpigraph : part!.epigraph}
+          </p>
+        </div>
+      )}
+
+      <article class="chapter-prose">
+        <slot />
+      </article>
+
+      <ChapterNav previous={adjacent.previous} next={adjacent.next} lang={lang} />
+    </main>
+
+    <TableOfContents headings={headings} lang={lang} />
+  </div>
+
+  <script src="../scripts/copy-code.ts"></script>
+  <script src="../scripts/focus-mode.ts"></script>
+  {hasMermaid && <script src="../scripts/mermaid-render.ts"></script>}
+</BaseLayout>

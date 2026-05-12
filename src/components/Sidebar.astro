@@ -1,0 +1,206 @@
+---
+import { chapters, epiloguePage, frontPages, getPartForChapter, localizePage, parts, referencePages } from "../book.config";
+import { pageUrl } from "../urls";
+
+interface Props {
+  currentPath: string;
+  lang: "en" | "zh";
+}
+
+const { currentPath, lang } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const currentChapter = chapters.find((page) => page.path === currentPath || page.zhPath === currentPath);
+const currentPart = currentChapter?.number ? getPartForChapter(currentChapter.number) : undefined;
+
+function href(path: string | undefined) {
+  return pageUrl(base, path ?? "");
+}
+---
+
+<nav id="sidebar" class="hidden w-72 shrink-0 lg:block">
+  <div id="sidebar-content" class="sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto px-4 py-6">
+    <div class="mb-6 space-y-1">
+      {frontPages.map((page) => {
+        const item = localizePage(page, lang);
+        const active = item.path === currentPath;
+        return (
+          <a href={href(item.path)} class:list={["sidebar-link", { "is-active": active }]}>
+            {item.title}
+          </a>
+        );
+      })}
+    </div>
+
+    {parts.map((part) => {
+      const activePart = currentPart?.number === part.number;
+      const partChapters = chapters.filter((page) => page.number && part.chapters.includes(page.number));
+      return (
+        <section class="mb-4">
+          <button
+            data-part-toggle={part.number}
+            aria-expanded={activePart ? "true" : "false"}
+            class="flex w-full items-center justify-between py-1 text-left text-xs font-semibold uppercase tracking-wide text-muted transition-colors hover:text-terracotta"
+          >
+            <span>{lang === "zh" ? `第 ${part.number} 部：${part.zhTitle}` : `Part ${part.number}: ${part.title}`}</span>
+            <svg class:list={["size-3 transition-transform", { "rotate-90": activePart }]} data-part-arrow={part.number} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <ul data-part-list={part.number} class:list={["mt-1 space-y-0.5 overflow-hidden", { hidden: !activePart }]}>
+            {partChapters.map((page) => {
+              const item = localizePage(page, lang);
+              const active = item.path === currentPath;
+              return (
+                <li>
+                  <a href={href(item.path)} class:list={["sidebar-link", { "is-active": active }]}>
+                    <span class="mr-1.5 text-xs text-muted">{page.number}.</span>
+                    {item.title}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      );
+    })}
+
+    {epiloguePage && (
+      <section class="mt-6 border-t border-border pt-4 dark:border-[#333]">
+        {(() => {
+          const item = localizePage(epiloguePage, lang);
+          const active = item.path === currentPath;
+          return (
+            <a href={href(item.path)} class:list={["sidebar-link", { "is-active": active }]}>
+              {item.title}
+            </a>
+          );
+        })()}
+      </section>
+    )}
+
+    <section class="mt-6 border-t border-border pt-4 dark:border-[#333]">
+      <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{lang === "zh" ? "附录" : "Reference"}</p>
+      {referencePages.map((page) => {
+        const item = localizePage(page, lang);
+        const active = item.path === currentPath;
+        return (
+          <a href={href(item.path)} class:list={["sidebar-link", { "is-active": active }]}>
+            {item.title}
+          </a>
+        );
+      })}
+    </section>
+  </div>
+</nav>
+
+<div id="sidebar-overlay" class="fixed inset-0 z-40 hidden bg-black/40 lg:hidden"></div>
+<div
+  id="sidebar-mobile"
+  class="fixed left-0 top-0 z-50 h-full w-80 max-w-[86vw] -translate-x-full overflow-y-auto bg-cream shadow-xl transition-transform duration-200 dark:bg-charcoal lg:hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="true"
+  aria-label={lang === "zh" ? "章节导航" : "Chapter navigation"}
+  inert
+>
+  <div class="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border bg-cream px-5 dark:border-[#333] dark:bg-charcoal">
+    <span class="text-sm font-semibold text-charcoal dark:text-cream">{lang === "zh" ? "目录" : "Contents"}</span>
+    <button
+      id="sidebar-close"
+      type="button"
+      aria-label={lang === "zh" ? "关闭目录" : "Close navigation"}
+      class="-mr-2 rounded-md p-2 text-charcoal transition-colors hover:bg-beige dark:text-cream dark:hover:bg-dark-surface"
+    >
+      <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+  <div id="sidebar-mobile-content" class="px-5 pb-8 pt-4"></div>
+</div>
+
+<script>
+  const source = document.getElementById("sidebar-content");
+  const target = document.getElementById("sidebar-mobile-content");
+  if (source && target) {
+    target.innerHTML = source.innerHTML;
+  }
+
+  document.querySelectorAll("[data-part-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const part = (button as HTMLElement).dataset.partToggle;
+      const section = button.closest("section");
+      const list = section?.querySelector(`[data-part-list="${part}"]`);
+      const arrow = section?.querySelector(`[data-part-arrow="${part}"]`);
+      const collapsed = list?.classList.toggle("hidden") ?? false;
+      arrow?.classList.toggle("rotate-90", !collapsed);
+      button.setAttribute("aria-expanded", String(!collapsed));
+    });
+  });
+
+  const toggle = document.getElementById("sidebar-toggle");
+  const closeButton = document.getElementById("sidebar-close");
+  const overlay = document.getElementById("sidebar-overlay");
+  const mobile = document.getElementById("sidebar-mobile");
+  let previouslyFocused: Element | null = null;
+
+  function focusableItems() {
+    return Array.from(
+      mobile?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+  }
+
+  function openMobileSidebar() {
+    previouslyFocused = document.activeElement;
+    mobile?.classList.remove("-translate-x-full");
+    mobile?.setAttribute("aria-hidden", "false");
+    mobile?.toggleAttribute("inert", false);
+    toggle?.setAttribute("aria-expanded", "true");
+    overlay?.classList.remove("hidden");
+    document.body.classList.add("overflow-hidden");
+    closeButton?.focus();
+  }
+
+  function closeMobileSidebar() {
+    mobile?.classList.add("-translate-x-full");
+    mobile?.setAttribute("aria-hidden", "true");
+    mobile?.toggleAttribute("inert", true);
+    toggle?.setAttribute("aria-expanded", "false");
+    overlay?.classList.add("hidden");
+    document.body.classList.remove("overflow-hidden");
+    if (previouslyFocused instanceof HTMLElement) {
+      previouslyFocused.focus();
+    }
+  }
+
+  toggle?.addEventListener("click", openMobileSidebar);
+  closeButton?.addEventListener("click", closeMobileSidebar);
+  overlay?.addEventListener("click", closeMobileSidebar);
+  mobile?.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", closeMobileSidebar);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (mobile?.getAttribute("aria-hidden") !== "false") return;
+    if (event.key === "Escape") {
+      closeMobileSidebar();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const items = focusableItems();
+    if (items.length === 0) return;
+
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+</script>

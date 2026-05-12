@@ -10,7 +10,7 @@
 | 4 | Benchmark reviewer | 学习参考站的可迁移结构：学习目标、分部目录、图示、章节结尾、源码策略和过程透明度。 |
 | 5 | 章节写作 agents | 地图、协议、runtime、tools、boundaries、integrations、client surfaces 的草稿。 |
 | 6 | 双语 reviewer | 中文完整性、术语一致性、缺失练习和初学者可读性。 |
-| 7 | Integrator | 统一语气、双语镜像结构、VitePress 导航、视觉 callouts 和校验脚本。 |
+| 7 | Integrator | 统一语气、双语镜像结构、Astro 导航、视觉 callouts 和校验脚本。 |
 | 8 | Verifier | build、私有路径扫描、双语文件配对、固定源码链接、metadata、内链和 Pages 发布检查。 |
 
 ## Guardrails
@@ -35,7 +35,7 @@
 ## 自动校验
 
 - `npm run check:content` 检查双语文件配对、config/source-commit 一致性、sidebar 覆盖、私有路径泄漏和固定 Codex 源码链接。
-- `npm run build` 确认 VitePress 能渲染所有页面并生成 sitemap。
+- `npm run build` 确认 Astro 能渲染所有页面、生成静态站点和 sitemap index。
 - `npm run check:dist` 扫描生成站点中的私有路径、本地文件 URL、必要 metadata 和损坏的 generated `href`/`src` target。
 - `npm run verify` 按 CI 使用的顺序运行全部检查。
 

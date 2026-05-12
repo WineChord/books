@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from "astro:content";
+import ChapterLayout from "../layouts/ChapterLayout.astro";
+import { getLangForPath, getPageByPath, getPartForChapter } from "../book.config";
+
+export async function getStaticPaths() {
+  const entries = await getCollection("pages");
+  return entries.map((entry) => {
+    const routePath = entry.id.replace(/\.md$/, "");
+    return {
+      params: { slug: routePath },
+      props: { entry, routePath },
+    };
+  });
+}
+
+const { entry, routePath } = Astro.props;
+const page = getPageByPath(routePath);
+if (!page) {
+  throw new Error(`Missing page metadata for ${routePath}`);
+}
+
+const lang = getLangForPath(routePath);
+const part = page.number ? getPartForChapter(page.number) : undefined;
+const hasMermaid = entry.body.includes("```mermaid");
+const { Content, headings } = await render(entry);
+---
+
+<ChapterLayout page={page} currentPath={routePath} lang={lang} headings={headings} part={part} hasMermaid={hasMermaid}>
+  <Content />
+</ChapterLayout>

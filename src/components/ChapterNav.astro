@@ -1,0 +1,32 @@
+---
+import { pageUrl } from "../urls";
+
+interface NavItem {
+  path: string;
+  title: string;
+}
+
+interface Props {
+  previous: NavItem | null;
+  next: NavItem | null;
+  lang: "en" | "zh";
+}
+
+const { previous, next, lang } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+
+<nav class="mt-16 flex items-stretch justify-between gap-4 border-t border-border pt-8 dark:border-[#333]">
+  {previous ? (
+    <a href={pageUrl(base, previous.path)} class="chapter-nav-card">
+      <span class="chapter-nav-kicker">{lang === "zh" ? "上一篇" : "Previous"}</span>
+      <span>{previous.title}</span>
+    </a>
+  ) : <div class="flex-1"></div>}
+  {next ? (
+    <a href={pageUrl(base, next.path)} class="chapter-nav-card items-end text-right">
+      <span class="chapter-nav-kicker">{lang === "zh" ? "下一篇" : "Next"}</span>
+      <span>{next.title}</span>
+    </a>
+  ) : <div class="flex-1"></div>}
+</nav>

@@ -12,7 +12,7 @@ claims. Each role has a narrow job and a concrete artifact.
 | 4 | Benchmark reviewer | A reference-site study focused on transferable structure: learning outcomes, part-based TOC, diagrams, chapter endings, source policy, and process transparency. |
 | 5 | Chapter writers | Drafts for the map, protocol, runtime, tools, boundaries, integrations, and client surfaces. |
 | 6 | Bilingual reviewer | Chinese parity, terminology consistency, missing exercises, and beginner clarity. |
-| 7 | Integrator | Unified chapter voice, bilingual mirror structure, VitePress navigation, visual callouts, and verification scripts. |
+| 7 | Integrator | Unified chapter voice, bilingual mirror structure, Astro navigation, visual callouts, and verification scripts. |
 | 8 | Verifier | Build, private-path scan, bilingual file pairing, pinned-source-link validation, metadata checks, internal link checks, and Pages deployment verification. |
 
 ## Guardrails
@@ -47,8 +47,8 @@ The repository includes automated gates:
 - `npm run check:content` checks bilingual file pairing, config/source-commit
   consistency, sidebar coverage, private-path leaks, and pinned Codex source
   links.
-- `npm run build` verifies that VitePress renders every page and generates the
-  sitemap.
+- `npm run build` verifies that Astro renders every page and generates the
+  sitemap index.
 - `npm run check:dist` scans generated static output for private paths, local
   file URLs, required metadata, and broken generated `href`/`src` targets.
 - `npm run verify` runs all of the above in the same order used by CI.

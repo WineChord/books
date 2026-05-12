@@ -8,21 +8,6 @@
   <p><strong>心智模型：</strong>Codex 有四个 extension planes：skills 教行为，plugins 打包资产，connectors 描述 hosted app access，typed extensions 贡献 in-process state。</p>
 </div>
 
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Skills manager | [`codex-rs/core-skills/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L51) |
-| Skill metadata model | [`codex-rs/core-skills/src/model.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/model.rs#L12) |
-| Plugin manifest | [`codex-rs/core-plugins/src/manifest.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L38) |
-| Plugin manager | [`codex-rs/core-plugins/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L396) |
-| Connector directory model | [`codex-rs/connectors/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/connectors/src/lib.rs#L66) |
-| Typed prompt extension API | [`codex-rs/ext/extension-api/src/contributors/prompt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ext/extension-api/src/contributors/prompt.rs#L12) |
-
-</div>
-
 这些 surface 彼此相关，但不能互换。Skill 主要是 model-instruction 与 workflow unit。Plugin 是 distribution package，可以包含 skills、MCP server definitions、hooks 和 app connector IDs。Connector 是绑定 account access 的 hosted app metadata。Typed extension 编译进进程，通过显式 traits 贡献能力，而不是动态 plugin ABI。
 
 只要保持这些 planes 分离，架构就很容易读懂。
@@ -167,3 +152,18 @@ Loader 是 classifier 和 validator。它不应该把 plugin 字段静默变成 
 ## 接下来
 
 Extension loading 只解决兼容性的一半。第 19 章转向 external migration：Codex 如何从其他 agent systems 导入 configurations 与 sessions，同时不假装它们的语义完全相同。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Skills manager | [`codex-rs/core-skills/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L51) |
+| Skill metadata model | [`codex-rs/core-skills/src/model.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/model.rs#L12) |
+| Plugin manifest | [`codex-rs/core-plugins/src/manifest.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L38) |
+| Plugin manager | [`codex-rs/core-plugins/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L396) |
+| Connector directory model | [`codex-rs/connectors/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/connectors/src/lib.rs#L66) |
+| Typed prompt extension API | [`codex-rs/ext/extension-api/src/contributors/prompt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ext/extension-api/src/contributors/prompt.rs#L12) |
+
+</div>

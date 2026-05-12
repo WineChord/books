@@ -1,0 +1,89 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "../components/Header.astro";
+import ArchitectureMap from "../components/ArchitectureMap";
+import { chapters, epiloguePage, parts, referencePages, siteDescription } from "../book.config";
+import { pageUrl } from "../urls";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="WineChord Books" description="Long-form engineering books." canonicalPath="">
+  <Header />
+  <main class="mx-auto max-w-5xl px-4 py-12 md:px-8 md:py-20">
+    <section class="mb-20 grid grid-cols-1 items-center gap-10 md:grid-cols-[1fr_18rem]">
+      <div>
+        <p class="mb-3 text-sm font-semibold uppercase tracking-wide text-terracotta">WineChord Books</p>
+        <h1 class="book-hero-title mb-6 font-serif text-4xl font-bold leading-tight text-charcoal dark:text-cream md:text-5xl">
+          Codex From Source
+        </h1>
+        <p class="book-hero-copy mb-8 max-w-2xl text-lg leading-relaxed text-secondary dark:text-muted">
+          {siteDescription} Built as a professional technical book, not as documentation.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a class="rounded-lg bg-terracotta px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90" href={pageUrl(base, "codex-from-source/")}>
+            Start reading
+          </a>
+          <a class="rounded-lg border border-border px-5 py-3 font-semibold text-charcoal transition-colors hover:border-terracotta hover:text-terracotta dark:border-[#333] dark:text-cream" href={pageUrl(base, "zh/codex-from-source/")}>
+            中文版
+          </a>
+        </div>
+      </div>
+      <div class="book-cover" aria-label="Codex From Source cover">
+        <div class="book-cover__kicker">Architecture, Patterns, Internals</div>
+        <div class="book-cover__title">Codex<br />From<br />Source</div>
+        <div class="book-cover__footer">25 chapters + epilogue</div>
+      </div>
+    </section>
+
+    <ArchitectureMap client:load base={base} />
+
+    <section class="mb-20">
+      <h2 class="mb-8 font-serif text-2xl font-bold text-charcoal dark:text-cream">Table of contents</h2>
+      {parts.map((part) => {
+        const partChapters = chapters.filter((chapter) => chapter.number && part.chapters.includes(chapter.number));
+        return (
+          <div class="mb-10">
+            <p class="text-xs font-semibold uppercase tracking-wide text-terracotta">Part {part.number}</p>
+            <h3 class="font-serif text-xl font-bold text-charcoal dark:text-cream">{part.title}</h3>
+            <p class="mb-4 text-sm italic text-muted">{part.epigraph}</p>
+            <div class="space-y-2">
+              {partChapters.map((chapter) => (
+                <a href={pageUrl(base, chapter.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
+                  <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">{chapter.number}</span>
+                  <span>
+                    <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{chapter.title}</span>
+                    <span class="block text-sm text-muted">{chapter.description}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {epiloguePage && (
+        <div class="mt-8 border-t border-border pt-6 dark:border-[#333]">
+          <a href={pageUrl(base, epiloguePage.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
+            <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">E</span>
+            <span>
+              <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{epiloguePage.title}</span>
+              <span class="block text-sm text-muted">{epiloguePage.description}</span>
+            </span>
+          </a>
+        </div>
+      )}
+    </section>
+
+    <section class="border-t border-border pt-8 dark:border-[#333]">
+      <h2 class="mb-4 font-serif text-2xl font-bold text-charcoal dark:text-cream">Reference</h2>
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {referencePages.map((page) => (
+          <a href={pageUrl(base, page.path)} class="rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]">
+            <span class="font-semibold text-charcoal dark:text-cream">{page.title}</span>
+            <span class="mt-1 block text-sm text-muted">{page.description}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>

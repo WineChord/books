@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-const distDir = path.join(process.cwd(), "docs", ".vitepress", "dist");
+const distDir = path.join(process.cwd(), "dist");
 const base = "/books/";
 const siteOrigin = "https://www.wineandchord.com";
 
@@ -19,6 +19,13 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function fileOrIndexExists(candidate) {
+  if (existsSync(candidate)) {
+    return true;
+  }
+  return existsSync(path.join(candidate, "index.html"));
 }
 
 function targetExists(fromFile, rawTarget) {
@@ -50,14 +57,7 @@ function targetExists(fromFile, rawTarget) {
     );
   }
 
-  const candidate = path.join(distDir, relativeTarget);
-  if (existsSync(candidate)) {
-    return true;
-  }
-  if (existsSync(path.join(candidate, "index.html"))) {
-    return true;
-  }
-  return false;
+  return fileOrIndexExists(path.join(distDir, relativeTarget));
 }
 
 function canonicalExists(rawTarget) {
@@ -66,16 +66,35 @@ function canonicalExists(rawTarget) {
   }
   const url = new URL(rawTarget);
   const relativeTarget = url.pathname.slice(base.length);
-  const candidate = path.join(distDir, relativeTarget);
-  if (existsSync(candidate)) {
-    return true;
-  }
-  return existsSync(path.join(candidate, "index.html"));
+  return fileOrIndexExists(path.join(distDir, relativeTarget));
 }
+
+assert(existsSync(distDir), "dist directory is missing");
+assert(existsSync(path.join(distDir, "_astro")), "Astro asset directory is missing");
+assert(
+  !readdirSync(distDir).some((name) => /^manifest_.*\.mjs$/.test(name)),
+  "dist contains an Astro preview/server manifest; rebuild without preview",
+);
+assert(
+  existsSync(path.join(distDir, "sitemap-index.xml")),
+  "sitemap index is missing",
+);
+assert(
+  existsSync(path.join(distDir, "codex-from-source", "index.html")),
+  "English book landing page is missing",
+);
+assert(
+  existsSync(path.join(distDir, "codex-from-source", "chapter-01.html")),
+  "English chapter HTML compatibility path is missing",
+);
+assert(
+  existsSync(path.join(distDir, "zh", "codex-from-source", "chapter-01.html")),
+  "Chinese chapter HTML compatibility path is missing",
+);
 
 const htmlFiles = walk(distDir).filter((file) => file.endsWith(".html"));
 const forbiddenPublicationPattern =
-  /book-rewrite-prompt|\/rewrite\/|codex-from-source_rewrite|zh_codex-from-source_rewrite/;
+  /book-rewrite-prompt|\/rewrite\/|codex-from-source_rewrite|zh_codex-from-source_rewrite|vitepress/i;
 
 for (const file of walk(distDir)) {
   if (!/\.(?:html|js|json|xml|css)$/.test(file)) {
@@ -86,7 +105,7 @@ for (const file of walk(distDir)) {
   assert(
     !forbiddenPublicationPattern.test(body)
       && !forbiddenPublicationPattern.test(rel),
-    `${rel} exposes internal rewrite material`,
+    `${rel} exposes internal or obsolete publication material`,
   );
 }
 
@@ -94,20 +113,28 @@ for (const file of htmlFiles) {
   const html = readFileSync(file, "utf8");
   const rel = path.relative(distDir, file);
 
-  if (rel !== "404.html") {
-    const canonical = html.match(/rel="canonical" href="([^"]+)"/)?.[1];
-    assert(canonical, `${rel} is missing canonical link`);
-    assert(canonicalExists(canonical), `${rel} has unreachable canonical: ${canonical}`);
-    assert(/property="og:title"/.test(html), `${rel} is missing og:title`);
-    assert(/property="og:url"/.test(html), `${rel} is missing og:url`);
-    assert(/name="twitter:card"/.test(html), `${rel} is missing twitter card`);
-    assert(/name="description"/.test(html), `${rel} is missing description`);
-  }
+  const canonical = html.match(/rel="canonical" href="([^"]+)"/)?.[1];
+  assert(canonical, `${rel} is missing canonical link`);
+  assert(canonicalExists(canonical), `${rel} has unreachable canonical: ${canonical}`);
+  assert(/property="og:title"/.test(html), `${rel} is missing og:title`);
+  assert(/property="og:url"/.test(html), `${rel} is missing og:url`);
+  assert(/name="twitter:card"/.test(html), `${rel} is missing twitter card`);
+  assert(/name="description"/.test(html), `${rel} is missing description`);
 
   const attrPattern = /\s(?:href|src)="([^"]+)"/g;
   for (const match of html.matchAll(attrPattern)) {
     const target = match[1];
     assert(targetExists(file, target), `${rel} has a broken target: ${target}`);
+  }
+}
+
+const sitemapFiles = walk(distDir).filter((file) => /sitemap.*\.xml$/.test(file));
+for (const file of sitemapFiles) {
+  const xml = readFileSync(file, "utf8");
+  const rel = path.relative(distDir, file);
+  for (const match of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) {
+    const target = match[1];
+    assert(canonicalExists(target), `${rel} has unreachable sitemap loc: ${target}`);
   }
 }
 

@@ -1,0 +1,109 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Header from "../../../components/Header.astro";
+import ArchitectureMap from "../../../components/ArchitectureMap";
+import { chapters, epiloguePage, parts, referencePages, sourceCommit } from "../../../book.config";
+import { pageUrl } from "../../../urls";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="Codex 源码剖析" description="一本中英文双语的 OpenAI Codex CLI 源码剖析在线书。" canonicalPath="zh/codex-from-source/" lang="zh">
+  <Header lang="zh" alternatePath="codex-from-source/" />
+  <main class="mx-auto max-w-5xl px-4 py-12 md:px-8 md:py-20">
+    <section class="mb-20 grid grid-cols-1 items-center gap-10 md:grid-cols-[1fr_18rem]">
+      <div>
+        <p class="mb-3 text-sm font-semibold uppercase tracking-wide text-terracotta">Architecture, Patterns, Internals</p>
+        <h1 class="book-hero-title mb-6 font-serif text-4xl font-bold leading-tight text-charcoal dark:text-cream md:text-5xl">
+          把 Codex 当作系统阅读，而不是当作文件堆阅读。
+        </h1>
+        <p class="book-hero-copy mb-8 max-w-2xl text-lg leading-relaxed text-secondary dark:text-muted">
+          一本固定到公开源码 commit 的专业技术书：把 Codex 解释为一个事件溯源的 agent runtime，
+          覆盖类型化契约、策略门控工具、可回放状态、多客户端、扩展、云工作流和可执行治理。
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a class="rounded-lg bg-terracotta px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90" href={pageUrl(base, "zh/codex-from-source/preface")}>
+            从前言开始
+          </a>
+          <a class="rounded-lg border border-border px-5 py-3 font-semibold text-charcoal transition-colors hover:border-terracotta hover:text-terracotta dark:border-[#333] dark:text-cream" href={pageUrl(base, "zh/codex-from-source/source-atlas")}>
+            源码索引
+          </a>
+        </div>
+      </div>
+      <div class="book-cover" aria-label="Codex From Source cover">
+        <div class="book-cover__kicker">OpenAI Codex CLI</div>
+        <div class="book-cover__title">Codex<br />From<br />Source</div>
+        <div class="book-cover__footer">25 章 + 结语</div>
+      </div>
+    </section>
+
+    <ArchitectureMap client:load base={base} lang="zh" />
+
+    <section class="mb-20 grid grid-cols-1 gap-4 md:grid-cols-3">
+      {[
+        ["源码等价", "默认读书即可理解架构、数据流、契约和取舍；源码链接用于审计，而不是作业。"],
+        ["出版级结构", "章节按技术书组织，不是 API 文档；每一层解决一个问题，并为下一层铺路。"],
+        ["源码固定", `所有源码链接都固定到 ${sourceCommit}，避免分支漂移。`],
+      ].map(([title, body]) => (
+        <div class="rounded-lg border border-border p-5 dark:border-[#333]">
+          <h2 class="mb-2 font-serif text-xl font-bold text-charcoal dark:text-cream">{title}</h2>
+          <p class="text-sm leading-relaxed text-muted">{body}</p>
+        </div>
+      ))}
+    </section>
+
+    <section class="mb-20">
+      <h2 class="mb-8 font-serif text-2xl font-bold text-charcoal dark:text-cream">目录</h2>
+      {parts.map((part) => {
+        const partChapters = chapters.filter((chapter) => chapter.number && part.chapters.includes(chapter.number));
+        return (
+          <div class="mb-10">
+            <p class="text-xs font-semibold uppercase tracking-wide text-terracotta">第 {part.number} 部</p>
+            <h3 class="font-serif text-xl font-bold text-charcoal dark:text-cream">{part.zhTitle}</h3>
+            <p class="mb-4 text-sm italic text-muted">{part.zhEpigraph}</p>
+            <div class="space-y-2">
+              {partChapters.map((chapter) => {
+                const path = chapter.zhPath ?? chapter.path;
+                return (
+                  <a href={pageUrl(base, path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
+                    <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">{chapter.number}</span>
+                    <span>
+                      <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{chapter.zhTitle}</span>
+                      <span class="block text-sm text-muted">{chapter.zhDescription}</span>
+                    </span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+      {epiloguePage && (
+        <div class="mt-8 border-t border-border pt-6 dark:border-[#333]">
+          <a href={pageUrl(base, epiloguePage.zhPath ?? epiloguePage.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
+            <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">结</span>
+            <span>
+              <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{epiloguePage.zhTitle}</span>
+              <span class="block text-sm text-muted">{epiloguePage.zhDescription}</span>
+            </span>
+          </a>
+        </div>
+      )}
+    </section>
+
+    <section class="border-t border-border pt-8 dark:border-[#333]">
+      <h2 class="mb-4 font-serif text-2xl font-bold text-charcoal dark:text-cream">参考页</h2>
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {referencePages.map((page) => {
+          const path = page.zhPath ?? page.path;
+          return (
+            <a href={pageUrl(base, path)} class="rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]">
+              <span class="font-semibold text-charcoal dark:text-cream">{page.zhTitle}</span>
+              <span class="mt-1 block text-sm text-muted">{page.zhDescription}</span>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  </main>
+</BaseLayout>

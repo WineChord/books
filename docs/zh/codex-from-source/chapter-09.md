@@ -4,21 +4,6 @@
 
 理解工具系统，最稳的方式是把它看成能力系统。工具规格描述模型可以怎样调用；handler 才是能够执行工作的运行时权威；router 在一个具体 turn 中把二者连接起来。这三个概念不能混在一起。模型可见 schema 和执行权限如果变成同一个对象，每新增一个工具，就会同时制造安全例外、UI 例外和重放例外。
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Tool spec planner | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69) |
-| Tool router | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38) |
-| Tool registry | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L220) |
-| Tool orchestrator | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
-| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L1) |
-
-</div>
-
 ## 两个平面
 
 Codex 把工具元数据和执行行为放在不同平面。
@@ -129,7 +114,7 @@ Shell command 可能把输出流式发给 UI，最后再给模型一个摘要。
 
 这就是为什么工具执行不是按工具名写一个 switch。Switch 可以调用函数，但表达不了模型暴露、运行时权限、参数流式进度、approval hooks、cancellation、parallel contracts、telemetry 和 replay 这些边界。
 
-## 应用到实践（Apply This）
+## 应用到实践
 
 1. **区分展示和授权。** Schema 告诉模型能怎么调用，handler 才证明什么能运行。
 2. **构造 plan，而不是列表。** 在暴露工具前合并配置、模型能力、dynamic tools、hosted tools 和 MCP 状态。
@@ -138,3 +123,17 @@ Shell command 可能把输出流式发给 UI，最后再给模型一个摘要。
 5. **为两个读者塑形输出。** 给模型简洁结果，同时为用户和 replay 发结构化事件。
 
 第 10 章会进入最重要的 handler 家族：shell 与 filesystem 执行。它会展示 command parsing、exec policy、`exec-server` 和 environment selection 如何把工具调用变成受监督的进程。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Tool spec planner | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69) |
+| Tool router | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38) |
+| Tool registry | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L220) |
+| Tool orchestrator | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
+| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L1) |
+
+</div>

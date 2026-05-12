@@ -11,20 +11,6 @@
   <p><strong>心智模型：</strong>transcript 只是一次运行的一个 projection，不是运行本身。</p>
 </div>
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Trace session model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L33) |
-| Codex turn trace model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L104) |
-| Runtime trace payloads | [`codex-rs/rollout-trace/src/protocol_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L32) |
-| Core event mapping | [`codex-rs/core/src/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/event_mapping.rs#L1) |
-
-</div>
-
 ## 多个 Observation Plane
 
 Codex 有多个 observability plane，因为每个 plane 回答的问题不同。
@@ -196,7 +182,7 @@ turn completion status，就 reduce analytics facts。不要让一个 transcript
 
 <div class="apply-this">
 
-## 应用模式
+## 应用到实践
 
 1. 先捕获 raw 或 replayable facts，再派生 summary、graph 或 aggregate metrics。
 2. 把 replay persistence 与 diagnostic tracing 分开，避免 durable thread 变成无边界 debug dump。
@@ -211,3 +197,16 @@ turn completion status，就 reduce analytics facts。不要让一个 transcript
 Part II 至此建立了 runtime core：durable threads、live sessions、turn loop、provider streams、
 backend boundaries 和 observation planes。下一部分会从调度与证据转向副作用：Codex 如何暴露
 tools、执行 shell commands、应用 patches、请求 approval，并把风险限制在明确边界内。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Trace session model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L33) |
+| Codex turn trace model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L104) |
+| Runtime trace payloads | [`codex-rs/rollout-trace/src/protocol_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L32) |
+| Core event mapping | [`codex-rs/core/src/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/event_mapping.rs#L1) |
+
+</div>

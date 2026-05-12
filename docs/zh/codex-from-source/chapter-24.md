@@ -4,22 +4,6 @@
 
 本章从 Rust 二进制一路追踪到用户命令。设计教训是：打包应该吸收平台蔓延，但不能让平台蔓延改变运行时。Codex 能支持多种安装路径，是因为产品架构足够窄：一个原生命令、一个薄分发 wrapper、可选的平台包，以及复杂性被留在发布基础设施附近的 helper 产物。
 
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| npm wrapper package | [`codex-cli/package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L1) |
-| npm package builder | [`codex-cli/scripts/build_npm_package.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/build_npm_package.py#L1) |
-| Native dependency installer | [`codex-cli/scripts/install_native_deps.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/install_native_deps.py#L1) |
-| Cargo release build workflow | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281) |
-| Release artifact staging | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L373) |
-| npm package staging | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L570) |
-| V8 dependency release surface | [`third_party/v8/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/third_party/v8/README.md#L1) |
-
-</div>
-
 ## 交付本身是架构边界
 
 关于打包的第一个架构事实是：已安装命令不是 agent 的所在地。JavaScript 面向的包只是分发胶水。Rust 二进制拥有 CLI router 和运行时。这个拆分在第 2 章已经出现；发布基础设施正是这个拆分产生回报的地方。
@@ -128,7 +112,7 @@ publish({
 
 这就是打包值得独立成章的原因。它不只是“怎么发布”，而是防止发布关注点改变被发布的产品。
 
-## Apply This
+## 应用到实践
 
 1. **薄分发 wrapper** -> 解决生态特定安装而不复制运行时行为 -> 让原生二进制保持权威，wrapper 只选择并启动它 -> 风险：把产品逻辑放进 wrapper。
 2. **产物层共享路径** -> 解决 npm 与独立安装之间的漂移 -> 让安装器消费已验证的发布 payload -> 风险：构建第二套 installer-only 产物模型。
@@ -139,3 +123,19 @@ publish({
 ## 下一章
 
 构建和打包能制造正确产物，但不能单独让架构长期保持正确。最后一章研究让架构规则可执行的 policy 与 CI：边界测试、schema drift 检查、依赖治理、发布 lane 和 review-time 自动化。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| npm wrapper package | [`codex-cli/package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L1) |
+| npm package builder | [`codex-cli/scripts/build_npm_package.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/build_npm_package.py#L1) |
+| Native dependency installer | [`codex-cli/scripts/install_native_deps.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/install_native_deps.py#L1) |
+| Cargo release build workflow | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281) |
+| Release artifact staging | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L373) |
+| npm package staging | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L570) |
+| V8 dependency release surface | [`third_party/v8/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/third_party/v8/README.md#L1) |
+
+</div>

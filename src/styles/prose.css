@@ -1,0 +1,267 @@
+.chapter-prose {
+  width: 100%;
+  max-width: 72ch;
+  overflow-wrap: break-word;
+  font-size: 1.0625rem;
+  line-height: 1.78;
+}
+
+.chapter-prose h1 {
+  margin: 0 0 1.5rem;
+  color: var(--color-charcoal);
+  font-family: var(--font-serif);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.chapter-prose h2 {
+  margin: 3rem 0 1rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.5rem;
+  color: var(--color-charcoal);
+  font-family: var(--font-serif);
+  font-size: 1.625rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.chapter-prose h2:first-of-type {
+  margin-top: 1rem;
+}
+
+.chapter-prose h3 {
+  margin: 2rem 0 0.75rem;
+  color: var(--color-charcoal);
+  font-size: 1.25rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.chapter-prose p,
+.chapter-prose ul,
+.chapter-prose ol,
+.chapter-prose blockquote {
+  margin-bottom: 1.25rem;
+}
+
+.chapter-prose ul,
+.chapter-prose ol {
+  padding-left: 1.5rem;
+}
+
+.chapter-prose li {
+  margin-bottom: 0.5rem;
+}
+
+.chapter-prose li::marker {
+  color: var(--color-terracotta);
+}
+
+.chapter-prose a {
+  color: var(--color-terracotta);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.chapter-prose a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.chapter-prose strong {
+  color: var(--color-charcoal);
+  font-weight: 700;
+}
+
+.chapter-prose blockquote {
+  border-left: 3px solid var(--color-terracotta);
+  padding-left: 1rem;
+  color: var(--color-secondary);
+  font-style: italic;
+}
+
+.chapter-prose table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chapter-prose th,
+.chapter-prose td {
+  min-width: 10rem;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.chapter-prose th {
+  border-bottom: 2px solid var(--color-terracotta);
+  color: var(--color-secondary);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chapter-prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.chapter-prose :not(pre) > code {
+  border-radius: 0.25rem;
+  background: var(--color-beige);
+  padding: 0.125rem 0.35rem;
+  font-size: 0.88em;
+}
+
+.code-block-wrapper {
+  position: relative;
+  margin: 1.5rem 0;
+}
+
+.copy-button {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.25rem;
+  background: var(--color-beige);
+  padding: 0.35rem 0.55rem;
+  color: var(--color-secondary);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  opacity: 0;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.code-block-wrapper:hover .copy-button,
+.copy-button:focus-visible {
+  opacity: 1;
+}
+
+.copy-button:focus-visible {
+  border-color: var(--color-terracotta);
+  outline: 2px solid var(--color-terracotta);
+  outline-offset: 2px;
+}
+
+.mermaid-scroll {
+  margin: 2rem 0;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 45%);
+  padding: 1rem;
+}
+
+.mermaid {
+  min-width: 48rem;
+}
+
+.mermaid svg {
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+.source-equivalence {
+  margin: 2rem 0;
+  border: 1px solid rgb(217 119 87 / 35%);
+  border-radius: 0.75rem;
+  background: rgb(217 119 87 / 7%);
+  padding: 1rem 1.25rem;
+}
+
+.source-equivalence h2 {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+  font-size: 1.25rem;
+}
+
+[data-toc-link].is-active {
+  color: var(--color-terracotta);
+  font-weight: 600;
+}
+
+html.dark .chapter-prose h1,
+html.dark .chapter-prose h2,
+html.dark .chapter-prose h3,
+html.dark .chapter-prose strong {
+  color: var(--color-cream);
+}
+
+html.dark .chapter-prose h2,
+html.dark .chapter-prose th,
+html.dark .chapter-prose td,
+html.dark .chapter-prose pre,
+html.dark .mermaid-scroll {
+  border-color: #333;
+}
+
+html.dark .chapter-prose blockquote,
+html.dark .chapter-prose th {
+  color: var(--color-muted);
+}
+
+html.dark .chapter-prose :not(pre) > code,
+html.dark .copy-button {
+  background: var(--color-dark-surface);
+}
+
+html.dark .mermaid-scroll {
+  background: rgb(30 30 28 / 60%);
+}
+
+@media (max-width: 767px) {
+  .chapter-prose {
+    max-width: 100%;
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .chapter-prose > * {
+    max-width: 100%;
+  }
+
+  .chapter-prose h1 {
+    overflow-wrap: anywhere;
+    font-size: 1.85rem;
+    line-height: 1.15;
+  }
+
+  .chapter-prose h2 {
+    overflow-wrap: anywhere;
+    font-size: 1.45rem;
+  }
+
+  .chapter-prose p,
+  .chapter-prose li,
+  .chapter-prose blockquote {
+    overflow-wrap: break-word;
+  }
+
+  .chapter-prose pre,
+  .chapter-prose table {
+    max-width: calc(100vw - 2rem);
+  }
+
+  .mermaid-scroll {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
+}

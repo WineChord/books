@@ -6,20 +6,6 @@
 
 结果不只是一个更快的可执行文件，而是一条架构边界：分发层可以知道 binary 怎样被找到，但不应该知道 Agent 怎样工作。
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| npm 启动包装器 | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L1) |
-| Rust 命令路由 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) |
-| App 命令边界 | [`codex-rs/cli/src/app_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/app_cmd.rs#L5) |
-| App-server daemon 命令 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L417) |
-
-</div>
-
 ## 启动链路
 
 启动路径可以分成四个概念阶段：
@@ -136,7 +122,7 @@ Codex 还会保留 install context。一个 binary 可能来自 npm、Bun、Home
 
 因此 router 有两种职责：分发命令，并保护系统形状。
 
-## Apply This：应用模式
+## 应用到实践
 
 1. **让分发胶水保持低行为含量。** Wrapper 可以寻找并启动产品 binary，但产品语义应留在主实现里。
 2. **用一个 router 表达产品意图。** 一个宽而显式的命令树，比散落在启动路径里的隐藏行为更容易推理。
@@ -147,3 +133,16 @@ Codex 还会保留 install context。一个 binary 可能来自 npm、Bun、Home
 ## 小结
 
 命令到达 Rust 时，分发关注点已经被压缩成元数据和 helper path。第 3 章会继续讨论 router 在任何接入面安全开始工作前必须解析的内容：配置、认证、feature state 和 managed requirements。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| npm 启动包装器 | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L1) |
+| Rust 命令路由 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) |
+| App 命令边界 | [`codex-rs/cli/src/app_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/app_cmd.rs#L5) |
+| App-server daemon 命令 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L417) |
+
+</div>

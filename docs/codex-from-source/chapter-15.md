@@ -15,23 +15,6 @@ the local app-server process is found, started, probed, restarted, and updated.
 Remote control says how a backend-mediated client can behave like another
 connection without pretending the network is reliable.
 
-
-<div class="source-equivalence">
-
-## Source Map
-
-| Concept | Source anchor |
-| --- | --- |
-| App-server daemon lifecycle | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34) |
-| Remote control mode | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L92) |
-| Transport modes | [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57) |
-| stdio transport | [`codex-rs/app-server-transport/src/transport/stdio.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24) |
-| WebSocket transport | [`codex-rs/app-server-transport/src/transport/websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/websocket.rs#L82) |
-| Python public API | [`sdk/python/src/codex_app_server/api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72) |
-| TypeScript public API | [`sdk/typescript/src/codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11) |
-
-</div>
-
 ## Client Taxonomy
 
 The system has several client shapes, and they are intentionally not the same.
@@ -177,17 +160,19 @@ Update behavior lets the product improve the server without making every SDK
 invent a process manager.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Unknown
-    Unknown --> Probing: client asks for server
-    Probing --> Ready: healthy response
-    Probing --> Starting: no healthy server
-    Starting --> Ready: bootstrap succeeds
-    Starting --> Failed: bootstrap fails
-    Ready --> Restarting: stale or update required
-    Restarting --> Ready: probe succeeds
-    Restarting --> Failed: restart fails
-    Failed --> Starting: retry under lock
+flowchart TD
+    StartState([Start])
+    EndState([End])
+    StartState --> Unknown
+    Unknown -->|client asks for server| Probing
+    Probing -->|healthy response| Ready
+    Probing -->|no healthy server| Starting
+    Starting -->|bootstrap succeeds| Ready
+    Starting -->|bootstrap fails| Failed
+    Ready -->|stale or update required| Restarting
+    Restarting -->|probe succeeds| Ready
+    Restarting -->|restart fails| Failed
+    Failed -->|retry under lock| Starting
 ```
 
 A daemon is not just a convenience wrapper. It is the component that makes a
@@ -301,3 +286,19 @@ real programs. They also show that a protocol is not finished when message
 types exist. It becomes usable when lifecycle, routing, transport, and
 compatibility are engineered as deliberately as the runtime itself. Chapter 16
 turns to the most visible client of that contract: the terminal UI.
+
+<div class="source-equivalence">
+
+## Source Map
+
+| Concept | Source anchor |
+| --- | --- |
+| App-server daemon lifecycle | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34) |
+| Remote control mode | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L92) |
+| Transport modes | [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57) |
+| stdio transport | [`codex-rs/app-server-transport/src/transport/stdio.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24) |
+| WebSocket transport | [`codex-rs/app-server-transport/src/transport/websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/websocket.rs#L82) |
+| Python public API | [`sdk/python/src/codex_app_server/api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72) |
+| TypeScript public API | [`sdk/typescript/src/codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11) |
+
+</div>

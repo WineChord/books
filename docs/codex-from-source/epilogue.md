@@ -17,21 +17,6 @@ sandboxing, app-server, TUI, extensions, memories, cloud tasks, generated
 schemas, and CI governance. When a design decision looked verbose, it usually
 existed to preserve that bet under pressure.
 
-<div class="source-equivalence">
-
-## Source Map
-
-The epilogue synthesizes the full book rather than introducing a new subsystem.
-The canonical source anchors are the ones used throughout the chapters:
-[`protocol`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src),
-[`core session runtime`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session),
-[`app-server`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src),
-[`tool execution`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools),
-[`rollout trace`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src),
-and [repository governance](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github).
-
-</div>
-
 ## The Five Lessons That Transfer
 
 ### 1. Put the Product Vocabulary in Types
@@ -124,3 +109,18 @@ model-driven worker. The more capable that worker becomes, the more valuable
 the boundaries become.
 
 That is the architectural lesson worth stealing.
+
+<div class="source-equivalence">
+
+## Source Map
+
+The epilogue synthesizes the full book rather than introducing a new subsystem.
+The canonical source anchors are the ones used throughout the chapters:
+[`protocol`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src),
+[`core session runtime`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session),
+[`app-server`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src),
+[`tool execution`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools),
+[`rollout trace`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src),
+and [repository governance](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github).
+
+</div>

@@ -4,23 +4,6 @@
 
 关键区别在于 protocol 和其上的 developer experience。Protocol schema 说明有哪些 messages。SDK 说明 programmer 如何 start session、route responses、consume turn events、answer server requests，而不必成为 protocol engineer。Daemon 说明本地 app-server process 如何被发现、启动、探测、重启和更新。Remote control 说明 backend-mediated client 如何像另一个 connection 一样工作，同时不假装网络是可靠的。
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| App-server daemon lifecycle | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34) |
-| Remote control mode | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L92) |
-| Transport modes | [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57) |
-| stdio transport | [`codex-rs/app-server-transport/src/transport/stdio.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24) |
-| WebSocket transport | [`codex-rs/app-server-transport/src/transport/websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/websocket.rs#L82) |
-| Python public API | [`sdk/python/src/codex_app_server/api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72) |
-| TypeScript public API | [`sdk/typescript/src/codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11) |
-
-</div>
-
 ## Client Taxonomy
 
 系统中有多种 client shape，而且它们刻意不同。
@@ -110,17 +93,19 @@ Daemon 把 app-server startup 变成操作系统层面的关注点。它管理 p
 Daemon 的职责是让 local server 可发现且稳定，同时不允许两个 supervisors 破坏同一份状态。Operation locks 防止 lifecycle actions 重叠。Probing 区分“server healthy”和“pid file exists”。Restart behavior 给 clients 走出 stale state 的路径。Update behavior 让产品升级 server，而不要求每个 SDK 都发明自己的 process manager。
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Unknown
-    Unknown --> Probing: client asks for server
-    Probing --> Ready: healthy response
-    Probing --> Starting: no healthy server
-    Starting --> Ready: bootstrap succeeds
-    Starting --> Failed: bootstrap fails
-    Ready --> Restarting: stale or update required
-    Restarting --> Ready: probe succeeds
-    Restarting --> Failed: restart fails
-    Failed --> Starting: retry under lock
+flowchart TD
+    StartState([Start])
+    EndState([End])
+    StartState --> Unknown
+    Unknown -->|client asks for server| Probing
+    Probing -->|healthy response| Ready
+    Probing -->|no healthy server| Starting
+    Starting -->|bootstrap succeeds| Ready
+    Starting -->|bootstrap fails| Failed
+    Ready -->|stale or update required| Restarting
+    Restarting -->|probe succeeds| Ready
+    Restarting -->|restart fails| Failed
+    Failed -->|retry under lock| Starting
 ```
 
 Daemon 不只是 convenience wrapper。它让 long-lived local contract 对 short-lived tools 和 SDK processes 变得实际可用。
@@ -205,3 +190,19 @@ SDKs 和 daemons 会带来自己的 failure surface。
 ## 收束
 
 SDKs、daemons 和 remote control 让 app-server 契约进入真实程序。它们也说明：有了 message types，并不代表 protocol 已经可用。只有 lifecycle、routing、transport 和 compatibility 被像 runtime 一样认真工程化，protocol 才真正可用。第 16 章转向这份契约最可见的 client：terminal UI。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| App-server daemon lifecycle | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34) |
+| Remote control mode | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L92) |
+| Transport modes | [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57) |
+| stdio transport | [`codex-rs/app-server-transport/src/transport/stdio.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24) |
+| WebSocket transport | [`codex-rs/app-server-transport/src/transport/websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/websocket.rs#L82) |
+| Python public API | [`sdk/python/src/codex_app_server/api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72) |
+| TypeScript public API | [`sdk/typescript/src/codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11) |
+
+</div>

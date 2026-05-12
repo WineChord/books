@@ -226,4 +226,6 @@
 5. 读 [app-server message processing](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L272) 和 [TUI rendering](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658)，理解多个客户端如何共享 runtime。
 6. 最后读 [sandbox manager](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23)、[cloud tasks](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22)、[memory write phases](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L1) 和 [release workflows](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281)。
 
+## 审计规则
+
 当章节内容和源码索引不一致时，应该视为书稿问题。源码索引不是章节叙事的替代品，而是让叙事保持源码等价的压缩地图。

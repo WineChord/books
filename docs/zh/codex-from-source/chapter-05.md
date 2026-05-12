@@ -10,21 +10,6 @@
   <p><strong>心智模型：</strong>thread 是长期工作账本；session 是当前正在服务这个账本的运行时进程。</p>
 </div>
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Thread manager boundary | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L168) |
-| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98) |
-| Queue-pair runtime facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
-| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
-| Accepted prompt recording | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2980) |
-
-</div>
-
 ## Runtime Stack
 
 Codex 不是围绕一个“聊天对象”组织起来的。它更像一组逐层收窄权限的
@@ -208,7 +193,7 @@ projection 的价值在于可查询；它的安全性来自背后仍然有 durab
 
 <div class="apply-this">
 
-## 应用模式
+## 应用到实践
 
 1. 明确 live-handle stack，让客户端提交 operation，而不是直接修改调度器内部。
 2. 区分 thread identity 与 session execution，因为一个 durable thread 可能经历多次 runtime 生命周期。
@@ -224,3 +209,17 @@ projection 的价值在于可查询；它的安全性来自背后仍然有 durab
 运行中的，turn 是 session 内被调度的工作。第 6 章会进入一次 turn，
 看 Codex 如何构造上下文、采样模型、执行工具、处理 interruption，并判断
 Agent 是否真的完成。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Thread manager boundary | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L168) |
+| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98) |
+| Queue-pair runtime facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
+| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
+| Accepted prompt recording | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2980) |
+
+</div>

@@ -10,21 +10,6 @@ streaming transport、model catalog、realtime session 和 backend task workflow
   <p><strong>心智模型：</strong>provider 决定如何通信；runtime 决定 streamed events 代表什么。</p>
 </div>
 
-
-<div class="source-equivalence">
-
-## 源码地图
-
-| 概念 | 源码锚点 |
-| --- | --- |
-| Model client | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215) |
-| Provider prompt shape | [`codex-rs/core/src/client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28) |
-| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
-| WebSocket behavior tests | [`codex-rs/core/tests/suite/agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L1) |
-| Backend task API contrast | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) |
-
-</div>
-
 ## 五层结构
 
 provider 路径最好按五层理解，再加若干专门 integration。
@@ -215,13 +200,35 @@ backend client 处理 task、usage、requirements、rate-limit 和 cloud workflo
 或 sibling turns。这些 API 可能与 model provider 共享 auth 和 base URL 关注点，但它们不是
 Responses stream。
 
+```mermaid
+flowchart LR
+    Turn[Local turn loop]
+    Prompt[Model prompt and tools]
+    Inference[Inference transport\nSSE or WebSocket]
+    Events[Response events]
+
+    CloudUI[Cloud CLI or TUI]
+    TaskAPI[Backend task API]
+    TaskState[Tasks, attempts, diffs]
+    Apply[Local patch apply]
+
+    Turn --> Prompt
+    Prompt --> Inference
+    Inference --> Events
+    Events --> Turn
+
+    CloudUI --> TaskAPI
+    TaskAPI --> TaskState
+    TaskState --> Apply
+```
+
 把 backend task 分开，可以避免一个常见架构错误：把 cloud workflow state 当成另一种
 model transport。cloud task 有 lifecycle、environment、attempt、diff 和 apply semantics。
 model stream 有 response events。它们可能在产品流程里相遇，但不应该共享同一个 runtime 抽象。
 
 <div class="apply-this">
 
-## 应用模式
+## 应用到实践
 
 1. 把 transport mechanics 放在 typed event vocabulary 之下，让 agent loop 消费同一种 stream shape。
 2. provider definition 用数据表示，但把 account state、auth 和 capabilities 放进 runtime provider object。
@@ -236,3 +243,17 @@ model stream 有 response events。它们可能在产品流程里相遇，但不
 第 7 章说明了 turn loop 如何接收模型事件，而不继承每个 provider 的细节。第 8 章转向
 执行之后的证据：rollout persistence、diagnostic trace bundle、reducer、analytics、
 OTEL、response debug context，以及 Codex “先观察，后解释”的设计原则。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Model client | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215) |
+| Provider prompt shape | [`codex-rs/core/src/client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28) |
+| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
+| WebSocket behavior tests | [`codex-rs/core/tests/suite/agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L1) |
+| Backend task API contrast | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) |
+
+</div>
