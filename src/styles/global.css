@@ -113,6 +113,60 @@ html.dark .sidebar-link:hover {
   white-space: nowrap;
 }
 
+.site-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.site-brand-mark {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-brand-mark svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.site-brand-mark__cover {
+  fill: var(--color-charcoal);
+  stroke: var(--color-charcoal);
+  stroke-width: 1.5;
+}
+
+.site-brand-mark__spine {
+  stroke: var(--color-terracotta);
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.site-brand-mark__line,
+.site-brand-mark__fold {
+  stroke: var(--color-cream);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.site-brand-mark__fold {
+  stroke: var(--color-terracotta);
+}
+
+html.dark .site-brand-mark__cover {
+  fill: var(--color-cream);
+  stroke: var(--color-cream);
+}
+
+html.dark .site-brand-mark__line {
+  stroke: var(--color-charcoal);
+}
+
 .site-title-short {
   display: none;
 }
