@@ -33,11 +33,18 @@ function assert(condition, message) {
 }
 
 function publicBookFiles(dir) {
-  return readdirSync(dir)
-    .filter((name) => name.endsWith(".md"))
+  const files = readdirSync(dir)
+    .filter((name) => /\.(?:md|mdx)$/.test(name))
     .filter((name) => name !== "index.md")
+    .filter((name) => name !== "index.mdx")
     .filter((name) => name !== "book-rewrite-prompt.md")
     .sort();
+  const baseNames = files.map((name) => name.replace(/\.(?:md|mdx)$/, ""));
+  assert(
+    new Set(baseNames).size === baseNames.length,
+    `${dir} contains duplicate Markdown/MDX pages with the same route`,
+  );
+  return files;
 }
 
 function countApplyItems(body) {
@@ -119,7 +126,7 @@ for (const match of bookConfig.matchAll(/\b(?:front|reference)\("([^"]+)"/g)) {
 }
 
 for (const file of enFiles) {
-  const page = file.replace(/\.md$/, "");
+  const page = file.replace(/\.(?:md|mdx)$/, "");
   assert(
     configuredPaths.has(`codex-from-source/${page}`),
     `book.config.ts is missing English page metadata for ${page}`,
@@ -130,7 +137,7 @@ for (const file of enFiles) {
   );
 }
 
-const files = walk(docsDir).filter((path) => path.endsWith(".md"));
+const files = walk(docsDir).filter((path) => /\.(?:md|mdx)$/.test(path));
 
 for (const file of files) {
   const rel = relative(root, file);
@@ -152,9 +159,9 @@ for (const file of files) {
     throw new Error(`${rel} contains an unpinned Codex source link: ${link}`);
   }
 
-  if (/codex-from-source\/chapter-\d+\.md$/.test(rel)) {
+  if (/codex-from-source\/chapter-\d+\.mdx?$/.test(rel)) {
     checkChapterContract(rel, body);
   }
 }
 
-console.log(`checked ${files.length} Markdown files`);
+console.log(`checked ${files.length} Markdown and MDX files`);

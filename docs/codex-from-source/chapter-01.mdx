@@ -1,3 +1,5 @@
+import BoundedAgentOSMap from "../../src/components/visual/BoundedAgentOSMap.tsx";
+
 # Chapter 1: The Architectural Bet: Agent as a Bounded Operating System
 
 The preface argued that Codex is interesting because it turns a language model
@@ -61,26 +63,17 @@ Replayable boundaries means the system keeps enough structured evidence to
 explain or reconstruct the work. Codex can be interactive, but it is not
 ephemeral.
 
-```mermaid
-flowchart LR
-    client[Client surface] --> op[Typed operation]
-    op --> scheduler[Agent runtime scheduler]
-    scheduler --> context[Model-visible context]
-    scheduler --> model[Model provider]
-    model --> item[Model item]
-    item --> router[Tool and item router]
-    router --> gate[Policy gates]
-    gate --> effect[Bounded side effect]
-    scheduler --> event[Client-visible event]
-    event --> client
-    scheduler --> rollout[Replayable rollout]
-    gate --> rollout
-    item --> rollout
-```
+The interactive model below maps those phrases onto four paths: intent entering
+as an operation, model output returning as items, authority deciding side
+effects, and facts becoming rollout evidence. Step through it once, then switch
+to the authority stack. The most important path is still the one the component
+refuses to draw: model output never reaches shell or filesystem directly.
 
-The diagram deliberately has no direct arrow from the model to the filesystem
-or shell. The architecture's most important negative space is the path that
-does not exist.
+<BoundedAgentOSMap lang="en" client:visible />
+
+Notice the distinction the component keeps making. Operations are requests
+entering the runtime; events are facts leaving it. Clients can change, but the
+operation/event contract and the runtime boundary remain stable.
 
 ## The Vocabulary
 
@@ -195,18 +188,10 @@ organization-specific checks or context. Human approval can be requested when a
 decision cannot be made silently. Sandboxes and execution backends enforce a
 second line of defense at the place where work happens.
 
-```mermaid
-flowchart TD
-    proposal[Model proposes action] --> spec[Tool specification]
-    spec --> config[Resolved configuration]
-    config --> req[Managed requirements]
-    req --> profile[Permission profile]
-    profile --> policy[Action policy]
-    policy --> hooks[Hooks and reviewers]
-    hooks --> approval[Human or automated approval]
-    approval --> sandbox[Sandbox and executor]
-    sandbox --> result[Observed result]
-```
+Switch the model above to **Authority stack** and walk it from tool
+specification through sandbox and executor. That view is the important
+replacement for the old static stack: every layer can narrow, block, delay, or
+explain the request before any observed result exists.
 
 This layered design creates friction, but it creates useful friction. It lets a
 workspace run with strict rules without changing the model prompt. It lets a
@@ -259,5 +244,10 @@ distribution glue become product architecture.
 | Operation enum | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) |
 | Event stream | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1249) |
 | Session facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
+| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
+| Rollout replay graph | [`codex-rs/rollout-trace/src/model/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/mod.rs#L54) |
+| Queryable thread projection | [`codex-rs/state/src/runtime/threads.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/threads.rs#L398) |
+| Tool approval gate | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L149) |
+| Sandbox selection | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L218) |
 
 </div>

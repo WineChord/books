@@ -99,6 +99,10 @@ assert(
 );
 
 const htmlFiles = walk(distDir).filter((file) => file.endsWith(".html"));
+const chapterOneHtml = new Set([
+  path.join("codex-from-source", "chapter-01.html"),
+  path.join("zh", "codex-from-source", "chapter-01.html"),
+]);
 const forbiddenPublicationPattern =
   /book-rewrite-prompt|\/rewrite\/|codex-from-source_rewrite|zh_codex-from-source_rewrite|vitepress/i;
 const forbiddenPublicationTokens = [
@@ -109,7 +113,9 @@ const forbiddenPublicationTokens = [
   visualSpecStatus.scope,
   visualSpecStatus.approvalTarget,
   ...chapterVisualSpecs.map((spec) => spec.id),
-  ...chapterVisualSpecs.map((spec) => spec.primaryInteractive.component),
+  ...chapterVisualSpecs
+    .map((spec) => spec.primaryInteractive.component)
+    .filter((component) => component !== "BoundedAgentOSMap"),
 ];
 
 for (const file of walk(distDir)) {
@@ -134,6 +140,20 @@ for (const file of walk(distDir)) {
 for (const file of htmlFiles) {
   const html = readFileSync(file, "utf8");
   const rel = path.relative(distDir, file);
+  const isChapterOne = chapterOneHtml.has(rel);
+  const hasChapterOneIsland = html.includes("BoundedAgentOSMap");
+  const hasRenderedMermaid =
+    /class="mermaid\b/.test(html) || /language-mermaid/.test(html);
+
+  if (isChapterOne) {
+    assert(hasChapterOneIsland, `${rel} is missing the Chapter 1 island`);
+    assert(!hasRenderedMermaid, `${rel} still renders Chapter 1 Mermaid`);
+  } else {
+    assert(
+      !hasChapterOneIsland,
+      `${rel} unexpectedly loads the Chapter 1 island`,
+    );
+  }
 
   const canonical = html.match(/rel="canonical" href="([^"]+)"/)?.[1];
   assert(canonical, `${rel} is missing canonical link`);

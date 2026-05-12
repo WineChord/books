@@ -6,7 +6,7 @@ import { getLangForPath, getPageByPath, getPartForChapter } from "../book.config
 export async function getStaticPaths() {
   const entries = await getCollection("pages");
   return entries.map((entry) => {
-    const routePath = entry.id.replace(/\.md$/, "");
+    const routePath = entry.id.replace(/\.(?:md|mdx)$/, "");
     return {
       params: { slug: routePath },
       props: { entry, routePath },

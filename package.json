@@ -12,6 +12,7 @@
     "verify": "npm run check:content && npm run check:visual-spec && npm run build && npm run check:dist"
   },
   "devDependencies": {
+    "@astrojs/mdx": "^4.3.14",
     "@astrojs/react": "^4.2.0",
     "@astrojs/sitemap": "^3.6.0",
     "@fontsource-variable/jetbrains-mono": "^5.1.3",
@@ -23,6 +24,7 @@
     "astro": "^5.7.0",
     "d3": "^7.9.0",
     "framer-motion": "^12.38.0",
+    "lucide-react": "^1.14.0",
     "mermaid": "^11.12.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
