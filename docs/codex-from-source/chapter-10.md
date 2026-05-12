@@ -1,163 +1,180 @@
-# Chapter 10: Sandboxes and Runtime Boundaries
+# Chapter 10: Shell, Exec Server, and Filesystem Tools
 
-<div class="chapter-lede">
-  <p><strong>You are here:</strong> an action has passed policy checks and needs an execution environment.</p>
-  <p><strong>Problem:</strong> filesystem, network, platform, and remote execution constraints differ, but callers need one understandable behavior.</p>
-  <p><strong>Mental model:</strong> a sandbox is not a wall; it is a runtime transformation that narrows what an attempted action can touch.</p>
-</div>
+Chapter 9 separated tool exposure from tool authority. This chapter follows
+the handler family that makes the distinction most concrete: shell-like tools.
+A shell tool looks simple from the model's point of view, but the runtime must
+parse the command, classify risk, apply policy, run hooks, ask for approval
+when required, choose an environment, enforce sandbox rules, stream output, and
+leave a replayable record.
 
-Sandboxing is where product language meets operating-system reality. Users
-think "let Codex run this command with limited access." Runtime code must turn
-that into platform-specific process setup, filesystem policy, network policy,
-and sometimes a retry path.
+The key design point is that Codex does not treat "run this command" as a
+single primitive. It treats command execution as a pipeline whose final process
+may run locally, inside a platform sandbox, or through an `exec-server`
+abstraction that can represent a remote executor and its filesystem.
 
-## Evidence Map
 
-<div class="evidence-map">
+<div class="source-equivalence">
 
-| Concept | Source | Why it matters |
-| --- | --- | --- |
-| Sandbox manager | [`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L134) | Chooses initial sandbox behavior from policy and platform. |
-| Linux helper | [`linux_run_main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L147) | Shows dedicated sandboxed execution path on Linux. |
-| macOS seatbelt | [`seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L602) | Builds platform-specific seatbelt arguments. |
-| Exec request path | [`exec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec.rs#L315) | Converts abstract command intent into process execution. |
+## Source Map
 
-</div>
-
-## Enforced vs Advisory Boundaries
-
-Safety discussions get sloppy when every mechanism is called a "sandbox." It
-is better to distinguish what is enforced by the runtime or OS from what is
-advisory, informational, or policy-driven.
-
-| Boundary | What it does | What it does not promise |
-| --- | --- | --- |
-| Approval prompt | asks for a decision before risky work | does not constrain a process after approval |
-| Exec policy | classifies commands and required approvals | does not by itself isolate the OS |
-| Filesystem sandbox | restricts read/write paths where supported | does not prove model intent is harmless |
-| Network policy | blocks or asks for network access under managed policy | does not replace command review |
-| Event log | records what happened | does not prevent the action |
-
-This vocabulary keeps the book aligned with OWASP and NIST-style risk
-language: layered mitigations reduce risk; they do not erase it.
-
-## Sandbox Selection
-
-The orchestrator calls the sandbox manager to select the initial sandbox for a
-tool attempt. Selection depends on filesystem policy, network policy, the
-tool's sandbox preference, Windows sandbox level, and whether managed network
-policy is active.
-
-That means sandboxing is not only a boolean. A tool can prefer sandboxed
-execution, a policy can demand limits, a platform can support a particular
-mechanism, and a denial can trigger an approval path for a retry.
-
-Source readers also track sandbox preference and override:
-
-| Control | Meaning |
+| Concept | Source anchor |
 | --- | --- |
-| auto preference | use a sandbox when policy and platform make it appropriate |
-| require preference | request the platform sandbox path, but fall back to `SandboxType::None` when no platform sandbox is available in this snapshot |
-| forbid preference | a tool path explicitly cannot run inside the sandbox shape |
-| bypass first attempt | skip the initial sandboxed attempt only through explicit policy |
-| effective permission profile | transform the selected profile into the platform/backend's enforceable form |
-
-The important product behavior is honesty about fallback. Some security
-systems fail closed, but this selection path does not always do that: when the
-platform sandbox cannot be selected, the manager can return `SandboxType::None`.
-That means later approval, permission, event, and policy layers must not claim
-that OS sandbox enforcement happened.
-
-## Platform Reality
-
-Linux, macOS, Windows, and remote environments do not share one sandbox
-primitive. Codex keeps the product-level idea stable by hiding platform details
-behind manager and helper layers. On Linux, a dedicated helper path handles
-sandboxed execution. On macOS, seatbelt policy construction is its own concern.
-On Windows, app-server protocol includes sandbox readiness and setup concepts.
-
-The design lesson is that cross-platform safety should not be hand-waved. It
-needs explicit adapters and honest fallbacks.
-
-| Platform path | Practical behavior |
-| --- | --- |
-| macOS seatbelt | profile construction narrows filesystem and network access and can protect sensitive roots |
-| Linux Landlock/helper | capability depends on kernel/helper support; unavailable platform sandbox can become `SandboxType::None`, while helper launch errors are still execution errors |
-| Windows elevated vs restricted token | enforcement differs by privilege and backend support |
-| WSL or unusual Linux hosts | some helper paths are rejected because they cannot provide expected guarantees |
-| remote execution | sandbox and filesystem semantics belong to the remote environment, not only the local process |
-
-## Denial and Retry
-
-A sandbox denial is not just a process failure. It can be a policy signal.
-The orchestrator may surface the denial, ask for additional approval, or retry
-without the sandbox only when the policy and decision path allow it. This is
-why approval and sandboxing are separate chapters but connected at runtime.
-
-Denial may include a network policy decision. If network access is what failed,
-the runtime can ask for host/network approval, cancel the attempt, or apply a
-network policy amendment before retry. A denial without an approved path should
-remain a denial.
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| Question | Chapter 10 answer |
-| --- | --- |
-| Where is the user request now? | It is being transformed into a platform/backend-specific execution attempt. |
-| What carries it? | sandbox policy, permission profile, network decision, process launch config, and platform adapter output. |
-| Who decides next? | sandbox manager, platform adapter, network policy, and orchestrator retry logic. |
-| What can fail here? | unsupported or unavailable sandbox selection, missing helper during launch, denied network, incompatible Windows mode, or unsafe assumptions after `SandboxType::None`. |
+| Shell handler | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L31) |
+| Unified exec handler | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L48) |
+| Exec policy manager | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251) |
+| Exec-server RPC client | [`codex-rs/exec-server/src/rpc.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/rpc.rs#L234) |
+| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L38) |
 
 </div>
 
-<div class="apply-this">
+## Shell Tools Are Front Doors
+
+Codex has several shell-adjacent front doors because clients and model
+surfaces do not all want the same interaction shape.
+
+| Front door | Architectural role |
+| --- | --- |
+| `shell` | classic function-style command execution with workdir, timeout, approval hints, and output capture |
+| `local_shell` | host-local command shape used by older or specialized surfaces |
+| `shell_command` | shell-aware command surface with backend choices such as direct or shell-escalation paths |
+| `exec_command` | unified exec surface that can select an environment and keep process identity for later reads/writes |
+| `write_stdin` | continuation tool for a managed process that already exists |
+
+These tools converge on the same responsibility: turn a model request into an
+execution request that can be governed. The convergence is important because
+command policy, sandboxing, and approval should not depend on which client
+surface happened to expose the command.
+
+```mermaid
+flowchart TD
+    Call[tool call] --> Parse[parse command and arguments]
+    Parse --> Classify[classify safety and policy]
+    Classify --> Hooks[pre-tool and permission hooks]
+    Hooks --> Approval[approval or rejection]
+    Approval --> Sandbox[permission profile to sandbox attempt]
+    Sandbox --> Env[environment and exec-server backend]
+    Env --> Process[managed process]
+    Process --> Output[sequenced output and exit]
+    Output --> Events[events, telemetry, model result]
+```
+
+This is the shell execution chain in one picture. No single box is enough to
+make command execution safe or explainable; the safety comes from the order and
+the fact that each decision has a structured representation.
+
+## Parsing Before Policy
+
+Shell command text is not a reliable policy boundary. The runtime first tries
+to extract the shell and script, lower common shell forms into command tokens,
+and identify known-safe read-only patterns. The goal is not to understand every
+possible shell program. The goal is to build enough structure to apply policy
+without pretending that a raw string is already a decision.
+
+After parsing, Codex consults exec policy. The current policy engine uses
+prefix rules, optional host-executable metadata, and explicit decisions such as
+allow, prompt, or forbid. It can also represent network-related amendments.
+The older policy engine remains for compatibility, but the important
+architecture is the same: explicit rules run before fallback heuristics.
+
+| Decision source | What it contributes |
+| --- | --- |
+| Prefix rules | stable organization policy for known command families |
+| Host executable metadata | safer basename matching when an absolute program path is used |
+| Known-safe heuristics | conservative defaults for ordinary read-only commands |
+| Approval policy | when to ask, retry, or deny |
+| Runtime sandbox mode | what the first attempt is allowed to touch |
+
+An allow decision does not always mean "run freely." It may mean "run without
+prompt under the current sandbox." A policy can also intentionally bypass the
+sandbox, but that is a stronger claim and must be represented explicitly.
+
+## `exec-server` Defines Where Work Happens
+
+`exec-server` is the boundary that keeps execution placement from leaking into
+the tool handler. It provides a small JSON-RPC process and filesystem service:
+initialize a connection, start a managed process, read output by sequence,
+write stdin when supported, terminate a process, and perform filesystem
+operations through an executor filesystem interface.
+
+Local execution and remote execution share this shape. A local executor can
+spawn processes on the user's machine. A remote executor can register with a
+service and reconnect through a rendezvous channel. The tool runtime should
+not need to rewrite approval, sandboxing, or output logic merely because the
+process lives in a different execution environment.
+
+```text
+// Pseudocode - simplified for clarity.
+  request = parse_shell_tool_arguments(tool_call)
+  command = normalize_shell_command(request.command)
+  policy_result = evaluate_exec_policy(command, request.cwd)
+
+  if policy_result is forbidden:
+      return rejected_result(policy_result.reason)
+
+  approval_requirement = derive_approval(policy_result, approval_policy)
+  sandbox_attempt = choose_initial_sandbox(permission_profile, request)
+
+  if approval_requirement needs a decision:
+      decision = ask_hooks_guardian_or_user(request)
+      stop_unless_approved(decision)
+
+  environment = select_execution_environment(request.environment_id)
+  process = environment.exec_server.start(command, sandbox_attempt)
+  stream_output_until_exit(process)
+  return shaped_exec_result(process.output, process.exit_status)
+```
+
+The pseudocode hides many platform details, but it preserves the governing
+shape: parse, policy, approval, sandbox, environment, process, output.
+
+## Filesystem Access Goes Through the Executor
+
+Filesystem mutation is not only a shell concern. Patch application, file reads,
+remote workspace operations, and command execution all need a consistent way
+to reach the workspace that owns the files. Codex uses executor filesystem
+traits so a caller can read, write, create directories, remove paths, or check
+metadata without assuming that the files are local.
+
+That abstraction pays off in two ways. First, remote execution can apply a
+patch to the remote workspace rather than accidentally editing the client
+machine. Second, sandbox context can travel with filesystem operations. The
+filesystem API can therefore reject an operation that violates the effective
+permission profile instead of leaving every caller to reimplement path checks.
+
+## Output Is Sequenced State
+
+Terminal output is not just a blob. A long-running process may emit chunks,
+accept stdin, update terminal state, exit, and later be read again by a client.
+The runtime therefore tracks output with sequence cursors. A caller can ask
+for chunks after a known sequence number, wait for more output, or learn that
+the process has exited.
+
+This matters for replay and UI correctness. A terminal UI, a headless exec
+client, and an app-server client can all observe progress without each
+inventing a terminal transcript format. The model still receives a compact
+tool result, but clients get enough structure to render progress, truncation,
+exit status, and failure.
+
+## Environment Is Part of the Contract
+
+Shell execution also depends on environment management: current working
+directory, selected environment, explicit environment variables, shell
+snapshots, proxy variables, timeouts, TTY mode, and process identity. Codex
+keeps these facts in the turn context or selected environment so they are not
+guessed at the handler boundary.
+
+The architecture implication is simple: `exec-server` is not merely a helper
+binary. It is the runtime abstraction for where work happens, which filesystem
+is authoritative, and how process output is sequenced.
 
 ## Apply This
 
-- Describe safety boundaries with precise verbs: gate, restrict, record, retry.
-- Hide platform details behind explicit sandbox adapters.
-- Treat sandbox denial as a structured runtime outcome.
-- Never turn "sandbox exists" into a blanket claim of safety.
+1. **Parse before deciding.** Do not apply policy to raw shell text when structured command facts are available.
+2. **Run explicit rules before heuristics.** Make organization policy override fallback safety guesses.
+3. **Abstract placement.** Put local and remote execution behind the same process and filesystem contract.
+4. **Sequence output.** Treat terminal output as ordered state, not a single final string.
+5. **Carry environment facts explicitly.** Make cwd, env, timeout, TTY, and selected executor part of the request.
 
-</div>
-
-## Read the Source Next
-
-- [`SandboxManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L134):
-  inspect selection logic.
-- [`linux-sandbox/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/README.md#L1):
-  read the documented Linux boundary.
-- [`WindowsSandboxSetupStart`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L849):
-  see how sandbox readiness appears in the app-server protocol.
-
-<div class="exercise-box">
-
-## Self-Check
-
-Answer without opening source: why is `SandboxType::None` different from a
-sandbox denial? Explain why clients must not describe a command as sandboxed
-just because the initial preference requested sandboxing.
-
-</div>
-
-<div class="exercise-box">
-
-## Optional Source Lab
-
-Pick a command that reads files and a command that writes files. Without
-running anything, trace which layers would care: approval policy, exec policy,
-filesystem sandbox, network policy, and event reporting.
-
-</div>
-
-<div class="next-step">
-
-## What Comes Next
-
-Codex is not limited to built-in tools. The next chapter looks at MCP, apps,
-skills, and plugins: the extension surfaces that widen what a turn can see and
-do.
-
-</div>
+Chapter 11 takes one mutation path out of the shell stream and gives it its
+own protocol: patches. That separation is why Codex can review and apply file
+edits without reducing them to opaque command text.

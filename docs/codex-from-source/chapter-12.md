@@ -1,176 +1,193 @@
-# Chapter 12: TUI and App Server
+# Chapter 12: Hooks and Human Approval
 
-<div class="chapter-lede">
-  <p><strong>You are here:</strong> the runtime can produce events, and users need to see or consume them.</p>
-  <p><strong>Problem:</strong> modern Codex clients need a rich terminal experience and a JSON-RPC app-server boundary without duplicating the agent runtime.</p>
-  <p><strong>Mental model:</strong> the app-server adapts core session events; the TUI is one serious client of that app-server-shaped protocol.</p>
-</div>
+Chapter 11 showed that filesystem mutation can be parsed and verified before
+it is applied. This chapter studies the gates that can still stop, amend, or
+explain an action after the runtime understands it: hooks, approval policy,
+Guardian review, and user approval. They are related, but they are not the
+same layer.
 
-The stale mental model is "TUI and app-server are two peer consumers of core
-events." The source-centered model is sharper: the app-server is the typed
-client boundary that adapts core session operations and events, and the TUI
-uses an app-server session path for much of its modern interaction. That still
-requires terminal-specific UI state, but it means the terminal and external
-clients share a protocol-shaped runtime boundary.
+Hooks are configured programs that observe or influence runtime events.
+Approval is the control-plane decision that allows or rejects a side effect.
+Guardian is an automated reviewer that may answer certain approval requests.
+The user interface is the human decision surface. Codex keeps these layers
+separate so each can fail in a precise way.
 
-## Evidence Map
 
-<div class="evidence-map">
+<div class="source-equivalence">
 
-| Concept | Source | Why it matters |
-| --- | --- | --- |
-| TUI chat surface | [`chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1) | Module comments summarize event consumption, active cells, overlays, and bottom-pane state. |
-| TUI app-server session | [`app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L1) | Shows the TUI using app-server protocol machinery. |
-| App-server routing | [`message_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L1000) | Routes JSON-RPC requests across thread, turn, catalog, plugin, app, MCP, sandbox, and account processors. |
-| Turn processor | [`turn_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/turn_processor.rs#L315) | Translates app-server turn requests into core session operations. |
-| Server requests | [`ServerRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1277) | Defines approval, user input, MCP elicitation, permission, and dynamic tool requests sent to clients. |
-| Notifications | [`ServerNotification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1440) | Defines the stream of observable client updates. |
+## Source Map
 
-</div>
-
-## TUI: Event Stream to Screen
-
-The `ChatWidget` module comments are unusually useful. They explain committed
-transcript cells, an in-flight active cell, transcript overlay behavior, a
-bottom-pane task-running indicator, preamble handling, slash command staging,
-and MCP startup state.
-
-For a beginner, the key idea is: the TUI does not own the agent loop. It
-consumes events and maintains presentation state. It decides how to render
-streaming output, approvals, diffs, status, overlays, and input, but the
-session runtime remains the source of truth for turn progress.
-
-Modern TUI flow is closer to:
-
-<div class="flow">
-  <div><strong>ChatWidget/AppCommand</strong>User input or UI command.</div>
-  <div><strong>AppServerSession</strong>TUI-side client boundary.</div>
-  <div><strong>ClientRequest</strong>`turn/start` or related JSON-RPC method.</div>
-  <div><strong>Turn processor</strong>Converts request to core operation.</div>
-  <div><strong>Core session</strong>Runs turn and emits `EventMsg` values.</div>
-  <div><strong>Event adapter</strong>Maps core events into server notifications or requests.</div>
-  <div><strong>TUI rendering</strong>Updates terminal presentation state.</div>
-</div>
-
-## App-Server: Event Stream to JSON-RPC
-
-The app-server receives JSON-RPC requests and routes them to processors. The
-large match in `message_processor.rs` is not glamorous, but it is a map of the
-external product surface: threads, turns, skills, hooks, marketplace, plugins,
-apps, models, experimental features, MCP, Windows sandbox setup, account state,
-remote control, and more.
-
-| Request family | What it exposes |
+| Concept | Source anchor |
 | --- | --- |
-| thread and turn | create, read, steer, interrupt, compact, rollback, shell command, review |
-| catalog | skills, hooks, models, collaboration modes, experimental features |
-| plugin and marketplace | install, remove, list, read, share, skill read |
-| apps and MCP | app lists, MCP status, resource reads, OAuth, server tool calls |
-| approval and dynamic tools | server requests that ask clients to decide or execute |
-
-This shape lets a non-terminal client build its own UI without duplicating the
-core runtime.
-
-## App-Server Protocol Details
-
-The app-server protocol has three major directions:
-
-| Direction | Examples | Meaning |
-| --- | --- | --- |
-| `ClientRequest` | thread start/resume/fork, turn start/interrupt, config writes, account queries, MCP/resource/app/plugin calls | client asks the server to do or report something |
-| `ServerRequest` | command approval, patch approval, permission request, user input request, MCP elicitation, auth refresh, dynamic tool execution | server needs the client or user to decide/provide something |
-| `ServerNotification` | thread status, turn started/completed, item updates, command output, turn diff, token usage, compaction | server broadcasts observable state |
-
-Requests also have serialization scopes. Some are global; some are tied to a
-thread; some can be scoped by thread or file path. Experimental capability
-gates, initialization state, notification settings, auth, origin checks, and
-backpressure errors are part of the boundary.
-
-## Why Presentation State Still Matters
-
-Even with a strong core protocol, surfaces are real engineering work. A TUI
-has terminal dimensions, frame rendering, key events, overlays, and live
-streaming cells. An app-server has request ids, serialization scope, schema
-generation, client-specific responses, and notifications. The shared runtime
-does not eliminate presentation complexity; it keeps that complexity from
-leaking back into the agent loop.
-
-## The End-to-End Path
-
-The recurring scenario now reaches the user:
-
-<div class="flow">
-  <div><strong>Core event</strong>The session emits progress, output, approval, diff, or completion.</div>
-  <div><strong>App-server adapter</strong>Maps core event into notification or bidirectional server request.</div>
-  <div><strong>User decision</strong>The user can approve, deny, interrupt, steer, or inspect evidence.</div>
-  <div><strong>Protocol response</strong>The decision flows back as typed input.</div>
-  <div><strong>Turn continues</strong>The runtime resumes with the new observation or decision.</div>
-</div>
-
-That is the full loop: not model-only, not UI-only, but a typed conversation
-between user, runtime, tools, and surfaces.
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| Question | Chapter 12 answer |
-| --- | --- |
-| Where is the user request now? | It has crossed a client surface, often through the app-server protocol, and returned as notifications or server requests. |
-| What carries it? | `ClientRequest`, request processors, core `Op`/`EventMsg`, bespoke event mapping, `ServerRequest`, and `ServerNotification`. |
-| Who decides next? | app-server processors, core session, client/TUI state, or the user responding to a server request. |
-| What can fail here? | initialization gate, auth/origin check, experimental capability gate, backpressure, invalid scope, dropped client, UI replay mismatch, or unresolved bidirectional request. |
+| Hook event vocabulary | [`codex-rs/hooks/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L92) |
+| Hook registry | [`codex-rs/hooks/src/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/registry.rs#L47) |
+| Prompt hook runtime | [`codex-rs/core/src/hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L321) |
+| Guardian review path | [`codex-rs/core/src/guardian/review.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L103) |
+| Tool orchestrator gates | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
 
 </div>
 
-<div class="apply-this">
+## The Gate Stack
+
+```mermaid
+flowchart TD
+    RuntimeEvent[tool, prompt, compact, or stop event] --> HookPreview[hook preview]
+    HookPreview --> HookRun[trusted hook run]
+    HookRun --> HookOutcome{hook outcome}
+    HookOutcome -->|context or feedback| Continue[continue with added facts]
+    HookOutcome -->|block or stop| Reject[stop or reject]
+    Continue --> Policy[approval requirement]
+    Policy --> PermissionHook[permission-request hook]
+    PermissionHook --> Reviewer{decision source}
+    Reviewer -->|configured automation| Guardian[Guardian review]
+    Reviewer -->|human path| User[user approval]
+    Guardian --> Decision[allow, deny, timeout, amend]
+    User --> Decision
+    Decision --> ToolAttempt[tool attempt or rejection]
+```
+
+The stack is ordered, not ornamental. Hooks can add context or block specific
+events. Permission-request hooks can answer an approval before the normal
+review path. Guardian or the user can decide unresolved approvals. The tool
+attempt happens only after the gates produce an allowed decision.
+
+## One Command Through the Gates
+
+The easiest way to see the separation is to follow one shell command. The model
+requests a command. Codex first runs matching pre-tool hooks; those hooks can
+add context, warn, or block before policy evaluates the side effect. If hooks
+do not block, approval policy decides whether this command can run under the
+current permission profile. If the policy requires a decision, a
+permission-request hook may answer automatically. If it does not, Guardian or
+the user-facing client receives a request. Only after an allow decision does
+the shell handler reach sandbox selection and process execution. After the
+result is available, post-tool hooks can observe output and feed structured
+feedback back into the turn.
+
+```mermaid
+sequenceDiagram
+    participant Model
+    participant Runtime
+    participant Hook
+    participant Policy
+    participant Reviewer
+    participant Shell
+
+    Model->>Runtime: shell tool call
+    Runtime->>Hook: pre-tool event
+    Hook-->>Runtime: allow, context, warning, or block
+    Runtime->>Policy: evaluate command and profile
+    Policy->>Reviewer: approval request when needed
+    Reviewer-->>Policy: allow, deny, amend, timeout
+    Policy-->>Runtime: executable decision
+    Runtime->>Shell: run under selected sandbox
+    Shell-->>Runtime: output and status
+    Runtime->>Hook: post-tool event
+```
+
+The point is not the command itself. The point is that each gate owns a
+different question: what automation observes, what policy permits, what the
+reviewer authorizes, what the sandbox contains, and what result becomes
+durable.
+
+## Hook Discovery and Trust
+
+Codex can load hooks from multiple sources: system or managed configuration,
+user configuration, project configuration, session flags, plugins, cloud
+requirements, and legacy managed files. Each hook has event identity, matcher
+state, command text, timeout, source metadata, display order, and trust status.
+
+Trust is not inferred from existence. Managed hooks are trusted by policy.
+User or project hooks are trusted only when their normalized identity hash
+matches the stored trusted hash. If a hook changes, its status becomes
+modified rather than silently continuing as trusted. Disabled hooks remain
+visible in listings but do not run.
+
+This design protects two different workflows. Operators can centrally manage
+hooks that users should not have to approve one by one. Individual users can
+still add hooks, but a changed hook must regain trust before it participates in
+the runtime.
+
+## Hook Events and Results
+
+The hook event vocabulary covers more than command execution. It includes
+session start, user prompt submit, pre-tool use, permission request, post-tool
+use, pre/post compact, and stop. These are architectural checkpoints: before a
+tool mutates, after a tool reports output, before context is compressed, when a
+turn might stop, and when a prompt enters the runtime.
+
+Hook handlers receive JSON on stdin and return structured JSON on stdout, with
+stderr used for feedback in some failure modes. Outcomes are not just success
+or failure. A hook can provide additional model context, warn, block, stop,
+return feedback, or fail while allowing the operation to continue depending on
+the event contract.
+
+```text
+// Pseudocode - simplified for clarity.
+  handlers = discover_hooks(config_layers, plugins, managed_sources)
+  trusted_handlers = filter_enabled_and_trusted(handlers)
+
+  preview = build_hook_run_summaries(trusted_handlers, event)
+  emit_hook_started(preview)
+
+  results = run_matching_hooks_with_json_io(trusted_handlers, event)
+  emit_hook_completed(results)
+
+  if any result blocks or stops:
+      return rejected_or_stopped_result(results.feedback)
+
+  add_context_for_model(results.context)
+  continue_to_policy_or_tool_execution()
+```
+
+The preview/run split lets clients show that hook work is pending before the
+command actually finishes. That matters in terminal UI, app-server, and
+headless contexts because a hook can be slow or can block the action.
+
+## Approval Is a Different Gate
+
+Approval begins when policy says a tool needs a decision or when a sandboxed
+attempt fails and an unsandboxed retry is possible. The approval payload is
+tool-specific: shell approval includes command and cwd, patch approval includes
+file changes, MCP approval includes server and tool metadata, and permission
+requests include the additional filesystem or network access being requested.
+
+The runtime can cache session approvals by key. Shell-like commands usually
+have one approval key. A patch may have one key per affected path so approving
+a multi-file patch for the session can also approve later subsets safely.
+
+Approval decisions are richer than yes/no. They may approve once, approve for
+session, deny, abort, time out, approve an exec-policy amendment, or approve a
+network-policy amendment. The difference matters because an amendment changes
+future policy; a one-time approval only authorizes the current action.
+
+## Guardian, Headless Mode, and UI Interruption
+
+Guardian is an automated review path for approval-like requests. When approval
+routing selects automated review, the runtime creates a review id separate from
+the tool call id and waits for a decision. Denial, timeout, and abort are
+distinct outcomes so the user-facing message can say what happened rather than
+flattening everything into "failed."
+
+Headless execution cannot rely on an interactive modal. If a request requires
+human approval and no human approval channel exists, the safe behavior is to
+reject rather than to wait forever. The TUI, by contrast, can interrupt the
+normal flow with a modal decision surface and then resume the turn after the
+decision arrives.
+
+MCP and dynamic tools add another approval dimension. Their tool metadata may
+be hosted, connector-backed, or client supplied. The approval surface must show
+the provenance and parameters that matter without leaking raw internal names as
+the user-facing trust boundary.
 
 ## Apply This
 
-- Keep the agent loop independent from terminal rendering.
-- Let external clients consume structured notifications instead of terminal text.
-- Treat UI state as derived from protocol events wherever possible.
-- Design approval and dynamic tool requests as bidirectional protocol flows.
+1. **Keep hooks and approvals separate.** Hooks observe or influence events; approval authorizes side effects.
+2. **Trust configured code explicitly.** Hash user/project hooks and treat modified hooks as untrusted until accepted.
+3. **Preview long-running gates.** Emit pending hook or approval state before clients appear frozen.
+4. **Model approval decisions precisely.** Distinguish deny, abort, timeout, one-time approval, session approval, and policy amendment.
+5. **Fail closed without an approval channel.** Headless execution should reject interactive approvals it cannot present.
 
-</div>
-
-## Read the Source Next
-
-- [`ChatWidget` module docs](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1):
-  read the comments before reading methods.
-- [`message_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L1000):
-  group JSON-RPC request families.
-- [`ServerNotification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1440):
-  inspect what external clients can observe.
-
-<div class="exercise-box">
-
-## Self-Check
-
-Answer without opening source: why is app-server not just a thin adapter?
-Explain the path from a TUI command to `turn/start`, then back from core
-`EventMsg` to a TUI-visible update.
-
-</div>
-
-<div class="exercise-box">
-
-## Optional Source Lab
-
-Pick one runtime event such as command output, file-change approval, MCP
-status, or turn completion. Trace how the TUI might render it and how the
-app-server might notify an external client. What information must remain
-structured for both surfaces to work?
-
-</div>
-
-<div class="next-step">
-
-## Closing
-
-You have now followed the core path: entry, protocol, session, turn, tools,
-patches, approvals, sandboxes, extensions, and user surfaces. Use the
-[Pattern Index](patterns) when you want transferable design lessons, and use
-the [Source Atlas](source-atlas) when you want the fastest route back to code.
-
-</div>
+Chapter 13 follows an approved action into the isolation layer. It explains how
+permission profiles become filesystem and network policy, then platform
+sandboxes, managed networking, and execution metadata.

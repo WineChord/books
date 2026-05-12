@@ -1,167 +1,271 @@
-# Chapter 4: Protocol
+# Chapter 4: The Protocol Boundary
 
-<div class="chapter-lede">
-  <p><strong>You are here:</strong> user intent has reached a boundary and must become structured data.</p>
-  <p><strong>Problem:</strong> multiple clients need to drive Codex without depending on private runtime internals.</p>
-  <p><strong>Mental model:</strong> protocol is the grammar of the product; runtime code is one speaker of that grammar.</p>
-</div>
+Chapter 3 established that Codex starts work only after configuration,
+authentication, feature state, and managed requirements have been resolved into
+a constrained runtime envelope. This chapter explains the language that carries
+work across that envelope. The protocol boundary is where product intent stops
+being private method calls and becomes durable messages: submissions, events,
+model items, app-server JSON-RPC requests, server-to-client requests, and
+generated schemas.
 
-Codex has more than one protocol surface. The core protocol connects clients
-to the agent session with submissions and events. The app-server protocol
-exposes a JSON-RPC service with client requests, server requests, responses,
-and notifications. These protocols overlap in purpose but serve different
-audiences.
+The protocol is a product boundary, not a serialization afterthought. It tells
+clients what they may ask for, tells the runtime what it must report, and tells
+future versions what compatibility obligations they have inherited.
 
-## Evidence Map
+<div class="source-equivalence">
 
-<div class="evidence-map">
+## Source Map
 
-| Concept | Source | Why it matters |
-| --- | --- | --- |
-| Submission queue entry | [`Submission`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123) | Wraps an operation with an id and trace context. |
-| Core operations | [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) | Defines what the session can receive. |
-| App-server requests | [`client_request_definitions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L637) | Defines JSON-RPC methods exposed to app clients. |
-| App-server notifications | [`server_notification_definitions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1440) | Defines what app clients can observe asynchronously. |
-
-</div>
-
-## Core Protocol vs App-Server Protocol
-
-| Layer | Primary audience | Shape | Example |
-| --- | --- | --- | --- |
-| Core protocol | Runtime clients inside the Rust system | `Submission { id, op, trace }` and `Event` | `Op::UserInputWithTurnContext`, `Op::ExecApproval`, `EventMsg::TurnComplete` |
-| App-server protocol | External clients speaking JSON-RPC | method names, params, responses, notifications | `turn/start`, `item/commandExecution/requestApproval`, `turn/completed` |
-
-The core protocol is close to the agent. It talks about operations such as
-user input, interruptions, approvals, dynamic tool responses, MCP refreshes,
-review requests, compaction, rollback, and user shell commands. The app-server
-protocol is close to clients. It must describe request serialization, method
-names, response payloads, notifications, and experimental gates.
-
-## Event Model Taxonomy
-
-A source reader does not remember `EventMsg` as one huge enum. They group it
-by runtime meaning:
-
-| Event family | Examples | What it teaches |
-| --- | --- | --- |
-| lifecycle | turn started/completed/aborted, shutdown complete | work has explicit beginning and ending |
-| text/reasoning | agent message, content deltas, reasoning summaries, raw reasoning | streamed output is typed before it becomes UI text |
-| item lifecycle | item started/completed, raw response item | modern item events coexist with legacy event names for compatibility |
-| tools | exec begin/output/end, MCP begin/end, web/image begin/end, patch begin/update/end | side effects are observable before final answer |
-| approvals | exec approval, patch approval, permission request, user input request, Guardian assessment | decision points are protocol events |
-| context/history | context compacted, thread rolled back, token count, goal update | state changes are visible to clients |
-| errors/warnings | error, warning, stream error, deprecation notice | failure is typed, not just printed |
-| realtime/collab | realtime audio/text events, collab spawn/wait/close/resume | the same protocol family covers advanced workflows |
-
-The `Event { id, msg }` wrapper is also important: emitted events can be
-correlated with submitted work. That is why UI surfaces can show progress,
-approval prompts, tool results, and completion for the right turn.
-
-## App-Server Protocol Families
-
-The app-server layer has three directions:
-
-| Type | Direction | Examples |
-| --- | --- | --- |
-| `ClientRequest` | client to server | thread start/resume/fork, turn start, config/account/model requests, MCP/app/plugin/skill/catalog calls |
-| `ServerRequest` | server asks client/user | command approval, patch approval, user input, permission request, MCP elicitation, auth refresh, dynamic tool execution |
-| `ServerNotification` | server broadcasts state | thread status, turn started/completed, item updates, token usage, command output, turn diff, compaction |
-
-Requests also have serialization scopes. Some are global, some are
-thread-scoped, and some depend on a thread or path. Experimental methods must
-be gated. Initialization, notification opt-out, auth, and backpressure are
-part of the protocol contract, not implementation trivia.
-
-## The Queue Pair Pattern
-
-At the core level, Codex uses a submission queue and an event queue. That is
-not an incidental implementation detail; it is a product shape. Clients submit
-work and independently listen for progress.
-
-<div class="flow">
-  <div><strong>Client</strong>Builds an `Op`.</div>
-  <div><strong>Submission</strong>Adds id and trace context.</div>
-  <div><strong>Session</strong>Consumes queued work.</div>
-  <div><strong>Event</strong>Emits typed progress and results.</div>
-  <div><strong>Surface</strong>Renders or forwards the event.</div>
-</div>
-
-This shape is useful because agent work is not instantaneous. A turn can
-stream tokens, ask for approval, run subprocesses, emit partial diffs, call MCP
-tools, and be interrupted. A request/response function alone would hide too
-much of that lifecycle.
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| Question | Chapter 4 answer |
+| Concept | Source anchor |
 | --- | --- |
-| Where is the user request now? | It has become a typed protocol message. |
-| What carries it? | Core `Submission`/`Op`, app-server `ClientRequest`, and emitted `Event`/`EventMsg` or notifications. |
-| Who decides next? | The session consumes core operations; app-server processors route external requests; clients answer server requests. |
-| What can fail here? | Unsupported operation, invalid params, experimental gate, missing response to a server request, or event compatibility mismatch. |
+| Core submissions and events | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L125) |
+| App-server JSON-RPC envelope | [`codex-rs/app-server-protocol/src/jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L37) |
+| V2 protocol families | [`codex-rs/app-server-protocol/src/protocol/v2/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/mod.rs#L1) |
+| Event-to-item mapping | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L30) |
+| Schema export | [`codex-rs/app-server-protocol/src/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L1) |
 
 </div>
 
-## Protocols as Compatibility Boundaries
+## Core Runtime Protocol
 
-Protocols are where compatibility matters most. If an internal helper changes
-but the same `Op` and event behavior remain, clients can keep working. If a
-protocol variant changes meaning, the blast radius is much larger.
+The core runtime protocol has a simple outer shape:
 
-This is why generated schemas in the app-server protocol are important. They
-turn Rust type definitions into client-visible contracts. A web client, editor
-integration, or test client should not need to import private Rust modules to
-know what `turn/start` accepts.
+| Direction | Concept | Meaning |
+| --- | --- | --- |
+| Into runtime | Submission | A queued unit of work sent by a client or host. |
+| Into runtime | Operation | The typed action inside a submission: start a turn, interrupt, approve, respond to a tool request, refresh state, and so on. |
+| Out of runtime | Event | A sequenced fact emitted by the runtime. |
+| Out of runtime | Event message | The typed payload of that fact: setup, progress, item delta, approval request, tool result, completion, error. |
 
-<div class="apply-this">
+This split lets the runtime behave like an evented kernel. Clients do not call
+private session methods directly. They submit operations and observe events.
+The runtime may queue, reject, transform, or serialize operations according to
+active state.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Runtime
+    participant Model
+    participant Tool
+    participant Store
+
+    Client->>Runtime: submission(operation)
+    Runtime->>Store: append accepted fact
+    Runtime->>Client: event(turn started)
+    Runtime->>Model: request with context
+    Model-->>Runtime: model item stream
+    Runtime->>Client: event(item delta)
+    Runtime->>Tool: bounded tool request
+    Tool-->>Runtime: observation
+    Runtime->>Store: append observation
+    Runtime->>Client: event(turn completed)
+```
+
+The sequence is simplified, but the contract is accurate: the runtime is the
+only component that converts submitted intent into durable progress.
+
+## Items Are Not Just Messages
+
+In a simple chat application, "message" can carry most of the system. Codex
+needs a richer item vocabulary. A thread may contain user text, images, model
+output, reasoning summaries, command calls, command output, file changes,
+approval records, tool observations, plan updates, hook activity, realtime
+transcripts, and collaboration events.
+
+Calling all of these "messages" would hide the key distinction: different
+items have different rules for streaming, persistence, display, replay, and
+compatibility. A command output delta should not be treated like an assistant
+paragraph. A patch update should not be treated like a model-visible instruction.
+An approval request is not final history until it is resolved.
+
+The item model is therefore an architectural vocabulary. It lets the runtime,
+app-server, terminal UI, SDKs, and rollout reducers agree on what kind of fact
+they are handling.
+
+## App-Server JSON-RPC
+
+App-server introduces a second protocol boundary. It is not a replacement for
+the core runtime protocol; it is a client-facing distributed-system layer around
+threads, turns, items, approvals, filesystem APIs, process APIs, MCP, plugins,
+account state, and remote-control flows.
+
+Its wire shape is JSON-RPC-like: requests expect responses, notifications do
+not, errors carry structured failure information, and server-to-client requests
+allow the runtime side to ask a connected client for decisions such as
+approvals or input. Codex intentionally keeps the envelope lightweight, but the
+request/response/notification distinction remains central.
+
+The important word is "like." App-server is not a generic JSON-RPC server onto
+which an agent was bolted. It adds protocol obligations that are specific to
+long-running agent work:
+
+| Obligation | Why plain request/response is insufficient |
+| --- | --- |
+| Initialize before use | Methods and experimental fields depend on connection identity and capability. |
+| Connection-scoped gates | Two clients observing one thread may understand different experimental surfaces. |
+| Server-to-client requests | Approvals, elicitations, dynamic tools, and auth refresh can block runtime progress. |
+| Resource serialization | Requests must be ordered by thread, path, process, account, or global state. |
+| Replay and rejoin | A reconnecting client needs committed history plus live updates without duplicates. |
+
+```mermaid
+flowchart TD
+    ide[IDE or SDK client] --> transport[Transport: stdio, socket, websocket, in-process]
+    transport --> rpc[JSON-RPC envelope]
+    rpc --> processor[Message processor]
+    processor --> appmodel[Thread, turn, item APIs]
+    appmodel --> core[Core runtime operations]
+    core --> events[Core events]
+    events --> mapper[App-server item mapper]
+    mapper --> notify[Client notifications]
+    notify --> ide
+    processor --> serverreq[Server-to-client requests]
+    serverreq --> ide
+```
+
+The app-server boundary adds concerns that a local terminal UI can often hide:
+connection initialization, experimental capability negotiation, request
+serialization, backpressure, replay on rejoin, thread listeners, pending
+approvals, and derived status. Those are protocol concerns because clients may
+be separate processes with their own lifecycle.
+
+The mapping from core events to app-server items is the most important
+translation layer:
+
+```mermaid
+flowchart TD
+    CoreEvent[Core event]
+    Kind{event kind}
+    Item[Thread item]
+    Delta[Item delta]
+    Status[Thread or turn status]
+    ServerRequest[Server-to-client request]
+    Projection[Client projection]
+
+    CoreEvent --> Kind
+    Kind --> Item
+    Kind --> Delta
+    Kind --> Status
+    Kind --> ServerRequest
+    Item --> Projection
+    Delta --> Projection
+    Status --> Projection
+    ServerRequest --> Projection
+```
+
+A client should not reconstruct this projection by parsing terminal text. The
+server does that mapping once, exposes stable item and notification shapes,
+and keeps enough request ids and pending-request state to reconnect decisions
+to the turns they unblock.
+
+## From App Request to Core Operation
+
+The app-server model uses user-facing concepts such as thread, turn, item, and
+environment selection. The core runtime uses submissions and operations. A
+request to start a turn therefore has to be validated and translated.
+
+```text
+// Pseudocode - illustrative pattern.
+function handle_turn_start(request, connection):
+    require_initialized(connection)
+    require_experimental_fields_enabled(request, connection.capabilities)
+
+    thread = find_loaded_thread(request.thread_id)
+    overrides = resolve_turn_overrides(request)
+    operation = build_runtime_operation(
+        kind = "user_turn",
+        input = request.input_items,
+        settings = overrides
+    )
+
+    turn = register_in_progress_turn(thread)
+    submit_to_core(thread, operation)
+    return response_with_turn(turn)
+
+function map_core_event(event):
+    item_update = reconstruct_thread_item(event)
+    if item_update.exists:
+        notify_client("item_updated", item_update)
+    if event.requests_client_decision:
+        send_server_request(event.decision_request)
+```
+
+Again, this is pseudocode. The important idea is translation with validation.
+App-server is not a tunnel that blindly forwards arbitrary JSON into the core.
+It owns a client contract and maps that contract onto runtime operations.
+
+## Generated Schemas as Governance
+
+Generated schemas make the protocol auditable outside Rust. JSON Schema and
+TypeScript-facing artifacts let clients, tests, and release checks detect drift.
+They also force the source types to carry enough metadata for stable and
+experimental surfaces to be separated.
+
+Schema generation is a form of architectural governance. Without it, a field
+can be added to a Rust type and accidentally become a client obligation. With
+it, protocol evolution has to pass through exported contracts, compatibility
+filters, and tests that notice changes.
+
+This is especially important because Codex has more than one client generation
+target. A Rust app-server client, a Python SDK, generated TypeScript bindings,
+and test clients all need a shared understanding of the wire model even when
+they expose different ergonomics.
+
+## Compatibility Is a Code Path
+
+Protocol compatibility in Codex is explicit. Legacy aliases are accepted for
+some values. Older request forms coexist with newer turn-context operations.
+App-server v1 and v2 concepts overlap. Experimental fields are gated by
+connection capability and filtered from stable schema output. Deprecated fields
+may remain accepted even when ignored so older clients keep working.
+
+This is not accidental clutter. It is the cost of a protocol boundary that
+other clients can depend on. Once a field crosses the boundary, removing it is
+not the same as refactoring a private helper. It may break a terminal, SDK,
+daemon, extension, or persisted rollout.
+
+The bounded-OS analogy helps here too. Operating systems carry compatibility
+for old system calls because applications depend on them. Agent runtimes that
+want multiple clients inherit a smaller version of the same obligation.
+
+## What Can Enter and Leave
+
+By the end of Part I, the architecture has four gates:
+
+```mermaid
+flowchart LR
+    install[Installed command] --> router[Rust router]
+    router --> envelope[Resolved runtime envelope]
+    envelope --> protocol[Protocol boundary]
+    protocol --> runtime[Session runtime]
+
+    protocol --> enters[Can enter: operations, approvals, tool responses, turn input]
+    protocol --> leaves[Can leave: events, items, status, requests, errors]
+```
+
+The runtime is powerful precisely because the boundary is narrow. A client can
+start or steer work, interrupt it, answer approval requests, provide dynamic
+tool outputs, refresh external state, or request thread lifecycle actions. A
+client can observe setup, streaming, tool activity, approval prompts, errors,
+completion, and reconstructed items. It cannot reach inside the session and
+mutate private state directly.
 
 ## Apply This
 
-- Use protocol types to protect clients from private runtime churn.
-- Prefer asynchronous event streams when work has progress, approvals, or cancellation.
-- Keep core runtime vocabulary separate from external JSON-RPC vocabulary.
-- Treat generated schemas as part of the product surface, not just developer convenience.
+1. **Make protocol nouns durable.** If clients depend on a concept, name it in
+   the protocol instead of leaking private implementation state.
+2. **Separate envelopes from domain payloads.** Request IDs, responses, errors,
+   notifications, and tracing belong outside the agent-specific payload.
+3. **Translate at boundaries.** App-facing requests should be validated and
+   mapped into runtime operations, not forwarded as arbitrary JSON.
+4. **Gate experimental surface area.** Experimental fields need runtime checks
+   and generated-contract filtering, not just documentation labels.
+5. **Treat compatibility as behavior.** Aliases, deprecated fields, and v1/v2
+   bridges should be tested code paths rather than comments about history.
 
-</div>
+## Closing
 
-## Read the Source Next
-
-- [`Submission`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123):
-  inspect the smallest queued unit.
-- [`Op::UserInputWithTurnContext`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L445):
-  see how a user turn can carry settings with the prompt.
-- [`McpServerToolCall`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L843):
-  compare app-server method naming with core operations.
-
-<div class="exercise-box">
-
-## Self-Check
-
-Answer without opening source: name one `ClientRequest`, one `ServerRequest`,
-and one `ServerNotification`, and explain why all three directions are needed.
-Then group five runtime events into the taxonomy above.
-
-</div>
-
-<div class="exercise-box">
-
-## Optional Source Lab
-
-Pick one action, such as interrupting a turn or approving a command. Find its
-core `Op` variant and then find the nearest app-server request or server
-request. Write down which layer is closer to the agent and which layer is
-closer to the external client.
-
-</div>
-
-<div class="next-step">
-
-## What Comes Next
-
-Now that the messages are clear, the next chapter enters the core session
-facade that receives submissions and emits events.
-
-</div>
+Part I established the contract: distribution reaches the Rust router, the
+router resolves a constrained runtime envelope, and protocol messages define
+what may enter or leave the agent. Part II can now open the runtime itself,
+beginning with threads, sessions, and durable state.

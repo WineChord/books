@@ -1,79 +1,72 @@
 # Reader Map
 
-This page changes the promise of the book from "guided source reading" to
-"source-equivalent understanding." You can still open the pinned source links,
-but the main path is written so you can learn the system without keeping the
-repository beside you.
+This book is written for source-equivalent understanding. You can still open
+the pinned source links, but the main reading path should teach the system
+without requiring a source checkout beside the book.
 
 ## Two Reading Tracks
 
 | Track | What you do | What you should know afterward |
 | --- | --- | --- |
-| Read without opening source | Read the chapters, trace ledgers, diagrams, implementation references, and self-checks. | The architecture, data flow, key types, lifecycle states, failure paths, and design tradeoffs a source reader would remember. |
-| Optional source lab | Use the pinned links after each chapter to verify details. | The exact line-level location of the facts already explained in the book. |
+| Read without opening source | Read chapters, diagrams, source maps, and Apply This sections. | The architecture, data flow, key contracts, lifecycle states, failure paths, and design tradeoffs a careful source reader would retain. |
+| Optional source audit | Use pinned links after a chapter to verify details. | The exact source locations behind facts already explained in the book. |
 
-The first track is the default. The source links are evidence, not homework.
-When a chapter says "Read the Source Next," treat that section as optional
-verification unless you are auditing a detail.
+The first track is the default. Source links are evidence, not homework.
 
 ## Thirty-Minute Path
 
 Use this path when you need a fast mental model:
 
-1. Read the home page architecture map.
-2. Read [Chapter 4](chapter-04) for the protocol vocabulary.
-3. Read [Chapter 5](chapter-05) for the session facade.
-4. Read [Chapter 6](chapter-06) for the turn loop.
-5. Read [Chapter 9](chapter-09) and [Chapter 10](chapter-10) for approvals
-   and sandboxes.
-6. Read the [Implementation Reference](implementation-reference) summary
-   tables.
+1. Read the home page thesis and architecture map.
+2. Read [Chapter 4](chapter-04.html) for protocol vocabulary.
+3. Read [Chapter 5](chapter-05.html) for threads, sessions, and durable state.
+4. Read [Chapter 6](chapter-06.html) for the turn loop.
+5. Read [Chapter 9](chapter-09.html), [Chapter 12](chapter-12.html), and
+   [Chapter 13](chapter-13.html) for tool exposure, approval, and containment.
+6. Read [Chapter 14](chapter-14.html) for app-server as the multi-client boundary.
+7. Finish with the [Epilogue](epilogue.html) for the transferable design lessons.
 
-You should be able to explain how one user request becomes a session
-submission, a model stream, one or more tool calls, approval or sandbox
-decisions, structured events, and client-visible output.
+You should be able to explain how one user request becomes a protocol
+operation, a scheduled turn, a model stream, one or more supervised tool calls,
+approval or sandbox decisions, durable events, and client-visible output.
 
 ## Two-Hour Path
 
 Use this path when you want source-reader knowledge without opening source:
 
-1. Read the preface and all twelve chapters in order.
-2. At the end of each chapter, answer the "Self-Check" before reading the
-   optional source exercise.
-3. Keep the Trace Ledger question in mind: where is the user request now,
-   what data structure carries it, who owns the next decision, and what can
-   fail here?
-4. Finish with [Implementation Reference](implementation-reference),
-   [Pattern Index](patterns), and [Source Atlas](source-atlas).
+1. Read the preface, then Chapters 1-8 in order. This gives the contract,
+   runtime, model, and observability spine.
+2. Read Chapters 9-16 in order. This explains side effects and the client
+   surfaces that expose the runtime.
+3. Read Chapters 17-22. This covers extension planes, migration,
+   multi-agent coordination, cloud tasks, identity, and memory.
+4. Read Chapters 23-25 and the epilogue. This explains how build, release,
+   packaging, CI, and governance keep the architecture intact.
+5. Use [Pattern Index](patterns.html), [Source Atlas](source-atlas.html), and
+   [Implementation Reference](implementation-reference.html) as reference tables.
 
-This path should teach the stable facts of the implementation, not just the
-names of files.
+This path should teach stable implementation facts and design rationale, not
+just file names.
 
-## Source-Reader Path
+## Source-Audit Path
 
 Use this path only when you want to audit the book against the source:
 
-1. Read [Source Atlas](source-atlas) once.
-2. Open only the links listed in each chapter's Evidence Map.
-3. Verify the chapter's Trace Ledger against those files.
-4. Record any mismatch as a book bug, not as missing reader effort.
+1. Read [Source Atlas](source-atlas.html) once to learn the repository vocabulary.
+2. Open only the links in each chapter's source map or evidence table.
+3. Verify the chapter's diagrams and source-map claims against those files.
+4. Treat any mismatch as a book bug, not as missing reader effort.
 
-## How to Use Self-Checks
+## The Recurring Audit Questions
 
-Each self-check is answerable from the book. If you cannot answer without
-opening source, the chapter is under-explained. The optional source exercise
-then gives you line-level confidence.
-
-## The Recurring Trace Ledger
-
-Every major subsystem is explained through the same four questions:
+When a chapter describes a subsystem, answer four questions:
 
 | Question | Why it matters |
 | --- | --- |
 | Where is the user request now? | Prevents vague architecture talk. |
-| What data structure carries it? | Connects behavior to concrete Rust types. |
-| Who owns the next decision? | Separates entry, protocol, runtime, tools, and clients. |
+| What data structure carries it? | Connects behavior to concrete source concepts. |
+| Who owns the next decision? | Separates entry, protocol, runtime, tools, clients, and governance. |
 | What can fail here? | Makes denial, retry, cancellation, and error reporting visible. |
 
-If you can answer these four questions for every chapter, you know the system
-at the level a careful source reader would retain.
+If you can answer these questions for the main subsystems, you understand the
+system at the level this book promises.

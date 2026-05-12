@@ -84,9 +84,10 @@
 1. 如果没有输入且没有 pending/continuation，就拒绝空工作。
 2. 刷新或构造 model client session。
 3. 如果上下文已过大，先做 pre-sampling compaction。
-4. 记录用户输入、turn context 和 baseline。
-5. 注入本 turn 适用的 plugin、app、MCP、skill 和 instruction context。
-6. 运行 user-prompt hooks 和 dependency prompts。
+4. 先解析本 turn 可能需要的上下文候选，但还不把 prompt 视为已接受。
+5. 运行 user-prompt hooks 和 dependency prompts。阻塞型 hook 仍然可以在
+   prompt 进入持久对话历史前停止这个 turn。
+6. 记录已接受的用户输入、turn context、baseline 和获准注入的上下文。
 7. 从历史和活动上下文构造 sampling request。
 8. 流式读取模型事件，并规范化为 runtime items 和 deltas。
 9. 分发工具调用、dynamic tool request 或 approval prompt。

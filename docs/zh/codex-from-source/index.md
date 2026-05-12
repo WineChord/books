@@ -2,70 +2,75 @@
 layout: home
 hero:
   name: Codex 源码剖析
-  text: 把 OpenAI Codex CLI 当作一个生产级 Agent 系统来阅读。
-  tagline: "一本中英文双语、源码链接固定到公开 GitHub commit 的在线书：从命令入口、协议消息、会话运行时、模型流式输出、工具执行、审批、沙箱、MCP、Skills、TUI 到 app-server，追踪一次用户请求如何完成。"
+  text: 一本关于 OpenAI Codex 运行时的源码等价架构书。
+  tagline: "一本固定到公开源码 commit 的专业技术书：把 Codex 解释为一个事件溯源的 agent runtime，覆盖类型化契约、策略门控工具、可回放状态、多客户端、扩展、云工作流和可执行治理。"
 actions:
   - theme: brand
     text: 从前言开始
-    link: /zh/codex-from-source/preface
+    link: /zh/codex-from-source/preface.html
   - theme: alt
     text: 阅读地图
-    link: /zh/codex-from-source/reader-map
-  - theme: alt
-    text: 模式索引
-    link: /zh/codex-from-source/patterns
+    link: /zh/codex-from-source/reader-map.html
   - theme: alt
     text: English
     link: /codex-from-source/
 features:
-  - title: 源码固定
-    details: 所有 Codex 源码论断都链接到公开 openai/codex 仓库的同一个 commit。
-  - title: 初学者友好
-    details: 每章先解释 Rust、异步、协议和工具调用的基本概念，再深入具体文件。
   - title: 源码等价
-    details: 实现参考页集中整理运行时、协议、工具、配置、安全、扩展和客户端细节，让源码链接成为证据而不是作业。
+    details: 默认读书即可理解架构、数据流、契约和取舍；源码链接用于审计，而不是作业。
+  - title: 出版级结构
+    details: 章节按技术书组织，不是 API 文档；每一层解决一个问题，并为下一层铺路。
+  - title: 源码固定
+    details: 所有源码链接都固定到同一个公开 openai/codex commit，避免分支漂移。
 ---
 
-## 你将追踪什么
-
-本书反复使用一个普通场景：
-
-> 开发者要求 Codex 修改代码；Codex 阅读仓库，提出工具调用，在需要时请求审批，应用补丁，展示 diff，然后把控制权交还给用户。
-
-这个路径足以暴露系统主干：命令分发、类型化协议、session queue pair、模型流式输出、工具路由、审批策略、沙箱选择、补丁跟踪、MCP/app 集成，以及面向用户的事件渲染。
+<div class="book-hero-panel">
+  <div class="book-hero-copy">
+    <h2>把 Codex 当作系统阅读，而不是当作文件堆阅读。</h2>
+    <p>
+      Codex 的核心架构赌注是：把 AI coding agent 当成事件溯源的运行时；
+      它的危险能力只能通过类型化契约、显式策略和可回放边界暴露。
+    </p>
+    <p>
+      本书沿着这个赌注解释命令启动、配置、协议设计、sessions、模型流式输出、
+      工具执行、审批、沙箱、app-server、TUI 渲染、MCP、skills、plugins、
+      迁移、多 agent 协调、云任务、memory、构建系统、打包发布和 CI 治理。
+    </p>
+  </div>
+  <div class="book-cover" aria-label="Codex From Source cover">
+    <div class="book-cover__kicker">Architecture, Patterns, Internals</div>
+    <div class="book-cover__title">Codex<br />From<br />Source</div>
+    <div class="book-cover__footer">25 章 + 结语</div>
+  </div>
+</div>
 
 <ArchitectureMap />
 
-## 源码等价阅读标准
-
-默认路径不是“打开源码跟着看”。默认路径是：读书、回答自检题，需要行级验证时再打开固定源码链接。[阅读地图](reader-map)提供 30 分钟路径、2 小时路径和可选源码审计路径。[实现参考](implementation-reference)集中整理源码读者会从多个文件里获得的密集事实。
-
-## 你将学到什么
+## 这本书教什么
 
 <div class="pattern-grid">
   <div class="pattern-card">
-    <h3>Agent 循环</h3>
-    <p>一次 turn 为什么不是一次模型调用，而是 prepare、sample、act、observe 的循环。</p>
+    <h3>运行时就是契约</h3>
+    <p>threads、turns、operations、events、items 和 rollouts 构成稳定词汇，让客户端和回放理解同一份工作。</p>
   </div>
   <div class="pattern-card">
-    <h3>类型化协议</h3>
-    <p>Codex 如何用 operation、submission、event、JSON-RPC request 和 schema 作为产品契约。</p>
+    <h3>工具就是能力</h3>
+    <p>模型可见的 tool spec 与 routing、hooks、approvals、sandbox transforms、execution、output shaping 和 persistence 分离。</p>
   </div>
   <div class="pattern-card">
-    <h3>工具执行</h3>
-    <p>shell、patch、MCP、dynamic tool 如何经过路由、hook、审批、取消和结果上报。</p>
+    <h3>客户端只是 surface</h3>
+    <p>TUI、app-server、SDK、daemon path 和 remote clients 共享同一个 runtime contract，而不是各自拥有一个 agent。</p>
   </div>
   <div class="pattern-card">
-    <h3>安全边界</h3>
-    <p>approval mode、permission profile、Guardian review、平台沙箱和网络策略如何分层。</p>
+    <h3>扩展是信任平面</h3>
+    <p>MCP、skills、plugins、connectors 和 typed extensions 只能通过显式 provenance 与 validation boundary 增加能力。</p>
   </div>
   <div class="pattern-card">
-    <h3>扩展接入面</h3>
-    <p>skills、plugins、apps、MCP servers 和显式 mention 如何扩展能力，同时不改写核心循环。</p>
+    <h3>协调是持久图</h3>
+    <p>多 agent 工作、云任务、身份、memory 和 trace reduction 让长时间工作可重建，而不是隐藏在瞬时状态里。</p>
   </div>
   <div class="pattern-card">
-    <h3>客户端接入面</h3>
-    <p>TUI 和 app-server 如何复用同一个 core runtime，却服务完全不同的客户端体验。</p>
+    <h3>治理是可执行设计</h3>
+    <p>构建 overlay、生成 schema、打包 lane、发布检查和 CI policy 让架构不依赖人的记忆。</p>
   </div>
 </div>
 
@@ -73,48 +78,80 @@ features:
 
 <div class="part-toc">
   <section>
-    <h3>第一部：系统地图</h3>
-    <p>从可见产品开始，找到真正重要的契约边界。</p>
+    <h3>第一部：建立契约</h3>
+    <p>复杂 agent 只有在所有参与者说同一种语言时才容易理解。</p>
     <ol>
-      <li><a href="chapter-01">阅读策略</a></li>
-      <li><a href="chapter-02">仓库地形</a></li>
-      <li><a href="chapter-03">CLI 入口</a></li>
-      <li><a href="chapter-04">协议层</a></li>
+      <li><a href="chapter-01.html">架构赌注</a></li>
+      <li><a href="chapter-02.html">从分发包装器到 Rust Router</a></li>
+      <li><a href="chapter-03.html">配置、认证与 Managed Requirements</a></li>
+      <li><a href="chapter-04.html">协议边界</a></li>
     </ol>
   </section>
   <section>
-    <h3>第二部：追踪一个 Turn</h3>
-    <p>从 session 创建读到模型和工具反复交互。</p>
+    <h3>第二部：构建 Agent 运行时</h3>
+    <p>运行时不是一次模型调用，而是 context、streaming、tools、cancellation 和 replay 的调度器。</p>
     <ol start="5">
-      <li><a href="chapter-05">Session Facade</a></li>
-      <li><a href="chapter-06">Turn 循环与流式输出</a></li>
+      <li><a href="chapter-05.html">线程、会话与持久状态</a></li>
+      <li><a href="chapter-06.html">Turn Loop</a></li>
+      <li><a href="chapter-07.html">模型 Provider、流式传输与 Backend Task</a></li>
+      <li><a href="chapter-08.html">Observability 与 Rollout Trace</a></li>
     </ol>
   </section>
   <section>
-    <h3>第三部：执行工具</h3>
-    <p>理解模型请求如何变成受监督的文件系统或进程副作用。</p>
-    <ol start="7">
-      <li><a href="chapter-07">工具注册与分发</a></li>
-      <li><a href="chapter-08">补丁与 Turn Diff</a></li>
-      <li><a href="chapter-09">审批控制面</a></li>
+    <h3>第三部：执行副作用</h3>
+    <p>模型可以建议动作；Codex 决定这个动作是否成为副作用。</p>
+    <ol start="9">
+      <li><a href="chapter-09.html">工具规格、路由与分发</a></li>
+      <li><a href="chapter-10.html">Shell、Exec Server 与文件系统工具</a></li>
+      <li><a href="chapter-11.html">把 Patch 作为一等编辑协议</a></li>
+      <li><a href="chapter-12.html">Hooks 与人工审批</a></li>
+      <li><a href="chapter-13.html">Sandboxes、网络策略与平台边界</a></li>
     </ol>
   </section>
   <section>
-    <h3>第四部：边界与接入面</h3>
-    <p>研究让 Agent 能被终端、应用、插件和 MCP 服务器使用的运行时边界。</p>
-    <ol start="10">
-      <li><a href="chapter-10">沙箱与运行时边界</a></li>
-      <li><a href="chapter-11">MCP、Apps、Skills、Plugins</a></li>
-      <li><a href="chapter-12">TUI 与 app-server</a></li>
+    <h3>第四部：向客户端开放运行时</h3>
+    <p>当多个客户端共享同一个 thread model 时，运行时才成为平台。</p>
+    <ol start="14">
+      <li><a href="chapter-14.html">App-Server 契约</a></li>
+      <li><a href="chapter-15.html">SDK、Daemon 与远程控制</a></li>
+      <li><a href="chapter-16.html">TUI 作为事件渲染器</a></li>
     </ol>
+  </section>
+  <section>
+    <h3>第五部：扩展系统</h3>
+    <p>扩展点只有在每个信任边界都显式时才有用。</p>
+    <ol start="17">
+      <li><a href="chapter-17.html">MCP：没有运行时耦合的外部工具</a></li>
+      <li><a href="chapter-18.html">Skills、Plugins、Connectors 与类型化扩展</a></li>
+      <li><a href="chapter-19.html">外部迁移与向后兼容</a></li>
+    </ol>
+  </section>
+  <section>
+    <h3>第六部：协调跨越一个 Turn 的工作</h3>
+    <p>一旦动作可以持久化，agent 图、任务、memory 和云工作流才成为可能。</p>
+    <ol start="20">
+      <li><a href="chapter-20.html">多 Agent 协调</a></li>
+      <li><a href="chapter-21.html">云任务、身份与远程工作</a></li>
+      <li><a href="chapter-22.html">Memories 与用户级状态</a></li>
+    </ol>
+  </section>
+  <section>
+    <h3>第七部：发布与治理系统</h3>
+    <p>架构只有在发布、测试和治理持续执行时才会存活。</p>
+    <ol start="23">
+      <li><a href="chapter-23.html">构建系统与生成契约</a></li>
+      <li><a href="chapter-24.html">打包、发布与原生依赖</a></li>
+      <li><a href="chapter-25.html">CI、策略与架构治理</a></li>
+    </ol>
+    <p><a href="epilogue.html">结语：真正值得带走的东西</a></p>
   </section>
 </div>
 
 ## 适合谁读
 
-- **源码阅读初学者**：想学习如何从类型、队列和模块边界读一个大型 Rust 系统。
-- **Agent 系统建设者**：想复用工具 API、审批、沙箱、记忆、扩展加载和 UI 事件流模式。
-- **技术审查者**：在审计安全、兼容性或运行时行为前，需要一张可靠地图。
+- **技术负责人**：想理解架构、设计理由和取舍，但不想读每一段源码细节。
+- **资深工程师**：想理解运行时、协议、工具系统、客户端和发布体系的实现级结构。
+- **Agent 系统建设者**：想复用类型化事件、策略门控、扩展系统、replay 和可执行治理。
 
 ## 源码策略
 
@@ -124,8 +161,8 @@ Codex 源码快照固定为
 
 ## 参考页
 
-- [模式索引](patterns)
-- [源码索引](source-atlas)
-- [实现参考](implementation-reference)
-- [参考文献](bibliography)
-- [写作流水线](pipeline)
+- [模式索引](patterns.html)
+- [源码索引](source-atlas.html)
+- [实现参考](implementation-reference.html)
+- [参考文献](bibliography.html)
+- [写作流水线](pipeline.html)

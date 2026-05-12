@@ -1,143 +1,102 @@
-# 第 11 章：MCP、Apps、Skills、Plugins
+# 第 11 章：把 Patch 作为一等编辑协议
 
-<div class="chapter-lede">
-  <p><strong>你在这里：</strong>核心循环已经工作，现在外部能力进入 turn。</p>
-  <p><strong>问题：</strong>扩展必须增加工具或指令，但不能把 runtime 变成一堆特判。</p>
-  <p><strong>心智模型：</strong>扩展是进入 turn 的 imports：有的增加 context，有的增加 tools，有的增加 app-visible capability。</p>
-</div>
+第 10 章说明了 shell execution 如何成为受监督的进程。本章把一条常见编辑路径从 shell 中拆出来：patch application。Codex 把 `apply_patch` 当作 mutation protocol，而不是传给命令的一段文本。这个差别是架构性的。协议可以被解析、验证、评估、审批，通过正确的文件系统应用，并在模型看到最终结果前记录为 turn diff。
 
-Codex 有多种扩展概念。MCP servers 暴露外部 tools 和 resources。Apps/connectors 通过插件和可访问工具 inventory 暴露外部能力。Skills 给 turn 添加 instruction bundles。Plugins 打包能力。Subagents 和 collaboration features 能创建新的 runtime participants。它们相关，但不是同一个东西。
+直接写文件很诱人，因为简单。但它作为证据很差。直接写只表达“让这个文件变成这些内容”。Patch 表达的是“在这些路径上执行添加、删除、更新、移动和这些 hunk”。这个结构让 runtime 在副作用发生前有东西可检查。
 
-## 证据表
 
-<div class="evidence-map">
+<div class="source-equivalence">
 
-| 概念 | 源码 | 为什么重要 |
-| --- | --- | --- |
-| MCP config type | [`McpServerConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/mcp_types.rs#L118) | 表示用户配置的 MCP servers。 |
-| MCP CLI | [`McpCli`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/mcp_cmd.rs#L39) | 让用户从 CLI 管理 MCP servers。 |
-| Turn skill handling | [`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L170) | 显示 explicit skill mentions 如何成为 turn-scoped context。 |
-| App-server catalog | [`message_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L1069) | 路由 skills、hooks、plugins、apps、MCP requests。 |
+## 源码地图
 
-</div>
-
-## 扩展概念对照
-
-| 概念 | 增加什么 | 第一问题 |
-| --- | --- | --- |
-| MCP server | 外部 tools/resources | transport、auth、tool schemas 是什么？ |
-| App/connector | app-visible capability | connector 是否可访问且在 turn 中启用？ |
-| Skill | 指令和可选依赖 | skill 是否被显式 mention 或选择？ |
-| Plugin | 打包 skills、hooks、apps、MCP servers | 哪些 bundled capabilities 被 config 启用？ |
-| Dynamic tool | client-provided execution path | 哪个 client 拥有 execution 和 response？ |
-| Subagent | 另一个 agent runtime participant | 它是新 loop、child thread 还是 collaboration tool？ |
-
-这个表能避免常见误解：不是所有扩展都只是“工具”。有的增加 model-visible tools，有的增加 instructions，有的增加 app metadata，有的影响 hooks 或 prompts。
-
-## Turn-Scoped Injection
-
-Turn loop 在 sampling 前收集 explicit skill mentions 和 app/plugin mentions。Apps 启用或 plugin mentions 需要原始 inventory 时，它会列出 MCP tools。然后构造 skill 和 plugin injections 作为 conversation items。这是有纪律的形状：扩展成为本次 turn 的显式 context，而不是不可见的全局魔法。
-
-这也帮助复现。如果 turn 使用了 skill，被注入的 instruction item 可以被记录。如果 plugin 贡献了 tools，也可以结合当时的 inventory 理解这次 turn。
-
-## MCP 是通用工具边界
-
-Model Context Protocol 重要，是因为它给外部 servers 一个标准方式来提供 tools 和 resources。Codex 仍然要做产品工程：configuration、OAuth、status、refresh、resource reads、tool calls、progress notifications 和 elicitation requests。
-
-标准减少集成形状，但不会消除集成劳动。
-
-## MCP Client Runtime
-
-Codex 可以启动并管理配置好的 MCP servers。Server config 包含 transport、env vars、disabled/required 状态、timeouts、OAuth/auth status、default tool approval 和 per-tool overrides。Connection manager 会跟踪 startup progress，发出 startup update/complete events，列出 tools，并在 startup pending 或 failed 时使用 cached Codex Apps tool snapshots。
-
-| MCP client 细节 | 为什么重要 |
+| 概念 | 源码锚点 |
 | --- | --- |
-| stdio vs streamable HTTP | transport 改变 launch、auth 和 lifecycle |
-| env var sourcing | secrets 和环境设置必须显式处理 |
-| allow/deny filters | 不是 server 的每个 tool 都一定暴露给模型 |
-| per-tool approval | MCP tools 也进入同一套 approval control plane |
-| elicitation policy | MCP server 请求用户输入时也受 approval settings 管理 |
-
-## Codex 作为 MCP Server
-
-Codex 不只是 MCP client。CLI 也有 MCP-server mode，让外部 MCP clients 可以调用 Codex。这条路径有自己的 message processor 和 tool runner，会暴露 `codex`、`codex-reply` 等工具，创建来自 MCP source 的 session，返回 `threadId` 等 structured content，并有不同于 TUI 的 approval/elicitation 行为。
-
-| 方向 | 含义 |
-| --- | --- |
-| Codex as MCP client | Codex 调用外部 servers 的 tools 和 resources。 |
-| Codex as MCP server | 外部 clients 把 Codex 当作 tool provider 来调用。 |
-
-## Apps、Connectors 与 Plugins
-
-Apps/connectors 不是静态 catalog。列出 app capability 时会受认证、feature flags、workspace policy、plugin availability、cached MCP tool information 和 connector accessibility 影响。Plugins 可以打包 skills、hooks、apps 和 MCP servers；它们可能来自 curated marketplace 或本地 plugin roots，也可能因策略不可用、被安装、禁用、分享或卸载。
-
-## Skill Discovery and Injection
-
-Skill 是 instruction bundle，但源码把 loading 和 injection 分开处理。Skill 可以来自 bundled skills、user skill roots、plugin skill roots、显式 structured input 或 dependency resolution。Disabled paths 和 missing dependencies 都会影响结果。Injection 再把选中的 skill content 转成 model-visible turn context。
-
-## Mention Resolution
-
-Mentions 是用户输入中的结构化引用。`$skill`、plugin mention 和 `[app](app://id)` 是不同路径。它们会影响哪些 instructions 被注入、哪些 plugin/app 能力被列出、哪些 MCP tools 被暴露。Turn loop 在 sampling 前收集这些信息，让模型在本次 turn 中看见可用能力。
-
-## 术语规则
-
-- **Skill**：可以注入 turn 的指令。
-- **Plugin**：可以打包 skills、hooks、apps 和 MCP server declarations 的包。
-- **App/connector**：通过 app system 暴露的外部能力。
-- **MCP tool**：由 MCP server 暴露的可调用工具。
-
-术语分清楚，源码才好读。
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| 问题 | 第 11 章答案 |
-| --- | --- |
-| 用户请求现在在哪里？ | 正被配置或显式 mention 的外部能力增强。 |
-| 什么数据结构携带它？ | MCP server configs、app metadata、plugin manifests、skill files、mentions、tool inventories 和 injected context items。 |
-| 谁拥有下一步决策？ | config/feature gates、auth availability、plugin/app managers、skill loaders、MCP connection manager 和 turn loop。 |
-| 这里可能怎么失败？ | disabled server、auth/OAuth failure、startup timeout、missing skill dependency、unavailable app、denied elicitation、plugin policy block 或 stale cache。 |
+| Patch tool handler | [`codex-rs/core/src/tools/handlers/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55) |
+| Patch runtime | [`codex-rs/core/src/tools/runtimes/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L50) |
+| Patch grammar parser | [`codex-rs/apply-patch/src/parser.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L126) |
+| Patch safety assessment | [`codex-rs/core/src/safety.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33) |
+| Turn diff tracker | [`codex-rs/core/src/turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) |
 
 </div>
 
-<div class="apply-this">
+## Patch 生命周期
 
-## 应用到实践
+Patch execution 的生命周期比表面看起来更长。
 
-- 在 turn boundary 显式引入 extension capability。
-- 区分 instruction extensions 和 tool extensions。
-- 把标准协议当作起点，而不是完整产品。
-- 术语要严格，用户才知道系统获得了什么能力。
+```mermaid
+flowchart LR
+    Input[freeform patch or shell-like invocation] --> Detect[detect apply-patch intent]
+    Detect --> Parse[parse patch hunks]
+    Parse --> Verify[verify paths and current file content]
+    Verify --> Assess[assess safety and required permissions]
+    Assess --> Approve[approval and hooks]
+    Approve --> Apply[filesystem-backed apply]
+    Apply --> Delta[committed delta]
+    Delta --> Events[patch events and turn diff]
+    Events --> Result[model-visible result]
+```
 
-</div>
+Parse step 理解 patch grammar。Verify step 访问 workspace filesystem，计算实际会发生的具体 changes。Assess step 判断 patch 是 auto-approved、需要 approval，还是需要 additional permissions。Apply step 通过 selected executor filesystem 写入，而不是假设本地路径就是目标。
 
-## 接下来读源码
+## Grammar 只是第一道门
 
-- [`McpServerConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/mcp_types.rs#L118)：从用户配置的 MCP 形状开始。
-- [`collect_explicit_skill_mentions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L222)：看文本和结构化 skill items 如何变成 injections。
-- [`ClientRequest::SkillsList`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L1069)：查看 app-server catalog routing。
+Patch grammar 描述的是一门很小的编辑语言：开始 patch，声明一个或多个 file hunk，添加、删除、更新或移动内容，最后结束 patch。Codex 的 parser 可以比用户文档中的形式更宽容，因为模型输出不总是完美包裹。宽容不等于应用模糊编辑；它只表示 runtime 尝试恢复出意图协议，然后再用文件系统验证。
 
-<div class="exercise-box">
+真正的边界是 verification。Update 需要知道 hunk 期望替换的旧内容。Delete 需要读出即将删除的文件。Move 需要同时考虑 source 和 destination path。如果这些检查失败，结果应是模型可见的 verification failure，而不是 best-effort write。
 
-## 自检题
+## 拦截 Shell 形式的 Patch
 
-不打开源码回答：Codex 作为 MCP client 和作为 MCP server 有什么区别？再把 skill、plugin、app、mention、MCP tool 分类为增加 instructions、tools、metadata 还是 runtime participant。
+模型经常学会用 shell heredoc 表达 patch。Codex 可以识别某些顶层形式，例如“运行 patch 工具并传入这段 patch body”，或“先切到某个相对工作目录，再运行 patch 工具”。当模式被识别出来时，runtime 会拦截它，并把它路由到 patch protocol。
 
-</div>
+这是兼容桥，不是鼓励通过 shell 文本编辑。Runtime 可以提醒模型直接使用 patch tool，但仍会按 patch 治理这次修改：parse、verify、compute paths、run approval、apply through executor filesystem、emit events、update turn diff。
 
-<div class="exercise-box">
+```text
+// Pseudocode - simplified for clarity.
+  if tool_call is the patch tool:
+      patch_body = tool_call.freeform_input
+  else if command_invocation is a recognized patch heredoc:
+      patch_body, effective_cwd = extract_patch_body(command_invocation)
+  else:
+      continue with ordinary shell execution
 
-## 可选源码实验
+  action = parse_and_verify_patch(patch_body, effective_cwd, executor_filesystem)
+  permissions = compute_required_file_permissions(action.paths)
+  decision = assess_patch_safety(action, permissions)
 
-选择一个能力：“invoke a skill”、“list MCP server status” 或 “read a plugin skill”。找到 CLI 或 app-server 入口，再追踪它如何变成 turn context、catalog data 或 tool call。
+  if decision requires approval:
+      approval = request_patch_approval(action.summary)
+      stop_unless_approved(approval)
 
-</div>
+  delta = apply_patch_to_executor_filesystem(action, permissions)
+  record_patch_events(action, delta)
+  update_turn_diff_tracker(delta)
+  return patch_result_for_model(delta)
+```
 
-<div class="next-step">
+这段伪代码不对应具体源码，但保留了关键区别：被识别出的 shell syntax 会先转成 patch action，再发生 mutation。
 
-## 下一章
+## 通过文件系统抽象应用
 
-最后一章研究用户接入面。同一个 runtime event stream 可以驱动终端 UI，也可以驱动 JSON-RPC app-server，但二者的呈现责任不同。
+Patch application 使用 executor filesystem。这个细节能避免一类隐蔽错误。在 local turn 中，executor filesystem 可能就是本地 workspace；在 remote turn 中，它可能是远端环境的 filesystem。两种情况下，patch code 都接收同类 filesystem object 和可选 sandbox context。编辑会落到拥有当前 turn 的 workspace。
 
-</div>
+应用层还会跟踪实际 committed delta。成功的 add、delete、update 或 move 会变成结构化 delta。如果某次写入在部分修改后失败，runtime 会保留已经确定 committed 的前缀，并相应标记 exactness。这样比假装操作完全成功或完全没发生更诚实。
+
+## Diff Tracking 是证据，不是装饰
+
+Turn diff tracker 为 committed patch mutations 维护净文本 diff。它记录 baseline、current content、rename origins 和 invalidation state。当 tracker 能证明 delta 时，它可以不重新读取 workspace 就渲染 unified diff。当 exactness 丢失时，它会让 diff 失效，而不是显示一个误导性的自信 diff。
+
+这种行为值得复用。一个系统如果不能证明自己的证据，就应该显式降级，而不是因为 UI 需要 diff 形状就硬展示。
+
+## Git Patch 是另一条路径
+
+Codex 也有辅助逻辑，用 Git 应用普通 unified diff。这条路径会写临时 patch，可以用 dry run 做 preflight，调用 Git，并把输出解析成 applied、skipped 或 conflicted paths。它和一等 `apply_patch` protocol 相关，但不是同一条路径。两者共享的重要思想是 preflight：在 mutation 变成 durable 之前，先知道它会改什么。
+
+## 应用到实践（Apply This）
+
+1. **优先使用结构化编辑。** 在 mutation 前暴露 paths、operations 和 context。
+2. **用文件系统验证。** Parse success 不够，还要确认预期旧状态存在。
+3. **把兼容形式转回协议。** Shell 文本如果明确表示 patch，就按 patch 治理。
+4. **诚实跟踪 committed delta。** 保留 exact evidence，无法证明时就 invalidate。
+5. **通过拥有者文件系统应用。** Local 与 remote workspace 应共享同一套 mutation semantics。
+
+第 12 章会解释围绕这些 mutation 的人类和自动化关卡：hooks、approval requests、Guardian review，以及等待决策时可能打断执行的客户端表面。

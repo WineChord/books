@@ -19,4 +19,3 @@ features:
   - title: Built for Pages
     details: Published as a project site under the existing WineChord domain.
 ---
-

@@ -1,126 +1,123 @@
-# 第 10 章：沙箱与运行时边界
+# 第 10 章：Shell、Exec Server 与文件系统工具
 
-<div class="chapter-lede">
-  <p><strong>你在这里：</strong>action 已通过策略检查，现在需要执行环境。</p>
-  <p><strong>问题：</strong>文件系统、网络、平台和远程执行约束各不相同，但调用者需要可理解的一致行为。</p>
-  <p><strong>心智模型：</strong>沙箱不是一堵墙，而是把执行请求收窄成更受限制的运行时转换。</p>
-</div>
+第 9 章把工具暴露和工具权限分开了。本章沿着最能体现这种分离的 handler 家族继续往下看：shell-like tools。对模型来说，shell 工具看起来只是“运行一个命令”；对运行时来说，它必须解析命令、分类风险、应用策略、运行 hooks、必要时请求审批、选择环境、执行 sandbox 规则、流式输出，并留下可重放记录。
 
-Sandboxing 是产品语言遇到操作系统现实的地方。用户理解的是“让 Codex 在有限权限下运行命令”；runtime 必须把它变成平台相关的 process setup、filesystem policy、network policy，有时还包括 retry path。
+关键设计点是：Codex 不把“运行命令”当成单个原语。它把命令执行看成一条 pipeline。最终进程可能在本机运行，可能在平台 sandbox 中运行，也可能通过 `exec-server` 抽象表示远端 executor 及其文件系统。
 
-## 证据表
 
-<div class="evidence-map">
+<div class="source-equivalence">
 
-| 概念 | 源码 | 为什么重要 |
-| --- | --- | --- |
-| Sandbox manager | [`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L134) | 从 policy 和平台选择 initial sandbox behavior。 |
-| Linux helper | [`linux_run_main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L147) | 展示 Linux 上独立的 sandboxed execution path。 |
-| macOS seatbelt | [`seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L602) | 构造平台相关 seatbelt arguments。 |
-| Exec request path | [`exec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec.rs#L315) | 把抽象 command intent 变成 process execution。 |
+## 源码地图
 
-</div>
-
-## Enforced 与 Advisory
-
-安全讨论容易把所有机制都叫“sandbox”。更准确的做法，是区分 runtime/OS 强制的边界和提示性、记录性、策略性机制。
-
-| 边界 | 做什么 | 不承诺什么 |
-| --- | --- | --- |
-| Approval prompt | risky work 前询问决策 | approval 后不限制进程 |
-| Exec policy | 分类命令并决定是否要审批 | 本身不隔离 OS |
-| Filesystem sandbox | 在支持的平台限制读写路径 | 不证明模型意图无害 |
-| Network policy | 在 managed policy 下阻断或询问网络访问 | 不替代 command review |
-| Event log | 记录发生了什么 | 不阻止 action |
-
-这种词汇让本书和 OWASP/NIST 风险语言一致：分层 mitigation 降低风险，不是消除风险。
-
-## Sandbox Selection
-
-Orchestrator 调用 sandbox manager，为 tool attempt 选择 initial sandbox。选择取决于 filesystem policy、network policy、tool sandbox preference、Windows sandbox level，以及 managed network 是否启用。
-
-所以 sandboxing 不是布尔值。工具可以偏好 sandboxed execution；策略可以要求限制；平台支持不同机制；denial 可以触发 approval path 来决定是否 retry。
-
-源码读者还会跟踪 sandbox preference 和 override：
-
-| 控制项 | 含义 |
+| 概念 | 源码锚点 |
 | --- | --- |
-| auto preference | 策略和平台适合时使用 sandbox |
-| require preference | 请求平台 sandbox path；但在这个源码快照中，平台 sandbox 不可用时会 fallback 到 `SandboxType::None` |
-| forbid preference | 某些工具路径明确不能在该 sandbox 形状中运行 |
-| bypass first attempt | 只有显式策略允许时，才跳过第一次 sandboxed attempt |
-| effective permission profile | 把选中的 profile 转换成平台/backend 可执行的限制 |
+| Shell handler | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L31) |
+| Unified exec handler | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L48) |
+| Exec policy manager | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251) |
+| Exec-server RPC client | [`codex-rs/exec-server/src/rpc.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/rpc.rs#L234) |
+| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L38) |
 
-关键产品行为是诚实描述 fallback。某些安全系统会 fail closed，但这条 selection path 不总是这样：平台 sandbox 无法选择时，manager 可以返回 `SandboxType::None`。因此后续 approval、permission、event 和 policy 层不能声称 OS sandbox enforcement 已经发生。
+</div>
 
-## 平台现实
+## Shell 工具只是入口
 
-Linux、macOS、Windows 和 remote environments 没有同一个 sandbox primitive。Codex 通过 manager 和 helper 层保持产品级想法稳定。Linux 有专门 helper path；macOS 有 seatbelt policy construction；Windows 在 app-server protocol 中有 sandbox readiness 和 setup 概念。
+Codex 有多个 shell 相邻入口，因为不同客户端和模型表面需要的交互形状不同。
 
-设计经验是：跨平台安全不能靠一句“有沙箱”带过，必须有显式 adapters 和诚实 fallback。
-
-| 平台路径 | 实际行为 |
+| 入口 | 架构角色 |
 | --- | --- |
-| macOS seatbelt | 构造 profile 来限制文件和网络，并可保护敏感根 |
-| Linux Landlock/helper | 依赖 kernel/helper 支持；平台 sandbox 不可用时可能变成 `SandboxType::None`，helper launch error 仍是执行错误 |
-| Windows elevated/restricted token | enforcement 随权限和 backend 支持变化 |
-| WSL 或特殊 Linux host | 无法提供预期保证的 helper path 会被拒绝 |
-| remote execution | sandbox/filesystem 语义属于远端环境，不只是本地进程 |
+| `shell` | 经典 function-style command execution，携带 workdir、timeout、approval hints 和输出捕获 |
+| `local_shell` | 面向旧表面或特殊表面的 host-local command shape |
+| `shell_command` | shell-aware command surface，可选择 direct 或 shell-escalation 等 backend |
+| `exec_command` | unified exec surface，可选择 environment，并保留 process identity 供后续读写 |
+| `write_stdin` | 写入已存在 managed process stdin 的 continuation tool |
 
-## Denial 与 Retry
+这些入口最终汇聚到同一项责任：把模型请求转成可治理的 execution request。汇聚非常重要，因为命令策略、沙箱和审批不应取决于某个客户端表面恰好暴露了哪种命令工具。
 
-Sandbox denial 不是普通进程失败，而是 policy signal。Orchestrator 可以展示 denial、请求额外审批，或只有在策略和决策路径允许时才无沙箱重试。Denial 还可能携带 network policy decision；如果失败点是网络访问，runtime 可以请求 host/network approval、取消尝试，或在 policy amendment 后重试。没有获批路径时，denial 应保持为 denial。
+```mermaid
+flowchart TD
+    Call[tool call] --> Parse[parse command and arguments]
+    Parse --> Classify[classify safety and policy]
+    Classify --> Hooks[pre-tool and permission hooks]
+    Hooks --> Approval[approval or rejection]
+    Approval --> Sandbox[permission profile to sandbox attempt]
+    Sandbox --> Env[environment and exec-server backend]
+    Env --> Process[managed process]
+    Process --> Output[sequenced output and exit]
+    Output --> Events[events, telemetry, model result]
+```
 
-<div class="trace-ledger">
+这就是 shell execution chain。任何单个节点都不足以让命令执行安全或可解释；安全性来自顺序，也来自每个决策都有结构化表达。
 
-## Trace Ledger
+## 先解析，再做策略判断
 
-| 问题 | 第 10 章答案 |
+Shell command text 不是可靠的 policy boundary。Runtime 会先尝试抽取 shell 和 script，把常见 shell 形式降解成 command tokens，并识别已知安全的只读模式。目标不是理解所有 shell 程序，而是构造足够结构，让策略判断不必假装原始字符串已经是决策。
+
+解析后，Codex 会咨询 exec policy。当前 policy engine 使用 prefix rules、可选 host-executable metadata，以及 allow、prompt、forbid 等显式决策。旧的 policy engine 仍用于兼容，但架构要点一样：显式规则先于 fallback heuristics。
+
+| 决策来源 | 提供什么 |
 | --- | --- |
-| 用户请求现在在哪里？ | 正被转换成平台/backend 相关的执行尝试。 |
-| 什么数据结构携带它？ | sandbox policy、permission profile、network decision、process launch config 和 platform adapter output。 |
-| 谁拥有下一步决策？ | sandbox manager、platform adapter、network policy 和 orchestrator retry logic。 |
-| 这里可能怎么失败？ | sandbox selection 不支持或不可用、helper launch 失败、network denial、Windows mode 不兼容，或在 `SandboxType::None` 后做出不安全假设。 |
+| Prefix rules | 对已知命令族给出稳定的组织策略 |
+| Host executable metadata | 当命令使用绝对程序路径时，让 basename matching 更安全 |
+| Known-safe heuristics | 为普通只读命令提供保守默认值 |
+| Approval policy | 决定何时询问、重试或拒绝 |
+| Runtime sandbox mode | 决定第一次 attempt 能触碰什么 |
 
-</div>
+Allow 并不总是表示“自由运行”。它可能表示“在当前 sandbox 下无需提示即可运行”。策略也可以显式表示 bypass sandbox，但那是更强的声明，必须被单独表达。
 
-<div class="apply-this">
+## `exec-server` 定义工作发生在哪里
 
-## 应用到实践
+`exec-server` 是让执行位置不泄漏到 tool handler 的边界。它提供小型 JSON-RPC 进程和文件系统服务：初始化连接、启动 managed process、按 sequence 读取输出、在支持时写 stdin、终止进程，并通过 executor filesystem interface 执行文件系统操作。
 
-- 用精确动词描述安全边界：gate、restrict、record、retry。
-- 用明确 sandbox adapters 隐藏平台细节。
-- 把 sandbox denial 当作结构化 runtime outcome。
-- 不要把“存在 sandbox”等同于“绝对安全”。
+本地执行和远端执行共享这个形状。本地 executor 可以在用户机器上 spawn process；远端 executor 可以向服务注册，并通过 rendezvous channel 重新连接。Tool runtime 不应该因为进程位于不同执行环境，就重写 approval、sandbox 或 output 逻辑。
 
-</div>
+```text
+// Pseudocode - simplified for clarity.
+  request = parse_shell_tool_arguments(tool_call)
+  command = normalize_shell_command(request.command)
+  policy_result = evaluate_exec_policy(command, request.cwd)
 
-## 接下来读源码
+  if policy_result is forbidden:
+      return rejected_result(policy_result.reason)
 
-- [`SandboxManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L134)：查看选择逻辑。
-- [`linux-sandbox/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/README.md#L1)：阅读 Linux 边界文档。
-- [`WindowsSandboxSetupStart`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L849)：看 sandbox readiness 如何出现在 app-server protocol 中。
+  approval_requirement = derive_approval(policy_result, approval_policy)
+  sandbox_attempt = choose_initial_sandbox(permission_profile, request)
 
-<div class="exercise-box">
+  if approval_requirement needs a decision:
+      decision = ask_hooks_guardian_or_user(request)
+      stop_unless_approved(decision)
 
-## 自检题
+  environment = select_execution_environment(request.environment_id)
+  process = environment.exec_server.start(command, sandbox_attempt)
+  stream_output_until_exit(process)
+  return shaped_exec_result(process.output, process.exit_status)
+```
 
-不打开源码回答：`SandboxType::None` 和 sandbox denial 有什么不同？为什么只要初始 preference 要求 sandbox，并不代表客户端可以把命令描述为已经 sandboxed？
+伪代码省略了很多平台细节，但保留了治理形状：parse、policy、approval、sandbox、environment、process、output。
 
-</div>
+## 文件系统访问经过 Executor
 
-<div class="exercise-box">
+文件系统修改不只是 shell 的问题。Patch application、file reads、remote workspace operations 和 command execution 都需要一致方式访问拥有这些文件的 workspace。Codex 使用 executor filesystem traits，让调用方可以 read、write、create directory、remove path 或检查 metadata，而不假设文件一定在本机。
 
-## 可选源码实验
+这个抽象带来两个好处。第一，remote execution 会把 patch 应用到远端 workspace，而不是误改客户端机器。第二，sandbox context 可以和文件系统操作一起传递。Filesystem API 因而能拒绝违反 effective permission profile 的操作，而不是让每个调用方都重新实现 path check。
 
-选择一个读文件命令和一个写文件命令。不要运行，只追踪哪些层会关心它们：approval policy、exec policy、filesystem sandbox、network policy、event reporting。
+## 输出是有序状态
 
-</div>
+终端输出不是一个 blob。长进程可能不断产生 chunks，接收 stdin，更新 terminal state，退出，并在稍后被客户端再次读取。Runtime 因此用 sequence cursor 跟踪输出。调用方可以请求某个 sequence 之后的 chunks，等待更多输出，或得知进程已经退出。
 
-<div class="next-step">
+这对 replay 和 UI 正确性都重要。Terminal UI、headless exec client 和 app-server client 都能观察进度，而不必各自发明 terminal transcript 格式。模型仍收到简洁的 tool result，但客户端获得足够结构来渲染进度、截断、exit status 和 failure。
 
-## 下一章
+## Environment 是合同的一部分
 
-Codex 不限于内置工具。下一章研究 MCP、apps、skills、plugins：它们如何扩大 turn 能看到和能做的事情。
+Shell execution 还依赖 environment management：当前工作目录、选定 environment、显式环境变量、shell snapshot、proxy variables、timeout、TTY mode 和 process identity。Codex 把这些事实放在 turn context 或 selected environment 中，而不是在 handler 边界临时猜测。
 
-</div>
+架构含义很直接：`exec-server` 不只是 helper binary。它是运行时关于“工作发生在哪里”“哪个文件系统是权威”“进程输出如何排序”的抽象。
+
+## 应用到实践（Apply This）
+
+1. **先解析再决策。** 有结构化 command facts 时，不要直接对原始 shell 文本套 policy。
+2. **显式规则先于启发式。** 组织策略应覆盖 fallback safety guesses。
+3. **抽象执行位置。** 用同一套 process 和 filesystem contract 包住本地与远端执行。
+4. **给输出排序。** 把 terminal output 当作有序状态，而不是最终字符串。
+5. **显式携带环境事实。** cwd、env、timeout、TTY 和 selected executor 都应属于 request。
+
+第 11 章会把一种修改路径从 shell stream 中拿出来，作为独立协议讨论：patch。这个分离让 Codex 能审查并应用文件编辑，而不是把编辑降级成不透明命令文本。

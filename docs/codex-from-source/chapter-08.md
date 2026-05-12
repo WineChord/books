@@ -1,158 +1,237 @@
-# Chapter 8: Patches and Turn Diffs
+# Chapter 8: Observability and Rollout Trace
+
+Chapter 7 showed how provider and transport differences become a normalized
+stream of model events. This chapter follows those events after they enter the
+runtime: which facts are persisted for replay, which are reduced into product
+analytics, which become operational telemetry, and which are captured as raw
+diagnostic evidence for rollout trace.
 
 <div class="chapter-lede">
-  <p><strong>You are here:</strong> Codex can route tool calls; now study the edit path.</p>
-  <p><strong>Problem:</strong> letting a model write arbitrary files directly would be hard to review, approve, and explain.</p>
-  <p><strong>Mental model:</strong> a patch is a receipt for a file change: structured, inspectable, and tied to a turn.</p>
+  <p><strong>Problem:</strong> an agent runtime cannot be debugged from the final assistant message alone.</p>
+  <p><strong>Thesis:</strong> Codex observes runtime facts first, then derives replay, analytics, traces, logs, and graph views for different audiences.</p>
+  <p><strong>Mental model:</strong> the transcript is one projection of the run, not the run itself.</p>
 </div>
 
-The patch path is one of the clearest examples of Codex's design taste. It
-separates patch grammar from agent-facing runtime behavior, and it tracks
-committed deltas so user surfaces can show what changed without rereading the
-whole workspace.
 
-## Evidence Map
+<div class="source-equivalence">
 
-<div class="evidence-map">
+## Source Map
 
-| Concept | Source | Why it matters |
+| Concept | Source anchor |
+| --- | --- |
+| Trace session model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L33) |
+| Codex turn trace model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L104) |
+| Runtime trace payloads | [`codex-rs/rollout-trace/src/protocol_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L32) |
+| Core event mapping | [`codex-rs/core/src/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/event_mapping.rs#L1) |
+
+</div>
+
+## The Observation Planes
+
+Codex has several observability planes because each plane answers a different
+question.
+
+| Plane | Primary question | Typical consumer |
 | --- | --- | --- |
-| Patch tool spec | [`create_apply_patch_freeform_tool`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L293) | Exposes patch capability as a freeform tool. |
-| Patch handler | [`ApplyPatchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L286) | Bridges patch input, permissions, events, and orchestration. |
-| Verified parsing | [`maybe_parse_apply_patch_verified`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L368) | Re-parses and verifies before computing changes and approval. |
-| Turn diff tracker | [`TurnDiffTracker`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L16) | Maintains an in-memory diff from committed patch deltas. |
+| Rollout persistence | Can this thread resume, fork, or replay? | runtime and client history reconstruction |
+| Rollout trace | What raw evidence explains this run? | local debugging and offline graph viewers |
+| Product analytics | Which product events occurred? | product metrics and aggregate analysis |
+| OTEL traces and metrics | How did runtime operations perform? | operators and engineering diagnostics |
+| Response debug context | Which upstream request failed? | support and failure triage |
+| Local state logs | What process-local logs were emitted? | local inspection and feedback bundles |
 
-</div>
+These planes intentionally overlap. A tool call can be a rollout item, a client
+event, an analytics fact, an OTEL span, a trace payload, and a local log line.
+The overlap is not duplication if each plane has a distinct retention,
+privacy, query, and interpretation model.
 
-## Why Patch Instead of Direct Write?
+## Rollout Persistence Is the Replay Spine
 
-A direct write API is simple for the model but poor for the user. It says
-"replace this file with that content" and leaves the system to reconstruct
-what happened. A patch says what operation is intended: add, delete, update,
-move, and modify hunks with context. That structure enables approval,
-display, partial failure handling, and review.
+The rollout file is the durable record introduced in Chapter 5. It is written
+as ordered items that can reconstruct thread history, session metadata, turn
+context, compaction boundaries, rollback behavior, and selected event surfaces.
+It is optimized for replay and compatibility, not for arbitrary debugging.
 
-| Direct write | Structured patch |
-| --- | --- |
-| Easy to call | Slightly harder to generate |
-| Harder to review before execution | Naturally reviewable as a diff |
-| Harder to bind to approval scope | File paths and operations are explicit |
-| Can hide accidental large replacements | Context and hunks expose intent |
-| Requires after-the-fact comparison | The edit itself is the comparison |
+```text
+// Pseudocode - illustrative pattern.
+function handle_runtime_event(event):
+    if event.should_be_persisted_for_replay:
+        rollout.append(event.as_rollout_item)
 
-## Handler Responsibilities
+    if event.should_update_thread_projection:
+        state_database.apply(event.as_metadata_delta)
 
-`ApplyPatchHandler` is more than an adapter. It declares the tool name, marks
-the tool as mutating, emits hook payloads, consumes streamed argument diffs,
-extracts file paths, computes effective permissions, starts UI events, and
-delegates execution to `ToolOrchestrator`.
+    if event.should_notify_client:
+        event_stream.emit(event.as_client_event)
+```
 
-That split is important:
+The replay spine must be conservative. It should preserve what future Codex
+versions need to understand a thread, but it should not become an unbounded
+dump of every internal byte. For deeper evidence, Codex uses rollout trace.
 
-<div class="flow">
-  <div><strong>Grammar</strong>The patch crate understands patch syntax.</div>
-  <div><strong>Handler</strong>The core tool handler understands sessions and turns.</div>
-  <div><strong>Policy</strong>Permission and sandbox policy decide whether execution can proceed.</div>
-  <div><strong>Runtime</strong>The orchestrator executes or rejects the patch.</div>
-  <div><strong>Diff</strong>The turn tracker records the committed delta.</div>
-</div>
+## Rollout Trace Captures Raw Evidence
 
-## Turn Diff Tracking
+Rollout trace is an opt-in diagnostic path. When enabled, runtime code records
+ordered raw events and stores larger raw payloads separately. The hot path does
+not try to build the final explanation graph while the session is running. It
+captures facts and leaves interpretation to an offline reducer.
 
-`TurnDiffTracker` tracks net text diffs for the current turn from committed
-patch mutations. It records baseline content, current content, rename origins,
-and invalidation state. When it can prove the delta is exact, it renders a
-unified diff. If a change is not exact, it invalidates rather than pretending
-to know.
+```mermaid
+flowchart TD
+    Runtime["runtime sources\nturns, inference, tools, terminal, agents"]
+    Context["trace context\nroot and child threads"]
+    Writer["trace writer\nsequence numbers"]
+    Events["raw event log"]
+    Payloads["raw payload files"]
+    Reducer["offline reducer"]
+    Graph["reduced graph\nthreads, turns, items, tools, terminals, edges"]
 
-This is a subtle but important safety habit: when the runtime cannot produce
-accurate evidence, it should say so through state rather than showing a
-confident but misleading diff.
+    Runtime --> Context
+    Context --> Writer
+    Writer --> Events
+    Writer --> Payloads
+    Events --> Reducer
+    Payloads --> Reducer
+    Reducer --> Graph
+```
 
-## Patch Events as UI Contract
+Raw trace data can include prompts, model responses, tool inputs and outputs,
+terminal output, runtime payloads, and paths. It therefore belongs to local
+diagnostics, not ordinary telemetry. The value of the design is that raw
+payloads remain available when the reduced graph is not enough to explain a
+failure.
 
-The patch path emits events before, during, and after execution. That matters
-because users do not only care whether the model produced a final answer. They
-care which files changed, whether approval was required, what content was
-applied, and how the final turn differs from the starting point.
+## Raw Events and Reduced Graphs
 
-## Runtime Equivalents Source Readers Notice
+The reduced trace graph is not a transcript. It contains semantic objects:
+agent threads, Codex turns, model-visible conversation items, inference calls,
+tool calls, code cells, terminal operations, compactions, and interaction
+edges. Each object can retain references back to raw payloads.
 
-`apply_patch` can appear through more than one user-visible route. It may be a
-freeform patch tool call, a command intercepted from shell-like text, or a
-delegated runtime operation in a remote environment. Codex still tries to make
-these routes converge on the same semantics: parse the patch, compute paths,
-apply permission rules, emit patch lifecycle events, and update the turn diff
-when a committed delta is known.
+```mermaid
+flowchart LR
+    RawModel["raw model payloads"]
+    RawRuntime["raw runtime payloads"]
+    RawTerminal["raw terminal payloads"]
+    Reducer["strict reducer"]
+    Conversation["conversation items\nwhat the model saw"]
+    RuntimeObjects["runtime objects\ntools, terminals, compactions"]
+    Edges["interaction edges\ncausal flow"]
+    Refs["raw payload references"]
 
-| Runtime detail | Why it matters |
-| --- | --- |
-| streamed argument diffs | UI can show patch text as it is being formed, not only after execution |
-| shell/unified-exec interception | a model's shell-style patch command can still be governed as a patch |
-| effective patch permissions | granted turn/session permissions can narrow or expand what files are allowed |
-| remote filesystem handling | patch application may need the environment that owns the workspace |
-| output vs delegate invocation | some paths return output directly; others delegate to runtime execution |
-| failed or declined attempts | model-visible results and user events still need to explain what happened |
+    RawModel --> Reducer
+    RawRuntime --> Reducer
+    RawTerminal --> Reducer
+    Reducer --> Conversation
+    Reducer --> RuntimeObjects
+    Reducer --> Edges
+    Reducer --> Refs
+```
 
-<div class="trace-ledger">
+This distinction prevents a common debugging mistake. Runtime output is not
+automatically model-visible output. A terminal operation may produce bytes that
+appear in a local process log, while the model only sees a summarized tool
+result. A nested runtime call may be part of a code-mode execution object,
+while the model-visible transcript contains only the surrounding tool boundary.
+The trace graph preserves both views without confusing them.
 
-## Trace Ledger
+## Reducers Are Strict on Purpose
 
-| Question | Chapter 8 answer |
-| --- | --- |
-| Where is the user request now? | It has become a structured edit proposal. |
-| What carries it? | patch text, verified patch operations, permission calculations, patch events, and turn diff state. |
-| Who decides next? | The patch handler and orchestrator decide approval/execution; the diff tracker decides whether the resulting diff is exact. |
-| What can fail here? | parse error, shell-parse mismatch, denied permission, approval denial, remote filesystem issue, partial application, or inexact diff tracking. |
+The reducer replays raw events in order and builds semantic state. It is
+strict where consistency matters: referenced payloads must exist, sequence
+order must be respected, tool starts and completions must match, terminal
+operations must attach to known runtime objects, turns must belong to known
+threads, and pending edges must eventually find their source or target.
 
-</div>
+```text
+// Pseudocode - illustrative pattern.
+function reduce_trace_bundle(bundle):
+    state = empty_graph()
+    pending = empty_pending_queue()
+
+    for raw_event in bundle.events_ordered_by_sequence:
+        assert_payloads_exist(raw_event.payload_refs)
+
+        if raw_event.references_unknown_object:
+            pending.queue(raw_event)
+            continue
+
+        object = interpret_raw_event(raw_event)
+        state.apply(object)
+        pending.flush_items_now_unblocked_by(state)
+
+    if pending.has_unresolved_items:
+        raise strict_replay_error(pending.summary)
+
+    write_reduced_state(state)
+```
+
+Strict replay errors are useful. They reveal that the capture stream is
+internally inconsistent or that the reducer does not yet understand a new
+event shape. Silently dropping those facts would make the graph easier to
+produce and less trustworthy.
+
+## Analytics Reduces Product Facts
+
+Product analytics has a different goal. It reduces client requests, responses,
+notifications, custom runtime facts, app and plugin invocations, compaction
+events, Guardian review outcomes, token usage, and turn completion states into
+trackable product events.
+
+Analytics should not be the source of replay truth. It can drop events that
+lack required context, aggregate values, hash identifiers, and focus on product
+questions. Its job is to answer "what happened across many sessions?" rather
+than "how do I reconstruct this exact thread?"
+
+## OTEL Observes Runtime Operations
+
+OTEL traces, logs, metrics, and trace-context propagation serve operational
+debugging. They can measure request latency, stream polling behavior,
+WebSocket events, retry behavior, session-scoped events, counters, histograms,
+and exported spans. Trace context can propagate across boundaries so a
+submission, model call, and downstream runtime operation remain correlated.
+
+This plane is about performance and reliability. It should not be treated as
+the durable transcript, and it should not require the product analytics model
+to explain low-level runtime behavior.
+
+## Response Debug Context and Local Logs
+
+Response debug context extracts identity from upstream API failures, such as
+request identifiers and status details. This is intentionally small and
+support-oriented: it helps connect a user-visible failure to an upstream
+request without exposing the entire runtime trace.
+
+Local state logs capture process logs into a database-backed sink with bounded
+queues and batch insertion. They support local inspection and feedback flows.
+Like OTEL, logs are operational evidence; they are not the replay spine.
+
+## Observe First, Interpret Later
+
+The transferable architecture is the separation between capture and meaning.
+Hot-path code records durable or raw facts with stable identifiers. Reducers
+and projections interpret those facts for a particular audience. If a new UI
+needs a graph, it should reduce from trace evidence. If a thread list needs a
+title, it should read or repair a metadata projection. If a product metric
+needs turn completion status, it should reduce analytics facts. No single
+transcript should carry all of those responsibilities.
 
 <div class="apply-this">
 
 ## Apply This
 
-- Prefer structured edit operations over opaque file writes.
-- Keep grammar parsing reusable and separate from agent runtime behavior.
-- Track exact deltas and invalidate when exactness cannot be guaranteed.
-- Make edit evidence visible to both the model and the user surface.
+1. Capture raw or replayable facts before deriving summaries, graphs, or aggregate metrics.
+2. Keep replay persistence separate from diagnostic tracing so durable threads do not become unbounded debug dumps.
+3. Make reducers strict where evidence must be self-consistent, and let failures reveal missing event semantics.
+4. Split observability by audience: replay, local debugging, product analytics, operations, support, and logs.
+5. Preserve raw payload references behind reduced objects so explanations can return to original evidence.
 
 </div>
 
-## Read the Source Next
+## Closing
 
-- [`ApplyPatchHandler::handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L337):
-  follow one patch from payload to runtime invocation.
-- [`effective_patch_permissions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L252):
-  see how paths and permissions are derived.
-- [`TurnDiffTracker::track_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L49):
-  inspect exact-delta tracking.
-
-<div class="exercise-box">
-
-## Self-Check
-
-Answer without opening source: why is a structured patch safer to review than
-a direct file write? Then explain why a failed patch attempt still needs a
-model-visible result.
-
-</div>
-
-<div class="exercise-box">
-
-## Optional Source Lab
-
-Read `ApplyPatchHandler::handle` and draw a five-step path from raw patch text
-to committed delta. Mark where parsing, permission calculation, approval,
-execution, and diff tracking happen.
-
-</div>
-
-<div class="next-step">
-
-## What Comes Next
-
-Patch execution introduces risk. The next chapter studies the approval control
-plane that decides when a tool may run, when it must ask, and when it must
-stop.
-
-</div>
+Part II has built the runtime core: durable threads, live sessions, the turn
+loop, provider streams, backend boundaries, and observation planes. The next
+part moves from scheduling and evidence to side effects: how Codex exposes
+tools, executes shell commands, applies patches, asks for approval, and
+contains risk.

@@ -50,6 +50,10 @@ assert(
 );
 
 for (const file of enFiles) {
+  if (file === "book-rewrite-prompt.md") {
+    continue;
+  }
+
   const page = file.replace(/\.md$/, "");
   const enLink = `/codex-from-source/${page === "index" ? "" : page}`;
   const zhLink = `/zh/codex-from-source/${page === "index" ? "" : page}`;

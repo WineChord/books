@@ -10,12 +10,11 @@ function pageUrl(relativePath: string): string {
     return `${siteOrigin}${siteBase}`;
   }
 
-  const withoutIndex = relativePath.replace(/(^|\/)index\.md$/, "$1");
-  const withoutExtension = withoutIndex.replace(/\.md$/, "");
-  const normalized = withoutExtension.endsWith("/")
-    ? withoutExtension
-    : `${withoutExtension}/`;
-  return `${siteOrigin}${siteBase}${normalized}`;
+  if (relativePath.endsWith("/index.md")) {
+    return `${siteOrigin}${siteBase}${relativePath.replace(/index\.md$/, "")}`;
+  }
+
+  return `${siteOrigin}${siteBase}${relativePath.replace(/\.md$/, ".html")}`;
 }
 
 function pageDescription(relativePath: string): string {
@@ -30,11 +29,173 @@ function pageDescription(relativePath: string): string {
   return "A bilingual source-code reading book about OpenAI Codex CLI.";
 }
 
+const enStartItems = [
+  { text: "Overview", link: "/codex-from-source/" },
+  { text: "Preface", link: "/codex-from-source/preface.html" },
+  { text: "Reader Map", link: "/codex-from-source/reader-map.html" },
+];
+
+const zhStartItems = [
+  { text: "总览", link: "/zh/codex-from-source/" },
+  { text: "前言", link: "/zh/codex-from-source/preface.html" },
+  { text: "阅读地图", link: "/zh/codex-from-source/reader-map.html" },
+];
+
+const enParts = [
+  {
+    text: "Part I: Establish the Contract",
+    items: [
+      { text: "1. The Architectural Bet", link: "/codex-from-source/chapter-01.html" },
+      { text: "2. Distribution Wrapper to Router", link: "/codex-from-source/chapter-02.html" },
+      { text: "3. Config, Auth, Requirements", link: "/codex-from-source/chapter-03.html" },
+      { text: "4. Protocol Boundary", link: "/codex-from-source/chapter-04.html" },
+    ],
+  },
+  {
+    text: "Part II: Build the Runtime",
+    items: [
+      { text: "5. Threads and Durable State", link: "/codex-from-source/chapter-05.html" },
+      { text: "6. The Turn Loop", link: "/codex-from-source/chapter-06.html" },
+      { text: "7. Model Providers and Streaming", link: "/codex-from-source/chapter-07.html" },
+      { text: "8. Observability and Trace", link: "/codex-from-source/chapter-08.html" },
+    ],
+  },
+  {
+    text: "Part III: Execute Side Effects",
+    items: [
+      { text: "9. Tool Specs and Dispatch", link: "/codex-from-source/chapter-09.html" },
+      { text: "10. Shell and Filesystem Tools", link: "/codex-from-source/chapter-10.html" },
+      { text: "11. Patches as Protocol", link: "/codex-from-source/chapter-11.html" },
+      { text: "12. Hooks and Approval", link: "/codex-from-source/chapter-12.html" },
+      { text: "13. Sandboxes and Network Policy", link: "/codex-from-source/chapter-13.html" },
+    ],
+  },
+  {
+    text: "Part IV: Open the Runtime",
+    items: [
+      { text: "14. App-Server Contract", link: "/codex-from-source/chapter-14.html" },
+      { text: "15. SDKs and Remote Control", link: "/codex-from-source/chapter-15.html" },
+      { text: "16. TUI as Event Renderer", link: "/codex-from-source/chapter-16.html" },
+    ],
+  },
+  {
+    text: "Part V: Extend the System",
+    items: [
+      { text: "17. MCP Runtime Tools", link: "/codex-from-source/chapter-17.html" },
+      { text: "18. Skills, Plugins, Extensions", link: "/codex-from-source/chapter-18.html" },
+      { text: "19. Migration and Compatibility", link: "/codex-from-source/chapter-19.html" },
+    ],
+  },
+  {
+    text: "Part VI: Coordinate Work",
+    items: [
+      { text: "20. Multi-Agent Coordination", link: "/codex-from-source/chapter-20.html" },
+      { text: "21. Cloud Tasks and Identity", link: "/codex-from-source/chapter-21.html" },
+      { text: "22. Memories and User State", link: "/codex-from-source/chapter-22.html" },
+    ],
+  },
+  {
+    text: "Part VII: Ship and Govern",
+    items: [
+      { text: "23. Build Systems and Contracts", link: "/codex-from-source/chapter-23.html" },
+      { text: "24. Packaging and Release", link: "/codex-from-source/chapter-24.html" },
+      { text: "25. CI and Governance", link: "/codex-from-source/chapter-25.html" },
+      { text: "Epilogue. What to Steal", link: "/codex-from-source/epilogue.html" },
+    ],
+  },
+];
+
+const zhParts = [
+  {
+    text: "第一部：建立契约",
+    items: [
+      { text: "1. 架构赌注", link: "/zh/codex-from-source/chapter-01.html" },
+      { text: "2. 分发包装器到 Router", link: "/zh/codex-from-source/chapter-02.html" },
+      { text: "3. 配置、认证、Requirements", link: "/zh/codex-from-source/chapter-03.html" },
+      { text: "4. 协议边界", link: "/zh/codex-from-source/chapter-04.html" },
+    ],
+  },
+  {
+    text: "第二部：构建运行时",
+    items: [
+      { text: "5. 线程与持久状态", link: "/zh/codex-from-source/chapter-05.html" },
+      { text: "6. Turn Loop", link: "/zh/codex-from-source/chapter-06.html" },
+      { text: "7. 模型 Provider 与流式传输", link: "/zh/codex-from-source/chapter-07.html" },
+      { text: "8. Observability 与 Trace", link: "/zh/codex-from-source/chapter-08.html" },
+    ],
+  },
+  {
+    text: "第三部：执行副作用",
+    items: [
+      { text: "9. 工具规格与分发", link: "/zh/codex-from-source/chapter-09.html" },
+      { text: "10. Shell 与文件系统工具", link: "/zh/codex-from-source/chapter-10.html" },
+      { text: "11. Patch 作为协议", link: "/zh/codex-from-source/chapter-11.html" },
+      { text: "12. Hooks 与审批", link: "/zh/codex-from-source/chapter-12.html" },
+      { text: "13. 沙箱与网络策略", link: "/zh/codex-from-source/chapter-13.html" },
+    ],
+  },
+  {
+    text: "第四部：开放运行时",
+    items: [
+      { text: "14. App-Server 契约", link: "/zh/codex-from-source/chapter-14.html" },
+      { text: "15. SDK 与远程控制", link: "/zh/codex-from-source/chapter-15.html" },
+      { text: "16. TUI 作为事件渲染器", link: "/zh/codex-from-source/chapter-16.html" },
+    ],
+  },
+  {
+    text: "第五部：扩展系统",
+    items: [
+      { text: "17. MCP 运行时工具", link: "/zh/codex-from-source/chapter-17.html" },
+      { text: "18. Skills、Plugins、Extensions", link: "/zh/codex-from-source/chapter-18.html" },
+      { text: "19. 迁移与兼容性", link: "/zh/codex-from-source/chapter-19.html" },
+    ],
+  },
+  {
+    text: "第六部：协调工作",
+    items: [
+      { text: "20. 多 Agent 协作", link: "/zh/codex-from-source/chapter-20.html" },
+      { text: "21. 云任务与身份", link: "/zh/codex-from-source/chapter-21.html" },
+      { text: "22. Memories 与用户状态", link: "/zh/codex-from-source/chapter-22.html" },
+    ],
+  },
+  {
+    text: "第七部：发布与治理",
+    items: [
+      { text: "23. 构建系统与契约", link: "/zh/codex-from-source/chapter-23.html" },
+      { text: "24. 打包与发布", link: "/zh/codex-from-source/chapter-24.html" },
+      { text: "25. CI 与治理", link: "/zh/codex-from-source/chapter-25.html" },
+      { text: "结语：值得带走的东西", link: "/zh/codex-from-source/epilogue.html" },
+    ],
+  },
+];
+
+const enReferenceItems = [
+  { text: "Pattern Index", link: "/codex-from-source/patterns.html" },
+  { text: "Source Atlas", link: "/codex-from-source/source-atlas.html" },
+  { text: "Implementation Reference", link: "/codex-from-source/implementation-reference.html" },
+  { text: "Bibliography", link: "/codex-from-source/bibliography.html" },
+  { text: "Production Pipeline", link: "/codex-from-source/pipeline.html" },
+];
+
+const zhReferenceItems = [
+  { text: "模式索引", link: "/zh/codex-from-source/patterns.html" },
+  { text: "源码索引", link: "/zh/codex-from-source/source-atlas.html" },
+  { text: "实现参考", link: "/zh/codex-from-source/implementation-reference.html" },
+  { text: "参考文献", link: "/zh/codex-from-source/bibliography.html" },
+  { text: "写作流水线", link: "/zh/codex-from-source/pipeline.html" },
+];
+
 export default defineConfig({
   title: "Codex From Source",
   description:
     "A bilingual source-code reading book about OpenAI Codex CLI.",
   base: "/books/",
+  srcExclude: [
+    "codex-from-source/book-rewrite-prompt.md",
+    "zh/codex-from-source/book-rewrite-prompt.md",
+    "codex-from-source/rewrite/**/*.md",
+    "zh/codex-from-source/rewrite/**/*.md",
+  ],
   cleanUrls: false,
   lastUpdated: true,
   metaChunk: true,
@@ -120,112 +281,11 @@ export default defineConfig({
         ],
         sidebar: {
           "/codex-from-source/": [
-            {
-              text: "Start",
-              items: [
-                { text: "Overview", link: "/codex-from-source/" },
-                {
-                  text: "Preface",
-                  link: "/codex-from-source/preface",
-                },
-                {
-                  text: "Reader Map",
-                  link: "/codex-from-source/reader-map",
-                },
-              ],
-            },
-            {
-              text: "Part I: The Map",
-              items: [
-                {
-                  text: "1. Reading Strategy",
-                  link: "/codex-from-source/chapter-01",
-                },
-                {
-                  text: "2. Repository Topography",
-                  link: "/codex-from-source/chapter-02",
-                },
-                {
-                  text: "3. CLI Entrypoint",
-                  link: "/codex-from-source/chapter-03",
-                },
-                {
-                  text: "4. Protocol",
-                  link: "/codex-from-source/chapter-04",
-                },
-              ],
-            },
-            {
-              text: "Part II: The Agent Loop",
-              items: [
-                {
-                  text: "5. Session Runtime",
-                  link: "/codex-from-source/chapter-05",
-                },
-                {
-                  text: "6. Turn Loop and Streaming",
-                  link: "/codex-from-source/chapter-06",
-                },
-              ],
-            },
-            {
-              text: "Part III: Tools",
-              items: [
-                {
-                  text: "7. Tool Registry and Dispatch",
-                  link: "/codex-from-source/chapter-07",
-                },
-                {
-                  text: "8. Patches and Turn Diffs",
-                  link: "/codex-from-source/chapter-08",
-                },
-                {
-                  text: "9. Approval Control Plane",
-                  link: "/codex-from-source/chapter-09",
-                },
-              ],
-            },
-            {
-              text: "Part IV: Boundaries and Surfaces",
-              items: [
-                {
-                  text: "10. Sandboxes and Runtime Boundaries",
-                  link: "/codex-from-source/chapter-10",
-                },
-                {
-                  text: "11. MCP, Apps, Skills, Plugins",
-                  link: "/codex-from-source/chapter-11",
-                },
-                {
-                  text: "12. TUI and App Server",
-                  link: "/codex-from-source/chapter-12",
-                },
-              ],
-            },
+            { text: "Start", items: enStartItems },
+            ...enParts,
             {
               text: "Reference",
-              items: [
-                {
-                  text: "Pattern Index",
-                  link: "/codex-from-source/patterns",
-                },
-                {
-                  text: "Source Atlas",
-                  link: "/codex-from-source/source-atlas",
-                },
-                {
-                  text: "Implementation Reference",
-                  link: "/codex-from-source/implementation-reference",
-                },
-                {
-                  text: "Bibliography",
-                  link: "/codex-from-source/bibliography",
-                },
-                {
-                  text: "Production Pipeline",
-                  link: "/codex-from-source/pipeline",
-                },
-              ],
+              items: enReferenceItems,
             },
           ],
         },
@@ -242,109 +302,11 @@ export default defineConfig({
         ],
         sidebar: {
           "/zh/codex-from-source/": [
-            {
-              text: "开始",
-              items: [
-                { text: "总览", link: "/zh/codex-from-source/" },
-                { text: "前言", link: "/zh/codex-from-source/preface" },
-                {
-                  text: "阅读地图",
-                  link: "/zh/codex-from-source/reader-map",
-                },
-              ],
-            },
-            {
-              text: "第一部：地图",
-              items: [
-                {
-                  text: "1. 阅读策略",
-                  link: "/zh/codex-from-source/chapter-01",
-                },
-                {
-                  text: "2. 仓库地形",
-                  link: "/zh/codex-from-source/chapter-02",
-                },
-                {
-                  text: "3. CLI 入口",
-                  link: "/zh/codex-from-source/chapter-03",
-                },
-                {
-                  text: "4. 协议层",
-                  link: "/zh/codex-from-source/chapter-04",
-                },
-              ],
-            },
-            {
-              text: "第二部：Agent 循环",
-              items: [
-                {
-                  text: "5. 会话运行时",
-                  link: "/zh/codex-from-source/chapter-05",
-                },
-                {
-                  text: "6. Turn 循环与流式输出",
-                  link: "/zh/codex-from-source/chapter-06",
-                },
-              ],
-            },
-            {
-              text: "第三部：工具系统",
-              items: [
-                {
-                  text: "7. 工具注册与分发",
-                  link: "/zh/codex-from-source/chapter-07",
-                },
-                {
-                  text: "8. 补丁与 Turn Diff",
-                  link: "/zh/codex-from-source/chapter-08",
-                },
-                {
-                  text: "9. 审批控制面",
-                  link: "/zh/codex-from-source/chapter-09",
-                },
-              ],
-            },
-            {
-              text: "第四部：边界与接入面",
-              items: [
-                {
-                  text: "10. 沙箱与运行时边界",
-                  link: "/zh/codex-from-source/chapter-10",
-                },
-                {
-                  text: "11. MCP、Apps、Skills、Plugins",
-                  link: "/zh/codex-from-source/chapter-11",
-                },
-                {
-                  text: "12. TUI 与 app-server",
-                  link: "/zh/codex-from-source/chapter-12",
-                },
-              ],
-            },
+            { text: "开始", items: zhStartItems },
+            ...zhParts,
             {
               text: "附录",
-              items: [
-                {
-                  text: "模式索引",
-                  link: "/zh/codex-from-source/patterns",
-                },
-                {
-                  text: "源码索引",
-                  link: "/zh/codex-from-source/source-atlas",
-                },
-                {
-                  text: "实现参考",
-                  link: "/zh/codex-from-source/implementation-reference",
-                },
-                {
-                  text: "参考文献",
-                  link: "/zh/codex-from-source/bibliography",
-                },
-                {
-                  text: "写作流水线",
-                  link: "/zh/codex-from-source/pipeline",
-                },
-              ],
+              items: zhReferenceItems,
             },
           ],
         },

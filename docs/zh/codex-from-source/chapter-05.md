@@ -1,146 +1,226 @@
-# 第 5 章：Session Facade
+# 第 5 章：线程、会话与持久状态
+
+第 4 章把协议边界讲清楚了：客户端可以提交 operation、接收 event、
+交换模型 item，却不需要知道 runtime 内部如何工作。本章越过这条边界，
+看 Codex 如何把这些协议消息变成一个可恢复、可 fork、可回滚的活线程。
 
 <div class="chapter-lede">
-  <p><strong>你在这里：</strong>协议消息已经存在，现在需要一个活的 runtime。</p>
-  <p><strong>问题：</strong>客户端需要小接口，但 runtime 需要配置、历史、模型、工具、skills、plugins、MCP 和 telemetry。</p>
-  <p><strong>心智模型：</strong>`Codex` 是前台；`Session` 是前台后面整栋楼。</p>
+  <p><strong>问题：</strong>Agent 必须既像一段连续对话，又能恢复、分叉、中断和观测。</p>
+  <p><strong>主张：</strong>Codex 通过区分 live runtime handle 与 durable thread record 来做到这一点。</p>
+  <p><strong>心智模型：</strong>thread 是长期工作账本；session 是当前正在服务这个账本的运行时进程。</p>
 </div>
 
-Session facade 是 Codex 从“命令解析”变成“Agent runtime”的地方。客户端不应该知道模型如何选择、skills 如何加载、MCP manager 如何接线、conversation history 如何存储。客户端只需要提交工作并接收事件。
 
-## 证据表
+<div class="source-equivalence">
 
-<div class="evidence-map">
+## 源码地图
 
-| 概念 | 源码 | 为什么重要 |
+| 概念 | 源码锚点 |
+| --- | --- |
+| Thread manager boundary | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L168) |
+| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98) |
+| Queue-pair runtime facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
+| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
+| Accepted prompt recording | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2980) |
+
+</div>
+
+## Runtime Stack
+
+Codex 不是围绕一个“聊天对象”组织起来的。它更像一组逐层收窄权限的
+handle：越靠近外部，接口越小；越靠近内部，状态和调度责任越多。
+
+```mermaid
+flowchart TD
+    Client["客户端接入面\nCLI, TUI, app-server, SDK"]
+    Manager["ThreadManager\n管理 live thread map"]
+    Thread["CodexThread\n客户端可持有的 live handle"]
+    Facade["Codex\nsubmission/event queues"]
+    Session["Session\n状态、服务、active turn"]
+    Task["SessionTask\nturn, compact, review, shell"]
+    Router["ToolRouter\n运行时副作用"]
+
+    Store["ThreadStore\nrollout 与 metadata"]
+    Context["ContextManager\n模型可见历史"]
+    State["SQLite projections\nthreads, logs, graph, memory"]
+
+    Client --> Manager
+    Manager --> Thread
+    Thread --> Facade
+    Facade --> Session
+    Session --> Task
+    Task --> Router
+
+    Session --> Context
+    Session --> Store
+    Session --> State
+```
+
+`ThreadManager` 拥有 live threads 集合，以及创建 session 所需的共享服务。
+`CodexThread` 是线程创建或恢复之后交给客户端的稳定 handle。`Codex`
+本身刻意保持很小：一条提交路径，一条事件路径。`Session` 才是内部的
+大对象，保存解析后的配置、持久身份、active turn、mailbox、realtime
+状态、目标状态、review 状态和各种 service handle。
+
+这层拆分很关键。客户端不应该直接改调度器内部状态。客户端提交一个
+operation；session 决定它是启动新 task、steer 当前 task、记录 pending
+input、更新持久 metadata，还是关闭线程。
+
+## 第一个事件就是契约
+
+一个新打开的 runtime，第一个客户端可见事件是 session setup event。它
+携带 thread identity、session identity、工作目录、模型、provider、
+审批策略、权限 profile、初始消息和其他已解析设置。
+
+这个顺序不是偶然的。有些启动工作可以在 session 已经可见后继续进行：
+MCP server 可能还在初始化，plugin 能力可能稍后才报告，prewarm 工作也
+可能在后台运行。setup event 给所有客户端一个确定的流式锚点，后续事件
+才有共同参照。
+
+```text
+// Pseudocode - illustrative pattern.
+function open_runtime_thread(request):
+    resolved = resolve_configuration(request)
+    live_store = open_thread_persistence(resolved.thread_identity)
+    session = build_session(resolved, live_store)
+
+    emit_event(SessionConfigured(resolved.public_metadata))
+
+    record_initial_history_if_resuming(session)
+    start_background_capability_initialization(session)
+    start_submission_loop(session)
+
+    return client_thread_handle(session)
+```
+
+重要的不是源码里每一步的具体位置，而是这个性质：客户端可以把 setup
+当作事件流的起点，并且在可选能力还没有全部加载完时，也能先渲染一个
+恢复出来的线程。
+
+## 三种历史
+
+Agent 架构里很多混乱，都来自把“历史”当成一个东西。Codex 同时维护三种
+历史，它们回答的问题不同。
+
+| 历史 | 主要 owner | 回答的问题 |
 | --- | --- | --- |
-| `Codex` facade | [`session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) | 展示 submission sender、event receiver、status 和 session。 |
-| Spawn arguments | [`CodexSpawnArgs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L386) | 暴露 runtime 启动前必须知道什么。 |
-| Bootstrap body | [`spawn_internal`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L449) | 串起 config、skills、plugins、MCP、model、history 和 services。 |
-| Submit API | [`submit_with_trace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L693) | 把 operation 变成带 id 的 queued submission。 |
+| 模型可见上下文 | `ContextManager` | 下一次模型请求应该看到什么？ |
+| Rollout JSONL | thread persistence | 按 replay 顺序到底发生了什么，以便恢复或 fork？ |
+| SQLite projection | state layer | 哪些信息需要高效查询，而不是每次 replay 全量文件？ |
 
-</div>
+模型可见上下文会被规范化为 model items。它不是 UI transcript，也不是
+raw log。它只包含未来 inference 应该参与的内容，并且会受到模型输入
+模态、compaction、context injection、工具观察结果和 pending input 的影响。
 
-## Facade 形状
+rollout 文件是 replay spine。它按顺序记录持久 runtime 事实：session
+metadata、turn context snapshot、模型可见 item、event record、compaction
+record、rollback marker，以及其他可 replay 的 item。线程恢复时，它是
+重建过程的事实来源。
 
-`Codex` 很小，但字段就是架构摘要：
+SQLite state 是 projection layer。它保存 thread metadata、列表和搜索索引、
+日志、memory job、graph edge 等适合查询的状态。在设计允许的地方，
+projection 可以从持久记录修复或重建。rollout 是账本；数据库是索引和
+运行时辅助状态。
 
-| 字段含义 | 作用 |
-| --- | --- |
-| submission sender | 客户端把 `Submission` 推进 runtime |
-| event receiver | 客户端从 runtime 拉取 `Event` |
-| status receiver | 观察高层 agent 状态 |
-| session reference | 内部 services 和 state 在 facade 后面 |
-| termination future | 调用者可以等待后台 loop 结束 |
+## 记录一个 Item 可能影响三层
 
-这说明 Codex 是 queue-pair runtime：一边提交 operation，另一边观察 event。
+一次 turn 记录一个新 item 时，runtime 必须判断哪些 surface 需要知道它。
+一个工具结果可能是模型可见的、可 replay 的、客户端可渲染的、analytics
+关心的，也可能需要进入 trace 诊断证据。这些关系很近，但并不是同一件事。
 
-## Bootstrap 是架构证据
+```text
+// Pseudocode - illustrative pattern.
+function record_runtime_item(turn, item):
+    if item.belongs_in_model_context:
+        context_manager.append(item.as_model_item)
 
-`CodexSpawnArgs` 很长，因为 runtime 真实存在：auth manager、model manager、environment manager、skills manager、plugins manager、MCP manager、extension registry、thread store、conversation history、dynamic tools、telemetry 都要进入系统。长不一定坏，它说明 facade 包住了一个大的 composition root。
+    if item.belongs_in_replay:
+        rollout.append(item.as_rollout_item)
 
-| Bootstrap 步骤 | 为什么重要 |
-| --- | --- |
-| 加载 plugins 和 skills | 决定 turn-visible guidance 和 extension capability。 |
-| 解析 `AGENTS.md` instructions | 在 turn 运行前注入仓库或用户指令。 |
-| 加载 exec policy | 提前建立命令审批和策略行为。 |
-| 选择 model 和 base instructions | 明确 session 的模型契约。 |
-| 构造 `SessionConfiguration` | 把很多输入收拢成 runtime 配置对象。 |
-| 启动 submission loop | 启动消费 operation 的后台任务。 |
+    if item.updates_queryable_state:
+        sqlite_projection.apply(item.as_projection_delta)
 
-初学者常跳过 bootstrap，因为它看起来像“管线”。在 Agent 系统里，管线就是架构。
+    if item.should_be_seen_by_clients:
+        event_stream.emit(item.as_event)
+```
 
-## Session、Thread、Turn
+这种设计保护的是 replay。客户端可以断开再重连；数据库行可以过期后修复；
+模型请求可以从规范化 context 重新构造，而不是依赖屏幕文本。持久状态是
+这些 surface 之间的共同语言。
 
-- **Session** 是正在运行的 runtime instance，包含 services、configuration、queues 和 status。
-- **Thread** 是 conversation/workspace continuity，可以创建、恢复、fork、列出或 rollback。
-- **Turn** 是 thread 内的一次用户工作单元。
+## Start、Resume、Fork、Rollback
 
-不要把三者混成一个概念。Session 服务 thread；thread 包含 turns；turn 里可能发生多轮 model/tool 循环。
+线程操作本质上都是同一个原则的变体：加载或选择一个 replay 前缀，在它
+之上构造 session，然后用相同的词汇继续追加未来 item。
 
-## Submission Loop 与 Task Queue
+```mermaid
+flowchart LR
+    Start["start\n新 thread id"] --> Open["打开 live persistence"]
+    Resume["resume\n已有 rollout"] --> Replay["replay durable items"]
+    Fork["fork\n选择前缀"] --> NewThread["新 thread id\nfork metadata"]
+    Rollback["rollback\n裁剪最近 turns"] --> Rebuild["重建模型历史"]
 
-Facade 的 queue-pair 形状会在 submission loop 中具体化。Client 提交一个 `Op`；后台循环决定它是启动新 task、steer active task、abort 当前工作、把输入排队到下一次 turn，还是更新持久 thread state。
+    Open --> Configured["emit SessionConfigured"]
+    Replay --> Configured
+    NewThread --> Configured
+    Rebuild --> Configured
 
-| 运行时单元 | 表示什么 | 为什么重要 |
+    Configured --> Append["追加未来 rollout items"]
+    Append --> Query["更新 SQLite projections"]
+```
+
+resume 不是重新加载一段字符串。它要从 durable items 重建模型历史和
+session metadata。fork 不是复制 UI transcript。它选择一个一致的前缀，
+打开一个新的 thread，让未来从源线程分叉。rollback 也不是简单删除可见
+消息；它要从保留下来的 durable record 重建 active model context，并考虑
+compaction 和未完成 turn。
+
+这就是为什么 turn context snapshot 必须持久化。它告诉后来的 session：
+当时的工作目录、权限、模型设置、网络策略、memory mode 和环境选择是什么。
+没有这些上下文，replay 就只剩文本，没有执行语义。
+
+## Session State 是分层的
+
+live session 内部有多类状态，不应该被揉成一个 map。
+
+| 层次 | 生命周期 | 示例 |
 | --- | --- | --- |
-| `Submission` | 带 id 和 trace context 的 queued protocol input | 每个外部可见动作都通过可关联 envelope 进入 |
-| regular task | 普通用户 turn work | 拥有常见 model/tool loop |
-| compact task | 上下文压缩工作 | 可以替换 history，而不是用户 prompt |
-| review task | review-mode 工作 | 用同一套 session machinery 支撑不同产品模式 |
-| user shell command task | 显式用户 shell action | 区分用户发起 shell 和模型发起 tool call |
-| active turn | in-flight work 的 mutable state | 让 interrupt、auxiliary input 和 tool result 找到正在运行的 turn |
-| queued next-turn items | 中途到达、不能丢失的后续工作 | 防止新输入 racing 或覆盖 active task |
+| 配置 | session 生命周期，可受控更新 | model、provider、permissions、cwd、service tier |
+| 可变 session state | session 生命周期 | token usage、当前 metadata、connector selection、rate limits |
+| Active turn state | 一个 in-flight task | cancellation token、tool futures、pending approvals、streamed items |
+| Mailbox 与 pending input | 跨调度边界 | 另一个 turn 正在运行时到达的消息 |
+| Durable store handle | thread 生命周期 | rollout writer、thread metadata、state database handle |
 
-这是一条关键源码读者知识：Codex 不是 CLI 调模型然后等待的同步调用，而是有明确 task replacement、abort、completion 和 queued follow-up behavior 的后台任务系统。
+这层拆分让 Codex 能回答一个细问题：“这个 operation 改的是 durable thread、
+当前 live turn、下一次 turn，还是只是客户端视图？”这些承诺完全不同。
+如果 runtime 分不清，迟早会丢输入、重复工具结果，或者让 resume 变得不一致。
 
-## History、Rollout 与 Resume
+## Metadata 是抽取出来的，不是凭空造的
 
-History 不只是“聊天文本”。Codex 会保留模型可见 items、raw/replayable rollout records 和 turn context baselines。记录 conversation item 可能同时意味着：加入 model history、写入足以 later reconstruct thread 的 rollout data，并 echo raw events 给客户端 replay。
+线程列表和搜索视图不能每次请求都全量 replay。Codex 因此维护 metadata
+projection：标题或 preview、model provider、memory mode、archive state、
+working directory、git 信息、创建和更新时间、分页 anchor 等。
 
-| 持久化概念 | 保护什么 |
-| --- | --- |
-| context manager history | 模型看到 normalized prior items，而不是 UI 字符串 |
-| rollout reconstruction | resume 和 fork 可以从 durable records 重建 thread |
-| turn context baseline | compaction/reinjection 知道哪些上下文已经存在 |
-| thread metadata | name、archive state、goals、memory mode 和 remote/control state 跨 session 保留 |
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| 问题 | 第 5 章答案 |
-| --- | --- |
-| 用户请求现在在哪里？ | 已跨过协议边界，位于 session submission loop 中。 |
-| 什么数据结构携带它？ | `Submission`、`Op`、active task state、recorded history 和 rollout items。 |
-| 谁拥有下一步决策？ | session loop 决定 start、steer、abort、compact、review 或 queue follow-up work。 |
-| 这里可能怎么失败？ | bootstrap dependency loading、config/auth state、history persistence、task replacement 和 structured event delivery。 |
-
-</div>
-
-## 失败也是 runtime 的一部分
-
-Facade 让失败变成可编程事件。Submissions 有 ids。Events 可以描述 errors、warnings、approvals、token usage、MCP startup、model reroute 和 turn completion。客户端因此可以渲染错误、显示审批、重试、停止 turn 或保存 transcript。
+projection 的价值在于可查询；它的安全性来自背后仍然有 durable rollout。
+当列表行缺失或过期时，系统可以扫描对应 rollout 的头部，或者 replay
+携带 metadata 的 items 来修复索引。这就是持久状态模式：用 projection
+优化读取，但让 event record 保持权威。
 
 <div class="apply-this">
 
-## 应用到实践
+## 应用模式
 
-- 即使 runtime 很大，也给客户端一个小 facade。
-- 把 bootstrap code 当作架构证据。
-- 严格区分 session、thread 和 turn。
-- 用结构化 events 表达失败，不要只打印文本。
-
-</div>
-
-## 接下来读源码
-
-- [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364)：把字段当作架构摘要。
-- [`spawn_internal`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L449)：跟踪 session 创建前加载了哪些依赖。
-- [`ThreadManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L506)：看 live thread 行为如何位于 session 之上。
-- [`submission_loop`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/handlers.rs#L711)：追踪 queued operations 如何变成 tasks 或 control actions。
-- [`record_conversation_items`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2418)：查看 history、rollout 和 event echo 如何绑在一起。
-
-<div class="exercise-box">
-
-## 自检题
-
-不打开源码回答：Codex 为什么同时需要 session 和 thread？再解释一个 queued submission 为什么可能 start task、steer task、abort task，或成为下一个 turn 的 queued input。
+1. 明确 live-handle stack，让客户端提交 operation，而不是直接修改调度器内部。
+2. 区分 thread identity 与 session execution，因为一个 durable thread 可能经历多次 runtime 生命周期。
+3. 在可选启动工作之前先发确定的 setup event，让所有客户端拥有同一个事件流锚点。
+4. 分开维护模型历史、replay 历史和查询历史，不要强迫一个 transcript 承担所有职责。
+5. 让 resume、fork 和 rollback 复用正常 turn 使用的 replay vocabulary。
 
 </div>
 
-<div class="exercise-box">
+## 小结
 
-## 可选源码实验
-
-阅读 `CodexSpawnArgs`，把字段分成五类：configuration、identity/auth、external capability、storage/history、runtime services。再和本章 bootstrap 表比较。
-
-</div>
-
-<div class="next-step">
-
-## 下一章
-
-Facade 接受工作，但 Agent 行为发生在 turn 里。下一章跟随 `run_turn`，阅读它如何准备上下文、采样模型、处理工具并决定是否继续。
-
-</div>
+第 5 章把第 4 章的协议变成了活的 runtime：thread 是持久的，session 是
+运行中的，turn 是 session 内被调度的工作。第 6 章会进入一次 turn，
+看 Codex 如何构造上下文、采样模型、执行工具、处理 interruption，并判断
+Agent 是否真的完成。

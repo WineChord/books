@@ -85,16 +85,17 @@ explanations reproducible: if a chapter says that `Op` lives in
 [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403),
 the link should show the same code every time you revisit it.
 
-## How to Use the Exercises
+## How to Use the Evidence Tables
 
-Each chapter now separates two activities:
+Each chapter separates narrative reading from source audit:
 
 | Activity | Purpose |
 | --- | --- |
-| Self-Check | Answer from the book alone. If you cannot, the chapter is under-explained. |
-| Optional Source Lab | Open pinned links only when you want line-level verification or audit evidence. |
+| Main narrative | Read without opening source. This is the default path. |
+| Source Map | Open pinned links only when you want line-level verification or audit evidence. |
+| Apply This | Extract reusable patterns after the implementation model is clear. |
 
-Start with the [Reader Map](reader-map). It gives a 30-minute path, a 2-hour
+Start with the [Reader Map](reader-map.html). It gives a 30-minute path, a 2-hour
 path, and an optional source-audit path. The goal is not to force you into the
 repository; it is to make the repository's important knowledge available in
 book form.

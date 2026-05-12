@@ -1,115 +1,181 @@
-# 第 1 章：阅读策略
+# 第 1 章：架构赌注：作为有边界操作系统的 Agent
 
-<div class="chapter-lede">
-  <p><strong>你在这里：</strong>在阅读具体函数之前，先建立产品循环地图。</p>
-  <p><strong>问题：</strong>Codex 足够大，初学者很容易还没看清系统形状就被文件淹没。</p>
-  <p><strong>心智模型：</strong>追踪一次用户请求如何变成消息、模型调用、工具调用、受保护的副作用和 UI 事件。</p>
-</div>
+序言提出了本书的核心判断：Codex 值得研究，不是因为它只是把聊天界面接到模型上，而是因为它把语言模型产品做成了一个系统。这个系统接收意图、保存状态、调用工具、执行策略，并把过程证据报告给不同客户端。本章要命名这背后的架构赌注：Codex 把 Agent 当成一个有边界的操作系统来设计。它不是管理整台机器的通用操作系统，而是一个调度工作、仲裁权限、记录事实、并向多个客户端暴露稳定契约的运行时。
 
-阅读 Codex 最容易犯的错，是一上来找最大的文件。更稳的方法是跟随一个普通动作：
+“有边界”是关键词。通用操作系统必须承载任意进程、设备、用户、文件系统和网络。Codex 把世界缩小到一个明确领域：AI 辅助的软件工程对话。它仍然需要类似操作系统的职责，但每项职责都被产品词汇约束住。
 
-> 用户要求 Codex 修改代码，并期待得到有用、可审查的工作结果。
-
-这一句话已经包含整个架构。Codex 需要入口接收意图，需要协议表达意图，需要 session runtime 调模型，需要工具层检查或修改文件，需要安全边界监督副作用，还需要接入面把进度报告给用户。
-
-## 证据表
-
-<div class="evidence-map">
-
-| 概念 | 源码 | 为什么重要 |
-| --- | --- | --- |
-| 用户可见模式 | [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) | 展示用户能从哪些入口进入系统。 |
-| Runtime 请求 | [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) | 命名 core runtime 能接收的操作。 |
-| Runtime 响应 | [`EventMsg`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1090) | 命名客户端能观察到的事实。 |
-| Session facade | [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) | 给出 runtime 的发送/接收形状。 |
-
-</div>
-
-## 从产品循环开始
-
-公开 Codex 材料描述的是一个能读文件、运行命令、编辑代码并展示审查证据的软件工程 Agent。ReAct 论文提供了一个有用背景：推理、行动、观察会交替发生。我们不应说 Codex 是那篇论文的直接实现，但这个循环对理解系统很有帮助：
-
-<div class="flow">
-  <div><strong>意图</strong>用户请求从 CLI、TUI、exec 或 app-server 进入。</div>
-  <div><strong>状态</strong>Session 收集历史、配置、指令和工具。</div>
-  <div><strong>行动</strong>模型产生结构化 response items 和 tool calls。</div>
-  <div><strong>观察</strong>工具输出变成协议数据和 UI 进度。</div>
-  <div><strong>决策</strong>Runtime 继续、压缩上下文、请求审批或完成。</div>
-</div>
-
-读任何文件时都问一句：这个文件是在接收意图、承载状态、执行行动、记录观察，还是守住边界？这个问题能避免你把每个 helper 都看得一样重要。
-
-## 先读类型，再读函数
-
-Rust 系统经常通过类型暴露设计。函数体说明“怎么做”，公开 enum 说明“能做什么”。所以本书从 `Subcommand`、`Op`、`Submission`、`Event`、`EventMsg` 开始。
-
-`Subcommand` 是用户可见菜单。它告诉你 Codex 不只是 TUI，还有 exec mode、MCP commands、app-server mode、login、cloud task、sandbox debug 等路径。`Op` 是 runtime 菜单，展示 core 能接收用户 turn、中断、审批、dynamic tool response、MCP refresh、review、thread rollback 和用户 shell command。`EventMsg` 是可观察菜单，告诉客户端能渲染或响应什么。
-
-设计经验很简单：类型就是契约。如果一个请求以 enum variant 的形式跨越边界，读者就能在不知道所有私有 helper 的情况下推理这个边界。
-
-## 第一条阅读路径
-
-| 步骤 | 阅读 | 问题 |
-| --- | --- | --- |
-| 1 | `codex-cli/bin/codex.js` | 安装后的命令如何找到 native binary？ |
-| 2 | `cli/src/main.rs` | 哪个模式拥有这个用户请求？ |
-| 3 | `protocol/src/protocol.rs` | 哪个 operation 表示这个请求？ |
-| 4 | `core/src/session/mod.rs` | operation 如何提交给 session？ |
-| 5 | `core/src/session/turn.rs` | turn 如何变成模型调用和工具调用？ |
-| 6 | `core/src/tools` | 哪些副作用被允许、拒绝或上报？ |
-
-不要先背所有 crate。第一目标是看见主干。
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| 问题 | 第 1 章答案 |
+| 类操作系统职责 | Codex 中的职责 |
 | --- | --- |
-| 用户请求现在在哪里？ | 仍是一个产品场景，正在被转成源码阅读问题。 |
-| 什么数据结构携带它？ | 贯穿场景、产品循环，以及后续要检查的第一个边界类型。 |
-| 谁拥有下一步决策？ | 读者先选择主干：入口、协议、session、turn、工具和接入面。 |
-| 这里可能怎么失败？ | 阅读可能过早漂进随机文件、私有 helper 或实现细节，而没有先看清产品合同。 |
+| 进程调度 | 管理 turn、工具调用、取消、后台任务。 |
+| 系统调用 | 接收 typed operation，而不是任意私有方法调用。 |
+| 设备驱动 | 路由模型请求、shell 命令、文件编辑、MCP 工具和 hooks。 |
+| 权限控制 | 编译审批策略、沙箱策略、permission profile 和 managed requirements。 |
+| 日志 | 追加 rollout 记录，并发出客户端可观察事件。 |
+| 用户会话 | 创建、恢复、fork 和重建 thread。 |
+
+这个视角比“聊天包装器”更准确。包装器主要转发消息；有边界的操作系统则定义什么可以进入、什么可以发生、什么必须记录、谁可以观察。
+
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| 运行时词汇 | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L125) |
+| 操作枚举 | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) |
+| 事件流 | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1249) |
+| 会话门面 | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
 
 </div>
 
-<div class="apply-this">
+## 架构赌注
 
-## 应用到实践
+这个系统的核心命题可以写成一句契约：
 
-- 先读公开边界类型，再读私有 helper。
-- 用一个真实用户场景贯穿代码库。
-- 区分产品词汇和实现词汇。
-- 先理解“可能发生什么”，再研究“哪个文件最大”。
+> Codex 是一个 event-sourced agent runtime；危险能力只能通过 typed
+> contracts、policy gates 和 replayable boundaries 暴露。
 
-</div>
+这句话里的每个词都承担架构含义。
 
-## 接下来读源码
+Event-sourced 意味着系统把结构化事实当成持久记录。用户消息、turn 开始、模型 item、工具调用、patch 审批、shell 结果、turn 完成，都不只是屏幕文本。它们是可以 replay、reduce、映射成 app-server item、并用于恢复 thread 的事实。
 
-- [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106)：列出用户可见模式。
-- [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403)：按 user turn、approval、MCP、review、control 分组。
-- [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364)：注意 queue-pair 形状。
+Agent runtime 意味着模型不是架构本身。模型是调度器里的强大部件。运行时决定何时构造上下文、何时调用 provider、何时派发工具、何时请求审批、何时取消、何时结束。
 
-<div class="exercise-box">
+Typed contracts 意味着客户端和子系统交换的是有名字的结构，而不是私有实现对象。命令行、终端 UI、headless exec、app-server、SDK 和测试都依赖这个纪律。
 
-## 自检题
+Policy-gated side effects 意味着模型意图不等于执行权限。工具调用可以请求运行命令或修改文件，但运行时仍然要评估配置、requirements、hooks、沙箱、审批和执行位置。
 
-不打开源码回答：为什么应先从产品循环和协议类型开始，而不是直接读私有 helper 函数？如果 Codex 要安全修改文件，至少需要哪三种能力？
+Replayable boundaries 意味着系统要保存足够的结构化证据来解释或重建工作。Codex 可以是交互式的，但它不是一次性脚本。
 
-</div>
+```mermaid
+flowchart LR
+    client[客户端接入面] --> op[Typed operation]
+    op --> scheduler[Agent runtime 调度器]
+    scheduler --> context[模型可见上下文]
+    scheduler --> model[模型 provider]
+    model --> item[模型 item]
+    item --> router[工具与 item 路由]
+    router --> gate[策略闸门]
+    gate --> effect[有边界的副作用]
+    scheduler --> event[客户端可见事件]
+    event --> client
+    scheduler --> rollout[可 replay 的 rollout]
+    gate --> rollout
+    item --> rollout
+```
 
-<div class="exercise-box">
+图里刻意没有从模型直接指向文件系统或 shell 的箭头。最重要的架构信息之一，恰恰是那条不存在的路径。
 
-## 可选源码实验
+## 核心词汇
 
-打开 `Subcommand`、`Op` 和 `EventMsg`。先不读函数体，写下 Codex 至少必须支持的五种能力。然后检查这些能力是否能在本书目录中找到对应章节。
+Part I 的任务是建立后续章节共同使用的语言。下面这些词不是装饰性的名称，而是系统的承重名词。
 
-</div>
+| 术语 | 含义 |
+| --- | --- |
+| Thread | 持久的对话和工作上下文。Thread 有身份、配置、历史和可恢复状态。 |
+| Turn | Thread 内一次由用户驱动的工作单元。一个 turn 可以流式输出、调用工具、请求审批，并最终完成、失败或被中断。 |
+| Item | 对话或工作的结构化片段：用户输入、assistant 输出、reasoning summary、工具调用、命令输出、patch 更新或状态事实。 |
+| Operation | 提交给 runtime 的 typed request，例如开始 turn、中断工作、批准动作、刷新工具状态。 |
+| Event | Runtime 发出的 typed fact，供客户端、持久化和 projection 使用。Event 描述已经发生的事，而不是 UI 指令。 |
+| Tool | 通过 spec 暴露给模型、再通过 runtime handler 执行的能力。Spec 不等于执行权限。 |
+| Rollout | 用于 replay 和重建 thread 历史的 append-only 记录。 |
+| Permission profile | 解析后的策略包络，描述 Agent 能读、写、执行或访问什么。 |
+| Client surface | 使用 runtime 的方式：终端 UI、`exec`、app-server、SDK、桌面集成或测试 harness。 |
 
-<div class="next-step">
+Operation 和 event 的区别，是本书的第一条重要边界。Operation 是请求，event 是事实。请求可以被拒绝、延迟、转换或路由；事实应当足够持久，让后续代码不必询问最初的调用者就能理解它。
 
-## 下一章
+## 为什么从契约开始
 
-有了阅读策略之后，下一章会画出仓库地图，让你知道哪些 crate 负责入口、协议、runtime、工具、安全和用户接入面。
+很多系统可以从外到内讲：安装工具、运行命令、看屏幕、再读实现。这种方式适合上手，但容易遮蔽架构。Codex 有多个产品接入面，而没有哪个接入面单独等于整个系统。
 
-</div>
+终端 UI 是 runtime 的客户端。Headless `exec` 是 runtime 的客户端。App-server 是围绕 runtime 的客户端边界。SDK 是协议客户端。Cloud task、plugin、MCP、review 等流程也复用更深层的词汇。若本书从某个 UI 开始，读者很容易把产品体验误认为架构契约。
+
+契约优先还能避免 Agent 系统里的常见错误：把模型响应当成事实来源。在 Codex 里，模型响应是 runtime 的输入之一。真正持久的事实，是被接受的 operation、发出的 event、工具决策和 rollout 记录。
+
+## 把 Turn 看成系统调用
+
+当用户提交工作时，操作系统类比会变得具体。一个 user turn 类似高级系统调用：它通过受控边界进入，并通过事件返回结果，而不是直接修改内部状态。
+
+```text
+// Pseudocode - illustrative pattern.
+function handle_user_turn(thread, user_input, turn_overrides):
+    operation = make_operation("start_turn", user_input, turn_overrides)
+    enqueue(thread.submissions, operation)
+
+    while thread.has_active_work():
+        event = await_next_runtime_event(thread)
+        persist_to_rollout(thread, event)
+        publish_to_clients(thread, event)
+
+        if event.requests_side_effect:
+            decision = evaluate_policy(event.requested_effect)
+            if decision.requires_human:
+                publish_to_clients(thread, make_approval_request(decision))
+                decision = await_approval_response(thread)
+            if decision.allowed:
+                execute_bounded_effect(event.requested_effect)
+            else:
+                record_denial(thread, decision)
+```
+
+这段是说明性伪代码，不是源码复刻。它强调的是形状：
+
+1. 意图以 typed operation 进入。
+2. Runtime 进展以 event 离开。
+3. 持久化在工作推进时记录事实。
+4. 副作用需要单独决策。
+5. 客户端观察并偶尔回答请求，但不拥有 runtime。
+
+这个形状会在后续章节反复出现。配置先解析，协议定义 operation 能携带什么，session loop 调度 turn，工具执行评估副作用，app-server 把 core event 映射成客户端通知，终端 UI 渲染这些通知。
+
+## 三种历史
+
+Codex 必须区分多种历史，因为它们回答的问题不同。
+
+| 历史 | 回答的问题 |
+| --- | --- |
+| 模型可见上下文 | 模型在生成下一个 item 时应该看到什么？ |
+| Rollout 记录 | 这个 thread 按 replay 顺序发生了什么？ |
+| 可查询 projection | 客户端怎样快速 list、filter、resume 或 summarize？ |
+
+初学者可能期待一份 transcript 解决所有问题。这很诱人，但很脆弱。模型需要选择后的上下文，而不是每个内部事件。Replay 需要结构化保真，而不是漂亮文本。客户端需要快速 projection，而不是每次列表都完整 replay。把这些历史拆开，是 Codex 更像 runtime 而不是 API 脚本的原因之一。
+
+## 权限是分层的
+
+模型可以提出动作，但 Codex 在任何危险动作发生前都会分层仲裁权限。这些层不会被折叠成一个布尔值。
+
+配置表达用户和环境偏好。Managed requirements 可以限制这些偏好。Permission profile 描述最终能力包络。Policy 评估具体动作。Hooks 可以加入组织特定检查或上下文。人类审批用于那些不能静默决策的情况。Sandbox 和 execution backend 在真正执行工作的地方提供第二道防线。
+
+```mermaid
+flowchart TD
+    proposal[模型提出动作] --> spec[工具 spec]
+    spec --> config[解析后的配置]
+    config --> req[Managed requirements]
+    req --> profile[Permission profile]
+    profile --> policy[动作策略]
+    policy --> hooks[Hooks 和 reviewer]
+    hooks --> approval[人类或自动审批]
+    approval --> sandbox[Sandbox 和 executor]
+    sandbox --> result[观察结果]
+```
+
+这种分层会带来摩擦，但这是有用的摩擦。它让 workspace 可以使用严格规则，而不需要改模型提示。它让 headless 客户端可以拒绝交互式审批，而不需要重写工具执行。它也让兼容性桥接可以继续读取旧 rollout，同时让新的 permission profile 演进。
+
+## 客户端接入面可替换
+
+Codex 的架构假设产品接入面会变多。终端 UI 需要流式更新和审批弹窗。Headless 命令需要机器可读输出和确定性的退出行为。App-server 需要 JSON-RPC、请求串行化和重新加入语义。SDK 需要生成模型和稳定 schema。所有这些都受益于 runtime 统一拥有 thread、turn、item、operation 和 event。
+
+这就是为什么本书从契约开始。如果终端 UI 就是架构，新的客户端只能复制它或绕过它。如果 runtime contract 才是架构，客户端可以各不相同，而不需要 fork Agent。
+
+## Apply This：应用模式
+
+1. **先命名运行时名词。** 设计 Agent 功能前，先定义会跨越子系统边界的持久名词。
+2. **把意图和权限分开。** 允许模型请求副作用，但让另一层决定副作用是否可以发生。
+3. **记录事实，而不是屏幕。** 持久化可 replay、可 projection 的结构化事件，而不是只保存渲染后的文本。
+4. **让客户端位于契约下游。** UI、CLI、SDK 和服务接入面都应消费同一套 operation 和 event 词汇。
+5. **把约束当成架构。** Policy、requirements 和 sandboxing 是 runtime 设计的一部分，不是工具执行完成后再补上的安全补丁。
+
+## 小结
+
+有边界操作系统这个模型解释了为什么 Codex 先围绕契约组织，再围绕界面组织。第 2 章会进入第一个具体边界：安装后的命令如何到达 Rust command router，同时又不让分发胶水变成产品架构。

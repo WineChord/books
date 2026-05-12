@@ -1,132 +1,163 @@
-# 第 4 章：协议层
+# 第 4 章：协议边界
 
-<div class="chapter-lede">
-  <p><strong>你在这里：</strong>用户意图到达边界，必须变成结构化数据。</p>
-  <p><strong>问题：</strong>多个客户端都要驱动 Codex，但不能依赖 runtime 私有实现。</p>
-  <p><strong>心智模型：</strong>协议是产品语法；runtime 只是这个语法的一个说话者。</p>
-</div>
+第 3 章说明，Codex 只有在配置、认证、feature state 和 managed requirements 被解析成受约束的 runtime envelope 之后，才会开始工作。本章解释承载工作的语言。协议边界是这样一个位置：产品意图不再是私有方法调用，而变成持久消息，包括 submissions、events、model items、app-server JSON-RPC requests、server-to-client requests 和 generated schemas。
 
-Codex 不只有一个协议接入面。Core protocol 用 submissions 和 events 连接客户端与 agent session。App-server protocol 暴露 JSON-RPC service，包含 client requests、server requests、responses 和 notifications。它们目的有重叠，但服务不同读者。
+协议是产品边界，不是序列化附属品。它告诉客户端可以请求什么，告诉 runtime 必须报告什么，也告诉未来版本已经继承了哪些兼容性义务。
 
-## 证据表
 
-<div class="evidence-map">
+<div class="source-equivalence">
 
-| 概念 | 源码 | 为什么重要 |
-| --- | --- | --- |
-| Submission queue entry | [`Submission`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123) | 用 id 和 trace context 包装 operation。 |
-| Core operations | [`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) | 定义 session 可以接收什么。 |
-| app-server requests | [`client_request_definitions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L637) | 定义暴露给 app clients 的 JSON-RPC methods。 |
-| app-server notifications | [`server_notification_definitions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1440) | 定义 app clients 能异步观察什么。 |
+## 源码地图
 
-</div>
-
-## Core Protocol 与 App-Server Protocol
-
-| 层 | 主要读者 | 形状 | 例子 |
-| --- | --- | --- | --- |
-| Core protocol | Rust 系统内的 runtime clients | `Submission { id, op, trace }` 和 `Event` | `Op::UserInputWithTurnContext`, `Op::ExecApproval`, `EventMsg::TurnComplete` |
-| App-server protocol | 使用 JSON-RPC 的外部客户端 | method names, params, responses, notifications | `turn/start`, `item/commandExecution/requestApproval`, `turn/completed` |
-
-Core protocol 更靠近 Agent。它谈 user input、interruptions、approvals、dynamic tool responses、MCP refresh、review requests、compaction、rollback 和 user shell commands。App-server protocol 更靠近客户端，必须描述 request serialization、method names、response payloads、notifications 和 experimental gates。
-
-## 事件模型分类
-
-源码读者不会把 `EventMsg` 当作巨大 enum 背诵，而会按 runtime 意义分组：
-
-| 事件家族 | 例子 | 教什么 |
-| --- | --- | --- |
-| lifecycle | turn started/completed/aborted、shutdown complete | 工作有明确开始和结束。 |
-| text/reasoning | agent message、content deltas、reasoning summaries、raw reasoning | 流式输出在成为 UI 文本前已经是类型化数据。 |
-| item lifecycle | item started/completed、raw response item | 新 item 事件和旧 event 名称并存，以保持兼容。 |
-| tools | exec begin/output/end、MCP begin/end、web/image begin/end、patch begin/update/end | 副作用在最终答案前也可被观察。 |
-| approvals | exec approval、patch approval、permission request、user input request、Guardian assessment | 决策点是协议事件。 |
-| context/history | context compacted、thread rolled back、token count、goal update | 状态变化对客户端可见。 |
-| errors/warnings | error、warning、stream error、deprecation notice | 失败是类型化的，不只是打印文本。 |
-| realtime/collab | realtime events、collab agent spawn/wait/close/resume | 同一协议家族覆盖高级工作流。 |
-
-## App-Server Protocol Families
-
-App-server 层有三个方向：
-
-| 类型 | 方向 | 例子 |
-| --- | --- | --- |
-| `ClientRequest` | client 到 server | thread start/resume/fork、turn start、config/account/model requests、MCP/app/plugin/skill/catalog calls |
-| `ServerRequest` | server 请求 client/user | command approval、patch approval、user input、permission request、MCP elicitation、auth refresh、dynamic tool execution |
-| `ServerNotification` | server 广播状态 | thread status、turn started/completed、item updates、token usage、command output、turn diff、compaction |
-
-Requests 还有 serialization scopes：有些全局，有些绑定 thread，有些取决于 thread 或 path。Experimental methods 必须被 gate；initialization、notification opt-out、auth 和 backpressure 也属于协议合同。
-
-## Queue Pair 模式
-
-Core 层使用 submission queue 和 event queue。这不是偶然实现细节，而是一种产品形状：客户端提交工作，并独立监听进度。
-
-<div class="flow">
-  <div><strong>Client</strong>构造 `Op`。</div>
-  <div><strong>Submission</strong>加上 id 和 trace context。</div>
-  <div><strong>Session</strong>消费 queued work。</div>
-  <div><strong>Event</strong>发出类型化进度和结果。</div>
-  <div><strong>Surface</strong>渲染或转发 event。</div>
-</div>
-
-Agent 工作不是瞬时的。一次 turn 可能流式输出 token、请求审批、运行子进程、发出局部 diff、调用 MCP tool，并且可以被中断。简单 request/response 函数会隐藏太多生命周期。
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| 问题 | 第 4 章答案 |
+| 概念 | 源码锚点 |
 | --- | --- |
-| 用户请求现在在哪里？ | 已变成类型化协议消息。 |
-| 什么数据结构携带它？ | core `Submission`/`Op`、app-server `ClientRequest`，以及 emitted `Event`/`EventMsg` 或 notifications。 |
-| 谁拥有下一步决策？ | session 消费 core operations；app-server processors 路由外部 requests；clients 回答 server requests。 |
-| 这里可能怎么失败？ | unsupported operation、invalid request params、experimental gate、server request 没有回应，或 event compatibility mismatch。 |
+| Core submission 与 event | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L125) |
+| App-server JSON-RPC envelope | [`codex-rs/app-server-protocol/src/jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L37) |
+| V2 协议族 | [`codex-rs/app-server-protocol/src/protocol/v2/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/mod.rs#L1) |
+| Event 到 item 映射 | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L30) |
+| Schema 导出 | [`codex-rs/app-server-protocol/src/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L1) |
 
 </div>
 
-## 协议是兼容性边界
+## Core Runtime Protocol
 
-协议是兼容性最敏感的位置。内部 helper 改了，但 `Op` 和 event 行为保持一致，客户端通常还能继续工作。协议 variant 含义变化时，影响范围就大得多。
+Core runtime protocol 的外层形状很简单：
 
-这也是 app-server protocol 里生成 schema 很重要的原因。它把 Rust 类型定义转成客户端可见契约。Web client、editor integration 或测试客户端不应该为了知道 `turn/start` 接收什么而 import 私有 Rust 模块。
+| 方向 | 概念 | 含义 |
+| --- | --- | --- |
+| 进入 runtime | Submission | 由客户端或 host 发送的排队工作单元。 |
+| 进入 runtime | Operation | Submission 内部的 typed action：开始 turn、中断、批准、响应工具请求、刷新状态等。 |
+| 离开 runtime | Event | Runtime 发出的有序事实。 |
+| 离开 runtime | Event message | 事实的 typed payload：setup、progress、item delta、approval request、tool result、completion、error。 |
 
-<div class="apply-this">
+这个拆分让 runtime 像 evented kernel 一样工作。客户端不直接调用私有 session 方法。它们提交 operation，并观察 event。Runtime 可以根据 active state 对 operation 排队、拒绝、转换或串行化。
 
-## 应用到实践
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant Runtime
+    participant Model as 模型
+    participant Tool as 工具
+    participant Store as 存储
 
-- 用协议类型保护客户端，避免它们依赖私有 runtime 细节。
-- 当工作有进度、审批或取消时，优先使用异步 event stream。
-- 区分 core runtime 词汇和外部 JSON-RPC 词汇。
-- 把生成 schema 当成产品接入面，而不是开发便利。
+    Client->>Runtime: submission(operation)
+    Runtime->>Store: append accepted fact
+    Runtime->>Client: event(turn started)
+    Runtime->>Model: request with context
+    Model-->>Runtime: model item stream
+    Runtime->>Client: event(item delta)
+    Runtime->>Tool: bounded tool request
+    Tool-->>Runtime: observation
+    Runtime->>Store: append observation
+    Runtime->>Client: event(turn completed)
+```
 
-</div>
+序列图经过简化，但契约准确：只有 runtime 会把提交的意图转换为持久进展。
 
-## 接下来读源码
+## Item 不只是 Message
 
-- [`Submission`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123)：查看最小 queued unit。
-- [`Op::UserInputWithTurnContext`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L445)：看 user turn 如何携带 settings。
-- [`McpServerToolCall`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L843)：比较 app-server method 命名与 core operation。
+简单聊天应用里，“message”往往足以承载大部分系统。Codex 需要更丰富的 item vocabulary。一个 thread 可能包含用户文本、图片、模型输出、reasoning summary、命令调用、命令输出、文件变化、审批记录、工具观察、plan update、hook activity、realtime transcript 和 collaboration event。
 
-<div class="exercise-box">
+把这些都叫 message，会掩盖关键差异：不同 item 在 streaming、persistence、display、replay 和 compatibility 上有不同规则。Command output delta 不应该被当作 assistant paragraph。Patch update 不应该被当作模型可见 instruction。Approval request 在被 resolve 前也不是最终历史。
 
-## 自检题
+因此 item model 是架构词汇。它让 runtime、app-server、终端 UI、SDK 和 rollout reducers 能对正在处理的事实类型达成一致。
 
-不打开源码回答：各举一个 `ClientRequest`、`ServerRequest` 和 `ServerNotification`，并解释为什么三个方向都需要。再把五个 runtime events 放进本章事件分类。
+## App-Server JSON-RPC
 
-</div>
+App-server 引入第二条协议边界。它不是 core runtime protocol 的替代品，而是围绕 threads、turns、items、approvals、filesystem APIs、process APIs、MCP、plugins、account state 和 remote-control flows 的客户端侧分布式系统层。
 
-<div class="exercise-box">
+它的 wire shape 类似 JSON-RPC：request 期待 response，notification 不期待 response，error 携带结构化失败信息，server-to-client request 允许 runtime 侧要求已连接客户端作出决定，例如 approval 或 input。Codex 刻意保持 envelope 轻量，但 request、response、notification 的区别仍然是核心。
 
-## 可选源码实验
+```mermaid
+flowchart TD
+    ide[IDE 或 SDK 客户端] --> transport[Transport: stdio、socket、websocket、in-process]
+    transport --> rpc[JSON-RPC envelope]
+    rpc --> processor[Message processor]
+    processor --> appmodel[Thread、turn、item APIs]
+    appmodel --> core[Core runtime operations]
+    core --> events[Core events]
+    events --> mapper[App-server item mapper]
+    mapper --> notify[Client notifications]
+    notify --> ide
+    processor --> serverreq[Server-to-client requests]
+    serverreq --> ide
+```
 
-选择一个动作，例如中断 turn 或批准命令。找到它的 core `Op` variant，再找到最接近的 app-server request 或 server request。写下哪个层更靠近 Agent，哪个层更靠近外部客户端。
+App-server boundary 加入了本地终端 UI 往往可以隐藏的关注点：connection initialization、experimental capability negotiation、request serialization、backpressure、replay on rejoin、thread listeners、pending approvals 和 derived status。这些都是协议问题，因为客户端可能是拥有独立生命周期的另一个进程。
 
-</div>
+## 从 App Request 到 Core Operation
 
-<div class="next-step">
+App-server model 使用 thread、turn、item、environment selection 等用户可见概念。Core runtime 使用 submission 和 operation。因此，一个 start turn 请求必须先验证，再翻译。
 
-## 下一章
+```text
+// Pseudocode - illustrative pattern.
+function handle_turn_start(request, connection):
+    require_initialized(connection)
+    require_experimental_fields_enabled(request, connection.capabilities)
 
-消息清楚之后，下一章进入 core session facade：它接收 submissions 并发出 events。
+    thread = find_loaded_thread(request.thread_id)
+    overrides = resolve_turn_overrides(request)
+    operation = build_runtime_operation(
+        kind = "user_turn",
+        input = request.input_items,
+        settings = overrides
+    )
 
-</div>
+    turn = register_in_progress_turn(thread)
+    submit_to_core(thread, operation)
+    return response_with_turn(turn)
+
+function map_core_event(event):
+    item_update = reconstruct_thread_item(event)
+    if item_update.exists:
+        notify_client("item_updated", item_update)
+    if event.requests_client_decision:
+        send_server_request(event.decision_request)
+```
+
+这仍然是伪代码。关键思想是带验证的翻译。App-server 不是把任意 JSON 盲目转发给 core 的隧道。它拥有客户端契约，并把该契约映射到 runtime operations。
+
+## Generated Schemas 作为治理
+
+Generated schemas 让协议可以在 Rust 之外被审计。JSON Schema 和面向 TypeScript 的 artifact，让客户端、测试和 release checks 能发现 drift。它们也迫使 source types 携带足够元数据，从而区分 stable surface 和 experimental surface。
+
+Schema generation 是一种架构治理。没有它，一个字段可能被加到 Rust type 上，然后意外成为客户端义务。有了它，协议演进必须经过 exported contracts、compatibility filters 和能注意到变化的测试。
+
+这尤其重要，因为 Codex 不止一种客户端生成目标。Rust app-server client、Python SDK、generated TypeScript bindings 和 test clients 都需要共享 wire model，即使它们暴露的 ergonomics 并不相同。
+
+## Compatibility 是代码路径
+
+Codex 中的协议兼容性是显式的。某些值接受 legacy aliases。旧请求形式和新的 turn-context operation 共存。App-server v1 和 v2 概念有重叠。Experimental fields 由 connection capability gate，并从 stable schema output 过滤。Deprecated fields 即使被忽略，也可能继续被接受，以便旧客户端还能工作。
+
+这不是偶然的杂乱，而是协议边界的成本。字段一旦跨越边界，删除它就不再等同于重构私有 helper。它可能破坏 terminal、SDK、daemon、extension 或已持久化 rollout。
+
+有边界操作系统的类比在这里也有帮助。操作系统为了旧应用保留系统调用兼容性。想支持多个客户端的 Agent runtime，也会继承一个较小版本的同样义务。
+
+## 什么能进入，什么能离开
+
+到 Part I 结束，架构已经建立了四道 gate：
+
+```mermaid
+flowchart LR
+    install[安装后的命令] --> router[Rust router]
+    router --> envelope[Resolved runtime envelope]
+    envelope --> protocol[Protocol boundary]
+    protocol --> runtime[Session runtime]
+
+    protocol --> enters[可进入: operations、approvals、tool responses、turn input]
+    protocol --> leaves[可离开: events、items、status、requests、errors]
+```
+
+Runtime 强大，恰恰因为边界狭窄。客户端可以启动或 steering 工作、中断工作、回答 approval request、提供 dynamic tool output、刷新外部状态，或请求 thread 生命周期动作。客户端可以观察 setup、streaming、tool activity、approval prompts、errors、completion 和 reconstructed items。它不能伸进 session 里直接修改私有状态。
+
+## Apply This：应用模式
+
+1. **让协议名词持久化。** 如果客户端依赖某个概念，就在协议里命名它，而不是泄漏私有实现状态。
+2. **区分 envelope 和 domain payload。** Request IDs、responses、errors、notifications 和 tracing 应位于 Agent-specific payload 之外。
+3. **在边界处翻译。** 面向 app 的请求应被验证并映射成 runtime operation，而不是作为任意 JSON 转发。
+4. **给 experimental surface 加 gate。** Experimental fields 需要 runtime checks 和 generated-contract filtering，而不只是文档标签。
+5. **把 compatibility 当成行为。** Aliases、deprecated fields 和 v1/v2 bridges 应是被测试的代码路径，而不是历史注释。
+
+## 小结
+
+Part I 建立了契约：分发层到达 Rust router，router 解析受约束的 runtime envelope，protocol messages 定义什么可以进入或离开 Agent。Part II 可以在这个基础上打开 runtime 本身，从 threads、sessions 和 durable state 开始。

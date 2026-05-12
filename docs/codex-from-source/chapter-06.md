@@ -1,203 +1,273 @@
-# Chapter 6: Turn Loop and Streaming
+# Chapter 6: The Turn Loop: Where the Agent Becomes an Agent
+
+Chapter 5 separated durable threads from live sessions and showed how client
+operations enter the runtime. This chapter follows one of those operations
+through the turn loop, the place where scheduling, context, streaming, tools,
+hooks, compaction, and cancellation become agent behavior.
 
 <div class="chapter-lede">
-  <p><strong>You are here:</strong> a session has accepted user work and now must make progress.</p>
-  <p><strong>Problem:</strong> agent work is iterative: model output, tools, observations, pending user input, hooks, and compaction can all affect the next step.</p>
-  <p><strong>Mental model:</strong> a turn is a control loop, not a single API call.</p>
+  <p><strong>Problem:</strong> a user turn cannot be implemented as one model request, because the model may ask for tools, hooks may add work, users may interrupt, and context may need repair.</p>
+  <p><strong>Thesis:</strong> a turn is a controlled state machine whose output is both a user-visible answer and a durable sequence of runtime facts.</p>
+  <p><strong>Mental model:</strong> the loop alternates between deciding what the model may see and deciding what the runtime may do.</p>
 </div>
 
-The turn loop is the heartbeat of Codex. It prepares the model request,
-streams model output, dispatches tools, records new observations, handles
-pending input, runs hooks, checks token budgets, compacts context when needed,
-and stops only when the runtime has a clear reason to stop.
 
-<TurnLoopStepper />
+<div class="source-equivalence">
 
-## Evidence Map
+## Source Map
 
-<div class="evidence-map">
-
-| Concept | Source | Why it matters |
-| --- | --- | --- |
-| Turn entry | [`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139) | Main loop for one user-facing unit of work. |
-| Skill collection | [`collect_explicit_skill_mentions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L222) | Shows how turn input can activate skill instructions. |
-| Plugin/app inventory | [`list_all_tools`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L184) | Connects app/plugin mentions to MCP tool inventory. |
-| Sampling request | [`run_sampling_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L453) | The point where recorded history becomes model interaction. |
+| Concept | Source anchor |
+| --- | --- |
+| Turn loop implementation | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139) |
+| Prompt hook ordering | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L313) |
+| Accepted prompt recording | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L328) |
+| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
+| Context manager | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
 
 </div>
 
-## A Guided Walk Through `run_turn`
+## The Shape of a Turn
 
-The top of `run_turn` rejects empty work unless pending input exists. Then it
-prepares a `ModelClientSession`, checks whether pre-sampling compaction is
-needed, records context updates, loads plugin capability summaries, lists MCP
-tools when app or plugin mentions require them, collects explicit skill
-mentions, and resolves skill dependencies.
+A turn begins when the submission loop decides that user input should become
+scheduled work. The session resolves a `TurnContext`, installs an active turn,
+and runs the loop under a cancellation token. From that point on, every
+interesting subsystem is nearby: hooks inspect input, skills and plugins
+inject context, the model client streams events, the tool router dispatches
+side effects, persistence records items, and telemetry observes progress.
 
-That sounds like a lot, but it is all preparation. Before the model is called,
-Codex decides what context and capabilities are legitimately part of this
-turn.
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Session
+    participant Hooks
+    participant Context
+    participant Model
+    participant Tools
+    participant Store
 
-| Phase | Source behavior | Design reason |
-| --- | --- | --- |
-| Pre-compact | shrink context before sampling when needed | avoid starting a turn already over budget |
-| Context recording | write turn context and user prompt into history | make the model request reproducible from recorded items |
-| Skills/plugins | turn explicit mentions into injected context | keep extensions turn-scoped and visible |
-| Hooks | allow configured pre-submit or session-start behavior | let policy and extension points act before model sampling |
-| Sampling | build `ResponseItem` input from history | keep model input derived from a single recorded history model |
-| Follow-up | continue when tools, pending input, or compaction require it | make acting and observing iterative |
+    Client->>Session: submit user operation
+    Session->>Session: resolve turn context
+    Session->>Hooks: inspect startup and prompt
+    Session->>Context: record user input and injected context
+    loop until completion
+        Session->>Model: sample from recorded history
+        Model-->>Session: stream response events
+        Session->>Store: persist and emit stream-derived items
+        alt model requests tools
+            Session->>Tools: dispatch calls with cancellation
+            Tools-->>Session: observations or structured failures
+            Session->>Context: record observations
+        end
+        alt context is too large and follow-up is needed
+            Session->>Context: compact and reset model session if needed
+        end
+        alt pending input is allowed
+            Session->>Hooks: inspect pending input
+            Session->>Context: record accepted input
+        end
+    end
+    Session->>Hooks: run stop and after-agent hooks
+    Session-->>Client: turn completion events
+```
+
+This diagram is intentionally circular. Codex becomes an agent because model
+output can change the next model input through tools, observations, compaction,
+and pending user input.
+
+## Preparation Before Sampling
+
+The loop does significant work before the first model request. It checks that
+there is meaningful input or pending work. It prepares a model client session,
+possibly reusing prewarmed transport state. It evaluates pre-sampling
+compaction when the existing context is already under token pressure. It
+collects turn context candidates so accepted replay can later record which
+settings surrounded this turn.
+
+It then resolves turn-scoped extension context. Explicit skill mentions can
+become injected instructions. Plugin and app mentions can require an inventory
+of tools or connectors. Dependency prompts may ask the client for missing
+environment values or capability setup. User-prompt hooks may accept, enrich,
+or block the turn before the model sees it.
+
+| Preparation concern | Why it happens before sampling |
+| --- | --- |
+| Turn context | The model request must reflect resolved runtime settings, not stale defaults. |
+| Initial compaction | The loop should not start a request that is already impossible to fit. |
+| Context injection | Skills, plugins, and additional context must be durable and visible. |
+| Hook inspection | Policy and extension points need a chance to stop or modify work early. |
+| Accepted prompt recording | After hooks accept the turn, the prompt and context become replayable. |
+
+The preparation phase is why the turn loop is not "call the model with the
+latest text." It constructs a reproducible model request from recorded runtime
+state.
 
 ## The Turn State Machine
 
-For source-equivalent understanding, read `run_turn` as a state machine:
+The turn loop is best read as a state machine. The source has many helper
+paths, but the durable states are compact: prepare a reproducible prompt,
+sample the model, stream and persist facts, dispatch tools when requested,
+record observations, repair context when needed, inspect stop hooks, and then
+either continue or settle.
 
-| State | Entry condition | Exit condition |
-| --- | --- | --- |
-| Empty-input guard | no user input and no pending continuation | return without starting fake work |
-| Pre-sampling compaction | token pressure exists before the model call | compact, reset baseline, or fail visibly |
-| Context baseline update | new user/context items entered the turn | history and rollout know what changed |
-| Extension preparation | apps, plugins, MCP tools, or skills are mentioned or configured | tools/instructions are injected for this turn only |
-| Dependency prompts | a skill or extension requires unavailable capability | prompt, install, skip, or continue with reduced context |
-| User-prompt hooks | policy wants to inspect input before sampling | continue, block, or report hook failure |
-| Sampling | history and active context become a model request | stream events, tool calls, errors, or final text |
-| Tool follow-up | model emitted tool calls or dynamic requests | dispatch tools, collect observations, decide whether to sample again |
-| Pending input drain | input arrived while the turn was active | requeue, attach, or block so input is not lost |
-| Mid-turn compaction | follow-up is needed but context is too large | compact and continue with a reset model client |
-| Stop hooks | model appears done | allow completion, request continuation, or report hook failure |
-| After-agent hooks | turn is about to settle | run cleanup or policy reactions before completion |
+```mermaid
+stateDiagram-v2
+    [*] --> Prepare
+    Prepare --> Blocked: prompt hook rejects
+    Prepare --> Sample: hooks accepted, context and input recorded
+    Sample --> Stream: provider accepts request
+    Sample --> Abort: cancellation or fatal request error
+    Stream --> DispatchTools: completed tool calls
+    Stream --> Compact: follow-up needed and context limit hit
+    Stream --> StopHooks: no immediate follow-up
+    DispatchTools --> RecordObservations
+    RecordObservations --> Compact: continuation would overflow context
+    RecordObservations --> Sample: tool observations recorded
+    Compact --> Sample: compacted history installed
+    StopHooks --> Sample: hook adds model-visible context
+    StopHooks --> Complete: no continuation reason remains
+    Blocked --> [*]
+    Abort --> [*]
+    Complete --> [*]
+```
 
-This table is the practical replacement for reading the whole function. The
-important lesson is that each phase has its own owner and failure behavior.
+The loop has one governing rule: continue only for a concrete reason. The
+reason may be tool follow-up, accepted pending input, compaction, or a stop
+hook that adds new model-visible work. Without a reason, the turn settles.
 
-## Streaming Changes the Product
+The preparation path is short in concept but strict in ordering:
 
-Streaming is not only a UI optimization. It changes the runtime contract.
-When model output arrives incrementally, Codex can show progress, identify
-structured items, accumulate tool arguments, and dispatch tool calls without
-treating the response as one blob of text.
+```text
+// Pseudocode - preparation gate.
+session = prepare_model_transport()
+maybe_compact_before_first_sample(session)
+context = resolve_turn_context_candidates()
+reject_if_prompt_hooks_block(input, context)
+record_accepted_inputs_and_context(input, context)
+```
 
-For beginners: a non-streaming model call is like receiving a completed letter.
-A streaming call is like watching the letter being written, with structured
-sections arriving along the way. Codex needs the second shape because tools,
-progress, cancellation, and UI updates are all part of the product.
+The order matters. A prompt-submission hook can stop the turn before the user
+prompt becomes accepted runtime history. When that happens, the durable record
+should explain the hook decision, not pretend the blocked prompt entered the
+model-visible conversation.
 
-Under the hood, streaming has its own pipeline:
+Sampling is the only phase that talks to the provider, but it immediately
+turns provider events back into runtime facts:
 
-| Piece | Role |
+```text
+// Pseudocode - sampling continuation.
+events = sample_model(recorded_history(context), tool_specs(context))
+persist_stream_items(events.items)
+observations = dispatch_completed_tool_calls(events.tool_calls)
+record_observations(observations)
+```
+
+Stopping is not a passive return. It is another gate that may add work:
+
+```text
+// Pseudocode - stop hook continuation.
+decision = run_stop_hooks(last_assistant_message)
+if decision.added_context:
+    record_hook_context(decision.added_context)
+    continue_sampling()
+complete_turn()
+```
+
+## Streaming Is Runtime Input
+
+Streaming is often described as a user-interface feature, but in Codex it is
+runtime input. The stream carries assistant text, reasoning summaries, response
+items, tool-call deltas, completion signals, rate-limit information, and
+transport errors. The turn loop cannot wait for a single final string and then
+decide what happened.
+
+As stream events arrive, Codex maps them into runtime events and model-visible
+items. It starts client-visible message items when needed, accumulates partial
+tool arguments, dispatches completed tool calls, records completed response
+items, updates usage accounting, and emits warnings or errors when the stream
+path changes.
+
+This is also where persistence and telemetry meet. A streamed response can
+produce user-visible output, durable rollout items, tool runtime records,
+analytics facts, OTEL spans or metrics, and trace payload references. The turn
+loop is the only place with enough context to correlate those surfaces.
+
+## Tools Are Follow-Up, Not a Detour
+
+When the model requests a tool, the turn does not leave the loop. It dispatches
+the tool through the router, records the result as an observation, and samples
+again if the model needs that observation to proceed.
+
+The distinction is important. Tool execution is not an external callback that
+later returns to a forgotten conversation. It is part of the same scheduled
+turn, governed by the same cancellation tree, approval policy, turn context,
+diff tracker, telemetry context, and rollout recorder.
+
+| Tool outcome | Loop consequence |
 | --- | --- |
-| model client session | normalizes communication with the selected provider |
-| transport choice | WebSocket may be preferred, but HTTPS-style streaming remains a fallback path |
-| retry/recovery | authentication, disconnect, overload, and retryable stream errors are not all handled the same way |
-| response-event mapping | provider events become runtime items, message deltas, reasoning deltas, tool calls, and stream errors |
-| dropped consumer handling | when the receiver goes away, stream and tool work must be cancelled rather than leaked |
+| Successful observation | Record output and usually continue sampling. |
+| Recoverable tool failure | Record structured failure so the model can react. |
+| Approval denial | Record denial as a runtime fact and model-visible result when appropriate. |
+| Cancellation | Return an aborted observation or stop the turn depending on where cancellation occurred. |
+| Fatal runtime error | Emit an error and settle the active task safely. |
 
-This is why "streaming" belongs in runtime architecture, not only UI
-architecture.
+Chapter 9 will study tool dispatch in depth. At this point, the architectural
+lesson is that tool calls are one continuation reason among several.
 
-## Compaction Is a Runtime Decision
+## Pending Input and Interruption
 
-Agent conversations can exceed context limits. Codex checks token usage after
-sampling and can run auto-compaction when the model still needs follow-up work.
-This is another reason the turn loop is not a simple function. It must decide
-whether to continue with the same context, compact and retry, drain pending
-input, or stop.
+Users and clients can send input while the model is already working. Codex
+does not blindly append it to the prompt. Pending input is queued, inspected by
+hooks, and either accepted into the current continuation path, requeued for a
+later boundary, or blocked with additional context.
 
-There are several compaction shapes:
+Interruptions use the same discipline. The active turn holds cancellation
+state, and long-running work observes child cancellation tokens. Model streams,
+tool calls, dynamic client tools, approval requests, and terminal operations
+all have to converge on a coherent end state. A useful interrupt is not merely
+"drop the future." It must leave a durable record that future turns can
+understand.
 
-| Shape | Meaning |
-| --- | --- |
-| manual compaction | user or client explicitly asks to compress thread history |
-| pre-turn compaction | context is already too large before sampling starts |
-| mid-turn compaction | the model still needs follow-up, but the current context cannot fit |
-| model-downshift compaction | runtime changes model/session behavior after compaction constraints |
-| remote compaction | compaction is delegated to a remote service path when configured |
-| baseline reset | compacted history replaces prior context and requires reinjection accounting |
+## Compaction Is Part of Control Flow
 
-Compaction is therefore history surgery plus model-session management, not a
-generic summary helper.
+Context compaction is not a background summary feature. It is a control-flow
+decision inside the turn. Codex can compact before sampling if the thread is
+already too large, or mid-turn if follow-up work is required but the accumulated
+context has reached the model's limit.
 
-## Stop Hooks and After-Agent Hooks
+Compaction can replace model-visible history, reset transport state, change
+which baseline context must be reinjected, and write durable records used by
+resume and rollback. The loop only compacts when continuation still matters.
+If the model is done, there is no need to mutate history merely because usage
+is high.
 
-Stopping is also a process. Before a completed turn becomes final, Codex runs
-stop hooks and after-agent hooks. A hook can request continuation, block, or
-fail in ways the runtime must report. This makes lifecycle hooks part of the
-turn protocol rather than an afterthought bolted onto the UI.
+## Stopping Can Add Work
 
-## Cancellation and Error Exits
+Stopping is itself a lifecycle stage. Stop hooks run when the model appears
+done. They can allow completion, stop the turn, fail, or provide additional
+context that should be sent back through the model. After-agent hooks run near
+completion and can report cleanup or policy failures.
 
-Cancellation happens at several layers: the model stream can be dropped, tool
-futures can be aborted, exec sessions can time out, dynamic tools can be
-cancelled by the client surface, Guardian review can time out, and pending
-input can be drained or requeued. The turn loop must report a final outcome
-only after it has made those in-flight paths safe.
-
-| Exit | How to think about it |
-| --- | --- |
-| model stream error | may retry, refresh auth, or emit a structured stream error |
-| tool cancellation | should return an aborted tool result when the model can use it |
-| hook failure | may block, continue, or request another model step depending on hook kind |
-| fatal runtime error | ends the task because continuing would corrupt state or mislead clients |
-| user interrupt | aborts current work without necessarily destroying background terminal processes |
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| Question | Chapter 6 answer |
-| --- | --- |
-| Where is the user request now? | It is inside a running turn state machine. |
-| What carries it? | recorded history, turn context, model client session, response items, tool futures, and pending-input queues. |
-| Who decides next? | `run_turn` decides whether to sample, dispatch tools, compact, run hooks, continue, abort, or complete. |
-| What can fail here? | stream transport, authentication, token budget, hook behavior, tool futures, pending input handling, compaction, and cancellation cleanup. |
-
-</div>
+Goal-driven continuation follows the same idea. A turn completion can schedule
+additional work when the runtime has a goal state that is not satisfied. The
+agent is therefore not a loop around "assistant text." It is a scheduler around
+explicit reasons to continue.
 
 <div class="apply-this">
 
 ## Apply This
 
-- Treat a user turn as the unit that owns context, tools, hooks, and token budget.
-- Keep model input derived from recorded history, not ad hoc strings.
-- Make extension injection explicit and turn-scoped.
-- Build continuation logic around clear reasons: tool follow-up, pending input, compaction, or hooks.
+1. Model a turn as a state machine with explicit continuation reasons, not as one request and one response.
+2. Derive model prompts from recorded context so streaming, tools, and replay share the same source of truth.
+3. Inspect hooks, extension context, and pending input before letting them affect model-visible history.
+4. Treat tool results, compaction, and stop-hook context as normal loop inputs rather than special exits.
+5. Put cancellation under the turn owner, so streams, tools, approvals, and background work settle coherently.
 
 </div>
 
-## Read the Source Next
+## Closing
 
-- [`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139):
-  mark preparation, sampling, and follow-up sections.
-- [`run_auto_compact`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L494):
-  inspect the mid-turn context-limit branch.
-- [`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L305):
-  look for how model communication is normalized for the runtime.
-
-<div class="exercise-box">
-
-## Self-Check
-
-Answer without opening source: why can a turn need to sample the model more
-than once? Name at least four reasons a turn can continue, stop, compact, or
-abort.
-
-</div>
-
-<div class="exercise-box">
-
-## Optional Source Lab
-
-Open `run_turn` and write down every place where the loop can stop, continue,
-or return `None`. For each branch, decide whether the reason is user input,
-hooks, token budget, model output, or failure.
-
-</div>
-
-<div class="next-step">
-
-## What Comes Next
-
-The turn loop can ask for tools, but tool execution has its own contract. The
-next chapter studies how tools are registered, routed, run in parallel or
-serially, and converted back into model-visible output.
-
-</div>
+Chapter 6 shows where the agent becomes active: a turn repeatedly converts
+recorded context into model requests, model events into runtime work, and
+runtime observations back into context. Chapter 7 moves one layer down to the
+model side of that loop: providers, transports, streaming event normalization,
+model metadata, realtime paths, and backend task APIs.

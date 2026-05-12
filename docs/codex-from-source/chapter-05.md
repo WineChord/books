@@ -1,191 +1,243 @@
-# Chapter 5: Session Facade
+# Chapter 5: Threads, Sessions, and Durable State
+
+Chapter 4 ended at the protocol boundary: clients can submit operations,
+receive events, and exchange model items without knowing how the runtime works.
+This chapter steps behind that boundary and shows the durable machinery that
+turns those messages into a live agent thread.
 
 <div class="chapter-lede">
-  <p><strong>You are here:</strong> protocol messages now need a living runtime.</p>
-  <p><strong>Problem:</strong> clients need a small interface, while the runtime needs configuration, history, models, tools, skills, plugins, MCP, and telemetry.</p>
-  <p><strong>Mental model:</strong> `Codex` is the front desk; `Session` is the building behind it.</p>
+  <p><strong>Problem:</strong> an agent must be resumable, forkable, interruptible, and observable while still feeling like one continuous conversation.</p>
+  <p><strong>Thesis:</strong> Codex achieves that by separating the live runtime handle from the durable thread record.</p>
+  <p><strong>Mental model:</strong> a thread is the long-lived work ledger; a session is the running process currently serving it.</p>
 </div>
 
-The session facade is where Codex stops being command parsing and becomes an
-agent runtime. A client should not need to know how models are selected, how
-skills are loaded, how MCP managers are wired, or how conversation history is
-stored. It needs to submit work and receive events.
 
-## Evidence Map
+<div class="source-equivalence">
 
-<div class="evidence-map">
+## Source Map
 
-| Concept | Source | Why it matters |
+| Concept | Source anchor |
+| --- | --- |
+| Thread manager boundary | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L168) |
+| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98) |
+| Queue-pair runtime facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
+| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
+| Accepted prompt recording | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2980) |
+
+</div>
+
+## The Runtime Stack
+
+Codex is not organized around a single "chat object." The runtime is a stack of
+handles, each narrowing the authority of the layer above it.
+
+```mermaid
+flowchart TD
+    Client["client surface\nCLI, TUI, app-server, SDK"]
+    Manager["ThreadManager\nowns live thread map"]
+    Thread["CodexThread\nclient-facing live handle"]
+    Facade["Codex\nsubmission and event queues"]
+    Session["Session\nstate, services, active turn"]
+    Task["SessionTask\nturn, compact, review, shell"]
+    Router["ToolRouter\nruntime side effects"]
+
+    Store["ThreadStore\nrollout + metadata"]
+    Context["ContextManager\nmodel-visible history"]
+    State["SQLite projections\nthreads, logs, graph, memory"]
+
+    Client --> Manager
+    Manager --> Thread
+    Thread --> Facade
+    Facade --> Session
+    Session --> Task
+    Task --> Router
+
+    Session --> Context
+    Session --> Store
+    Session --> State
+```
+
+`ThreadManager` owns the set of live threads and the shared services needed to
+create new sessions. `CodexThread` is the stable external handle clients use
+after a thread is created or resumed. `Codex` is intentionally narrow: it
+exposes a submission path and an event path. `Session` is the large interior
+object that holds resolved configuration, persistent identity, active turn
+state, mailbox state, realtime state, goals, review state, and service handles.
+
+This separation matters because clients should not be able to accidentally
+reach into the scheduler. They submit an operation. The session decides whether
+that operation starts a new task, steers an active one, records pending input,
+updates durable metadata, or shuts the thread down.
+
+## The First Event Is a Contract
+
+The first client-visible event in a newly opened runtime is the session setup
+event. It carries the thread identity, session identity, working directory,
+model choice, provider identifier, approval policy, permission profile, initial
+messages, and other resolved settings.
+
+That ordering is deliberate. Some startup work can continue after the session
+is visible: MCP servers may initialize, plugins may report delayed capability,
+and prewarm work may run in the background. The setup event gives every client
+a deterministic anchor before those later events arrive.
+
+```text
+// Pseudocode - illustrative pattern.
+function open_runtime_thread(request):
+    resolved = resolve_configuration(request)
+    live_store = open_thread_persistence(resolved.thread_identity)
+    session = build_session(resolved, live_store)
+
+    emit_event(SessionConfigured(resolved.public_metadata))
+
+    record_initial_history_if_resuming(session)
+    start_background_capability_initialization(session)
+    start_submission_loop(session)
+
+    return client_thread_handle(session)
+```
+
+The important property is not the exact implementation order. The important
+property is that clients can treat setup as the beginning of the event stream
+and can render a resumed thread without waiting for every optional capability
+to finish loading.
+
+## Three Histories
+
+Most mistakes in agent architecture begin by treating "history" as one thing.
+Codex keeps three histories with different purposes.
+
+| History | Primary owner | What it answers |
 | --- | --- | --- |
-| `Codex` facade | [`session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) | Shows the small public shape: submission sender, event receiver, status, and session. |
-| Spawn arguments | [`CodexSpawnArgs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L386) | Reveals what the runtime must know before it starts. |
-| Bootstrap body | [`spawn_internal`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L449) | Wires config, skills, plugins, MCP, model selection, history, and session services. |
-| Submit API | [`submit_with_trace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L693) | Converts an operation into a queued submission with a generated id. |
+| Model-visible context | `ContextManager` | What should the next model request see? |
+| Rollout JSONL | thread persistence | What happened, in replay order, so this thread can resume or fork? |
+| SQLite projections | state layer | What can be queried efficiently without replaying every line? |
 
-</div>
+The model-visible context is normalized into model items. It is not a UI
+transcript and not a raw log. It contains the items that should participate in
+future inference, filtered by model modality and adjusted by compaction,
+context injection, tool observations, and pending input.
 
-## The Facade Shape
+The rollout file is the replay spine. It records durable runtime facts in order:
+session metadata, turn context snapshots, model-visible items, event records,
+compaction records, rollback markers, and other replayable items. It is the
+source of truth for reconstructing a thread.
 
-`Codex` is intentionally compact. Its fields show the architecture:
+The SQLite state is a projection layer. It stores thread metadata, list/search
+indexes, logs, memory jobs, graph edges, and other query-friendly state. A
+projection can be repaired or rebuilt from the durable record when the design
+allows it. The rollout is the ledger; the database is the index and operational
+state.
 
-| Field idea | Meaning |
-| --- | --- |
-| submission sender | clients push `Submission` values into the runtime |
-| event receiver | clients pull `Event` values out of the runtime |
-| status receiver | observers can watch high-level agent state |
-| session reference | internal services and state live behind the facade |
-| termination future | callers can wait for the background loop to end |
+## Recording One Item May Touch All Three
 
-This shape is more important than any single helper. Codex is a queue-pair
-runtime: submit operations on one side, observe events on the other.
+When a turn records a new item, the runtime has to decide which surfaces should
+learn about it. A tool result might be model-visible, replayable, useful for
+client rendering, relevant to analytics, and relevant to trace diagnostics.
+Those are related, but they are not identical.
 
-## Bootstrap Is Where Dependencies Become a Runtime
+```text
+// Pseudocode - illustrative pattern.
+function record_runtime_item(turn, item):
+    if item.belongs_in_model_context:
+        context_manager.append(item.as_model_item)
 
-`CodexSpawnArgs` is long because the runtime is real. It needs an auth manager,
-model manager, environment manager, skills manager, plugins manager, MCP
-manager, extension registry, thread store, conversation history, dynamic tools,
-telemetry, and more. The length is not automatically bad. It is evidence that
-the facade hides a large composition root.
+    if item.belongs_in_replay:
+        rollout.append(item.as_rollout_item)
 
-Inside `spawn_internal`, several important decisions happen:
+    if item.updates_queryable_state:
+        sqlite_projection.apply(item.as_projection_delta)
 
-| Bootstrap step | Why it matters |
-| --- | --- |
-| Load plugins and skills | Determines turn-visible guidance and extension capability. |
-| Resolve `AGENTS.md` instructions | Adds repository or user instructions before turns run. |
-| Load exec policy | Establishes command approval and policy behavior early. |
-| Choose model and base instructions | Makes the session's model contract explicit. |
-| Build `SessionConfiguration` | Converts many inputs into one runtime configuration object. |
-| Spawn submission loop | Starts the background task that consumes operations. |
+    if item.should_be_seen_by_clients:
+        event_stream.emit(item.as_event)
+```
 
-Beginners often skip bootstrap code because it looks like plumbing. In agent
-systems, plumbing is architecture. It decides which dependencies are session
-scoped, which are inherited by subagents, which are refreshed online, and which
-are frozen into the turn context.
+This design protects replay. A client can disappear and rejoin. A database row
+can be stale and refreshed. A model request can be rebuilt from normalized
+context instead of screen text. Durable state remains the common language among
+those surfaces.
 
-## Session, Thread, and Turn
+## Start, Resume, Fork, Roll Back
 
-Three words recur throughout Codex:
+Thread operations are variations on the same principle: load or choose a
+replay prefix, build a session over it, then append future items in the same
+vocabulary.
 
-- A **session** is a running runtime instance with services, configuration,
-  queues, and status.
-- A **thread** is the conversation/workspace continuity that can be created,
-  resumed, forked, listed, or rolled back.
-- A **turn** is one unit of user work inside that thread.
+```mermaid
+flowchart LR
+    Start["start\nnew thread id"] --> Open["open live persistence"]
+    Resume["resume\nexisting rollout"] --> Replay["replay durable items"]
+    Fork["fork\nchoose prefix"] --> NewThread["new thread id\nfork metadata"]
+    Rollback["rollback\ntrim recent turns"] --> Rebuild["rebuild model history"]
 
-Do not collapse these into one idea. A session can serve a thread; a thread
-contains turns; a turn may perform many model/tool cycles.
+    Open --> Configured["emit SessionConfigured"]
+    Replay --> Configured
+    NewThread --> Configured
+    Rebuild --> Configured
 
-## Submission Loop and Task Queue
+    Configured --> Append["append future rollout items"]
+    Append --> Query["update SQLite projections"]
+```
 
-The facade's queue-pair shape becomes concrete in the submission loop. A
-client submits an `Op`; the loop decides whether that operation starts a new
-task, steers an active task, aborts work, queues input for the next turn, or
-updates persistent thread state.
+Resume is not a string reload. It reconstructs model history and session
+metadata from durable items. Fork is not a copy of a UI transcript. It selects
+a coherent prefix and opens a new thread whose future diverges from the
+source. Rollback is not merely deleting visible messages. It rebuilds the
+active model context from the surviving durable record, taking compaction and
+incomplete turns into account.
 
-| Runtime unit | What it represents | Why a reader should care |
+This is why turn context snapshots are durable. They let a later session know
+which working directory, permissions, model settings, network policy, memory
+mode, and environment choices surrounded a turn. Without that context, replay
+would be text without execution semantics.
+
+## Session State Is Layered
+
+The live session holds several kinds of state that should not be collapsed.
+
+| Layer | Lifetime | Examples |
 | --- | --- | --- |
-| `Submission` | queued protocol input with id and trace context | every externally visible action enters through a correlated envelope |
-| regular task | normal user turn work | owns the common model/tool loop |
-| compact task | context compression work | can replace history without being a user prompt |
-| review task | review-mode work | uses the same session machinery for a different product mode |
-| user shell command task | explicit user shell action | separates user-initiated shell from model-initiated tool calls |
-| active turn | mutable state for in-flight work | lets interrupts, auxiliary input, and tool results find the running turn |
-| queued next-turn items | work that should not be lost when it arrives mid-turn | prevents new input from racing or overwriting the active task |
+| Configuration | session lifetime with controlled updates | model, provider, permissions, working directory, service tier |
+| Mutable session state | session lifetime | token usage, current metadata, connector selection, rate limits |
+| Active turn state | one in-flight task | cancellation token, tool futures, pending approvals, streamed items |
+| Mailbox and pending input | across scheduling boundaries | messages that arrive while another turn is running |
+| Durable store handles | thread lifetime | rollout writer, thread metadata, state database handle |
 
-This is a major source-reader detail. Codex is not a recursive call stack
-where the CLI calls the model and waits. It is a background task system with
-explicit task replacement, abort, completion, and queued follow-up behavior.
+The layering lets Codex answer a subtle question: "Did this operation change
+the durable thread, the current live turn, the next turn, or only a client
+view?" Those are different commitments. A runtime that cannot separate them
+will eventually lose user input, duplicate tool results, or make resume
+incoherent.
 
-## History, Rollout, and Resume
+## Metadata Is Extracted, Not Invented
 
-History is not merely "chat text." Codex keeps model-visible items, raw or
-replayable rollout records, and turn context baselines. Recording a
-conversation item can mean three things at once: add it to model history,
-write enough rollout data to reconstruct the thread later, and echo raw
-events so clients can replay the session.
+Thread lists and search views should not require full replay on every request.
+Codex therefore maintains metadata projections: title or preview fields, model
+provider, memory mode, archive state, working directory, git information,
+created and updated positions, and pagination anchors.
 
-| Persistence idea | What it protects |
-| --- | --- |
-| context manager history | the model sees normalized prior items rather than UI strings |
-| rollout reconstruction | resume and fork can rebuild a thread from durable records |
-| turn context baseline | compaction and reinjection know which context already exists |
-| thread metadata | names, archive state, goals, memory mode, and remote/control state survive one session |
-
-Without this model, a reader will misunderstand resume and fork. They are not
-just UI affordances; they depend on recorded runtime facts.
-
-## Failure Belongs in the Runtime
-
-The facade also makes failures programmable. Submissions have ids. Events can
-describe errors, warnings, approvals, token usage, MCP startup, model reroutes,
-and turn completion. This is better than printing unstructured text because
-clients can respond: render an error, show an approval prompt, retry, stop the
-turn, or preserve the transcript.
-
-<div class="trace-ledger">
-
-## Trace Ledger
-
-| Question | Chapter 5 answer |
-| --- | --- |
-| Where is the user request now? | It has crossed the protocol boundary and sits in the session submission loop. |
-| What carries it? | `Submission`, `Op`, active task state, and recorded history/rollout items. |
-| Who decides next? | The session loop decides whether to start, steer, abort, compact, review, or queue follow-up work. |
-| What can fail here? | bootstrap dependency loading, config/auth state, history persistence, task replacement, and structured event delivery. |
-
-</div>
+The projection is useful because it is queryable. It is safe because the
+durable rollout still exists behind it. When a listing row is missing or stale,
+the system can scan the corresponding rollout head or replay metadata-bearing
+items to repair the index. That is the durable-state pattern: optimize reads
+with projections, but keep the event record authoritative.
 
 <div class="apply-this">
 
 ## Apply This
 
-- Give clients a small facade even when the runtime is large.
-- Treat bootstrap code as architectural evidence.
-- Keep session, thread, and turn separate in your vocabulary.
-- Emit structured events for failures instead of burying them in logs.
+1. Keep the live-handle stack explicit, so clients submit operations rather than mutating scheduler internals.
+2. Separate thread identity from session execution, because one durable thread may have many runtime lifetimes.
+3. Emit a deterministic setup event before optional startup work, so every client has the same stream anchor.
+4. Maintain separate model, replay, and query histories instead of forcing one transcript to serve all purposes.
+5. Implement resume, fork, and rollback over the same replay vocabulary used by normal turns.
 
 </div>
 
-## Read the Source Next
+## Closing
 
-- [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364):
-  read the fields as an architecture summary.
-- [`spawn_internal`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L449):
-  trace which dependencies are loaded before the session exists.
-- [`ThreadManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L506):
-  inspect how live thread behavior sits above sessions.
-- [`submission_loop`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/handlers.rs#L711):
-  trace how queued operations become tasks or control actions.
-- [`record_conversation_items`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2418):
-  see how history, rollout, and event echo are tied together.
-
-<div class="exercise-box">
-
-## Self-Check
-
-Answer without opening source: why does Codex need both a session and a
-thread? Then explain why a queued submission may start a task, steer a task,
-abort a task, or become queued input for the next turn.
-
-</div>
-
-<div class="exercise-box">
-
-## Optional Source Lab
-
-Read `CodexSpawnArgs` and group its fields into five buckets: configuration,
-identity/auth, external capability, storage/history, and runtime services.
-Then inspect `submission_loop` and mark which `Op` variants start tasks.
-
-</div>
-
-<div class="next-step">
-
-## What Comes Next
-
-The facade accepts work, but the agent behavior lives inside a turn. The next
-chapter follows `run_turn`, the loop that prepares context, samples the model,
-handles tools, and decides whether to continue.
-
-</div>
+Chapter 5 turns the protocol from Chapter 4 into a living runtime. The thread
+is durable; the session is active; the turn is scheduled work inside that
+session. Chapter 6 follows one scheduled turn through the loop where Codex
+builds context, samples the model, executes tools, handles interruptions, and
+decides whether the agent is done.
