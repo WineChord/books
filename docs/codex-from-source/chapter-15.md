@@ -1,9 +1,9 @@
-# Chapter 15: Client Surfaces, Daemon Lifecycle, and Remote Control
+# Chapter 15: SDKs, Daemons, and Remote Control
 
 Chapter 14 described the app-server as the contract around shared thread
-ownership. This chapter follows that contract into the client surfaces and
-lifecycle layers that make it usable: SDKs that hide protocol mechanics, a
-daemon that manages local server lifecycle, transports that preserve message semantics, and
+ownership. This chapter follows that contract into the clients and supervisors
+that make it usable: SDKs that hide protocol mechanics, a daemon that manages
+local server lifecycle, transports that preserve message semantics, and
 remote-control streams that carry the same runtime model beyond the local
 process boundary.
 
@@ -33,10 +33,27 @@ Some clients run in-process. Some reach the server through a daemon-managed
 socket. The architecture is coherent because each client still respects a
 clear boundary.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-15-01-en.svg" alt="Client surfaces are not peers: schema-driven SDKs, command surfaces, daemons, and remote-control bridges all converge on the app-server runtime through different trust and transport paths." loading="lazy" />
-  <figcaption>Client surfaces are not peers: schema-driven SDKs, command surfaces, daemons, and remote-control bridges all converge on the app-server runtime through different trust and transport paths.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Schema[Protocol schema]
+    Rust[Rust facade]
+    Python[Python SDK]
+    TypeScript[TypeScript SDK]
+    Daemon[App-server daemon]
+    Remote[Remote-control bridge]
+    Server[App-server runtime]
+    Exec[Exec command surface]
+    Backend[Remote backend]
+
+    Schema --> Rust
+    Schema --> Python
+    Rust --> Server
+    Python --> Server
+    TypeScript --> Exec
+    Daemon --> Server
+    Remote --> Backend
+    Backend --> Server
+```
 
 The diagram is deliberately asymmetric. The Python SDK and Rust facade are
 protocol clients. The TypeScript SDK is a process/event-stream client. The
@@ -86,7 +103,8 @@ race. The SDK therefore uses one reader and routes messages to queues owned by
 the waiting request, the turn stream, or the server-request handler.
 
 ```text
-// Pseudocode - illustrative pattern.
+pseudocode: SDK stream router
+
 start one reader for the process output stream
 
 for each incoming protocol message:
@@ -118,12 +136,6 @@ command and consumes an experimental JSON event stream. That makes it useful
 for scriptable execution flows, but it is not the same thing as a full
 app-server protocol client.
 
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-15-concept-1-en.svg" alt="The TypeScript SDK is a reachability layer over the same app-server contract: generated types, daemon connection management, transports, and remote bridges must preserve protocol semantics." loading="lazy" />
-  <figcaption>The TypeScript SDK is a reachability layer over the same app-server contract: generated types, daemon connection management, transports, and remote bridges must preserve protocol semantics.</figcaption>
-</figure>
-
 This difference is not a flaw. It is a product choice. A process-oriented SDK
 can be easier to install, easier to reason about in short-lived jobs, and
 less coupled to app-server lifecycle. The cost is that it does not expose the
@@ -141,16 +153,27 @@ while the server is starting, restarting, stale, or already owned by another
 process.
 
 The daemon's job is to make the local server discoverable and stable without
-letting two daemon operations corrupt the same state. Operation locks prevent
+letting two supervisors corrupt the same state. Operation locks prevent
 overlapping lifecycle actions. Probing distinguishes "server is healthy" from
 "pid file exists." Restart behavior gives clients a path out of stale state.
 Update behavior lets the product improve the server without making every SDK
 invent a process manager.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-15-02-en.svg" alt="The daemon lifecycle is not just startup: stale servers and update requirements flow through restart, failure, and locked retry paths." loading="lazy" />
-  <figcaption>The daemon lifecycle is not just startup: stale servers and update requirements flow through restart, failure, and locked retry paths.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    StartState([Start])
+    EndState([End])
+    StartState --> Unknown
+    Unknown -->|client asks for server| Probing
+    Probing -->|healthy response| Ready
+    Probing -->|no healthy server| Starting
+    Starting -->|bootstrap succeeds| Ready
+    Starting -->|bootstrap fails| Failed
+    Ready -->|stale or update required| Restarting
+    Restarting -->|probe succeeds| Ready
+    Restarting -->|restart fails| Failed
+    Failed -->|retry under lock| Starting
+```
 
 A daemon is not just a convenience wrapper. It is the component that makes a
 long-lived local contract practical for short-lived tools and SDK processes.
@@ -182,10 +205,25 @@ chunked, cursors are acknowledged, outbound messages are buffered where
 appropriate, and reconnect can replay data the remote client has not yet
 acknowledged.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-15-03-en.svg" alt="Remote control turns a backend stream into a recoverable local connection: cursor acknowledgements and buffered replay keep the app-server contract intact across reconnects." loading="lazy" />
-  <figcaption>Remote control turns a backend stream into a recoverable local connection: cursor acknowledgements and buffered replay keep the app-server contract intact across reconnects.</figcaption>
-</figure>
+```mermaid
+sequenceDiagram
+    participant RemoteClient as Remote client
+    participant Backend as Backend stream
+    participant Bridge as Local remote bridge
+    participant Server as App-server
+
+    RemoteClient->>Backend: open logical connection
+    Backend->>Bridge: deliver connection metadata
+    Bridge->>Server: create app-server connection
+    RemoteClient->>Backend: send request chunk
+    Backend->>Bridge: forward chunk with cursor
+    Bridge->>Server: submit protocol message
+    Server->>Bridge: emit response or notification
+    Bridge->>Backend: send outbound chunk
+    Backend->>RemoteClient: deliver message
+    RemoteClient->>Backend: acknowledge cursor
+    Backend->>Bridge: record ack for replay window
+```
 
 The network makes the hidden assumptions visible. A local socket can often get
 away with "if it disconnects, it disconnects." Remote control cannot. It needs
@@ -210,7 +248,7 @@ unknown server request.
 
 ## Failure Modes
 
-The SDK and daemon layers create their own failure surface.
+SDKs and daemons create their own failure surface.
 
 | Failure | Typical symptom | Boundary response |
 | --- | --- | --- |
@@ -243,11 +281,11 @@ user, or abort.
 
 ## Closing
 
-The SDK, daemon, and remote-control layers make the app-server contract
-reachable from real programs. They also show that a protocol is not finished
-when message types exist. It becomes usable when lifecycle, routing, transport,
-and compatibility are engineered as deliberately as the runtime itself. Chapter
-16 turns to the most visible client of that contract: the terminal UI.
+SDKs, daemons, and remote control make the app-server contract reachable from
+real programs. They also show that a protocol is not finished when message
+types exist. It becomes usable when lifecycle, routing, transport, and
+compatibility are engineered as deliberately as the runtime itself. Chapter 16
+turns to the most visible client of that contract: the terminal UI.
 
 <div class="source-equivalence">
 
@@ -255,7 +293,7 @@ and compatibility are engineered as deliberately as the runtime itself. Chapter
 
 | Concept | Source anchor |
 | --- | --- |
-| Daemon lifecycle | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34) |
+| App-server daemon lifecycle | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34) |
 | Remote control mode | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L92) |
 | Transport modes | [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57) |
 | stdio transport | [`codex-rs/app-server-transport/src/transport/stdio.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24) |

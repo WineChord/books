@@ -37,10 +37,22 @@ discoverable tools, dynamic tools, and hosted tool availability. The registry
 then produces two products: configured specs for internal lookup, and
 model-visible specs for the request sent to the model.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-09-01-en.svg" alt="The tool lifecycle has two planes: one builds the model-visible contract, while the other routes tool calls to authorized runtime handlers." loading="lazy" />
-  <figcaption>The tool lifecycle has two planes: one builds the model-visible contract, while the other routes tool calls to authorized runtime handlers.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    Config[resolved configuration] --> Plan[tool spec plan]
+    Model[model capability] --> Plan
+    MCP[MCP and hosted tools] --> Plan
+    Dynamic[dynamic tools] --> Plan
+    Plan --> Specs[model-visible specs]
+    Plan --> Registry[handler registry]
+    Specs --> ModelRequest[model request]
+    Registry --> Router[turn tool router]
+    ModelRequest --> ToolCall[model tool call]
+    ToolCall --> Router
+    Router --> Runtime[tool call runtime]
+    Runtime --> Events[events and rollout]
+    Runtime --> Output[model-visible result]
+```
 
 This diagram is the core of the chapter: the model receives specifications,
 not handlers. The runtime keeps handlers, not just schemas. The router is the
@@ -53,12 +65,6 @@ function tools, namespace tools, hosted tools such as search or image
 generation, local shell-like tools, and freeform tools such as patch
 application. It can also carry compatibility details that help different model
 surfaces understand the same capability.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-09-concept-1-en.svg" alt="Specification is not authority: the model sees a menu, but handler lookup, payload validation, policy, runtime execution, and output shaping decide what can actually happen." loading="lazy" />
-  <figcaption>Specification is not authority: the model sees a menu, but handler lookup, payload validation, policy, runtime execution, and output shaping decide what can actually happen.</figcaption>
-</figure>
 
 None of that means execution is allowed. The spec says, "this is a call shape
 the model may produce." The handler says, "this runtime knows how to execute
@@ -114,12 +120,6 @@ dispatch. That normalized form carries a tool name, a call id, and a payload.
 The payload kind matters because a plain function call, an MCP call, a
 freeform custom call, and a search-tool call are not interchangeable even when
 their names look similar.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-09-concept-2-en.svg" alt="A tool call becomes executable only after the runtime validates payload shape, resolves the handler, applies policy, executes under supervision, and records a bounded observation." loading="lazy" />
-  <figcaption>A tool call becomes executable only after the runtime validates payload shape, resolves the handler, applies policy, executes under supervision, and records a bounded observation.</figcaption>
-</figure>
 
 The router performs four jobs:
 
@@ -182,12 +182,6 @@ understand which call caused which change.
 ## Output Belongs to Two Audiences
 
 Every tool result has two audiences:
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-09-concept-3-en.svg" alt="Tool output is shaped for two readers at once: clients need faithful status and logs, while the model needs a bounded observation it can reason over." loading="lazy" />
-  <figcaption>Tool output is shaped for two readers at once: clients need faithful status and logs, while the model needs a bounded observation it can reason over.</figcaption>
-</figure>
 
 | Audience | Needs |
 | --- | --- |

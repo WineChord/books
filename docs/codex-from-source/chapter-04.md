@@ -28,10 +28,25 @@ private session methods directly. They submit operations and observe events.
 The runtime may queue, reject, transform, or serialize operations according to
 active state.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-01-en.svg" alt="The protocol path is a controlled crossing: operations enter, accepted facts are recorded, and only bounded requests reach models or tools." loading="lazy" />
-  <figcaption>The protocol path is a controlled crossing: operations enter, accepted facts are recorded, and only bounded requests reach models or tools.</figcaption>
-</figure>
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Runtime
+    participant Model
+    participant Tool
+    participant Store
+
+    Client->>Runtime: submission(operation)
+    Runtime->>Store: append accepted fact
+    Runtime->>Client: event(turn started)
+    Runtime->>Model: request with context
+    Model-->>Runtime: model item stream
+    Runtime->>Client: event(item delta)
+    Runtime->>Tool: bounded tool request
+    Tool-->>Runtime: observation
+    Runtime->>Store: append observation
+    Runtime->>Client: event(turn completed)
+```
 
 The sequence is simplified, but the contract is accurate: the runtime is the
 only component that converts submitted intent into durable progress.
@@ -79,11 +94,20 @@ long-running agent work:
 | Resource serialization | Requests must be ordered by thread, path, process, account, or global state. |
 | Replay and rejoin | A reconnecting client needs committed history plus live updates without duplicates. |
 
-<p class="sketch-intro">Read this board as the second half of the protocol contract: core events are not exposed until the app-server has translated them into client-safe facts.</p>
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-02-en.svg" alt="App-server events are translated into thread items and deltas before clients see them, so UI surfaces observe runtime facts rather than provider-shaped messages." loading="lazy" />
-  <figcaption>App-server events are translated into thread items and deltas before clients see them, so UI surfaces observe runtime facts rather than provider-shaped messages.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    ide[IDE or SDK client] --> transport[Transport: stdio, socket, websocket, in-process]
+    transport --> rpc[JSON-RPC envelope]
+    rpc --> processor[Message processor]
+    processor --> appmodel[Thread, turn, item APIs]
+    appmodel --> core[Core runtime operations]
+    core --> events[Core events]
+    events --> mapper[App-server item mapper]
+    mapper --> notify[Client notifications]
+    notify --> ide
+    processor --> serverreq[Server-to-client requests]
+    serverreq --> ide
+```
 
 The app-server boundary adds concerns that a local terminal UI can often hide:
 connection initialization, experimental capability negotiation, request
@@ -94,10 +118,26 @@ be separate processes with their own lifecycle.
 The mapping from core events to app-server items is the most important
 translation layer:
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-03-en.svg" alt="App-server event mapping projects core events into thread items, item deltas, derived status, and server-to-client requests before any client renders the update." loading="lazy" />
-  <figcaption>App-server event mapping projects core events into thread items, item deltas, derived status, and server-to-client requests before any client renders the update.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    CoreEvent[Core event]
+    Kind{event kind}
+    Item[Thread item]
+    Delta[Item delta]
+    Status[Thread or turn status]
+    ServerRequest[Server-to-client request]
+    Projection[Client projection]
+
+    CoreEvent --> Kind
+    Kind --> Item
+    Kind --> Delta
+    Kind --> Status
+    Kind --> ServerRequest
+    Item --> Projection
+    Delta --> Projection
+    Status --> Projection
+    ServerRequest --> Projection
+```
 
 A client should not reconstruct this projection by parsing terminal text. The
 server does that mapping once, exposes stable item and notification shapes,
@@ -178,10 +218,16 @@ want multiple clients inherit a smaller version of the same obligation.
 
 By the end of Part I, the architecture has four gates:
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-04-en.svg" alt="The entry boundary is deliberately narrow: installed commands pass through the Rust router, resolved envelopes describe allowed runtime state, and protocol events are the only durable exit." loading="lazy" />
-  <figcaption>The entry boundary is deliberately narrow: installed commands pass through the Rust router, resolved envelopes describe allowed runtime state, and protocol events are the only durable exit.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    install[Installed command] --> router[Rust router]
+    router --> envelope[Resolved runtime envelope]
+    envelope --> protocol[Protocol boundary]
+    protocol --> runtime[Session runtime]
+
+    protocol --> enters[Can enter: operations, approvals, tool responses, turn input]
+    protocol --> leaves[Can leave: events, items, status, requests, errors]
+```
 
 The runtime is powerful precisely because the boundary is narrow. A client can
 start or steer work, interrupt it, answer approval requests, provide dynamic

@@ -1,7 +1,7 @@
 # Chapter 16: The TUI as an Event Renderer
 
-Chapter 15 showed that Codex has more than one client shape: SDK clients,
-daemon-managed connections, execution wrappers, and remote-control streams all reach the
+Chapter 15 showed that Codex has more than one client shape: SDKs, daemon
+connections, execution wrappers, and remote-control streams all reach the
 runtime through disciplined boundaries. This chapter studies the client most
 users feel first. The terminal UI is not the runtime. It is an event renderer,
 input coordinator, and approval surface built on top of the app-server-backed
@@ -41,10 +41,22 @@ app-server session state. The TUI loads configuration, determines account and
 model context, initializes terminal behavior, creates or resumes a thread, and
 then enters an event loop that multiplexes UI events with runtime events.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-16-01-en.svg" alt="TUI startup binds three contracts before the app loop begins: resolved config and auth, detected terminal capability, and an app-server session for the active thread." loading="lazy" />
-  <figcaption>TUI startup binds three contracts before the app loop begins: resolved config and auth, detected terminal capability, and an app-server session for the active thread.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Start[Start TUI]
+    Config[Load config and auth]
+    Terminal[Detect terminal capability]
+    Session[Create app-server session]
+    Thread[Create or resume thread]
+    Loop[Enter app loop]
+
+    Start --> Config
+    Start --> Terminal
+    Config --> Session
+    Terminal --> Loop
+    Session --> Thread
+    Thread --> Loop
+```
 
 Terminal capability is not decorative. Keyboard enhancement, focus behavior,
 tmux handling, color palette support, desktop notifications, inline viewport
@@ -60,10 +72,20 @@ contains mutable cells for in-flight work. The bottom pane owns composition and
 focused transient views. Modal layers interrupt the composer only when a
 protocol request or UI task needs a decision.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-16-02-en.svg" alt="Committed scrollback, live cells, input, modals, and resize reflow are separate planes, which is why terminal rendering can stay incremental without losing source-of-truth history." loading="lazy" />
-  <figcaption>Committed scrollback, live cells, input, modals, and resize reflow are separate planes, which is why terminal rendering can stay incremental without losing source-of-truth history.</figcaption>
-</figure>
+```mermaid
+graph TD
+    Scrollback["real terminal scrollback\ncommitted transcript cells"]
+    Viewport["live viewport\nactive cells and streaming tails"]
+    Bottom["bottom pane\ncomposer, suggestions, status"]
+    Modal["modal layer\napproval, elicitation, selection"]
+    Runtime["app-server events and requests"]
+
+    Runtime --> Viewport
+    Runtime --> Modal
+    Viewport --> Scrollback
+    Bottom --> Runtime
+    Modal --> Runtime
+```
 
 The diagram explains the inline choice. The UI is not repainting a private
 world. It is deciding which runtime facts are stable enough to commit to the
@@ -76,10 +98,27 @@ active-thread protocol events, terminal input events, and app-server session
 events. It then turns them into one of three outcomes: send an app command,
 mutate transcript or UI state, or schedule a frame.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-16-03-en.svg" alt="Internal events, active-thread notifications, and user input all enter one app-event queue, while rendering stays downstream as a projection of model state." loading="lazy" />
-  <figcaption>Internal events, active-thread notifications, and user input all enter one app-event queue, while rendering stays downstream as a projection of model state.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    AppEvents[Internal app events]
+    ThreadEvents[Active thread events]
+    TerminalEvents[Terminal input and resize]
+    ServerEvents[App-server events]
+    Loop[App loop]
+    Commands[App commands]
+    State[Chat and pane state]
+    Frame[Frame request]
+
+    AppEvents --> Loop
+    ThreadEvents --> Loop
+    TerminalEvents --> Loop
+    ServerEvents --> Loop
+    Loop --> Commands
+    Loop --> State
+    Loop --> Frame
+    Commands --> ServerEvents
+    State --> Frame
+```
 
 This event shape is why the TUI is better understood as actor-like than as a
 single mutable widget tree. The app object owns orchestration. The chat widget
@@ -102,7 +141,8 @@ where the TUI decides whether it is handling presentation or asking the
 runtime to do work.
 
 ```text
-// Pseudocode - illustrative pattern.
+pseudocode: TUI event step
+
 for each event selected by the app loop:
     if it is terminal input:
         let the focused component handle the key
@@ -164,10 +204,23 @@ parse. Tables are the clearest example: a later row can change column widths
 for earlier rows. The TUI therefore separates stable committed source from a
 mutable live tail.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-16-04-en.svg" alt="Streaming Markdown stays mutable only at the live tail; once committed, source and layout identity are kept so resize, copy, and scrollback remain reproducible." loading="lazy" />
-  <figcaption>Streaming Markdown stays mutable only at the live tail; once committed, source and layout identity are kept so resize, copy, and scrollback remain reproducible.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Delta[Streaming delta]
+    Source[Append to source buffer]
+    Stable{Line complete and layout stable?}
+    Commit[Commit to history cell]
+    Tail[Render mutable live tail]
+    Resize[Resize event]
+    Reflow[Reflow from source]
+
+    Delta --> Source
+    Source --> Stable
+    Stable -->|yes| Commit
+    Stable -->|no| Tail
+    Resize --> Reflow
+    Source --> Reflow
+```
 
 The rule is conservative: commit only what can be treated as stable source,
 and leave incomplete or layout-sensitive content in the live viewport. That
@@ -237,7 +290,7 @@ commands, cells, and modal state.
 
 The TUI completes Part IV's argument. The runtime becomes a platform because
 its clients share a thread model without sharing a UI. The app-server defines
-the contract, the SDK and daemon layers make that contract reachable, and the terminal
+the contract, SDKs and daemons make that contract reachable, and the terminal
 UI proves that a rich interactive surface can still be an event renderer
 rather than a second runtime. Part V turns from clients to extension points:
 the protocols and packages that add new capability to the system.

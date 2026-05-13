@@ -6,7 +6,6 @@
     "dev": "astro dev --host 127.0.0.1",
     "build": "astro build",
     "preview": "astro preview --host 127.0.0.1",
-    "generate:sketches": "node scripts/generate-sketch-figures.mjs",
     "check:content": "node scripts/check-content.mjs",
     "check:visual-spec": "node scripts/check-visual-spec.mjs",
     "check:dist": "bash scripts/check-dist.sh",

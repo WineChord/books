@@ -1,6 +1,8 @@
 # 第 4 章：协议边界
 
-第 3 章说明，Codex 只有在配置、认证、feature state 和 managed requirements 被解析成受约束的 runtime envelope 之后，才会开始工作。本章解释承载工作的语言。协议边界是这样一个位置：产品意图不再是私有方法调用，而变成持久消息，包括 submissions、events、model items、app-server JSON-RPC requests、server-to-client requests 和 generated schemas。协议是产品边界，不是序列化附属品。它告诉客户端可以请求什么，告诉 runtime 必须报告什么，也告诉未来版本已经继承了哪些兼容性义务。
+第 3 章说明，Codex 只有在配置、认证、feature state 和 managed requirements 被解析成受约束的 runtime envelope 之后，才会开始工作。本章解释承载工作的语言。协议边界是这样一个位置：产品意图不再是私有方法调用，而变成持久消息，包括 submissions、events、model items、app-server JSON-RPC requests、server-to-client requests 和 generated schemas。
+
+协议是产品边界，不是序列化附属品。它告诉客户端可以请求什么，告诉 runtime 必须报告什么，也告诉未来版本已经继承了哪些兼容性义务。
 
 ## Core Runtime Protocol
 
@@ -15,42 +17,90 @@ Core runtime protocol 的外层形状很简单：
 
 这个拆分让 runtime 像 evented kernel 一样工作。客户端不直接调用私有 session 方法。它们提交 operation，并观察 event。Runtime 可以根据 active state 对 operation 排队、拒绝、转换或串行化。
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-01-zh.svg" alt="协议路径是一道受控边界：操作进入后先成为已接受事实，只有受约束的请求才能继续触达模型或工具。" loading="lazy" />
-  <figcaption>协议路径是一道受控边界：操作进入后先成为已接受事实，只有受约束的请求才能继续触达模型或工具。</figcaption>
-</figure>
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant Runtime
+    participant Model as 模型
+    participant Tool as 工具
+    participant Store as 存储
+
+    Client->>Runtime: submission(operation)
+    Runtime->>Store: append accepted fact
+    Runtime->>Client: event(turn started)
+    Runtime->>Model: request with context
+    Model-->>Runtime: model item stream
+    Runtime->>Client: event(item delta)
+    Runtime->>Tool: bounded tool request
+    Tool-->>Runtime: observation
+    Runtime->>Store: append observation
+    Runtime->>Client: event(turn completed)
+```
 
 序列图经过简化，但契约准确：只有 runtime 会把提交的意图转换为持久进展。
 
 ## Item 不只是 Message
 
-简单聊天应用里，“message”往往足以承载大部分系统。Codex 需要更丰富的 item vocabulary。一个 thread 可能包含用户文本、图片、模型输出、reasoning summary、命令调用、命令输出、文件变化、审批记录、工具观察、plan update、hook activity、realtime transcript 和 collaboration event。把这些都叫 message，会掩盖关键差异：不同 item 在 streaming、persistence、display、replay 和 compatibility 上有不同规则。Command output delta 不应该被当作 assistant paragraph。Patch update 不应该被当作模型可见 instruction。Approval request 在被 resolve 前也不是最终历史。因此 item model 是架构词汇。它让 runtime、app-server、终端 UI、SDK 和 rollout reducers 能对正在处理的事实类型达成一致。
+简单聊天应用里，“message”往往足以承载大部分系统。Codex 需要更丰富的 item vocabulary。一个 thread 可能包含用户文本、图片、模型输出、reasoning summary、命令调用、命令输出、文件变化、审批记录、工具观察、plan update、hook activity、realtime transcript 和 collaboration event。
+
+把这些都叫 message，会掩盖关键差异：不同 item 在 streaming、persistence、display、replay 和 compatibility 上有不同规则。Command output delta 不应该被当作 assistant paragraph。Patch update 不应该被当作模型可见 instruction。Approval request 在被 resolve 前也不是最终历史。
+
+因此 item model 是架构词汇。它让 runtime、app-server、终端 UI、SDK 和 rollout reducers 能对正在处理的事实类型达成一致。
 
 ## App-Server JSON-RPC
 
-App-server 引入第二条协议边界。它不是 core runtime protocol 的替代品，而是围绕 threads、turns、items、approvals、filesystem APIs、process APIs、MCP、plugins、account state 和 remote-control flows 的客户端侧分布式系统层。它的 wire shape 类似 JSON-RPC：request 期待 response，notification 不期待 response，error 携带结构化失败信息，server-to-client request 允许 runtime 侧要求已连接客户端作出决定，例如 approval 或 input。Codex 刻意保持 envelope 轻量，但 request、response、notification 的区别仍然是核心。
+App-server 引入第二条协议边界。它不是 core runtime protocol 的替代品，而是围绕 threads、turns、items、approvals、filesystem APIs、process APIs、MCP、plugins、account state 和 remote-control flows 的客户端侧分布式系统层。
 
-<p class="sketch-intro">读这张图时，把它当成协议契约的后半段：核心事件不会直接暴露，必须先被 app-server 翻译成客户端可理解的事实。</p>
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-02-zh.svg" alt="App-server 会先把 runtime events 转成 thread items 和 deltas，客户端看到的是运行时事实，而不是 provider 原始消息。" loading="lazy" />
-  <figcaption>App-server 会先把 runtime events 转成 thread items 和 deltas，客户端看到的是运行时事实，而不是 provider 原始消息。</figcaption>
-</figure>
+它的 wire shape 类似 JSON-RPC：request 期待 response，notification 不期待 response，error 携带结构化失败信息，server-to-client request 允许 runtime 侧要求已连接客户端作出决定，例如 approval 或 input。Codex 刻意保持 envelope 轻量，但 request、response、notification 的区别仍然是核心。
 
-App-server boundary 加入了本地终端 UI 往往可以隐藏的关注点：connection initialization、experimental capability negotiation、request serialization、backpressure、replay on rejoin、thread listeners、pending approvals 和 derived status。这些都是协议问题，因为客户端可能是拥有独立生命周期的另一个进程。从 core events 到 app-server items 的映射，是这里最重要的翻译层：
+```mermaid
+flowchart TD
+    ide[IDE 或 SDK 客户端] --> transport[Transport: stdio、socket、websocket、in-process]
+    transport --> rpc[JSON-RPC envelope]
+    rpc --> processor[Message processor]
+    processor --> appmodel[Thread、turn、item APIs]
+    appmodel --> core[Core runtime operations]
+    core --> events[Core events]
+    events --> mapper[App-server item mapper]
+    mapper --> notify[Client notifications]
+    notify --> ide
+    processor --> serverreq[Server-to-client requests]
+    serverreq --> ide
+```
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-03-zh.svg" alt="App-server 的事件映射会先把核心事件投影成 thread item、item delta、派生状态和服务端到客户端请求，然后客户端才渲染更新。" loading="lazy" />
-  <figcaption>App-server 的事件映射会先把核心事件投影成 thread item、item delta、派生状态和服务端到客户端请求，然后客户端才渲染更新。</figcaption>
-</figure>
+App-server boundary 加入了本地终端 UI 往往可以隐藏的关注点：connection initialization、experimental capability negotiation、request serialization、backpressure、replay on rejoin、thread listeners、pending approvals 和 derived status。这些都是协议问题，因为客户端可能是拥有独立生命周期的另一个进程。
 
-客户端不应该通过解析 terminal text 来重建这个 projection。Server 统一完成映射，暴露稳定的 item 和 notification shape，并保留足够的 请求 ID 与 pending-request state，把 decision 重新连接回它解锁的 turn。
+从 core events 到 app-server items 的映射，是这里最重要的翻译层：
+
+```mermaid
+flowchart TD
+    CoreEvent[Core event]
+    Kind{event kind}
+    Item[Thread item]
+    Delta[Item delta]
+    Status[Thread or turn status]
+    ServerRequest[Server-to-client request]
+    Projection[Client projection]
+
+    CoreEvent --> Kind
+    Kind --> Item
+    Kind --> Delta
+    Kind --> Status
+    Kind --> ServerRequest
+    Item --> Projection
+    Delta --> Projection
+    Status --> Projection
+    ServerRequest --> Projection
+```
+
+客户端不应该通过解析 terminal text 来重建这个 projection。Server 统一完成映射，暴露稳定的 item 和 notification shape，并保留足够的 request id 与 pending-request state，把 decision 重新连接回它解锁的 turn。
 
 ## 从 App Request 到 Core Operation
 
 App-server model 使用 thread、turn、item、environment selection 等用户可见概念。Core runtime 使用 submission 和 operation。因此，一个 start turn 请求必须先验证，再翻译。
 
 ```text
-// 伪代码 - 说明性模式。
+// Pseudocode - illustrative pattern.
 function handle_turn_start(request, connection):
     require_initialized(connection)
     require_experimental_fields_enabled(request, connection.capabilities)
@@ -81,20 +131,32 @@ function map_core_event(event):
 
 Generated schemas 让协议可以在 Rust 之外被审计。JSON Schema 和面向 TypeScript 的 artifact，让客户端、测试和 release checks 能发现 drift。它们也迫使 source types 携带足够元数据，从而区分 stable surface 和 experimental surface。
 
-Schema generation 是一种架构治理。没有它，一个字段可能被加到 Rust type 上，然后意外成为客户端义务。有了它，协议演进必须经过 exported contracts、compatibility filters 和能注意到变化的测试。这尤其重要，因为 Codex 不止一种客户端生成目标。Rust app-server client、Python SDK、generated TypeScript bindings 和 test 客户端 都需要共享 wire model，即使它们暴露的 ergonomics 并不相同。
+Schema generation 是一种架构治理。没有它，一个字段可能被加到 Rust type 上，然后意外成为客户端义务。有了它，协议演进必须经过 exported contracts、compatibility filters 和能注意到变化的测试。
+
+这尤其重要，因为 Codex 不止一种客户端生成目标。Rust app-server client、Python SDK、generated TypeScript bindings 和 test clients 都需要共享 wire model，即使它们暴露的 ergonomics 并不相同。
 
 ## Compatibility 是代码路径
 
-Codex 中的协议兼容性是显式的。某些值接受 legacy aliases。旧请求形式和新的 turn-context operation 共存。App-server v1 和 v2 概念有重叠。Experimental fields 由 connection capability gate，并从 stable schema output 过滤。Deprecated fields 即使被忽略，也可能继续被接受，以便旧客户端还能工作。这不是偶然的杂乱，而是协议边界的成本。字段一旦跨越边界，删除它就不再等同于重构私有 helper。它可能破坏 terminal、SDK、daemon、extension 或已持久化 rollout。有边界操作系统的类比在这里也有帮助。操作系统为了旧应用保留系统调用兼容性。想支持多个客户端的 Agent runtime，也会继承一个较小版本的同样义务。
+Codex 中的协议兼容性是显式的。某些值接受 legacy aliases。旧请求形式和新的 turn-context operation 共存。App-server v1 和 v2 概念有重叠。Experimental fields 由 connection capability gate，并从 stable schema output 过滤。Deprecated fields 即使被忽略，也可能继续被接受，以便旧客户端还能工作。
+
+这不是偶然的杂乱，而是协议边界的成本。字段一旦跨越边界，删除它就不再等同于重构私有 helper。它可能破坏 terminal、SDK、daemon、extension 或已持久化 rollout。
+
+有边界操作系统的类比在这里也有帮助。操作系统为了旧应用保留系统调用兼容性。想支持多个客户端的 Agent runtime，也会继承一个较小版本的同样义务。
 
 ## 什么能进入，什么能离开
 
 到 Part I 结束，架构已经建立了四道 gate：
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-04-04-zh.svg" alt="入口边界被刻意收窄：安装后的命令先经过 Rust router，已解析运行包络描述可用运行时状态，protocol events 才是可持久化的出口。" loading="lazy" />
-  <figcaption>入口边界被刻意收窄：安装后的命令先经过 Rust router，已解析运行包络描述可用运行时状态，protocol events 才是可持久化的出口。</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    install[安装后的命令] --> router[Rust router]
+    router --> envelope[Resolved runtime envelope]
+    envelope --> protocol[Protocol boundary]
+    protocol --> runtime[Session runtime]
+
+    protocol --> enters[可进入: operations、approvals、tool responses、turn input]
+    protocol --> leaves[可离开: events、items、status、requests、errors]
+```
 
 Runtime 强大，恰恰因为边界狭窄。客户端可以启动或 steering 工作、中断工作、回答 approval request、提供 dynamic tool output、刷新外部状态，或请求 thread 生命周期动作。客户端可以观察 setup、streaming、tool activity、approval prompts、errors、completion 和 reconstructed items。它不能伸进 session 里直接修改私有状态。
 

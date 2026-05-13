@@ -19,10 +19,23 @@ Codex treats migration as a controlled import path: read a source artifact,
 recognize supported constructs, translate them into Codex-native shapes, skip
 unsafe or dynamic cases, and record enough metadata to avoid duplicate work.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-19-01-en.svg" alt="Migration translates only recognized external artifacts into native shapes, preserves existing targets, and records provenance so compatibility does not become runtime emulation." loading="lazy" />
-  <figcaption>Migration translates only recognized external artifacts into native shapes, preserves existing targets, and records provenance so compatibility does not become runtime emulation.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    Source["External source artifacts"]
+    Detect["Detect and classify"]
+    Validate["Validate supported subset"]
+    Convert["Convert to Codex-native shape"]
+    Preserve["Preserve existing targets"]
+    Ledger["Record import metadata"]
+    Runtime["Use native runtime paths"]
+
+    Source --> Detect
+    Detect --> Validate
+    Validate --> Convert
+    Convert --> Preserve
+    Preserve --> Ledger
+    Ledger --> Runtime
+```
 
 The final node matters. A migrated hook should run as a Codex hook. A migrated
 command should behave as a Codex skill or workflow unit. An imported session
@@ -31,14 +44,7 @@ turn loop.
 
 ## Configuration Migration
 
-Before writing anything, the importer classifies each source artifact and chooses a conservative outcome.
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-19-concept-1-en.svg" alt="Configuration import classifies each external artifact, converts only the supported subset, preserves native targets, and leaves an import report for every skip or write." loading="lazy" />
-  <figcaption>Configuration import classifies each external artifact, converts only the supported subset, preserves native targets, and leaves an import report for every skip or write.</figcaption>
-</figure>
-
-The table is deliberately small: each row is a permission decision before it is a conversion rule.
+External configuration migration handles several artifact families:
 
 | Source artifact | Native destination | Conservative rule |
 | --- | --- | --- |
@@ -91,10 +97,21 @@ turns, adds import metadata, and records a content-hash ledger. The ledger is
 what prevents duplicate imports while still allowing re-detection if the
 source content changes.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-19-02-en.svg" alt="The content-hash ledger makes session import repeatable: unchanged JSONL is skipped, while changed supported records become rollout items and an imported thread." loading="lazy" />
-  <figcaption>The content-hash ledger makes session import repeatable: unchanged JSONL is skipped, while changed supported records become rollout items and an imported thread.</figcaption>
-</figure>
+```mermaid
+sequenceDiagram
+    participant Detector
+    participant Ledger
+    participant Parser
+    participant Rollout
+    participant ThreadStore
+
+    Detector->>Ledger: has this content hash been imported?
+    Ledger-->>Detector: no
+    Detector->>Parser: load importable JSONL session
+    Parser->>Rollout: emit native rollout items
+    Rollout->>ThreadStore: create imported thread
+    ThreadStore->>Ledger: record source hash and imported thread id
+```
 
 The design preserves two facts at once: the imported conversation is usable as
 Codex history, and it still has provenance as imported history.
@@ -122,16 +139,8 @@ compatibility mode inside every later subsystem.
 
 Migration is one bridge. Protocol compatibility is another. Earlier chapters
 introduced generated schemas, legacy aliases, v1/v2 coexistence, experimental
-gates, and client-version workarounds. Those compatibility bridges should end
-at the system edge.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-19-concept-2-en.svg" alt="Compatibility bridges stay at the system edge, where old shapes are named, supported cases are translated, unsupported cases are skipped, and native runtime state stays clean." loading="lazy" />
-  <figcaption>Compatibility bridges stay at the system edge, where old shapes are named, supported cases are translated, unsupported cases are skipped, and native runtime state stays clean.</figcaption>
-</figure>
-
-The boundary rules are the operational form of that policy.
+gates, and client-version workarounds. Chapter 19 is where those ideas become
+a general policy:
 
 | Compatibility bridge | What it protects | What it should not do |
 | --- | --- | --- |

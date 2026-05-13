@@ -33,10 +33,10 @@ _模型可以提出动作，Codex 决定动作是否成为副作用。_
 
 ## 第四部：把 Runtime 打开给 Client
 
-_多个客户端共享同一个线程模型，运行时才成为平台。_
+_多个 client 共享同一个 thread model，runtime 才成为平台。_
 
 14. **App-Server as Local Distributed System**：protocol、transport、serialization、backpressure、server-to-client requests。
-15. **客户端表面、Daemon 生命周期与远程控制**：Python app-server SDK、TypeScript exec SDK、daemon 和 remote control。
+15. **SDKs, Daemon, and Remote Control**：Python app-server SDK、TypeScript exec SDK、daemon 和 remote control。
 16. **The Terminal UI as Inline Runtime Client**：inline scrollback TUI、event loop、rendering、streaming 和 resize reflow。
 
 ## 第五部：扩展系统

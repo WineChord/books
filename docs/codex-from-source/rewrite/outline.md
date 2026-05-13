@@ -146,7 +146,7 @@ model._
   pending approvals, replay on rejoin, and derived status.
 - Shows why app-server is a concurrency boundary, not merely a web API.
 
-### Chapter 15: Client Surfaces, Daemon Lifecycle, and Remote Control
+### Chapter 15: SDKs, Daemon, and Remote Control
 
 - Distinguishes protocol schema, Rust app-server client, Python app-server SDK,
   TypeScript `codex exec` SDK, daemon lifecycle, and remote-control transport.

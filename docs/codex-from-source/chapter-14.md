@@ -40,10 +40,30 @@ client only sent commands, the runtime could not ask it for decisions. The
 contract is bidirectional because an agent runtime is bidirectional: it
 produces observations and sometimes needs fresh authority before continuing.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-14-01-en.svg" alt="The app-server contract routes client connections through transport adapters, message processing, resource-scoped queues, request processors, core threads, and thread listeners before anything becomes a public update." loading="lazy" />
-  <figcaption>The app-server contract routes client connections through transport adapters, message processing, resource-scoped queues, request processors, core threads, and thread listeners before anything becomes a public update.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    Client[Client connection]
+    Transport[Transport adapter]
+    Processor[Message processor]
+    Queue[Resource scoped queue]
+    Request[Request processor]
+    Thread[Core thread]
+    Listener[Thread listener]
+    Sender[Outgoing sender]
+
+    Client --> Transport
+    Transport --> Processor
+    Processor --> Queue
+    Queue --> Request
+    Request --> Thread
+    Thread --> Listener
+    Listener --> Sender
+    Sender --> Transport
+    Transport --> Client
+
+    Processor -. initialization and gates .-> Sender
+    Listener -. notifications and requests .-> Sender
+```
 
 The diagram hides many concrete request families, but it shows the governing
 idea. Incoming bytes are not allowed to reach core directly. They pass through
@@ -102,12 +122,6 @@ resume, a process operation, and a filesystem watch update can interfere with
 different resources. The app-server uses resource-scoped serialization so it
 does not have to choose between unsafe concurrency and a single global lock.
 
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-14-concept-1-en.svg" alt="Request serialization is the pressure point tying ordered thread work to event mapping, replay, server-to-client requests, backpressure, and derived status." loading="lazy" />
-  <figcaption>Request serialization is the pressure point tying ordered thread work to event mapping, replay, server-to-client requests, backpressure, and derived status.</figcaption>
-</figure>
-
 | Serialization scope | Why it exists |
 | --- | --- |
 | Global state | Prevent conflicting updates to shared configuration or account state. |
@@ -122,7 +136,8 @@ which resource would this request serialize with? Only then does it call the
 processor that performs the operation.
 
 ```text
-// Pseudocode - illustrative pattern.
+pseudocode: message handling
+
 when a transport message arrives:
     parse the protocol envelope
     find the connection state
@@ -182,10 +197,25 @@ active, input-pending, or in a system-error state. Still others are
 bidirectional: a file change or command approval cannot continue until the
 client answers.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-14-02-en.svg" alt="Event mapping translates core runtime events into server notifications, server requests, derived status, replayable history, and pending response tracking for the client contract." loading="lazy" />
-  <figcaption>Event mapping translates core runtime events into server notifications, server requests, derived status, replayable history, and pending response tracking for the client contract.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    CoreEvent[Core runtime event]
+    Classify{How should clients see it?}
+    Notify[Server notification]
+    Ask[Server request]
+    Status[Derived thread status]
+    History[History reconstruction]
+    Pending[Pending response tracker]
+
+    CoreEvent --> Classify
+    Classify --> Notify
+    Classify --> Ask
+    Classify --> Status
+    Notify --> History
+    Ask --> Pending
+    Status --> Notify
+    Pending --> CoreEvent
+```
 
 This mapping layer is also where the app-server protects clients from internal
 churn. The core can add a more detailed event or change its internal rollout
@@ -219,12 +249,6 @@ approvals, pending user input, system errors, and listener history.
 Server requests are the part of the contract that most clearly separates an
 agent runtime from a conventional service. The server can ask the client to do
 something before the runtime continues.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-14-concept-2-en.svg" alt="Server-to-client requests make approval, input, elicitation, client-owned tools, and auth refresh part of tracked turn state rather than hidden callbacks." loading="lazy" />
-  <figcaption>Server-to-client requests make approval, input, elicitation, client-owned tools, and auth refresh part of tracked turn state rather than hidden callbacks.</figcaption>
-</figure>
 
 Common request families include:
 

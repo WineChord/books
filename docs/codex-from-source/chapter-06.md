@@ -20,10 +20,40 @@ interesting subsystem is nearby: hooks inspect input, skills and plugins
 inject context, the model client streams events, the tool router dispatches
 side effects, persistence records items, and telemetry observes progress.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-06-01-en.svg" alt="A turn is a controlled loop: context is recorded before sampling, streamed items become durable evidence, and follow-up work re-enters through explicit observations or hooks." loading="lazy" />
-  <figcaption>A turn is a controlled loop: context is recorded before sampling, streamed items become durable evidence, and follow-up work re-enters through explicit observations or hooks.</figcaption>
-</figure>
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Session
+    participant Hooks
+    participant Context
+    participant Model
+    participant Tools
+    participant Store
+
+    Client->>Session: submit user operation
+    Session->>Session: resolve turn context
+    Session->>Hooks: inspect startup and prompt
+    Session->>Context: record user input and injected context
+    loop until completion
+        Session->>Model: sample from recorded history
+        Model-->>Session: stream response events
+        Session->>Store: persist and emit stream-derived items
+        alt model requests tools
+            Session->>Tools: dispatch calls with cancellation
+            Tools-->>Session: observations or structured failures
+            Session->>Context: record observations
+        end
+        alt context is too large and follow-up is needed
+            Session->>Context: compact and reset model session if needed
+        end
+        alt pending input is allowed
+            Session->>Hooks: inspect pending input
+            Session->>Context: record accepted input
+        end
+    end
+    Session->>Hooks: run stop and after-agent hooks
+    Session-->>Client: turn completion events
+```
 
 This diagram is intentionally circular. Codex becomes an agent because model
 output can change the next model input through tools, observations, compaction,
@@ -37,13 +67,6 @@ possibly reusing prewarmed transport state. It evaluates pre-sampling
 compaction when the existing context is already under token pressure. It
 collects turn context candidates so accepted replay can later record which
 settings surrounded this turn.
-
-
-<p class="sketch-intro">The turn-loop board should be read before the first model request: each node is a way the runtime can create the next unit of work.</p>
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-06-concept-1-en.svg" alt="Preparation before sampling is where the turn becomes a state machine: streaming, tools, pending input, compaction, and stop hooks all feed the next runtime decision." loading="lazy" />
-  <figcaption>Preparation before sampling is where the turn becomes a state machine: streaming, tools, pending input, compaction, and stop hooks all feed the next runtime decision.</figcaption>
-</figure>
 
 It then resolves turn-scoped extension context. Explicit skill mentions can
 become injected instructions. Plugin and app mentions can require an inventory
@@ -71,10 +94,28 @@ sample the model, stream and persist facts, dispatch tools when requested,
 record observations, repair context when needed, inspect stop hooks, and then
 either continue or settle.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-06-02-en.svg" alt="The turn loop advances only when a recorded condition exists: streamed output, tool observations, compaction pressure, pending input, stop-hook context, or final settlement." loading="lazy" />
-  <figcaption>The turn loop advances only when a recorded condition exists: streamed output, tool observations, compaction pressure, pending input, stop-hook context, or final settlement.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    StartState([Start])
+    EndState([End])
+    StartState --> Prepare
+    Prepare -->|prompt hook rejects| Blocked
+    Prepare -->|hooks accepted, context and input recorded| Sample
+    Sample -->|provider accepts request| Stream
+    Sample -->|cancellation or fatal request error| Abort
+    Stream -->|completed tool calls| DispatchTools
+    Stream -->|follow-up needed and context limit hit| Compact
+    Stream -->|no immediate follow-up| StopHooks
+    DispatchTools --> RecordObservations
+    RecordObservations -->|continuation would overflow context| Compact
+    RecordObservations -->|tool observations recorded| Sample
+    Compact -->|compacted history installed| Sample
+    StopHooks -->|hook adds model-visible context| Sample
+    StopHooks -->|no continuation reason remains| Complete
+    Blocked --> EndState
+    Abort --> EndState
+    Complete --> EndState
+```
 
 The loop has one governing rule: continue only for a concrete reason. The
 reason may be tool follow-up, accepted pending input, compaction, or a stop
@@ -165,12 +206,6 @@ Users and clients can send input while the model is already working. Codex
 does not blindly append it to the prompt. Pending input is queued, inspected by
 hooks, and either accepted into the current continuation path, requeued for a
 later boundary, or blocked with additional context.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-06-concept-2-en.svg" alt="Pending input and interruption share one ownership boundary: the active turn records why work stopped, queues what comes next, and leaves the following turn a durable handoff." loading="lazy" />
-  <figcaption>Pending input and interruption share one ownership boundary: the active turn records why work stopped, queues what comes next, and leaves the following turn a durable handoff.</figcaption>
-</figure>
 
 Interruptions use the same discipline. The active turn holds cancellation
 state, and long-running work observes child cancellation tokens. Model streams,

@@ -30,10 +30,18 @@ execution request that can be governed. The convergence is important because
 command policy, sandboxing, and approval should not depend on which client
 surface happened to expose the command.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-10-01-en.svg" alt="Shell execution is a chain of custody: the command is parsed, policy and hooks narrow it, the selected sandbox runs a managed process, and ordered output returns as evidence." loading="lazy" />
-  <figcaption>Shell execution is a chain of custody: the command is parsed, policy and hooks narrow it, the selected sandbox runs a managed process, and ordered output returns as evidence.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Call[tool call] --> Parse[parse command and arguments]
+    Parse --> Classify[classify safety and policy]
+    Classify --> Hooks[pre-tool and permission hooks]
+    Hooks --> Approval[approval or rejection]
+    Approval --> Sandbox[permission profile to sandbox attempt]
+    Sandbox --> Env[environment and exec-server backend]
+    Env --> Process[managed process]
+    Process --> Output[sequenced output and exit]
+    Output --> Events[events, telemetry, model result]
+```
 
 This is the shell execution chain in one picture. No single box is enough to
 make command execution safe or explainable; the safety comes from the order and
@@ -46,12 +54,6 @@ to extract the shell and script, lower common shell forms into command tokens,
 and identify known-safe read-only patterns. The goal is not to understand every
 possible shell program. The goal is to build enough structure to apply policy
 without pretending that a raw string is already a decision.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-10-concept-1-en.svg" alt="Parsing is the bridge into policy: command shape, executor filesystem access, ordered output, and environment are all understood before execution is allowed." loading="lazy" />
-  <figcaption>Parsing is the bridge into policy: command shape, executor filesystem access, ordered output, and environment are all understood before execution is allowed.</figcaption>
-</figure>
 
 After parsing, Codex consults exec policy. The current policy engine uses
 prefix rules, optional host-executable metadata, and explicit decisions such as
@@ -78,12 +80,6 @@ the tool handler. It provides a small JSON-RPC process and filesystem service:
 initialize a connection, start a managed process, read output by sequence,
 write stdin when supported, terminate a process, and perform filesystem
 operations through an executor filesystem interface.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-10-concept-2-en.svg" alt="exec-server keeps execution placement behind one boundary: policy chooses the attempt, the executor owns process/filesystem operations, and sequenced output becomes replayable evidence." loading="lazy" />
-  <figcaption>exec-server keeps execution placement behind one boundary: policy chooses the attempt, the executor owns process/filesystem operations, and sequenced output becomes replayable evidence.</figcaption>
-</figure>
 
 Local execution and remote execution share this shape. A local executor can
 spawn processes on the user's machine. A remote executor can register with a
@@ -137,12 +133,6 @@ accept stdin, update terminal state, exit, and later be read again by a client.
 The runtime therefore tracks output with sequence cursors. A caller can ask
 for chunks after a known sequence number, wait for more output, or learn that
 the process has exited.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-10-concept-3-en.svg" alt="Command output is sequenced state, not an afterthought: stdout, stderr, exit status, truncation, and ordering all become part of the runtime record." loading="lazy" />
-  <figcaption>Command output is sequenced state, not an afterthought: stdout, stderr, exit status, truncation, and ordering all become part of the runtime record.</figcaption>
-</figure>
 
 This matters for replay and UI correctness. A terminal UI, a headless exec
 client, and an app-server client can all observe progress without each

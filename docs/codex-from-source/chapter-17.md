@@ -39,10 +39,27 @@ use characters that are awkward for model tool calling, or expose tools whose
 origin matters for approval, sandboxing, and user explanation. Codex therefore
 treats naming as an adaptation step, not as a string copied from the server.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-17-01-en.svg" alt="MCP creates a naming boundary: configured servers keep raw identity, model-visible names are sanitized, and provenance records route calls back to the owning server." loading="lazy" />
-  <figcaption>MCP creates a naming boundary: configured servers keep raw identity, model-visible names are sanitized, and provenance records route calls back to the owning server.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    Config["MCP config and built-ins"]
+    Effective["Effective server definitions"]
+    Client["Managed MCP clients"]
+    Listing["Tool listings"]
+    Sanitize["Sanitized model names"]
+    Model["Model tool call"]
+    Route["Route by provenance"]
+    Server["Owning MCP server"]
+    Observe["Tool observation"]
+
+    Config --> Effective
+    Effective --> Client
+    Client --> Listing
+    Listing --> Sanitize
+    Sanitize --> Model
+    Model --> Route
+    Route --> Server
+    Server --> Observe
+```
 
 This diagram shows why MCP is a protocol boundary rather than a direct function
 registry. Discovery, naming, and routing are separate operations.
@@ -73,13 +90,6 @@ whole runtime. It should produce status, warnings, or absent tools.
 Discovery produces model-facing tool specs, but execution uses provenance. A
 safe mental model is:
 
-
-<p class="sketch-intro">The routing board is the missing algorithmic view: it shows how an MCP tool name remains tied to the server that produced it even after the model sees a sanitized surface.</p>
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-17-concept-1-en.svg" alt="Discovery and routing are one algorithm: startup produces listings, names are sanitized for the model, provenance remembers ownership, and observations are shaped on the way back." loading="lazy" />
-  <figcaption>Discovery and routing are one algorithm: startup produces listings, names are sanitized for the model, provenance remembers ownership, and observations are shaped on the way back.</figcaption>
-</figure>
-
 ```text
 // Pseudocode - illustrative pattern.
 for each effective_server:
@@ -98,7 +108,7 @@ when model_calls(public_name, arguments):
     return shape_observation(result)
 ```
 
-The sketch and pseudocode above name the concrete connection manager and exposure code.
+The source map above names the concrete connection manager and exposure code.
 The invariant is the point: the model never becomes the authority on which
 server receives a call. The runtime resolves that through the provenance table
 it created during discovery.
@@ -124,12 +134,6 @@ not as model-visible functions by default. That distinction matters because a
 resource can become context, a tool can become a side effect, and a template
 can become a parameterized read. Their permission and display stories are not
 identical.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-17-concept-2-en.svg" alt="Resources and templates use the same MCP clients but not the same semantics as tools: they read context, preserve provenance, and avoid pretending every external capability is a side effect." loading="lazy" />
-  <figcaption>Resources and templates use the same MCP clients but not the same semantics as tools: they read context, preserve provenance, and avoid pretending every external capability is a side effect.</figcaption>
-</figure>
 
 The connection manager therefore serves several families of requests: list
 servers, list tools, call a tool, read a resource, list templates, resolve
@@ -169,12 +173,6 @@ can fail to start, an OAuth token can expire, a tool listing can time out, a
 resource read can be denied, or an elicitation can be cancelled. The runtime
 should preserve those differences because they lead to different recovery
 paths.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-17-concept-3-en.svg" alt="MCP failure is localized: optional servers can fail, tools can disappear, and calls can error without collapsing the core turn loop." loading="lazy" />
-  <figcaption>MCP failure is localized: optional servers can fail, tools can disappear, and calls can error without collapsing the core turn loop.</figcaption>
-</figure>
 
 | Failure | Runtime meaning | User-visible recovery |
 | --- | --- | --- |

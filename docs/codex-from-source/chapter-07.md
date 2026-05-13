@@ -16,10 +16,34 @@ transports, model catalogs, realtime sessions, and backend task workflows.
 The provider path is easiest to understand as five layers plus specialized
 integrations.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-07-01-en.svg" alt="Provider data, catalogs, runtime auth, typed APIs, and transports stay in separate layers so the turn loop receives normalized response events instead of provider mechanics." loading="lazy" />
-  <figcaption>Provider data, catalogs, runtime auth, typed APIs, and transports stay in separate layers so the turn loop receives normalized response events instead of provider mechanics.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Config["configuration\nprovider data, model choice"]
+    ProviderInfo["provider registry\nserializable metadata"]
+    RuntimeProvider["runtime provider\nauth, account, capabilities"]
+    Catalog["model catalog\nbundled + remote + cache"]
+    Api["typed API layer\nResponses, Compact, Models, Realtime"]
+    Transport["transport\nHTTP, SSE, WebSocket, retries"]
+    Events["normalized response events"]
+    Turn["turn loop"]
+
+    Backend["backend task client\ncloud tasks, usage, requirements"]
+    Local["local providers\nOllama, LM Studio"]
+    Realtime["realtime\nmedia plane + sideband control"]
+
+    Config --> ProviderInfo
+    ProviderInfo --> RuntimeProvider
+    RuntimeProvider --> Catalog
+    RuntimeProvider --> Api
+    Catalog --> Turn
+    Api --> Transport
+    Transport --> Events
+    Events --> Turn
+
+    RuntimeProvider --> Local
+    Api --> Realtime
+    Config --> Backend
+```
 
 The transport layer owns HTTP details: request bodies, headers, compression,
 retry policy, idle timeouts, custom certificates, stream framing, and telemetry
@@ -64,10 +88,22 @@ The Responses path can travel over HTTP streaming or over a Responses
 WebSocket. Those transports have different mechanics, but they converge on the
 same runtime event vocabulary before returning to the turn loop.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-07-02-en.svg" alt="HTTP SSE frames and WebSocket session messages carry the same prompt and tool request into a transport parser that returns ResponseEvent items for the turn loop." loading="lazy" />
-  <figcaption>HTTP SSE frames and WebSocket session messages carry the same prompt and tool request into a transport parser that returns ResponseEvent items for the turn loop.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    Prompt["prompt + tools + options"]
+    Http["HTTP request\nSSE frames"]
+    Ws["WebSocket session\nrequest messages"]
+    Parser["transport parser"]
+    ResponseEvents["ResponseEvent stream\nitems, deltas, usage, errors"]
+    Runtime["turn loop"]
+
+    Prompt --> Http
+    Prompt --> Ws
+    Http --> Parser
+    Ws --> Parser
+    Parser --> ResponseEvents
+    ResponseEvents --> Runtime
+```
 
 The WebSocket path can reuse session state and reduce per-turn setup cost. The
 HTTP path remains necessary for providers that do not support WebSockets, for
@@ -124,12 +160,6 @@ make policy decisions elsewhere.
 Model metadata is not just a picker list. It shapes context limits,
 auto-compaction thresholds, reasoning controls, supported input modalities,
 default choices, collaboration modes, visibility, and provider compatibility.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-07-concept-1-en.svg" alt="Model metadata is runtime infrastructure because cache overlays, auth visibility, context limits, and capability flags determine which model facts the turn loop may trust." loading="lazy" />
-  <figcaption>Model metadata is runtime infrastructure because cache overlays, auth visibility, context limits, and capability flags determine which model facts the turn loop may trust.</figcaption>
-</figure>
 
 Codex treats model metadata as cache plus overlay. A bundled catalog gives the
 runtime a baseline. Eligible providers can refresh remote model lists and
@@ -196,10 +226,27 @@ read backend-managed requirements, and retrieve diffs or sibling turns. Those
 APIs may share auth and base URL concerns with model providers, but they are
 not the Responses stream.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-07-03-en.svg" alt="Inference transports return response events for local turns, while backend task APIs manage cloud task lifecycle, attempts, diffs, and apply semantics on a separate product path." loading="lazy" />
-  <figcaption>Inference transports return response events for local turns, while backend task APIs manage cloud task lifecycle, attempts, diffs, and apply semantics on a separate product path.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    Turn[Local turn loop]
+    Prompt[Model prompt and tools]
+    Inference[Inference transport\nSSE or WebSocket]
+    Events[Response events]
+
+    CloudUI[Cloud CLI or TUI]
+    TaskAPI[Backend task API]
+    TaskState[Tasks, attempts, diffs]
+    Apply[Local patch apply]
+
+    Turn --> Prompt
+    Prompt --> Inference
+    Inference --> Events
+    Events --> Turn
+
+    CloudUI --> TaskAPI
+    TaskAPI --> TaskState
+    TaskState --> Apply
+```
 
 Keeping backend tasks separate prevents a common architecture error: treating
 cloud workflow state as another model transport. A cloud task has lifecycle,

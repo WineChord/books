@@ -358,7 +358,7 @@ final component names may differ, but the reader question must remain covered.
 | 12. Hooks/Approval | Human Gate Stack | Which gates can stop or amend a command? |
 | 13. Sandboxes/Network | Containment Boundary Explorer | What changes across platform sandboxes and network modes? |
 | 14. App-Server | JSON-RPC Contract Map | How do clients share runtime ownership? |
-| 15. Client Surfaces/Daemon Lifecycle | Client Reachability Matrix | How do client surfaces reach the same contract? |
+| 15. SDK/Daemons/Remote | Client Reachability Matrix | How do SDKs and daemons reach the same contract? |
 | 16. TUI | Event Renderer Lab | How does terminal UI project runtime events? |
 | 17. MCP | External Tool Trust Plane | How does MCP add tools without runtime entanglement? |
 | 18. Skills/Plugins | Extension Provenance Explorer | Which extension type contributes which capability? |

@@ -39,10 +39,29 @@ phrased the task, how a TUI presents the child, or how a trace viewer draws the
 edge. That narrowness is what lets live runtime code and offline trace code
 reuse the same idea without sharing accidental UI policy.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-20-01-en.svg" alt="Multi-agent work stays compositional when parent and child threads are linked through graph lifecycle, mailbox delivery, and result notifications instead of shared mutable state." loading="lazy" />
-  <figcaption>Multi-agent work stays compositional when parent and child threads are linked through graph lifecycle, mailbox delivery, and result notifications instead of shared mutable state.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Parent["parent thread"]
+    SpawnTool["agent-control tool\nspawn / assign / send / close"]
+    GraphStore["graph store\nparent-child lifecycle"]
+    Child["child thread"]
+    Mailbox["mailbox delivery\nmodel-visible item"]
+    Result["result notification"]
+    Trace["interaction graph\nspawn, assign, send, result, close"]
+    Client["client surface\nTUI or app-server"]
+
+    Parent --> SpawnTool
+    SpawnTool --> GraphStore
+    GraphStore --> Child
+    SpawnTool --> Mailbox
+    Mailbox --> Child
+    Child --> Result
+    Result --> Parent
+    SpawnTool --> Trace
+    Mailbox --> Trace
+    Result --> Trace
+    Trace --> Client
+```
 
 This diagram intentionally separates graph persistence from trace reduction.
 The graph store answers operational questions such as "which descendants are
@@ -54,12 +73,6 @@ call delivered the task that produced this result?"
 An agent-control tool is not just another function call. It names another
 thread as a participant in the conversation. That is why Codex treats the main
 multi-agent actions as relationship-producing events:
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-20-concept-1-en.svg" alt="Agent-control tools create durable edges from parent tool calls to child messages, live graph state, and trace evidence, so delegation is replayable rather than just returned." loading="lazy" />
-  <figcaption>Agent-control tools create durable edges from parent tool calls to child messages, live graph state, and trace evidence, so delegation is replayable rather than just returned.</figcaption>
-</figure>
 
 | Action | Runtime meaning | Graph meaning |
 | --- | --- | --- |
@@ -98,10 +111,21 @@ explanation: which inference produced a tool call, which runtime payload
 started or ended it, which mailbox item received the message, and which parent
 notification represented the child result.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-20-02-en.svg" alt="The live graph keeps open and closed descendants small for runtime coordination, while the trace graph reduces raw events into explainable interaction edges for debuggers and clients." loading="lazy" />
-  <figcaption>The live graph keeps open and closed descendants small for runtime coordination, while the trace graph reduces raw events into explainable interaction edges for debuggers and clients.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    Raw["ordered raw events\nand payload refs"]
+    Reducer["offline reducer"]
+    Live["live graph store\nopen / closed descendants"]
+    Reduced["reduced trace graph\ninteraction edges"]
+    Viewer["debugger or client projection"]
+
+    Runtime["runtime coordination"] --> Live
+    Runtime --> Raw
+    Raw --> Reducer
+    Reducer --> Reduced
+    Live --> Runtime
+    Reduced --> Viewer
+```
 
 The live graph should remain small because it participates in the running
 system. The trace graph can be richer because it is a replay artifact. This is
@@ -152,7 +176,7 @@ procedure finish_replay():
         materialize_edge(pending_spawn, target=child_thread)
 ```
 
-The graph-store and rollout-trace reducers shown by the sketch and pseudocode implement
+The graph-store and rollout-trace reducers named in the source map implement
 the concrete version of this queue. The reducer does not force all events into
 an immediate edge. It waits until the best target is known, then falls back
 only where the runtime evidence still proves a real relationship.
@@ -184,12 +208,6 @@ appeared in the parent thread. Codex therefore emits collaboration events in
 addition to mutating thread state. Those events let clients render child
 status, mailbox deliveries, result notifications, and close operations without
 reverse-engineering tool output.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-20-concept-2-en.svg" alt="Spawn, send, parent notices, named participants, and event projections turn coordination into product state that clients can render and recover." loading="lazy" />
-  <figcaption>Spawn, send, parent notices, named participants, and event projections turn coordination into product state that clients can render and recover.</figcaption>
-</figure>
 
 The architectural boundary is:
 

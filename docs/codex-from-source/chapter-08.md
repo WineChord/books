@@ -62,10 +62,24 @@ ordered raw events and stores larger raw payloads separately. The hot path does
 not try to build the final explanation graph while the session is running. It
 captures facts and leaves interpretation to an offline reducer.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-01-en.svg" alt="Rollout trace records ordered events and raw payload files from runtime sources, then leaves explanation graphs to an offline reducer." loading="lazy" />
-  <figcaption>Rollout trace records ordered events and raw payload files from runtime sources, then leaves explanation graphs to an offline reducer.</figcaption>
-</figure>
+```mermaid
+flowchart TD
+    Runtime["runtime sources\nturns, inference, tools, terminal, agents"]
+    Context["trace context\nroot and child threads"]
+    Writer["trace writer\nsequence numbers"]
+    Events["raw event log"]
+    Payloads["raw payload files"]
+    Reducer["offline reducer"]
+    Graph["reduced graph\nthreads, turns, items, tools, terminals, edges"]
+
+    Runtime --> Context
+    Context --> Writer
+    Writer --> Events
+    Writer --> Payloads
+    Events --> Reducer
+    Payloads --> Reducer
+    Reducer --> Graph
+```
 
 Raw trace data can include prompts, model responses, tool inputs and outputs,
 terminal output, runtime payloads, and paths. It therefore belongs to local
@@ -80,10 +94,25 @@ agent threads, Codex turns, model-visible conversation items, inference calls,
 tool calls, code cells, terminal operations, compactions, and interaction
 edges. Each object can retain references back to raw payloads.
 
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-02-en.svg" alt="The strict reducer turns raw model, runtime, and terminal payloads into separate model-visible items, runtime objects, and causal interaction edges without flattening them into a transcript." loading="lazy" />
-  <figcaption>The strict reducer turns raw model, runtime, and terminal payloads into separate model-visible items, runtime objects, and causal interaction edges without flattening them into a transcript.</figcaption>
-</figure>
+```mermaid
+flowchart LR
+    RawModel["raw model payloads"]
+    RawRuntime["raw runtime payloads"]
+    RawTerminal["raw terminal payloads"]
+    Reducer["strict reducer"]
+    Conversation["conversation items\nwhat the model saw"]
+    RuntimeObjects["runtime objects\ntools, terminals, compactions"]
+    Edges["interaction edges\ncausal flow"]
+    Refs["raw payload references"]
+
+    RawModel --> Reducer
+    RawRuntime --> Reducer
+    RawTerminal --> Reducer
+    Reducer --> Conversation
+    Reducer --> RuntimeObjects
+    Reducer --> Edges
+    Reducer --> Refs
+```
 
 This distinction prevents a common debugging mistake. Runtime output is not
 automatically model-visible output. A terminal operation may produce bytes that
@@ -99,12 +128,6 @@ strict where consistency matters: referenced payloads must exist, sequence
 order must be respected, tool starts and completions must match, terminal
 operations must attach to known runtime objects, turns must belong to known
 threads, and pending edges must eventually find their source or target.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-concept-1-en.svg" alt="Strict reduction preserves the principle that Codex observes first, then derives product analytics, operational telemetry, debug context, and local logs for different audiences." loading="lazy" />
-  <figcaption>Strict reduction preserves the principle that Codex observes first, then derives product analytics, operational telemetry, debug context, and local logs for different audiences.</figcaption>
-</figure>
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -153,12 +176,6 @@ debugging. They can measure request latency, stream polling behavior,
 WebSocket events, retry behavior, session-scoped events, counters, histograms,
 and exported spans. Trace context can propagate across boundaries so a
 submission, model call, and downstream runtime operation remain correlated.
-
-
-<figure class="sketch-figure">
-  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-concept-2-en.svg" alt="OTEL belongs to the operational plane, where runtime owners track latency, retries, stream behavior, and propagated trace context without turning telemetry into replay truth." loading="lazy" />
-  <figcaption>OTEL belongs to the operational plane, where runtime owners track latency, retries, stream behavior, and propagated trace context without turning telemetry into replay truth.</figcaption>
-</figure>
 
 This plane is about performance and reliability. It should not be treated as
 the durable transcript, and it should not require the product analytics model

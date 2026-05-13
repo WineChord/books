@@ -1564,8 +1564,8 @@ export const chapterVisualSpecs = [
     id: "ch15-client-reachability",
     number: 15,
     displayName: {
-      en: "Client Surfaces, Daemon Lifecycle, and Remote Control",
-      zh: "客户端表面、Daemon 生命周期与远程控制",
+      en: "SDKs, Daemons, and Remote",
+      zh: "SDK、Daemon 与远程控制",
     },
     concept: {
       en: "Different clients reach the same app-server contract through different transports.",
@@ -1573,8 +1573,8 @@ export const chapterVisualSpecs = [
     },
     component: "ClientReachabilityMatrix",
     readerQuestion: {
-      en: "How do client surfaces reach the same contract?",
-      zh: "不同客户端表面如何到达同一份契约？",
+      en: "How do SDKs and daemons reach the same contract?",
+      zh: "SDK 和 daemon 如何到达同一个 contract？",
     },
     secondaryDiagrams: [
       "SDK facade comparison",
@@ -1740,7 +1740,7 @@ export const chapterVisualSpecs = [
     comprehensionChecks: [
       check(
         "What should happen when a command approval event arrives?",
-        "The UI projects an approval view while runtime waits on decision input.",
+        "The UI projects an approval surface while runtime waits on decision input.",
         "Approval popup state",
         "Source anchors: codex-rs/tui/src/app_event.rs; codex-rs/tui/src/chatwidget.rs",
         "The UI decides approval by itself.",
