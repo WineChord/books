@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-10-concept-1-zh desc-chapter-10-concept-1-zh">
+  <title id="title-chapter-10-concept-1-zh">先解析，再做策略判断</title>
+  <desc id="desc-chapter-10-concept-1-zh">先解析，再做策略判断的手绘白板图，展示exec-server 定义工作位置、执行器文件访问、有序输出、环境契约、执行前先过策略之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-10-concept-1-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 50.5 22.9 L 1229.4 19.6 L 1258.6 50.6 L 1259.7 651.6 L 1229.0 676.0 L 49.6 676.4 L 23.3 650.6 L 23.3 49.5 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-10-concept-1-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">先解析，再做策略判断</text>
+    <path d="M 64.0 166.0 C 470.7 170.3, 883.1 164.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 269.9 165.6, 244.5 607.5, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1016.8 162.5, 1005.4 617.6, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 625.9 192.3, 626.8 234.0, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 625.7 258.6, 655.5 276.8, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 645.3 330.3, 654.5 364.7, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 652.9 399.2, 629.0 403.1, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 278.4 160.4 L 1003.0 161.2 L 1021.6 178.9 L 1021.6 192.2 L 1001.4 207.5 L 275.9 207.1 L 262.0 191.7 L 260.0 178.5 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 277.4 164.1 L 1000.5 165.2 L 1013.6 181.4 L 1016.7 191.4 L 1002.6 203.9 L 281.1 201.9 L 266.2 186.8 L 263.6 178.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">exec server 定义工作位置</text>
+  </g>
+<g>
+    <path d="M 324.9 225.6 L 953.4 224.0 L 970.5 239.8 L 973.9 254.5 L 957.4 273.6 L 326.1 272.9 L 307.6 251.6 L 308.1 241.7 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 327.9 230.4 L 951.6 228.9 L 967.2 245.4 L 970.4 250.9 L 954.1 269.3 L 326.4 265.8 L 308.6 254.4 L 311.6 244.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">执行器文件访问</text>
+  </g>
+<g>
+    <path d="M 337.4 287.5 L 943.6 285.9 L 960.5 304.9 L 962.9 319.3 L 942.5 337.2 L 335.4 336.2 L 319.5 319.7 L 320.3 305.2 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 338.2 293.8 L 940.7 291.6 L 957.3 304.9 L 959.3 319.2 L 943.0 331.9 L 336.0 330.3 L 320.8 316.0 L 321.6 308.1 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">有序输出</text>
+  </g>
+<g>
+    <path d="M 347.7 352.6 L 929.4 350.4 L 947.2 371.2 L 949.3 379.6 L 932.8 402.2 L 347.0 399.4 L 330.1 384.1 L 332.9 368.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 348.6 355.3 L 927.7 356.9 L 943.7 370.3 L 945.9 382.1 L 927.7 397.5 L 352.4 398.4 L 332.9 379.0 L 336.8 370.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">环境契约</text>
+  </g>
+<g>
+    <path d="M 280.4 414.6 L 1001.4 415.4 L 1018.4 434.1 L 1019.3 444.4 L 1003.9 462.9 L 276.5 465.3 L 259.8 446.0 L 258.0 431.5 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 276.9 418.1 L 998.5 417.7 L 1017.9 435.4 L 1015.7 444.2 L 1000.3 457.9 L 278.4 458.1 L 265.3 444.6 L 265.2 436.0 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="448" font-size="18" fill="#171717" font-weight="750">执行前先过策略</text>
+  </g>
+  </g>
+</svg>

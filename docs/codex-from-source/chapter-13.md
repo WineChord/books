@@ -13,21 +13,11 @@ as that operating system allows.
 
 ## Policy, Transform, Enforcement
 
-```mermaid
-flowchart LR
-    Profile[permission profile] --> Split[filesystem and network policy]
-    Split --> Select[select sandbox type]
-    Select --> Transform[transform command and environment]
-    Transform --> Platform{platform helper}
-    Platform --> Mac[macOS Seatbelt]
-    Platform --> Linux[Linux bwrap, namespaces, seccomp]
-    Platform --> Windows[Windows token, ACL, firewall, WFP]
-    Platform --> None[no platform sandbox]
-    Mac --> Result[execution metadata and result]
-    Linux --> Result
-    Windows --> Result
-    None --> Result
-```
+<p class="sketch-intro">Read this as a policy compiler, not one sandbox: the same permission profile can produce different enforcement paths on different platforms.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-13-01-en.svg" alt="Sandboxing starts from one permission profile, then branches through platform helpers; even the no-sandbox path is explicit and still returns execution metadata." loading="lazy" />
+  <figcaption>Sandboxing starts from one permission profile, then branches through platform helpers; even the no-sandbox path is explicit and still returns execution metadata.</figcaption>
+</figure>
 
 This is not one sandbox. It is a policy compiler plus several enforcement
 backends. The compiler is cross-platform. Enforcement is platform-specific.
@@ -48,6 +38,12 @@ profiles as the primary unit. A profile can describe filesystem access,
 network behavior, additional granted permissions, and active modifications for
 a turn or session. The runtime then projects the profile into a filesystem
 sandbox policy and a network sandbox policy.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-13-concept-1-en.svg" alt="Permission profiles are the unit of governance: base rights, extra grants, filesystem policy, network policy, platform transforms, and executor commands move together." loading="lazy" />
+  <figcaption>Permission profiles are the unit of governance: base rights, extra grants, filesystem policy, network policy, platform transforms, and executor commands move together.</figcaption>
+</figure>
 
 Additional permissions are merged before enforcement. A tool may ask for a
 specific writable root or network access. The granted subset is intersected
@@ -90,6 +86,12 @@ platform sandbox runner. The generated profile represents readable roots,
 writable roots, protected metadata, denied read patterns, allowed sockets, and
 network proxy allowances. The sandbox runner path is not discovered through
 the user shell's `PATH`; it is a platform boundary, not a convenience command.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-13-concept-2-en.svg" alt="Seatbelt is generated from the effective permission profile, so allowed roots, network sockets, the fixed runner, and fail-closed behavior stay tied to one policy source." loading="lazy" />
+  <figcaption>Seatbelt is generated from the effective permission profile, so allowed roots, network sockets, the fixed runner, and fail-closed behavior stay tied to one policy source.</figcaption>
+</figure>
 
 Seatbelt is good at expressing file access and selected socket allowances, but
 the runtime still has to prepare the policy carefully. Path normalization,
@@ -139,6 +141,12 @@ and SOCKS listeners, inject proxy environment, evaluate host/domain policy,
 enforce limited methods where visible, ask a decider for approval, and emit
 audit records. It can also be paired with platform forcing so a sandboxed
 command has no easy route except through the proxy.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-13-concept-3-en.svg" alt="Managed network policy is narrower than a firewall: it translates runtime permissions into platform-specific network controls and reports what cannot be enforced." loading="lazy" />
+  <figcaption>Managed network policy is narrower than a firewall: it translates runtime permissions into platform-specific network controls and reports what cannot be enforced.</figcaption>
+</figure>
 
 It is not a universal packet firewall. DNS rebinding, non-proxy-aware
 programs, and host-level networking controls belong to the platform or

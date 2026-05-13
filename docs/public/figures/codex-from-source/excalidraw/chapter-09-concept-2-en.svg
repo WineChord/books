@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-09-concept-2-en desc-chapter-09-concept-2-en">
+  <title id="title-chapter-09-concept-2-en">Routing a Tool Call</title>
+  <desc id="desc-chapter-09-concept-2-en">Hand-drawn whiteboard figure for Routing a Tool Call, showing the relationship between Model tool call, Payload validation, Handler lookup, Policy gate, Supervised execution.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-09-concept-2-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 52.3 21.9 L 1229.4 21.4 L 1259.0 48.9 L 1257.6 652.3 L 1227.9 677.5 L 51.9 676.5 L 20.1 648.4 L 20.0 48.4 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-09-concept-2-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Routing a Tool Call</text>
+    <path d="M 64.0 166.0 C 457.3 174.7, 875.7 144.3, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 259.2 135.0, 265.9 617.9, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1011.6 165.5, 1020.8 616.1, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 652.4 201.5, 654.7 234.6, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 630.6 261.3, 634.6 278.8, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 627.8 336.5, 648.6 350.6, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 626.0 395.3, 636.5 422.6, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 650.8 474.6, 646.4 483.5, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 279.9 162.5 L 1001.5 159.7 L 1021.5 177.9 L 1021.9 187.6 L 1001.8 207.8 L 275.6 208.1 L 262.4 190.4 L 258.1 177.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.5 164.2 L 1002.9 162.6 L 1014.2 180.6 L 1016.4 186.7 L 1000.9 202.1 L 278.7 203.6 L 262.8 188.8 L 266.4 181.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">Model tool call</text>
+  </g>
+<g>
+    <path d="M 327.2 226.0 L 957.0 224.0 L 972.4 239.7 L 973.7 254.2 L 952.7 272.9 L 326.2 272.2 L 306.6 252.0 L 308.7 241.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 328.4 229.3 L 952.7 225.8 L 968.3 244.4 L 969.0 252.5 L 951.6 266.2 L 328.2 269.8 L 310.4 251.2 L 310.2 245.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">Payload validation</text>
+  </g>
+<g>
+    <path d="M 335.3 290.0 L 943.0 290.3 L 958.8 304.7 L 959.0 319.0 L 945.2 335.0 L 338.9 338.2 L 320.7 318.4 L 320.2 305.0 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 336.6 291.7 L 939.9 290.8 L 957.1 307.6 L 957.2 315.4 L 944.1 334.2 L 339.0 333.4 L 322.8 316.1 L 321.1 308.2 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">Handler lookup</text>
+  </g>
+<g>
+    <path d="M 348.1 350.7 L 931.0 354.5 L 948.9 369.6 L 948.8 380.0 L 931.2 398.3 L 349.3 400.8 L 333.4 380.7 L 329.6 369.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 349.5 355.8 L 928.7 353.9 L 942.8 368.8 L 947.5 381.3 L 929.4 395.1 L 351.1 397.5 L 336.8 380.8 L 333.3 368.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">Policy gate</text>
+  </g>
+<g>
+    <path d="M 360.6 414.1 L 919.8 415.9 L 937.1 432.3 L 937.3 448.1 L 918.3 466.1 L 361.1 464.0 L 343.1 446.8 L 343.9 433.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 360.8 420.1 L 915.9 421.3 L 932.1 436.7 L 933.6 444.3 L 917.9 460.6 L 363.3 461.6 L 347.7 444.1 L 345.1 434.8 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">Supervised execution</text>
+  </g>
+<g>
+    <path d="M 277.6 479.1 L 1002.4 479.9 L 1022.2 497.7 L 1019.4 509.6 L 1000.5 525.7 L 279.7 525.7 L 260.7 508.4 L 259.9 496.6 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 276.6 486.1 L 1000.6 483.3 L 1015.7 496.5 L 1015.2 507.8 L 1001.9 523.9 L 281.4 525.8 L 263.9 508.6 L 265.4 497.5 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">Model visible result</text>
+  </g>
+  </g>
+</svg>

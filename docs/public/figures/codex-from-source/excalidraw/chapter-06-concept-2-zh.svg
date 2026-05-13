@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680" role="img" aria-labelledby="title-chapter-06-concept-2-zh desc-chapter-06-concept-2-zh">
+  <title id="title-chapter-06-concept-2-zh">待处理输入与中断</title>
+  <desc id="desc-chapter-06-concept-2-zh">待处理输入与中断的手绘白板图，展示活动 Turn owner、用户中断、待处理输入队列、取消流与工具、持久中断事件之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-06-concept-2-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="680" rx="30" fill="#fffdf7" />
+  <path d="M 48.8 23.0 L 1230.2 22.0 L 1259.2 49.7 L 1257.1 629.5 L 1231.5 657.1 L 49.9 658.1 L 19.7 632.0 L 21.1 50.3 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="680" filter="url(#paper-chapter-06-concept-2-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">待处理输入与中断</text>
+    <path d="M 64.0 166.0 C 460.3 179.8, 869.4 151.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="360" rx="527" ry="263" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 510.7 302.6 L 770.0 299.7 L 796.9 323.6 L 796.8 381.0 L 773.3 403.1 L 506.7 402.0 L 487.1 379.4 L 482.7 327.0 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="342" font-size="18" fill="#171717" font-weight="800">待处理输入与中断</text>
+<path d="M 640.0 149.0 C 775.4 134.7, 905.7 265.9, 1034.0 251.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1034.0 251.5 C 1026.0 241.2, 1032.2 453.6, 1034.0 456.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1034.0 456.5 C 899.9 470.6, 757.6 573.6, 640.0 559.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 559.0 C 489.8 572.0, 351.5 463.2, 246.0 456.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 246.0 456.5 C 255.9 449.6, 253.7 251.8, 246.0 251.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 246.0 251.5 C 389.6 257.5, 534.5 133.2, 640.0 149.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 520.9 113.7 L 757.1 114.8 L 773.1 132.5 L 773.1 165.9 L 754.6 183.6 L 524.2 183.6 L 505.1 167.7 L 505.1 133.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 524.2 117.7 L 755.2 119.5 L 772.9 131.3 L 773.4 164.6 L 758.0 181.9 L 525.4 183.3 L 510.6 167.1 L 510.5 131.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="145" font-size="18" fill="#171717" font-weight="750">活动 Turn</text>
+<text x="523" y="167.5" font-size="18" fill="#171717" font-weight="750">owner</text>
+  </g>
+<g>
+    <path d="M 916.1 213.9 L 1150.3 213.0 L 1166.8 234.3 L 1168.6 267.0 L 1149.1 286.3 L 918.9 286.7 L 900.0 268.7 L 901.4 234.9 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 916.0 221.3 L 1147.8 219.1 L 1165.9 232.4 L 1164.8 268.5 L 1149.9 281.7 L 919.7 282.9 L 902.0 270.3 L 904.1 235.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="917.0415587219195" y="247.5" font-size="18" fill="#171717" font-weight="750">用户中断</text>
+  </g>
+<g>
+    <path d="M 919.1 420.4 L 1149.1 421.9 L 1168.1 439.0 L 1170.0 475.2 L 1150.9 491.4 L 916.3 494.1 L 899.4 476.2 L 896.6 436.9 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 917.1 425.7 L 1152.3 425.0 L 1163.3 440.7 L 1164.0 474.4 L 1148.4 486.3 L 917.1 487.3 L 905.2 471.6 L 901.6 441.5 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="917.0415587219195" y="452.5" font-size="18" fill="#171717" font-weight="750">待处理输入队列</text>
+  </g>
+<g>
+    <path d="M 524.3 525.5 L 759.4 523.7 L 773.8 540.3 L 773.6 574.8 L 758.3 593.9 L 521.7 596.4 L 504.3 578.0 L 506.5 542.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 523.3 525.8 L 755.3 527.2 L 770.3 541.1 L 769.6 578.3 L 756.6 591.1 L 523.4 592.5 L 508.7 576.8 L 511.0 539.8 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="555" font-size="18" fill="#171717" font-weight="750">取消流与工具</text>
+  </g>
+<g>
+    <path d="M 126.5 422.2 L 365.0 420.4 L 379.4 440.2 L 382.3 474.3 L 363.4 491.4 L 129.8 494.1 L 109.2 473.7 L 111.1 436.4 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 128.2 426.5 L 360.8 422.0 L 376.4 439.1 L 377.1 473.0 L 363.2 489.1 L 130.1 486.0 L 112.5 471.4 L 115.6 437.8 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="128.9584412780805" y="452.50000000000006" font-size="18" fill="#171717" font-weight="750">持久中断事件</text>
+  </g>
+<g>
+    <path d="M 128.4 217.6 L 361.6 217.3 L 383.1 231.6 L 381.7 267.8 L 363.9 287.1 L 129.6 287.8 L 111.1 267.4 L 108.7 234.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 130.8 221.1 L 361.6 221.9 L 378.0 232.2 L 376.5 270.7 L 364.1 284.9 L 130.7 283.6 L 113.9 270.5 L 115.9 233.8 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="128.95844127808044" y="247.5" font-size="18" fill="#171717" font-weight="750">下一轮干净恢复</text>
+  </g>
+  </g>
+</svg>

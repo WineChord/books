@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-03-01-zh desc-chapter-03-01-zh">
+  <title id="title-chapter-03-01-zh">配置是一组层，不是一个文件</title>
+  <desc id="desc-chapter-03-01-zh">配置是一组层，不是一个文件的手绘白板图，展示系统或托管层、层合并、用户层、项目层、可见但禁用的层之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-03-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 47.6 20.8 L 1228.3 21.2 L 1257.3 48.4 L 1258.4 651.0 L 1229.7 678.5 L 52.4 680.1 L 22.7 650.8 L 24.0 50.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-03-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">配置是一组层，不是一个文件</text>
+    <path d="M 64.0 166.0 C 460.0 154.4, 876.5 167.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 95.4 150.2 L 396.5 150.6 L 420.5 173.2 L 420.7 595.9 L 397.3 622.1 L 92.4 619.6 L 69.6 596.8 L 68.8 172.4 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">外部表面</text>
+    </g>
+<g>
+      <path d="M 491.1 152.2 L 789.9 148.9 L 812.7 172.7 L 812.5 594.3 L 791.9 618.5 L 490.5 620.7 L 464.5 595.8 L 465.9 172.1 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">运行时契约</text>
+    </g>
+<g>
+      <path d="M 885.2 149.3 L 1187.8 148.4 L 1208.7 175.2 L 1209.6 595.2 L 1186.7 619.8 L 881.7 619.6 L 860.6 595.5 L 858.0 171.8 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">执行边界</text>
+    </g>
+<path d="M 396.0 253.0 C 423.5 239.9, 456.8 268.3, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 821.0 251.9, 851.2 254.9, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 793.6 260.7, 410.9 372.6, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 419.2 354.7, 477.7 376.8, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 832.3 370.4, 868.7 360.9, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 800.5 350.3, 429.5 468.8, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 114.1 214.2 L 378.6 216.9 L 397.2 236.1 L 398.5 273.5 L 375.9 289.9 L 111.6 288.5 L 95.1 270.5 L 96.0 231.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 110.6 222.5 L 378.2 218.8 L 391.1 236.1 L 390.1 270.7 L 379.3 286.8 L 113.0 284.4 L 95.6 268.8 L 99.6 233.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">系统或托管层</text>
+  </g>
+<g>
+    <path d="M 504.9 217.3 L 771.7 213.7 L 789.6 235.5 L 790.5 274.4 L 774.5 288.7 L 508.9 291.7 L 488.9 273.3 L 489.2 232.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 509.8 220.0 L 771.1 217.9 L 787.4 234.0 L 787.8 273.1 L 773.6 288.0 L 507.3 286.3 L 494.2 270.0 L 491.9 236.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">层合并</text>
+  </g>
+<g>
+    <path d="M 901.6 216.0 L 1166.8 215.2 L 1186.1 234.3 L 1184.3 273.1 L 1168.3 292.2 L 902.5 291.4 L 883.0 270.1 L 884.7 233.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 902.4 221.4 L 1166.3 219.4 L 1184.1 236.2 L 1180.3 272.3 L 1168.4 286.2 L 901.4 284.2 L 888.1 269.3 L 888.8 234.1 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">用户层</text>
+  </g>
+<g>
+    <path d="M 114.2 327.0 L 378.3 327.5 L 396.6 346.9 L 397.3 383.4 L 379.9 403.6 L 111.8 399.6 L 92.7 382.7 L 95.4 345.8 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 112.8 329.6 L 375.4 331.8 L 394.4 345.9 L 390.0 380.6 L 375.8 399.6 L 110.8 396.1 L 97.4 381.2 L 99.1 345.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">项目层</text>
+  </g>
+<g>
+    <path d="M 507.1 326.8 L 773.2 326.5 L 792.8 344.5 L 790.8 385.6 L 774.8 402.6 L 506.3 400.5 L 488.4 382.2 L 491.4 346.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 507.5 332.5 L 772.3 330.7 L 789.0 346.9 L 789.0 384.0 L 769.8 395.7 L 507.9 400.2 L 492.5 382.4 L 493.9 345.5 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">可见但禁用的层</text>
+  </g>
+<g>
+    <path d="M 902.6 330.3 L 1167.7 328.2 L 1187.9 347.0 L 1183.8 381.5 L 1168.4 401.6 L 902.7 400.7 L 885.0 383.5 L 885.1 344.1 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 901.9 330.4 L 1168.8 333.5 L 1183.0 344.6 L 1182.7 381.2 L 1165.8 397.5 L 903.3 398.3 L 890.4 383.7 L 888.4 347.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">会话和 CLI 覆盖项</text>
+  </g>
+<g>
+    <path d="M 114.0 440.1 L 375.8 442.1 L 393.9 456.3 L 394.1 498.2 L 378.5 513.9 L 110.8 513.5 L 93.3 494.5 L 93.7 457.1 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 113.4 441.9 L 378.6 445.3 L 394.4 458.1 L 394.4 494.7 L 374.8 510.7 L 112.6 509.3 L 96.7 494.3 L 96.4 460.1 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">线程或 Turn 更新</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-09-concept-1-en desc-chapter-09-concept-1-en">
+  <title id="title-chapter-09-concept-1-en">Specification Is Not Authority</title>
+  <desc id="desc-chapter-09-concept-1-en">Hand-drawn whiteboard figure for Specification Is Not Authority, showing the relationship between Visible spec, Handler registry, Policy envelope, Runtime authority, Tool output shaping.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-09-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 50.8 20.6 L 1228.2 22.7 L 1258.2 50.6 L 1259.5 651.5 L 1230.2 679.6 L 49.7 676.7 L 22.0 650.7 L 22.5 51.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-09-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Specification Is Not Authority</text>
+    <path d="M 64.0 166.0 C 462.6 174.2, 878.2 168.8, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 268.7 138.6, 267.6 612.5, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1017.4 135.9, 1029.3 611.5, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 630.4 209.1, 637.7 232.2, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 652.1 281.4, 636.6 277.4, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 649.8 327.3, 624.7 342.5, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 623.6 386.9, 634.5 414.1, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 279.8 160.5 L 1002.4 158.9 L 1021.6 179.3 L 1018.0 190.1 L 1004.4 209.3 L 277.5 206.9 L 258.4 188.9 L 261.2 177.1 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 281.2 164.5 L 999.2 164.1 L 1016.8 177.5 L 1013.7 189.1 L 999.6 204.2 L 276.9 205.2 L 266.2 190.7 L 264.1 178.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">Visible spec</text>
+  </g>
+<g>
+    <path d="M 325.2 224.8 L 955.2 222.8 L 973.6 243.1 L 974.3 252.5 L 953.2 271.3 L 325.2 274.3 L 306.0 252.0 L 305.2 244.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 323.8 229.5 L 955.0 227.1 L 969.3 243.3 L 968.9 251.0 L 954.0 269.2 L 325.9 267.9 L 311.9 255.1 L 309.1 241.8 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">Handler registry</text>
+  </g>
+<g>
+    <path d="M 338.9 289.4 L 942.8 289.2 L 962.3 306.2 L 958.6 319.6 L 943.5 336.9 L 334.8 335.9 L 317.5 320.4 L 320.4 305.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 338.1 290.0 L 942.0 291.8 L 958.5 304.5 L 956.0 318.3 L 940.0 332.7 L 336.3 331.4 L 325.2 314.8 L 321.2 309.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">Policy envelope</text>
+  </g>
+<g>
+    <path d="M 349.3 352.4 L 933.4 350.5 L 948.9 371.6 L 947.6 382.1 L 929.8 398.4 L 351.3 399.6 L 331.6 383.3 L 332.2 370.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 351.8 355.0 L 929.5 357.9 L 946.5 369.7 L 942.7 380.8 L 931.7 394.5 L 350.4 396.5 L 334.4 379.3 L 335.1 372.8 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">Runtime authority</text>
+  </g>
+<g>
+    <path d="M 279.0 417.2 L 1004.2 413.9 L 1018.7 435.0 L 1020.5 444.5 L 1004.3 465.0 L 278.0 462.0 L 262.3 447.0 L 258.1 433.7 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 278.3 420.7 L 1000.2 418.6 L 1013.9 437.3 L 1014.5 442.9 L 1002.6 461.5 L 277.9 458.0 L 263.7 444.7 L 262.1 436.1 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="448" font-size="18" fill="#171717" font-weight="750">Tool output shaping</text>
+  </g>
+  </g>
+</svg>

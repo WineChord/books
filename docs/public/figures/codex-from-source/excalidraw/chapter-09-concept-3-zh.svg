@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-09-concept-3-zh desc-chapter-09-concept-3-zh">
+  <title id="title-chapter-09-concept-3-zh">工具输出服务两个读者</title>
+  <desc id="desc-chapter-09-concept-3-zh">工具输出服务两个读者的手绘白板图，展示原始工具结果、客户端状态、日志与产物、模型观察结果、有边界摘要之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-09-concept-3-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 51.3 20.7 L 1228.9 20.3 L 1259.9 51.9 L 1259.2 647.7 L 1228.7 678.4 L 51.4 679.5 L 21.3 648.1 L 19.6 49.4 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-09-concept-3-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">工具输出服务两个读者</text>
+    <path d="M 64.0 166.0 C 473.1 159.3, 860.4 174.9, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 260.1 165.6, 266.6 620.2, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1004.4 139.9, 1021.5 619.0, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 637.4 192.2, 623.7 237.6, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 630.6 269.4, 649.3 299.4, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 644.9 333.8, 637.1 363.4, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 641.3 388.1, 636.0 420.1, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 655.8 456.9, 651.2 492.9, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 277.7 161.3 L 1003.8 158.7 L 1020.4 178.9 L 1018.4 191.7 L 1003.2 206.7 L 280.0 209.1 L 262.1 188.0 L 259.6 176.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.2 164.0 L 999.1 165.8 L 1017.9 180.9 L 1018.0 186.8 L 1002.5 204.7 L 277.7 205.5 L 264.1 186.8 L 266.0 176.9 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">原始工具结果</text>
+  </g>
+<g>
+    <path d="M 325.4 225.8 L 953.0 222.5 L 975.3 244.1 L 973.2 255.7 L 953.3 272.5 L 326.5 273.2 L 304.7 256.1 L 306.5 244.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 325.7 229.7 L 952.2 229.2 L 967.4 244.8 L 971.1 251.7 L 954.1 269.1 L 323.6 269.4 L 311.2 255.1 L 311.0 242.4 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">客户端状态</text>
+  </g>
+<g>
+    <path d="M 334.7 290.2 L 942.0 290.2 L 961.8 304.4 L 962.6 315.7 L 943.0 338.3 L 337.4 334.6 L 317.4 317.8 L 319.0 304.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 336.4 291.8 L 941.6 290.2 L 954.9 304.5 L 954.8 314.7 L 943.7 330.5 L 338.5 332.7 L 321.2 319.5 L 323.6 304.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">日志与产物</text>
+  </g>
+<g>
+    <path d="M 348.5 351.7 L 932.0 349.6 L 950.6 370.6 L 947.4 382.8 L 931.4 400.8 L 350.4 399.3 L 329.9 382.1 L 330.1 372.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 351.6 354.6 L 928.2 355.5 L 947.1 370.0 L 947.4 380.8 L 928.0 394.4 L 350.8 395.0 L 337.4 381.7 L 335.5 372.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">模型观察结果</text>
+  </g>
+<g>
+    <path d="M 362.5 414.5 L 919.3 416.4 L 936.6 433.0 L 934.9 447.8 L 918.1 465.5 L 361.3 461.7 L 343.6 445.8 L 344.6 434.9 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 362.8 417.6 L 920.3 418.2 L 933.7 435.6 L 932.9 446.8 L 919.0 458.8 L 363.6 459.0 L 344.8 443.7 L 346.3 436.0 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">有边界摘要</text>
+  </g>
+<g>
+    <path d="M 278.0 481.3 L 1000.0 477.7 L 1017.9 498.2 L 1017.7 511.3 L 1003.7 526.6 L 277.3 527.9 L 261.9 509.8 L 260.8 499.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 279.8 483.0 L 999.4 484.0 L 1017.6 498.2 L 1014.4 507.9 L 1000.0 524.9 L 278.8 521.8 L 261.8 510.7 L 264.9 497.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">运行时事件</text>
+  </g>
+  </g>
+</svg>

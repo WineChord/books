@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-12-concept-1-en desc-chapter-12-concept-1-en">
+  <title id="title-chapter-12-concept-1-en">Hook Discovery and Trust</title>
+  <desc id="desc-chapter-12-concept-1-en">Hand-drawn whiteboard figure for Hook Discovery and Trust, showing the relationship between Hook source, Trust hash, Modified hook, Disabled hook, Trusted execution.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-12-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.3 20.5 L 1232.0 21.4 L 1255.8 50.5 L 1258.9 649.6 L 1228.8 677.2 L 50.1 677.9 L 21.3 651.8 L 19.7 50.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-12-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Hook Discovery and Trust</text>
+    <path d="M 64.0 166.0 C 454.5 163.5, 855.4 156.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 254.6 137.7, 267.3 596.4, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1028.4 137.5, 1035.1 597.5, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 631.9 195.1, 646.7 226.7, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 624.7 282.2, 643.9 295.8, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 651.0 331.4, 636.4 348.2, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 651.3 405.4, 646.1 411.3, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 656.7 456.3, 637.1 495.1, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 275.6 162.0 L 1003.5 160.3 L 1020.2 178.0 L 1020.1 189.6 L 1002.8 208.3 L 279.0 207.0 L 261.9 188.9 L 259.1 175.5 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 279.1 163.7 L 1000.3 166.4 L 1017.4 178.5 L 1017.1 188.2 L 1000.2 204.3 L 278.4 206.2 L 264.1 187.5 L 265.9 179.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">Hook source</text>
+  </g>
+<g>
+    <path d="M 323.7 223.0 L 955.1 223.3 L 975.3 242.6 L 971.0 256.0 L 955.8 271.7 L 324.4 274.5 L 307.8 255.3 L 308.2 242.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 325.5 227.3 L 955.1 229.2 L 968.8 243.5 L 968.4 255.1 L 956.3 269.6 L 326.3 266.5 L 311.1 250.7 L 311.2 241.3 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">Trust hash</text>
+  </g>
+<g>
+    <path d="M 335.3 290.0 L 942.0 286.3 L 961.4 308.1 L 962.7 319.4 L 944.2 335.1 L 335.9 334.4 L 317.8 316.9 L 319.3 306.7 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 339.8 292.8 L 940.9 293.0 L 954.5 307.8 L 956.1 318.5 L 939.6 332.0 L 337.6 330.8 L 324.3 316.3 L 323.6 306.9 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">Modified hook</text>
+  </g>
+<g>
+    <path d="M 350.7 351.1 L 929.2 350.2 L 946.8 371.0 L 948.3 380.4 L 929.4 398.0 L 347.5 402.1 L 329.3 383.8 L 329.8 371.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 349.3 355.0 L 931.9 354.4 L 947.1 372.2 L 945.8 379.5 L 930.4 393.5 L 351.1 396.3 L 335.1 382.7 L 334.5 371.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">Disabled hook</text>
+  </g>
+<g>
+    <path d="M 363.3 414.5 L 916.7 413.9 L 934.9 432.2 L 937.8 445.9 L 919.6 465.4 L 360.4 465.4 L 343.3 445.4 L 345.3 435.2 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 362.7 420.3 L 916.0 420.8 L 931.1 436.4 L 931.4 446.7 L 915.7 460.8 L 362.7 458.9 L 346.3 447.4 L 346.8 437.1 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">Trusted execution</text>
+  </g>
+<g>
+    <path d="M 278.2 478.9 L 1004.1 477.7 L 1018.7 498.5 L 1021.8 510.6 L 1002.1 529.4 L 278.2 526.8 L 261.1 508.0 L 258.2 498.4 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 281.1 483.1 L 999.0 483.0 L 1016.7 497.4 L 1017.2 511.0 L 1001.1 521.7 L 277.8 525.1 L 264.2 511.3 L 264.2 500.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">Structured result</text>
+  </g>
+  </g>
+</svg>

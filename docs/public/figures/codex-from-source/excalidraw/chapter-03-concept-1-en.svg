@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-03-concept-1-en desc-chapter-03-concept-1-en">
+  <title id="title-chapter-03-concept-1-en">Preferences and Requirements</title>
+  <desc id="desc-chapter-03-concept-1-en">Hand-drawn whiteboard figure for Preferences and Requirements, showing the relationship between User preference, Managed requirement, Source provenance, Restrictive merge, Fail-closed error.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-03-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 47.5 22.9 L 1229.0 20.0 L 1258.4 50.6 L 1258.8 647.6 L 1231.2 677.9 L 49.7 677.1 L 20.8 649.2 L 21.1 52.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-03-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Preferences and Requirements</text>
+    <path d="M 64.0 166.0 C 469.9 156.0, 873.9 150.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 93.9 151.5 L 394.8 148.8 L 421.4 175.1 L 419.7 598.2 L 398.3 620.4 L 91.9 622.2 L 71.3 597.3 L 70.9 172.8 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 491.4 151.4 L 791.6 149.4 L 816.3 174.8 L 815.7 597.8 L 792.8 622.1 L 489.5 618.8 L 463.4 596.6 L 465.4 172.2 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 884.9 150.5 L 1187.9 151.2 L 1212.3 173.1 L 1207.6 598.2 L 1187.3 621.2 L 884.0 619.1 L 859.1 594.2 L 861.0 175.7 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 433.6 243.0, 456.1 260.4, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 815.5 262.4, 868.1 260.1, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 813.5 249.3, 421.3 379.0, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 441.0 370.8, 473.6 370.0, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 828.0 358.5, 841.5 351.0, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 112.4 216.7 L 379.6 215.5 L 396.0 232.2 L 393.6 272.7 L 378.4 291.6 L 114.1 290.9 L 94.3 272.2 L 93.2 231.5 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 112.2 219.7 L 377.1 222.2 L 391.3 233.5 L 391.1 270.1 L 378.3 288.2 L 111.9 287.3 L 100.3 271.0 L 98.2 233.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">User preference</text>
+  </g>
+<g>
+    <path d="M 508.7 214.0 L 770.7 216.2 L 789.5 232.8 L 788.6 270.5 L 771.9 291.2 L 508.7 291.5 L 488.5 272.5 L 488.1 234.0 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 506.5 217.8 L 771.6 219.9 L 787.8 232.7 L 788.9 269.7 L 772.8 286.0 L 507.1 283.9 L 493.2 268.5 L 493.4 233.5 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">Managed requirement</text>
+  </g>
+<g>
+    <path d="M 901.4 216.4 L 1167.8 217.9 L 1188.3 233.1 L 1183.5 272.5 L 1170.3 290.2 L 904.5 292.0 L 883.1 270.8 L 884.5 232.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 903.3 221.0 L 1169.1 217.8 L 1183.2 237.2 L 1183.1 269.0 L 1166.0 288.4 L 904.5 284.6 L 886.5 271.9 L 885.6 233.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">Source provenance</text>
+  </g>
+<g>
+    <path d="M 111.1 329.8 L 379.8 329.0 L 393.7 344.4 L 397.1 385.9 L 378.7 402.0 L 110.4 400.6 L 93.7 383.5 L 94.9 345.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 112.5 333.2 L 377.9 331.7 L 394.0 347.6 L 390.1 380.8 L 379.2 399.6 L 110.8 400.3 L 99.8 381.9 L 100.1 345.6 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">Restrictive merge</text>
+  </g>
+<g>
+    <path d="M 507.1 326.4 L 771.0 328.1 L 790.8 345.0 L 789.6 384.7 L 774.7 400.2 L 507.5 402.5 L 488.3 382.4 L 490.3 347.7 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 509.6 332.5 L 769.9 333.3 L 787.2 349.1 L 788.0 381.2 L 770.0 398.2 L 508.5 397.2 L 494.2 385.3 L 494.6 348.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">Fail closed error</text>
+  </g>
+<g>
+    <path d="M 900.8 327.4 L 1168.0 329.0 L 1184.0 347.9 L 1186.2 385.1 L 1169.7 401.9 L 902.5 399.5 L 885.1 383.7 L 881.9 345.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 902.4 331.1 L 1167.6 332.1 L 1181.9 345.6 L 1180.5 381.3 L 1167.8 398.6 L 901.7 398.5 L 885.9 385.4 L 886.4 345.5 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">Resolved envelope</text>
+  </g>
+  </g>
+</svg>

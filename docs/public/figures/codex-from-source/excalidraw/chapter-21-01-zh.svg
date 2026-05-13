@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-21-01-zh desc-chapter-21-01-zh">
+  <title id="title-chapter-21-01-zh">任务后端契约</title>
+  <desc id="desc-chapter-21-01-zh">任务后端契约的手绘白板图，展示云端 CLI/TUI、后端契约、HTTP 客户端、模拟后端、远端任务服务之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-21-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 48.8 24.4 L 1228.7 23.8 L 1256.9 49.9 L 1257.8 687.9 L 1229.9 718.1 L 49.0 718.3 L 21.9 690.1 L 20.2 49.4 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-21-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">任务后端契约</text>
+    <path d="M 64.0 166.0 C 464.7 157.6, 870.0 171.8, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 105.3 158.2 L 353.1 158.6 L 381.1 185.5 L 380.0 622.3 L 353.6 650.5 L 104.4 649.8 L 78.2 619.6 L 81.7 181.6 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.55" />
+      <text x="104" y="194" font-size="17" fill="#475569" font-weight="800">本地客户端</text>
+    </g>
+<g>
+      <path d="M 505.9 156.9 L 752.3 160.2 L 779.5 183.2 L 779.6 622.5 L 752.4 648.8 L 504.0 645.5 L 479.7 619.6 L 478.9 185.7 Z" fill="#e9f4ff" stroke="#475569" stroke-width="2" opacity="0.55" />
+      <text x="504" y="194" font-size="17" fill="#475569" font-weight="800">云端任务后端</text>
+    </g>
+<g>
+      <path d="M 904.6 160.5 L 1153.6 158.5 L 1177.9 185.5 L 1180.7 621.4 L 1151.7 648.1 L 907.0 647.7 L 881.8 624.1 L 878.1 183.8 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.55" />
+      <text x="904" y="194" font-size="17" fill="#475569" font-weight="800">本地应用边界</text>
+    </g>
+<path d="M 346.0 283.0 C 408.1 268.3, 468.9 293.6, 514.0 283.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 746.0 283.0 C 808.6 282.1, 869.2 298.5, 914.0 283.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1146.0 283.0 C 791.9 277.6, 421.7 418.1, 114.0 418.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 346.0 418.0 C 401.2 414.8, 476.3 429.4, 514.0 418.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 746.0 418.0 C 821.0 409.5, 855.4 427.7, 914.0 418.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1146.0 418.0 C 787.3 404.3, 414.6 548.7, 114.0 553.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 134.3 242.5 L 327.3 242.2 L 344.8 262.1 L 348.3 307.4 L 330.3 325.8 L 134.1 326.2 L 114.6 306.3 L 112.8 257.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 132.7 246.3 L 324.9 246.7 L 341.4 260.2 L 340.8 305.6 L 328.2 319.2 L 131.1 319.6 L 117.6 305.2 L 116.5 262.8 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="132" y="274" font-size="18" fill="#171717" font-weight="750">云端 CLI/TUI</text>
+  </g>
+<g>
+    <path d="M 533.2 241.1 L 729.6 241.5 L 746.5 260.7 L 748.4 304.6 L 725.7 325.8 L 533.2 325.1 L 513.0 304.7 L 512.0 259.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 535.0 246.2 L 728.1 247.3 L 743.2 261.7 L 743.6 307.0 L 725.9 320.8 L 531.7 319.3 L 518.5 304.0 L 518.7 262.6 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="532" y="274" font-size="18" fill="#171717" font-weight="750">后端契约</text>
+  </g>
+<g>
+    <path d="M 930.0 239.7 L 1126.5 243.5 L 1147.6 259.3 L 1144.2 304.2 L 1125.7 323.9 L 934.3 323.4 L 911.9 306.0 L 916.2 257.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 931.2 247.0 L 1125.8 245.6 L 1141.4 263.3 L 1141.3 304.2 L 1127.8 319.7 L 931.6 320.7 L 918.8 304.9 L 920.1 260.5 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="932" y="274" font-size="18" fill="#171717" font-weight="750">HTTP 客户端</text>
+  </g>
+<g>
+    <path d="M 130.9 378.9 L 328.7 378.2 L 346.5 393.6 L 343.9 438.6 L 326.6 458.2 L 132.7 461.3 L 112.7 442.7 L 112.0 395.8 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 133.8 379.1 L 327.9 381.9 L 340.8 397.0 L 343.1 439.6 L 325.2 457.1 L 133.0 457.0 L 118.8 440.5 L 117.9 393.9 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="132" y="409" font-size="18" fill="#171717" font-weight="750">模拟后端</text>
+  </g>
+<g>
+    <path d="M 534.2 376.5 L 727.5 375.3 L 745.7 396.4 L 744.6 441.6 L 726.0 461.4 L 530.9 461.4 L 513.9 442.6 L 516.3 394.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 531.7 381.7 L 727.3 382.4 L 743.9 397.0 L 741.3 440.7 L 729.4 457.0 L 531.8 455.2 L 517.9 439.9 L 517.5 393.8 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="532" y="409" font-size="18" fill="#171717" font-weight="750">远端任务服务</text>
+  </g>
+<g>
+    <path d="M 930.1 379.4 L 1128.0 378.5 L 1146.6 394.1 L 1148.4 441.3 L 1127.0 460.8 L 933.3 460.1 L 912.4 442.8 L 913.9 393.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 932.3 381.9 L 1124.9 380.1 L 1140.9 397.1 L 1143.9 438.5 L 1125.9 454.1 L 932.3 455.5 L 918.5 438.3 L 916.2 398.0 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="932" y="409" font-size="18" fill="#171717" font-weight="750">尝试 diff</text>
+  </g>
+<g>
+    <path d="M 133.6 510.1 L 328.1 513.8 L 346.8 530.5 L 344.1 578.0 L 325.5 594.7 L 134.4 593.2 L 114.4 577.6 L 114.1 532.5 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 131.8 516.9 L 326.4 514.2 L 342.3 528.8 L 341.9 577.1 L 326.4 588.9 L 131.9 588.6 L 116.8 577.1 L 119.4 530.5 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="132" y="544" font-size="18" fill="#171717" font-weight="750">任务元数据</text>
+  </g>
+<path d="M 921.6 584.9 L 1103.1 587.3 L 1122.8 601.3 L 1120.8 641.0 L 1104.0 658.2 L 920.0 655.4 L 901.5 637.1 L 904.3 600.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.2" />
+    <text x="924" y="620" font-size="17" fill="#171717" font-weight="800">只在预检后修改工作树</text>
+  </g>
+</svg>

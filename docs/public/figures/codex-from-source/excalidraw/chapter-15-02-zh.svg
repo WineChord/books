@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680" role="img" aria-labelledby="title-chapter-15-02-zh desc-chapter-15-02-zh">
+  <title id="title-chapter-15-02-zh">Daemon 生命周期</title>
+  <desc id="desc-chapter-15-02-zh">Daemon 生命周期的手绘白板图，展示未知状态、健康探测、就绪、启动中、重启中之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-15-02-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="680" rx="30" fill="#fffdf7" />
+  <path d="M 48.8 20.6 L 1230.9 22.0 L 1255.9 50.5 L 1257.5 631.2 L 1229.4 658.4 L 50.9 660.3 L 21.4 631.3 L 22.0 49.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="680" filter="url(#paper-chapter-15-02-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">Daemon 生命周期</text>
+    <path d="M 64.0 166.0 C 450.5 173.8, 867.3 149.9, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="360" rx="527" ry="263" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 506.9 300.8 L 772.0 302.0 L 796.6 327.6 L 795.4 377.8 L 769.7 404.1 L 507.2 405.1 L 486.2 380.9 L 482.9 326.1 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="342" font-size="18" fill="#171717" font-weight="800">Daemon 生命周期</text>
+<path d="M 640.0 149.0 C 756.2 164.0, 888.6 227.7, 995.7 226.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 995.7 226.2 C 1033.5 219.4, 1054.4 386.9, 1083.6 399.6" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1083.6 399.6 C 995.0 403.7, 910.7 533.4, 837.4 538.7" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 837.4 538.7 C 706.1 523.4, 575.1 541.4, 442.6 538.7" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 442.6 538.7 C 343.7 548.3, 263.4 415.2, 196.4 399.6" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 196.4 399.6 C 228.0 399.3, 258.0 220.9, 284.3 226.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 284.3 226.2 C 423.6 221.3, 537.6 143.8, 640.0 149.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 521.0 114.2 L 756.7 113.5 L 775.9 129.5 L 773.0 167.4 L 754.6 183.0 L 524.8 185.7 L 504.5 165.1 L 507.3 131.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 523.8 116.7 L 756.5 115.8 L 772.0 132.4 L 769.7 167.3 L 758.5 179.2 L 524.8 178.6 L 511.3 166.6 L 509.5 133.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="145" font-size="18" fill="#171717" font-weight="750">未知状态</text>
+  </g>
+<g>
+    <path d="M 876.6 190.3 L 1112.9 188.1 L 1131.7 210.3 L 1131.6 245.8 L 1112.7 262.0 L 877.3 262.9 L 858.5 242.9 L 858.8 207.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 882.1 195.6 L 1113.6 194.4 L 1128.6 209.7 L 1126.0 243.9 L 1109.6 259.1 L 878.3 256.3 L 864.0 245.2 L 865.3 208.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="878.7333245229536" y="222.18459061895965" font-size="18" fill="#171717" font-weight="750">健康探测</text>
+  </g>
+<g>
+    <path d="M 965.1 365.4 L 1201.1 365.3 L 1217.1 382.0 L 1217.5 419.5 L 1200.8 438.1 L 966.2 435.0 L 946.4 415.6 L 947.0 383.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 968.1 365.7 L 1199.6 365.2 L 1216.2 382.7 L 1215.9 418.9 L 1200.1 430.7 L 967.7 429.8 L 955.1 414.8 L 951.9 383.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="966.5922000427297" y="395.61679146104444" font-size="18" fill="#171717" font-weight="750">就绪</text>
+  </g>
+<g>
+    <path d="M 718.4 501.3 L 955.0 501.8 L 971.0 520.5 L 973.9 554.3 L 955.8 576.3 L 718.2 575.4 L 701.1 554.8 L 704.2 521.2 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 721.2 508.6 L 951.1 505.7 L 968.6 520.8 L 969.8 555.8 L 951.4 571.1 L 721.1 568.6 L 705.8 557.1 L 707.0 522.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="720.417101298489" y="534.698617919996" font-size="18" fill="#171717" font-weight="750">启动中</text>
+  </g>
+<g>
+    <path d="M 323.7 504.1 L 561.4 504.5 L 577.5 520.7 L 576.0 554.6 L 562.1 573.5 L 324.9 575.2 L 307.7 556.1 L 308.3 521.7 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 324.4 508.8 L 560.8 505.5 L 573.9 522.3 L 574.9 558.1 L 559.7 569.0 L 324.5 571.4 L 310.8 557.1 L 309.7 522.9 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="325.5828987015111" y="534.698617919996" font-size="18" fill="#171717" font-weight="750">重启中</text>
+  </g>
+<g>
+    <path d="M 77.8 362.1 L 313.2 364.3 L 331.3 382.1 L 330.6 415.9 L 312.1 435.4 L 77.3 433.1 L 59.4 417.9 L 63.5 381.5 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 82.1 369.6 L 314.6 367.5 L 329.2 384.6 L 325.5 417.5 L 314.2 431.3 L 78.8 434.1 L 64.6 414.6 L 64.0 383.9 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="79.40779995727024" y="395.6167914610445" font-size="18" fill="#171717" font-weight="750">失败</text>
+  </g>
+<g>
+    <path d="M 169.1 188.5 L 401.5 188.0 L 418.3 207.4 L 417.5 245.9 L 401.4 261.5 L 167.2 263.2 L 149.2 246.4 L 146.8 208.5 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 167.8 194.3 L 398.3 192.5 L 415.1 209.5 L 416.6 241.1 L 399.3 257.4 L 170.0 260.0 L 153.1 244.9 L 154.9 207.2 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="167.26667547704636" y="222.18459061895965" font-size="18" fill="#171717" font-weight="750">带锁重试</text>
+  </g>
+  </g>
+</svg>

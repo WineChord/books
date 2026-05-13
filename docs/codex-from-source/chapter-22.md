@@ -26,33 +26,10 @@ state database, synchronizes selected records into a memory workspace, computes
 a workspace diff, and asks a restricted internal agent to consolidate the
 artifacts.
 
-```mermaid
-flowchart TD
-    subgraph Read["read path"]
-        Summary["memory summary"]
-        Instructions["developer-instruction context"]
-        MCP["read-only MCP tools\nlist / read / search"]
-        Citations["citation parser"]
-    end
-
-    subgraph Write["write path"]
-        Startup["root session startup"]
-        Phase1["Stage 1\nper-rollout extraction"]
-        DB["state database\nstage-1 outputs and leases"]
-        Phase2["Stage 2\nglobal consolidation"]
-        Workspace["memory workspace\nraw memories and summaries"]
-        Internal["restricted internal agent"]
-    end
-
-    Summary --> Instructions
-    MCP --> Citations
-    Startup --> Phase1
-    Phase1 --> DB
-    DB --> Phase2
-    Phase2 --> Workspace
-    Workspace --> Internal
-    Internal --> Summary
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-22-01-en.svg" alt="Memory has separate read and write paths: the active turn can read curated summaries and resources, while background consolidation writes durable memory through a controlled pipeline." loading="lazy" />
+  <figcaption>Memory has separate read and write paths: the active turn can read curated summaries and resources, while background consolidation writes durable memory through a controlled pipeline.</figcaption>
+</figure>
 
 The separation prevents a common mistake: letting the active model write its
 own future instructions directly. Codex can use models to extract and
@@ -93,21 +70,10 @@ source rollouts and memory files. That is enough to build user-facing evidence,
 usage metrics, and future pruning decisions without turning memory into an
 unbounded provenance database.
 
-```mermaid
-flowchart LR
-    Summary["memory summary or file excerpt"]
-    Citation["citation block"]
-    Parser["citation parser"]
-    IDs["rollout and thread ids"]
-    Usage["usage accounting"]
-    Selection["future Stage 2 selection"]
-
-    Summary --> Citation
-    Citation --> Parser
-    Parser --> IDs
-    IDs --> Usage
-    Usage --> Selection
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-22-02-en.svg" alt="Citations connect memory back to evidence: parsed citation blocks preserve artifact locations, rollout ids, and thread ids so later logic can distinguish using memory from merely mentioning a remembered fact." loading="lazy" />
+  <figcaption>Citations connect memory back to evidence: parsed citation blocks preserve artifact locations, rollout ids, and thread ids so later logic can distinguish using memory from merely mentioning a remembered fact.</figcaption>
+</figure>
 
 A citation can be thought of as a compact receipt: "this memory artifact came
 from these rollout or thread sources and was used in this read path." The
@@ -172,32 +138,10 @@ is a diff, it writes a bounded workspace-diff artifact, spawns an internal
 consolidation agent, heartbeats the global lease while that agent runs, and
 resets the workspace baseline only after successful completion.
 
-```mermaid
-sequenceDiagram
-    participant Startup
-    participant DB as State DB
-    participant FS as Memory workspace
-    participant Git as Git baseline
-    participant Agent as Restricted internal agent
-
-    Startup->>DB: claim global Stage 2 lock
-    DB-->>Startup: ownership token and watermark
-    Startup->>FS: sync selected Stage 1 outputs
-    Startup->>FS: prune stale generated artifacts
-    Startup->>Git: compute workspace diff
-    alt no changes
-        Startup->>DB: mark success without agent
-    else changes
-        Startup->>FS: write bounded diff artifact
-        Startup->>Agent: run consolidation with restricted config
-        loop while running
-            Startup->>DB: heartbeat lock
-        end
-        Agent-->>Startup: final status
-        Startup->>Git: reset successful baseline
-        Startup->>DB: mark selected inputs and watermark
-    end
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-22-03-en.svg" alt="Stage 2 turns selected memory records into a controlled worktree update: state claims the lock, the baseline scopes the diff, and the restricted agent edits only memory artifacts." loading="lazy" />
+  <figcaption>Stage 2 turns selected memory records into a controlled worktree update: state claims the lock, the baseline scopes the diff, and the restricted agent edits only memory artifacts.</figcaption>
+</figure>
 
 The git baseline is not for collaboration. It is a deterministic diff engine
 for the memory workspace. Stage 2 uses the diff to decide whether consolidation
@@ -208,6 +152,12 @@ is needed and to give the internal agent a bounded view of changed artifacts.
 Stage 2 uses a model-guided agent because consolidation is editorial work:
 merge related memories, update summaries, and maintain higher-level memory
 artifacts. But that agent is not a normal user-facing session.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-22-concept-1-en.svg" alt="The internal memory agent is deliberately restricted: it works from selected context, writes through a constrained path, and syncs only accepted outputs." loading="lazy" />
+  <figcaption>The internal memory agent is deliberately restricted: it works from selected context, writes through a constrained path, and syncs only accepted outputs.</figcaption>
+</figure>
 
 Its configuration is constrained:
 

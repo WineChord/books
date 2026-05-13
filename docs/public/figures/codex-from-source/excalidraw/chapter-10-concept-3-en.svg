@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-10-concept-3-en desc-chapter-10-concept-3-en">
+  <title id="title-chapter-10-concept-3-en">Command Output as Sequenced State</title>
+  <desc id="desc-chapter-10-concept-3-en">Hand-drawn whiteboard figure for Command Output as Sequenced State, showing the relationship between stdout chunk, stderr chunk, Sequence number, Exit status, Truncation marker.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-10-concept-3-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.2 21.3 L 1229.0 20.8 L 1258.3 50.4 L 1257.5 652.0 L 1232.1 678.6 L 51.8 680.5 L 20.0 649.7 L 20.2 51.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-10-concept-3-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Command Output as Sequenced State</text>
+    <path d="M 64.0 166.0 C 462.9 181.7, 876.7 153.4, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 274.6 161.1, 256.2 624.8, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1020.8 156.7, 1018.6 601.4, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 628.9 212.6, 644.3 231.1, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 644.1 284.7, 633.0 295.6, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 651.0 322.7, 635.5 367.2, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 650.2 398.3, 649.2 412.2, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 632.6 452.9, 624.2 476.1, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 280.0 161.7 L 1001.7 162.3 L 1022.5 177.4 L 1018.5 190.6 L 1001.0 205.7 L 279.8 208.9 L 259.6 191.1 L 260.7 180.2 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.5 162.7 L 1003.1 166.0 L 1013.8 180.5 L 1017.7 191.0 L 1000.9 203.4 L 281.0 205.7 L 264.5 189.9 L 264.9 178.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">stdout chunk</text>
+  </g>
+<g>
+    <path d="M 323.5 224.6 L 955.5 222.6 L 972.7 241.6 L 975.0 253.3 L 955.9 269.7 L 327.3 269.5 L 308.5 251.5 L 304.7 239.9 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 326.3 230.4 L 952.6 227.0 L 968.8 243.1 L 968.4 253.9 L 952.4 268.3 L 324.7 268.4 L 308.5 252.1 L 311.9 242.3 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">stderr chunk</text>
+  </g>
+<g>
+    <path d="M 339.0 289.5 L 944.2 289.2 L 961.2 307.9 L 962.8 316.8 L 943.3 338.3 L 334.9 337.1 L 317.2 316.8 L 318.7 304.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 338.8 291.8 L 939.8 294.4 L 955.8 304.7 L 956.9 319.4 L 943.2 333.2 L 339.0 330.1 L 324.0 316.0 L 323.6 308.2 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">Sequence number</text>
+  </g>
+<g>
+    <path d="M 346.7 352.3 L 931.2 351.8 L 950.3 370.0 L 949.8 380.3 L 933.1 399.7 L 351.0 400.9 L 331.5 380.3 L 333.2 367.9 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 352.2 355.5 L 930.9 355.9 L 942.7 373.0 L 942.8 379.4 L 930.2 396.7 L 348.4 396.9 L 335.5 382.6 L 333.3 372.6 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">Exit status</text>
+  </g>
+<g>
+    <path d="M 359.7 415.6 L 919.7 415.4 L 936.8 434.5 L 936.0 445.6 L 919.5 462.6 L 362.2 463.8 L 344.2 448.1 L 344.8 433.5 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 362.0 420.5 L 917.2 421.8 L 931.8 435.2 L 932.4 446.1 L 917.0 458.0 L 364.0 462.1 L 346.2 444.6 L 345.8 436.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">Truncation marker</text>
+  </g>
+<g>
+    <path d="M 276.4 481.2 L 1001.8 479.7 L 1020.9 498.1 L 1021.3 512.0 L 1002.2 529.0 L 279.6 530.2 L 260.6 507.9 L 260.5 498.5 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 277.8 485.8 L 1002.9 484.0 L 1018.5 499.0 L 1016.3 511.4 L 1002.4 526.2 L 281.2 524.3 L 266.5 508.7 L 261.9 497.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">Runtime record</text>
+  </g>
+  </g>
+</svg>

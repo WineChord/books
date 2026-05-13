@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-21-03-zh desc-chapter-21-03-zh">
+  <title id="title-chapter-21-03-zh">Agent 身份把运行时绑定到任务</title>
+  <desc id="desc-chapter-21-03-zh">Agent 身份把运行时绑定到任务的手绘白板图，展示运行时密钥材料、公开注册身份、任务注册请求、已签名任务断言、Agent 物料清单之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-21-03-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 52.5 24.2 L 1232.4 23.7 L 1257.4 49.8 L 1255.6 689.5 L 1228.5 717.1 L 48.5 716.9 L 24.4 691.8 L 20.3 51.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-21-03-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">Agent 身份把运行时绑定到任务</text>
+    <path d="M 64.0 166.0 C 448.7 154.9, 882.9 153.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 104.3 158.5 L 352.1 157.6 L 377.8 183.1 L 380.5 622.4 L 355.7 645.7 L 107.3 645.7 L 78.3 622.3 L 81.7 183.9 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.55" />
+      <text x="104" y="194" font-size="17" fill="#475569" font-weight="800">本地客户端</text>
+    </g>
+<g>
+      <path d="M 504.1 158.7 L 756.3 159.5 L 779.9 185.3 L 781.6 621.7 L 752.2 648.1 L 506.6 646.3 L 480.0 624.5 L 480.6 185.7 Z" fill="#e9f4ff" stroke="#475569" stroke-width="2" opacity="0.55" />
+      <text x="504" y="194" font-size="17" fill="#475569" font-weight="800">云端任务后端</text>
+    </g>
+<g>
+      <path d="M 906.7 155.7 L 1152.5 158.2 L 1179.8 183.7 L 1181.4 623.2 L 1153.5 650.4 L 904.7 650.2 L 880.8 621.3 L 878.8 185.0 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.55" />
+      <text x="904" y="194" font-size="17" fill="#475569" font-weight="800">本地应用边界</text>
+    </g>
+<path d="M 346.0 283.0 C 390.4 290.5, 451.1 275.7, 514.0 283.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 746.0 283.0 C 807.9 282.3, 867.4 292.9, 914.0 283.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1146.0 283.0 C 800.4 290.1, 425.3 417.0, 114.0 418.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 346.0 418.0 C 399.5 414.1, 467.3 420.2, 514.0 418.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 746.0 418.0 C 806.6 429.6, 874.9 418.6, 914.0 418.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1146.0 418.0 C 797.4 407.8, 414.0 562.2, 114.0 553.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 346.0 553.0 C 416.5 539.9, 447.8 553.4, 514.0 553.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 134.4 242.7 L 327.6 241.5 L 346.6 260.7 L 344.2 306.1 L 326.0 324.4 L 131.2 322.0 L 114.3 307.8 L 113.9 260.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 133.7 244.4 L 324.7 243.9 L 343.4 261.1 L 343.0 307.2 L 328.7 318.0 L 134.5 318.7 L 120.4 302.9 L 115.6 261.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="132" y="274" font-size="18" fill="#171717" font-weight="750">运行时密钥材料</text>
+  </g>
+<g>
+    <path d="M 534.1 241.3 L 725.8 242.6 L 743.5 261.5 L 748.1 304.2 L 729.5 323.5 L 530.1 321.6 L 512.4 306.3 L 511.7 262.0 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 532.6 243.8 L 729.5 244.4 L 741.1 260.7 L 740.9 304.1 L 725.1 321.1 L 531.1 321.1 L 520.1 305.1 L 517.8 263.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="532" y="274" font-size="18" fill="#171717" font-weight="750">公开注册身份</text>
+  </g>
+<g>
+    <path d="M 932.3 239.6 L 1125.9 242.5 L 1144.1 258.3 L 1144.8 306.9 L 1125.9 321.6 L 929.7 321.8 L 916.4 304.5 L 912.0 261.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 933.8 243.9 L 1126.8 243.6 L 1144.2 258.6 L 1142.4 305.9 L 1127.8 318.6 L 932.4 322.1 L 919.5 306.0 L 917.4 259.5 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="932" y="274" font-size="18" fill="#171717" font-weight="750">任务注册请求</text>
+  </g>
+<g>
+    <path d="M 133.1 374.9 L 327.9 379.1 L 348.0 397.5 L 346.1 442.2 L 330.2 459.6 L 130.3 457.4 L 115.6 441.6 L 115.1 392.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 131.7 382.8 L 327.0 378.6 L 341.7 396.0 L 344.5 439.3 L 324.9 453.7 L 132.4 454.0 L 119.5 441.9 L 118.4 396.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="132" y="409" font-size="18" fill="#171717" font-weight="750">已签名任务断言</text>
+  </g>
+<g>
+    <path d="M 533.2 376.4 L 726.6 375.3 L 744.7 394.8 L 747.8 440.6 L 726.1 461.4 L 532.3 457.6 L 516.2 439.9 L 515.0 397.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 533.5 380.7 L 727.8 380.9 L 743.8 398.2 L 741.3 440.9 L 727.7 455.8 L 530.9 454.7 L 517.6 438.2 L 517.9 396.5 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="532" y="409" font-size="18" fill="#171717" font-weight="750">Agent 物料清单</text>
+  </g>
+<g>
+    <path d="M 933.0 377.1 L 1130.2 379.5 L 1144.0 394.8 L 1148.4 441.1 L 1127.4 458.4 L 930.9 457.9 L 912.1 438.7 L 912.1 396.2 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 931.9 379.6 L 1125.7 382.9 L 1142.7 396.3 L 1144.4 438.7 L 1126.7 453.4 L 931.4 457.4 L 920.4 440.8 L 918.7 394.8 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="932" y="409" font-size="18" fill="#171717" font-weight="750">后端身份服务</text>
+  </g>
+<g>
+    <path d="M 134.1 509.8 L 329.8 513.1 L 345.0 530.3 L 344.0 574.3 L 326.4 594.2 L 129.5 591.7 L 112.6 575.0 L 111.6 532.1 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 134.4 515.3 L 327.1 513.8 L 339.7 530.9 L 342.2 575.8 L 328.7 590.3 L 131.6 588.0 L 118.9 574.3 L 117.9 533.0 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="132" y="544" font-size="18" fill="#171717" font-weight="750">身份 JWT 声明</text>
+  </g>
+<g>
+    <path d="M 530.7 511.1 L 725.9 510.1 L 743.5 530.6 L 746.8 576.3 L 728.2 593.2 L 533.0 595.2 L 516.4 578.0 L 513.0 528.1 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 534.4 516.3 L 726.3 517.8 L 744.2 532.7 L 740.2 575.9 L 725.6 590.4 L 531.0 591.2 L 519.6 577.4 L 519.5 531.0 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="532" y="544" font-size="18" fill="#171717" font-weight="750">已授权任务访问</text>
+  </g>
+<path d="M 920.9 582.6 L 1103.1 583.2 L 1123.1 604.3 L 1120.2 640.4 L 1102.5 658.1 L 919.5 657.7 L 904.2 641.2 L 900.7 603.2 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.2" />
+    <text x="924" y="620" font-size="17" fill="#171717" font-weight="800">只在预检后修改工作树</text>
+  </g>
+</svg>

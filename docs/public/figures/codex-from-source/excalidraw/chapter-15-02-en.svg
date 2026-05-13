@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680" role="img" aria-labelledby="title-chapter-15-02-en desc-chapter-15-02-en">
+  <title id="title-chapter-15-02-en">Daemon Lifecycle</title>
+  <desc id="desc-chapter-15-02-en">Hand-drawn whiteboard figure for Daemon Lifecycle, showing the relationship between Unknown, Probing, Ready, Starting, Restarting.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-15-02-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="680" rx="30" fill="#fffdf7" />
+  <path d="M 51.5 22.4 L 1232.4 22.2 L 1257.8 48.9 L 1259.2 632.0 L 1231.8 656.7 L 49.8 657.0 L 23.1 631.8 L 22.1 47.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="680" filter="url(#paper-chapter-15-02-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Daemon Lifecycle</text>
+    <path d="M 64.0 166.0 C 476.6 150.3, 854.3 172.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="360" rx="527" ry="263" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 510.0 301.4 L 771.7 304.3 L 792.8 326.6 L 796.4 380.9 L 772.8 405.4 L 510.3 405.9 L 483.2 380.0 L 483.6 326.6 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="342" font-size="18" fill="#171717" font-weight="800">Daemon Lifecycle</text>
+<path d="M 640.0 149.0 C 751.8 162.6, 892.1 235.7, 995.7 226.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 995.7 226.2 C 1038.3 228.8, 1052.9 413.1, 1083.6 399.6" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1083.6 399.6 C 1014.2 398.0, 900.5 533.7, 837.4 538.7" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 837.4 538.7 C 683.2 547.8, 551.1 553.5, 442.6 538.7" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 442.6 538.7 C 372.0 522.8, 253.3 394.7, 196.4 399.6" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 196.4 399.6 C 234.8 396.6, 263.4 241.8, 284.3 226.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 284.3 226.2 C 397.9 240.6, 548.1 154.9, 640.0 149.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 523.5 113.5 L 759.1 115.0 L 774.7 129.8 L 772.8 168.5 L 756.1 187.2 L 524.8 184.8 L 505.5 166.7 L 503.7 132.1 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 522.7 114.5 L 755.5 118.5 L 770.1 130.1 L 771.5 164.6 L 758.5 182.7 L 526.0 183.4 L 510.0 165.6 L 509.8 130.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="145" font-size="18" fill="#171717" font-weight="750">Unknown</text>
+  </g>
+<g>
+    <path d="M 877.4 192.0 L 1111.8 191.3 L 1132.5 207.4 L 1129.2 244.5 L 1113.1 262.5 L 879.2 262.8 L 863.0 242.8 L 861.8 209.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 881.4 193.9 L 1112.4 196.5 L 1127.8 208.4 L 1124.3 243.8 L 1111.5 260.2 L 881.9 258.2 L 866.1 242.0 L 864.3 207.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="878.7333245229536" y="222.18459061895965" font-size="18" fill="#171717" font-weight="750">Probing</text>
+  </g>
+<g>
+    <path d="M 966.9 362.6 L 1198.6 361.3 L 1218.5 382.9 L 1220.8 418.0 L 1202.8 433.7 L 967.3 437.2 L 950.2 419.7 L 949.8 382.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 969.0 369.1 L 1199.3 368.5 L 1212.4 382.4 L 1213.7 416.1 L 1200.7 433.6 L 967.7 432.8 L 951.6 419.0 L 954.8 381.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="966.5922000427297" y="395.61679146104444" font-size="18" fill="#171717" font-weight="750">Ready</text>
+  </g>
+<g>
+    <path d="M 721.9 501.9 L 956.3 501.2 L 971.0 522.4 L 970.6 558.2 L 954.6 576.5 L 717.9 573.9 L 700.0 558.5 L 702.2 520.0 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 721.8 508.6 L 955.2 505.1 L 969.0 520.3 L 970.9 556.4 L 955.4 573.2 L 723.8 568.6 L 705.7 556.1 L 705.7 523.6 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="720.417101298489" y="534.698617919996" font-size="18" fill="#171717" font-weight="750">Starting</text>
+  </g>
+<g>
+    <path d="M 324.4 504.7 L 559.7 504.2 L 576.6 521.1 L 580.0 557.8 L 559.8 577.0 L 327.1 577.0 L 308.1 558.4 L 307.4 519.4 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 325.1 506.7 L 556.4 506.9 L 572.7 523.4 L 574.2 555.5 L 557.1 571.8 L 324.5 569.9 L 313.9 554.0 L 313.6 522.5 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="325.5828987015111" y="534.698617919996" font-size="18" fill="#171717" font-weight="750">Restarting</text>
+  </g>
+<g>
+    <path d="M 78.5 363.9 L 313.0 363.3 L 330.6 383.5 L 329.6 419.0 L 315.7 437.8 L 78.3 437.0 L 60.2 416.6 L 62.5 379.1 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 78.5 367.9 L 311.2 366.2 L 329.1 381.6 L 327.3 417.3 L 311.3 429.6 L 78.3 433.2 L 63.6 416.5 L 63.4 382.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="79.40779995727024" y="395.6167914610445" font-size="18" fill="#171717" font-weight="750">Failed</text>
+  </g>
+<g>
+    <path d="M 165.4 192.7 L 399.4 188.0 L 419.8 205.8 L 417.3 245.5 L 399.4 262.3 L 169.6 261.6 L 151.6 245.0 L 151.5 207.3 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 169.4 193.7 L 399.3 193.1 L 413.4 211.1 L 412.9 244.8 L 398.7 258.3 L 167.1 255.8 L 151.1 243.0 L 151.8 211.2 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="167.26667547704636" y="222.18459061895965" font-size="18" fill="#171717" font-weight="750">Retry under lock</text>
+  </g>
+  </g>
+</svg>

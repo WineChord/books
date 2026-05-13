@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-23-01-zh desc-chapter-23-01-zh">
+  <title id="title-chapter-23-01-zh">这一层解决什么问题</title>
+  <desc id="desc-chapter-23-01-zh">这一层解决什么问题的手绘白板图，展示Cargo 工作区、工作区包与二进制、已解析依赖图、Bazel 覆盖层、可复现 CI 与发布验证之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-23-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 49.4 22.2 L 1228.8 23.8 L 1259.6 48.5 L 1256.4 691.2 L 1229.3 715.7 L 49.8 718.9 L 20.8 688.5 L 20.7 48.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-23-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">这一层解决什么问题</text>
+    <path d="M 64.0 166.0 C 477.7 176.3, 852.5 156.3, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 922.0 171.2 L 1184.5 170.5 L 1209.6 199.0 L 1208.5 533.4 L 1182.8 560.9 L 921.6 560.5 L 896.8 534.2 L 896.6 199.8 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" stroke-dasharray="10 10" opacity="0.62" />
+<path d="M 456.2 205.9 L 808.5 204.7 L 842.2 237.6 L 838.5 469.7 L 808.1 507.5 L 453.4 503.9 L 419.7 472.1 L 420.2 239.9 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.5" />
+    <path d="M 460.0 310.0 C 595.2 311.5, 698.0 316.8, 800.0 310.0" fill="none" stroke="#4f46e5" stroke-width="2" opacity="0.34" />
+    <text x="464" y="269" font-size="20" fill="#171717" font-weight="800">契约生成工厂</text>
+<path d="M 315.0 373.0 C 351.7 382.7, 375.2 367.4, 420.0 375.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 840.0 303.0 C 869.8 290.4, 912.7 229.8, 930.0 242.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 840.0 361.0 C 868.8 361.3, 912.2 349.5, 930.0 362.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 840.0 419.0 C 885.2 416.3, 887.3 466.8, 930.0 482.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 86.0 331.0 L 297.9 332.5 L 316.2 349.6 L 312.6 399.2 L 295.7 417.2 L 88.9 416.3 L 72.0 399.6 L 69.2 349.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 86.7 336.3 L 294.4 332.2 L 313.3 347.4 L 310.6 398.6 L 297.9 411.0 L 90.7 409.7 L 74.5 398.5 L 76.0 351.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="88" y="362" font-size="18" fill="#171717" font-weight="750">Cargo 工作区</text>
+  </g>
+<g>
+    <path d="M 479.8 329.3 L 598.7 331.1 L 615.5 346.8 L 616.5 383.5 L 597.2 402.4 L 480.2 400.4 L 460.6 385.8 L 460.4 349.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 482.2 332.8 L 599.7 332.3 L 614.9 351.0 L 613.6 385.1 L 600.5 399.3 L 478.7 396.4 L 467.1 384.2 L 468.1 348.8 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="480" y="362" font-size="18" fill="#171717" font-weight="750">工作区包与二进</text>
+<text x="480" y="384.5" font-size="18" fill="#171717" font-weight="750">制</text>
+  </g>
+<g>
+    <path d="M 667.2 331.2 L 788.5 327.6 L 804.6 347.6 L 805.2 382.2 L 787.5 402.9 L 668.0 400.2 L 649.3 386.3 L 650.6 347.1 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 668.2 332.5 L 787.1 335.6 L 799.9 346.5 L 801.0 384.3 L 787.5 395.8 L 669.4 397.3 L 651.9 381.6 L 654.1 347.3 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="668" y="362" font-size="18" fill="#171717" font-weight="750">已解析依赖图</text>
+  </g>
+<g>
+    <path d="M 947.0 206.8 L 1156.1 202.9 L 1172.9 224.1 L 1172.5 260.9 L 1157.8 277.0 L 948.5 279.1 L 930.7 259.1 L 929.3 222.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 950.3 208.6 L 1154.4 209.1 L 1169.8 224.5 L 1170.6 257.8 L 1155.8 274.2 L 949.0 273.2 L 933.5 261.7 L 934.3 224.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="948" y="237" font-size="18" fill="#171717" font-weight="750">Bazel 覆盖层</text>
+  </g>
+<g>
+    <path d="M 947.7 322.7 L 1155.1 326.2 L 1173.8 344.5 L 1176.0 383.0 L 1154.6 401.0 L 948.0 399.8 L 931.8 380.2 L 929.3 340.7 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 948.6 327.0 L 1157.9 330.3 L 1169.0 342.6 L 1171.3 377.8 L 1157.7 393.4 L 947.7 393.5 L 934.0 382.0 L 933.9 345.6 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="948" y="357" font-size="18" fill="#171717" font-weight="750">可复现 CI</text>
+<text x="948" y="379.5" font-size="18" fill="#171717" font-weight="750">与发布验证</text>
+  </g>
+<g>
+    <path d="M 947.2 442.7 L 1157.8 445.1 L 1174.1 461.8 L 1175.7 501.8 L 1158.1 518.6 L 947.3 520.4 L 928.7 500.9 L 928.0 460.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 947.5 449.9 L 1155.1 451.3 L 1169.0 462.6 L 1169.1 501.6 L 1157.5 517.2 L 946.7 514.0 L 934.8 501.5 L 933.0 464.3 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="948" y="477" font-size="18" fill="#171717" font-weight="750">生成契约 schema</text>
+  </g>
+  </g>
+</svg>

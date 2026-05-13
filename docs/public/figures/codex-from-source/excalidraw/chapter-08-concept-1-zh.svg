@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-08-concept-1-zh desc-chapter-08-concept-1-zh">
+  <title id="title-chapter-08-concept-1-zh">规约器故意严格：结构白板</title>
+  <desc id="desc-chapter-08-concept-1-zh">规约器故意严格：结构白板的手绘白板图，展示分析规约产品事实、OTEL 观测运行时操作、响应 Debug 上下文与本地 Logs、先观察，后解释之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-08-concept-1-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 51.5 22.1 L 1231.8 22.4 L 1257.9 49.3 L 1256.3 648.0 L 1231.7 678.7 L 50.1 675.7 L 22.0 651.9 L 23.6 51.8 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-08-concept-1-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">规约器故意严格：结构白板</text>
+    <path d="M 64.0 166.0 C 467.8 171.7, 860.2 149.8, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 93.9 164.0 L 546.1 163.3 L 569.9 187.2 L 571.5 596.9 L 550.1 620.9 L 93.5 622.3 L 72.0 595.8 L 67.6 185.8 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <path d="M 731.9 164.9 L 1189.1 166.7 L 1209.8 189.0 L 1212.1 598.4 L 1190.1 617.9 L 732.0 617.5 L 709.7 598.3 L 708.0 186.8 Z" fill="#f8fafc" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <text x="96" y="201" font-size="17" fill="#475569" font-weight="800">事实流</text>
+    <text x="736" y="201" font-size="17" fill="#475569" font-weight="800">可读投影</text>
+    <path d="M 610.0 203.0 C 617.3 204.7, 639.9 213.6, 675.0 203.0" fill="none" stroke="#d97757" stroke-width="3" marker-end="url(#arrow)" opacity="0.7" />
+<g>
+    <path d="M 123.9 236.7 L 508.3 234.7 L 527.1 253.2 L 526.1 266.9 L 507.5 287.9 L 120.7 287.6 L 103.7 268.8 L 104.1 251.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 125.6 237.0 L 504.7 237.9 L 519.9 252.6 L 520.0 270.5 L 507.1 283.1 L 125.2 280.5 L 107.9 270.0 L 111.5 253.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="267" font-size="18" fill="#171717" font-weight="750">分析规约产品事实</text>
+  </g>
+<g>
+    <path d="M 764.4 233.0 L 1148.0 232.9 L 1166.1 253.2 L 1167.4 270.1 L 1148.9 288.8 L 762.0 287.5 L 743.6 271.2 L 744.1 252.7 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 764.7 236.6 L 1148.5 238.3 L 1160.8 255.7 L 1162.7 266.9 L 1147.1 280.6 L 762.0 283.8 L 751.3 266.8 L 749.9 255.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="267" font-size="18" fill="#171717" font-weight="750">OTEL 观测运行时操作</text>
+  </g>
+<g>
+    <path d="M 124.5 297.4 L 506.3 299.9 L 527.5 317.6 L 522.7 333.5 L 506.7 353.1 L 125.4 353.4 L 104.8 335.0 L 106.6 315.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 125.4 304.1 L 504.1 304.8 L 521.7 316.6 L 520.9 331.6 L 504.8 346.8 L 122.7 348.2 L 109.4 330.0 L 106.7 317.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="331" font-size="18" fill="#171717" font-weight="750">响应 Debug 上下文与本地 Logs</text>
+  </g>
+<g>
+    <path d="M 761.6 299.3 L 1145.3 301.1 L 1166.2 316.3 L 1163.6 330.5 L 1145.2 349.8 L 765.5 348.8 L 746.7 334.5 L 742.5 315.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 764.7 303.4 L 1147.1 304.7 L 1159.3 316.9 L 1159.3 330.4 L 1145.8 347.8 L 765.7 348.0 L 748.7 330.0 L 750.4 316.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="331" font-size="18" fill="#171717" font-weight="750">先观察，后解释</text>
+  </g>
+  </g>
+</svg>

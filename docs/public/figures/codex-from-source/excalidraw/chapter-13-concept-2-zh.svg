@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-13-concept-2-zh desc-chapter-13-concept-2-zh">
+  <title id="title-chapter-13-concept-2-zh">macOS 沙盒配置</title>
+  <desc id="desc-chapter-13-concept-2-zh">macOS 沙盒配置的手绘白板图，展示权限配置、Seatbelt 生成器、允许根目录、网络套接字、固定运行器之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-13-concept-2-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 49.8 23.7 L 1230.5 24.2 L 1258.3 48.5 L 1256.7 652.2 L 1228.5 679.4 L 51.3 679.8 L 23.0 652.2 L 24.5 49.0 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-13-concept-2-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">macOS 沙盒配置</text>
+    <path d="M 64.0 166.0 C 476.8 172.4, 854.1 151.9, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 270.3 135.0, 266.5 605.9, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1005.5 163.9, 1031.5 617.2, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 645.3 203.5, 629.3 215.2, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 647.4 282.0, 649.8 283.4, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 636.4 332.4, 645.0 342.8, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 650.1 413.6, 627.9 404.8, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 628.1 460.6, 624.7 467.5, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 276.3 162.2 L 1003.1 162.3 L 1017.6 178.3 L 1021.3 189.9 L 1003.2 207.3 L 277.1 208.4 L 261.9 188.2 L 258.4 179.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 280.1 165.9 L 1002.8 162.1 L 1017.7 181.1 L 1014.2 191.4 L 1001.8 201.7 L 278.4 204.5 L 264.0 190.2 L 263.8 181.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">权限配置</text>
+  </g>
+<g>
+    <path d="M 326.8 223.0 L 956.9 222.2 L 972.4 240.2 L 971.1 254.2 L 953.8 274.5 L 327.4 274.4 L 304.7 254.6 L 308.2 239.7 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 325.9 226.3 L 953.1 227.8 L 969.1 243.0 L 968.5 252.7 L 955.2 267.6 L 325.8 268.3 L 311.2 254.8 L 310.9 241.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">Seatbelt 生成器</text>
+  </g>
+<g>
+    <path d="M 639.4 287.2 L 962.0 312.7 L 641.1 337.3 L 320.9 313.0 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 638.2 293.8 L 956.4 311.8 L 640.9 332.0 L 322.6 313.9 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="347" y="308" font-size="18" fill="#171717" font-weight="750">允许根目录</text>
+  </g>
+<g>
+    <path d="M 351.4 349.6 L 929.6 353.1 L 948.4 369.8 L 946.9 381.6 L 930.4 399.8 L 350.3 399.1 L 329.9 381.7 L 331.8 369.8 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 351.8 354.8 L 931.1 355.6 L 944.9 371.6 L 947.1 383.3 L 930.9 398.4 L 349.0 395.9 L 335.9 381.9 L 333.1 371.5 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">网络套接字</text>
+  </g>
+<g>
+    <path d="M 359.5 416.3 L 917.1 414.8 L 938.7 433.2 L 935.4 444.1 L 917.1 465.5 L 358.6 463.0 L 342.1 445.1 L 344.7 434.6 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 359.7 421.7 L 916.7 419.1 L 933.5 433.7 L 933.7 445.1 L 915.6 459.4 L 360.9 458.0 L 344.6 446.2 L 347.7 435.9 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">固定运行器</text>
+  </g>
+<g>
+    <path d="M 277.6 480.8 L 1001.7 478.7 L 1018.8 499.2 L 1020.3 511.5 L 1002.8 527.2 L 277.1 526.3 L 258.8 510.5 L 257.5 497.5 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 277.8 482.4 L 1001.0 482.3 L 1017.0 501.4 L 1014.1 508.4 L 998.8 524.9 L 278.6 522.3 L 264.2 511.5 L 266.5 498.5 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">失败即关闭</text>
+  </g>
+  </g>
+</svg>

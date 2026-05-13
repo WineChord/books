@@ -26,19 +26,10 @@ For an agent runtime, it is risk management. The system can run commands,
 mutate files, call external services, and coordinate remote work. Governance
 keeps those powers constrained as the repository changes.
 
-```mermaid
-graph TD
-  Change[Proposed change] --> Tests[Unit and integration tests]
-  Change --> Drift[Generated artifact drift checks]
-  Change --> Boundary[Architecture boundary checks]
-  Change --> Deps[Dependency and blob policy]
-  Change --> Lints[Custom lints]
-  Tests --> Merge[Merge confidence]
-  Drift --> Merge
-  Boundary --> Merge
-  Deps --> Merge
-  Lints --> Merge
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-25-01-en.svg" alt="A proposed change earns merge confidence only by passing executable gates for tests, generated output, architectural boundaries, dependencies, blobs, and custom lints." loading="lazy" />
+  <figcaption>A proposed change earns merge confidence only by passing executable gates for tests, generated output, architectural boundaries, dependencies, blobs, and custom lints.</figcaption>
+</figure>
 
 The merge confidence node is not a claim that CI proves everything. It proves
 the rules the project chose to make executable. The art is choosing rules that
@@ -55,19 +46,10 @@ This is a risk map. A change to a protocol type has different blast radius from
 a change to a TUI rendering helper. A change to packaging has different risk
 from a unit test helper. The CI design should make those differences visible.
 
-```mermaid
-flowchart LR
-  PR[Pull request] --> Fast[Fast feedback lane]
-  PR --> Contract[Contract drift lane]
-  PR --> Hermetic[Hermetic build lane]
-  PR --> Platform[Platform matrix lane]
-  PR --> Supply[Supply-chain lane]
-  Fast --> Decision[Review decision]
-  Contract --> Decision
-  Hermetic --> Decision
-  Platform --> Decision
-  Supply --> Decision
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-25-02-en.svg" alt="CI lanes make risk legible by separating fast feedback, contract drift, reproducible builds, platform coverage, and supply-chain checks before review." loading="lazy" />
+  <figcaption>CI lanes make risk legible by separating fast feedback, contract drift, reproducible builds, platform coverage, and supply-chain checks before review.</figcaption>
+</figure>
 
 The anti-pattern is one undifferentiated "run everything" button. That hides
 which architectural promise failed and makes engineers treat failures as CI
@@ -120,20 +102,11 @@ ambiguous. Did the developer forget to regenerate? Did the generator change?
 Did the source contract change intentionally? Did an experimental field leak
 into the stable schema?
 
-```mermaid
-flowchart TD
-    StartState([Start])
-    EndState([End])
-    StartState --> SourceChanged
-    SourceChanged -->|generator run| Regenerated
-    SourceChanged -->|committed output stale| DriftDetected
-    Regenerated -->|diff includes code and contract| Reviewable
-    DriftDetected -->|CI failure| Blocked
-    Reviewable -->|reviewer accepts contract change| Accepted
-    Reviewable -->|contract change was accidental| Reworked
-    Reworked --> SourceChanged
-    Accepted --> EndState
-```
+<p class="sketch-intro">The generated-drift state machine turns source changes into a visible contract loop: generated output must either pass review or return for rework.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-25-03-en.svg" alt="Generated drift is treated as a contract loop: source changes run generators, stale output blocks CI, and the diff is either accepted or returned for rework." loading="lazy" />
+  <figcaption>Generated drift is treated as a contract loop: source changes run generators, stale output blocks CI, and the diff is either accepted or returned for rework.</figcaption>
+</figure>
 
 The state machine is small, but it changes behavior. A contract change becomes
 reviewable as a contract change. The repository no longer asks reviewers to
@@ -145,6 +118,12 @@ Executable policy can go wrong. If every preference becomes a hard gate, the
 project becomes slower without becoming safer. Codex's useful checks are tied
 to product risk: client compatibility, release reproducibility, runtime
 boundaries, artifact trust, dependency safety, and generated contract drift.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-25-concept-1-en.svg" alt="Proportional governance turns only reviewer-missable architectural promises into failing checks, leaving low-value preferences to review norms and local tooling." loading="lazy" />
+  <figcaption>Proportional governance turns only reviewer-missable architectural promises into failing checks, leaving low-value preferences to review norms and local tooling.</figcaption>
+</figure>
 
 The standard should be: would this rule protect an architectural promise that
 a reviewer can plausibly miss? If yes, make it executable. If not, leave it to

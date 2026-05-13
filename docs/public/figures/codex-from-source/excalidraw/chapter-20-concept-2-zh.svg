@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-20-concept-2-zh desc-chapter-20-concept-2-zh">
+  <title id="title-chapter-20-concept-2-zh">协作事件是产品事件</title>
+  <desc id="desc-chapter-20-concept-2-zh">协作事件是产品事件的手绘白板图，展示生成或发送、命名参与者、用户可见消息、父 notice、事件投影之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-20-concept-2-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 52.4 23.5 L 1231.7 22.6 L 1255.8 48.1 L 1259.7 688.2 L 1231.7 717.3 L 49.4 716.8 L 22.3 689.1 L 23.7 48.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-20-concept-2-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">协作事件是产品事件</text>
+    <path d="M 64.0 166.0 C 455.0 171.4, 851.7 161.7, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="448" rx="520" ry="238" fill="#eef2ff" stroke="#4f46e5" stroke-width="2" stroke-dasharray="14 12" opacity="0.28" />
+    <text x="500" y="345" font-size="19" fill="#475569" font-weight="800">协作事件是产品事件</text>
+<path d="M 213.0 258.0 C 362.8 257.9, 514.9 222.9, 648.0 228.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 779.9 243.5, 929.8 273.4, 1040.0 260.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 529.8 212.4, 397.7 479.2, 300.0 473.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 651.9 237.0, 651.1 551.5, 640.0 543.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 775.9 231.8, 885.6 481.3, 965.0 473.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 300.0 473.0 C 423.9 464.7, 535.0 650.5, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 543.0 C 648.8 543.7, 636.7 657.2, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 965.0 473.0 C 839.2 476.5, 734.7 647.4, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 94.0 209.9 L 330.5 212.8 L 346.4 227.7 L 348.7 283.6 L 329.3 303.8 L 95.2 305.4 L 75.9 287.0 L 78.6 229.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 97.8 213.6 L 329.4 217.1 L 341.9 232.6 L 345.8 286.8 L 330.3 298.1 L 98.0 301.9 L 80.3 285.9 L 81.2 229.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="96" y="244" font-size="18" fill="#171717" font-weight="750">生成或发送</text>
+  </g>
+<g>
+    <path d="M 517.3 181.1 L 777.8 179.8 L 799.5 199.9 L 799.3 256.8 L 781.3 274.0 L 514.7 274.8 L 496.2 257.7 L 496.3 197.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 516.7 183.0 L 777.0 184.0 L 795.6 198.6 L 792.6 256.1 L 781.2 273.3 L 516.0 271.9 L 503.1 257.7 L 500.4 199.6 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="516" y="212" font-size="18" fill="#171717" font-weight="750">命名参与者</text>
+  </g>
+<g>
+    <path d="M 923.4 216.2 L 1158.9 217.3 L 1176.5 234.1 L 1172.6 284.0 L 1155.4 302.1 L 925.4 304.4 L 903.1 285.8 L 906.2 236.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 924.6 217.9 L 1158.5 218.5 L 1170.9 233.2 L 1170.2 282.7 L 1157.7 299.9 L 925.3 301.8 L 908.1 284.5 L 909.4 234.7 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="923" y="248" font-size="18" fill="#171717" font-weight="750">用户可见消息</text>
+  </g>
+<g>
+    <path d="M 196.9 430.9 L 400.2 430.4 L 420.4 448.3 L 417.8 496.2 L 400.6 517.5 L 197.3 514.5 L 178.8 495.9 L 182.1 446.8 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 199.6 433.3 L 400.2 433.4 L 418.3 447.4 L 414.4 494.8 L 400.8 514.5 L 200.7 510.4 L 182.5 495.6 L 183.3 447.1 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="198" y="462" font-size="18" fill="#171717" font-weight="750">父 notice</text>
+  </g>
+<g>
+    <path d="M 540.2 498.4 L 741.0 498.1 L 758.8 516.7 L 761.7 568.2 L 742.2 585.7 L 538.6 585.0 L 520.3 566.8 L 520.3 516.7 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 538.0 501.8 L 740.8 503.7 L 757.7 520.4 L 754.1 569.3 L 741.7 581.8 L 539.2 584.0 L 521.5 569.0 L 523.1 518.0 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="538" y="532" font-size="18" fill="#171717" font-weight="750">事件投影</text>
+  </g>
+<g>
+    <path d="M 861.4 432.1 L 1069.0 429.4 L 1085.6 448.4 L 1084.1 497.2 L 1066.8 515.1 L 860.8 514.7 L 847.5 497.6 L 845.0 447.2 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 862.6 433.7 L 1064.2 434.9 L 1082.1 449.3 L 1081.1 496.4 L 1064.1 509.8 L 864.4 513.9 L 849.9 496.5 L 847.9 448.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="863" y="462" font-size="18" fill="#171717" font-weight="750">产品状态</text>
+  </g>
+<g>
+    <path d="M 450.2 615.5 L 842.8 616.6 L 859.3 635.5 L 857.6 677.8 L 843.3 696.6 L 446.0 696.6 L 430.3 675.5 L 428.8 634.8 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 450.5 619.8 L 838.8 621.4 L 856.0 635.6 L 858.0 678.4 L 840.8 693.1 L 451.2 688.5 L 433.8 677.7 L 434.3 632.0 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="448" y="647" font-size="18" fill="#171717" font-weight="750">结果通知与 trace</text>
+  </g>
+  </g>
+</svg>

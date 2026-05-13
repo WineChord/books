@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-16-02-en desc-chapter-16-02-en">
+  <title id="title-chapter-16-02-en">The Spatial Model</title>
+  <desc id="desc-chapter-16-02-en">Hand-drawn whiteboard figure for The Spatial Model, showing the relationship between Committed scrollback, Live viewport, Bottom pane, Modal layer, Runtime events.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-16-02-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 51.5 23.6 L 1230.5 21.1 L 1257.7 48.4 L 1256.5 649.8 L 1231.6 676.9 L 50.9 677.6 L 20.8 651.1 L 21.5 49.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-16-02-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">The Spatial Model</text>
+    <path d="M 64.0 166.0 C 459.3 170.6, 859.0 158.3, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 92.1 148.5 L 393.8 147.8 L 422.3 173.6 L 422.0 594.2 L 394.7 618.6 L 95.5 621.3 L 69.7 597.1 L 67.8 172.4 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 488.8 147.6 L 789.8 151.9 L 816.5 172.8 L 812.6 594.4 L 792.3 622.1 L 490.5 620.3 L 463.3 596.7 L 466.4 176.3 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 885.0 150.3 L 1187.0 149.1 L 1209.0 175.0 L 1208.9 595.8 L 1185.9 621.2 L 884.8 620.1 L 860.8 593.6 L 862.4 173.5 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 433.4 243.7, 459.0 248.3, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 808.5 255.3, 871.0 256.4, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 796.5 257.9, 410.9 375.7, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 444.4 363.2, 474.0 359.7, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 811.8 353.1, 845.4 368.9, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 113.3 216.0 L 379.4 214.9 L 396.1 231.9 L 395.4 271.4 L 380.4 290.8 L 110.2 291.1 L 93.1 270.9 L 92.3 232.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 115.1 219.0 L 377.8 221.0 L 391.4 237.1 L 393.3 269.3 L 374.6 287.5 L 114.5 288.3 L 99.3 270.4 L 96.5 236.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">Committed scrollback</text>
+  </g>
+<g>
+    <path d="M 506.3 216.2 L 774.0 217.5 L 789.4 235.0 L 792.2 269.5 L 772.0 289.8 L 508.3 289.0 L 487.4 272.7 L 489.9 236.4 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 506.0 222.3 L 773.1 221.6 L 786.1 233.6 L 785.8 270.3 L 771.7 284.6 L 506.9 287.0 L 494.9 271.7 L 493.5 235.9 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">Live viewport</text>
+  </g>
+<g>
+    <path d="M 902.2 218.5 L 1166.9 216.2 L 1183.9 235.1 L 1185.5 271.5 L 1168.0 287.6 L 900.1 290.3 L 883.4 273.9 L 884.7 236.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 903.1 220.9 L 1167.8 217.7 L 1183.6 236.6 L 1182.4 273.2 L 1167.6 286.9 L 900.8 283.6 L 889.4 273.0 L 889.8 237.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">Bottom pane</text>
+  </g>
+<g>
+    <path d="M 111.4 327.2 L 378.2 327.8 L 394.0 344.3 L 397.1 385.6 L 379.3 399.5 L 110.2 399.8 L 91.6 383.5 L 94.2 344.5 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 111.9 332.0 L 376.5 330.2 L 392.4 348.7 L 389.6 381.2 L 376.4 395.8 L 114.3 400.2 L 100.0 384.1 L 98.3 345.0 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">Modal layer</text>
+  </g>
+<g>
+    <path d="M 506.5 329.2 L 774.5 326.5 L 789.6 346.7 L 793.3 382.5 L 773.9 402.7 L 507.9 401.4 L 489.1 381.8 L 489.0 348.2 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 505.7 331.2 L 772.9 329.8 L 785.9 344.9 L 786.5 380.5 L 769.9 397.3 L 506.7 396.2 L 492.5 383.5 L 493.1 347.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">Runtime events</text>
+  </g>
+<g>
+    <path d="M 901.7 329.8 L 1166.3 329.5 L 1186.4 344.3 L 1184.6 383.3 L 1166.1 400.7 L 902.5 401.8 L 884.9 382.9 L 881.6 345.0 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 903.2 334.1 L 1168.4 333.8 L 1181.9 345.3 L 1182.4 384.7 L 1167.6 396.4 L 902.6 398.3 L 889.4 384.9 L 887.2 345.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">Resize and reflow</text>
+  </g>
+  </g>
+</svg>

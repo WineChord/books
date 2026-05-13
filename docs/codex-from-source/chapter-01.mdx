@@ -80,6 +80,12 @@ operation/event contract and the runtime boundary remain stable.
 Part I establishes the language used by the rest of the book. The terms below
 are not cosmetic; they are the load-bearing nouns of the system.
 
+
+<figure className="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-01-concept-1-en.svg" alt="Thread, turn, item, operation, event, tool, and rollout name the runtime facts that keep user intent, model output, side effects, and replay from collapsing into one transcript." loading="lazy" />
+  <figcaption>Thread, turn, item, operation, event, tool, and rollout name the runtime facts that keep user intent, model output, side effects, and replay from collapsing into one transcript.</figcaption>
+</figure>
+
 | Term | Meaning |
 | --- | --- |
 | Thread | A durable conversation and work context. A thread has identity, configuration, history, and resumable state. |
@@ -104,6 +110,12 @@ look at the screen, then inspect implementation details. That approach is
 useful for adoption, but it hides the architecture. Codex has several product
 surfaces, and no single surface is the system.
 
+
+<figure className="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-01-concept-2-en.svg" alt="Contracts come first because clients are replaceable surfaces; typed operations and accepted events are the stable boundary that keeps runtime authority inside the system." loading="lazy" />
+  <figcaption>Contracts come first because clients are replaceable surfaces; typed operations and accepted events are the stable boundary that keeps runtime authority inside the system.</figcaption>
+</figure>
+
 The terminal UI is a client of the runtime. Headless `exec` is a client of the
 runtime. App-server is a client-facing boundary around the runtime. SDKs are
 protocol clients. Cloud task flows, plugin flows, MCP flows, and review flows
@@ -120,6 +132,12 @@ operations, emitted events, tool decisions, and rollout records.
 The OS analogy becomes concrete when a user submits work. A user turn is like a
 high-level system call: it enters through a controlled boundary and returns
 through events rather than through direct mutation.
+
+
+<figure className="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-01-concept-3-en.svg" alt="A turn behaves like a system call: typed intent enters the runtime, policy decides which effects may happen, and accepted events become the evidence that replay can trust." loading="lazy" />
+  <figcaption>A turn behaves like a system call: typed intent enters the runtime, policy decides which effects may happen, and accepted events become the evidence that replay can trust.</figcaption>
+</figure>
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -180,6 +198,12 @@ script around an API call.
 
 The model can propose actions, but Codex layers authority before anything
 dangerous happens. The layers are deliberately not collapsed into one boolean.
+
+
+<figure className="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-01-concept-4-en.svg" alt="Authority is layered so no single model message can become power: clients submit intent, runtime policy gates it, tool handlers execute narrow effects, and rollout evidence records what happened." loading="lazy" />
+  <figcaption>Authority is layered so no single model message can become power: clients submit intent, runtime policy gates it, tool handlers execute narrow effects, and rollout evidence records what happened.</figcaption>
+</figure>
 
 Configuration expresses user and environment preferences. Managed requirements
 can restrict those preferences. Permission profiles describe the resulting

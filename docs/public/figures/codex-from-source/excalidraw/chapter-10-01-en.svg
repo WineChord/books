@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title-chapter-10-01-en desc-chapter-10-01-en">
+  <title id="title-chapter-10-01-en">Shell Tools Are Front Doors</title>
+  <desc id="desc-chapter-10-01-en">Hand-drawn whiteboard figure for Shell Tools Are Front Doors, showing the relationship between Tool call, Parse command and arguments, Classify safety and policy, Pre-tool and permission hooks, Approval or rejection.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-10-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="760" rx="30" fill="#fffdf7" />
+  <path d="M 49.9 22.1 L 1231.0 20.3 L 1259.8 49.8 L 1257.1 708.6 L 1232.3 737.0 L 50.5 736.5 L 21.6 708.8 L 22.6 49.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="760" filter="url(#paper-chapter-10-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Shell Tools Are Front Doors</text>
+    <path d="M 64.0 166.0 C 466.1 154.3, 859.1 174.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 267.9 147.5, 251.0 685.2, 260.0 670.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1028.3 153.9, 1020.6 672.3, 1020.0 670.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 627.7 205.0, 654.2 209.2, 640.0 215.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 263.0 C 626.8 277.1, 624.0 267.8, 640.0 270.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 318.0 C 636.0 303.9, 655.9 328.9, 640.0 325.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 373.0 C 638.5 382.0, 641.7 374.0, 640.0 380.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 428.0 C 641.7 424.9, 633.2 437.9, 640.0 435.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 483.0 C 630.2 490.7, 631.5 497.7, 640.0 490.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 538.0 C 643.3 535.5, 639.3 547.7, 640.0 545.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 593.0 C 650.3 586.1, 646.3 608.4, 640.0 600.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 648.0 C 635.4 653.1, 627.6 642.1, 640.0 655.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 275.7 160.5 L 1004.2 159.6 L 1018.4 180.5 L 1020.3 190.6 L 1004.3 210.0 L 278.2 206.9 L 259.1 188.4 L 261.4 175.9 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 279.7 162.4 L 1002.4 164.8 L 1018.1 176.7 L 1015.3 189.4 L 1002.7 206.4 L 278.2 205.3 L 265.9 186.6 L 263.8 176.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">Tool call</text>
+  </g>
+<g>
+    <path d="M 323.2 214.4 L 955.5 216.0 L 971.3 231.2 L 975.0 246.1 L 952.7 265.1 L 324.1 264.1 L 304.7 243.2 L 305.6 235.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 326.3 219.3 L 954.1 219.2 L 966.9 233.8 L 966.6 242.9 L 954.4 258.5 L 325.3 257.8 L 310.2 244.9 L 311.0 236.4 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="247" font-size="17" fill="#171717" font-weight="750">Parse command and arguments</text>
+  </g>
+<g>
+    <path d="M 335.5 269.2 L 944.9 268.9 L 960.4 289.6 L 959.6 297.9 L 942.7 317.0 L 335.8 318.8 L 317.9 302.5 L 319.5 290.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 338.1 275.2 L 941.0 272.5 L 954.8 286.5 L 955.3 296.6 L 941.4 313.1 L 337.1 315.6 L 324.2 299.5 L 320.9 289.1 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="302" font-size="17" fill="#171717" font-weight="750">Classify safety and policy</text>
+  </g>
+<g>
+    <path d="M 351.4 325.6 L 928.8 325.4 L 947.4 342.5 L 950.9 352.9 L 932.1 375.2 L 347.5 370.6 L 333.2 356.8 L 331.7 345.0 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 349.9 327.0 L 930.9 328.5 L 943.6 341.9 L 947.0 354.9 L 928.5 367.9 L 348.2 370.8 L 333.1 352.5 L 333.3 344.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="357" font-size="17" fill="#171717" font-weight="750">Pre tool and permission hooks</text>
+  </g>
+<g>
+    <path d="M 641.8 379.7 L 938.7 404.1 L 638.9 429.1 L 342.7 403.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 640.1 382.4 L 932.5 403.9 L 640.5 424.3 L 346.2 405.8 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="371" y="400" font-size="18" fill="#171717" font-weight="750">Approval or rejection</text>
+  </g>
+<g>
+    <path d="M 374.8 437.0 L 906.6 435.7 L 925.6 454.4 L 923.2 463.6 L 905.7 481.4 L 374.7 482.7 L 355.5 465.2 L 356.4 453.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 375.9 439.0 L 905.4 438.8 L 919.3 454.8 L 919.5 462.4 L 906.3 481.0 L 372.6 478.9 L 359.5 464.0 L 358.4 453.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="373" y="467" font-size="17" fill="#171717" font-weight="750">Permission profile to sandbox</text>
+  </g>
+<g>
+    <path d="M 386.1 489.7 L 895.7 488.6 L 913.8 506.1 L 911.2 520.6 L 894.4 535.5 L 386.7 536.9 L 368.2 522.3 L 366.4 509.1 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 387.2 494.3 L 893.5 495.2 L 911.4 506.5 L 909.6 518.7 L 894.6 535.0 L 384.8 534.3 L 372.4 517.5 L 373.3 508.6 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="385" y="522" font-size="17" fill="#171717" font-weight="750">Environment and exec server backend</text>
+  </g>
+<g>
+    <path d="M 395.8 544.2 L 883.0 547.3 L 900.3 564.1 L 898.7 577.5 L 883.8 595.0 L 399.4 592.0 L 379.0 574.6 L 378.6 562.6 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 395.7 548.9 L 881.1 548.7 L 898.0 562.1 L 899.3 572.2 L 882.5 587.2 L 398.3 589.6 L 381.5 574.6 L 383.8 562.3 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="397" y="577" font-size="18" fill="#171717" font-weight="750">Managed process</text>
+  </g>
+<g>
+    <path d="M 409.4 599.0 L 870.6 601.3 L 888.3 616.1 L 886.9 629.4 L 870.8 647.4 L 406.5 650.2 L 390.9 631.1 L 393.4 615.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 412.2 606.1 L 867.5 603.0 L 886.5 618.9 L 884.3 628.5 L 869.9 642.5 L 411.7 646.3 L 393.0 629.5 L 393.3 620.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="409" y="632" font-size="17" fill="#171717" font-weight="750">Sequenced output and exit</text>
+  </g>
+<g>
+    <path d="M 276.4 654.9 L 999.5 654.3 L 1018.5 672.7 L 1022.1 682.7 L 1003.2 705.0 L 280.3 705.3 L 260.0 684.6 L 258.1 673.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 281.0 660.4 L 998.9 659.8 L 1013.6 673.9 L 1016.6 683.5 L 1000.3 699.6 L 281.2 698.1 L 264.8 684.1 L 264.8 673.3 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="687" font-size="17" fill="#171717" font-weight="750">Events, telemetry, model result</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-11-concept-2-zh desc-chapter-11-concept-2-zh">
+  <title id="title-chapter-11-concept-2-zh">Shell 形式 Patch 拦截</title>
+  <desc id="desc-chapter-11-concept-2-zh">Shell 形式 Patch 拦截的手绘白板图，展示Patch 工具、识别 patch 意图、解析并验证 hunk、审批与权限、执行器文件系统应用之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-11-concept-2-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.4 20.4 L 1231.2 23.0 L 1259.5 49.5 L 1260.3 648.7 L 1228.7 678.1 L 48.4 676.9 L 23.1 651.6 L 23.8 48.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-11-concept-2-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">shell 形式 Patch 拦截</text>
+    <path d="M 64.0 166.0 C 463.3 167.3, 864.2 148.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 256.3 138.0, 270.6 595.0, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1018.5 155.9, 1025.0 601.2, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 644.3 202.6, 650.6 235.1, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 655.5 281.7, 650.0 283.7, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 639.9 329.7, 641.2 346.1, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 626.5 400.8, 625.5 422.3, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 626.3 470.3, 625.5 488.6, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 278.2 160.7 L 1000.6 162.1 L 1021.2 176.7 L 1018.5 191.0 L 1000.4 206.6 L 279.7 210.4 L 262.1 189.0 L 260.4 178.5 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 277.3 164.3 L 1001.5 163.8 L 1013.8 176.7 L 1015.3 188.5 L 1000.2 205.5 L 279.7 203.6 L 262.1 191.1 L 265.0 177.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">Patch 工具</text>
+  </g>
+<g>
+    <path d="M 322.9 225.2 L 954.4 225.9 L 971.8 242.0 L 975.5 252.8 L 954.8 274.2 L 324.4 272.0 L 309.0 255.7 L 309.1 240.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 324.1 229.8 L 954.7 230.3 L 970.4 245.4 L 967.8 254.5 L 951.8 269.4 L 328.3 269.3 L 310.8 252.9 L 311.3 243.6 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">识别 patch 意图</text>
+  </g>
+<g>
+    <path d="M 337.6 289.3 L 943.5 289.4 L 961.2 307.0 L 963.3 320.4 L 942.4 334.7 L 336.2 338.2 L 320.6 319.4 L 317.4 306.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 336.6 291.9 L 943.8 294.0 L 957.5 306.4 L 956.7 318.5 L 943.2 329.7 L 335.9 332.2 L 321.1 318.4 L 321.4 307.5 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">解析并验证 hunk</text>
+  </g>
+<g>
+    <path d="M 639.0 353.8 L 948.6 377.6 L 639.7 399.9 L 332.7 376.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 640.4 355.8 L 946.0 377.2 L 639.5 396.8 L 336.5 376.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="359" y="372" font-size="18" fill="#171717" font-weight="750">审批与权限</text>
+  </g>
+<g>
+    <path d="M 362.0 414.8 L 917.2 417.2 L 939.0 433.3 L 938.3 444.8 L 919.4 462.4 L 358.5 463.9 L 344.0 446.2 L 340.8 433.5 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 362.6 417.5 L 918.9 421.8 L 931.5 437.1 L 934.8 444.1 L 919.8 460.3 L 364.1 459.1 L 346.8 444.9 L 344.7 436.0 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">执行器文件系统应用</text>
+  </g>
+<g>
+    <path d="M 278.4 480.5 L 1003.9 478.2 L 1020.4 500.3 L 1018.8 509.7 L 1002.1 530.3 L 279.3 526.1 L 259.2 511.8 L 260.5 496.0 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 278.0 484.9 L 999.3 482.5 L 1014.3 499.7 L 1017.2 509.5 L 1002.3 522.4 L 280.0 522.8 L 266.5 509.1 L 263.8 499.5 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">记录结果</text>
+  </g>
+  </g>
+</svg>

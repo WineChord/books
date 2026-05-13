@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-17-concept-1-zh desc-chapter-17-concept-1-zh">
+  <title id="title-chapter-17-concept-1-zh">工具发现与路由</title>
+  <desc id="desc-chapter-17-concept-1-zh">工具发现与路由的手绘白板图，展示有效服务启动、工具列表、清洗后的模型名称、来源记录、模型工具调用之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-17-concept-1-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 49.3 23.1 L 1232.4 21.8 L 1256.2 48.9 L 1258.2 649.6 L 1228.0 677.4 L 49.7 677.7 L 21.9 649.6 L 23.4 50.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-17-concept-1-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">工具发现与路由</text>
+    <path d="M 64.0 166.0 C 458.4 162.6, 851.4 174.8, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 92.8 151.1 L 398.3 149.6 L 421.5 176.1 L 422.4 597.4 L 395.9 620.4 L 95.4 618.7 L 70.9 596.2 L 69.7 175.6 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">外部表面</text>
+    </g>
+<g>
+      <path d="M 490.3 149.6 L 789.9 151.1 L 816.0 172.5 L 816.3 594.9 L 792.9 620.1 L 490.5 619.9 L 464.1 594.3 L 466.1 172.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">运行时契约</text>
+    </g>
+<g>
+      <path d="M 882.7 151.3 L 1185.0 151.7 L 1209.0 174.4 L 1208.2 594.4 L 1187.5 621.4 L 885.7 618.3 L 862.3 594.1 L 858.0 175.9 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">执行边界</text>
+    </g>
+<path d="M 396.0 253.0 C 427.5 254.2, 471.1 237.4, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 811.4 246.6, 866.7 260.0, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 809.4 261.6, 424.9 369.2, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 434.6 363.5, 474.2 360.1, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 835.2 377.9, 857.8 369.7, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 792.0 359.0, 422.3 475.0, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 111.4 218.0 L 379.9 217.1 L 395.8 234.4 L 397.3 273.6 L 378.2 288.4 L 113.9 288.0 L 94.3 271.6 L 92.0 234.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 113.5 220.8 L 378.3 221.3 L 393.6 233.7 L 392.4 268.8 L 378.8 283.7 L 114.5 286.6 L 99.1 273.4 L 99.1 235.6 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">有效服务启动</text>
+  </g>
+<g>
+    <path d="M 507.6 214.2 L 774.3 214.0 L 792.3 233.9 L 789.5 270.4 L 772.2 291.4 L 508.3 290.9 L 488.6 272.4 L 488.8 235.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 506.4 221.2 L 771.0 221.4 L 785.1 233.6 L 785.8 273.4 L 770.9 285.3 L 506.5 287.9 L 495.1 273.0 L 491.1 232.9 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">工具列表</text>
+  </g>
+<g>
+    <path d="M 900.0 215.8 L 1167.6 214.8 L 1186.4 235.2 L 1187.7 271.2 L 1168.2 287.6 L 900.1 291.8 L 884.6 272.0 L 885.4 235.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 904.3 221.9 L 1168.1 220.4 L 1181.9 234.2 L 1183.2 269.0 L 1167.3 285.7 L 902.8 283.7 L 889.6 270.4 L 886.7 234.7 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">清洗后的模型名称</text>
+  </g>
+<g>
+    <path d="M 113.1 326.9 L 379.8 326.8 L 394.4 345.6 L 394.2 382.5 L 376.8 400.2 L 109.9 400.2 L 92.6 386.0 L 96.5 345.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 111.2 332.2 L 376.7 330.0 L 394.0 345.6 L 390.7 382.5 L 375.1 397.2 L 111.2 397.1 L 96.1 381.1 L 96.4 348.0 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">来源记录</text>
+  </g>
+<g>
+    <path d="M 508.9 329.1 L 773.4 326.1 L 789.2 346.5 L 792.4 384.8 L 770.6 400.2 L 505.2 402.5 L 490.0 384.5 L 488.4 347.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 506.9 334.0 L 772.7 330.9 L 784.7 348.6 L 787.3 381.9 L 770.9 398.7 L 506.5 397.8 L 493.9 383.7 L 491.9 345.8 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">模型工具调用</text>
+  </g>
+<g>
+    <path d="M 903.8 329.4 L 1166.3 330.3 L 1186.9 343.9 L 1184.6 385.8 L 1169.9 402.0 L 901.1 400.9 L 881.6 381.5 L 882.1 348.2 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 902.4 332.0 L 1166.7 330.0 L 1181.5 349.5 L 1184.0 382.4 L 1166.3 397.5 L 900.9 396.9 L 887.9 382.2 L 888.5 346.2 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">所属 MCP 服务</text>
+  </g>
+<g>
+    <path d="M 109.8 439.5 L 376.7 439.3 L 395.4 456.3 L 396.1 498.4 L 375.6 514.4 L 114.1 515.9 L 96.2 496.8 L 93.1 457.0 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 112.0 446.3 L 377.1 446.3 L 394.5 457.0 L 389.6 496.9 L 374.5 509.2 L 110.8 510.5 L 99.7 494.9 L 100.2 459.9 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">整形后的观察结果</text>
+  </g>
+  </g>
+</svg>

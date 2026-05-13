@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-03-02-en desc-chapter-03-02-en">
+  <title id="title-chapter-03-02-en">Authentication as a Snapshot</title>
+  <desc id="desc-chapter-03-02-en">Hand-drawn whiteboard figure for Authentication as a Snapshot, showing the relationship between Environment or stdin token, Auth manager, Keyring or auth file, OAuth/device flow, External bearer provider.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-03-02-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 52.1 24.2 L 1231.3 21.4 L 1259.8 52.2 L 1260.3 648.4 L 1232.1 676.9 L 47.5 677.1 L 21.1 651.9 L 24.4 50.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-03-02-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Authentication as a Snapshot</text>
+    <path d="M 64.0 166.0 C 467.9 150.8, 859.0 170.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 94.9 151.7 L 398.0 149.8 L 420.8 175.4 L 418.7 596.1 L 393.6 617.6 L 93.2 621.2 L 68.3 596.1 L 72.4 174.9 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 490.2 150.6 L 788.8 151.2 L 815.2 173.8 L 814.2 595.9 L 792.6 617.8 L 487.4 621.8 L 463.3 594.5 L 466.5 174.0 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 883.4 151.7 L 1186.5 151.5 L 1208.1 176.1 L 1208.2 594.8 L 1184.8 622.0 L 885.8 618.6 L 860.4 596.5 L 862.2 172.7 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 440.2 255.9, 446.1 243.1, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 821.9 256.9, 840.4 258.2, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 812.9 257.2, 413.9 369.6, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 417.6 351.0, 449.1 379.5, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 818.0 355.1, 842.0 369.0, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 815.9 373.9, 435.6 491.4, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 113.5 218.4 L 378.0 217.5 L 396.0 232.9 L 397.9 273.6 L 376.5 288.9 L 112.9 288.8 L 94.8 271.6 L 93.3 232.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 115.2 218.6 L 379.3 218.5 L 392.3 237.3 L 391.1 271.5 L 377.7 283.9 L 113.9 286.3 L 100.4 272.5 L 100.5 234.9 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="17" fill="#171717" font-weight="750">Environment or stdin token</text>
+  </g>
+<g>
+    <path d="M 506.3 216.6 L 773.2 218.4 L 793.3 235.1 L 788.8 272.2 L 771.6 289.0 L 508.3 290.3 L 489.6 270.9 L 489.0 232.3 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 509.2 220.4 L 771.9 219.7 L 787.6 237.0 L 785.6 271.4 L 770.6 288.5 L 507.2 285.0 L 491.0 273.2 L 493.1 237.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">Auth manager</text>
+  </g>
+<g>
+    <path d="M 903.3 215.5 L 1169.3 215.2 L 1187.9 236.0 L 1186.8 271.3 L 1169.4 291.7 L 903.3 288.2 L 884.1 272.8 L 886.3 232.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 904.8 218.2 L 1168.9 218.0 L 1180.4 235.0 L 1183.4 272.6 L 1167.9 285.0 L 902.5 287.1 L 889.3 270.1 L 889.4 232.6 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">Keyring or auth file</text>
+  </g>
+<g>
+    <path d="M 111.8 326.1 L 377.8 325.5 L 398.5 344.4 L 398.1 384.1 L 380.2 400.0 L 113.2 399.9 L 92.8 386.2 L 92.2 343.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 114.3 333.6 L 378.7 330.0 L 391.1 347.5 L 393.8 381.2 L 376.6 400.0 L 111.0 396.9 L 98.2 381.7 L 97.6 345.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">OAuth / device flow</text>
+  </g>
+<g>
+    <path d="M 507.7 328.5 L 771.1 325.5 L 790.5 345.1 L 789.3 382.3 L 772.5 402.7 L 508.8 401.4 L 490.9 383.6 L 488.5 345.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 506.7 333.2 L 771.2 330.8 L 788.5 347.2 L 785.2 381.0 L 772.3 397.7 L 505.8 395.6 L 490.5 382.9 L 492.9 348.3 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="17" fill="#171717" font-weight="750">External bearer provider</text>
+  </g>
+<g>
+    <path d="M 900.6 328.2 L 1169.9 326.7 L 1183.8 347.5 L 1184.5 382.2 L 1165.6 401.5 L 903.1 404.3 L 883.6 382.5 L 882.5 346.7 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 900.8 333.9 L 1165.9 329.9 L 1183.0 345.0 L 1180.9 384.8 L 1166.3 398.6 L 905.1 396.3 L 888.4 385.4 L 886.2 347.2 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">Agent identity token</text>
+  </g>
+<g>
+    <path d="M 111.2 440.8 L 375.9 442.5 L 396.4 460.3 L 393.7 496.2 L 379.6 516.1 L 113.0 513.8 L 95.2 495.1 L 94.4 458.1 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 111.1 444.3 L 379.4 446.5 L 393.4 461.4 L 393.5 494.1 L 376.7 509.2 L 115.2 507.5 L 96.2 493.2 L 98.8 461.0 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">Auth snapshot</text>
+  </g>
+  </g>
+</svg>

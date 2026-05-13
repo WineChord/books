@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-20-02-zh desc-chapter-20-02-zh">
+  <title id="title-chapter-20-02-zh">活动图与 Trace 图</title>
+  <desc id="desc-chapter-20-02-zh">活动图与 Trace 图的手绘白板图，展示有序原始事件与载荷引用、离线规约器、活动图存储打开 / 关闭后代、规约 trace 图交互边、调试器或客户端投影之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-20-02-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 51.6 22.2 L 1228.4 23.4 L 1259.4 52.4 L 1260.2 689.8 L 1229.5 719.6 L 49.9 719.0 L 21.4 691.9 L 23.5 50.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-20-02-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">活动图与 trace 图</text>
+    <path d="M 64.0 166.0 C 450.0 168.7, 859.9 147.9, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="448" rx="520" ry="238" fill="#eef2ff" stroke="#4f46e5" stroke-width="2" stroke-dasharray="14 12" opacity="0.28" />
+    <text x="500" y="345" font-size="19" fill="#475569" font-weight="800">活动图与 trace 图</text>
+<path d="M 213.0 258.0 C 365.0 250.4, 505.2 230.3, 648.0 228.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 796.6 242.7, 935.5 249.1, 1040.0 260.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 511.3 229.8, 398.5 481.3, 300.0 473.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 629.1 242.8, 656.7 551.8, 640.0 543.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 747.3 238.6, 862.1 467.5, 965.0 473.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 300.0 473.0 C 404.3 473.8, 533.7 657.4, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 543.0 C 624.9 529.8, 657.1 668.7, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 965.0 473.0 C 868.4 471.5, 741.2 670.5, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 96.4 209.8 L 330.3 213.6 L 346.4 230.3 L 347.3 284.6 L 330.3 304.3 L 97.3 306.4 L 78.3 284.0 L 76.7 228.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 96.7 215.4 L 329.1 217.5 L 344.9 231.6 L 343.9 286.2 L 327.5 299.7 L 94.6 301.0 L 84.1 283.1 L 84.0 229.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="96" y="244" font-size="18" fill="#171717" font-weight="750">有序原始事件与载荷引用</text>
+  </g>
+<g>
+    <path d="M 514.6 182.2 L 780.4 177.6 L 795.7 198.3 L 799.6 259.5 L 778.6 273.7 L 514.9 276.0 L 498.2 259.6 L 497.7 197.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 517.3 181.6 L 781.4 185.8 L 794.0 197.7 L 792.6 256.0 L 780.3 269.7 L 515.2 270.8 L 501.4 257.4 L 500.8 196.8 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="516" y="212" font-size="18" fill="#171717" font-weight="750">离线 reducer</text>
+  </g>
+<g>
+    <path d="M 923.6 214.3 L 1159.4 217.5 L 1176.2 235.6 L 1175.2 284.1 L 1156.0 304.5 L 920.6 305.6 L 906.7 284.7 L 905.2 234.9 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 922.8 220.8 L 1158.0 217.6 L 1172.0 234.2 L 1170.1 285.6 L 1156.0 301.2 L 923.3 301.7 L 910.8 286.1 L 910.5 234.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="923" y="248" font-size="18" fill="#171717" font-weight="750">活动图存储打开/关闭后代</text>
+  </g>
+<g>
+    <path d="M 199.7 427.8 L 401.1 430.5 L 419.2 448.9 L 418.0 496.4 L 401.7 513.9 L 197.5 513.6 L 179.9 498.7 L 178.3 447.9 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 197.7 436.3 L 398.6 433.0 L 415.8 450.1 L 415.6 498.6 L 399.9 511.7 L 197.7 511.2 L 183.5 497.1 L 183.9 448.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="198" y="462" font-size="18" fill="#171717" font-weight="750">规约 trace</text>
+<text x="198" y="484.5" font-size="18" fill="#171717" font-weight="750">图交互边</text>
+  </g>
+<g>
+    <path d="M 539.4 498.9 L 744.3 502.1 L 760.3 517.1 L 758.5 567.9 L 744.3 585.4 L 538.3 584.8 L 521.9 567.9 L 517.8 518.6 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 541.3 502.3 L 739.8 503.8 L 755.7 517.3 L 755.8 568.8 L 743.3 584.4 L 539.1 582.0 L 523.5 569.3 L 523.2 520.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="538" y="532" font-size="18" fill="#171717" font-weight="750">调试器或客户端投影</text>
+  </g>
+<g>
+    <path d="M 860.9 430.3 L 1067.5 428.9 L 1084.7 449.0 L 1087.0 495.9 L 1065.6 516.6 L 865.5 515.3 L 843.2 498.8 L 845.1 447.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 865.7 435.8 L 1068.1 435.0 L 1082.7 447.7 L 1079.8 495.6 L 1067.9 509.7 L 861.9 512.7 L 851.4 497.5 L 849.0 450.9 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="863" y="462" font-size="18" fill="#171717" font-weight="750">运行时协调</text>
+  </g>
+<g>
+    <path d="M 450.2 617.2 L 842.4 615.4 L 862.1 633.7 L 861.1 678.9 L 842.4 693.0 L 446.9 693.7 L 430.2 675.7 L 432.5 633.2 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 448.3 619.1 L 840.3 619.5 L 857.3 632.4 L 856.0 674.0 L 842.3 691.7 L 446.6 689.2 L 433.0 673.8 L 432.1 634.4 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="448" y="647" font-size="18" fill="#171717" font-weight="750">运行时</text>
+  </g>
+  </g>
+</svg>

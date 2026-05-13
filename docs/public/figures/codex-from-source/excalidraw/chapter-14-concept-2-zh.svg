@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-14-concept-2-zh desc-chapter-14-concept-2-zh">
+  <title id="title-chapter-14-concept-2-zh">可跟踪服务端请求</title>
+  <desc id="desc-chapter-14-concept-2-zh">可跟踪服务端请求的手绘白板图，展示审批请求、补充输入请求、补充信息收集、客户端拥有工具、认证刷新之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-14-concept-2-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 49.1 22.6 L 1228.7 23.5 L 1259.8 50.1 L 1259.3 648.3 L 1229.4 677.4 L 50.0 675.6 L 23.4 651.8 L 23.8 50.4 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-14-concept-2-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">可跟踪服务端请求</text>
+    <path d="M 64.0 166.0 C 449.7 159.6, 880.3 159.0, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 96.3 148.8 L 397.4 151.1 L 422.3 175.0 L 417.7 595.2 L 395.3 618.0 L 92.7 621.0 L 70.0 596.0 L 70.0 172.4 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">外部表面</text>
+    </g>
+<g>
+      <path d="M 488.2 149.1 L 792.1 151.9 L 813.3 174.7 L 814.6 596.0 L 792.5 621.9 L 491.2 621.2 L 463.4 594.0 L 466.8 176.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">运行时契约</text>
+    </g>
+<g>
+      <path d="M 882.9 151.5 L 1186.8 150.0 L 1208.7 176.2 L 1211.9 597.6 L 1185.6 619.2 L 885.2 622.4 L 860.8 598.3 L 862.4 175.7 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">执行边界</text>
+    </g>
+<path d="M 396.0 253.0 C 424.0 251.1, 446.1 262.9, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 807.4 238.5, 856.9 241.8, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 800.7 268.0, 408.7 371.6, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 425.3 359.8, 449.3 375.7, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 823.9 368.4, 857.7 380.2, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 109.7 217.5 L 376.5 214.7 L 394.8 232.4 L 395.7 272.3 L 379.2 290.6 L 113.0 289.9 L 96.0 270.2 L 94.6 232.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 112.2 219.5 L 376.1 221.7 L 390.4 232.9 L 390.5 269.5 L 377.7 287.4 L 113.9 288.3 L 97.0 273.4 L 96.1 235.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">审批请求</text>
+  </g>
+<g>
+    <path d="M 507.1 214.8 L 771.9 213.6 L 792.9 233.7 L 793.1 270.5 L 772.8 290.8 L 505.5 290.2 L 488.6 271.5 L 486.9 233.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 507.2 218.9 L 773.6 219.2 L 785.6 236.9 L 787.3 268.9 L 773.0 286.5 L 508.3 287.8 L 494.8 270.4 L 491.3 235.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">补充输入请求</text>
+  </g>
+<g>
+    <path d="M 902.2 215.5 L 1170.2 217.5 L 1186.4 234.0 L 1184.2 273.6 L 1167.7 287.7 L 900.6 288.0 L 885.1 272.5 L 886.3 234.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 904.8 220.0 L 1167.6 221.3 L 1181.3 233.0 L 1180.4 273.3 L 1167.7 288.3 L 903.2 284.5 L 885.7 272.8 L 888.3 237.1 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">补充信息收集</text>
+  </g>
+<g>
+    <path d="M 114.5 329.9 L 380.2 326.3 L 396.6 346.0 L 396.9 386.1 L 378.1 401.2 L 114.1 400.4 L 93.7 384.1 L 93.1 344.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 111.0 334.0 L 376.4 329.5 L 389.6 346.0 L 391.3 381.4 L 379.1 397.3 L 111.7 396.9 L 97.0 383.4 L 97.9 348.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">客户端拥有工具</text>
+  </g>
+<g>
+    <path d="M 508.5 329.2 L 771.4 326.3 L 792.8 346.3 L 790.7 381.7 L 770.8 403.6 L 508.8 402.6 L 486.8 383.1 L 489.7 346.6 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 506.0 330.4 L 770.7 332.7 L 785.2 345.4 L 785.4 381.0 L 773.2 400.3 L 506.3 400.1 L 493.6 384.6 L 494.6 347.9 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">认证刷新</text>
+  </g>
+<g>
+    <path d="M 902.1 326.7 L 1166.3 330.4 L 1188.0 346.4 L 1186.9 382.9 L 1167.5 402.0 L 901.8 400.1 L 883.7 385.8 L 883.8 344.3 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 902.6 331.1 L 1168.3 331.1 L 1182.6 346.8 L 1181.3 385.0 L 1167.2 396.8 L 902.4 396.2 L 887.7 381.8 L 887.0 346.0 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">可跟踪 Turn 状态</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-08-02-en desc-chapter-08-02-en">
+  <title id="title-chapter-08-02-en">Raw Events and Reduced Graphs</title>
+  <desc id="desc-chapter-08-02-en">Hand-drawn whiteboard figure for Raw Events and Reduced Graphs, showing the relationship between raw model payloads, raw runtime payloads, raw terminal payloads, strict reducer, conversation items what the model saw.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-08-02-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 50.9 19.6 L 1231.8 23.1 L 1256.0 50.1 L 1258.0 652.4 L 1231.2 680.5 L 49.3 678.3 L 23.6 651.4 L 21.4 49.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-08-02-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Raw Events and Reduced Graphs</text>
+    <path d="M 64.0 166.0 C 469.4 178.2, 863.0 166.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 93.4 164.8 L 547.5 167.2 L 572.2 188.3 L 567.9 596.8 L 549.9 622.4 L 93.5 621.1 L 70.5 599.4 L 70.6 186.8 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <path d="M 731.6 165.8 L 1189.1 167.3 L 1211.2 187.9 L 1212.3 595.5 L 1188.4 617.6 L 732.1 620.3 L 710.7 596.6 L 710.9 188.1 Z" fill="#f8fafc" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <text x="96" y="201" font-size="17" fill="#475569" font-weight="800">Fact stream</text>
+    <text x="736" y="201" font-size="17" fill="#475569" font-weight="800">Readable projection</text>
+    <path d="M 610.0 203.0 C 645.9 191.6, 656.4 201.3, 675.0 203.0" fill="none" stroke="#d97757" stroke-width="3" marker-end="url(#arrow)" opacity="0.7" />
+<g>
+    <path d="M 122.6 236.2 L 506.4 235.1 L 526.2 254.7 L 527.2 268.8 L 507.4 288.9 L 125.2 286.4 L 107.5 267.6 L 105.8 252.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 125.3 237.0 L 504.6 241.1 L 518.8 256.1 L 520.6 269.4 L 507.7 284.1 L 124.4 283.9 L 108.0 266.6 L 107.0 252.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="267" font-size="18" fill="#171717" font-weight="750">raw model payloads</text>
+  </g>
+<g>
+    <path d="M 765.2 236.1 L 1148.8 232.7 L 1166.4 251.7 L 1166.3 268.5 L 1148.0 285.6 L 764.8 287.0 L 744.5 269.3 L 742.6 252.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 763.2 238.4 L 1146.6 236.8 L 1160.8 254.0 L 1161.6 267.4 L 1147.9 284.9 L 763.7 284.4 L 751.5 268.8 L 750.7 255.5 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="267" font-size="18" fill="#171717" font-weight="750">raw runtime payloads</text>
+  </g>
+<g>
+    <path d="M 124.3 299.2 L 506.0 299.4 L 524.3 317.7 L 523.3 333.6 L 508.2 352.7 L 124.1 349.1 L 106.3 333.4 L 102.8 317.7 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 126.3 301.8 L 505.7 303.7 L 519.2 319.4 L 521.0 331.3 L 504.5 345.1 L 121.8 345.2 L 109.8 330.3 L 108.6 317.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="331" font-size="18" fill="#171717" font-weight="750">raw terminal payloads</text>
+  </g>
+<g>
+    <path d="M 765.3 299.4 L 1146.1 298.3 L 1162.9 316.5 L 1164.2 331.9 L 1147.3 348.5 L 764.1 352.9 L 744.1 331.7 L 744.1 319.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 764.0 304.4 L 1148.2 300.9 L 1161.5 316.9 L 1163.2 330.6 L 1144.8 347.2 L 761.6 345.5 L 750.3 332.0 L 748.5 317.8 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="331" font-size="18" fill="#171717" font-weight="750">strict reducer</text>
+  </g>
+<g>
+    <path d="M 122.4 362.6 L 505.6 365.4 L 523.1 382.7 L 525.4 397.2 L 504.7 417.4 L 122.9 415.9 L 104.5 397.8 L 106.8 381.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 123.3 368.6 L 506.9 365.5 L 522.4 381.3 L 520.9 394.5 L 506.0 412.1 L 126.1 410.8 L 108.2 398.0 L 109.3 381.0 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="395" font-size="17" fill="#171717" font-weight="750">conversation items what the model saw</text>
+  </g>
+<g>
+    <path d="M 764.5 363.8 L 1148.4 363.5 L 1164.0 378.8 L 1164.4 396.4 L 1148.2 416.6 L 765.0 414.7 L 744.4 396.7 L 743.9 381.1 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 764.7 365.2 L 1143.7 367.6 L 1159.7 381.9 L 1162.4 395.8 L 1145.9 412.4 L 763.2 410.5 L 750.0 393.6 L 750.6 380.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="395" font-size="17" fill="#171717" font-weight="750">runtime objects tools, terminals</text>
+<text x="763" y="416.25" font-size="17" fill="#171717" font-weight="750">compactions</text>
+  </g>
+<g>
+    <path d="M 124.7 427.7 L 504.7 428.0 L 525.6 445.6 L 526.2 460.1 L 508.3 477.5 L 124.7 477.3 L 102.8 463.4 L 103.5 445.5 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 121.9 430.9 L 504.6 433.0 L 523.4 445.4 L 520.0 461.7 L 503.5 472.7 L 124.5 472.9 L 109.7 461.3 L 110.1 448.4 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="459" font-size="17" fill="#171717" font-weight="750">interaction edges causal flow</text>
+  </g>
+  </g>
+</svg>

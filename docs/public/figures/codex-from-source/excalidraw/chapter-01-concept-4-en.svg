@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-01-concept-4-en desc-chapter-01-concept-4-en">
+  <title id="title-chapter-01-concept-4-en">Layered Authority</title>
+  <desc id="desc-chapter-01-concept-4-en">Hand-drawn whiteboard figure for Layered Authority, showing the relationship between Client intent, Managed requirements, Permission profile, Policy and hooks, Approval decision.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-01-concept-4-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.2 23.7 L 1232.1 20.7 L 1256.9 51.6 L 1255.5 649.8 L 1229.8 680.1 L 51.1 678.1 L 23.1 650.7 L 20.7 51.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-01-concept-4-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Layered Authority</text>
+    <path d="M 64.0 166.0 C 473.1 154.7, 873.8 174.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 640.0 380.0 C 638.4 367.0, 654.4 157.4, 640.0 157.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 772.4 389.6, 885.0 236.8, 991.8 239.8" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 803.0 392.4, 948.2 432.9, 1078.7 426.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 703.3 388.7, 787.6 590.9, 835.2 575.2" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 588.2 391.3, 495.6 580.5, 444.8 575.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 473.7 393.5, 317.3 411.7, 201.3 426.0" fill="none" stroke="#b7791f" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 527.3 374.3, 409.4 254.2, 288.2 239.8" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 546.1 122.8 L 733.3 121.4 L 754.2 142.0 L 753.6 175.2 L 733.3 194.4 L 544.5 193.3 L 529.7 175.4 L 528.4 139.5 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 546.4 126.0 L 733.8 128.2 L 746.1 141.3 L 745.7 173.4 L 734.5 189.6 L 545.5 190.1 L 532.3 175.2 L 532.9 138.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="546" y="154" font-size="18" fill="#171717" font-weight="750">Client intent</text>
+  </g>
+<g>
+    <path d="M 897.4 205.1 L 1087.6 206.4 L 1103.0 220.5 L 1102.3 254.8 L 1085.7 275.3 L 897.3 272.9 L 881.7 256.3 L 879.4 224.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 899.3 208.7 L 1085.6 206.4 L 1097.5 223.8 L 1099.3 255.6 L 1085.1 269.5 L 896.5 270.6 L 883.9 255.8 L 881.8 225.7 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="897.8241671106134" y="236.83224359107862" font-size="18" fill="#171717" font-weight="750">Managed</text>
+<text x="897.8241671106134" y="259.3322435910786" font-size="18" fill="#171717" font-weight="750">requirements</text>
+  </g>
+<g>
+    <path d="M 984.7 388.6 L 1173.7 389.6 L 1189.4 410.5 L 1191.3 440.6 L 1170.5 460.4 L 985.6 458.8 L 966.9 441.3 L 966.2 410.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 986.9 392.9 L 1170.2 396.9 L 1185.8 412.3 L 1187.4 441.3 L 1173.0 455.1 L 986.6 455.7 L 970.1 442.3 L 970.7 411.5 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="984.7175604818206" y="422.9546054703892" font-size="18" fill="#171717" font-weight="750">Permission profile</text>
+  </g>
+<g>
+    <path d="M 740.0 540.7 L 929.5 541.5 L 945.0 557.4 L 947.0 591.7 L 931.7 609.6 L 740.0 611.9 L 721.6 589.9 L 724.8 557.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 741.8 545.9 L 930.7 545.7 L 943.6 558.4 L 943.6 588.7 L 929.2 604.9 L 743.3 608.5 L 728.4 589.7 L 727.7 557.9 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="741.2476826029012" y="572.2131509385322" font-size="18" fill="#171717" font-weight="750">Policy and hooks</text>
+  </g>
+<g>
+    <path d="M 351.8 541.4 L 537.2 540.7 L 557.8 556.1 L 557.9 593.2 L 538.0 609.3 L 350.3 607.8 L 333.7 594.1 L 331.6 557.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 351.5 541.9 L 539.8 544.4 L 550.6 558.9 L 555.2 591.4 L 535.3 606.4 L 353.1 605.0 L 335.3 589.9 L 337.0 557.3 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="350.75231739709886" y="572.2131509385322" font-size="18" fill="#171717" font-weight="750">Approval decision</text>
+  </g>
+<g>
+    <path d="M 105.0 388.8 L 295.3 389.9 L 312.2 409.3 L 311.2 440.7 L 295.0 460.9 L 109.5 459.2 L 88.7 444.0 L 91.3 407.7 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 108.1 393.9 L 293.6 397.0 L 311.7 410.9 L 307.5 440.3 L 294.5 454.8 L 106.7 455.0 L 93.2 441.4 L 95.1 408.5 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="107.28243951817939" y="422.9546054703892" font-size="18" fill="#171717" font-weight="750">Sandbox or executor</text>
+  </g>
+<g>
+    <path d="M 195.7 202.7 L 380.7 203.6 L 399.5 223.2 L 398.5 258.6 L 384.6 275.1 L 192.1 273.3 L 173.7 258.4 L 174.0 225.2 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 195.0 208.1 L 382.2 206.8 L 395.5 225.7 L 396.1 255.9 L 382.9 272.2 L 195.9 273.3 L 178.1 253.6 L 180.2 222.7 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="194.17583288938653" y="236.83224359107865" font-size="18" fill="#171717" font-weight="750">Rollout evidence</text>
+  </g>
+<g>
+    <path d="M 509.3 320.1 L 771.3 323.3 L 791.7 339.5 L 791.4 410.1 L 769.8 430.0 L 505.7 429.4 L 490.0 411.0 L 488.4 338.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 508.8 324.8 L 770.4 325.9 L 785.5 341.9 L 784.4 413.4 L 771.6 425.9 L 508.2 427.6 L 493.9 408.7 L 492.9 343.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="508" y="354" font-size="18" fill="#171717" font-weight="750">Layered Authority</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title-chapter-15-01-zh desc-chapter-15-01-zh">
+  <title id="title-chapter-15-01-zh">客户端分类</title>
+  <desc id="desc-chapter-15-01-zh">客户端分类的手绘白板图，展示协议 schema、Rust facade、Python SDK、TypeScript SDK、执行命令接入面之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-15-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="760" rx="30" fill="#fffdf7" />
+  <path d="M 50.0 22.0 L 1227.9 22.4 L 1257.6 49.1 L 1259.1 709.9 L 1228.8 736.2 L 50.1 737.2 L 20.6 710.7 L 20.3 49.8 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="760" filter="url(#paper-chapter-15-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">客户端分类</text>
+    <path d="M 64.0 166.0 C 474.8 170.5, 879.5 174.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 95.4 148.3 L 394.6 150.0 L 420.2 171.8 L 421.2 656.4 L 393.6 680.5 L 92.8 677.6 L 69.7 655.3 L 70.0 173.5 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">外部表面</text>
+    </g>
+<g>
+      <path d="M 489.3 150.4 L 790.7 147.6 L 813.7 174.6 L 814.1 656.5 L 793.2 679.8 L 490.2 680.7 L 465.0 656.3 L 464.0 172.0 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">运行时契约</text>
+    </g>
+<g>
+      <path d="M 883.5 148.5 L 1186.6 147.9 L 1211.6 174.6 L 1212.0 654.8 L 1187.3 680.1 L 882.4 678.0 L 862.4 653.7 L 858.3 175.3 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">执行边界</text>
+    </g>
+<path d="M 396.0 253.0 C 418.4 243.5, 466.7 262.7, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 831.0 263.3, 858.7 237.5, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 814.4 237.9, 436.4 365.2, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 426.3 357.6, 464.2 360.0, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 826.5 376.6, 869.6 360.8, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 794.0 368.5, 405.4 491.7, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 477.0 C 420.2 461.1, 477.7 488.8, 489.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 477.0 C 808.9 488.7, 839.2 480.8, 884.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 111.4 217.7 L 378.2 216.4 L 396.5 232.3 L 394.6 271.6 L 380.3 291.8 L 113.5 288.3 L 95.6 272.6 L 93.1 233.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 113.9 218.8 L 378.9 220.7 L 391.1 233.0 L 390.1 268.6 L 374.7 285.8 L 113.6 284.6 L 97.6 272.3 L 99.6 234.9 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">协议 schema</text>
+  </g>
+<g>
+    <path d="M 506.0 217.1 L 772.4 215.5 L 792.0 234.8 L 791.5 270.3 L 773.3 289.8 L 505.6 288.4 L 487.5 273.4 L 488.8 234.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 505.8 222.2 L 772.6 221.9 L 787.5 234.5 L 786.1 271.3 L 772.4 288.3 L 510.4 287.2 L 491.9 271.6 L 492.8 236.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">Rust facade</text>
+  </g>
+<g>
+    <path d="M 899.8 214.1 L 1166.3 215.9 L 1184.7 233.9 L 1184.2 270.7 L 1168.9 288.7 L 900.6 288.0 L 882.9 274.3 L 883.5 233.9 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 903.2 222.3 L 1166.5 221.6 L 1184.3 234.4 L 1180.5 270.1 L 1167.6 283.7 L 904.4 284.7 L 887.4 269.5 L 888.2 235.6 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">Python SDK</text>
+  </g>
+<g>
+    <path d="M 110.8 326.1 L 378.6 326.1 L 393.5 346.1 L 397.0 385.7 L 376.5 400.4 L 110.6 401.3 L 95.8 382.8 L 94.6 344.5 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 114.0 332.5 L 374.8 330.8 L 394.0 348.9 L 389.7 384.8 L 375.1 399.7 L 115.0 396.6 L 96.4 380.6 L 98.8 344.6 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">TypeScript SDK</text>
+  </g>
+<g>
+    <path d="M 506.2 327.3 L 773.2 327.2 L 788.7 343.7 L 792.9 386.3 L 772.5 403.7 L 507.9 403.4 L 488.7 383.6 L 487.8 348.4 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 506.9 332.1 L 771.6 329.8 L 787.2 347.7 L 789.1 381.7 L 773.0 399.2 L 507.7 396.6 L 495.3 382.2 L 494.2 347.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">执行命令接入面</text>
+  </g>
+<g>
+    <path d="M 904.1 330.3 L 1166.3 325.7 L 1185.8 348.3 L 1185.9 385.3 L 1166.7 403.8 L 901.8 401.7 L 882.1 383.5 L 884.8 346.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 902.7 332.6 L 1166.4 330.6 L 1184.4 349.1 L 1180.1 385.3 L 1168.4 395.9 L 903.6 399.4 L 886.5 381.6 L 890.3 345.6 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">app-server</text>
+<text x="902" y="382.5" font-size="18" fill="#171717" font-weight="750">daemon</text>
+  </g>
+<g>
+    <path d="M 114.3 439.5 L 380.3 440.3 L 396.5 456.0 L 394.5 496.2 L 377.8 513.6 L 110.9 512.4 L 93.6 495.8 L 95.5 456.9 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 113.8 444.5 L 376.2 444.1 L 393.5 461.0 L 393.6 496.7 L 377.8 510.4 L 111.1 507.6 L 97.5 496.3 L 99.3 460.0 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">远程控制桥</text>
+  </g>
+<g>
+    <path d="M 506.0 439.9 L 771.1 439.6 L 793.0 459.2 L 793.1 494.4 L 775.2 514.7 L 507.5 514.6 L 490.9 498.4 L 490.6 456.7 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 508.8 443.7 L 774.2 441.6 L 788.1 461.2 L 785.0 496.4 L 772.3 509.6 L 509.7 509.0 L 495.4 493.0 L 493.9 456.9 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="472" font-size="18" fill="#171717" font-weight="750">远程后端</text>
+  </g>
+<g>
+    <path d="M 900.7 439.8 L 1165.9 441.6 L 1185.1 459.2 L 1186.6 498.5 L 1169.4 512.4 L 901.7 513.9 L 883.3 494.1 L 882.9 460.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 902.3 445.7 L 1166.4 444.8 L 1183.9 457.2 L 1184.1 496.1 L 1168.6 512.4 L 905.1 508.1 L 887.2 494.5 L 888.5 459.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="472" font-size="18" fill="#171717" font-weight="750">app 服务端运行时</text>
+  </g>
+  </g>
+</svg>

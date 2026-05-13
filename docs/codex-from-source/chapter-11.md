@@ -17,18 +17,10 @@ happens.
 
 Patch execution has a longer lifecycle than it first appears to have.
 
-```mermaid
-flowchart LR
-    Input[freeform patch or shell-like invocation] --> Detect[detect apply-patch intent]
-    Detect --> Parse[parse patch hunks]
-    Parse --> Verify[verify paths and current file content]
-    Verify --> Assess[assess safety and required permissions]
-    Assess --> Approve[approval and hooks]
-    Approve --> Apply[filesystem-backed apply]
-    Apply --> Delta[committed delta]
-    Delta --> Events[patch events and turn diff]
-    Events --> Result[model-visible result]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-11-01-en.svg" alt="Patch application is treated as evidence, not text mutation: every accepted hunk passes grammar, path, permission, filesystem, and diff-recording gates before the model sees a result." loading="lazy" />
+  <figcaption>Patch application is treated as evidence, not text mutation: every accepted hunk passes grammar, path, permission, filesystem, and diff-recording gates before the model sees a result.</figcaption>
+</figure>
 
 The parse step understands the patch grammar. The verify step consults the
 workspace filesystem to compute the concrete changes that would occur. The
@@ -45,6 +37,12 @@ not always perfectly wrapped. That lenience does not mean the runtime applies
 ambiguous edits. It means the runtime tries to recover the intended protocol
 and then verifies it against the filesystem.
 
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-11-concept-1-en.svg" alt="Patch grammar only recovers intent. The real boundary is verification: paths, old content, permissions, executor ownership, and diff evidence must all line up before a mutation is accepted." loading="lazy" />
+  <figcaption>Patch grammar only recovers intent. The real boundary is verification: paths, old content, permissions, executor ownership, and diff evidence must all line up before a mutation is accepted.</figcaption>
+</figure>
+
 Verification is the real boundary. For an update, the runtime must know the old
 content that the hunk expects to replace. For a delete, it must read the file
 that will be removed. For a move, it must reason about both source and
@@ -58,6 +56,12 @@ certain top-level forms such as "run the patch tool with this patch body" or
 "change to this relative workdir and then run the patch tool." When that
 pattern is recognized, the runtime intercepts it and routes it through the
 patch protocol.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-11-concept-2-en.svg" alt="Shell-like patch text is only a compatibility bridge: once recognized, it enters the same parse, verify, approve, apply, and diff-recording path as the patch tool." loading="lazy" />
+  <figcaption>Shell-like patch text is only a compatibility bridge: once recognized, it enters the same parse, verify, approve, apply, and diff-recording path as the patch tool.</figcaption>
+</figure>
 
 This is a compatibility bridge, not an endorsement of editing through shell
 text. The runtime can warn the model to use the patch tool directly, but it
@@ -113,6 +117,12 @@ It records baselines, current content, rename origins, and invalidation state.
 When the tracker can prove the delta, it can render a unified diff without
 rereading the workspace. When exactness is lost, it invalidates the diff rather
 than presenting a misleading one.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-11-concept-3-en.svg" alt="Diff tracking is evidence management: the runtime can show an exact diff only while baseline content, committed deltas, rename origins, and invalidation state still agree." loading="lazy" />
+  <figcaption>Diff tracking is evidence management: the runtime can show an exact diff only while baseline content, committed deltas, rename origins, and invalidation state still agree.</figcaption>
+</figure>
 
 That behavior is a pattern worth copying. A system that cannot prove its
 evidence should degrade explicitly. It should not display a confident diff just

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title-chapter-12-01-zh desc-chapter-12-01-zh">
+  <title id="title-chapter-12-01-zh">审批栈</title>
+  <desc id="desc-chapter-12-01-zh">审批栈的手绘白板图，展示工具、提示、压缩、停止、Hook 预览、可信 Hook 执行、Hook 结果、上下文或反馈之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-12-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="720" rx="30" fill="#fffdf7" />
+  <path d="M 48.7 22.1 L 1231.5 22.5 L 1259.7 50.0 L 1259.2 668.8 L 1231.2 695.9 L 51.4 699.6 L 21.2 668.7 L 23.8 49.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="720" filter="url(#paper-chapter-12-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">审批栈</text>
+    <path d="M 64.0 166.0 C 474.5 168.5, 880.8 158.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="380" rx="527" ry="288" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 507.2 320.9 L 773.4 322.4 L 793.4 348.5 L 793.4 397.8 L 772.1 423.6 L 510.6 423.6 L 487.2 400.2 L 483.9 343.7 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="362" font-size="18" fill="#171717" font-weight="800">审批栈</text>
+<path d="M 640.0 144.0 C 739.7 155.5, 843.6 198.7, 907.4 187.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 907.4 187.9 C 953.4 172.8, 1014.8 302.6, 1072.7 302.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1072.7 302.9 C 1064.9 296.3, 1070.3 451.5, 1072.7 445.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1072.7 445.1 C 999.9 431.5, 956.8 555.5, 907.4 560.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 907.4 560.1 C 798.1 569.4, 711.6 592.4, 640.0 604.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 604.0 C 563.0 605.9, 442.8 553.9, 372.6 560.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 372.6 560.1 C 298.9 563.9, 246.2 431.2, 207.3 445.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 207.3 445.1 C 211.4 454.6, 199.7 301.2, 207.3 302.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 207.3 302.9 C 262.8 292.8, 326.4 190.1, 372.6 187.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 372.6 187.9 C 458.0 193.9, 552.3 130.2, 640.0 144.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 521.4 105.5 L 756.8 106.7 L 774.7 127.2 L 773.2 160.8 L 754.9 182.0 L 521.4 179.1 L 503.3 164.4 L 506.8 124.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 525.2 111.2 L 756.2 110.1 L 771.8 128.6 L 770.3 162.0 L 754.5 178.4 L 522.3 177.5 L 508.3 160.4 L 509.4 127.2 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="140" font-size="18" fill="#171717" font-weight="750">工具、提示、压缩、停止</text>
+  </g>
+<g>
+    <path d="M 788.2 151.2 L 1026.2 151.0 L 1044.9 167.6 L 1040.2 207.7 L 1023.7 226.3 L 791.3 225.4 L 772.3 204.3 L 774.7 170.3 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 791.9 157.9 L 1021.4 155.1 L 1036.8 168.5 L 1038.0 203.4 L 1022.9 217.8 L 793.9 219.7 L 777.5 204.6 L 777.7 171.9 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="790.4422897930754" y="183.92609129376208" font-size="18" fill="#171717" font-weight="750">Hook 预览</text>
+  </g>
+<g>
+    <path d="M 956.4 267.7 L 1191.5 264.4 L 1208.3 285.3 L 1205.7 322.0 L 1187.3 339.3 L 953.9 339.7 L 939.0 320.9 L 938.1 287.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 957.8 268.8 L 1188.8 269.8 L 1201.2 287.0 L 1205.2 321.6 L 1191.1 336.1 L 955.7 333.9 L 940.5 322.2 L 943.1 284.1 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="955.7307149142948" y="298.9260912937621" font-size="18" fill="#171717" font-weight="750">可信 Hook 执行</text>
+  </g>
+<g>
+    <path d="M 955.3 409.8 L 1188.9 407.8 L 1206.2 428.2 L 1209.8 463.0 L 1188.4 479.6 L 953.9 479.4 L 935.8 461.5 L 936.7 428.0 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 958.9 415.5 L 1189.1 411.2 L 1204.1 427.6 L 1205.3 462.1 L 1190.3 475.2 L 957.3 479.0 L 940.9 462.5 L 942.1 430.1 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="955.7307149142948" y="441.0739087062379" font-size="18" fill="#171717" font-weight="750">Hook 结果</text>
+  </g>
+<g>
+    <path d="M 788.3 525.4 L 1023.9 526.1 L 1040.7 539.8 L 1043.1 578.3 L 1024.5 594.4 L 791.9 596.2 L 771.0 577.9 L 772.0 540.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 790.8 526.7 L 1023.3 526.4 L 1038.4 542.8 L 1038.5 578.7 L 1024.3 592.0 L 790.7 594.4 L 775.8 578.3 L 777.8 543.0 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="790.4422897930754" y="556.073908706238" font-size="18" fill="#171717" font-weight="750">上下文或反馈</text>
+  </g>
+<g>
+    <path d="M 525.2 569.7 L 758.5 567.6 L 774.0 585.5 L 777.5 623.4 L 755.9 641.3 L 524.5 638.1 L 505.1 623.1 L 503.3 585.4 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 521.9 572.0 L 756.0 570.7 L 771.8 588.1 L 769.0 621.1 L 756.6 635.1 L 524.8 638.1 L 508.9 619.3 L 510.3 585.9 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="600" font-size="18" fill="#171717" font-weight="750">阻断或停止</text>
+  </g>
+<g>
+    <path d="M 256.9 522.8 L 489.9 525.2 L 506.1 543.8 L 507.0 579.0 L 487.8 593.9 L 254.3 596.5 L 235.7 578.1 L 238.2 544.6 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 257.7 529.4 L 489.8 530.5 L 504.7 543.2 L 504.6 577.8 L 489.4 590.9 L 254.7 593.1 L 242.1 578.7 L 240.4 544.6 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="255.55771020692475" y="556.073908706238" font-size="18" fill="#171717" font-weight="750">审批要求</text>
+  </g>
+<g>
+    <path d="M 91.8 409.3 L 326.5 409.7 L 342.3 428.9 L 343.8 462.0 L 325.6 481.9 L 88.7 482.6 L 70.9 461.7 L 72.9 426.4 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 89.8 412.0 L 324.0 413.0 L 339.6 427.7 L 339.5 464.2 L 325.2 476.5 L 92.4 479.0 L 78.6 462.6 L 76.5 425.8 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="90.26928508570512" y="441.07390870623794" font-size="18" fill="#171717" font-weight="750">权限请求 Hook</text>
+  </g>
+<g>
+    <path d="M 89.1 265.4 L 325.3 265.5 L 342.9 283.2 L 343.5 323.3 L 326.3 340.9 L 90.9 336.9 L 70.3 319.2 L 74.1 283.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 91.4 272.8 L 321.8 270.3 L 336.6 283.7 L 338.2 322.1 L 324.4 333.1 L 88.9 336.2 L 77.1 319.6 L 73.9 286.8 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="90.26928508570506" y="298.9260912937621" font-size="18" fill="#171717" font-weight="750">决策来源</text>
+  </g>
+<g>
+    <path d="M 257.7 151.9 L 491.4 152.8 L 507.1 171.4 L 509.0 204.2 L 489.1 223.3 L 257.1 223.3 L 239.0 205.3 L 239.5 169.5 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 255.5 155.3 L 486.4 154.6 L 503.7 172.3 L 503.5 203.0 L 489.4 222.1 L 258.5 220.1 L 240.3 206.0 L 241.1 173.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="255.5577102069247" y="183.9260912937621" font-size="18" fill="#171717" font-weight="750">允许、拒绝、超时、修正</text>
+  </g>
+  </g>
+</svg>

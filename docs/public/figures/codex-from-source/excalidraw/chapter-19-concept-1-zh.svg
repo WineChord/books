@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-19-concept-1-zh desc-chapter-19-concept-1-zh">
+  <title id="title-chapter-19-concept-1-zh">保守配置迁移</title>
+  <desc id="desc-chapter-19-concept-1-zh">保守配置迁移的手绘白板图，展示外部产物、分类类型、支持子集、原生目标、保留已有文件之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-19-concept-1-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 50.8 21.7 L 1231.2 22.2 L 1256.1 47.5 L 1255.7 651.3 L 1229.4 679.4 L 48.2 679.6 L 20.5 648.1 L 21.8 52.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-19-concept-1-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">保守配置迁移</text>
+    <path d="M 64.0 166.0 C 480.6 181.2, 860.6 168.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 87.5 148.9 L 386.1 149.3 L 412.8 176.0 L 409.9 590.2 L 384.7 617.4 L 90.0 615.6 L 62.0 590.2 L 60.8 177.9 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="82" y="184" font-size="16" fill="#475569" font-weight="800">输入/来源</text>
+    </g>
+<g>
+      <path d="M 471.7 147.9 L 770.7 149.1 L 795.3 174.0 L 796.7 587.2 L 770.7 616.9 L 470.5 615.0 L 446.4 588.1 L 447.2 174.2 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.65" />
+      <text x="465" y="184" font-size="16" fill="#475569" font-weight="800">运行时边界</text>
+    </g>
+<g>
+      <path d="M 855.1 151.2 L 1152.8 150.9 L 1180.0 173.7 L 1179.0 588.3 L 1149.9 615.0 L 854.1 614.8 L 829.0 591.0 L 826.8 174.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="848" y="184" font-size="16" fill="#475569" font-weight="800">输出/证据</text>
+    </g>
+<path d="M 384.0 253.0 C 425.7 263.6, 432.7 266.0, 473.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 253.0 C 802.1 241.2, 813.9 253.5, 856.0 253.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1150.0 253.0 C 786.7 265.4, 421.8 364.4, 90.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 384.0 351.0 C 431.2 342.6, 432.8 338.3, 473.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 351.0 C 797.9 358.8, 836.8 361.0, 856.0 351.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 110.2 221.7 L 365.0 220.5 L 384.4 239.9 L 383.0 266.1 L 363.7 285.8 L 108.5 286.6 L 92.0 266.6 L 91.2 240.0 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 110.9 222.4 L 364.1 223.1 L 381.5 239.4 L 377.5 269.0 L 364.0 281.9 L 109.3 284.1 L 94.9 269.2 L 95.0 239.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="252" font-size="18" fill="#171717" font-weight="750">外部产物</text>
+  </g>
+<g>
+    <path d="M 490.2 221.4 L 746.7 219.4 L 765.6 237.8 L 767.9 269.1 L 749.2 288.3 L 489.7 286.9 L 474.5 266.2 L 473.0 235.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 491.3 224.9 L 746.3 222.1 L 761.4 237.3 L 761.4 266.4 L 746.8 281.0 L 490.0 282.1 L 475.4 268.2 L 476.0 238.9 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="252" font-size="18" fill="#171717" font-weight="750">分类类型</text>
+  </g>
+<g>
+    <path d="M 872.3 222.0 L 1130.4 220.0 L 1151.3 235.9 L 1149.6 266.2 L 1131.9 285.3 L 873.7 286.4 L 856.4 268.0 L 858.4 239.7 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 874.4 223.1 L 1130.2 224.4 L 1148.3 240.9 L 1148.1 265.4 L 1129.6 280.8 L 875.3 281.3 L 858.6 268.5 L 857.8 236.7 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="252" font-size="18" fill="#171717" font-weight="750">支持子集</text>
+  </g>
+<g>
+    <path d="M 109.8 318.7 L 368.4 316.7 L 383.2 335.5 L 381.9 365.0 L 365.1 386.2 L 107.1 384.9 L 91.5 365.7 L 91.9 337.1 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 107.8 323.2 L 365.6 321.4 L 379.2 336.0 L 379.6 362.8 L 365.6 381.3 L 110.0 381.7 L 94.6 364.8 L 95.8 338.6 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="350" font-size="18" fill="#171717" font-weight="750">原生目标</text>
+  </g>
+<g>
+    <path d="M 490.0 319.7 L 750.8 316.4 L 768.0 336.3 L 765.2 364.1 L 749.7 384.1 L 490.5 384.0 L 474.4 364.7 L 470.7 337.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 494.3 323.3 L 749.9 320.8 L 761.4 338.6 L 763.2 365.8 L 750.1 381.6 L 493.7 378.1 L 475.6 363.1 L 478.0 339.3 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="350" font-size="18" fill="#171717" font-weight="750">保留已有文件</text>
+  </g>
+<g>
+    <path d="M 872.0 316.4 L 1134.3 319.5 L 1150.8 333.5 L 1148.9 368.5 L 1129.7 384.6 L 874.6 385.3 L 854.8 364.6 L 857.4 335.3 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 873.7 323.3 L 1132.9 324.1 L 1144.9 335.1 L 1147.3 366.2 L 1129.5 381.8 L 873.5 379.4 L 859.5 367.4 L 862.0 337.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="350" font-size="18" fill="#171717" font-weight="750">导入报告</text>
+  </g>
+  </g>
+</svg>

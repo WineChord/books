@@ -39,19 +39,10 @@ Cargo remains the developer and shipping-build source of truth; Bazel mirrors
 and constrains it when the system must prove that packaging, platforms, and
 generated contracts still agree.
 
-```mermaid
-graph TD
-  Cargo[Cargo workspace] --> Crates[Rust crates and binaries]
-  Cargo --> Lock[Resolved dependency graph]
-  Bazel[Bazel overlay] --> Crates
-  Bazel --> Lock
-  Bazel --> Hermetic[Hermetic CI and release verification]
-  Cargo --> Release[GitHub release workflow]
-  Crates --> Schemas[Generated contract schemas]
-  Schemas --> Clients[SDKs, app-server clients, config authors]
-  Release --> Artifacts[Release artifacts]
-  Hermetic -. verifies .-> Artifacts
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-23-01-en.svg" alt="The build graph has two jobs: Cargo keeps the product graph understandable, while Bazel mirrors enough of it to verify release artifacts reproducibly." loading="lazy" />
+  <figcaption>The build graph has two jobs: Cargo keeps the product graph understandable, while Bazel mirrors enough of it to verify release artifacts reproducibly.</figcaption>
+</figure>
 
 This diagram is the shape to keep in mind. One source graph feeds two build
 interfaces. One runtime graph emits several public contracts. If those outputs
@@ -96,7 +87,7 @@ controlled environment. The pinned source's public release workflow builds the
 shipped CLI artifacts with Cargo, then stages and uploads those artifacts.
 Bazel still matters because it verifies release-build assumptions and keeps
 platform/native-dependency structure executable in CI. It also encodes the
-awkward details that product crates should not need to know: runfile layout,
+awkward details that product code should not need to know: runfile layout,
 sharding, snapshot paths, platform toolchains, downloaded native archives, and
 hermetic verification targets.
 
@@ -124,15 +115,10 @@ instead of replacing it. Engineers still reason in crates. CI and release
 verification reason in hermetic targets. Shipping release jobs still use Cargo
 as the artifact build path, then package and publish the staged outputs.
 
-```mermaid
-flowchart TD
-  Dev[Developer changes a crate] --> CargoTest[Cargo test path]
-  Dev --> BazelTarget[Bazel mirrored target]
-  BazelTarget --> Launcher[Workspace-root launcher]
-  Launcher --> SameAssumptions[Cargo-like paths, snapshots, env]
-  BazelTarget --> Matrix[Platform and release matrix]
-  Matrix --> Confidence[Release confidence]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-23-02-en.svg" alt="Bazel does not replace the product graph; it mirrors the Cargo-shaped world under reproducible launch conditions so CI can catch platform and packaging drift." loading="lazy" />
+  <figcaption>Bazel does not replace the product graph; it mirrors the Cargo-shaped world under reproducible launch conditions so CI can catch platform and packaging drift.</figcaption>
+</figure>
 
 The launcher box is easy to underestimate. Tests often assume a working
 directory, snapshot path, fixture layout, or environment variable. Bazel breaks
@@ -152,19 +138,10 @@ This is the build-time version of the protocol discipline from Chapter 4. The
 runtime can evolve internally, but client contracts need stable vocabulary.
 Generated artifacts make drift visible:
 
-```mermaid
-sequenceDiagram
-  participant Type as Runtime type
-  participant Gen as Schema generator
-  participant File as Checked-in schema
-  participant CI as Drift check
-  participant Client as External client
-
-  Type->>Gen: expose contract shape
-  Gen->>File: write canonical schema
-  CI->>File: compare committed output
-  File->>Client: document machine-readable contract
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-23-03-en.svg" alt="Generated schemas are product APIs: runtime types produce checked-in contracts, drift checks make changes reviewable, and external clients get a stable vocabulary instead of private Rust shapes." loading="lazy" />
+  <figcaption>Generated schemas are product APIs: runtime types produce checked-in contracts, drift checks make changes reviewable, and external clients get a stable vocabulary instead of private Rust shapes.</figcaption>
+</figure>
 
 A stale schema is not merely "docs out of date." It is evidence that the code
 and contract no longer describe the same product. Codex's build pipeline treats
@@ -207,6 +184,12 @@ checked. Schema drift can fail CI. Native dependencies can be quarantined.
 Large binary blobs can be rejected. Cargo and Bazel lockfiles can be kept in
 sync. Release targets can prove that the runtime still builds under the
 platform assumptions the product claims to support.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-23-concept-1-en.svg" alt="The build belongs in the architecture because generated APIs, release verification, and packaging decide which contracts are actually shipped." loading="lazy" />
+  <figcaption>The build belongs in the architecture because generated APIs, release verification, and packaging decide which contracts are actually shipped.</figcaption>
+</figure>
 
 This makes the build system a governance surface. It is not only answering
 "can we compile?" It is answering "did we preserve the contracts that make the

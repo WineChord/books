@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-20-01-zh desc-chapter-20-01-zh">
+  <title id="title-chapter-20-01-zh">协作单位仍然是线程</title>
+  <desc id="desc-chapter-20-01-zh">协作单位仍然是线程的手绘白板图，展示父线程、Agent 控制、图存储父-子生命周期、子线程、邮箱投递模型-可见条目之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-20-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 47.9 21.7 L 1231.6 20.3 L 1255.7 47.5 L 1258.4 688.1 L 1228.5 717.6 L 48.7 717.8 L 21.7 692.0 L 22.4 50.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-20-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">协作单位仍然是线程</text>
+    <path d="M 64.0 166.0 C 460.2 164.2, 866.8 164.7, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="448" rx="520" ry="238" fill="#eef2ff" stroke="#4f46e5" stroke-width="2" stroke-dasharray="14 12" opacity="0.28" />
+    <text x="500" y="345" font-size="19" fill="#475569" font-weight="800">协作单位仍然是线程</text>
+<path d="M 213.0 258.0 C 378.9 249.2, 507.5 214.7, 648.0 228.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 790.1 213.0, 918.4 247.2, 1040.0 260.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 521.5 236.1, 408.8 483.3, 300.0 473.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 637.4 232.0, 652.2 550.8, 640.0 543.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 763.3 220.2, 880.0 458.3, 965.0 473.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 300.0 473.0 C 423.2 461.0, 547.3 666.1, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 543.0 C 658.5 532.0, 640.6 654.9, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 965.0 473.0 C 841.8 476.0, 726.3 666.3, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 93.6 209.5 L 330.7 211.8 L 347.6 231.8 L 348.5 288.3 L 329.4 302.0 L 97.4 304.6 L 77.2 285.4 L 77.7 230.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 94.6 218.4 L 330.8 214.6 L 342.0 228.5 L 344.8 285.7 L 331.4 301.6 L 97.5 302.0 L 82.5 285.1 L 80.0 233.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="96" y="244" font-size="18" fill="#171717" font-weight="750">父线程</text>
+  </g>
+<g>
+    <path d="M 514.2 178.2 L 780.0 180.3 L 798.5 198.8 L 799.8 256.8 L 779.1 277.1 L 517.0 274.3 L 497.1 258.7 L 497.1 200.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 518.5 183.5 L 778.2 185.1 L 795.4 201.5 L 793.2 256.1 L 777.9 272.4 L 514.8 270.2 L 500.8 259.5 L 501.5 200.3 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="516" y="212" font-size="18" fill="#171717" font-weight="750">Agent 控制</text>
+  </g>
+<g>
+    <path d="M 924.0 217.2 L 1157.5 215.0 L 1175.3 233.0 L 1173.8 286.5 L 1158.8 301.5 L 923.6 305.8 L 903.7 284.3 L 902.9 236.1 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 922.6 219.7 L 1155.5 222.1 L 1172.9 234.5 L 1173.3 282.7 L 1156.7 299.9 L 921.6 299.1 L 907.4 283.9 L 911.1 234.2 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="923" y="248" font-size="18" fill="#171717" font-weight="750">图存储父子生命周期</text>
+  </g>
+<g>
+    <path d="M 197.5 430.3 L 400.1 431.0 L 419.9 449.0 L 420.7 499.2 L 403.2 515.0 L 198.2 517.6 L 182.4 498.4 L 177.8 449.2 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 200.4 434.6 L 400.7 433.3 L 416.2 448.0 L 414.9 499.1 L 402.0 513.9 L 198.5 511.6 L 184.4 496.1 L 182.0 451.1 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="198" y="462" font-size="18" fill="#171717" font-weight="750">子线程</text>
+  </g>
+<g>
+    <path d="M 539.7 499.4 L 743.9 501.0 L 758.0 520.5 L 760.7 569.2 L 744.5 585.0 L 538.0 586.4 L 520.7 565.6 L 519.4 516.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 541.5 504.7 L 743.3 501.8 L 756.0 518.6 L 757.2 567.4 L 738.8 582.4 L 538.8 582.8 L 523.6 566.8 L 524.9 520.0 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="538" y="532" font-size="18" fill="#171717" font-weight="750">邮箱投递模型可见条目</text>
+  </g>
+<g>
+    <path d="M 863.9 427.6 L 1064.5 431.5 L 1086.5 449.8 L 1083.4 499.2 L 1069.1 514.3 L 861.1 514.5 L 842.6 497.3 L 847.1 450.1 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 865.6 431.9 L 1064.9 435.0 L 1081.0 449.7 L 1081.0 495.5 L 1067.7 511.0 L 862.6 511.1 L 847.7 495.0 L 848.3 449.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="863" y="462" font-size="18" fill="#171717" font-weight="750">结果通知</text>
+  </g>
+<g>
+    <path d="M 448.9 615.6 L 840.4 614.8 L 858.7 631.5 L 861.0 674.8 L 840.4 695.5 L 447.7 695.2 L 429.8 678.7 L 427.8 632.2 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 449.3 617.6 L 839.8 620.1 L 857.2 636.4 L 854.5 677.9 L 840.1 688.8 L 448.2 693.1 L 434.5 673.6 L 435.2 632.8 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="448" y="647" font-size="18" fill="#171717" font-weight="750">交互图生成、分配、发送、结果、关闭</text>
+  </g>
+  </g>
+</svg>

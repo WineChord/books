@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title-chapter-13-01-zh desc-chapter-13-01-zh">
+  <title id="title-chapter-13-01-zh">策略、转换、执行约束</title>
+  <desc id="desc-chapter-13-01-zh">策略、转换、执行约束的手绘白板图，展示权限配置、文件系统与网络策略、选择沙箱类型、转换命令与环境、macOS Seatbelt之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-13-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="760" rx="30" fill="#fffdf7" />
+  <path d="M 51.0 23.4 L 1228.9 20.6 L 1258.5 49.1 L 1258.3 708.8 L 1230.4 737.6 L 48.0 739.9 L 21.0 709.4 L 20.0 47.5 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="760" filter="url(#paper-chapter-13-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">策略、转换、执行约束</text>
+    <path d="M 64.0 166.0 C 456.8 160.0, 881.6 164.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 253.3 139.1, 243.4 668.6, 260.0 670.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1017.5 145.2, 1029.5 673.5, 1020.0 670.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 650.0 223.1, 632.8 225.7, 640.0 215.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 263.0 C 637.7 265.0, 646.2 268.9, 640.0 270.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 318.0 C 627.3 312.8, 641.1 310.0, 640.0 325.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 373.0 C 632.0 363.6, 634.0 378.3, 640.0 380.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 428.0 C 626.3 421.1, 628.5 435.3, 640.0 435.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 483.0 C 635.0 477.7, 630.4 492.1, 640.0 490.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 538.0 C 629.0 547.8, 624.6 535.4, 640.0 545.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 593.0 C 627.7 603.7, 650.1 606.7, 640.0 600.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 280.3 158.0 L 1001.9 162.0 L 1021.5 179.9 L 1020.9 188.6 L 1004.0 209.2 L 276.3 209.3 L 261.3 190.7 L 261.2 177.9 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.9 162.9 L 1001.3 164.4 L 1014.1 178.5 L 1017.2 189.6 L 1003.4 205.7 L 278.3 203.0 L 264.6 188.4 L 262.3 181.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">权限配置</text>
+  </g>
+<g>
+    <path d="M 323.9 216.1 L 952.5 213.1 L 971.9 231.2 L 972.2 245.8 L 956.7 264.8 L 324.9 265.2 L 307.8 246.1 L 307.4 232.5 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 325.0 218.1 L 955.1 220.9 L 967.1 231.9 L 968.2 244.1 L 954.7 260.0 L 327.7 260.9 L 309.5 241.7 L 311.1 233.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="247" font-size="18" fill="#171717" font-weight="750">文件系统与网络策略</text>
+  </g>
+<g>
+    <path d="M 339.4 269.2 L 941.8 267.6 L 960.2 290.2 L 963.3 297.5 L 944.9 319.2 L 335.5 317.5 L 321.0 302.2 L 318.4 290.0 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 336.1 273.0 L 941.8 273.0 L 958.7 289.1 L 955.6 296.6 L 943.6 315.5 L 336.7 315.1 L 322.7 296.8 L 322.2 290.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="302" font-size="18" fill="#171717" font-weight="750">选择沙箱类型</text>
+  </g>
+<g>
+    <path d="M 348.1 324.7 L 933.3 323.1 L 951.3 342.0 L 948.8 353.7 L 932.2 373.0 L 349.3 371.1 L 330.5 352.7 L 332.1 343.0 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 352.1 328.3 L 932.0 329.4 L 942.6 346.0 L 942.9 354.5 L 928.2 369.3 L 350.4 370.1 L 336.2 351.9 L 332.8 343.5 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="357" font-size="18" fill="#171717" font-weight="750">转换命令与环境</text>
+  </g>
+<g>
+    <path d="M 363.1 382.1 L 919.2 379.3 L 937.8 397.5 L 935.1 409.8 L 918.0 425.7 L 362.6 426.3 L 345.3 409.8 L 345.0 396.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 360.7 385.3 L 916.8 383.8 L 933.6 397.7 L 932.2 410.2 L 915.6 422.0 L 363.2 422.3 L 348.5 409.6 L 345.9 401.5 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="412" font-size="18" fill="#171717" font-weight="750">macOS Seatbelt</text>
+  </g>
+<g>
+    <path d="M 374.5 434.5 L 907.0 435.4 L 923.3 452.5 L 926.9 465.0 L 909.2 485.1 L 373.0 483.0 L 355.9 464.7 L 356.6 454.2 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 376.2 437.0 L 907.6 440.7 L 923.2 455.9 L 919.0 465.1 L 903.8 478.0 L 371.9 478.7 L 361.2 464.2 L 358.8 453.2 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="373" y="467" font-size="18" fill="#171717" font-weight="750">Linux bwrap、namespace</text>
+<text x="373" y="489.5" font-size="18" fill="#171717" font-weight="750">seccomp</text>
+  </g>
+<g>
+    <path d="M 387.0 488.6 L 895.3 491.1 L 912.5 507.8 L 910.8 519.8 L 896.0 539.7 L 386.2 539.5 L 368.2 520.6 L 365.6 509.0 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 384.0 494.7 L 896.3 491.6 L 911.3 509.7 L 906.9 517.0 L 894.8 536.0 L 386.2 534.6 L 371.8 520.7 L 370.0 511.2 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="385" y="522" font-size="18" fill="#171717" font-weight="750">Windows 令牌、ACL、防火墙、WFP</text>
+  </g>
+<g>
+    <path d="M 397.6 546.4 L 882.1 543.9 L 900.2 561.0 L 901.2 574.1 L 881.8 593.9 L 394.6 594.8 L 376.8 572.8 L 380.9 561.8 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 400.3 549.5 L 881.0 548.0 L 894.6 565.3 L 898.6 574.0 L 882.5 586.7 L 396.9 587.2 L 383.0 576.4 L 383.0 566.2 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="397" y="577" font-size="18" fill="#171717" font-weight="750">无平台沙箱</text>
+  </g>
+<g>
+    <path d="M 278.5 601.8 L 1001.4 599.3 L 1020.0 615.8 L 1022.5 629.1 L 1001.0 648.4 L 277.7 649.1 L 260.5 632.5 L 261.6 619.2 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 280.6 604.7 L 998.6 605.9 L 1014.5 617.4 L 1016.1 629.0 L 1001.0 642.4 L 279.7 641.6 L 261.5 628.8 L 265.7 620.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="632" font-size="18" fill="#171717" font-weight="750">执行元数据与结果</text>
+  </g>
+  </g>
+</svg>

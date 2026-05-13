@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-14-01-en desc-chapter-14-01-en">
+  <title id="title-chapter-14-01-en">Contract Surface</title>
+  <desc id="desc-chapter-14-01-en">Hand-drawn whiteboard figure for Contract Surface, showing the relationship between Client connection, Transport adapter, Message processor, Resource scoped queue, Request processor.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-14-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 50.4 22.2 L 1228.2 21.2 L 1259.4 52.3 L 1257.4 648.8 L 1230.9 676.3 L 52.0 680.0 L 21.8 649.3 L 21.8 51.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-14-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Contract Surface</text>
+    <path d="M 64.0 166.0 C 454.0 151.1, 855.1 158.7, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 93.2 150.9 L 397.3 150.4 L 419.9 174.0 L 419.3 593.8 L 397.7 617.7 L 92.4 618.6 L 69.9 595.3 L 68.6 173.8 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 488.5 151.1 L 789.7 150.3 L 816.1 175.2 L 813.6 594.9 L 788.5 620.2 L 486.8 619.9 L 466.6 593.8 L 465.4 171.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 882.8 151.7 L 1184.7 151.0 L 1212.5 173.3 L 1212.2 593.9 L 1184.7 621.5 L 886.0 620.2 L 862.3 597.4 L 858.4 172.3 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 417.1 240.3, 463.7 254.0, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 831.6 263.9, 853.8 248.4, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 791.6 242.8, 421.8 361.4, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 420.7 357.6, 449.3 355.6, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 828.2 353.9, 855.1 367.5, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 792.8 364.8, 429.7 486.9, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 110.6 214.5 L 376.7 216.8 L 396.3 233.2 L 395.6 271.4 L 377.2 289.0 L 109.7 291.9 L 94.7 273.5 L 91.7 233.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 113.3 220.2 L 375.0 219.0 L 391.9 234.6 L 391.9 269.3 L 375.0 288.5 L 113.0 285.3 L 99.5 272.0 L 95.6 234.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">Client connection</text>
+  </g>
+<g>
+    <path d="M 507.5 215.7 L 774.4 216.3 L 790.4 234.5 L 791.2 270.0 L 772.8 291.5 L 506.7 290.2 L 491.4 274.2 L 491.2 235.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 508.5 221.4 L 774.3 219.6 L 787.1 234.4 L 789.3 271.1 L 770.4 285.2 L 510.1 287.9 L 494.2 268.9 L 493.8 236.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">Transport adapter</text>
+  </g>
+<g>
+    <path d="M 901.4 216.1 L 1170.2 217.7 L 1186.9 233.5 L 1185.1 270.0 L 1167.3 289.6 L 900.0 291.5 L 885.8 271.4 L 883.8 231.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 900.7 221.2 L 1166.0 219.8 L 1180.6 236.8 L 1182.8 273.2 L 1167.3 288.0 L 902.3 286.2 L 889.4 269.1 L 887.4 233.5 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">Message processor</text>
+  </g>
+<g>
+    <path d="M 111.1 328.9 L 378.6 326.8 L 398.4 344.4 L 398.1 383.4 L 379.0 402.5 L 113.4 403.0 L 95.6 381.9 L 95.1 346.9 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 113.0 334.5 L 379.2 333.4 L 394.5 345.9 L 394.4 382.5 L 377.2 397.3 L 114.1 399.2 L 98.9 382.4 L 98.2 344.5 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">Resource scoped queue</text>
+  </g>
+<g>
+    <path d="M 507.6 329.4 L 774.7 325.9 L 790.3 344.6 L 789.7 383.1 L 771.9 401.4 L 505.0 404.4 L 487.7 384.4 L 488.5 345.2 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 508.0 333.1 L 774.3 331.4 L 785.1 344.6 L 787.3 385.3 L 771.9 399.5 L 508.2 395.6 L 494.6 383.7 L 491.6 348.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">Request processor</text>
+  </g>
+<g>
+    <path d="M 903.0 329.6 L 1168.4 326.8 L 1183.7 347.9 L 1187.1 382.0 L 1167.9 401.1 L 902.5 401.4 L 886.0 384.7 L 882.5 347.2 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 904.6 331.7 L 1166.2 333.8 L 1182.0 347.8 L 1184.3 382.3 L 1164.6 400.1 L 901.0 397.6 L 890.1 383.7 L 886.5 347.2 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">Core thread</text>
+  </g>
+<g>
+    <path d="M 111.9 441.8 L 376.9 438.2 L 396.0 457.4 L 397.5 496.2 L 379.6 512.0 L 111.1 516.4 L 95.3 496.3 L 93.3 456.9 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 113.9 444.6 L 379.1 443.0 L 390.6 458.2 L 391.8 497.4 L 376.8 510.7 L 115.2 508.0 L 99.4 493.2 L 97.7 460.4 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">Thread listener</text>
+  </g>
+  </g>
+</svg>

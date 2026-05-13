@@ -799,6 +799,62 @@ html.dark .bounded-os-map__history-lanes strong {
   font-size: 1.25rem;
 }
 
+.sketch-intro {
+  margin: 1.4rem 0 0.75rem;
+  color: var(--color-secondary);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.sketch-figure {
+  width: min(calc(100vw - 2rem), 68rem);
+  max-width: none;
+  margin: 1.1rem 0 2.2rem 50%;
+  transform: translateX(-50%);
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, white);
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 75%), rgb(232 230 220 / 40%)),
+    var(--color-cream);
+  box-shadow: 0 18px 42px rgb(20 20 19 / 8%);
+  padding: 0.75rem;
+}
+
+.sketch-figure img {
+  display: block;
+  width: 100%;
+  min-width: min(56rem, calc(100vw - 3.5rem));
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+@media (max-width: 760px) {
+  .sketch-figure img {
+    min-width: 54rem;
+  }
+}
+
+.sketch-figure figcaption {
+  margin: 0.75rem 0.25rem 0;
+  color: var(--color-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+html.dark .sketch-intro,
+html.dark .sketch-figure figcaption {
+  color: var(--color-muted);
+}
+
+html.dark .sketch-figure {
+  border-color: #333;
+  background:
+    linear-gradient(135deg, rgb(30 30 28 / 92%), rgb(20 20 19 / 82%)),
+    var(--color-charcoal);
+  box-shadow: 0 18px 42px rgb(0 0 0 / 24%);
+}
+
 [data-toc-link].is-active {
   color: var(--color-terracotta);
   font-weight: 600;
@@ -846,10 +902,10 @@ html.dark .mermaid-scroll {
 
   .chapter-prose h1 {
     overflow-wrap: break-word;
-    font-size: 1.85rem;
+    font-size: 1.72rem;
     hyphens: auto;
     line-height: 1.15;
-    word-break: normal;
+    word-break: break-word;
   }
 
   .chapter-prose h2 {
@@ -868,6 +924,20 @@ html.dark .mermaid-scroll {
   .chapter-prose pre,
   .chapter-prose table {
     max-width: calc(100vw - 2rem);
+  }
+
+  .sketch-figure {
+    width: calc(100vw - 2rem);
+    margin-left: 0;
+    transform: none;
+    padding: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sketch-figure img {
+    width: 44rem;
+    max-width: none;
+    min-width: 44rem;
   }
 
   .mermaid-scroll {

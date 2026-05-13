@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-20-concept-2-en desc-chapter-20-concept-2-en">
+  <title id="title-chapter-20-concept-2-en">Collaboration as Product Events</title>
+  <desc id="desc-chapter-20-concept-2-en">Hand-drawn whiteboard figure for Collaboration as Product Events, showing the relationship between Spawn or send, Named participant, User-visible message, Parent notice, Event projection.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-20-concept-2-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 51.9 22.3 L 1228.9 21.8 L 1258.7 50.2 L 1255.8 687.9 L 1231.1 715.9 L 50.9 717.6 L 23.2 692.4 L 20.4 51.1 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-20-concept-2-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Collaboration as Product Events</text>
+    <path d="M 64.0 166.0 C 448.5 179.4, 860.4 148.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="448" rx="520" ry="238" fill="#eef2ff" stroke="#4f46e5" stroke-width="2" stroke-dasharray="14 12" opacity="0.28" />
+    <text x="500" y="345" font-size="19" fill="#475569" font-weight="800">Collaboration as Product</text>
+<text x="500" y="368.75" font-size="19" fill="#475569" font-weight="800">Events</text>
+<path d="M 213.0 258.0 C 376.6 245.4, 507.2 226.0, 648.0 228.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 783.0 242.5, 936.6 271.9, 1040.0 260.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 538.4 221.1, 404.0 461.8, 300.0 473.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 647.9 223.2, 649.4 551.6, 640.0 543.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 742.4 243.5, 877.7 488.0, 965.0 473.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 300.0 473.0 C 425.0 476.4, 550.5 640.5, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 543.0 C 643.3 531.9, 645.3 640.2, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 965.0 473.0 C 869.0 458.5, 738.3 647.9, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 95.5 213.7 L 331.4 212.0 L 347.5 230.0 L 346.8 284.7 L 329.1 305.1 L 93.8 301.9 L 76.2 286.9 L 77.0 230.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 97.3 214.7 L 330.2 215.9 L 343.8 230.9 L 342.2 283.9 L 329.0 301.5 L 96.6 298.0 L 81.1 284.9 L 82.6 232.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="96" y="244" font-size="18" fill="#171717" font-weight="750">Spawn or send</text>
+  </g>
+<g>
+    <path d="M 515.2 178.8 L 779.2 180.1 L 797.2 198.4 L 798.6 256.2 L 780.0 274.3 L 516.4 274.5 L 498.0 255.8 L 495.9 199.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 516.5 185.0 L 777.6 182.5 L 795.9 199.4 L 793.8 258.9 L 779.0 273.5 L 515.9 272.9 L 504.4 254.5 L 502.1 201.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="516" y="212" font-size="18" fill="#171717" font-weight="750">Named participant</text>
+  </g>
+<g>
+    <path d="M 924.1 213.6 L 1155.4 218.1 L 1174.5 232.1 L 1174.4 288.1 L 1154.5 304.2 L 922.7 301.8 L 904.7 285.0 L 902.9 235.6 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 922.5 220.7 L 1156.5 219.5 L 1169.3 232.5 L 1172.9 286.6 L 1154.4 300.6 L 921.7 300.3 L 910.1 283.7 L 907.4 234.3 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="923" y="248" font-size="18" fill="#171717" font-weight="750">User visible message</text>
+  </g>
+<g>
+    <path d="M 196.1 432.0 L 404.2 431.1 L 420.2 449.1 L 417.7 497.9 L 399.6 515.7 L 199.1 515.9 L 178.4 498.1 L 177.8 447.2 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 200.0 432.8 L 399.9 431.6 L 418.0 450.9 L 413.6 495.9 L 401.2 512.3 L 196.6 509.5 L 185.8 498.5 L 183.6 448.5 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="198" y="462" font-size="18" fill="#171717" font-weight="750">Parent notice</text>
+  </g>
+<g>
+    <path d="M 540.2 497.6 L 740.4 500.5 L 762.2 519.1 L 759.0 567.1 L 740.0 586.2 L 538.3 584.7 L 517.9 570.3 L 520.5 517.4 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 536.7 501.5 L 738.6 506.1 L 753.9 520.8 L 753.6 568.8 L 742.4 584.5 L 538.5 579.9 L 521.9 568.1 L 524.3 520.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="538" y="532" font-size="18" fill="#171717" font-weight="750">Event projection</text>
+  </g>
+<g>
+    <path d="M 862.8 429.9 L 1068.5 432.2 L 1085.2 445.7 L 1084.4 498.3 L 1068.1 514.5 L 862.0 516.0 L 846.3 496.4 L 846.4 448.9 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 864.3 435.5 L 1068.4 435.6 L 1078.7 447.6 L 1080.6 497.5 L 1066.6 511.5 L 866.2 510.8 L 851.1 499.0 L 847.4 450.8 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="863" y="462" font-size="18" fill="#171717" font-weight="750">Product state</text>
+  </g>
+<g>
+    <path d="M 448.7 616.1 L 840.3 613.9 L 859.1 632.5 L 860.3 675.8 L 841.1 696.1 L 448.2 695.9 L 427.6 677.0 L 430.7 635.5 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 447.0 621.0 L 842.2 617.5 L 854.3 632.8 L 854.6 675.6 L 842.6 690.5 L 450.0 692.1 L 431.6 674.0 L 435.6 634.4 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="448" y="647" font-size="17" fill="#171717" font-weight="750">Result notifications and trace</text>
+  </g>
+  </g>
+</svg>

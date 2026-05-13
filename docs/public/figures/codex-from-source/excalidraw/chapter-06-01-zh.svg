@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title-chapter-06-01-zh desc-chapter-06-01-zh">
+  <title id="title-chapter-06-01-zh">一次 Turn 的形状</title>
+  <desc id="desc-chapter-06-01-zh">一次 Turn 的形状的手绘白板图，展示提交操作、解析上下文、提示 Hook、记录输入与上下文、采样并流式返回之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-06-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="720" rx="30" fill="#fffdf7" />
+  <path d="M 51.7 23.2 L 1229.2 19.6 L 1257.5 49.0 L 1258.0 669.4 L 1231.4 699.0 L 48.3 695.9 L 23.4 672.0 L 22.8 52.0 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="720" filter="url(#paper-chapter-06-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">一次 Turn 的形状</text>
+    <path d="M 64.0 166.0 C 469.8 167.7, 879.8 151.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="380" rx="527" ry="288" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 508.1 320.1 L 771.4 321.6 L 793.7 346.1 L 793.1 399.6 L 771.9 426.0 L 508.8 424.2 L 485.9 398.9 L 484.2 346.9 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="362" font-size="18" fill="#171717" font-weight="800">一次 Turn 的形状</text>
+<path d="M 640.0 144.0 C 747.6 147.5, 861.7 213.6, 932.5 197.8" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 932.5 197.8 C 995.7 205.8, 1055.8 328.7, 1088.1 334.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1088.1 334.1 C 1082.7 339.8, 1040.3 494.4, 1034.0 489.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1034.0 489.0 C 943.7 498.1, 863.7 585.9, 795.6 590.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 795.6 590.1 C 695.8 586.7, 585.5 579.4, 484.4 590.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 484.4 590.1 C 390.2 601.7, 303.0 490.7, 246.0 489.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 246.0 489.0 C 227.0 492.2, 215.3 326.8, 191.9 334.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 191.9 334.1 C 238.1 339.5, 313.3 207.3, 347.5 197.8" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 347.5 197.8 C 463.1 212.4, 564.2 151.1, 640.0 144.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 522.3 106.0 L 754.8 108.8 L 775.8 126.6 L 773.5 162.3 L 755.4 178.5 L 522.3 179.9 L 502.7 164.3 L 505.8 126.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 521.5 114.4 L 758.5 111.9 L 771.8 126.7 L 770.2 162.2 L 754.8 174.9 L 525.6 177.7 L 508.8 161.3 L 507.8 128.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="140" font-size="18" fill="#171717" font-weight="750">提交操作</text>
+  </g>
+<g>
+    <path d="M 816.8 160.5 L 1049.1 162.7 L 1065.4 180.1 L 1069.2 214.7 L 1048.6 234.3 L 816.6 235.0 L 799.2 217.8 L 797.6 178.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 815.7 166.3 L 1050.8 163.6 L 1065.1 178.3 L 1061.0 212.5 L 1050.7 230.1 L 815.1 231.6 L 800.5 215.0 L 803.6 182.5 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="815.4683624073755" y="193.80977808263506" font-size="18" fill="#171717" font-weight="750">解析上下文</text>
+  </g>
+<g>
+    <path d="M 971.9 299.8 L 1203.7 297.1 L 1223.5 316.9 L 1222.8 353.7 L 1204.9 370.4 L 969.1 372.0 L 955.1 351.9 L 954.4 314.1 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 971.9 302.7 L 1206.5 301.3 L 1218.8 317.9 L 1218.0 349.7 L 1206.5 365.6 L 970.6 365.6 L 955.5 352.8 L 959.1 318.5 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="971.0875276205547" y="330.060919136606" font-size="18" fill="#171717" font-weight="750">提示 Hook</text>
+  </g>
+<g>
+    <path d="M 916.3 450.8 L 1150.2 450.9 L 1170.6 469.7 L 1168.4 509.1 L 1151.6 524.6 L 915.4 524.9 L 900.6 505.1 L 898.3 471.4 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 918.3 455.4 L 1149.7 455.1 L 1166.5 473.4 L 1167.5 504.9 L 1149.4 519.3 L 915.8 520.4 L 905.0 508.1 L 901.9 473.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="917.0415587219195" y="484.99999999999994" font-size="18" fill="#171717" font-weight="750">记录输入与上下文</text>
+  </g>
+<g>
+    <path d="M 679.8 553.4 L 913.8 553.9 L 933.1 574.4 L 928.9 608.1 L 911.8 625.0 L 680.3 625.4 L 661.4 607.0 L 663.1 573.2 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 678.1 556.5 L 909.6 560.0 L 924.5 574.8 L 928.4 606.7 L 912.2 622.6 L 678.3 620.8 L 664.5 609.3 L 662.9 574.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="678.6191652131793" y="586.129302780759" font-size="18" fill="#171717" font-weight="750">采样并流式返回</text>
+  </g>
+<g>
+    <path d="M 367.7 556.1 L 601.3 554.0 L 621.8 572.3 L 619.5 610.5 L 600.3 627.6 L 368.8 624.9 L 347.4 608.3 L 350.7 572.9 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 367.2 557.9 L 601.4 558.0 L 617.2 574.5 L 617.0 604.7 L 601.7 619.6 L 367.1 624.5 L 352.2 609.2 L 352.1 570.9 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="367.38083478682074" y="586.129302780759" font-size="18" fill="#171717" font-weight="750">持久化条目</text>
+  </g>
+<g>
+    <path d="M 126.7 450.8 L 364.2 452.1 L 379.5 470.3 L 380.9 508.2 L 362.9 523.3 L 127.1 522.8 L 112.0 506.8 L 109.9 472.2 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 131.9 454.6 L 362.1 455.9 L 378.5 472.5 L 378.3 505.0 L 362.3 520.2 L 128.8 520.9 L 114.4 505.3 L 114.4 469.8 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="128.9584412780805" y="485.00000000000006" font-size="18" fill="#171717" font-weight="750">工具分发</text>
+  </g>
+<g>
+    <path d="M 73.6 297.0 L 306.8 298.3 L 325.5 317.5 L 325.8 352.1 L 310.0 372.1 L 75.0 368.1 L 57.6 352.6 L 56.7 314.2 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 74.9 302.0 L 305.8 302.1 L 322.5 316.6 L 325.1 348.8 L 306.2 364.3 L 78.0 367.7 L 59.2 352.5 L 61.7 319.1 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="74.91247237944532" y="330.0609191366061" font-size="18" fill="#171717" font-weight="750">观察、压缩、待处理</text>
+  </g>
+<g>
+    <path d="M 229.7 162.7 L 465.9 159.6 L 482.8 179.0 L 484.4 216.8 L 463.3 233.9 L 230.5 232.2 L 213.3 214.2 L 213.3 182.0 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 234.0 164.1 L 462.1 167.9 L 479.5 178.9 L 479.3 215.4 L 461.2 228.4 L 231.5 228.0 L 216.5 212.3 L 216.0 179.8 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="230.53163759262452" y="193.8097780826351" font-size="18" fill="#171717" font-weight="750">停止 Hook 与完成</text>
+  </g>
+  </g>
+</svg>

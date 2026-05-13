@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-08-01-en desc-chapter-08-01-en">
+  <title id="title-chapter-08-01-en">Rollout Trace Captures Raw Evidence</title>
+  <desc id="desc-chapter-08-01-en">Hand-drawn whiteboard figure for Rollout Trace Captures Raw Evidence, showing the relationship between Runtime sources, Trace context, Trace writer, raw event log, raw payload files.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-08-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.4 20.4 L 1230.0 20.3 L 1259.9 52.2 L 1255.8 651.6 L 1231.8 678.6 L 49.5 678.1 L 20.0 648.7 L 21.5 52.1 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-08-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Rollout Trace Captures Raw Evidence</text>
+    <path d="M 64.0 166.0 C 460.9 177.7, 859.2 172.8, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 89.8 163.3 L 549.1 166.7 L 569.5 187.1 L 571.3 598.0 L 547.5 617.6 L 92.8 619.0 L 70.9 596.9 L 72.0 186.4 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <path d="M 733.4 164.4 L 1188.7 163.1 L 1210.1 187.4 L 1208.0 598.7 L 1187.9 620.9 L 731.8 618.9 L 709.0 595.6 L 708.4 187.0 Z" fill="#f8fafc" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <text x="96" y="201" font-size="17" fill="#475569" font-weight="800">Fact stream</text>
+    <text x="736" y="201" font-size="17" fill="#475569" font-weight="800">Readable projection</text>
+    <path d="M 610.0 203.0 C 636.7 205.3, 653.9 208.3, 675.0 203.0" fill="none" stroke="#d97757" stroke-width="3" marker-end="url(#arrow)" opacity="0.7" />
+<g>
+    <path d="M 120.9 234.9 L 506.2 233.4 L 523.8 252.1 L 524.5 271.1 L 508.8 287.4 L 123.2 285.0 L 104.2 266.9 L 104.1 251.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 123.2 241.1 L 508.2 237.5 L 523.2 254.6 L 521.8 265.6 L 506.9 283.7 L 122.6 285.5 L 110.1 270.4 L 107.1 251.6 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="267" font-size="18" fill="#171717" font-weight="750">Runtime sources</text>
+  </g>
+<g>
+    <path d="M 761.2 233.5 L 1146.2 233.9 L 1163.6 252.5 L 1166.0 271.4 L 1146.3 284.9 L 765.2 285.1 L 744.1 271.4 L 742.9 251.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 763.3 241.3 L 1145.4 241.4 L 1161.9 253.1 L 1162.3 267.9 L 1148.4 282.7 L 766.1 285.4 L 750.0 268.9 L 747.2 251.5 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="267" font-size="18" fill="#171717" font-weight="750">Trace context</text>
+  </g>
+<g>
+    <path d="M 123.9 301.5 L 509.4 296.8 L 523.7 318.8 L 526.2 334.2 L 505.1 348.5 L 121.2 353.3 L 103.6 334.9 L 102.8 317.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 123.7 300.8 L 508.3 301.9 L 521.3 316.6 L 522.5 330.3 L 505.9 347.9 L 122.0 347.6 L 110.5 330.6 L 110.0 318.2 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="331" font-size="18" fill="#171717" font-weight="750">Trace writer</text>
+  </g>
+<g>
+    <path d="M 765.3 299.5 L 1147.6 300.8 L 1163.4 314.9 L 1166.9 331.7 L 1148.2 352.2 L 762.4 349.3 L 743.1 330.9 L 743.2 318.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 764.1 300.6 L 1145.4 305.3 L 1158.6 318.9 L 1159.7 333.3 L 1144.2 347.5 L 764.9 346.2 L 747.2 331.5 L 749.9 316.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="331" font-size="18" fill="#171717" font-weight="750">raw event log</text>
+  </g>
+<g>
+    <path d="M 122.2 362.7 L 507.5 360.6 L 525.7 380.2 L 523.5 397.0 L 507.0 413.6 L 123.5 415.0 L 103.9 398.4 L 105.3 378.6 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 124.6 368.1 L 503.5 368.8 L 521.9 379.9 L 518.6 394.6 L 503.7 408.7 L 124.7 412.9 L 110.0 397.9 L 106.8 382.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="395" font-size="18" fill="#171717" font-weight="750">raw payload files</text>
+  </g>
+<g>
+    <path d="M 760.6 362.9 L 1145.3 364.2 L 1162.6 382.6 L 1163.4 396.5 L 1147.8 412.6 L 764.9 412.5 L 745.0 398.0 L 747.0 379.0 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 766.5 369.0 L 1144.3 367.3 L 1159.9 381.7 L 1162.5 395.6 L 1147.7 412.6 L 766.2 409.6 L 748.2 397.3 L 748.3 383.9 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="395" font-size="18" fill="#171717" font-weight="750">offline reducer</text>
+  </g>
+<g>
+    <path d="M 122.2 427.5 L 508.2 425.6 L 525.3 446.9 L 527.1 459.9 L 508.2 480.1 L 124.6 480.5 L 105.0 461.0 L 103.8 446.2 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 123.2 432.4 L 505.9 431.5 L 519.4 446.7 L 519.6 458.3 L 507.6 476.8 L 121.9 474.1 L 107.5 459.1 L 109.3 443.5 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="459" font-size="17" fill="#171717" font-weight="750">reduced graph threads, turns, items</text>
+<text x="123" y="480.25" font-size="17" fill="#171717" font-weight="750">tools, terminals, edges</text>
+  </g>
+  </g>
+</svg>

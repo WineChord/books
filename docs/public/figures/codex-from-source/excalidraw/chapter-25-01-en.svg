@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-25-01-en desc-chapter-25-01-en">
+  <title id="title-chapter-25-01-en">Governance Gates</title>
+  <desc id="desc-chapter-25-01-en">Hand-drawn whiteboard figure for Governance Gates, showing the relationship between Proposed change, Unit and integration tests, Generated artifact drift checks, Architecture boundary checks, Dependency and blob policy.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-25-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 51.7 23.0 L 1229.5 24.0 L 1259.3 48.3 L 1257.9 688.1 L 1232.0 719.9 L 47.6 716.5 L 22.2 691.1 L 20.0 49.5 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-25-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Governance Gates</text>
+    <path d="M 64.0 166.0 C 472.9 164.0, 875.3 145.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 107.8 168.0 L 1172.8 165.6 L 1199.9 193.2 L 1197.0 258.0 L 1175.1 278.0 L 104.4 280.2 L 82.3 255.8 L 81.7 190.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.58" />
+      <text x="110" y="212" font-size="19" fill="#171717" font-weight="800">Policy</text>
+    </g>
+<g>
+      <path d="M 106.1 297.8 L 1172.4 294.2 L 1199.5 320.4 L 1196.9 385.6 L 1174.4 407.3 L 104.7 409.5 L 80.0 381.8 L 79.8 320.9 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2" opacity="0.58" />
+      <text x="110" y="340" font-size="19" fill="#171717" font-weight="800">Verification</text>
+    </g>
+<g>
+      <path d="M 107.6 424.0 L 1172.2 423.3 L 1199.4 447.5 L 1199.9 511.6 L 1172.6 534.8 L 108.0 534.7 L 81.7 514.3 L 82.1 446.9 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2" opacity="0.58" />
+      <text x="110" y="468" font-size="19" fill="#171717" font-weight="800">Release</text>
+    </g>
+<g>
+      <path d="M 106.4 552.8 L 1173.5 553.2 L 1198.1 575.8 L 1199.9 640.2 L 1175.5 664.0 L 104.5 666.0 L 84.0 642.3 L 83.4 578.2 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2" opacity="0.58" />
+      <text x="110" y="596" font-size="19" fill="#171717" font-weight="800">Rollback</text>
+    </g>
+<path d="M 480.0 224.0 C 413.5 238.0, 321.2 340.1, 250.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 480.0 352.0 C 406.3 339.2, 322.4 477.4, 250.0 480.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 480.0 480.0 C 405.2 494.7, 326.7 623.0, 250.0 608.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 480.0 608.0 C 506.3 608.5, 537.3 226.5, 550.0 224.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 780.0 224.0 C 697.1 238.8, 607.2 347.8, 550.0 352.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 780.0 352.0 C 710.4 339.4, 625.2 471.3, 550.0 480.0" fill="none" stroke="#b7791f" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 265.6 185.5 L 460.1 187.8 L 477.6 204.6 L 478.6 243.9 L 460.8 260.6 L 268.1 261.2 L 247.7 241.2 L 248.8 204.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 268.9 194.0 L 459.7 191.8 L 476.1 207.3 L 478.4 240.1 L 463.2 257.3 L 268.4 258.4 L 253.5 239.3 L 254.1 206.4 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="220" font-size="18" fill="#171717" font-weight="750">Proposed change</text>
+  </g>
+<g>
+    <path d="M 267.9 315.8 L 462.2 314.7 L 479.2 333.0 L 477.5 370.4 L 461.9 385.9 L 270.0 388.0 L 248.6 371.2 L 248.2 334.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 268.9 320.3 L 458.7 320.5 L 477.2 335.1 L 475.1 367.7 L 461.6 385.0 L 269.3 384.2 L 254.0 368.6 L 252.0 336.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="348" font-size="17" fill="#171717" font-weight="750">Unit and integration</text>
+<text x="268" y="369.25" font-size="17" fill="#171717" font-weight="750">tests</text>
+  </g>
+<g>
+    <path d="M 270.0 443.9 L 464.0 446.5 L 481.4 460.5 L 482.2 496.1 L 463.4 517.3 L 268.5 518.3 L 250.0 495.8 L 249.8 462.2 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 266.9 448.5 L 460.6 449.8 L 475.3 463.0 L 476.1 499.1 L 460.1 512.2 L 267.3 512.8 L 251.8 497.8 L 253.1 464.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="476" font-size="17" fill="#171717" font-weight="750">Generated artifact</text>
+<text x="268" y="497.25" font-size="17" fill="#171717" font-weight="750">drift checks</text>
+  </g>
+<g>
+    <path d="M 267.1 572.9 L 460.5 574.4 L 478.6 587.8 L 479.1 625.3 L 461.7 646.3 L 269.5 642.6 L 248.0 625.5 L 247.8 588.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 266.9 576.5 L 463.2 574.7 L 475.4 589.2 L 474.4 626.6 L 460.0 641.3 L 271.4 637.8 L 254.5 625.2 L 255.0 592.2 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="604" font-size="17" fill="#171717" font-weight="750">Architecture</text>
+<text x="268" y="625.25" font-size="17" fill="#171717" font-weight="750">boundary checks</text>
+  </g>
+<g>
+    <path d="M 566.0 190.4 L 764.5 187.2 L 778.0 204.3 L 777.8 239.9 L 763.5 259.5 L 566.2 257.9 L 548.3 241.7 L 548.8 205.9 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 567.2 194.4 L 762.4 189.9 L 775.4 209.5 L 774.9 242.9 L 758.7 255.4 L 567.8 254.6 L 554.8 238.6 L 554.7 207.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="568" y="220" font-size="17" fill="#171717" font-weight="750">Dependency and blob</text>
+<text x="568" y="241.25" font-size="17" fill="#171717" font-weight="750">policy</text>
+  </g>
+<g>
+    <path d="M 568.9 314.4 L 763.9 315.7 L 779.3 332.9 L 780.6 367.5 L 763.9 388.0 L 569.1 386.9 L 550.5 369.6 L 547.9 331.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 567.6 321.1 L 761.2 317.7 L 776.1 332.6 L 777.0 369.3 L 760.9 381.9 L 568.1 382.3 L 551.9 371.3 L 553.1 335.0 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="568" y="348" font-size="18" fill="#171717" font-weight="750">Custom lints</text>
+  </g>
+<g>
+    <path d="M 568.8 444.7 L 761.8 444.7 L 781.6 461.4 L 778.1 496.2 L 763.7 514.4 L 570.3 517.1 L 549.8 499.9 L 550.1 464.2 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 567.1 449.6 L 760.5 445.8 L 777.8 464.0 L 775.9 498.4 L 763.3 511.0 L 569.0 511.3 L 556.5 496.9 L 554.1 465.3 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="568" y="476" font-size="18" fill="#171717" font-weight="750">Merge confidence</text>
+  </g>
+  </g>
+</svg>

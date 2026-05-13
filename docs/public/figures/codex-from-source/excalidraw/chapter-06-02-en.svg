@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title-chapter-06-02-en desc-chapter-06-02-en">
+  <title id="title-chapter-06-02-en">The Turn State Machine</title>
+  <desc id="desc-chapter-06-02-en">Hand-drawn whiteboard figure for The Turn State Machine, showing the relationship between Start, Prepare and prompt hooks, Blocked prompt, Sample, Stream.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-06-02-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="720" rx="30" fill="#fffdf7" />
+  <path d="M 47.6 20.4 L 1228.0 22.2 L 1256.8 48.6 L 1255.6 667.9 L 1228.7 699.9 L 50.7 696.3 L 24.4 668.5 L 23.2 50.8 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="720" filter="url(#paper-chapter-06-02-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">The Turn State Machine</text>
+    <path d="M 64.0 166.0 C 452.8 158.8, 864.9 150.8, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="380" rx="527" ry="288" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 511.5 323.4 L 771.7 320.4 L 792.9 346.9 L 793.5 400.7 L 771.7 423.9 L 510.1 424.4 L 483.9 397.7 L 486.8 347.6 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="362" font-size="18" fill="#171717" font-weight="800">The Turn State Machine</text>
+<path d="M 640.0 144.0 C 739.6 155.8, 819.9 172.7, 907.4 187.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 907.4 187.9 C 958.7 194.1, 1016.4 306.2, 1072.7 302.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1072.7 302.9 C 1084.9 287.7, 1079.5 456.7, 1072.7 445.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1072.7 445.1 C 1030.8 435.7, 949.8 569.3, 907.4 560.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 907.4 560.1 C 809.5 575.3, 725.9 617.6, 640.0 604.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 604.0 C 558.2 620.0, 448.9 569.6, 372.6 560.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 372.6 560.1 C 324.6 554.5, 244.2 451.5, 207.3 445.1" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 207.3 445.1 C 194.0 460.6, 200.9 306.8, 207.3 302.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 207.3 302.9 C 269.7 307.5, 307.6 181.3, 372.6 187.9" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 372.6 187.9 C 478.7 195.7, 550.7 134.0, 640.0 144.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 525.0 107.2 L 757.9 108.0 L 775.8 123.9 L 774.2 160.2 L 759.1 178.0 L 523.6 177.8 L 502.5 159.7 L 502.7 124.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 523.0 113.0 L 755.6 111.8 L 769.2 124.9 L 769.6 160.1 L 758.0 177.0 L 524.8 173.9 L 508.1 161.4 L 509.3 125.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="140" font-size="18" fill="#171717" font-weight="750">Start</text>
+  </g>
+<g>
+    <path d="M 789.8 149.5 L 1026.7 153.0 L 1044.6 168.2 L 1040.2 207.8 L 1025.7 221.6 L 790.4 224.3 L 770.4 204.5 L 772.6 170.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 791.6 158.4 L 1023.5 158.4 L 1036.9 172.6 L 1036.3 205.1 L 1023.0 222.3 L 791.2 221.5 L 775.5 204.5 L 774.3 172.8 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="790.4422897930754" y="183.92609129376208" font-size="17" fill="#171717" font-weight="750">Prepare and prompt</text>
+<text x="790.4422897930754" y="205.17609129376208" font-size="17" fill="#171717" font-weight="750">hooks</text>
+  </g>
+<g>
+    <path d="M 957.6 265.4 L 1187.3 268.6 L 1208.6 287.0 L 1209.1 319.6 L 1187.3 341.2 L 953.3 339.2 L 939.2 319.4 L 935.8 284.7 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 954.4 271.6 L 1189.6 269.2 L 1202.1 284.0 L 1205.6 320.5 L 1189.1 336.5 L 959.0 335.2 L 940.0 320.8 L 942.4 285.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="955.7307149142948" y="298.9260912937621" font-size="18" fill="#171717" font-weight="750">Blocked prompt</text>
+  </g>
+<g>
+    <path d="M 954.7 408.1 L 1189.2 407.7 L 1206.9 426.6 L 1208.7 465.0 L 1189.5 480.9 L 955.5 480.0 L 937.5 461.9 L 939.8 426.2 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 957.2 413.9 L 1189.2 411.3 L 1204.9 428.4 L 1205.3 461.5 L 1187.9 477.5 L 957.2 475.1 L 943.9 462.0 L 940.2 429.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="955.7307149142948" y="441.0739087062379" font-size="18" fill="#171717" font-weight="750">Sample</text>
+  </g>
+<g>
+    <path d="M 789.4 523.7 L 1026.8 522.3 L 1040.4 541.1 L 1042.3 580.5 L 1022.8 596.9 L 791.8 594.4 L 770.7 579.3 L 774.2 541.8 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 793.7 528.8 L 1021.2 525.9 L 1040.5 542.6 L 1038.2 577.2 L 1022.8 592.5 L 790.5 592.8 L 775.1 577.1 L 774.1 543.6 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="790.4422897930754" y="556.073908706238" font-size="18" fill="#171717" font-weight="750">Stream</text>
+  </g>
+<g>
+    <path d="M 524.6 567.2 L 758.7 567.9 L 773.0 583.6 L 777.0 621.6 L 757.7 637.5 L 521.8 639.3 L 504.1 624.0 L 506.7 583.5 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 523.9 573.1 L 755.7 570.7 L 771.0 586.7 L 770.1 619.6 L 755.5 634.4 L 522.5 638.2 L 510.7 623.0 L 508.0 589.2 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="600" font-size="18" fill="#171717" font-weight="750">Dispatch tools</text>
+  </g>
+<g>
+    <path d="M 256.8 524.1 L 487.4 526.2 L 508.4 541.8 L 505.3 579.4 L 490.3 595.2 L 254.2 598.5 L 237.4 577.2 L 236.6 541.5 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 254.4 526.6 L 490.9 526.5 L 505.8 544.8 L 504.1 578.9 L 488.3 593.4 L 257.1 591.7 L 242.6 576.2 L 239.3 544.2 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="255.55771020692475" y="556.073908706238" font-size="18" fill="#171717" font-weight="750">Record observations</text>
+  </g>
+<g>
+    <path d="M 92.0 408.5 L 324.0 408.4 L 340.6 429.2 L 342.0 464.3 L 324.1 481.4 L 92.1 480.2 L 72.8 463.1 L 70.9 429.1 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 90.8 412.0 L 323.4 413.7 L 339.3 430.2 L 336.2 461.3 L 321.3 478.6 L 93.7 474.9 L 76.4 461.7 L 74.9 429.4 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="90.26928508570512" y="441.07390870623794" font-size="18" fill="#171717" font-weight="750">Compact history</text>
+  </g>
+<g>
+    <path d="M 89.0 269.1 L 324.9 266.9 L 339.9 282.9 L 344.1 322.0 L 324.0 337.6 L 91.6 336.6 L 72.5 320.8 L 73.0 284.1 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 89.9 272.0 L 324.2 271.9 L 338.3 285.0 L 338.1 317.6 L 320.8 336.7 L 89.7 334.4 L 76.6 319.2 L 74.4 285.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="90.26928508570506" y="298.9260912937621" font-size="18" fill="#171717" font-weight="750">Pending input</text>
+  </g>
+<g>
+    <path d="M 254.2 152.5 L 489.1 151.5 L 507.5 169.3 L 505.2 207.9 L 489.9 224.0 L 258.0 225.4 L 236.5 206.6 L 236.2 169.5 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 259.0 154.2 L 487.0 158.2 L 502.6 170.3 L 504.4 206.9 L 489.5 220.8 L 256.1 221.2 L 241.9 203.2 L 242.3 171.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="255.5577102069247" y="183.9260912937621" font-size="18" fill="#171717" font-weight="750">Stop hooks</text>
+  </g>
+  </g>
+</svg>

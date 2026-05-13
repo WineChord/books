@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title-chapter-11-01-zh desc-chapter-11-01-zh">
+  <title id="title-chapter-11-01-zh">Patch 生命周期</title>
+  <desc id="desc-chapter-11-01-zh">Patch 生命周期的手绘白板图，展示自由格式 patch 或 shell 形式调用、识别应用-patch 意图、解析 patch hunk、验证路径与当前文件内容、评估安全性与权限之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-11-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="760" rx="30" fill="#fffdf7" />
+  <path d="M 50.4 23.0 L 1229.8 24.1 L 1260.4 50.6 L 1256.5 708.5 L 1228.4 740.3 L 50.0 737.4 L 23.6 710.5 L 19.9 52.0 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="760" filter="url(#paper-chapter-11-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">Patch 生命周期</text>
+    <path d="M 64.0 166.0 C 449.4 163.1, 858.5 152.4, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 256.6 151.1, 265.2 664.2, 260.0 670.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1019.5 158.8, 1007.4 680.4, 1020.0 670.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 651.3 213.4, 632.8 228.4, 640.0 215.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 263.0 C 641.1 257.0, 650.1 271.2, 640.0 270.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 318.0 C 640.6 330.6, 649.7 316.3, 640.0 325.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 373.0 C 631.4 359.3, 630.1 388.6, 640.0 380.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 428.0 C 628.5 418.9, 642.3 444.5, 640.0 435.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 483.0 C 640.3 473.6, 640.1 482.2, 640.0 490.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 538.0 C 631.2 546.2, 645.4 548.9, 640.0 545.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 593.0 C 629.2 598.6, 626.6 586.8, 640.0 600.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 648.0 C 642.6 660.8, 653.3 659.4, 640.0 655.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 276.2 158.2 L 1002.0 162.0 L 1019.2 178.3 L 1020.8 190.7 L 1000.6 205.8 L 278.0 207.0 L 261.5 187.5 L 261.9 179.0 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.9 163.6 L 1003.3 164.1 L 1015.7 181.5 L 1014.5 190.6 L 1003.2 206.2 L 280.1 206.0 L 263.8 191.0 L 264.6 180.8 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">自由格式 patch 或 shell 形式调用</text>
+  </g>
+<g>
+    <path d="M 323.3 217.2 L 956.4 213.7 L 974.0 232.9 L 974.9 243.0 L 956.1 260.7 L 323.6 263.9 L 306.8 247.3 L 304.7 230.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 324.7 218.3 L 953.6 217.3 L 970.5 236.1 L 969.1 244.8 L 952.9 259.7 L 325.4 258.8 L 311.9 245.4 L 313.4 234.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="247" font-size="18" fill="#171717" font-weight="750">识别应用 patch 意图</text>
+  </g>
+<g>
+    <path d="M 334.9 268.2 L 941.0 267.6 L 963.5 288.7 L 958.7 302.4 L 944.9 320.0 L 337.6 319.3 L 317.0 300.1 L 321.4 285.9 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 339.5 275.8 L 940.2 273.1 L 958.5 291.4 L 955.7 297.0 L 944.3 313.6 L 335.8 316.2 L 322.7 300.1 L 323.7 288.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="302" font-size="18" fill="#171717" font-weight="750">解析 patch hunk</text>
+  </g>
+<g>
+    <path d="M 349.7 323.7 L 930.1 322.7 L 948.4 343.2 L 950.2 354.5 L 933.2 375.5 L 349.7 373.2 L 329.5 354.2 L 331.7 343.0 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 352.0 331.2 L 928.2 329.7 L 945.2 345.6 L 944.0 354.7 L 928.4 371.0 L 348.1 366.5 L 334.8 354.9 L 332.6 344.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="357" font-size="18" fill="#171717" font-weight="750">验证路径与当前文件内容</text>
+  </g>
+<g>
+    <path d="M 359.4 377.6 L 921.2 381.4 L 938.2 398.6 L 938.4 408.5 L 920.3 426.6 L 362.1 426.9 L 340.9 409.1 L 343.7 397.8 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 362.7 381.7 L 918.7 383.8 L 931.2 397.5 L 931.2 409.4 L 915.6 424.6 L 363.2 426.5 L 348.2 410.6 L 347.9 401.5 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="412" font-size="18" fill="#171717" font-weight="750">评估安全性与权限</text>
+  </g>
+<g>
+    <path d="M 641.4 434.4 L 926.9 460.5 L 638.7 481.8 L 353.5 460.7 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 640.1 440.4 L 919.3 458.2 L 639.6 480.7 L 359.1 457.4 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="383" y="455" font-size="18" fill="#171717" font-weight="750">审批与 Hook</text>
+  </g>
+<g>
+    <path d="M 383.4 488.2 L 893.3 487.7 L 911.7 506.2 L 912.1 520.3 L 896.0 540.5 L 384.2 540.2 L 368.9 519.9 L 365.2 510.4 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 386.6 494.9 L 894.7 493.4 L 911.0 511.2 L 909.8 521.3 L 892.6 532.2 L 385.7 533.1 L 371.0 521.0 L 369.1 508.8 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="385" y="522" font-size="18" fill="#171717" font-weight="750">基于文件系统应用</text>
+  </g>
+<g>
+    <path d="M 395.7 542.5 L 884.8 544.9 L 901.5 561.5 L 899.6 573.1 L 883.7 591.0 L 398.5 590.8 L 379.3 576.2 L 378.1 565.1 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 398.2 551.0 L 879.8 548.9 L 899.2 563.0 L 898.7 572.4 L 883.4 591.5 L 399.0 590.0 L 382.4 572.9 L 385.1 561.9 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="397" y="577" font-size="18" fill="#171717" font-weight="750">已提交 delta</text>
+  </g>
+<g>
+    <path d="M 411.0 600.0 L 869.9 599.0 L 889.7 618.4 L 891.2 629.2 L 870.6 646.3 L 411.4 646.1 L 389.2 631.7 L 391.1 619.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 411.8 603.3 L 867.8 603.0 L 884.9 619.8 L 885.0 631.5 L 870.1 644.9 L 409.8 645.1 L 396.0 626.9 L 395.2 620.2 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="409" y="632" font-size="18" fill="#171717" font-weight="750">patch 事件与 Turn diff</text>
+  </g>
+<g>
+    <path d="M 278.8 654.9 L 1004.5 652.6 L 1017.9 675.0 L 1019.5 685.7 L 1004.2 704.3 L 278.1 703.6 L 260.9 684.2 L 257.9 672.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 279.6 659.7 L 998.6 658.0 L 1014.8 673.0 L 1014.6 684.1 L 1000.1 701.0 L 280.7 698.5 L 265.8 684.5 L 264.5 672.4 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="687" font-size="18" fill="#171717" font-weight="750">模型可见结果</text>
+  </g>
+  </g>
+</svg>

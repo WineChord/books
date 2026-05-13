@@ -1,7 +1,6 @@
 # 第 8 章：Observability 与 Rollout Trace
 
-第 7 章说明了 provider 和 transport 的差异如何收敛成统一的模型事件流。
-本章继续追踪这些事件进入 runtime 之后的命运：哪些事实会为 replay 持久化，
+第 7 章说明了 provider 和 transport 的差异如何收敛成统一的模型事件流。本章继续追踪这些事件进入 runtime 之后的命运：哪些事实会为 replay 持久化，
 哪些会被 reduce 成 product analytics，哪些成为 operational telemetry，
 哪些作为 raw diagnostic evidence 进入 rollout trace。
 
@@ -35,7 +34,7 @@ history、session metadata、turn context、compaction boundary、rollback behav
 和选定的 event surface。它为 replay 和兼容性优化，而不是为任意 debugging 优化。
 
 ```text
-// Pseudocode - illustrative pattern.
+// 伪代码 - 说明性模式。
 function handle_runtime_event(event):
     if event.should_be_persisted_for_replay:
         rollout.append(event.as_rollout_item)
@@ -56,24 +55,10 @@ rollout trace 是 opt-in diagnostic path。启用后，runtime 会记录 ordered
 并把较大的 raw payload 分开保存。hot path 不会在 session 运行时构造最终 explanation
 graph；它只捕获事实，把解释工作交给 offline reducer。
 
-```mermaid
-flowchart TD
-    Runtime["runtime sources\nturns, inference, tools, terminal, agents"]
-    Context["trace context\nroot and child threads"]
-    Writer["trace writer\nsequence numbers"]
-    Events["raw event log"]
-    Payloads["raw payload files"]
-    Reducer["offline reducer"]
-    Graph["reduced graph\nthreads, turns, items, tools, terminals, edges"]
-
-    Runtime --> Context
-    Context --> Writer
-    Writer --> Events
-    Writer --> Payloads
-    Events --> Reducer
-    Payloads --> Reducer
-    Reducer --> Graph
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-01-zh.svg" alt="Rollout trace 从运行时来源记录有序事件和原始载荷文件，再把解释图的构造交给离线 reducer。" loading="lazy" />
+  <figcaption>Rollout trace 从运行时来源记录有序事件和原始载荷文件，再把解释图的构造交给离线 reducer。</figcaption>
+</figure>
 
 raw trace data 可能包含 prompts、model responses、tool inputs/outputs、terminal
 output、runtime payloads 和 paths。因此它属于本地诊断，而不是普通 telemetry。这个设计的
@@ -85,25 +70,10 @@ reduced trace graph 不是 transcript。它包含 semantic objects：agent threa
 model-visible conversation items、inference calls、tool calls、code cells、terminal
 operations、compactions 和 interaction edges。每个 object 都可以保留指向 raw payload 的引用。
 
-```mermaid
-flowchart LR
-    RawModel["raw model payloads"]
-    RawRuntime["raw runtime payloads"]
-    RawTerminal["raw terminal payloads"]
-    Reducer["strict reducer"]
-    Conversation["conversation items\n模型实际看到的内容"]
-    RuntimeObjects["runtime objects\ntools, terminals, compactions"]
-    Edges["interaction edges\ncausal flow"]
-    Refs["raw payload references"]
-
-    RawModel --> Reducer
-    RawRuntime --> Reducer
-    RawTerminal --> Reducer
-    Reducer --> Conversation
-    Reducer --> RuntimeObjects
-    Reducer --> Edges
-    Reducer --> Refs
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-02-zh.svg" alt="严格 reducer 把原始模型、运行时和终端载荷规约成模型可见条目、运行时对象和因果交互边，而不是压平成一份 transcript。" loading="lazy" />
+  <figcaption>严格 reducer 把原始模型、运行时和终端载荷规约成模型可见条目、运行时对象和因果交互边，而不是压平成一份 transcript。</figcaption>
+</figure>
 
 这个区分能避免常见 debugging 错误：runtime output 不自动等于 model-visible output。
 terminal operation 可能在本地 process log 里产出大量字节，而模型只看到了一个总结后的
@@ -117,8 +87,13 @@ reducer 按顺序 replay raw events，并构建 semantic state。它在一致性
 terminal operation 必须挂到已知 runtime object；turn 必须属于已知 thread；pending edges
 最终必须找到 source 或 target。
 
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-concept-1-zh.svg" alt="严格规约维护 Codex 先观察后解释的原则，再为不同受众派生产品分析、运行时遥测、debug context 和本地日志。" loading="lazy" />
+  <figcaption>严格规约维护 Codex 先观察后解释的原则，再为不同受众派生产品分析、运行时遥测、debug context 和本地日志。</figcaption>
+</figure>
+
 ```text
-// Pseudocode - illustrative pattern.
+// 伪代码 - 说明性模式。
 function reduce_trace_bundle(bundle):
     state = empty_graph()
     pending = empty_pending_queue()
@@ -128,7 +103,7 @@ function reduce_trace_bundle(bundle):
 
         if raw_event.references_unknown_object:
             pending.queue(raw_event)
-            continue
+            继续
 
         object = interpret_raw_event(raw_event)
         state.apply(object)
@@ -160,12 +135,17 @@ OTEL traces、logs、metrics 和 trace-context propagation 服务于 operational
 session-scoped events、counters、histograms 和 exported spans。trace context 可以跨边界传播，
 让一个 submission、model call 和 downstream runtime operation 保持关联。
 
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-08-concept-2-zh.svg" alt="OTEL 属于运维平面，运行时负责人在这里追踪延迟、重试、流式行为和传播的 trace 上下文，但不会把遥测数据变成回放真相。" loading="lazy" />
+  <figcaption>OTEL 属于运维平面，运行时负责人在这里追踪延迟、重试、流式行为和传播的 trace 上下文，但不会把遥测数据变成回放真相。</figcaption>
+</figure>
+
 这个 plane 关注性能与可靠性。它不应该被当成 durable transcript，也不应该要求 product
 analytics model 去解释低层 runtime 行为。
 
 ## Response Debug Context 与 Local Logs
 
-response debug context 从 upstream API failure 中抽取身份信息，比如 request identifier 和
+response debug context 从 upstream API failure 中抽取身份信息，比如 请求 IDentifier 和
 status details。它刻意保持小而面向支持：帮助把用户可见 failure 关联到 upstream request，
 但不暴露完整 runtime trace。
 

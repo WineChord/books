@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title-chapter-15-01-en desc-chapter-15-01-en">
+  <title id="title-chapter-15-01-en">Client Taxonomy</title>
+  <desc id="desc-chapter-15-01-en">Hand-drawn whiteboard figure for Client Taxonomy, showing the relationship between Protocol schema, Rust facade, Python SDK, TypeScript SDK, Exec command surface.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-15-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="760" rx="30" fill="#fffdf7" />
+  <path d="M 47.6 20.5 L 1229.7 23.3 L 1257.2 51.0 L 1256.5 711.4 L 1227.6 737.0 L 47.8 736.1 L 22.4 708.6 L 22.7 51.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="760" filter="url(#paper-chapter-15-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Client Taxonomy</text>
+    <path d="M 64.0 166.0 C 450.3 174.3, 858.4 175.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 92.7 147.8 L 394.7 149.4 L 419.5 173.7 L 419.3 654.3 L 394.1 681.4 L 95.4 679.0 L 71.4 655.2 L 71.7 173.1 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 491.1 149.1 L 791.9 151.0 L 813.2 174.8 L 816.6 654.7 L 790.9 682.0 L 488.1 679.2 L 467.4 655.8 L 462.9 175.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 882.4 149.6 L 1184.9 147.9 L 1211.6 171.9 L 1209.8 656.8 L 1186.4 680.6 L 882.7 678.2 L 859.1 655.9 L 858.1 174.6 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 420.8 244.0, 456.3 261.1, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 831.4 258.2, 872.6 249.0, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 818.1 268.0, 408.1 367.2, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 440.8 380.4, 453.2 357.0, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 832.8 367.7, 841.5 378.3, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 793.0 374.1, 434.7 484.4, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 477.0 C 444.6 491.3, 465.4 482.0, 489.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 477.0 C 832.1 474.1, 862.5 470.1, 884.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 112.4 214.3 L 377.7 217.7 L 397.2 232.6 L 395.9 274.4 L 375.9 287.9 L 112.9 290.5 L 92.5 273.2 L 94.3 233.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 111.2 220.0 L 378.9 222.3 L 390.1 235.0 L 390.5 271.2 L 379.3 284.8 L 114.6 286.1 L 96.1 273.0 L 95.8 234.8 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">Protocol schema</text>
+  </g>
+<g>
+    <path d="M 506.1 217.5 L 773.8 217.7 L 788.5 234.4 L 790.8 273.7 L 775.2 289.2 L 507.9 288.0 L 489.4 273.9 L 487.7 231.9 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 507.3 219.0 L 771.2 218.3 L 785.7 236.5 L 786.5 269.6 L 771.3 285.0 L 506.4 283.7 L 492.0 268.6 L 494.6 232.6 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">Rust facade</text>
+  </g>
+<g>
+    <path d="M 903.6 215.7 L 1166.2 215.4 L 1185.2 235.1 L 1184.6 273.9 L 1168.6 292.0 L 901.1 288.0 L 885.2 273.5 L 883.3 236.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 901.3 219.6 L 1165.8 218.2 L 1181.0 235.3 L 1181.6 272.9 L 1165.6 284.5 L 902.9 286.9 L 889.9 273.1 L 887.0 236.3 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">Python SDK</text>
+  </g>
+<g>
+    <path d="M 112.8 326.5 L 378.9 328.1 L 396.1 344.0 L 397.8 382.3 L 379.5 403.9 L 111.3 400.7 L 96.0 385.4 L 92.9 347.1 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 113.8 330.3 L 379.3 332.5 L 392.8 348.5 L 392.5 385.1 L 378.8 396.5 L 113.6 399.6 L 96.9 381.5 L 97.0 345.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">TypeScript SDK</text>
+  </g>
+<g>
+    <path d="M 508.2 328.8 L 771.5 327.9 L 791.0 345.4 L 788.6 384.0 L 771.0 402.9 L 506.9 402.6 L 489.3 386.3 L 490.0 347.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 509.8 330.4 L 770.9 330.3 L 789.3 348.7 L 785.5 381.7 L 769.8 396.0 L 509.2 396.8 L 492.2 382.0 L 490.9 349.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">Exec command surface</text>
+  </g>
+<g>
+    <path d="M 900.1 327.5 L 1169.8 329.3 L 1185.3 347.8 L 1185.5 382.9 L 1165.6 401.3 L 904.0 400.3 L 886.1 386.4 L 883.6 347.6 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 904.7 333.7 L 1169.2 329.7 L 1183.5 349.3 L 1183.0 384.9 L 1164.6 399.1 L 903.5 400.3 L 889.0 385.0 L 890.3 349.2 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">Daemon lifecycle</text>
+  </g>
+<g>
+    <path d="M 113.5 441.3 L 379.1 438.3 L 396.0 458.2 L 394.0 496.6 L 376.0 513.5 L 113.9 513.4 L 92.1 495.6 L 94.4 456.1 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 114.5 444.9 L 378.3 446.1 L 390.7 458.6 L 393.9 493.4 L 375.6 510.4 L 111.8 509.8 L 99.6 493.1 L 100.3 457.2 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">Remote control bridge</text>
+  </g>
+<g>
+    <path d="M 505.0 439.3 L 774.6 442.5 L 792.6 458.4 L 790.2 496.5 L 775.1 515.2 L 505.6 514.9 L 491.0 497.0 L 490.3 455.8 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 506.8 444.6 L 774.0 444.0 L 787.3 456.9 L 789.4 495.8 L 773.1 508.7 L 508.3 511.0 L 494.0 495.5 L 494.3 460.1 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="472" font-size="18" fill="#171717" font-weight="750">Remote backend</text>
+  </g>
+<g>
+    <path d="M 903.8 440.2 L 1169.7 442.0 L 1184.1 458.4 L 1186.7 494.9 L 1170.4 515.9 L 901.0 515.5 L 883.2 498.3 L 885.9 460.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 902.4 444.3 L 1164.7 443.4 L 1180.4 458.0 L 1180.2 496.5 L 1165.6 510.4 L 900.9 512.0 L 887.5 494.8 L 887.6 458.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="472" font-size="18" fill="#171717" font-weight="750">app-server runtime</text>
+  </g>
+  </g>
+</svg>

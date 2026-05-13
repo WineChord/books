@@ -10,7 +10,7 @@ workspace launcher templates.
 
 - Root files define orchestration: npm/pnpm, Bazel module, just commands,
   release metadata, and governance checks.
-- `codex-rs` is the Rust workspace and source of truth for product crates,
+- `codex-rs` is the Rust workspace and source of truth for product code,
   shared dependencies, lints, binaries, and generated schemas.
 - `codex-cli` is the npm-facing wrapper layer.
 - Bazel is an overlay build system that mirrors Cargo metadata and adds
@@ -48,7 +48,7 @@ workspace launcher templates.
    contract artifacts.
 5. Release artifacts flow from Rust builds into CI artifacts, npm staging,
    GitHub releases, signing, installers, and checksums.
-6. V8 support flows through third-party metadata, checksum manifests, Bazel
+6. V8 support flows through third-party metadata, Integrity Records, Bazel
    repository rules, patch-managed portability, and release archives.
 
 ## Design Patterns and Rationale
@@ -58,7 +58,7 @@ workspace launcher templates.
 - Policy is executable: manifest verification, boundary checks, lint sync,
   blob-size limits, ASCII/ToC checks, dependency governance.
 - Platform differences are absorbed by launchers, installers, CI scripts, and
-  helper packages instead of product crates.
+  helper packages instead of product code.
 - Native complexity is quarantined in third-party, patches, and vendored build
   wrappers.
 - Generated artifacts are checked in when they define external contracts.

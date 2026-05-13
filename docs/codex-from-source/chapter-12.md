@@ -14,22 +14,11 @@ separate so each can fail in a precise way.
 
 ## The Gate Stack
 
-```mermaid
-flowchart TD
-    RuntimeEvent[tool, prompt, compact, or stop event] --> HookPreview[hook preview]
-    HookPreview --> HookRun[trusted hook run]
-    HookRun --> HookOutcome{hook outcome}
-    HookOutcome -->|context or feedback| Continue[continue with added facts]
-    HookOutcome -->|block or stop| Reject[stop or reject]
-    Continue --> Policy[approval requirement]
-    Policy --> PermissionHook[permission-request hook]
-    PermissionHook --> Reviewer{decision source}
-    Reviewer -->|configured automation| Guardian[Guardian review]
-    Reviewer -->|human path| User[user approval]
-    Guardian --> Decision[allow, deny, timeout, amend]
-    User --> Decision
-    Decision --> ToolAttempt[tool attempt or rejection]
-```
+<p class="sketch-intro">Read the gate stack from top to bottom: each row answers who may add context, who may stop work, and who is allowed to turn intent into action.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-12-01-en.svg" alt="The approval stack is ordered so every actor can add context, block, amend, or authorize before a dangerous attempt becomes real." loading="lazy" />
+  <figcaption>The approval stack is ordered so every actor can add context, block, amend, or authorize before a dangerous attempt becomes real.</figcaption>
+</figure>
 
 The stack is ordered, not ornamental. Hooks can add context or block specific
 events. Permission-request hooks can answer an approval before the normal
@@ -49,26 +38,10 @@ the shell handler reach sandbox selection and process execution. After the
 result is available, post-tool hooks can observe output and feed structured
 feedback back into the turn.
 
-```mermaid
-sequenceDiagram
-    participant Model
-    participant Runtime
-    participant Hook
-    participant Policy
-    participant Reviewer
-    participant Shell
-
-    Model->>Runtime: shell tool call
-    Runtime->>Hook: pre-tool event
-    Hook-->>Runtime: allow, context, warning, or block
-    Runtime->>Policy: evaluate command and profile
-    Policy->>Reviewer: approval request when needed
-    Reviewer-->>Policy: allow, deny, amend, timeout
-    Policy-->>Runtime: executable decision
-    Runtime->>Shell: run under selected sandbox
-    Shell-->>Runtime: output and status
-    Runtime->>Hook: post-tool event
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-12-02-en.svg" alt="A shell command becomes executable only after hooks add or block context, policy evaluates the effective profile, and the reviewer path returns a decision." loading="lazy" />
+  <figcaption>A shell command becomes executable only after hooks add or block context, policy evaluates the effective profile, and the reviewer path returns a decision.</figcaption>
+</figure>
 
 The point is not the command itself. The point is that each gate owns a
 different question: what automation observes, what policy permits, what the
@@ -81,6 +54,12 @@ Codex can load hooks from multiple sources: system or managed configuration,
 user configuration, project configuration, session flags, plugins, cloud
 requirements, and legacy managed files. Each hook has event identity, matcher
 state, command text, timeout, source metadata, display order, and trust status.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-12-concept-1-en.svg" alt="Hook discovery is governed by trust state: the runtime distinguishes trusted, modified, disabled, and executed hooks before it accepts structured results." loading="lazy" />
+  <figcaption>Hook discovery is governed by trust state: the runtime distinguishes trusted, modified, disabled, and executed hooks before it accepts structured results.</figcaption>
+</figure>
 
 Trust is not inferred from existence. Managed hooks are trusted by policy.
 User or project hooks are trusted only when their normalized identity hash
@@ -136,6 +115,12 @@ attempt fails and an unsandboxed retry is possible. The approval payload is
 tool-specific: shell approval includes command and cwd, patch approval includes
 file changes, MCP approval includes server and tool metadata, and permission
 requests include the additional filesystem or network access being requested.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-12-concept-2-en.svg" alt="Approval is deliberately separate from hooks: policy produces a decision payload, reviewers answer it, and only some answers change future policy." loading="lazy" />
+  <figcaption>Approval is deliberately separate from hooks: policy produces a decision payload, reviewers answer it, and only some answers change future policy.</figcaption>
+</figure>
 
 The runtime can cache session approvals by key. Shell-like commands usually
 have one approval key. A patch may have one key per affected path so approving

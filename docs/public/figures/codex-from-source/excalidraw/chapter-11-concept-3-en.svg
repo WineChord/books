@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-11-concept-3-en desc-chapter-11-concept-3-en">
+  <title id="title-chapter-11-concept-3-en">Diff Tracking as Evidence</title>
+  <desc id="desc-chapter-11-concept-3-en">Hand-drawn whiteboard figure for Diff Tracking as Evidence, showing the relationship between Baseline content, Committed patch delta, Rename origin, Exact diff, Invalidation state.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-11-concept-3-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 51.5 23.2 L 1228.2 23.6 L 1259.5 48.0 L 1258.1 649.0 L 1231.1 679.1 L 52.1 678.4 L 21.4 652.4 L 19.7 48.8 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-11-concept-3-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Diff Tracking as Evidence</text>
+    <path d="M 64.0 166.0 C 474.5 171.6, 882.4 172.0, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 91.0 167.0 L 547.6 163.3 L 568.0 187.9 L 570.1 596.9 L 550.2 618.1 L 92.5 622.1 L 71.2 597.7 L 68.9 187.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <path d="M 732.9 162.7 L 1186.3 167.1 L 1212.2 187.5 L 1210.7 597.0 L 1187.5 622.4 L 733.0 618.9 L 709.8 599.0 L 708.7 189.4 Z" fill="#f8fafc" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <text x="96" y="201" font-size="17" fill="#475569" font-weight="800">Fact stream</text>
+    <text x="736" y="201" font-size="17" fill="#475569" font-weight="800">Readable projection</text>
+    <path d="M 610.0 203.0 C 617.6 209.1, 650.8 208.8, 675.0 203.0" fill="none" stroke="#d97757" stroke-width="3" marker-end="url(#arrow)" opacity="0.7" />
+<g>
+    <path d="M 122.0 233.2 L 507.7 235.2 L 523.3 250.9 L 525.6 268.9 L 507.7 286.7 L 123.7 287.5 L 103.5 267.6 L 104.1 253.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 124.7 239.5 L 506.9 238.8 L 518.8 255.1 L 518.6 266.1 L 505.6 280.7 L 122.9 283.4 L 108.4 270.1 L 109.3 255.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="267" font-size="18" fill="#171717" font-weight="750">Baseline content</text>
+  </g>
+<g>
+    <path d="M 762.1 232.7 L 1145.3 234.8 L 1164.4 255.0 L 1164.1 268.7 L 1145.7 286.7 L 761.3 289.1 L 743.8 268.0 L 745.7 251.4 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 765.3 240.5 L 1145.4 237.5 L 1163.2 255.4 L 1160.5 268.6 L 1146.8 281.2 L 764.1 282.2 L 750.8 268.4 L 748.1 253.3 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="267" font-size="18" fill="#171717" font-weight="750">Committed patch delta</text>
+  </g>
+<g>
+    <path d="M 124.4 296.8 L 505.7 298.8 L 526.1 316.9 L 522.9 333.8 L 507.3 353.1 L 123.3 353.0 L 104.9 333.8 L 105.4 315.2 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 123.5 304.1 L 505.4 301.1 L 518.8 319.9 L 523.1 333.0 L 507.0 344.6 L 124.0 344.6 L 111.4 332.4 L 108.2 319.3 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="331" font-size="18" fill="#171717" font-weight="750">Rename origin</text>
+  </g>
+<g>
+    <path d="M 764.1 298.8 L 1148.9 300.7 L 1162.9 319.1 L 1166.2 333.6 L 1147.3 351.5 L 762.1 349.7 L 745.7 333.3 L 745.2 317.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 765.5 304.6 L 1146.8 304.5 L 1158.7 317.5 L 1159.5 330.9 L 1146.6 347.3 L 763.9 348.1 L 748.7 333.0 L 749.9 320.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="331" font-size="18" fill="#171717" font-weight="750">Exact diff</text>
+  </g>
+<g>
+    <path d="M 123.0 365.3 L 509.4 362.9 L 523.7 378.9 L 525.6 398.3 L 507.5 416.1 L 125.2 417.0 L 106.4 395.2 L 103.1 382.8 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 123.1 365.2 L 504.3 366.0 L 518.7 383.3 L 521.8 397.1 L 506.4 413.0 L 126.3 412.1 L 108.5 397.1 L 107.0 384.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="395" font-size="18" fill="#171717" font-weight="750">Invalidation state</text>
+  </g>
+<g>
+    <path d="M 764.9 363.9 L 1147.1 363.7 L 1165.6 379.0 L 1166.5 398.2 L 1145.2 415.2 L 761.8 416.3 L 746.5 395.1 L 744.5 382.9 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 763.5 369.1 L 1144.7 368.0 L 1159.0 383.7 L 1159.6 396.6 L 1143.8 413.4 L 764.0 412.2 L 747.5 395.2 L 748.1 383.3 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="395" font-size="18" fill="#171717" font-weight="750">Model visible result</text>
+  </g>
+  </g>
+</svg>

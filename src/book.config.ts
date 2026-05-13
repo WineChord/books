@@ -53,7 +53,7 @@ export const parts: PartConfig[] = [
     title: "Open the Runtime",
     zhTitle: "开放运行时",
     epigraph: "A runtime becomes a platform when many clients share one thread model.",
-    zhEpigraph: "当多个客户端共享同一个 thread model 时，运行时才成为平台。",
+    zhEpigraph: "当多个客户端共享同一个线程模型时，运行时才成为平台。",
     chapters: [14, 15, 16],
   },
   {
@@ -99,7 +99,7 @@ export const pages: PageConfig[] = [
   chapter(12, "Hooks and Human Approval", "Hooks 与人工审批", "Policy gates before risky actions reach the world.", "解释危险动作到达外部世界前的策略门。"),
   chapter(13, "Sandboxes, Network Policy, and Platform Boundaries", "Sandboxes、网络策略与平台边界", "Platform containment and network mediation.", "梳理平台隔离与网络访问调解。"),
   chapter(14, "The App-Server Contract", "App-Server 契约", "The JSON-RPC boundary for clients and SDKs.", "解释面向客户端和 SDK 的 JSON-RPC 边界。"),
-  chapter(15, "SDKs, Daemons, and Remote Control", "SDK、Daemon 与远程控制", "How external clients reach the same runtime.", "说明外部客户端如何接入同一个运行时。"),
+  chapter(15, "Client Surfaces, Daemon Lifecycle, and Remote Control", "客户端表面、Daemon 生命周期与远程控制", "How external clients reach the same runtime.", "说明外部客户端如何接入同一个运行时。"),
   chapter(16, "The TUI as an Event Renderer", "TUI 作为事件渲染器", "Terminal UI as projection, not alternate runtime.", "把终端 UI 解释为事件投影，而不是另一个运行时。"),
   chapter(17, "MCP: External Tools Without Runtime Entanglement", "MCP：没有运行时耦合的外部工具", "External tool servers behind provenance and routing boundaries.", "说明外部工具服务器如何通过来源和路由边界接入。"),
   chapter(18, "Skills, Plugins, Connectors, and Typed Extensions", "Skills、Plugins、Connectors 与类型化扩展", "Extension packaging with explicit trust planes.", "解释扩展打包和显式信任平面。"),

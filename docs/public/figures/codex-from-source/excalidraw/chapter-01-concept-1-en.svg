@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-01-concept-1-en desc-chapter-01-concept-1-en">
+  <title id="title-chapter-01-concept-1-en">Core Vocabulary</title>
+  <desc id="desc-chapter-01-concept-1-en">Hand-drawn whiteboard figure for Core Vocabulary, showing the relationship between Thread, Turn, Item, Operation, Event.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-01-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.4 20.9 L 1228.6 20.6 L 1258.6 50.8 L 1257.0 650.0 L 1232.0 679.1 L 51.2 677.7 L 24.4 648.5 L 22.3 51.8 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-01-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Core Vocabulary</text>
+    <path d="M 64.0 166.0 C 474.2 170.0, 870.7 146.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 640.0 380.0 C 653.9 369.0, 652.7 149.1, 640.0 157.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 775.0 378.3, 881.1 240.2, 991.8 239.8" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 793.7 371.0, 932.2 423.9, 1078.7 426.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 722.2 371.9, 784.9 580.2, 835.2 575.2" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 558.7 374.6, 518.5 570.3, 444.8 575.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 474.1 374.6, 331.2 440.9, 201.3 426.0" fill="none" stroke="#b7791f" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 516.1 367.6, 401.7 228.7, 288.2 239.8" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 547.3 119.6 L 736.4 123.9 L 751.6 140.5 L 754.4 172.1 L 732.3 190.0 L 547.2 193.9 L 528.4 172.3 L 526.5 141.5 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 544.7 124.7 L 734.3 124.9 L 749.6 142.5 L 750.1 172.5 L 731.5 187.7 L 546.0 188.9 L 532.9 170.8 L 533.1 139.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="546" y="154" font-size="18" fill="#171717" font-weight="750">Thread</text>
+  </g>
+<g>
+    <path d="M 899.5 206.2 L 1087.8 203.4 L 1103.3 220.7 L 1105.2 257.1 L 1084.8 272.4 L 896.8 272.4 L 878.8 256.1 L 877.6 222.7 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 896.7 207.3 L 1083.7 211.1 L 1101.3 225.1 L 1099.1 258.1 L 1083.5 269.1 L 897.2 268.6 L 883.2 254.7 L 884.0 222.6 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="897.8241671106134" y="236.83224359107862" font-size="18" fill="#171717" font-weight="750">Turn</text>
+  </g>
+<g>
+    <path d="M 984.3 392.2 L 1175.0 393.0 L 1190.7 409.0 L 1189.5 441.6 L 1172.7 463.0 L 984.2 461.7 L 965.1 442.3 L 967.8 410.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 986.5 396.8 L 1172.1 397.1 L 1188.3 408.4 L 1188.5 440.8 L 1170.0 455.7 L 984.4 457.5 L 969.3 442.0 L 972.9 411.2 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="984.7175604818206" y="422.9546054703892" font-size="18" fill="#171717" font-weight="750">Item</text>
+  </g>
+<g>
+    <path d="M 740.5 539.1 L 927.7 541.7 L 945.1 556.4 L 947.0 592.6 L 929.0 608.3 L 740.8 612.2 L 724.4 594.1 L 724.1 558.7 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 742.4 544.7 L 926.6 541.7 L 943.9 557.0 L 945.1 591.8 L 928.9 607.7 L 743.3 607.9 L 728.4 592.8 L 728.2 559.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="741.2476826029012" y="572.2131509385322" font-size="18" fill="#171717" font-weight="750">Operation</text>
+  </g>
+<g>
+    <path d="M 352.2 542.5 L 539.0 541.3 L 558.8 557.3 L 557.1 589.9 L 538.8 608.7 L 352.4 611.8 L 333.1 592.2 L 331.1 557.1 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 353.4 541.8 L 539.7 543.7 L 551.4 560.3 L 551.6 593.3 L 539.3 606.4 L 351.2 608.5 L 334.6 589.3 L 337.7 557.4 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="350.75231739709886" y="572.2131509385322" font-size="18" fill="#171717" font-weight="750">Event</text>
+  </g>
+<g>
+    <path d="M 107.9 389.8 L 293.4 389.2 L 314.3 410.2 L 311.7 440.5 L 294.8 459.4 L 108.0 461.7 L 89.0 445.3 L 91.1 410.7 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 108.4 395.4 L 294.5 393.8 L 309.6 409.0 L 311.2 440.3 L 293.8 458.0 L 110.1 455.8 L 93.0 442.7 L 92.6 411.8 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="107.28243951817939" y="422.9546054703892" font-size="18" fill="#171717" font-weight="750">Tool</text>
+  </g>
+<g>
+    <path d="M 192.5 204.8 L 380.2 204.7 L 400.8 220.5 L 400.1 257.4 L 382.4 276.1 L 193.8 276.4 L 176.6 257.4 L 173.8 224.8 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 193.0 208.4 L 379.2 207.6 L 394.5 223.2 L 397.1 257.7 L 381.7 269.7 L 194.8 272.9 L 180.2 255.0 L 178.1 225.3 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="194.17583288938653" y="236.83224359107865" font-size="18" fill="#171717" font-weight="750">Rollout</text>
+  </g>
+<g>
+    <path d="M 510.4 322.3 L 770.0 321.6 L 790.3 338.4 L 791.7 414.2 L 769.6 428.5 L 509.6 429.6 L 491.4 409.6 L 487.9 341.1 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 507.9 325.0 L 768.8 327.9 L 788.0 342.1 L 786.6 411.4 L 771.9 428.1 L 507.1 427.8 L 491.8 411.3 L 495.4 338.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="508" y="354" font-size="18" fill="#171717" font-weight="750">Core Vocabulary</text>
+  </g>
+  </g>
+</svg>

@@ -19,6 +19,13 @@ existed to preserve that bet under pressure.
 
 ## The Five Lessons That Transfer
 
+<p class="sketch-intro">This transfer board separates what carries into other systems from what is Codex-specific: the reusable move is discipline around vocabulary, effects, runtime ownership, facts, and governance.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/epilogue-concept-1-en.svg" alt="The portable moves are discipline, not Codex trivia: typed vocabulary, negotiated effects, one runtime, raw facts, and executable governance travel to other systems." loading="lazy" />
+  <figcaption>The portable moves are discipline, not Codex trivia: typed vocabulary, negotiated effects, one runtime, raw facts, and executable governance travel to other systems.</figcaption>
+</figure>
+
+
 ### 1. Put the Product Vocabulary in Types
 
 Codex is easier to reason about because important events have names. A user
@@ -79,6 +86,13 @@ more discipline than a single UI. Policy gates can make tool execution harder
 to extend. Build and release overlays require dedicated maintenance. Extension
 surfaces multiply trust decisions.
 
+
+<p class="sketch-intro">The closing cost board is deliberately not celebratory: each reusable pattern carries an operating burden that teams must be willing to fund.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/epilogue-concept-2-en.svg" alt="Codex's coherence has an operating bill: compatibility work, migration duty, runtime discipline, policy friction, and trust maintenance must all be funded." loading="lazy" />
+  <figcaption>Codex's coherence has an operating bill: compatibility work, migration duty, runtime discipline, policy friction, and trust maintenance must all be funded.</figcaption>
+</figure>
+
 Those costs are acceptable only because the product needs them. If you are
 building a small internal tool, do not cargo-cult the entire architecture. Take
 the pressure-tested ideas: typed events, negotiated side effects, explicit
@@ -86,23 +100,19 @@ runtime contracts, raw-fact persistence, and executable policy.
 
 ## The Book's Final Mental Model
 
-If you remember one diagram, make it this one:
+The book closes with two diagrams: the first compresses the final operating model, and the second places the bounded operating environment back on one board.
 
-```mermaid
-graph TD
-  User[User intent] --> Protocol[Typed protocol]
-  Protocol --> Runtime[Event-sourced runtime]
-  Runtime --> Model[Model streaming]
-  Model --> Tools[Negotiated tools]
-  Tools --> Policy[Policy and sandbox gates]
-  Policy --> Effects[Filesystem, process, network effects]
-  Runtime --> Clients[Clients and SDKs]
-  Runtime --> Memory[Durable state and memory]
-  Runtime --> Trace[Replay and observability]
-  Build[Build and governance] --> Protocol
-  Build --> Runtime
-  Build --> Clients
-```
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/epilogue-concept-3-en.svg" alt="The final mental model keeps capability release honest: client vocabulary enters one runtime, effects are negotiated, evidence stays replayable, and failure remains part of the contract." loading="lazy" />
+  <figcaption>The final mental model keeps capability release honest: client vocabulary enters one runtime, effects are negotiated, evidence stays replayable, and failure remains part of the contract.</figcaption>
+</figure>
+
+<p class="sketch-intro">The final operating-environment sketch compresses the reusable architecture: typed intent enters one runtime, every effect is negotiated, and durable state keeps the system accountable.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/epilogue-01-en.svg" alt="The bounded operating environment keeps typed intent, model streaming, negotiated tools, policy gates, state, replay, clients, memory, build, and governance attached to one runtime." loading="lazy" />
+  <figcaption>The bounded operating environment keeps typed intent, model streaming, negotiated tools, policy gates, state, replay, clients, memory, build, and governance attached to one runtime.</figcaption>
+</figure>
 
 The system is not a model call. It is a bounded operating environment for a
 model-driven worker. The more capable that worker becomes, the more valuable

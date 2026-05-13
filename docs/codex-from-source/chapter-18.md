@@ -21,32 +21,10 @@ through a dynamic plugin ABI.
 
 The architecture becomes readable when those planes stay separate.
 
-```mermaid
-flowchart TB
-    Marketplace["Marketplace and remote bundles"]
-    PluginCache["Plugin cache"]
-    PluginLoader["Plugin loader"]
-    Skills["Skill roots and metadata"]
-    MCP["MCP server configs"]
-    Hooks["Hook configs"]
-    Connectors["Hosted connector IDs"]
-    Directory["Connector directory"]
-    Typed["Typed extension registry"]
-    Thread["Thread start and prompt construction"]
-
-    Marketplace --> PluginCache
-    PluginCache --> PluginLoader
-    PluginLoader --> Skills
-    PluginLoader --> MCP
-    PluginLoader --> Hooks
-    PluginLoader --> Connectors
-    Connectors --> Directory
-    Skills --> Thread
-    MCP --> Thread
-    Hooks --> Thread
-    Directory --> Thread
-    Typed --> Thread
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-18-01-en.svg" alt="Marketplace bundles, plugin cache, loader validation, skill metadata, MCP and hook configs, and hosted connectors converge at thread construction without sharing one trust model." loading="lazy" />
+  <figcaption>Marketplace bundles, plugin cache, loader validation, skill metadata, MCP and hook configs, and hosted connectors converge at thread construction without sharing one trust model.</figcaption>
+</figure>
 
 The diagram is intentionally not a single pipeline. Extension loading is a
 set of converging planes that meet at thread construction, tool exposure, and
@@ -60,6 +38,13 @@ roots, or plugins. The runtime does not simply concatenate every skill into
 the prompt. It discovers skill metadata, records load outcomes, renders
 summaries within a budget, and loads full skill bodies only when invocation
 rules justify it.
+
+
+<p class="sketch-intro">Read the skills sketch as a context-budget control: capability discovery is cheap, full instruction injection is deliberately expensive.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-18-concept-1-en.svg" alt="Skills spend context deliberately: roots are discovered, metadata becomes budgeted summaries, and full bodies enter the prompt only when invocation rules justify them." loading="lazy" />
+  <figcaption>Skills spend context deliberately: roots are discovered, metadata becomes budgeted summaries, and full bodies enter the prompt only when invocation rules justify them.</figcaption>
+</figure>
 
 This is the first-principles reason for a skill budget. Model context is a
 scarce runtime resource. A skill that is always fully present is not an
@@ -104,6 +89,13 @@ unpacking is the architectural point. A plugin is not itself a runtime tool.
 It is a package that may contribute skill roots, MCP server definitions,
 connector IDs, and hooks.
 
+
+<p class="sketch-intro">Read the plugin packaging sketch as a trust pipeline: nothing becomes a skill, MCP server, connector, or hook until the loader has resolved where it came from.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-18-concept-2-en.svg" alt="A plugin becomes runtime capability only after its source, cache entry, manifest, contribution paths, and trust outcome have been validated." loading="lazy" />
+  <figcaption>A plugin becomes runtime capability only after its source, cache entry, manifest, contribution paths, and trust outcome have been validated.</figcaption>
+</figure>
+
 This packaging layer has to be strict about trust. Marketplace names, remote
 plugin IDs, archive entries, bundle paths, and plugin-relative paths all need
 validation. A plugin loader that accepts arbitrary paths has crossed from
@@ -135,6 +127,12 @@ contributors registered through explicit types. Instead of loading arbitrary
 code at runtime, they participate through a narrow API: contribute thread-start
 state, prompt fragments, or other typed data that the app-server and runtime
 know how to consume.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-18-concept-3-en.svg" alt="Typed extensions are compiled contributors whose narrow API can add thread-start state or prompt fragments without turning plugins into runtime-loaded code." loading="lazy" />
+  <figcaption>Typed extensions are compiled contributors whose narrow API can add thread-start state or prompt fragments without turning plugins into runtime-loaded code.</figcaption>
+</figure>
 
 That makes typed extensions useful for internal integration points where the
 extension author and runtime author share a compile-time contract. It also

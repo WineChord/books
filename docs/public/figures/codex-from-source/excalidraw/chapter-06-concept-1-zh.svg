@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680" role="img" aria-labelledby="title-chapter-06-concept-1-zh desc-chapter-06-concept-1-zh">
+  <title id="title-chapter-06-concept-1-zh">Sampling 前的准备</title>
+  <desc id="desc-chapter-06-concept-1-zh">Sampling 前的准备的手绘白板图，展示循环的状态机、流式是运行时输入、工具是后续工作，不是岔路、待处理输入与中断、压缩是控制流的一部分之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-06-concept-1-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="680" rx="30" fill="#fffdf7" />
+  <path d="M 51.1 21.7 L 1228.9 21.3 L 1259.4 50.5 L 1256.3 630.6 L 1228.0 659.0 L 50.6 656.0 L 24.1 631.8 L 22.3 48.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="680" filter="url(#paper-chapter-06-concept-1-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">采样前的准备</text>
+    <path d="M 64.0 166.0 C 481.6 180.9, 872.2 174.7, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="360" rx="527" ry="263" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 509.0 302.5 L 773.4 300.2 L 795.4 327.6 L 793.2 377.9 L 772.0 405.2 L 510.4 403.7 L 484.7 381.3 L 487.5 326.0 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="342" font-size="18" fill="#171717" font-weight="800">采样前的准备</text>
+<path d="M 640.0 149.0 C 768.1 158.9, 920.7 267.4, 1034.0 251.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1034.0 251.5 C 1028.9 240.5, 1045.9 472.1, 1034.0 456.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1034.0 456.5 C 893.2 461.0, 756.4 566.8, 640.0 559.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 559.0 C 518.0 549.9, 353.6 453.2, 246.0 456.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 246.0 456.5 C 236.7 470.0, 243.0 238.7, 246.0 251.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 246.0 251.5 C 381.4 264.8, 506.1 150.5, 640.0 149.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 520.7 111.3 L 755.2 111.9 L 775.5 132.6 L 775.7 168.3 L 757.8 183.4 L 523.0 182.6 L 507.1 166.4 L 502.9 128.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 522.5 117.2 L 757.6 115.1 L 771.7 134.4 L 770.6 165.8 L 754.1 178.6 L 524.2 179.9 L 509.2 164.0 L 510.9 133.8 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="145" font-size="18" fill="#171717" font-weight="750">循环的状态机</text>
+  </g>
+<g>
+    <path d="M 915.2 217.8 L 1150.2 217.3 L 1170.7 235.0 L 1171.1 271.7 L 1149.7 288.2 L 918.1 287.7 L 899.7 271.1 L 896.6 232.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 920.3 218.0 L 1151.2 220.3 L 1163.6 232.4 L 1163.1 268.8 L 1150.4 284.5 L 916.7 285.8 L 902.0 270.3 L 904.7 235.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="917.0415587219195" y="247.5" font-size="18" fill="#171717" font-weight="750">流式是运行时输入</text>
+  </g>
+<g>
+    <path d="M 915.5 421.1 L 1152.6 420.3 L 1170.8 439.9 L 1168.8 472.3 L 1148.9 490.8 L 918.2 491.3 L 897.0 474.0 L 900.3 439.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 916.8 424.5 L 1149.9 426.6 L 1163.8 441.6 L 1163.2 475.6 L 1152.0 488.8 L 918.3 486.9 L 902.4 473.4 L 904.1 440.5 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="917.0415587219195" y="452.5" font-size="18" fill="#171717" font-weight="750">工具是后续工作，不是岔路</text>
+  </g>
+<g>
+    <path d="M 522.5 524.3 L 757.8 525.1 L 774.5 541.5 L 775.4 575.8 L 754.5 594.6 L 523.5 597.0 L 505.0 576.4 L 504.6 541.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 525.3 527.7 L 757.8 525.7 L 773.4 542.1 L 772.1 577.2 L 755.7 592.3 L 525.9 592.6 L 508.7 573.7 L 510.8 543.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="555" font-size="18" fill="#171717" font-weight="750">待处理输入与中断</text>
+  </g>
+<g>
+    <path d="M 129.8 419.5 L 361.3 422.1 L 379.0 436.8 L 383.3 473.6 L 363.1 490.3 L 130.0 493.5 L 112.1 472.5 L 111.4 439.4 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 131.9 424.5 L 360.8 425.9 L 376.7 439.8 L 377.1 472.5 L 362.9 486.3 L 128.0 490.8 L 117.4 475.2 L 114.0 441.6 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="128.9584412780805" y="452.50000000000006" font-size="18" fill="#171717" font-weight="750">压缩是控制流的一部分</text>
+  </g>
+<g>
+    <path d="M 127.8 214.4 L 361.8 216.8 L 383.5 233.3 L 379.5 268.5 L 363.0 288.2 L 128.4 287.1 L 108.9 268.4 L 113.2 233.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 132.4 220.6 L 360.8 220.9 L 378.8 235.7 L 375.3 270.5 L 362.9 281.6 L 130.2 282.7 L 116.9 267.5 L 115.5 236.8 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="128.95844127808044" y="247.5" font-size="18" fill="#171717" font-weight="750">停止也可能添加工作</text>
+  </g>
+  </g>
+</svg>

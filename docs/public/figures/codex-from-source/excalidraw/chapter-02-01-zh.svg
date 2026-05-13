@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-02-01-zh desc-chapter-02-01-zh">
+  <title id="title-chapter-02-01-zh">启动链路</title>
+  <desc id="desc-chapter-02-01-zh">启动链路的手绘白板图，展示用户运行命令、分发包装器、原生 Rust 二进制、按调用名分发、命令路由之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-02-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.3 20.3 L 1228.7 24.1 L 1260.4 51.2 L 1260.0 649.7 L 1228.0 680.4 L 52.5 678.0 L 23.4 650.2 L 21.6 51.1 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-02-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">启动链路</text>
+    <path d="M 64.0 166.0 C 450.0 162.3, 877.4 175.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 86.8 149.2 L 385.0 151.3 L 411.9 175.0 L 411.2 588.8 L 384.9 613.7 L 88.9 615.2 L 63.0 589.7 L 61.2 174.4 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="82" y="184" font-size="16" fill="#475569" font-weight="800">输入/来源</text>
+    </g>
+<g>
+      <path d="M 470.8 150.0 L 769.1 149.1 L 796.5 174.1 L 797.1 590.8 L 770.5 617.4 L 470.4 614.0 L 445.4 587.7 L 445.6 178.4 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.65" />
+      <text x="465" y="184" font-size="16" fill="#475569" font-weight="800">运行时边界</text>
+    </g>
+<g>
+      <path d="M 855.5 149.3 L 1151.9 152.2 L 1180.2 178.5 L 1178.6 588.4 L 1153.2 614.4 L 853.1 613.3 L 827.5 590.8 L 826.2 174.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="848" y="184" font-size="16" fill="#475569" font-weight="800">输出/证据</text>
+    </g>
+<path d="M 384.0 253.0 C 401.8 262.4, 454.6 252.8, 473.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 253.0 C 796.6 242.5, 843.6 261.6, 856.0 253.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1150.0 253.0 C 789.7 264.1, 395.1 345.8, 90.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 384.0 351.0 C 416.6 340.8, 462.5 360.5, 473.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 351.0 C 807.0 339.8, 814.6 351.3, 856.0 351.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1150.0 351.0 C 762.5 353.7, 391.4 437.4, 90.0 449.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 105.8 220.3 L 366.3 220.4 L 386.2 239.5 L 382.7 267.2 L 365.0 283.7 L 109.2 287.6 L 91.0 265.9 L 92.3 235.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 108.8 226.5 L 365.2 224.5 L 381.6 238.0 L 380.2 265.1 L 364.7 282.9 L 111.5 283.4 L 93.8 268.7 L 96.2 238.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="252" font-size="18" fill="#171717" font-weight="750">用户运行命令</text>
+  </g>
+<g>
+    <path d="M 492.8 219.3 L 748.2 219.4 L 768.2 238.1 L 769.0 268.2 L 747.3 287.7 L 492.4 286.4 L 471.7 268.3 L 471.9 236.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 493.9 221.6 L 749.2 226.0 L 764.7 240.4 L 764.2 267.6 L 749.5 283.2 L 493.2 283.1 L 476.2 265.3 L 474.8 237.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="252" font-size="18" fill="#171717" font-weight="750">分发包装器</text>
+  </g>
+<g>
+    <path d="M 873.7 218.9 L 1133.9 217.6 L 1150.6 239.3 L 1147.6 266.3 L 1131.8 284.8 L 874.0 283.8 L 855.5 266.1 L 856.3 240.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 874.7 226.2 L 1131.4 222.8 L 1147.6 239.9 L 1144.3 266.3 L 1132.8 280.7 L 872.8 281.2 L 860.5 269.3 L 858.0 238.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="252" font-size="18" fill="#171717" font-weight="750">原生 Rust 二进制</text>
+  </g>
+<g>
+    <path d="M 106.2 316.5 L 365.6 320.4 L 382.3 334.0 L 385.4 364.0 L 364.6 382.0 L 109.9 384.9 L 90.3 364.4 L 89.0 333.8 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 107.8 323.2 L 362.7 323.2 L 381.9 335.2 L 379.9 364.3 L 365.8 379.4 L 110.1 381.8 L 94.9 366.0 L 93.8 339.5 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="350" font-size="18" fill="#171717" font-weight="750">按调用名分发</text>
+  </g>
+<g>
+    <path d="M 489.5 318.0 L 750.2 320.0 L 768.5 334.8 L 767.7 366.4 L 748.4 383.9 L 493.2 386.1 L 474.4 367.5 L 471.0 334.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 491.4 324.1 L 747.7 320.9 L 762.9 337.6 L 764.8 366.0 L 748.3 382.1 L 491.3 377.9 L 475.5 366.8 L 474.9 336.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="350" font-size="18" fill="#171717" font-weight="750">命令路由</text>
+  </g>
+<g>
+    <path d="M 874.5 317.6 L 1129.7 316.8 L 1149.3 334.7 L 1147.5 365.1 L 1130.9 383.3 L 872.4 382.7 L 855.9 365.0 L 856.6 334.5 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 873.2 324.5 L 1133.2 320.3 L 1148.4 337.4 L 1145.4 365.1 L 1133.1 382.0 L 877.0 379.1 L 859.6 365.7 L 862.1 338.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="350" font-size="18" fill="#171717" font-weight="750">产品接入面</text>
+  </g>
+<g>
+    <path d="M 109.5 414.9 L 368.3 415.8 L 384.2 434.1 L 381.6 463.0 L 365.9 481.9 L 107.7 483.8 L 88.3 465.9 L 92.3 432.4 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 110.2 420.1 L 362.8 422.5 L 377.6 434.5 L 380.0 462.6 L 362.8 476.5 L 110.9 477.6 L 92.7 461.3 L 94.1 436.3 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="448" font-size="18" fill="#171717" font-weight="750">共享运行时 crates</text>
+  </g>
+  </g>
+</svg>

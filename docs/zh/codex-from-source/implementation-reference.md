@@ -79,7 +79,7 @@
 | 区域 | 源码级行为 |
 | --- | --- |
 | 分层 | 设置可能来自默认值、用户配置、profile、CLI override、托管/MDM 输入、环境变量和 app-server 写入。 |
-| 来源 | 运行时会保留 provenance，让客户端区分用户选择和托管策略。 |
+| 来源 | 运行时会保留来源信息，让客户端区分用户选择和托管策略。 |
 | Requirements | 云端或 workspace requirements 可以禁用或约束功能，而不只是设置值。 |
 | Feature precedence | 实验能力和托管能力可能 gate 方法、transport、app/plugin 可用性或 UI 控件。 |
 | 热变更 | 一些设置通过 `UserInputWithTurnContext` 成为 turn-scoped；另一些是持久 config write 或 profile 选择。 |

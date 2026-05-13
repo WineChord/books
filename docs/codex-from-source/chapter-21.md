@@ -21,29 +21,10 @@ list sibling attempts, create a task, run apply preflight, and apply a task.
 That interface hides HTTP path details from the CLI and TUI. It also lets a
 mock backend satisfy the same contract during development and tests.
 
-```mermaid
-flowchart TD
-    CLI["cloud CLI command"]
-    TUI["cloud task TUI"]
-    BackendTrait["cloud backend contract"]
-    HTTP["HTTP backend client"]
-    Mock["mock backend"]
-    Remote["remote Codex task service"]
-    Diff["task diff and attempt metadata"]
-    LocalPatch["local patch preflight/apply"]
-    Worktree["current worktree"]
-
-    CLI --> BackendTrait
-    TUI --> BackendTrait
-    BackendTrait --> HTTP
-    BackendTrait --> Mock
-    HTTP --> Remote
-    Remote --> Diff
-    CLI --> LocalPatch
-    TUI --> LocalPatch
-    Diff --> LocalPatch
-    LocalPatch --> Worktree
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-21-01-en.svg" alt="Remote task work crosses a backend contract before any local patch touches the worktree." loading="lazy" />
+  <figcaption>Remote task work crosses a backend contract before any local patch touches the worktree.</figcaption>
+</figure>
 
 This layout prevents the UI from becoming the source of task semantics. A list
 view may filter review-only tasks, a diff overlay may switch between attempts,
@@ -110,7 +91,7 @@ procedure resolve_branch(branch_override):
     return generic_default_branch
 ```
 
-The concrete cloud-task client named in the source map owns the backend
+The concrete cloud-task client named in the implementation reference owns the backend
 request, but the contract is the same: resolve context locally, submit a
 bounded request remotely, and return a stable task handle.
 
@@ -139,25 +120,10 @@ selects a unified diff, validates that it is actually a compatible diff format,
 and then runs local patch preflight or application. The backend does not get to
 declare that the user's working tree changed.
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant CloudUI as Cloud CLI/TUI
-    participant Backend
-    participant Patch as Local patch engine
-    participant Worktree
-
-    User->>CloudUI: choose task and attempt
-    CloudUI->>Backend: fetch details or selected attempt diff
-    Backend-->>CloudUI: unified diff plus metadata
-    CloudUI->>CloudUI: reject incompatible diff shape
-    CloudUI->>Patch: preflight diff against current worktree
-    Patch-->>CloudUI: clean, partial, or error
-    User->>CloudUI: confirm apply
-    CloudUI->>Patch: apply selected diff locally
-    Patch->>Worktree: modify files if clean enough
-    Patch-->>CloudUI: applied paths, skipped paths, conflicts
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-21-02-en.svg" alt="Task apply is still local governance: the backend supplies a candidate diff, but the worktree-facing patch engine validates shape, preflights current state, and records the result." loading="lazy" />
+  <figcaption>Task apply is still local governance: the backend supplies a candidate diff, but the worktree-facing patch engine validates shape, preflights current state, and records the result.</figcaption>
+</figure>
 
 Preflight matters because remote output can be stale relative to the local
 checkout. Even if the cloud task was correct when produced, the user may have
@@ -176,6 +142,12 @@ environment modal, best-of attempt selector, diff overlay, prompt/messages
 view, background enrichment, preflight spinner, apply spinner, and result
 modal. That complexity is justified because remote work is asynchronous and
 multi-result.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-21-concept-1-en.svg" alt="The cloud TUI is an operator console: it chooses tasks and attempts, but backend contracts still own task state, identity, and patch material." loading="lazy" />
+  <figcaption>The cloud TUI is an operator console: it chooses tasks and attempts, but backend contracts still own task state, identity, and patch material.</figcaption>
+</figure>
 
 However, the TUI still does not own backend semantics. It uses the backend
 contract to load tasks and attempts. It uses environment detection helpers to
@@ -204,26 +176,10 @@ The identity layer has a distinct job from ordinary user authentication:
 - attach bill-of-material metadata such as agent version, harness, and running
   location.
 
-```mermaid
-flowchart LR
-    Key["runtime key material"]
-    Public["public registration identity"]
-    Register["task registration request"]
-    Signed["signed task assertion"]
-    Backend["backend identity service"]
-    JWT["identity JWT claims"]
-    Task["authorized task access"]
-    ABOM["agent bill of materials"]
-
-    Key --> Public
-    Key --> Signed
-    Public --> Register
-    Register --> Backend
-    Signed --> Backend
-    Backend --> JWT
-    JWT --> Task
-    ABOM --> Backend
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-21-03-en.svg" alt="Agent identity prevents remote task authority from becoming ambient: runtime key material signs a task-scoped assertion before the backend grants access." loading="lazy" />
+  <figcaption>Agent identity prevents remote task authority from becoming ambient: runtime key material signs a task-scoped assertion before the backend grants access.</figcaption>
+</figure>
 
 The design avoids conflating "the user is logged in" with "this runtime may act
 for this task." User auth can establish account context; agent identity binds a

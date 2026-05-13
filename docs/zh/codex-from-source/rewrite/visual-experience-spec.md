@@ -317,7 +317,7 @@ spec-only 变更使用单独门禁：`npm run verify`、`npm run check:visual-sp
 | 12. Hooks/Approval | Human Gate Stack | 哪些 gate 可以停止或修正命令？ |
 | 13. Sandboxes/Network | Containment Boundary Explorer | 不同平台 sandbox 和 network mode 如何变化？ |
 | 14. App-Server | JSON-RPC Contract Map | client 如何共享 runtime ownership？ |
-| 15. SDK/Daemons/Remote | Client Reachability Matrix | SDK 和 daemon 如何到达同一个 contract？ |
+| 15. Client Surfaces/Daemon Lifecycle | Client Reachability Matrix | 不同客户端表面如何到达同一份契约？ |
 | 16. TUI | Event Renderer Lab | terminal UI 如何投影 runtime events？ |
 | 17. MCP | External Tool Trust Plane | MCP 如何在不缠住 runtime 的情况下增加工具？ |
 | 18. Skills/Plugins | Extension Provenance Explorer | 不同 extension 类型贡献什么能力？ |

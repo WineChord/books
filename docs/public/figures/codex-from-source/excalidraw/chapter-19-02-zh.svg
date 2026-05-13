@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-19-02-zh desc-chapter-19-02-zh">
+  <title id="title-chapter-19-02-zh">幂等会话导入</title>
+  <desc id="desc-chapter-19-02-zh">幂等会话导入的手绘白板图，展示内容哈希台账、新导入、可导入 JSONL、原生 rollout 条目、导入线程之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-19-02-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.8 21.6 L 1228.0 24.0 L 1257.1 48.6 L 1259.5 649.8 L 1230.2 678.9 L 47.6 675.6 L 24.2 650.1 L 20.9 48.1 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-19-02-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">幂等会话导入</text>
+    <path d="M 64.0 166.0 C 464.3 158.3, 856.1 158.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 86.5 149.9 L 386.9 147.6 L 412.3 174.4 L 412.7 590.1 L 385.4 612.9 L 88.3 613.7 L 63.8 588.1 L 64.4 174.1 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="82" y="184" font-size="16" fill="#475569" font-weight="800">输入/来源</text>
+    </g>
+<g>
+      <path d="M 469.2 151.0 L 767.5 151.3 L 795.9 174.7 L 796.0 589.9 L 769.2 613.5 L 471.3 612.6 L 442.8 591.4 L 445.0 174.9 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.65" />
+      <text x="465" y="184" font-size="16" fill="#475569" font-weight="800">运行时边界</text>
+    </g>
+<g>
+      <path d="M 852.6 148.5 L 1151.5 150.9 L 1178.6 177.0 L 1176.3 587.2 L 1152.3 616.0 L 854.4 617.0 L 825.9 588.3 L 830.1 175.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="848" y="184" font-size="16" fill="#475569" font-weight="800">输出/证据</text>
+    </g>
+<path d="M 384.0 253.0 C 415.7 265.7, 452.2 244.9, 473.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 253.0 C 783.4 247.8, 844.1 254.4, 856.0 253.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1150.0 253.0 C 789.7 244.1, 405.1 335.3, 90.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 384.0 351.0 C 402.2 364.9, 443.1 349.7, 473.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 351.0 C 794.1 348.9, 830.6 347.3, 856.0 351.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 106.6 220.7 L 365.6 219.6 L 383.6 236.9 L 381.7 266.5 L 365.0 287.9 L 109.8 285.5 L 89.3 267.5 L 88.1 239.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 108.0 223.1 L 366.3 222.4 L 379.7 238.2 L 381.3 266.6 L 367.0 280.5 L 106.8 279.7 L 94.9 266.4 L 92.0 240.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="252" font-size="18" fill="#171717" font-weight="750">内容哈希台账</text>
+  </g>
+<g>
+    <path d="M 489.2 219.7 L 750.0 220.1 L 768.8 236.1 L 767.0 268.8 L 747.0 284.7 L 492.7 288.1 L 472.2 266.5 L 471.0 239.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 489.9 222.0 L 746.3 226.4 L 760.9 240.7 L 763.4 267.5 L 748.2 281.1 L 490.9 283.8 L 476.5 266.2 L 479.2 236.8 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="252" font-size="18" fill="#171717" font-weight="750">新导入</text>
+  </g>
+<g>
+    <path d="M 872.6 219.9 L 1133.9 221.7 L 1149.7 235.7 L 1151.2 267.3 L 1130.5 286.6 L 871.9 286.7 L 854.3 266.8 L 855.6 235.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 873.8 225.1 L 1132.1 224.3 L 1146.1 240.9 L 1145.7 265.6 L 1133.2 280.0 L 874.7 281.1 L 861.2 267.5 L 859.5 240.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="252" font-size="18" fill="#171717" font-weight="750">可导入 JSONL</text>
+  </g>
+<g>
+    <path d="M 105.7 316.5 L 363.7 316.4 L 386.0 334.2 L 383.0 366.5 L 367.6 384.4 L 107.9 384.1 L 89.3 365.1 L 88.6 336.0 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 106.9 320.0 L 366.6 320.9 L 379.9 336.6 L 378.1 363.4 L 363.6 382.2 L 110.5 379.6 L 95.8 366.7 L 93.5 334.9 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="350" font-size="18" fill="#171717" font-weight="750">原生 rollout 条目</text>
+  </g>
+<g>
+    <path d="M 490.2 315.6 L 748.7 319.2 L 765.3 335.2 L 768.0 368.1 L 748.7 385.9 L 489.1 382.9 L 471.3 364.0 L 474.9 336.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 491.0 320.7 L 749.0 322.3 L 764.5 338.5 L 764.8 365.5 L 749.7 379.0 L 491.1 380.1 L 478.4 367.4 L 478.2 336.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="350" font-size="18" fill="#171717" font-weight="750">导入线程</text>
+  </g>
+<g>
+    <path d="M 873.4 318.5 L 1131.9 316.6 L 1150.1 334.0 L 1150.7 363.9 L 1132.5 385.5 L 873.2 381.8 L 856.0 365.4 L 856.5 337.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 874.7 319.7 L 1129.2 321.4 L 1146.4 337.9 L 1147.5 365.2 L 1132.0 379.3 L 873.4 379.9 L 860.7 365.6 L 862.4 337.3 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="350" font-size="18" fill="#171717" font-weight="750">来源哈希记录</text>
+  </g>
+  </g>
+</svg>

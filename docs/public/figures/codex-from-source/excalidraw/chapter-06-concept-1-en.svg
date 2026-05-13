@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680" role="img" aria-labelledby="title-chapter-06-concept-1-en desc-chapter-06-concept-1-en">
+  <title id="title-chapter-06-concept-1-en">Preparation Before Sampling</title>
+  <desc id="desc-chapter-06-concept-1-en">Hand-drawn whiteboard figure for Preparation Before Sampling, showing the relationship between The Turn State Machine, Streaming Is Runtime Input, Tools Are Follow-Up, Not a Detour, Pending Input, Compaction Controls Flow.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-06-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="680" rx="30" fill="#fffdf7" />
+  <path d="M 51.3 22.8 L 1229.5 21.3 L 1259.7 47.6 L 1256.0 632.2 L 1229.9 656.9 L 50.3 657.4 L 23.1 632.0 L 21.1 49.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="680" filter="url(#paper-chapter-06-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Preparation Before Sampling</text>
+    <path d="M 64.0 166.0 C 454.8 177.4, 875.9 175.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="360" rx="527" ry="263" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 507.0 303.1 L 770.1 300.5 L 794.3 323.6 L 794.9 379.9 L 769.3 404.2 L 507.9 403.8 L 486.7 380.2 L 485.5 326.6 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="342" font-size="18" fill="#171717" font-weight="800">Preparation Before</text>
+<text x="512" y="364.5" font-size="18" fill="#171717" font-weight="800">Sampling</text>
+<path d="M 640.0 149.0 C 774.7 164.2, 917.0 264.6, 1034.0 251.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1034.0 251.5 C 1049.8 258.9, 1030.2 453.9, 1034.0 456.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1034.0 456.5 C 906.0 440.7, 773.4 561.3, 640.0 559.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 559.0 C 515.4 568.0, 350.0 458.8, 246.0 456.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 246.0 456.5 C 235.0 465.8, 234.9 262.8, 246.0 251.5" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 246.0 251.5 C 398.1 253.6, 508.2 143.7, 640.0 149.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 523.8 113.4 L 755.1 113.0 L 774.9 132.8 L 776.4 168.8 L 759.0 185.2 L 523.1 184.5 L 504.9 166.6 L 507.5 128.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 523.2 116.5 L 754.8 114.8 L 769.2 130.9 L 770.0 164.4 L 758.3 178.6 L 523.6 183.4 L 510.4 163.7 L 509.7 132.2 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="145" font-size="18" fill="#171717" font-weight="750">The Turn State Machine</text>
+  </g>
+<g>
+    <path d="M 919.0 214.1 L 1150.5 216.8 L 1171.0 231.9 L 1167.2 269.5 L 1151.9 287.2 L 914.8 289.7 L 897.6 269.1 L 900.3 235.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 917.9 221.5 L 1149.6 218.1 L 1164.9 234.0 L 1163.2 267.5 L 1151.6 285.1 L 917.7 282.1 L 903.2 269.4 L 903.9 233.9 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="917.0415587219195" y="247.5" font-size="17" fill="#171717" font-weight="750">Streaming Is Runtime</text>
+<text x="917.0415587219195" y="268.75" font-size="17" fill="#171717" font-weight="750">Input</text>
+  </g>
+<g>
+    <path d="M 915.1 421.2 L 1152.2 420.8 L 1167.1 440.0 L 1168.0 473.1 L 1151.7 490.4 L 917.6 491.4 L 899.1 473.7 L 900.9 438.6 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 917.1 425.9 L 1150.4 426.2 L 1166.9 439.8 L 1164.0 474.4 L 1148.8 490.0 L 917.9 487.7 L 902.8 475.7 L 902.8 437.6 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="917.0415587219195" y="452.5" font-size="17" fill="#171717" font-weight="750">Tools Are Follow Up</text>
+<text x="917.0415587219195" y="473.75" font-size="17" fill="#171717" font-weight="750">Not a Detour</text>
+  </g>
+<g>
+    <path d="M 520.5 521.6 L 758.8 525.2 L 774.3 539.0 L 777.4 577.5 L 754.9 596.8 L 522.0 595.1 L 505.5 576.1 L 502.5 542.5 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 524.7 528.1 L 755.0 527.0 L 772.2 539.7 L 770.1 574.7 L 756.1 591.9 L 524.5 588.6 L 510.9 576.7 L 509.2 540.1 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="555" font-size="18" fill="#171717" font-weight="750">Pending Input</text>
+  </g>
+<g>
+    <path d="M 128.1 421.8 L 363.3 421.6 L 382.6 437.0 L 380.2 473.4 L 364.3 493.1 L 128.0 493.8 L 111.0 476.1 L 109.5 440.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 129.1 425.1 L 363.6 423.2 L 374.8 441.3 L 377.3 471.7 L 360.8 490.8 L 129.3 491.0 L 114.6 475.6 L 114.2 438.3 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="128.9584412780805" y="452.50000000000006" font-size="17" fill="#171717" font-weight="750">Compaction Controls</text>
+<text x="128.9584412780805" y="473.75000000000006" font-size="17" fill="#171717" font-weight="750">Flow</text>
+  </g>
+<g>
+    <path d="M 131.3 215.6 L 361.8 215.2 L 382.1 231.2 L 378.9 270.7 L 361.3 286.1 L 130.0 285.6 L 110.6 271.8 L 108.5 231.1 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 128.1 220.3 L 361.9 220.7 L 375.5 233.3 L 378.4 267.7 L 362.4 284.3 L 129.7 284.6 L 114.5 269.2 L 117.3 236.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="128.95844127808044" y="247.5" font-size="17" fill="#171717" font-weight="750">Stopping Can Add Work</text>
+<text x="128.95844127808044" y="268.75" font-size="17" fill="#171717" font-weight="750">Too</text>
+  </g>
+  </g>
+</svg>

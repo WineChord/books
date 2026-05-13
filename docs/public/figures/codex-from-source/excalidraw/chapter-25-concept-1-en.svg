@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-25-concept-1-en desc-chapter-25-concept-1-en">
+  <title id="title-chapter-25-concept-1-en">Proportional Governance</title>
+  <desc id="desc-chapter-25-concept-1-en">Hand-drawn whiteboard figure for Proportional Governance, showing the relationship between Architectural promise, Reviewer blind spot, Executable check, Low-value preference, Review convention.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-25-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 50.1 23.0 L 1229.2 22.4 L 1257.9 49.5 L 1260.0 689.8 L 1228.7 718.5 L 51.9 716.4 L 22.9 689.5 L 22.3 49.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-25-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Proportional Governance</text>
+    <path d="M 64.0 166.0 C 478.1 173.2, 869.6 158.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 107.7 169.1 L 1175.6 166.6 L 1197.3 193.2 L 1200.0 255.9 L 1174.5 279.8 L 104.5 278.3 L 82.9 258.1 L 83.2 194.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.58" />
+      <text x="110" y="212" font-size="19" fill="#171717" font-weight="800">Policy</text>
+    </g>
+<g>
+      <path d="M 104.0 298.1 L 1173.2 296.5 L 1196.7 320.9 L 1198.1 384.5 L 1176.3 406.7 L 105.1 409.1 L 81.7 382.0 L 81.3 319.4 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2" opacity="0.58" />
+      <text x="110" y="340" font-size="19" fill="#171717" font-weight="800">Verification</text>
+    </g>
+<g>
+      <path d="M 105.5 424.0 L 1175.1 423.1 L 1199.3 447.9 L 1199.4 513.1 L 1173.2 533.8 L 108.3 538.0 L 82.0 510.5 L 81.8 450.2 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2" opacity="0.58" />
+      <text x="110" y="468" font-size="19" fill="#171717" font-weight="800">Release</text>
+    </g>
+<g>
+      <path d="M 105.5 552.4 L 1175.9 553.3 L 1196.2 574.5 L 1195.7 638.8 L 1172.9 666.0 L 107.0 663.9 L 81.2 641.4 L 82.2 573.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2" opacity="0.58" />
+      <text x="110" y="596" font-size="19" fill="#171717" font-weight="800">Rollback</text>
+    </g>
+<path d="M 480.0 224.0 C 395.3 237.0, 323.9 353.0, 250.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 480.0 352.0 C 394.9 356.3, 310.3 474.5, 250.0 480.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 480.0 480.0 C 412.7 493.7, 324.3 618.4, 250.0 608.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 480.0 608.0 C 501.4 607.8, 545.5 223.7, 550.0 224.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 780.0 224.0 C 713.9 218.4, 609.7 365.5, 550.0 352.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 265.8 186.0 L 462.7 190.4 L 478.7 205.4 L 480.7 244.0 L 462.3 261.8 L 267.9 259.0 L 248.6 243.0 L 250.5 204.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 271.3 194.4 L 462.6 193.9 L 474.2 208.4 L 474.9 242.5 L 461.3 258.1 L 268.6 254.7 L 252.9 239.8 L 256.3 205.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="220" font-size="18" fill="#171717" font-weight="750">Architectural</text>
+<text x="268" y="242.5" font-size="18" fill="#171717" font-weight="750">promise</text>
+  </g>
+<g>
+    <path d="M 267.5 316.4 L 461.6 316.7 L 479.7 333.5 L 477.6 369.3 L 463.7 387.7 L 267.5 389.3 L 247.8 369.1 L 251.2 333.9 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 270.8 318.7 L 459.3 317.6 L 474.8 336.1 L 477.3 368.2 L 462.0 385.2 L 267.0 383.4 L 255.5 370.6 L 256.3 336.0 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="348" font-size="18" fill="#171717" font-weight="750">Reviewer blind</text>
+<text x="268" y="370.5" font-size="18" fill="#171717" font-weight="750">spot</text>
+  </g>
+<g>
+    <path d="M 268.1 441.8 L 461.1 443.0 L 479.2 462.2 L 480.6 500.1 L 462.7 518.4 L 266.7 518.3 L 248.8 499.4 L 250.8 459.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 270.2 447.7 L 459.7 445.7 L 477.6 463.9 L 474.2 499.0 L 462.3 511.4 L 267.6 509.9 L 252.6 495.1 L 252.9 462.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="476" font-size="18" fill="#171717" font-weight="750">Executable check</text>
+  </g>
+<g>
+    <path d="M 266.1 571.3 L 463.1 574.5 L 480.1 590.2 L 481.5 624.5 L 462.2 645.6 L 266.9 641.7 L 249.3 628.3 L 248.1 588.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 268.3 575.5 L 462.7 573.9 L 475.5 593.4 L 475.7 625.4 L 459.0 639.6 L 267.4 641.2 L 254.3 623.6 L 251.7 589.6 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="268" y="604" font-size="18" fill="#171717" font-weight="750">Low value</text>
+<text x="268" y="626.5" font-size="18" fill="#171717" font-weight="750">preference</text>
+  </g>
+<g>
+    <path d="M 568.3 186.2 L 761.6 186.9 L 778.8 205.9 L 778.3 241.3 L 763.2 257.9 L 570.0 258.4 L 548.4 241.6 L 551.1 207.6 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 569.6 194.0 L 762.0 190.2 L 776.3 205.8 L 775.5 242.9 L 759.7 258.3 L 568.9 257.2 L 554.8 243.3 L 556.4 206.5 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="568" y="220" font-size="18" fill="#171717" font-weight="750">Review convention</text>
+  </g>
+<g>
+    <path d="M 567.3 317.3 L 760.3 317.0 L 779.3 331.7 L 781.5 371.3 L 763.5 390.3 L 569.0 387.5 L 551.1 370.6 L 548.4 336.4 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 567.4 320.1 L 759.3 317.7 L 777.9 333.8 L 773.9 369.5 L 760.8 383.1 L 571.1 383.1 L 555.6 367.8 L 554.4 335.3 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="568" y="348" font-size="18" fill="#171717" font-weight="750">Local tooling</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-19-02-en desc-chapter-19-02-en">
+  <title id="title-chapter-19-02-en">Idempotent Session Import</title>
+  <desc id="desc-chapter-19-02-en">Hand-drawn whiteboard figure for Idempotent Session Import, showing the relationship between Content hash ledger, New import, Importable JSONL, Native rollout items, Imported thread.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-19-02-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 52.0 21.5 L 1229.6 20.6 L 1256.0 50.8 L 1256.2 651.1 L 1230.8 676.8 L 49.4 677.7 L 20.8 651.8 L 22.9 48.1 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-19-02-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Idempotent Session Import</text>
+    <path d="M 64.0 166.0 C 481.0 167.7, 858.2 147.3, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 87.3 151.7 L 385.6 149.5 L 411.7 177.9 L 410.6 586.5 L 387.3 613.5 L 88.1 616.1 L 63.2 591.0 L 61.0 174.3 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="82" y="184" font-size="16" fill="#475569" font-weight="800">Input / origin</text>
+    </g>
+<g>
+      <path d="M 472.2 150.3 L 767.1 148.3 L 794.2 177.4 L 792.5 587.1 L 769.5 614.4 L 472.2 616.7 L 443.4 590.8 L 444.5 177.1 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.65" />
+      <text x="465" y="184" font-size="16" fill="#475569" font-weight="800">Runtime boundary</text>
+    </g>
+<g>
+      <path d="M 855.8 149.2 L 1150.8 152.1 L 1176.1 178.4 L 1179.1 586.9 L 1154.2 615.3 L 856.3 616.6 L 826.2 588.2 L 826.2 173.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="848" y="184" font-size="16" fill="#475569" font-weight="800">Output / evidence</text>
+    </g>
+<path d="M 384.0 253.0 C 399.9 267.3, 460.6 253.1, 473.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 253.0 C 799.4 260.8, 834.4 260.6, 856.0 253.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1150.0 253.0 C 793.2 244.8, 419.5 361.7, 90.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 384.0 351.0 C 410.5 338.3, 434.0 356.0, 473.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 351.0 C 800.7 339.2, 837.6 360.0, 856.0 351.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 107.8 219.9 L 368.0 220.3 L 382.8 239.3 L 382.0 268.3 L 364.2 284.0 L 110.5 284.1 L 90.6 267.1 L 92.1 238.1 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 107.7 223.4 L 367.0 225.9 L 382.5 240.3 L 379.1 267.3 L 365.0 282.0 L 107.9 282.1 L 95.5 264.8 L 91.6 239.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="252" font-size="18" fill="#171717" font-weight="750">Content hash ledger</text>
+  </g>
+<g>
+    <path d="M 489.6 218.4 L 751.3 218.6 L 768.2 237.9 L 769.0 269.7 L 748.2 285.3 L 492.1 287.5 L 472.9 270.0 L 471.1 236.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 492.7 222.2 L 746.4 223.4 L 761.8 238.6 L 762.3 269.3 L 747.2 284.2 L 491.0 280.8 L 477.9 265.7 L 476.2 240.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="252" font-size="18" fill="#171717" font-weight="750">New import</text>
+  </g>
+<g>
+    <path d="M 872.7 220.2 L 1133.5 220.2 L 1149.1 238.9 L 1152.4 268.0 L 1132.1 285.9 L 873.3 287.8 L 854.4 265.8 L 855.2 238.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 872.9 223.3 L 1131.7 225.7 L 1143.9 238.2 L 1143.8 267.6 L 1130.0 281.4 L 875.7 281.4 L 858.1 268.5 L 857.8 238.6 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="252" font-size="18" fill="#171717" font-weight="750">Importable JSONL</text>
+  </g>
+<g>
+    <path d="M 106.9 316.7 L 366.5 316.5 L 383.6 337.9 L 381.8 366.6 L 364.5 385.1 L 106.4 381.8 L 91.7 368.0 L 89.6 337.0 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 108.7 320.5 L 363.5 323.0 L 378.0 335.0 L 377.7 366.1 L 365.9 382.3 L 109.8 382.1 L 94.0 364.5 L 93.5 336.3 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="350" font-size="18" fill="#171717" font-weight="750">Native rollout items</text>
+  </g>
+<g>
+    <path d="M 490.1 319.1 L 750.0 320.0 L 766.7 336.2 L 765.9 366.3 L 751.3 382.1 L 493.1 385.9 L 475.5 366.6 L 471.7 338.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 490.0 323.2 L 748.8 321.9 L 763.9 335.5 L 764.9 364.0 L 750.3 380.9 L 491.0 381.6 L 475.6 364.3 L 476.0 337.3 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="350" font-size="18" fill="#171717" font-weight="750">Imported thread</text>
+  </g>
+<g>
+    <path d="M 872.2 317.5 L 1131.4 316.5 L 1149.3 338.4 L 1151.6 366.2 L 1133.3 382.8 L 875.3 384.7 L 858.0 365.1 L 855.5 334.7 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 873.4 324.1 L 1132.0 319.7 L 1147.3 336.4 L 1146.5 367.5 L 1130.3 379.6 L 875.3 381.2 L 860.8 363.4 L 858.2 335.9 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="350" font-size="18" fill="#171717" font-weight="750">Source hash record</text>
+  </g>
+  </g>
+</svg>

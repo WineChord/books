@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-07-01-zh desc-chapter-07-01-zh">
+  <title id="title-chapter-07-01-zh">五层结构</title>
+  <desc id="desc-chapter-07-01-zh">五层结构的手绘白板图，展示provider 配置、provider 注册表可序列化元数据、运行时 provider 认证、账号、能力、模型目录内置 + 远程 + 缓存、类型化 API 层响应、压缩、模型、实时之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-07-01-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 51.3 19.9 L 1230.0 22.6 L 1259.6 50.2 L 1257.0 648.1 L 1230.3 675.8 L 47.7 676.1 L 22.9 647.6 L 20.6 47.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-07-01-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">五层结构</text>
+    <path d="M 64.0 166.0 C 450.7 158.8, 856.4 161.3, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 92.9 149.6 L 396.4 149.6 L 421.9 173.4 L 419.7 596.3 L 393.6 620.9 L 92.3 620.2 L 68.6 594.6 L 71.8 173.7 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">外部表面</text>
+    </g>
+<g>
+      <path d="M 489.3 147.9 L 791.7 152.0 L 814.4 173.8 L 813.8 595.9 L 790.7 618.6 L 490.0 620.9 L 463.4 596.1 L 464.1 173.5 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">运行时契约</text>
+    </g>
+<g>
+      <path d="M 884.7 149.4 L 1185.1 149.0 L 1211.2 172.6 L 1207.6 594.2 L 1187.8 618.9 L 884.9 622.3 L 857.6 597.3 L 859.7 175.9 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">执行边界</text>
+    </g>
+<path d="M 396.0 253.0 C 444.9 251.0, 463.2 241.5, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 823.3 267.8, 869.6 259.8, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 790.7 263.8, 407.3 360.1, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 435.4 380.5, 457.2 372.6, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 838.4 374.8, 872.2 373.7, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 813.7 361.4, 435.3 480.6, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 113.9 214.9 L 379.9 216.8 L 398.4 234.1 L 397.2 271.5 L 376.8 290.7 L 111.9 291.0 L 92.6 274.3 L 91.5 233.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 113.7 220.4 L 375.9 222.4 L 391.9 234.6 L 394.0 272.7 L 374.9 285.9 L 112.3 286.2 L 97.8 272.9 L 99.3 233.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="18" fill="#171717" font-weight="750">Provider 配置</text>
+  </g>
+<g>
+    <path d="M 506.2 214.5 L 771.2 218.3 L 789.1 232.1 L 791.4 273.0 L 774.7 289.5 L 505.1 287.9 L 489.5 271.5 L 486.6 235.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 508.7 217.8 L 772.5 218.7 L 785.8 232.9 L 789.2 272.7 L 772.0 284.6 L 507.6 283.9 L 492.1 269.8 L 491.3 235.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">provider</text>
+<text x="507" y="270.5" font-size="18" fill="#171717" font-weight="750">注册表可序列化元数据</text>
+  </g>
+<g>
+    <path d="M 900.3 215.2 L 1165.7 216.9 L 1187.2 234.4 L 1185.2 273.8 L 1170.3 288.4 L 902.9 291.5 L 885.6 270.4 L 884.2 233.1 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 905.1 219.1 L 1164.9 218.3 L 1181.4 235.5 L 1182.1 273.1 L 1165.4 287.9 L 904.5 285.1 L 890.1 269.9 L 889.4 235.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">运行时 provider</text>
+<text x="902" y="270.5" font-size="18" fill="#171717" font-weight="750">认证、账号、能力</text>
+  </g>
+<g>
+    <path d="M 112.7 327.4 L 375.8 327.2 L 397.1 344.2 L 395.3 383.9 L 378.8 403.6 L 113.9 403.1 L 95.3 384.9 L 93.8 345.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 111.8 332.8 L 375.3 332.9 L 392.5 347.4 L 392.1 381.3 L 378.6 397.0 L 113.1 396.2 L 95.5 380.9 L 95.6 345.1 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">模型目录内置+远程+缓存</text>
+  </g>
+<g>
+    <path d="M 508.7 327.1 L 775.3 326.9 L 788.5 346.6 L 791.0 383.2 L 773.1 403.2 L 507.8 401.7 L 486.7 382.3 L 488.9 344.5 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 506.9 333.9 L 773.5 333.7 L 784.8 345.9 L 789.3 381.5 L 772.0 396.5 L 506.0 400.3 L 494.9 381.9 L 493.5 347.6 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">类型化 API 层响应、压缩</text>
+<text x="507" y="382.5" font-size="18" fill="#171717" font-weight="750">模型、实时</text>
+  </g>
+<g>
+    <path d="M 902.7 325.8 L 1167.4 330.2 L 1187.5 347.7 L 1187.2 383.4 L 1168.3 401.2 L 901.6 401.0 L 885.5 385.8 L 884.1 347.0 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 901.7 333.7 L 1169.3 331.3 L 1184.0 346.4 L 1181.5 380.7 L 1165.4 398.3 L 903.3 396.9 L 889.0 380.8 L 887.3 345.8 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">传输适配</text>
+  </g>
+<g>
+    <path d="M 109.5 438.0 L 379.3 442.0 L 394.0 457.8 L 397.7 497.0 L 380.4 512.0 L 110.9 515.3 L 92.4 495.0 L 92.5 459.1 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 112.5 441.9 L 374.9 442.6 L 393.6 459.3 L 392.9 494.2 L 376.7 509.9 L 113.9 508.2 L 97.0 497.0 L 95.8 460.3 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">归一化响应事件</text>
+  </g>
+  </g>
+</svg>

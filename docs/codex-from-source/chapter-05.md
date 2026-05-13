@@ -16,31 +16,10 @@ turns those messages into a live agent thread.
 Codex is not organized around a single "chat object." The runtime is a stack of
 handles, each narrowing the authority of the layer above it.
 
-```mermaid
-flowchart TD
-    Client["client surface\nCLI, TUI, app-server, SDK"]
-    Manager["ThreadManager\nowns live thread map"]
-    Thread["CodexThread\nclient-facing live handle"]
-    Facade["Codex\nsubmission and event queues"]
-    Session["Session\nstate, services, active turn"]
-    Task["SessionTask\nturn, compact, review, shell"]
-    Router["ToolRouter\nruntime side effects"]
-
-    Store["ThreadStore\nrollout + metadata"]
-    Context["ContextManager\nmodel-visible history"]
-    State["SQLite projections\nthreads, logs, graph, memory"]
-
-    Client --> Manager
-    Manager --> Thread
-    Thread --> Facade
-    Facade --> Session
-    Session --> Task
-    Task --> Router
-
-    Session --> Context
-    Session --> Store
-    Session --> State
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-05-01-en.svg" alt="The runtime stack narrows authority from client surfaces through ThreadManager and CodexThread into submission queues, session state, scheduled tasks, and tool side effects." loading="lazy" />
+  <figcaption>The runtime stack narrows authority from client surfaces through ThreadManager and CodexThread into submission queues, session state, scheduled tasks, and tool side effects.</figcaption>
+</figure>
 
 `ThreadManager` owns the set of live threads and the shared services needed to
 create new sessions. `CodexThread` is the stable external handle clients use
@@ -60,6 +39,13 @@ The first client-visible event in a newly opened runtime is the session setup
 event. It carries the thread identity, session identity, working directory,
 model choice, provider identifier, approval policy, permission profile, initial
 messages, and other resolved settings.
+
+
+<p class="sketch-intro">The first-event board anchors every later recovery path: each box is a surface that would drift if startup were just a side effect.</p>
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-05-concept-1-en.svg" alt="The setup event gives every client a deterministic stream anchor before durable history, replay prefixes, layered session state, and extracted metadata take on separate responsibilities." loading="lazy" />
+  <figcaption>The setup event gives every client a deterministic stream anchor before durable history, replay prefixes, layered session state, and extracted metadata take on separate responsibilities.</figcaption>
+</figure>
 
 That ordering is deliberate. Some startup work can continue after the session
 is visible: MCP servers may initialize, plugins may report delayed capability,
@@ -148,21 +134,10 @@ Thread operations are variations on the same principle: load or choose a
 replay prefix, build a session over it, then append future items in the same
 vocabulary.
 
-```mermaid
-flowchart LR
-    Start["start\nnew thread id"] --> Open["open live persistence"]
-    Resume["resume\nexisting rollout"] --> Replay["replay durable items"]
-    Fork["fork\nchoose prefix"] --> NewThread["new thread id\nfork metadata"]
-    Rollback["rollback\ntrim recent turns"] --> Rebuild["rebuild model history"]
-
-    Open --> Configured["emit SessionConfigured"]
-    Replay --> Configured
-    NewThread --> Configured
-    Rebuild --> Configured
-
-    Configured --> Append["append future rollout items"]
-    Append --> Query["update SQLite projections"]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-05-02-en.svg" alt="Start, resume, fork, and rollback all rebuild a live session by opening persistence around a chosen replay prefix and appending future items under the resulting thread identity." loading="lazy" />
+  <figcaption>Start, resume, fork, and rollback all rebuild a live session by opening persistence around a chosen replay prefix and appending future items under the resulting thread identity.</figcaption>
+</figure>
 
 Resume is not a string reload. It reconstructs model history and session
 metadata from durable items. Fork is not a copy of a UI transcript. It selects
@@ -179,6 +154,12 @@ would be text without execution semantics.
 ## Session State Is Layered
 
 The live session holds several kinds of state that should not be collapsed.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-05-concept-2-en.svg" alt="Layered session state separates durable thread commitments from configuration, mutable runtime data, active turn work, mailbox input, and store handles." loading="lazy" />
+  <figcaption>Layered session state separates durable thread commitments from configuration, mutable runtime data, active turn work, mailbox input, and store handles.</figcaption>
+</figure>
 
 | Layer | Lifetime | Examples |
 | --- | --- | --- |

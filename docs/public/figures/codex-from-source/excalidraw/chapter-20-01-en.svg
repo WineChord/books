@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-20-01-en desc-chapter-20-01-en">
+  <title id="title-chapter-20-01-en">The Coordination Unit Is Still a Thread</title>
+  <desc id="desc-chapter-20-01-en">Hand-drawn whiteboard figure for The Coordination Unit Is Still a Thread, showing the relationship between parent thread, Agent control tool, graph store parent-child lifecycle, child thread, mailbox delivery model-visible item.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-20-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 49.7 20.1 L 1227.6 23.2 L 1259.7 49.4 L 1258.3 690.5 L 1230.5 717.3 L 49.4 717.7 L 21.9 687.8 L 20.8 49.0 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-20-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">The Coordination Unit Is Still a Thread</text>
+    <path d="M 64.0 166.0 C 461.5 180.0, 875.6 161.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="448" rx="520" ry="238" fill="#eef2ff" stroke="#4f46e5" stroke-width="2" stroke-dasharray="14 12" opacity="0.28" />
+    <text x="500" y="345" font-size="19" fill="#475569" font-weight="800">The Coordination Unit Is</text>
+<text x="500" y="368.75" font-size="19" fill="#475569" font-weight="800">Still a Thread</text>
+<path d="M 213.0 258.0 C 360.6 248.5, 506.5 230.6, 648.0 228.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 784.3 219.9, 919.3 247.3, 1040.0 260.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 509.5 224.3, 393.4 481.3, 300.0 473.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 643.5 242.2, 626.5 539.7, 640.0 543.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 648.0 228.0 C 748.5 235.5, 853.0 483.3, 965.0 473.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 300.0 473.0 C 432.7 467.1, 528.4 670.1, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 543.0 C 654.5 542.8, 628.6 645.0, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 965.0 473.0 C 843.8 474.2, 734.2 669.4, 645.0 655.0" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 94.4 210.6 L 328.1 211.7 L 346.3 231.9 L 350.4 286.7 L 331.6 302.1 L 94.6 301.9 L 78.5 283.7 L 76.3 230.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 94.7 216.2 L 327.5 213.9 L 342.8 231.0 L 345.6 282.7 L 328.9 298.9 L 94.7 301.8 L 82.9 285.7 L 80.5 232.2 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="96" y="244" font-size="18" fill="#171717" font-weight="750">parent thread</text>
+  </g>
+<g>
+    <path d="M 515.3 177.8 L 779.4 180.1 L 798.0 198.9 L 798.6 256.9 L 780.0 275.8 L 517.1 274.0 L 497.0 260.5 L 498.8 198.8 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 515.7 186.0 L 778.4 184.2 L 794.3 198.6 L 796.3 257.0 L 781.0 269.8 L 519.0 270.0 L 499.9 255.9 L 501.4 201.4 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="516" y="212" font-size="18" fill="#171717" font-weight="750">Agent control tool</text>
+  </g>
+<g>
+    <path d="M 922.5 213.8 L 1156.4 215.6 L 1174.5 232.8 L 1173.8 283.8 L 1156.3 305.6 L 923.1 303.3 L 903.4 284.0 L 906.8 233.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 923.9 219.0 L 1156.9 218.4 L 1170.1 237.1 L 1172.2 282.9 L 1154.8 300.1 L 924.3 298.7 L 910.2 285.3 L 911.4 234.2 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="923" y="248" font-size="17" fill="#171717" font-weight="750">graph store parent</text>
+<text x="923" y="269.25" font-size="17" fill="#171717" font-weight="750">child lifecycle</text>
+  </g>
+<g>
+    <path d="M 199.2 427.5 L 401.7 432.1 L 420.8 448.9 L 419.3 496.4 L 399.6 515.4 L 198.5 514.4 L 177.8 495.9 L 178.1 448.5 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 201.0 434.3 L 399.8 431.9 L 414.9 451.1 L 417.2 496.5 L 401.0 510.5 L 200.5 511.4 L 183.9 498.4 L 184.4 450.9 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="198" y="462" font-size="18" fill="#171717" font-weight="750">child thread</text>
+  </g>
+<g>
+    <path d="M 539.9 500.0 L 739.9 498.0 L 760.9 518.0 L 761.9 569.6 L 741.1 585.4 L 539.8 585.3 L 521.7 566.5 L 517.8 519.4 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 538.7 506.0 L 742.3 504.2 L 757.5 520.6 L 754.2 569.2 L 738.9 580.2 L 541.1 583.8 L 522.7 569.1 L 525.8 519.1 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="538" y="532" font-size="17" fill="#171717" font-weight="750">mailbox delivery</text>
+<text x="538" y="553.25" font-size="17" fill="#171717" font-weight="750">model visible item</text>
+  </g>
+<g>
+    <path d="M 861.1 430.1 L 1065.2 430.3 L 1083.6 449.6 L 1082.7 499.5 L 1068.8 515.2 L 864.5 514.4 L 846.4 497.6 L 844.4 448.0 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 862.4 432.7 L 1065.2 431.9 L 1079.6 447.1 L 1082.3 496.8 L 1066.5 513.2 L 865.5 511.9 L 846.7 495.3 L 849.4 448.3 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="863" y="462" font-size="18" fill="#171717" font-weight="750">result notification</text>
+  </g>
+<g>
+    <path d="M 449.5 616.2 L 840.6 613.8 L 859.7 634.8 L 861.5 675.8 L 841.6 693.9 L 446.0 696.4 L 427.7 677.6 L 428.0 630.8 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 446.9 619.5 L 840.6 617.7 L 857.4 636.4 L 856.1 676.9 L 842.8 692.0 L 447.0 688.7 L 432.9 678.0 L 435.9 632.4 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="448" y="647" font-size="17" fill="#171717" font-weight="750">interaction graph spawn, assign, send</text>
+<text x="448" y="668.25" font-size="17" fill="#171717" font-weight="750">result, close</text>
+  </g>
+  </g>
+</svg>

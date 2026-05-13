@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-10-concept-3-zh desc-chapter-10-concept-3-zh">
+  <title id="title-chapter-10-concept-3-zh">命令输出是有序状态</title>
+  <desc id="desc-chapter-10-concept-3-zh">命令输出是有序状态的手绘白板图，展示stdout 分片、stderr 分片、序列号、退出状态、截断标记之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-10-concept-3-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 49.8 21.0 L 1227.5 20.5 L 1259.1 48.3 L 1258.2 650.1 L 1229.8 677.7 L 50.1 677.0 L 24.4 650.6 L 23.2 47.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-10-concept-3-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">命令输出是有序状态</text>
+    <path d="M 64.0 166.0 C 460.1 180.3, 874.4 151.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 260.9 162.5, 268.7 615.0, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1016.3 138.3, 1036.2 606.5, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 653.5 219.1, 635.7 230.6, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 628.4 265.3, 655.8 274.5, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 645.3 331.3, 628.0 344.3, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 651.7 401.7, 632.5 408.2, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 638.2 466.0, 634.0 467.5, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 276.7 161.1 L 1002.4 160.1 L 1018.4 179.3 L 1021.1 187.5 L 999.6 209.0 L 277.5 209.8 L 260.5 189.6 L 262.0 179.9 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.2 164.1 L 1000.5 162.7 L 1016.2 177.8 L 1016.5 190.2 L 999.7 202.7 L 277.7 202.3 L 266.2 187.0 L 264.3 181.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">stdout 分片</text>
+  </g>
+<g>
+    <path d="M 322.8 224.3 L 956.9 222.9 L 972.5 244.3 L 972.5 252.3 L 955.2 271.2 L 327.3 273.6 L 308.4 255.1 L 309.4 240.7 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 327.1 229.9 L 952.7 228.7 L 968.8 240.6 L 969.0 254.3 L 955.6 268.3 L 327.4 267.1 L 311.2 254.9 L 309.7 242.8 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">stderr 分片</text>
+  </g>
+<g>
+    <path d="M 338.2 290.1 L 944.6 288.2 L 963.5 308.4 L 961.9 316.9 L 941.7 333.6 L 339.0 335.7 L 317.3 319.1 L 318.2 307.9 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 338.7 291.5 L 942.6 291.5 L 957.0 308.9 L 956.8 318.5 L 944.5 333.0 L 340.2 334.0 L 323.2 319.1 L 320.9 309.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">序列号</text>
+  </g>
+<g>
+    <path d="M 349.5 352.4 L 933.4 353.5 L 950.1 367.9 L 947.7 381.9 L 931.8 400.2 L 351.3 398.1 L 329.7 379.9 L 330.1 369.8 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 350.4 353.6 L 931.9 354.7 L 944.8 370.1 L 944.5 382.3 L 929.4 395.8 L 349.8 397.8 L 335.6 378.8 L 334.2 370.1 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">退出状态</text>
+  </g>
+<g>
+    <path d="M 360.4 413.5 L 920.3 418.2 L 936.0 434.0 L 936.3 444.7 L 918.9 462.2 L 363.0 464.4 L 343.7 445.1 L 342.9 433.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 362.7 420.9 L 915.7 419.7 L 935.3 433.8 L 935.3 445.0 L 919.5 457.5 L 360.0 459.1 L 348.6 445.1 L 347.4 435.3 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">截断标记</text>
+  </g>
+<g>
+    <path d="M 277.2 478.4 L 1000.0 479.8 L 1022.0 498.0 L 1022.1 508.1 L 999.8 527.3 L 277.7 526.5 L 259.9 510.2 L 260.6 496.3 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 281.2 485.7 L 999.9 484.2 L 1014.5 496.9 L 1015.2 508.7 L 1000.7 525.2 L 278.6 522.4 L 265.8 510.4 L 264.4 500.6 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">运行时记录</text>
+  </g>
+  </g>
+</svg>

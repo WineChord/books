@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-03-01-en desc-chapter-03-01-en">
+  <title id="title-chapter-03-01-en">Configuration Is a Stack, Not a File</title>
+  <desc id="desc-chapter-03-01-en">Hand-drawn whiteboard figure for Configuration Is a Stack, Not a File, showing the relationship between System or managed layer, Layer merge, User layer, Project layer, Visible but disabled layer.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-03-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 47.6 19.9 L 1230.1 20.0 L 1260.4 50.1 L 1259.8 652.3 L 1232.2 679.3 L 52.3 678.7 L 20.7 647.7 L 20.7 51.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-03-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Configuration Is a Stack, Not a File</text>
+    <path d="M 64.0 166.0 C 476.9 165.7, 854.7 144.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 94.2 149.4 L 394.8 151.5 L 418.3 171.6 L 417.8 596.7 L 397.1 618.0 L 92.7 618.8 L 70.2 595.5 L 70.3 176.1 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 487.2 151.7 L 791.3 151.3 L 815.0 174.7 L 815.9 594.8 L 791.5 620.5 L 488.4 617.9 L 463.4 595.6 L 466.3 174.4 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 882.0 150.2 L 1183.9 152.3 L 1210.0 174.0 L 1212.3 593.6 L 1187.7 617.8 L 882.3 621.0 L 860.1 597.0 L 857.8 173.1 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 413.6 249.8, 446.1 241.8, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 813.5 255.8, 871.9 258.2, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 804.3 237.8, 415.7 354.7, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 418.5 376.6, 444.8 378.1, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 832.1 358.0, 842.7 378.1, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 808.0 363.4, 410.0 478.4, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 112.6 218.3 L 380.2 214.9 L 397.5 235.6 L 395.3 272.4 L 378.0 290.9 L 110.6 291.7 L 91.6 274.3 L 92.9 235.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 111.9 218.2 L 378.5 219.0 L 393.2 235.1 L 391.2 270.7 L 374.9 284.7 L 112.3 287.9 L 98.4 268.8 L 99.1 234.9 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="17" fill="#171717" font-weight="750">System or managed layer</text>
+  </g>
+<g>
+    <path d="M 507.4 218.0 L 772.3 218.5 L 791.8 231.6 L 792.7 273.7 L 772.1 291.8 L 507.3 291.2 L 487.0 272.2 L 488.3 232.3 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 506.5 221.3 L 773.0 222.2 L 786.4 236.8 L 785.4 270.6 L 772.2 285.7 L 507.1 284.9 L 492.7 271.9 L 492.1 235.8 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="18" fill="#171717" font-weight="750">Layer merge</text>
+  </g>
+<g>
+    <path d="M 903.5 213.7 L 1169.8 217.5 L 1188.1 234.6 L 1187.0 273.0 L 1166.8 288.8 L 902.1 287.8 L 883.8 271.9 L 884.1 235.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 905.1 221.7 L 1164.5 217.6 L 1181.9 236.9 L 1182.9 271.4 L 1168.4 284.8 L 903.4 288.4 L 886.7 273.4 L 888.7 237.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">User layer</text>
+  </g>
+<g>
+    <path d="M 112.7 326.3 L 376.6 327.7 L 395.4 344.3 L 394.0 382.2 L 379.1 402.3 L 113.9 402.3 L 95.0 386.3 L 96.4 348.5 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 114.4 329.6 L 376.2 330.7 L 390.4 346.7 L 390.3 380.9 L 375.9 398.4 L 111.9 398.4 L 99.5 384.1 L 99.0 345.1 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">Project layer</text>
+  </g>
+<g>
+    <path d="M 506.6 328.2 L 770.7 328.3 L 789.5 345.0 L 789.6 383.9 L 774.1 400.5 L 507.7 404.3 L 488.0 384.8 L 490.0 344.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 509.0 334.3 L 771.2 333.6 L 787.9 347.7 L 786.6 382.4 L 773.8 399.2 L 510.3 397.4 L 494.9 383.1 L 492.0 345.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="17" fill="#171717" font-weight="750">Visible but disabled layer</text>
+  </g>
+<g>
+    <path d="M 901.3 329.8 L 1169.6 328.7 L 1184.9 346.1 L 1188.4 382.6 L 1170.0 403.6 L 902.6 399.5 L 884.9 384.4 L 882.9 343.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 904.3 333.8 L 1167.1 332.6 L 1183.0 346.4 L 1180.2 380.6 L 1165.7 396.1 L 900.6 397.6 L 889.9 381.8 L 890.2 347.9 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="17" fill="#171717" font-weight="750">Session and CLI overrides</text>
+  </g>
+<g>
+    <path d="M 113.3 440.9 L 379.6 438.0 L 396.9 458.3 L 397.2 497.5 L 377.0 513.7 L 111.1 514.5 L 94.7 498.0 L 91.6 460.3 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 113.4 442.4 L 378.4 442.5 L 389.8 461.0 L 390.2 494.6 L 378.2 507.8 L 113.5 508.4 L 99.7 495.0 L 98.9 456.5 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">Thread or turn updates</text>
+  </g>
+  </g>
+</svg>

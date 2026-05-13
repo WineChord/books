@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-07-concept-1-en desc-chapter-07-concept-1-en">
+  <title id="title-chapter-07-concept-1-en">Model Metadata as Infrastructure</title>
+  <desc id="desc-chapter-07-concept-1-en">Hand-drawn whiteboard figure for Model Metadata as Infrastructure, showing the relationship between Catalog record, Auth visibility, Cache overlay, Context limit, Capability flag.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-07-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 50.9 21.9 L 1230.0 24.0 L 1259.3 49.7 L 1256.0 650.3 L 1232.5 677.3 L 51.7 680.1 L 20.5 648.8 L 21.8 48.0 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-07-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Model Metadata as Infrastructure</text>
+    <path d="M 64.0 166.0 C 471.4 162.7, 882.2 170.7, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 256.0 141.4, 253.9 615.9, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1018.7 160.1, 1022.7 603.6, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 624.0 198.9, 646.4 224.8, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 635.5 256.7, 632.4 295.4, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 626.7 349.9, 629.9 365.9, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 628.0 396.8, 625.6 416.8, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 636.9 476.1, 654.2 477.6, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 280.4 160.6 L 1003.0 157.7 L 1020.6 176.5 L 1019.3 189.4 L 1002.4 208.6 L 276.6 207.4 L 258.5 191.4 L 257.8 176.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.1 166.4 L 1001.5 166.5 L 1016.7 180.8 L 1015.5 187.2 L 1000.2 206.3 L 280.0 204.4 L 262.9 188.0 L 265.2 180.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">Catalog record</text>
+  </g>
+<g>
+    <path d="M 327.1 223.9 L 954.8 224.4 L 972.2 244.0 L 970.5 253.0 L 954.6 273.3 L 326.9 274.2 L 307.9 252.2 L 305.6 240.3 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 324.9 230.3 L 955.2 227.8 L 969.7 241.2 L 967.5 254.9 L 954.5 265.6 L 324.3 269.3 L 311.0 251.2 L 310.6 245.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">Auth visibility</text>
+  </g>
+<g>
+    <path d="M 335.2 286.5 L 941.0 290.1 L 961.4 305.7 L 962.5 318.7 L 942.9 336.4 L 339.4 335.4 L 317.7 318.3 L 318.7 304.3 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 340.1 289.8 L 941.0 291.9 L 958.0 306.9 L 955.1 315.2 L 941.5 331.7 L 337.1 330.1 L 321.4 318.6 L 322.3 309.2 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">Cache overlay</text>
+  </g>
+<g>
+    <path d="M 349.1 349.9 L 930.4 353.5 L 950.8 369.4 L 949.4 380.9 L 933.5 398.1 L 348.2 399.3 L 330.3 380.2 L 330.1 371.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 351.4 357.0 L 929.3 354.6 L 945.8 370.0 L 943.2 381.6 L 929.6 393.7 L 350.8 397.4 L 336.5 378.8 L 333.5 368.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">Context limit</text>
+  </g>
+<g>
+    <path d="M 360.8 415.4 L 918.1 418.3 L 938.7 436.2 L 937.5 446.2 L 917.9 463.7 L 359.3 461.9 L 343.1 444.8 L 341.0 435.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 361.4 418.9 L 918.2 417.9 L 934.7 434.1 L 932.4 442.9 L 919.1 459.1 L 359.5 462.3 L 344.7 444.3 L 345.1 432.9 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">Capability flag</text>
+  </g>
+<g>
+    <path d="M 276.7 481.1 L 1002.3 479.4 L 1021.6 499.3 L 1022.2 507.8 L 1002.2 530.5 L 280.2 526.1 L 259.0 510.4 L 260.1 499.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 276.8 485.6 L 1003.3 484.7 L 1013.7 496.5 L 1014.9 507.2 L 1001.8 524.6 L 279.2 524.9 L 265.2 509.4 L 263.5 501.4 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="512" font-size="18" fill="#171717" font-weight="750">Turn loop trust</text>
+  </g>
+  </g>
+</svg>

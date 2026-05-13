@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-epilogue-concept-1-zh desc-epilogue-concept-1-zh">
+  <title id="title-epilogue-concept-1-zh">可迁移的设计动作</title>
+  <desc id="desc-epilogue-concept-1-zh">可迁移的设计动作的手绘白板图，展示产品词汇、协商副作用、单一运行时、原始事实、可执行治理之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-epilogue-concept-1-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.8 20.8 L 1229.9 20.1 L 1257.5 50.7 L 1258.5 649.7 L 1229.9 678.3 L 52.5 676.1 L 21.5 650.3 L 21.7 52.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-epilogue-concept-1-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">可迁移的设计动作</text>
+    <path d="M 64.0 166.0 C 481.4 150.4, 865.1 148.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 640.0 380.0 C 653.2 389.2, 624.3 172.8, 640.0 157.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 782.5 371.6, 933.5 302.1, 1068.0 309.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 730.7 394.7, 835.0 542.9, 904.5 555.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 534.6 377.3, 471.7 570.2, 375.5 555.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 507.1 367.6, 344.4 321.2, 212.0 309.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 546.2 123.0 L 734.4 119.8 L 750.3 140.0 L 752.2 173.8 L 732.7 190.7 L 543.6 191.6 L 527.1 176.3 L 525.6 139.0 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 547.9 128.3 L 733.3 126.7 L 747.9 139.9 L 746.1 175.2 L 732.0 187.8 L 547.3 186.1 L 533.3 172.7 L 532.6 141.9 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="546" y="154" font-size="18" fill="#171717" font-weight="750">产品词汇</text>
+  </g>
+<g>
+    <path d="M 975.5 276.1 L 1164.3 274.1 L 1178.9 292.3 L 1178.7 325.2 L 1164.0 346.0 L 975.7 343.6 L 956.0 326.8 L 954.9 292.7 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 976.1 280.2 L 1162.6 276.2 L 1174.6 293.1 L 1177.9 323.7 L 1158.6 338.7 L 973.8 341.9 L 962.2 323.6 L 958.3 290.9 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="973.9754323328191" y="306.01626123751157" font-size="18" fill="#171717" font-weight="750">协商副作用</text>
+  </g>
+<g>
+    <path d="M 809.3 519.7 L 996.2 518.4 L 1014.1 536.7 L 1016.3 571.0 L 1000.9 592.4 L 808.7 588.1 L 791.8 574.3 L 790.1 539.2 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 813.3 523.4 L 998.4 522.5 L 1011.0 541.0 L 1014.7 569.1 L 996.1 586.1 L 810.6 587.2 L 794.4 570.2 L 794.9 538.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="810.5033635316129" y="551.9837387624884" font-size="18" fill="#171717" font-weight="750">单一运行时</text>
+  </g>
+<g>
+    <path d="M 282.7 519.9 L 470.5 518.6 L 485.3 535.7 L 486.7 574.2 L 471.2 590.2 L 279.2 591.6 L 264.8 569.7 L 261.3 537.6 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 283.4 523.0 L 469.4 523.8 L 485.7 537.5 L 485.4 571.6 L 470.9 585.7 L 282.3 587.9 L 266.3 568.6 L 268.0 537.1 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="281.4966364683871" y="551.9837387624884" font-size="18" fill="#171717" font-weight="750">原始事实</text>
+  </g>
+<g>
+    <path d="M 116.8 275.6 L 307.2 276.3 L 323.8 293.9 L 324.8 323.8 L 305.3 345.9 L 117.9 341.7 L 102.4 326.6 L 102.0 293.4 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 118.1 276.6 L 305.8 277.0 L 318.7 292.3 L 321.1 323.3 L 307.3 338.1 L 121.4 342.1 L 104.4 324.3 L 102.0 294.6 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="118.02456766718086" y="306.01626123751157" font-size="18" fill="#171717" font-weight="750">可执行治理</text>
+  </g>
+<g>
+    <path d="M 507.2 319.6 L 772.7 320.4 L 790.6 340.9 L 792.0 411.0 L 770.4 429.2 L 510.3 431.4 L 488.8 413.2 L 490.3 341.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 508.3 326.8 L 772.2 327.5 L 786.4 338.6 L 788.3 410.8 L 770.5 428.4 L 506.7 428.0 L 493.9 413.0 L 495.6 340.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="508" y="354" font-size="18" fill="#171717" font-weight="750">可迁移的设计动作</text>
+  </g>
+  </g>
+</svg>

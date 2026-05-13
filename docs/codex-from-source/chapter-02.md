@@ -21,15 +21,10 @@ works.
 
 The startup path has four conceptual stages:
 
-```mermaid
-flowchart LR
-    shell[User runs command] --> wrapper[Distribution wrapper]
-    wrapper --> binary[Native Rust binary]
-    binary --> arg0[Invocation-name dispatch]
-    arg0 --> router[Command router]
-    router --> surface[Product surface]
-    surface --> runtime[Shared runtime crates]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-02-01-en.svg" alt="Startup is intentionally split: the JavaScript wrapper locates and launches the native binary, while the Rust router owns command semantics and product dispatch." loading="lazy" />
+  <figcaption>Startup is intentionally split: the JavaScript wrapper locates and launches the native binary, while the Rust router owns command semantics and product dispatch.</figcaption>
+</figure>
 
 The distribution wrapper exists because users install Codex through package
 channels that need platform-specific artifacts. It detects the host platform,
@@ -59,6 +54,12 @@ installed command" into "the correct native executable is running with the
 right environment." This includes platform selection, optional dependency
 lookup, fallback to vendored artifacts, additional helper paths, package manager
 markers, and signal handling.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-02-concept-1-en.svg" alt="The JavaScript layer handles platform lookup, native discovery, helper paths, and signal forwarding; config, auth, tools, and product semantics stay behind the Rust router." loading="lazy" />
+  <figcaption>The JavaScript layer handles platform lookup, native discovery, helper paths, and signal forwarding; config, auth, tools, and product semantics stay behind the Rust router.</figcaption>
+</figure>
 
 In architectural terms, the wrapper is a bootloader. A bootloader is not less
 important because it is small; it is important because it is constrained. If the
@@ -133,6 +134,12 @@ has parsed arguments, tests, and a place in the startup model. That is safer
 than burying the same behavior behind ad hoc environment variables or
 unstructured shell snippets.
 
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-02-concept-2-en.svg" alt="Hidden commands are private product surfaces, but tests, packaging, and helper processes still depend on their arguments, outputs, and failure modes as contracts." loading="lazy" />
+  <figcaption>Hidden commands are private product surfaces, but tests, packaging, and helper processes still depend on their arguments, outputs, and failure modes as contracts.</figcaption>
+</figure>
+
 This matters for helper processes. Sandboxes, app-server proxies, schema
 generation, trace reduction, and internal relays often need command-line entry
 points. Treating them as first-class parsed commands gives the release system,
@@ -150,23 +157,10 @@ This discipline is what lets later chapters explain Codex as one system. Each
 surface has special behavior, but the common behavior sits behind shared
 contracts:
 
-```mermaid
-flowchart TD
-    router[Command router] --> tui[Terminal UI]
-    router --> exec[Headless exec]
-    router --> login[Login]
-    router --> server[App-server]
-    router --> plugins[Plugin commands]
-    router --> helpers[Internal helpers]
-
-    tui --> foundation[Shared config, auth, protocol, state]
-    exec --> foundation
-    login --> foundation
-    server --> foundation
-    plugins --> foundation
-    helpers --> foundation
-    foundation --> runtime[Thread and session runtime]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-02-02-en.svg" alt="Thin surfaces fan out from one router, then converge on shared configuration, authentication, protocol, state, and the thread/session runtime." loading="lazy" />
+  <figcaption>Thin surfaces fan out from one router, then converge on shared configuration, authentication, protocol, state, and the thread/session runtime.</figcaption>
+</figure>
 
 The foundation is not a convenience library. It is the architecture's defense
 against product-surface drift.
@@ -227,6 +221,6 @@ managed requirements.
 | npm launch wrapper | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L1) |
 | Rust command router | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) |
 | App command boundary | [`codex-rs/cli/src/app_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/app_cmd.rs#L5) |
-| App-server daemon commands | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L417) |
+| Daemon commands | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L417) |
 
 </div>

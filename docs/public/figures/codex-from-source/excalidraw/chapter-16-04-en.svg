@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="680" viewBox="0 0 1280 680" role="img" aria-labelledby="title-chapter-16-04-en desc-chapter-16-04-en">
+  <title id="title-chapter-16-04-en">Streaming Markdown</title>
+  <desc id="desc-chapter-16-04-en">Hand-drawn whiteboard figure for Streaming Markdown, showing the relationship between Streaming delta, Append to source buffer, Commit to history cell, Render mutable live tail, Resize event.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-16-04-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="680" rx="30" fill="#fffdf7" />
+  <path d="M 48.3 22.2 L 1232.3 19.5 L 1260.3 47.9 L 1256.7 630.0 L 1228.8 656.3 L 48.3 656.1 L 23.5 630.5 L 20.4 50.8 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="680" filter="url(#paper-chapter-16-04-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Streaming Markdown</text>
+    <path d="M 64.0 166.0 C 474.9 154.9, 857.7 149.4, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="360" rx="527" ry="263" fill="none" stroke="#475569" stroke-width="2.2" stroke-dasharray="13 12" opacity="0.28" />
+    <path d="M 507.2 303.4 L 772.4 299.9 L 797.5 328.5 L 793.2 378.0 L 773.5 405.5 L 510.1 406.2 L 487.2 379.2 L 482.7 324.7 Z" fill="#fffdf7" stroke="#d97757" stroke-width="2" opacity="0.92" />
+    <text x="512" y="342" font-size="18" fill="#171717" font-weight="800">Streaming Markdown</text>
+<path d="M 640.0 149.0 C 763.4 159.9, 890.9 211.1, 995.7 226.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 995.7 226.2 C 1013.3 221.3, 1066.2 401.8, 1083.6 399.6" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1083.6 399.6 C 987.4 393.6, 897.1 530.1, 837.4 538.7" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 837.4 538.7 C 696.6 547.5, 559.6 544.3, 442.6 538.7" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 442.6 538.7 C 352.0 528.4, 262.2 385.2, 196.4 399.6" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 196.4 399.6 C 221.4 391.3, 271.7 224.2, 284.3 226.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 284.3 226.2 C 409.5 222.1, 542.9 159.2, 640.0 149.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 521.3 115.2 L 756.8 112.9 L 777.3 133.0 L 772.8 165.3 L 756.5 184.6 L 525.4 183.2 L 503.4 166.8 L 502.6 129.9 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 526.1 118.4 L 754.4 115.8 L 773.1 133.9 L 773.0 164.1 L 756.0 181.9 L 521.6 180.7 L 507.3 167.9 L 509.2 133.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="523" y="145" font-size="18" fill="#171717" font-weight="750">Streaming delta</text>
+  </g>
+<g>
+    <path d="M 879.1 191.9 L 1114.8 189.2 L 1131.4 206.0 L 1129.2 245.8 L 1111.0 260.2 L 876.8 261.9 L 858.3 246.3 L 863.0 207.6 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 880.5 196.5 L 1109.8 192.9 L 1125.8 210.8 L 1125.8 242.0 L 1113.8 259.3 L 882.2 259.9 L 865.4 242.2 L 865.5 207.5 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="878.7333245229536" y="222.18459061895965" font-size="17" fill="#171717" font-weight="750">Append to source buffer</text>
+  </g>
+<g>
+    <path d="M 965.1 364.1 L 1201.6 363.0 L 1219.2 384.0 L 1219.9 417.9 L 1200.2 434.9 L 966.1 434.4 L 948.3 419.6 L 947.2 382.5 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 965.7 366.7 L 1201.8 368.0 L 1214.7 381.6 L 1212.5 418.5 L 1200.6 432.7 L 965.3 432.6 L 952.0 417.1 L 950.9 380.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="966.5922000427297" y="395.61679146104444" font-size="18" fill="#171717" font-weight="750">Commit to history cell</text>
+  </g>
+<g>
+    <path d="M 721.0 502.5 L 954.4 505.2 L 973.4 519.9 L 974.2 556.1 L 953.7 576.2 L 722.6 573.2 L 701.7 555.8 L 704.2 518.4 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 723.2 505.9 L 951.4 508.9 L 970.5 524.0 L 966.7 558.1 L 954.6 570.7 L 718.9 572.1 L 705.6 555.2 L 704.7 520.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="720.417101298489" y="534.698617919996" font-size="17" fill="#171717" font-weight="750">Render mutable live</text>
+<text x="720.417101298489" y="555.948617919996" font-size="17" fill="#171717" font-weight="750">tail</text>
+  </g>
+<g>
+    <path d="M 325.9 501.3 L 557.9 503.2 L 577.5 522.1 L 579.4 556.6 L 560.2 575.2 L 324.5 575.3 L 306.6 558.2 L 309.0 520.9 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 326.3 508.6 L 559.6 506.0 L 571.4 520.1 L 575.4 554.4 L 561.0 572.0 L 326.7 572.8 L 312.6 555.6 L 309.2 522.3 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="325.5828987015111" y="534.698617919996" font-size="18" fill="#171717" font-weight="750">Resize event</text>
+  </g>
+<g>
+    <path d="M 79.7 364.0 L 311.1 364.6 L 332.1 383.1 L 329.6 417.1 L 312.9 436.6 L 77.3 437.1 L 59.0 419.2 L 62.1 379.4 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 80.1 369.3 L 314.5 367.1 L 326.1 382.2 L 328.2 418.5 L 314.5 429.3 L 80.0 433.5 L 65.6 419.0 L 66.4 382.4 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="79.40779995727024" y="395.6167914610445" font-size="18" fill="#171717" font-weight="750">Reflow from source</text>
+  </g>
+<g>
+    <path d="M 168.0 192.0 L 401.5 190.8 L 421.7 206.3 L 419.4 245.6 L 402.2 262.5 L 166.1 260.1 L 150.5 245.3 L 151.4 208.5 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 166.4 193.2 L 400.5 192.2 L 415.8 207.9 L 413.0 244.9 L 398.2 260.0 L 168.1 256.1 L 153.7 242.3 L 154.3 206.8 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="167.26667547704636" y="222.18459061895965" font-size="17" fill="#171717" font-weight="750">Line complete and layout</text>
+<text x="167.26667547704636" y="243.43459061895965" font-size="17" fill="#171717" font-weight="750">stable?</text>
+  </g>
+  </g>
+</svg>

@@ -19,20 +19,10 @@ settings. Some come from the user's home configuration. Some come from a
 project. Some come from command-line overrides, session state, or thread-level
 choices. The important point is not only precedence; it is provenance.
 
-```mermaid
-flowchart TD
-    system[System or managed layer] --> merge[Layer merge]
-    user[User layer] --> merge
-    project[Project layer] --> trust{Trusted project?}
-    trust -->|yes| merge
-    trust -->|no| disabled[Visible but disabled layer]
-    session[Session and CLI overrides] --> merge
-    thread[Thread or turn updates] --> merge
-    merge --> effective[Effective preferences]
-    effective --> requirements[Managed requirements]
-    requirements --> resolved[Resolved runtime settings]
-    disabled --> diagnostics[Source-aware diagnostics]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-03-01-en.svg" alt="The configuration stack keeps every layer visible while only trusted, enabled, and higher-precedence values affect the resolved runtime envelope." loading="lazy" />
+  <figcaption>The configuration stack keeps every layer visible while only trusted, enabled, and higher-precedence values affect the resolved runtime envelope.</figcaption>
+</figure>
 
 The disabled layer in the diagram is important. Project-local configuration may
 be visible even when trust prevents it from affecting runtime behavior. This is
@@ -49,6 +39,12 @@ Those are different problems with different remedies.
 A common configuration mistake is to treat all settings as preferences. Codex
 does not. A preference says what a user or surface would like. A requirement
 says what the environment permits. Requirements are restrictive overlays.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-03-concept-1-en.svg" alt="Preferences express what a surface wants; requirements express what the environment permits. The resolved envelope keeps both source-aware so policy can constrain rather than silently override." loading="lazy" />
+  <figcaption>Preferences express what a surface wants; requirements express what the environment permits. The resolved envelope keeps both source-aware so policy can constrain rather than silently override.</figcaption>
+</figure>
 
 For example, a user preference may request a permissive sandbox mode. A managed
 requirement may allow only a more restrictive permission profile. The correct
@@ -135,18 +131,10 @@ an old credential while another subsystem has refreshed or invalidated it. A
 long-running process needs a stable way to ask, "what is the current auth
 state, and can it recover from unauthorized responses?"
 
-```mermaid
-flowchart LR
-    env[Environment or stdin token] --> manager[Auth manager]
-    storage[Keyring or auth file] --> manager
-    oauth[OAuth/device flow] --> manager
-    external[External bearer provider] --> manager
-    agent[Agent identity token] --> manager
-    manager --> snapshot[Auth snapshot]
-    snapshot --> backend[Backend clients]
-    snapshot --> requirements[Cloud requirements]
-    snapshot --> providers[Model providers]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-03-02-en.svg" alt="Authentication is captured as a runtime snapshot: tokens may come from the environment, keyring, auth files, OAuth/device flow, bearer providers, or agent identity, but downstream layers ask one manager for current state." loading="lazy" />
+  <figcaption>Authentication is captured as a runtime snapshot: tokens may come from the environment, keyring, auth files, OAuth/device flow, bearer providers, or agent identity, but downstream layers ask one manager for current state.</figcaption>
+</figure>
 
 The snapshot can represent different auth modes, but later layers should not
 care where a token was stored or how a refresh command was executed. They care
@@ -162,6 +150,12 @@ requirements can be a fail-closed condition. That choice is inconvenient by
 design. If the account requires centralized policy, silently proceeding without
 that policy would make the local runtime less trustworthy precisely when
 policy matters most.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-03-concept-2-en.svg" alt="Managed requirements are loaded as source-aware constraints; when policy cannot be proven, the runtime fails closed instead of silently weakening the envelope." loading="lazy" />
+  <figcaption>Managed requirements are loaded as source-aware constraints; when policy cannot be proven, the runtime fails closed instead of silently weakening the envelope.</figcaption>
+</figure>
 
 The requirements layer also preserves source information. A value constrained
 by cloud policy should be reported differently from a value constrained by a

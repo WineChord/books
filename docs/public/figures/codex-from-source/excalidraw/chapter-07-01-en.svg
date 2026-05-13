@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-07-01-en desc-chapter-07-01-en">
+  <title id="title-chapter-07-01-en">Five Layers</title>
+  <desc id="desc-chapter-07-01-en">Hand-drawn whiteboard figure for Five Layers, showing the relationship between configuration provider data, model choice, provider registry serializable metadata, runtime provider auth, account, capabilities, model catalog bundled + remote + cache, typed API layer Responses, Compact, Models, Realtime.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-07-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 51.2 23.4 L 1231.3 21.9 L 1255.7 49.3 L 1257.4 648.9 L 1228.8 678.5 L 49.8 678.9 L 20.1 648.1 L 21.1 49.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-07-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Five Layers</text>
+    <path d="M 64.0 166.0 C 454.7 163.2, 873.9 175.9, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 94.6 147.8 L 398.2 151.8 L 418.2 174.8 L 421.6 597.0 L 397.3 619.5 L 91.8 622.4 L 69.2 595.3 L 67.6 173.9 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 488.6 152.5 L 788.7 148.6 L 813.4 176.4 L 814.1 597.5 L 791.6 621.6 L 490.5 621.5 L 467.0 596.3 L 463.3 175.2 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 884.4 152.2 L 1185.9 151.4 L 1210.7 173.4 L 1211.8 593.7 L 1184.0 618.2 L 885.8 618.9 L 862.4 596.2 L 857.6 172.3 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 434.2 251.4, 458.9 247.1, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 821.7 255.5, 840.6 267.7, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 795.2 237.2, 418.5 376.6, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 445.0 368.0, 448.4 376.2, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 821.8 377.9, 872.4 366.5, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 803.7 374.8, 406.0 466.8, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 111.4 214.5 L 376.2 215.3 L 397.8 235.7 L 397.9 273.0 L 380.5 292.1 L 114.5 288.0 L 95.1 271.4 L 94.0 235.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 114.5 222.5 L 378.9 218.0 L 393.6 233.1 L 389.7 273.3 L 378.4 287.7 L 111.5 287.2 L 100.4 272.0 L 99.2 234.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="17" fill="#171717" font-weight="750">configuration provider</text>
+<text x="112" y="269.25" font-size="17" fill="#171717" font-weight="750">data, model choice</text>
+  </g>
+<g>
+    <path d="M 504.6 214.7 L 773.7 218.2 L 789.3 234.2 L 790.6 272.0 L 770.8 287.9 L 507.1 291.1 L 487.9 270.6 L 488.7 231.9 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 510.5 217.8 L 771.1 219.8 L 785.1 234.5 L 787.9 271.3 L 771.5 283.8 L 506.4 286.7 L 492.3 269.5 L 492.0 236.6 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="17" fill="#171717" font-weight="750">provider registry</text>
+<text x="507" y="269.25" font-size="17" fill="#171717" font-weight="750">serializable metadata</text>
+  </g>
+<g>
+    <path d="M 900.7 217.7 L 1170.4 215.1 L 1186.7 236.2 L 1185.0 270.9 L 1169.2 290.5 L 903.8 290.3 L 886.2 272.0 L 886.5 234.6 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 903.6 219.6 L 1169.1 218.2 L 1181.9 233.6 L 1183.8 269.1 L 1165.4 285.0 L 904.4 286.6 L 889.7 269.3 L 886.8 233.1 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="17" fill="#171717" font-weight="750">runtime provider auth</text>
+<text x="902" y="269.25" font-size="17" fill="#171717" font-weight="750">account, capabilities</text>
+  </g>
+<g>
+    <path d="M 111.0 328.4 L 379.6 326.3 L 394.5 343.5 L 395.9 384.2 L 376.7 404.5 L 109.9 399.9 L 95.3 383.7 L 93.8 343.6 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 112.3 332.6 L 377.6 330.6 L 392.5 347.3 L 394.0 383.7 L 376.9 398.5 L 115.4 400.1 L 96.7 384.0 L 99.3 346.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="17" fill="#171717" font-weight="750">model catalog bundled +</text>
+<text x="112" y="381.25" font-size="17" fill="#171717" font-weight="750">remote + cache</text>
+  </g>
+<g>
+    <path d="M 506.9 329.8 L 773.9 329.4 L 788.5 345.1 L 790.3 385.4 L 773.1 402.6 L 506.9 401.3 L 490.2 382.0 L 488.0 347.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 508.8 329.7 L 771.6 330.7 L 784.5 347.1 L 785.4 383.1 L 771.4 398.5 L 506.5 400.4 L 491.7 385.1 L 495.4 347.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="17" fill="#171717" font-weight="750">typed API layer Responses</text>
+<text x="507" y="381.25" font-size="17" fill="#171717" font-weight="750">Compact, Models, Realtime</text>
+  </g>
+<g>
+    <path d="M 901.5 326.4 L 1166.6 327.3 L 1187.1 348.4 L 1187.2 383.0 L 1168.7 400.4 L 903.9 404.3 L 884.7 383.6 L 882.7 346.4 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 903.3 333.3 L 1169.3 329.8 L 1184.0 346.6 L 1184.4 384.7 L 1168.5 395.5 L 903.4 398.4 L 889.0 384.7 L 887.5 347.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="17" fill="#171717" font-weight="750">transport HTTP, SSE</text>
+<text x="902" y="381.25" font-size="17" fill="#171717" font-weight="750">WebSocket, retries</text>
+  </g>
+<g>
+    <path d="M 111.5 438.9 L 378.4 438.1 L 395.5 457.5 L 395.1 493.8 L 378.2 511.8 L 110.6 512.3 L 94.2 495.3 L 92.8 455.8 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 112.9 441.6 L 377.5 444.0 L 392.0 457.2 L 392.0 497.3 L 379.3 511.1 L 111.6 512.3 L 95.9 497.0 L 99.0 458.5 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="17" fill="#171717" font-weight="750">normalized response events</text>
+  </g>
+  </g>
+</svg>

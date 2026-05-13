@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-08-02-zh desc-chapter-08-02-zh">
+  <title id="title-chapter-08-02-zh">原始事件与规约图</title>
+  <desc id="desc-chapter-08-02-zh">原始事件与规约图的手绘白板图，展示原始模型载荷、原始运行时载荷、原始终端载荷、严格规约器、模型可见对话条目之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-08-02-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 48.4 22.6 L 1228.9 24.5 L 1259.7 50.7 L 1258.2 647.6 L 1230.7 678.7 L 47.8 677.8 L 21.0 650.6 L 23.3 52.1 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-08-02-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">原始事件与规约图</text>
+    <path d="M 64.0 166.0 C 469.5 173.1, 852.3 175.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 93.4 163.0 L 546.8 166.4 L 569.7 186.3 L 568.0 596.5 L 546.5 622.5 L 90.5 619.5 L 70.5 598.3 L 72.0 187.8 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <path d="M 732.7 166.2 L 1187.2 166.5 L 1211.8 189.0 L 1209.5 597.6 L 1186.3 622.4 L 732.0 621.9 L 709.9 597.9 L 710.5 187.1 Z" fill="#f8fafc" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <text x="96" y="201" font-size="17" fill="#475569" font-weight="800">事实流</text>
+    <text x="736" y="201" font-size="17" fill="#475569" font-weight="800">可读投影</text>
+    <path d="M 610.0 203.0 C 630.8 209.5, 667.1 200.8, 675.0 203.0" fill="none" stroke="#d97757" stroke-width="3" marker-end="url(#arrow)" opacity="0.7" />
+<g>
+    <path d="M 121.2 237.1 L 509.3 235.4 L 526.7 253.8 L 524.9 269.7 L 507.7 284.8 L 122.6 286.0 L 104.1 271.3 L 105.0 250.9 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 121.9 238.6 L 504.3 238.1 L 521.9 253.2 L 523.4 269.4 L 505.8 282.0 L 123.3 281.8 L 108.7 266.2 L 111.2 253.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="267" font-size="18" fill="#171717" font-weight="750">原始模型载荷</text>
+  </g>
+<g>
+    <path d="M 765.0 234.3 L 1145.7 236.4 L 1163.6 252.8 L 1167.0 269.9 L 1146.9 286.7 L 762.2 286.6 L 744.6 271.4 L 746.8 251.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 761.8 236.5 L 1144.8 240.9 L 1163.2 252.2 L 1163.4 268.9 L 1144.2 283.8 L 763.8 284.2 L 748.7 265.8 L 751.4 254.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="267" font-size="18" fill="#171717" font-weight="750">原始运行时载荷</text>
+  </g>
+<g>
+    <path d="M 121.7 297.9 L 509.3 297.1 L 526.0 317.5 L 526.4 331.6 L 504.5 350.5 L 124.9 351.6 L 105.5 332.8 L 103.4 318.6 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 124.6 302.4 L 505.2 305.4 L 522.8 316.9 L 522.6 331.3 L 507.1 346.7 L 121.6 344.6 L 110.7 333.2 L 111.4 318.2 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="331" font-size="18" fill="#171717" font-weight="750">原始终端载荷</text>
+  </g>
+<g>
+    <path d="M 764.0 297.4 L 1146.9 299.6 L 1163.0 318.0 L 1164.1 332.3 L 1144.9 353.3 L 761.1 349.5 L 746.6 335.0 L 746.0 319.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 762.3 301.4 L 1144.3 303.3 L 1161.8 320.0 L 1161.4 329.8 L 1146.6 348.3 L 761.7 349.0 L 750.2 330.7 L 747.6 320.4 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="331" font-size="18" fill="#171717" font-weight="750">严格规约器</text>
+  </g>
+<g>
+    <path d="M 125.0 361.2 L 505.1 360.5 L 526.9 380.4 L 523.3 397.9 L 504.7 413.3 L 121.1 417.5 L 103.1 397.2 L 102.9 382.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 123.0 368.2 L 505.0 368.5 L 518.9 383.9 L 521.3 396.3 L 506.4 412.5 L 123.2 410.9 L 110.0 393.5 L 110.8 383.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="395" font-size="18" fill="#171717" font-weight="750">模型可见对话条目</text>
+  </g>
+<g>
+    <path d="M 760.8 365.2 L 1149.2 361.5 L 1164.3 382.1 L 1162.9 396.0 L 1147.1 417.0 L 761.9 415.7 L 743.7 398.6 L 745.6 380.6 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 764.9 365.7 L 1146.2 366.9 L 1162.2 383.7 L 1159.9 398.0 L 1146.2 409.2 L 762.0 408.7 L 747.8 393.7 L 748.1 379.8 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="395" font-size="18" fill="#171717" font-weight="750">运行时对象与工具输出</text>
+  </g>
+<g>
+    <path d="M 123.4 424.7 L 508.5 427.2 L 525.4 443.7 L 523.4 462.9 L 506.1 480.3 L 125.0 478.5 L 104.8 462.1 L 106.5 444.0 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 126.3 430.3 L 505.8 430.5 L 519.6 446.7 L 521.2 459.2 L 507.8 476.3 L 126.1 473.2 L 107.5 461.6 L 111.2 443.9 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="459" font-size="18" fill="#171717" font-weight="750">交互边因果流</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-01-concept-1-zh desc-chapter-01-concept-1-zh">
+  <title id="title-chapter-01-concept-1-zh">核心词汇</title>
+  <desc id="desc-chapter-01-concept-1-zh">核心词汇的手绘白板图，展示线程、Turn、条目、Operation、事件之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-01-concept-1-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 47.6 22.8 L 1228.6 19.8 L 1256.9 49.1 L 1259.4 652.5 L 1229.5 679.6 L 51.4 677.3 L 23.5 650.5 L 23.8 48.2 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-01-concept-1-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">核心词汇</text>
+    <path d="M 64.0 166.0 C 466.7 176.3, 865.7 163.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 640.0 380.0 C 626.6 389.7, 634.9 172.9, 640.0 157.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 766.0 376.9, 900.0 254.0, 991.8 239.8" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 780.7 384.5, 932.9 425.0, 1078.7 426.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 705.5 383.5, 790.8 588.2, 835.2 575.2" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 572.4 377.0, 510.6 560.1, 444.8 575.2" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 483.0 384.7, 329.7 414.9, 201.3 426.0" fill="none" stroke="#b7791f" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 380.0 C 525.6 381.5, 408.6 237.8, 288.2 239.8" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 548.3 124.2 L 735.8 123.7 L 753.5 139.8 L 751.7 175.5 L 731.5 194.1 L 543.9 190.5 L 527.3 176.0 L 527.0 140.9 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 546.8 125.3 L 733.5 124.4 L 747.2 142.6 L 747.0 174.8 L 732.1 187.9 L 549.1 186.2 L 534.2 172.6 L 531.6 143.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="546" y="154" font-size="18" fill="#171717" font-weight="750">线程</text>
+  </g>
+<g>
+    <path d="M 899.8 206.3 L 1083.9 206.8 L 1105.7 222.4 L 1102.4 256.9 L 1084.4 272.5 L 897.4 273.8 L 879.3 254.6 L 881.0 220.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 901.2 206.7 L 1084.0 210.5 L 1100.9 222.8 L 1098.1 253.9 L 1086.5 268.6 L 899.9 273.1 L 885.3 256.1 L 885.2 221.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="897.8241671106134" y="236.83224359107862" font-size="18" fill="#171717" font-weight="750">Turn</text>
+  </g>
+<g>
+    <path d="M 983.2 389.3 L 1174.7 390.4 L 1188.8 410.8 L 1191.9 443.9 L 1172.6 462.9 L 986.2 462.9 L 965.8 441.9 L 969.2 408.9 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 987.2 394.9 L 1173.6 394.3 L 1189.2 409.6 L 1187.6 440.3 L 1172.6 458.1 L 983.5 458.6 L 968.2 443.0 L 969.4 410.5 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="984.7175604818206" y="422.9546054703892" font-size="18" fill="#171717" font-weight="750">条目</text>
+  </g>
+<g>
+    <path d="M 742.5 541.2 L 929.8 541.2 L 948.6 557.5 L 945.2 592.1 L 927.5 611.2 L 739.4 608.2 L 724.4 592.7 L 722.7 559.2 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 742.4 542.1 L 928.5 544.7 L 944.4 557.8 L 941.4 590.6 L 926.7 604.8 L 739.8 606.5 L 727.9 589.9 L 726.2 558.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="741.2476826029012" y="572.2131509385322" font-size="18" fill="#171717" font-weight="750">Operation</text>
+  </g>
+<g>
+    <path d="M 351.7 538.6 L 536.9 541.8 L 558.9 559.1 L 555.4 594.5 L 536.3 610.5 L 351.6 612.4 L 332.0 592.0 L 334.8 560.3 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 354.1 544.7 L 539.1 544.3 L 552.4 558.5 L 554.1 592.4 L 535.7 606.2 L 353.7 607.1 L 339.1 592.5 L 336.1 556.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="350.75231739709886" y="572.2131509385322" font-size="18" fill="#171717" font-weight="750">事件</text>
+  </g>
+<g>
+    <path d="M 107.5 391.2 L 296.7 390.2 L 315.2 407.5 L 312.0 445.0 L 293.2 461.1 L 109.4 463.1 L 91.0 444.9 L 87.0 407.5 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 107.3 396.3 L 296.7 396.7 L 311.8 408.4 L 308.3 440.1 L 292.9 456.4 L 109.5 457.7 L 91.9 440.3 L 91.3 410.9 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="107.28243951817939" y="422.9546054703892" font-size="18" fill="#171717" font-weight="750">工具</text>
+  </g>
+<g>
+    <path d="M 194.1 206.0 L 382.4 205.0 L 398.5 223.0 L 401.7 256.4 L 381.5 276.7 L 192.7 272.5 L 177.8 257.2 L 174.0 225.2 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2.4" />
+    <path d="M 195.8 209.9 L 379.5 211.1 L 398.2 222.4 L 398.0 258.2 L 383.7 268.4 L 196.7 272.1 L 180.2 258.3 L 180.0 221.8 Z" fill="none" stroke="#475569" stroke-width="1.1" opacity="0.28" />
+    <text x="194.17583288938653" y="236.83224359107865" font-size="18" fill="#171717" font-weight="750">rollout</text>
+  </g>
+<g>
+    <path d="M 506.2 323.0 L 772.9 319.9 L 789.8 338.3 L 790.8 409.6 L 771.0 430.1 L 510.3 432.0 L 488.3 410.0 L 489.1 340.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 510.0 326.0 L 771.5 326.7 L 785.9 341.8 L 784.2 411.1 L 770.5 427.1 L 509.5 423.8 L 492.4 408.7 L 494.4 340.9 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="508" y="354" font-size="18" fill="#171717" font-weight="750">核心词汇</text>
+  </g>
+  </g>
+</svg>

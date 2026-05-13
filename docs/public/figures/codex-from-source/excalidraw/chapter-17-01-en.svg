@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-17-01-en desc-chapter-17-01-en">
+  <title id="title-chapter-17-01-en">The Boundary MCP Creates</title>
+  <desc id="desc-chapter-17-01-en">Hand-drawn whiteboard figure for The Boundary MCP Creates, showing the relationship between MCP config and built-ins, Effective server definitions, Managed MCP clients, Tool listings, Sanitized model names.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-17-01-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 47.7 21.6 L 1229.6 20.4 L 1260.3 52.3 L 1257.3 650.6 L 1231.2 680.0 L 49.7 680.0 L 23.9 647.8 L 23.6 49.3 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-17-01-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">The Boundary MCP Creates</text>
+    <path d="M 64.0 166.0 C 453.1 157.9, 858.5 151.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 94.3 152.0 L 394.9 151.8 L 418.5 172.1 L 419.1 598.2 L 394.0 621.9 L 93.0 622.4 L 71.6 595.8 L 71.0 176.4 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="90" y="184" font-size="16" fill="#475569" font-weight="800">External surface</text>
+    </g>
+<g>
+      <path d="M 489.9 149.0 L 789.1 152.1 L 813.7 174.9 L 813.2 595.3 L 790.9 618.6 L 487.6 618.7 L 465.0 597.5 L 462.7 176.4 Z" fill="#fffdf7" stroke="#475569" stroke-width="1.8" stroke-dasharray="0" opacity="0.72" />
+      <text x="485" y="184" font-size="16" fill="#475569" font-weight="800">Runtime contract</text>
+    </g>
+<g>
+      <path d="M 886.4 151.1 L 1187.7 152.0 L 1209.0 175.9 L 1210.0 597.9 L 1184.6 618.9 L 883.3 618.7 L 860.2 595.5 L 859.4 175.3 Z" fill="#f8fafc" stroke="#475569" stroke-width="1.8" stroke-dasharray="8 10" opacity="0.72" />
+      <text x="880" y="184" font-size="16" fill="#475569" font-weight="800">Execution boundary</text>
+    </g>
+<path d="M 396.0 253.0 C 435.0 259.5, 445.7 245.5, 489.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 253.0 C 809.5 263.4, 872.0 244.0, 884.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 253.0 C 804.6 260.2, 423.3 356.7, 94.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 396.0 365.0 C 429.4 356.6, 472.3 378.8, 489.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 791.0 365.0 C 826.3 373.9, 869.4 371.0, 884.0 365.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1186.0 365.0 C 810.9 363.2, 408.6 479.4, 94.0 477.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 111.4 217.0 L 377.1 213.9 L 396.2 233.4 L 397.9 273.4 L 375.6 292.0 L 109.7 290.6 L 92.4 269.8 L 92.6 235.0 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 112.0 218.5 L 377.5 220.4 L 390.1 233.5 L 392.0 272.0 L 374.7 286.9 L 114.7 285.3 L 99.9 273.3 L 96.7 235.7 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="248" font-size="17" fill="#171717" font-weight="750">MCP config and built ins</text>
+  </g>
+<g>
+    <path d="M 505.3 216.0 L 774.4 217.6 L 792.3 233.9 L 792.0 271.8 L 775.0 289.9 L 509.3 288.0 L 491.0 272.3 L 487.9 234.0 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 508.5 219.9 L 770.4 217.9 L 785.9 234.7 L 786.7 268.8 L 773.5 288.3 L 505.7 287.7 L 493.4 271.3 L 494.7 232.9 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="248" font-size="17" fill="#171717" font-weight="750">Effective server</text>
+<text x="507" y="269.25" font-size="17" fill="#171717" font-weight="750">definitions</text>
+  </g>
+<g>
+    <path d="M 903.8 217.6 L 1169.6 213.7 L 1187.0 235.9 L 1187.1 272.9 L 1168.6 292.0 L 899.7 289.0 L 885.5 272.9 L 884.7 232.6 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 903.8 220.3 L 1167.3 221.0 L 1183.8 232.5 L 1180.2 269.8 L 1165.3 284.9 L 901.4 286.2 L 886.2 270.7 L 890.2 235.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="248" font-size="18" fill="#171717" font-weight="750">Managed MCP clients</text>
+  </g>
+<g>
+    <path d="M 111.0 330.1 L 378.0 327.8 L 394.1 345.5 L 397.6 386.2 L 379.6 401.9 L 110.5 401.5 L 95.7 384.0 L 93.7 344.5 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 111.5 334.3 L 376.3 332.1 L 392.4 347.9 L 391.4 383.0 L 378.9 396.3 L 111.2 397.0 L 96.9 382.8 L 96.2 346.9 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="360" font-size="18" fill="#171717" font-weight="750">Tool listings</text>
+  </g>
+<g>
+    <path d="M 507.7 330.1 L 770.7 329.0 L 793.4 345.9 L 790.5 385.4 L 773.5 404.0 L 506.2 401.8 L 489.3 385.9 L 487.5 344.1 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 506.9 333.0 L 771.1 331.6 L 787.3 349.0 L 787.5 383.4 L 773.2 397.6 L 506.9 398.6 L 492.5 382.9 L 495.4 345.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="507" y="360" font-size="18" fill="#171717" font-weight="750">Sanitized model names</text>
+  </g>
+<g>
+    <path d="M 901.5 326.4 L 1165.6 329.7 L 1185.2 344.8 L 1188.0 381.7 L 1168.2 403.6 L 900.2 403.5 L 886.4 386.2 L 883.9 346.3 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 901.1 330.7 L 1168.6 331.1 L 1180.7 345.9 L 1182.4 382.8 L 1165.3 400.1 L 902.1 400.4 L 887.1 385.4 L 886.8 345.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="902" y="360" font-size="18" fill="#171717" font-weight="750">Model tool call</text>
+  </g>
+<g>
+    <path d="M 112.1 442.0 L 379.8 438.1 L 397.9 458.0 L 397.7 494.4 L 377.5 513.2 L 112.8 513.9 L 96.4 495.4 L 95.9 457.9 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 113.7 442.3 L 375.5 446.5 L 394.1 459.9 L 390.9 494.4 L 378.1 508.2 L 111.9 510.9 L 96.7 495.7 L 96.4 460.8 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="112" y="472" font-size="18" fill="#171717" font-weight="750">Route by provenance</text>
+  </g>
+  </g>
+</svg>

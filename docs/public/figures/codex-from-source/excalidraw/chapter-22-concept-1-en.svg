@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-22-concept-1-en desc-chapter-22-concept-1-en">
+  <title id="title-chapter-22-concept-1-en">Restricted Internal Memory Agent</title>
+  <desc id="desc-chapter-22-concept-1-en">Hand-drawn whiteboard figure for Restricted Internal Memory Agent, showing the relationship between Selected context, Restricted prompt, Memory worktree, Allowed artifacts, Accepted output.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-22-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 49.0 21.3 L 1227.7 23.9 L 1257.3 49.7 L 1259.4 691.5 L 1230.3 718.3 L 48.9 716.7 L 22.1 691.4 L 23.4 49.1 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-22-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Restricted Internal Memory Agent</text>
+    <path d="M 64.0 166.0 C 451.9 163.5, 881.8 173.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+    <path d="M 103.0 213.3 L 351.5 213.4 L 379.6 242.6 L 381.5 544.5 L 350.6 571.7 L 102.1 575.5 L 69.6 544.1 L 70.2 244.8 Z" fill="#f8fafc" stroke="#475569" stroke-width="2.2" opacity="0.66" />
+    <text x="96" y="252" font-size="17" fill="#475569" font-weight="800">Active turn read path</text>
+  </g>
+<g>
+    <path d="M 516.2 177.6 L 764.9 178.4 L 796.4 211.3 L 798.3 581.6 L 764.5 608.8 L 517.8 609.4 L 484.3 578.6 L 485.9 208.6 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.2" opacity="0.66" />
+    <text x="510" y="218" font-size="17" fill="#475569" font-weight="800">Evidence and citations</text>
+  </g>
+<g>
+    <path d="M 931.2 212.2 L 1178.8 215.3 L 1212.2 242.4 L 1207.7 541.6 L 1181.0 575.5 L 932.0 575.9 L 900.4 546.5 L 899.8 242.6 Z" fill="#f8fafc" stroke="#475569" stroke-width="2.2" opacity="0.66" />
+    <text x="924" y="252" font-size="17" fill="#475569" font-weight="800">Background write path</text>
+  </g>
+<path d="M 227.0 339.0 C 381.3 343.7, 508.2 312.2, 642.0 314.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 642.0 314.0 C 510.2 304.5, 356.6 454.2, 227.0 469.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1057.0 339.0 C 916.1 342.0, 756.6 474.9, 642.0 469.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 642.0 469.0 C 787.0 477.2, 928.6 464.5, 1057.0 469.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1057.0 469.0 C 759.3 466.3, 460.0 354.0, 227.0 339.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 122.1 300.4 L 330.3 299.5 L 349.7 318.2 L 350.4 358.8 L 331.2 379.6 L 122.7 376.4 L 107.0 358.1 L 103.2 316.1 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 124.0 302.5 L 332.5 304.3 L 344.3 321.5 L 345.0 360.1 L 329.6 373.0 L 126.2 372.6 L 107.4 361.2 L 107.1 320.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="332" font-size="18" fill="#171717" font-weight="750">Selected context</text>
+  </g>
+<g>
+    <path d="M 121.1 428.1 L 331.0 430.0 L 348.1 450.1 L 346.7 488.3 L 328.8 507.1 L 124.8 509.3 L 102.8 490.7 L 102.5 447.5 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 123.1 435.9 L 331.1 434.5 L 346.4 447.2 L 347.0 486.7 L 332.1 503.8 L 124.1 504.1 L 110.6 490.5 L 110.0 449.5 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="462" font-size="18" fill="#171717" font-weight="750">Restricted prompt</text>
+  </g>
+<g>
+    <path d="M 539.0 275.7 L 747.4 273.8 L 765.7 293.3 L 763.3 333.9 L 744.7 354.3 L 536.2 353.7 L 519.7 335.2 L 519.6 290.9 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 539.9 278.2 L 743.5 278.2 L 761.4 291.8 L 762.1 335.5 L 747.1 348.9 L 538.4 350.1 L 523.0 335.4 L 524.0 293.8 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="538" y="307" font-size="18" fill="#171717" font-weight="750">Memory worktree</text>
+  </g>
+<g>
+    <path d="M 537.9 428.3 L 745.0 430.3 L 765.1 448.8 L 766.1 489.4 L 748.3 506.4 L 540.4 506.2 L 521.8 492.3 L 519.4 450.2 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 537.8 433.6 L 744.4 434.6 L 760.8 449.2 L 758.1 491.2 L 744.6 501.6 L 538.8 504.7 L 521.5 487.8 L 522.3 448.2 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="538" y="462" font-size="18" fill="#171717" font-weight="750">Allowed artifacts</text>
+  </g>
+<g>
+    <path d="M 952.3 298.9 L 1158.8 299.4 L 1178.8 316.2 L 1178.4 361.7 L 1163.3 376.2 L 951.0 376.4 L 935.8 361.4 L 937.0 317.5 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 954.9 305.8 L 1160.0 303.3 L 1176.3 320.9 L 1174.0 361.5 L 1161.9 375.9 L 952.7 375.6 L 936.6 360.2 L 938.7 317.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="953" y="332" font-size="18" fill="#171717" font-weight="750">Accepted output</text>
+  </g>
+<g>
+    <path d="M 954.5 429.5 L 1161.1 428.2 L 1177.1 446.2 L 1180.6 488.1 L 1160.1 508.4 L 954.1 508.1 L 934.5 491.5 L 933.6 446.8 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 956.0 436.3 L 1161.7 435.7 L 1172.9 449.3 L 1174.0 491.0 L 1159.2 505.5 L 952.3 504.4 L 936.5 490.3 L 940.9 449.7 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="953" y="462" font-size="18" fill="#171717" font-weight="750">Sync back</text>
+  </g>
+  </g>
+</svg>

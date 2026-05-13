@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="740" viewBox="0 0 1280 740" role="img" aria-labelledby="title-chapter-24-concept-1-en desc-chapter-24-concept-1-en">
+  <title id="title-chapter-24-concept-1-en">Delivery Protects Product Shape</title>
+  <desc id="desc-chapter-24-concept-1-en">Hand-drawn whiteboard figure for Delivery Protects Product Shape, showing the relationship between Platform package, Installer, Bundled helper, Native dependency, Artifact verification.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-24-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="740" rx="30" fill="#fffdf7" />
+  <path d="M 49.8 21.6 L 1230.9 19.7 L 1257.8 48.7 L 1257.0 687.7 L 1232.0 715.5 L 48.6 715.5 L 22.5 691.2 L 22.4 51.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="740" filter="url(#paper-chapter-24-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Delivery Protects Product Shape</text>
+    <path d="M 64.0 166.0 C 467.3 159.9, 865.2 158.2, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <ellipse cx="640" cy="392" rx="475" ry="210" fill="#f8fafc" stroke="#475569" stroke-width="2" stroke-dasharray="16 12" opacity="0.38" />
+    <ellipse cx="640" cy="392" rx="250" ry="114" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.42" />
+<path d="M 640.0 268.0 C 485.3 261.5, 356.4 259.0, 245.0 245.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 268.0 C 791.0 273.1, 923.9 230.1, 1033.0 245.0" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 268.0 C 489.0 272.2, 360.0 443.9, 245.0 433.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 268.0 C 792.3 269.6, 915.2 448.5, 1033.0 433.0" fill="none" stroke="#be4456" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 268.0 C 566.7 274.4, 510.0 630.8, 435.0 621.0" fill="none" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 268.0 C 699.2 265.9, 767.1 609.3, 845.0 621.0" fill="none" stroke="#b7791f" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 9" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 492.4 219.2 L 784.9 221.2 L 807.0 240.3 L 807.2 299.2 L 787.7 316.3 L 491.0 316.1 L 473.5 298.7 L 472.6 238.8 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 492.3 223.0 L 785.4 224.5 L 803.4 237.7 L 799.2 297.9 L 787.3 312.9 L 495.5 310.5 L 479.9 299.2 L 481.2 238.1 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="493" y="252" font-size="18" fill="#171717" font-weight="750">Platform package</text>
+  </g>
+<g>
+    <path d="M 149.0 207.9 L 339.8 205.4 L 357.6 224.5 L 359.4 264.7 L 339.9 283.1 L 149.9 286.4 L 129.8 266.8 L 127.6 222.4 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 146.5 208.7 L 340.6 212.4 L 356.9 226.1 L 355.4 262.5 L 343.2 281.4 L 146.8 278.4 L 134.7 265.9 L 133.9 223.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="148" y="238" font-size="18" fill="#171717" font-weight="750">Installer</text>
+  </g>
+<g>
+    <path d="M 935.1 203.5 L 1128.4 207.7 L 1146.2 225.0 L 1148.5 266.8 L 1128.5 285.8 L 933.5 282.4 L 918.6 265.3 L 916.3 224.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 939.1 209.3 L 1130.0 211.0 L 1146.4 224.1 L 1145.1 267.1 L 1126.5 279.4 L 937.2 281.7 L 922.8 264.9 L 920.4 225.4 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="936" y="238" font-size="18" fill="#171717" font-weight="750">Bundled helper</text>
+  </g>
+<g>
+    <path d="M 147.3 393.0 L 341.3 395.3 L 358.3 409.7 L 361.2 456.5 L 341.5 470.3 L 146.6 473.0 L 130.9 451.7 L 128.0 412.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 147.1 397.1 L 342.2 400.2 L 357.4 412.1 L 358.3 453.2 L 341.2 468.9 L 148.4 465.6 L 132.4 452.9 L 134.5 412.8 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="148" y="426" font-size="18" fill="#171717" font-weight="750">Native dependency</text>
+  </g>
+<g>
+    <path d="M 933.9 392.5 L 1132.1 392.8 L 1147.1 411.6 L 1148.8 452.4 L 1129.8 471.1 L 934.0 471.8 L 916.3 452.4 L 917.9 413.8 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 938.1 396.5 L 1129.2 396.6 L 1144.6 413.3 L 1144.8 451.8 L 1131.1 468.6 L 936.3 467.5 L 923.9 455.3 L 922.9 411.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="936" y="426" font-size="18" fill="#171717" font-weight="750">Artifact</text>
+<text x="936" y="448.5" font-size="18" fill="#171717" font-weight="750">verification</text>
+  </g>
+<g>
+    <path d="M 330.4 582.6 L 543.1 579.6 L 560.2 599.6 L 560.6 643.8 L 544.4 660.5 L 330.2 658.3 L 309.3 640.0 L 312.0 602.3 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 329.6 586.0 L 542.7 586.1 L 553.9 599.1 L 555.3 638.7 L 539.1 656.5 L 328.5 655.1 L 316.4 640.1 L 316.4 599.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="328" y="614" font-size="18" fill="#171717" font-weight="750">Runtime contract</text>
+  </g>
+<g>
+    <path d="M 739.9 584.5 L 953.4 581.8 L 968.1 598.2 L 969.1 640.9 L 951.6 661.6 L 737.5 658.8 L 722.1 643.6 L 718.3 599.4 Z" fill="#eef2ff" stroke="#4f46e5" stroke-width="2.4" />
+    <path d="M 739.8 585.4 L 952.5 585.7 L 965.1 603.1 L 965.7 641.4 L 950.9 658.3 L 740.8 657.8 L 724.5 641.6 L 723.4 601.8 Z" fill="none" stroke="#4f46e5" stroke-width="1.1" opacity="0.28" />
+    <text x="738" y="614" font-size="18" fill="#171717" font-weight="750">Integrity Records</text>
+  </g>
+  </g>
+</svg>

@@ -28,19 +28,10 @@ logic, platform differences would infect the turn loop. Codex instead keeps a
 single runtime center and lets packaging solve acquisition, selection, and
 verification.
 
-```mermaid
-graph LR
-  CargoRelease[Cargo release workflow] --> NativeBinary[Native Codex binary]
-  BazelVerify[Bazel release-build verification] -. checks assumptions .-> NativeBinary
-  NativeBinary --> NpmPlatform[npm platform package]
-  NativeBinary --> ReleaseArchive[release archive]
-  NpmMeta[npm meta package] --> NpmPlatform
-  ReleaseArchive --> Installer[standalone installer]
-  Helpers[helper binaries] --> NpmPlatform
-  Helpers --> Installer
-  NpmPlatform --> UserCommand[user command]
-  Installer --> UserCommand
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-24-01-en.svg" alt="Delivery keeps the native Codex binary authoritative while Cargo, Bazel verification, npm platform packages, release archives, the meta package, and standalone installers handle distribution." loading="lazy" />
+  <figcaption>Delivery keeps the native Codex binary authoritative while Cargo, Bazel verification, npm platform packages, release archives, the meta package, and standalone installers handle distribution.</figcaption>
+</figure>
 
 The meta package and installer are different doors into the same house. The
 user should not be able to infer which door they used by observing runtime
@@ -91,20 +82,10 @@ installer should invent a second artifact model. A stronger pattern is to let
 the installer consume the same release payloads that packaging produces, then
 expose a stable command shim.
 
-```mermaid
-sequenceDiagram
-  participant CI as Release CI
-  participant NPM as Package staging
-  participant GH as Release storage
-  participant Inst as Installer
-  participant User as User shell
-
-  CI->>NPM: assemble platform packages
-  CI->>GH: publish verified payloads
-  Inst->>GH: fetch matching payload
-  Inst->>Inst: verify and place binary
-  User->>Inst: invoke stable command
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-24-02-en.svg" alt="Release CI assembles and stages packages, publishes payloads to release storage, and lets the installer place the verified command in the user's shell." loading="lazy" />
+  <figcaption>Release CI assembles and stages packages, publishes payloads to release storage, and lets the installer place the verified command in the user's shell.</figcaption>
+</figure>
 
 This keeps delivery paths coupled at the artifact level rather than forked at
 the behavior level. The installer owns installation mechanics. It should not
@@ -127,19 +108,13 @@ turn loop; both must be visible to release engineering.
 
 The reusable pattern is quarantine. Native complexity belongs in `third_party`,
 patch directories, Bazel repository rules, release scripts, and helper package
-assembly. Product crates should consume a stable capability, not a maze of
+assembly. Product code should consume a stable capability, not a maze of
 platform build details.
 
-```mermaid
-flowchart TD
-  Product[Product crates] --> Capability[Stable native capability]
-  Capability --> BuildBoundary[Build/release boundary]
-  BuildBoundary --> ThirdParty[Third-party metadata]
-  BuildBoundary --> Patches[Patch sets]
-  BuildBoundary --> Checksums[Checksum manifests]
-  BuildBoundary --> Helpers[Bundled helpers]
-  BuildBoundary --> Platform[Platform selectors]
-```
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-24-03-en.svg" alt="Product code consumes a stable native capability while third-party metadata, vendor fixes, Integrity Records, bundled helpers, and release rules stay behind the build and release boundary." loading="lazy" />
+  <figcaption>Product code consumes a stable native capability while third-party metadata, vendor fixes, Integrity Records, bundled helpers, and release rules stay behind the build and release boundary.</figcaption>
+</figure>
 
 The design is not free. Quarantine creates a maintenance surface: checksums
 must be updated, patches must be justified, release assets must be present, and
@@ -183,6 +158,12 @@ while adapting it to messy platforms. It should make install paths boring. It
 should make helper binaries available without forcing users to learn the helper
 graph. It should make native dependencies reproducible without forcing core
 engineers to debug archive selection in the turn loop.
+
+
+<figure class="sketch-figure">
+  <img src="/books/figures/codex-from-source/excalidraw/chapter-24-concept-1-en.svg" alt="Delivery architecture protects product architecture by keeping platform selection, dependency quarantine, and artifact verification outside the runtime contract." loading="lazy" />
+  <figcaption>Delivery architecture protects product architecture by keeping platform selection, dependency quarantine, and artifact verification outside the runtime contract.</figcaption>
+</figure>
 
 That is why packaging deserves its own chapter. It is not just about "how to
 ship." It is about preventing shipping concerns from changing what was shipped.

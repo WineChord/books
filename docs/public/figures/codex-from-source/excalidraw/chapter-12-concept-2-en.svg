@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-12-concept-2-en desc-chapter-12-concept-2-en">
+  <title id="title-chapter-12-concept-2-en">Approval as a Separate Gate</title>
+  <desc id="desc-chapter-12-concept-2-en">Hand-drawn whiteboard figure for Approval as a Separate Gate, showing the relationship between Policy says decision needed, Permission payload, Session approval key, One-time allow, Policy amendment.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-12-concept-2-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 47.8 23.7 L 1231.5 19.6 L 1259.8 48.1 L 1256.2 649.1 L 1229.2 676.0 L 48.3 678.7 L 21.5 651.4 L 22.6 47.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-12-concept-2-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Approval as a Separate Gate</text>
+    <path d="M 64.0 166.0 C 455.2 180.4, 859.6 162.1, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 251.0 161.6, 249.4 615.6, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1014.1 157.9, 1024.6 617.5, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 626.5 205.2, 648.6 226.5, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 636.3 275.7, 627.7 288.2, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 651.6 344.3, 623.6 347.8, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 646.4 389.2, 626.6 413.9, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 464.0 C 633.0 457.2, 634.8 481.2, 640.0 480.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 639.3 160.6 L 1020.6 185.3 L 641.3 207.9 L 259.9 184.2 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 640.6 164.3 L 1013.2 183.7 L 638.6 205.7 L 263.9 185.5 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="288" y="180" font-size="17" fill="#171717" font-weight="750">Policy says decision needed</text>
+  </g>
+<g>
+    <path d="M 325.3 222.7 L 954.5 225.4 L 975.3 239.6 L 972.5 255.3 L 954.7 271.4 L 322.6 272.2 L 306.9 251.6 L 307.2 242.3 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 326.3 225.9 L 953.3 229.6 L 970.5 244.0 L 970.0 250.8 L 954.4 269.9 L 323.8 265.9 L 311.9 254.1 L 311.5 242.3 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="325" y="256" font-size="18" fill="#171717" font-weight="750">Permission payload</text>
+  </g>
+<g>
+    <path d="M 638.6 286.9 L 960.9 311.5 L 640.4 335.0 L 319.5 311.8 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 640.1 292.4 L 956.5 311.8 L 641.6 333.1 L 322.5 313.1 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="347" y="308" font-size="18" fill="#171717" font-weight="750">Session approval key</text>
+  </g>
+<g>
+    <path d="M 640.2 352.4 L 950.0 376.9 L 639.4 398.7 L 332.8 375.9 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 641.2 355.0 L 942.1 376.7 L 641.4 396.2 L 337.1 374.2 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="359" y="372" font-size="18" fill="#171717" font-weight="750">One time allow</text>
+  </g>
+<g>
+    <path d="M 361.5 414.4 L 920.0 415.1 L 936.6 433.6 L 938.4 447.8 L 920.1 466.0 L 359.6 464.9 L 342.9 447.4 L 345.0 436.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 364.5 418.5 L 920.3 419.0 L 933.3 436.7 L 935.4 443.7 L 919.6 459.2 L 361.1 459.8 L 348.0 446.9 L 349.0 435.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="361" y="448" font-size="18" fill="#171717" font-weight="750">Policy amendment</text>
+  </g>
+<g>
+    <path d="M 641.9 479.3 L 1020.0 502.4 L 640.0 526.0 L 258.3 503.9 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" />
+    <path d="M 638.5 483.9 L 1014.6 503.7 L 638.0 522.2 L 265.0 502.1 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="288" y="500" font-size="18" fill="#171717" font-weight="750">Deny or timeout</text>
+  </g>
+  </g>
+</svg>

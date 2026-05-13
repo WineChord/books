@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-08-concept-2-en desc-chapter-08-concept-2-en">
+  <title id="title-chapter-08-concept-2-en">OTEL Operational Plane</title>
+  <desc id="desc-chapter-08-concept-2-en">Hand-drawn whiteboard figure for OTEL Operational Plane, showing the relationship between Runtime span, Provider latency, Retry attempt, Stream behavior, Trace context.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-08-concept-2-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 50.8 22.6 L 1228.2 23.9 L 1260.2 50.3 L 1258.3 652.4 L 1230.8 677.3 L 51.6 679.8 L 22.3 651.7 L 22.9 47.7 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-08-concept-2-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">OTEL Operational Plane</text>
+    <path d="M 64.0 166.0 C 475.8 161.3, 860.4 159.9, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 93.6 165.2 L 549.9 166.9 L 569.9 186.6 L 569.2 597.8 L 547.3 618.1 L 94.2 620.2 L 70.1 596.0 L 68.5 188.0 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <path d="M 730.8 163.4 L 1186.3 163.1 L 1210.3 186.1 L 1209.2 598.6 L 1187.1 619.4 L 730.7 619.9 L 709.7 598.6 L 711.0 185.0 Z" fill="#f8fafc" stroke="#475569" stroke-width="2" opacity="0.75" />
+    <text x="96" y="201" font-size="17" fill="#475569" font-weight="800">Fact stream</text>
+    <text x="736" y="201" font-size="17" fill="#475569" font-weight="800">Readable projection</text>
+    <path d="M 610.0 203.0 C 643.2 207.7, 672.3 212.2, 675.0 203.0" fill="none" stroke="#d97757" stroke-width="3" marker-end="url(#arrow)" opacity="0.7" />
+<g>
+    <path d="M 125.3 236.5 L 506.3 232.8 L 527.3 250.5 L 526.7 271.3 L 506.4 288.7 L 122.8 288.1 L 105.3 267.5 L 105.5 253.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 123.0 240.3 L 507.5 241.1 L 520.3 252.4 L 523.3 267.4 L 506.2 281.5 L 123.4 285.1 L 110.9 265.7 L 109.3 251.6 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="267" font-size="18" fill="#171717" font-weight="750">Runtime span</text>
+  </g>
+<g>
+    <path d="M 763.7 235.7 L 1148.5 235.5 L 1166.2 253.2 L 1163.2 268.8 L 1145.5 285.3 L 763.3 286.6 L 743.5 270.5 L 747.2 252.1 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 766.1 240.7 L 1145.2 240.6 L 1161.7 254.7 L 1159.9 266.6 L 1144.7 284.6 L 762.1 282.3 L 749.5 269.1 L 751.3 254.7 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="267" font-size="18" fill="#171717" font-weight="750">Provider latency</text>
+  </g>
+<g>
+    <path d="M 121.0 299.8 L 507.2 296.6 L 525.5 316.2 L 527.3 332.5 L 505.0 351.8 L 121.7 352.2 L 104.4 331.5 L 105.0 318.2 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 122.4 300.6 L 504.5 301.2 L 520.1 318.3 L 523.2 333.3 L 506.6 347.2 L 126.0 346.2 L 109.8 332.7 L 107.1 319.9 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="331" font-size="18" fill="#171717" font-weight="750">Retry attempt</text>
+  </g>
+<g>
+    <path d="M 763.2 298.3 L 1146.4 300.0 L 1164.3 314.9 L 1163.7 334.2 L 1145.4 353.1 L 761.6 349.9 L 744.6 334.4 L 746.9 316.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 764.1 302.9 L 1144.2 304.4 L 1163.0 316.6 L 1162.3 333.9 L 1146.5 348.1 L 762.6 346.4 L 747.5 333.1 L 750.1 316.0 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="331" font-size="18" fill="#171717" font-weight="750">Stream behavior</text>
+  </g>
+<g>
+    <path d="M 121.5 364.1 L 506.2 362.2 L 522.7 383.3 L 524.7 395.7 L 507.6 414.5 L 124.6 413.2 L 105.2 399.0 L 105.9 380.5 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 126.4 365.1 L 507.2 368.9 L 519.1 381.7 L 518.9 395.9 L 505.8 408.5 L 124.2 412.6 L 107.3 396.8 L 110.8 384.4 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="123" y="395" font-size="18" fill="#171717" font-weight="750">Trace context</text>
+  </g>
+<g>
+    <path d="M 764.9 363.6 L 1149.0 365.1 L 1165.6 381.8 L 1165.8 398.8 L 1145.3 412.7 L 761.8 417.4 L 745.0 395.5 L 745.4 379.1 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 763.6 367.8 L 1146.3 367.9 L 1160.6 380.2 L 1161.1 394.8 L 1143.5 410.3 L 764.0 412.6 L 750.0 394.2 L 748.7 380.3 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="763" y="395" font-size="18" fill="#171717" font-weight="750">Operational dashboard</text>
+  </g>
+  </g>
+</svg>

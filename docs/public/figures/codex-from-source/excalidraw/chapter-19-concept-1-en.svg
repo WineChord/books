@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-19-concept-1-en desc-chapter-19-concept-1-en">
+  <title id="title-chapter-19-concept-1-en">Conservative Configuration Migration</title>
+  <desc id="desc-chapter-19-concept-1-en">Hand-drawn whiteboard figure for Conservative Configuration Migration, showing the relationship between External artifact, Classify kind, Supported subset, Native target, Preserve existing file.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-19-concept-1-en" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 49.9 20.0 L 1231.4 21.5 L 1256.3 48.7 L 1255.6 652.0 L 1231.5 676.5 L 48.2 679.0 L 22.0 650.8 L 24.1 50.9 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-19-concept-1-en)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="33" fill="#171717" font-weight="800">Conservative Configuration Migration</text>
+    <path d="M 64.0 166.0 C 460.9 151.6, 868.9 163.6, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <g>
+      <path d="M 88.0 151.8 L 388.0 151.4 L 412.6 174.8 L 411.7 589.7 L 384.1 613.8 L 86.9 617.5 L 62.2 586.9 L 63.4 175.8 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="82" y="184" font-size="16" fill="#475569" font-weight="800">Input / origin</text>
+    </g>
+<g>
+      <path d="M 469.0 150.6 L 769.7 150.5 L 794.7 178.3 L 793.0 590.8 L 768.4 616.3 L 470.7 614.3 L 446.0 589.8 L 445.2 173.7 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2" opacity="0.65" />
+      <text x="465" y="184" font-size="16" fill="#475569" font-weight="800">Runtime boundary</text>
+    </g>
+<g>
+      <path d="M 851.5 151.1 L 1150.8 148.0 L 1178.3 174.8 L 1178.9 589.2 L 1151.9 617.1 L 853.6 617.4 L 829.8 590.7 L 827.0 174.4 Z" fill="#fffdf7" stroke="#475569" stroke-width="2" opacity="0.65" />
+      <text x="848" y="184" font-size="16" fill="#475569" font-weight="800">Output / evidence</text>
+    </g>
+<path d="M 384.0 253.0 C 408.3 237.8, 434.4 261.2, 473.0 253.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 253.0 C 808.2 243.2, 826.9 256.0, 856.0 253.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 1150.0 253.0 C 762.5 237.5, 405.6 349.5, 90.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 384.0 351.0 C 401.3 358.7, 456.8 362.0, 473.0 351.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 767.0 351.0 C 797.9 366.5, 819.2 350.7, 856.0 351.0" fill="none" stroke="#2f855a" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 109.0 220.2 L 367.4 218.5 L 382.2 237.8 L 386.3 266.8 L 363.8 284.9 L 109.4 284.7 L 92.1 266.3 L 88.0 236.3 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 106.5 225.8 L 365.3 225.5 L 378.3 236.9 L 378.8 267.9 L 367.0 283.2 L 106.6 282.7 L 94.1 265.8 L 93.8 240.3 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="252" font-size="18" fill="#171717" font-weight="750">External artifact</text>
+  </g>
+<g>
+    <path d="M 488.9 221.9 L 748.2 219.8 L 765.5 240.0 L 766.6 266.2 L 750.9 283.6 L 490.4 286.4 L 473.9 270.0 L 474.0 239.2 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 492.0 222.8 L 747.0 226.1 L 765.2 239.4 L 761.7 264.9 L 746.3 284.4 L 493.2 281.4 L 475.6 267.4 L 477.8 240.2 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="252" font-size="18" fill="#171717" font-weight="750">Classify kind</text>
+  </g>
+<g>
+    <path d="M 874.4 218.7 L 1131.2 221.9 L 1152.4 239.9 L 1152.2 267.7 L 1130.1 286.6 L 874.0 285.7 L 856.1 269.2 L 854.3 238.4 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 873.3 222.6 L 1129.1 222.6 L 1143.7 239.5 L 1144.0 265.9 L 1133.1 282.9 L 875.9 282.7 L 860.6 265.0 L 858.8 237.9 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="252" font-size="18" fill="#171717" font-weight="750">Supported subset</text>
+  </g>
+<g>
+    <path d="M 107.2 318.1 L 367.5 318.1 L 384.3 338.2 L 382.1 367.8 L 368.5 383.8 L 106.4 384.5 L 92.1 366.2 L 89.5 338.3 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 107.0 324.5 L 364.8 320.8 L 379.3 339.3 L 381.6 364.9 L 364.1 379.8 L 109.0 382.0 L 93.2 363.8 L 94.5 338.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="108" y="350" font-size="18" fill="#171717" font-weight="750">Native target</text>
+  </g>
+<g>
+    <path d="M 490.8 318.1 L 746.8 320.0 L 765.3 335.8 L 768.0 366.6 L 749.3 383.2 L 493.2 386.3 L 473.7 364.4 L 474.1 336.3 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 493.5 322.6 L 746.2 320.3 L 762.8 338.1 L 763.2 366.6 L 749.7 379.2 L 490.4 379.5 L 475.4 367.1 L 478.1 338.7 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="491" y="350" font-size="18" fill="#171717" font-weight="750">Preserve existing file</text>
+  </g>
+<g>
+    <path d="M 874.4 320.1 L 1133.8 317.7 L 1150.9 334.1 L 1149.8 368.4 L 1131.1 382.0 L 873.4 383.8 L 854.6 366.4 L 854.0 336.7 Z" fill="#fef3c7" stroke="#b7791f" stroke-width="2.4" stroke-dasharray="8 8" />
+    <path d="M 874.8 319.8 L 1129.2 319.8 L 1144.7 334.8 L 1146.4 365.1 L 1129.7 378.4 L 877.0 377.9 L 858.7 363.5 L 861.3 336.8 Z" fill="none" stroke="#b7791f" stroke-width="1.1" opacity="0.28" />
+    <text x="874" y="350" font-size="18" fill="#171717" font-weight="750">Import report</text>
+  </g>
+  </g>
+</svg>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="700" viewBox="0 0 1280 700" role="img" aria-labelledby="title-chapter-10-concept-2-zh desc-chapter-10-concept-2-zh">
+  <title id="title-chapter-10-concept-2-zh">exec-server 执行边界</title>
+  <desc id="desc-chapter-10-concept-2-zh">exec-server 执行边界的手绘白板图，展示执行请求、策略与审批、本地或远程执行器、执行器文件系统、有序输出之间的关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#d97757" />
+    </marker>
+    <filter id="paper-chapter-10-concept-2-zh" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise" />
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.045" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="1280" height="700" rx="30" fill="#fffdf7" />
+  <path d="M 51.4 24.0 L 1228.2 22.7 L 1258.7 49.1 L 1256.2 650.9 L 1228.3 676.2 L 51.6 678.4 L 24.4 652.3 L 21.1 51.6 Z" fill="none" stroke="#171717" stroke-width="2" opacity="0.18" />
+  <rect x="0" y="0" width="1280" height="700" filter="url(#paper-chapter-10-concept-2-zh)" />
+  <g font-family="Virgil, 'Comic Sans MS', 'Segoe Print', 'LXGW WenKai', 'Noto Sans CJK SC', cursive" letter-spacing="0">
+    <text x="66" y="95" font-size="31" fill="#171717" font-weight="800">exec server 执行边界</text>
+    <path d="M 64.0 166.0 C 467.5 159.6, 873.0 172.5, 1210.0 160.0" fill="none" stroke="#171717" stroke-width="2" opacity="0.22" />
+    <path d="M 260.0 150.0 C 244.2 147.1, 259.2 618.4, 260.0 610.0" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+    <path d="M 1020.0 150.0 C 1017.2 142.5, 1026.1 598.0, 1020.0 610.0" fill="none" stroke="#2f855a" stroke-width="2" stroke-dasharray="10 12" opacity="0.25" />
+<path d="M 640.0 208.0 C 639.8 205.8, 656.4 216.5, 640.0 224.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 272.0 C 651.9 267.4, 639.2 281.3, 640.0 288.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 336.0 C 630.9 331.3, 630.3 366.5, 640.0 352.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<path d="M 640.0 400.0 C 629.3 403.5, 647.3 414.9, 640.0 416.0" fill="none" stroke="#d97757" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" opacity="0.72" />
+<g>
+    <path d="M 275.8 158.2 L 1002.1 157.5 L 1019.8 178.9 L 1019.4 192.1 L 1002.9 209.2 L 277.2 210.2 L 259.4 189.2 L 258.4 177.5 Z" fill="#fff7d6" stroke="#d97757" stroke-width="2.4" />
+    <path d="M 278.9 164.3 L 1000.8 166.3 L 1014.7 178.8 L 1016.4 190.4 L 1002.5 203.8 L 281.4 204.5 L 263.0 189.2 L 263.8 177.0 Z" fill="none" stroke="#d97757" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="192" font-size="18" fill="#171717" font-weight="750">执行请求</text>
+  </g>
+<g>
+    <path d="M 639.8 222.7 L 971.9 246.5 L 641.8 272.8 L 308.1 246.0 Z" fill="#e9f4ff" stroke="#3b82f6" stroke-width="2.4" />
+    <path d="M 639.1 229.7 L 968.2 249.3 L 640.0 268.2 L 312.9 246.1 Z" fill="none" stroke="#3b82f6" stroke-width="1.1" opacity="0.28" />
+    <text x="335" y="244" font-size="18" fill="#171717" font-weight="750">策略与审批</text>
+  </g>
+<g>
+    <path d="M 335.1 289.4 L 941.0 289.7 L 961.2 305.0 L 960.8 317.2 L 945.5 334.3 L 335.7 336.4 L 317.8 316.3 L 320.1 304.1 Z" fill="#ecfdf3" stroke="#2f855a" stroke-width="2.4" />
+    <path d="M 336.6 291.9 L 944.4 293.6 L 956.0 309.5 L 955.9 315.9 L 941.1 332.8 L 335.6 330.9 L 320.6 316.3 L 324.1 308.0 Z" fill="none" stroke="#2f855a" stroke-width="1.1" opacity="0.28" />
+    <text x="337" y="320" font-size="18" fill="#171717" font-weight="750">本地或远程执行器</text>
+  </g>
+<g>
+    <path d="M 348.4 351.3 L 931.2 352.6 L 947.9 367.9 L 950.3 381.2 L 931.3 402.0 L 350.6 400.5 L 330.7 381.5 L 333.0 368.7 Z" fill="#fff1f2" stroke="#be4456" stroke-width="2.4" />
+    <path d="M 348.7 355.9 L 929.6 357.4 L 946.3 372.6 L 943.1 381.8 L 928.6 398.2 L 352.4 397.3 L 334.3 383.3 L 333.4 372.7 Z" fill="none" stroke="#be4456" stroke-width="1.1" opacity="0.28" />
+    <text x="349" y="384" font-size="18" fill="#171717" font-weight="750">执行器文件系统</text>
+  </g>
+<g>
+    <path d="M 276.1 416.8 L 1003.9 415.1 L 1019.7 436.3 L 1021.5 445.9 L 999.9 465.9 L 276.1 463.0 L 260.3 448.0 L 259.6 436.0 Z" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2.4" />
+    <path d="M 281.4 421.2 L 1002.8 421.5 L 1016.8 436.1 L 1015.6 446.8 L 1002.0 462.4 L 276.7 459.3 L 262.6 447.3 L 265.5 437.2 Z" fill="none" stroke="#8b5cf6" stroke-width="1.1" opacity="0.28" />
+    <text x="278" y="448" font-size="18" fill="#171717" font-weight="750">有序输出</text>
+  </g>
+  </g>
+</svg>
