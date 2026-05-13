@@ -6,11 +6,25 @@ interface Props {
   lang?: "en" | "zh";
   alternatePath?: string;
   showMenu?: boolean;
+  homePath?: string;
+  brandTitle?: string;
+  brandShortTitle?: string;
 }
 
-const { lang = "en", alternatePath, showMenu = false } = Astro.props;
+const {
+  lang = "en",
+  alternatePath,
+  showMenu = false,
+  homePath: configuredHomePath,
+  brandTitle = "Codex From Source",
+  brandShortTitle = "Codex",
+} = Astro.props;
 const base = import.meta.env.BASE_URL;
-const homePath = lang === "zh" ? pageUrl(base, "zh/codex-from-source/") : pageUrl(base, "codex-from-source/");
+const homePath = pageUrl(
+  base,
+  configuredHomePath ??
+    (lang === "zh" ? "zh/codex-from-source/" : "codex-from-source/"),
+);
 const alternate = alternatePath
   ? pageUrl(base, alternatePath)
   : lang === "zh"
@@ -45,8 +59,8 @@ const alternate = alternatePath
           </svg>
         </span>
         <span>
-          <span class="site-title-full">Codex From Source</span>
-          <span class="site-title-short">Codex</span>
+          <span class="site-title-full">{brandTitle}</span>
+          <span class="site-title-short">{brandShortTitle}</span>
         </span>
       </a>
     </div>

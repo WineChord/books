@@ -8,9 +8,10 @@ interface Props {
   description?: string;
   canonicalPath?: string;
   lang?: "en" | "zh";
+  titleSuffix?: string;
 }
 
-const { title, description, canonicalPath, lang = "en" } = Astro.props;
+const { title, description, canonicalPath, lang = "en", titleSuffix } = Astro.props;
 const base = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
@@ -22,7 +23,12 @@ const base = import.meta.env.BASE_URL.endsWith("/")
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
-    <SEO title={title} description={description} canonicalPath={canonicalPath} />
+    <SEO
+      title={title}
+      description={description}
+      canonicalPath={canonicalPath}
+      titleSuffix={titleSuffix}
+    />
     <script is:inline>
       (() => {
         const stored = localStorage.getItem("theme");

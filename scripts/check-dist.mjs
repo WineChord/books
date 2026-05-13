@@ -31,6 +31,9 @@ function fileOrIndexExists(candidate) {
   if (existsSync(candidate)) {
     return true;
   }
+  if (!candidate.endsWith(".html") && existsSync(`${candidate}.html`)) {
+    return true;
+  }
   return existsSync(path.join(candidate, "index.html"));
 }
 

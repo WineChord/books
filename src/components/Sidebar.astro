@@ -1,5 +1,5 @@
 ---
-import { chapters, epiloguePage, frontPages, getPartForChapter, localizePage, parts, referencePages } from "../book.config";
+import { getNavigationForPath, getPartForPage, localizePage } from "../book.config";
 import { pageUrl } from "../urls";
 
 interface Props {
@@ -9,8 +9,10 @@ interface Props {
 
 const { currentPath, lang } = Astro.props;
 const base = import.meta.env.BASE_URL;
+const book = getNavigationForPath(currentPath);
+const { chapters, epiloguePage, frontPages, parts, referencePages } = book;
 const currentChapter = chapters.find((page) => page.path === currentPath || page.zhPath === currentPath);
-const currentPart = currentChapter?.number ? getPartForChapter(currentChapter.number) : undefined;
+const currentPart = currentChapter ? getPartForPage(currentChapter) : undefined;
 
 function href(path: string | undefined) {
   return pageUrl(base, path ?? "");

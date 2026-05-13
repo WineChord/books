@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "../components/Header.astro";
 import ArchitectureMap from "../components/ArchitectureMap";
-import { chapters, epiloguePage, parts, referencePages, siteDescription } from "../book.config";
+import { books, codexFromSourceBook, siteDescription } from "../book.config";
 import { pageUrl } from "../urls";
 
 const base = import.meta.env.BASE_URL;
@@ -36,12 +36,26 @@ const base = import.meta.env.BASE_URL;
       </div>
     </section>
 
+    <section class="mb-20">
+      <h2 class="mb-6 font-serif text-2xl font-bold text-charcoal dark:text-cream">Books</h2>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {books.map((book) => (
+          <a href={pageUrl(base, `${book.slug}/`)} class="group rounded-lg border border-border p-5 transition-colors hover:border-terracotta dark:border-[#333]">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-terracotta">{book.coverKicker}</p>
+            <h3 class="font-serif text-2xl font-bold text-charcoal group-hover:text-terracotta dark:text-cream">{book.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">{book.description}</p>
+            <span class="mt-4 inline-flex text-sm font-semibold text-terracotta">Read the book</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
     <ArchitectureMap client:load base={base} />
 
     <section class="mb-20">
       <h2 class="mb-8 font-serif text-2xl font-bold text-charcoal dark:text-cream">Table of contents</h2>
-      {parts.map((part) => {
-        const partChapters = chapters.filter((chapter) => chapter.number && part.chapters.includes(chapter.number));
+      {codexFromSourceBook.parts.map((part) => {
+        const partChapters = codexFromSourceBook.chapters.filter((chapter) => chapter.number && part.chapters.includes(chapter.number));
         return (
           <div class="mb-10">
             <p class="text-xs font-semibold uppercase tracking-wide text-terracotta">Part {part.number}</p>
@@ -61,13 +75,13 @@ const base = import.meta.env.BASE_URL;
           </div>
         );
       })}
-      {epiloguePage && (
+      {codexFromSourceBook.epiloguePage && (
         <div class="mt-8 border-t border-border pt-6 dark:border-[#333]">
-          <a href={pageUrl(base, epiloguePage.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
+          <a href={pageUrl(base, codexFromSourceBook.epiloguePage.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
             <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">E</span>
             <span>
-              <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{epiloguePage.title}</span>
-              <span class="block text-sm text-muted">{epiloguePage.description}</span>
+              <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{codexFromSourceBook.epiloguePage.title}</span>
+              <span class="block text-sm text-muted">{codexFromSourceBook.epiloguePage.description}</span>
             </span>
           </a>
         </div>
@@ -77,7 +91,7 @@ const base = import.meta.env.BASE_URL;
     <section class="border-t border-border pt-8 dark:border-[#333]">
       <h2 class="mb-4 font-serif text-2xl font-bold text-charcoal dark:text-cream">Reference</h2>
       <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {referencePages.map((page) => (
+        {codexFromSourceBook.referencePages.map((page) => (
           <a href={pageUrl(base, page.path)} class="rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]">
             <span class="font-semibold text-charcoal dark:text-cream">{page.title}</span>
             <span class="mt-1 block text-sm text-muted">{page.description}</span>

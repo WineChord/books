@@ -8,6 +8,7 @@ export interface PartConfig {
 }
 
 export interface PageConfig {
+  book: string;
   path: string;
   zhPath?: string;
   number?: number;
@@ -18,12 +19,34 @@ export interface PageConfig {
   kind: "front" | "chapter" | "epilogue" | "reference";
 }
 
+export interface BookConfig {
+  slug: string;
+  title: string;
+  zhTitle: string;
+  shortTitle: string;
+  zhShortTitle: string;
+  description: string;
+  zhDescription: string;
+  coverKicker: string;
+  zhCoverKicker: string;
+  coverTitle: string;
+  coverFooter: string;
+  zhCoverFooter: string;
+  parts: PartConfig[];
+  pages: PageConfig[];
+  chapters: PageConfig[];
+  frontPages: PageConfig[];
+  referencePages: PageConfig[];
+  readingPages: PageConfig[];
+  epiloguePage?: PageConfig;
+}
+
 export const sourceCommit = "569ff6a1c400bd514ff79f5f1050a684dc3afde3";
 export const siteTitle = "Codex From Source";
 export const siteDescription =
   "A source-equivalent architecture book about OpenAI Codex CLI.";
 
-export const parts: PartConfig[] = [
+const codexFromSourceParts: PartConfig[] = [
   {
     number: 1,
     title: "Establish the Contract",
@@ -82,7 +105,7 @@ export const parts: PartConfig[] = [
   },
 ];
 
-export const pages: PageConfig[] = [
+const codexFromSourcePages: PageConfig[] = [
   front("preface", "Preface", "前言", "Why this book exists and how to read it.", "说明本书为何存在，以及如何按不同深度阅读。"),
   front("reader-map", "Reader Map", "阅读地图", "Suggested reading paths through the system.", "为架构读者和实现读者提供穿过全书的阅读路径。"),
   chapter(1, "The Architectural Bet", "架构赌注", "Agent as a bounded operating system.", "把 Codex 定义为有边界的 agent 操作系统。"),
@@ -111,6 +134,7 @@ export const pages: PageConfig[] = [
   chapter(24, "Packaging, Release, and Native Dependencies", "打包、发布与原生依赖", "The path from Rust workspace to npm-distributed binaries.", "解释 Rust workspace 到 npm 原生包的发布路径。"),
   chapter(25, "CI, Policy, and Architectural Governance", "CI、策略与架构治理", "Executable checks that keep architecture honest.", "说明 CI 与策略检查如何让架构保持诚实。"),
   {
+    book: "codex-from-source",
     path: "codex-from-source/epilogue",
     zhPath: "zh/codex-from-source/epilogue",
     title: "Epilogue: What to Steal",
@@ -126,14 +150,114 @@ export const pages: PageConfig[] = [
   reference("pipeline", "Production Pipeline", "写作流水线", "How the book was produced and checked.", "说明本书如何生产和校验。"),
 ];
 
-export const chapters = pages.filter((page) => page.kind === "chapter");
-export const frontPages = pages.filter((page) => page.kind === "front");
-export const referencePages = pages.filter((page) => page.kind === "reference");
-export const readingPages = pages.filter((page) => page.kind === "front" || page.kind === "chapter" || page.kind === "epilogue");
-export const epiloguePage = pages.find((page) => page.kind === "epilogue");
+const contextManagementParts: PartConfig[] = [
+  {
+    number: 1,
+    title: "Define the Context Contract",
+    zhTitle: "定义上下文契约",
+    epigraph: "Context is not text around a model. It is the runtime boundary every turn must obey.",
+    zhEpigraph: "上下文不是模型旁边的一段文本，而是每个 turn 必须遵守的运行时边界。",
+    chapters: [1, 2],
+  },
+  {
+    number: 2,
+    title: "Shape Prompt State",
+    zhTitle: "塑造 Prompt 状态",
+    epigraph: "A prompt is assembled from ledgers, fragments, policies, and optional evidence.",
+    zhEpigraph: "Prompt 由账本、片段、策略和可选证据共同组装。",
+    chapters: [3, 4, 5],
+  },
+  {
+    number: 3,
+    title: "Survive Long Threads",
+    zhTitle: "支撑长线程",
+    epigraph: "A long-lived agent survives only if forgetting is explicit, auditable, and reversible enough.",
+    zhEpigraph: "长期运行的 agent 只有在遗忘过程显式、可审计且足够可恢复时才能存活。",
+    chapters: [6, 7],
+  },
+  {
+    number: 4,
+    title: "Expose Context Without Losing Control",
+    zhTitle: "开放上下文而不失控",
+    epigraph: "Clients may render context, but the runtime must remain the source of truth.",
+    zhEpigraph: "客户端可以渲染上下文，但 runtime 必须仍然是真相来源。",
+    chapters: [8],
+  },
+];
+
+const contextManagementPages: PageConfig[] = [
+  front("preface", "Preface", "前言", "Why Codex context management deserves its own book.", "说明为什么 Codex 的上下文管理值得单独成书。", "codex-context-management"),
+  front("reader-map", "Reader Map", "阅读地图", "How to read the book as an architect or implementation reader.", "为架构读者和实现读者提供阅读路径。", "codex-context-management"),
+  chapter(1, "Context Is a Runtime Boundary", "上下文是运行时边界", "The thesis: Codex governs context as runtime state, not as a text buffer.", "核心论点：Codex 把上下文作为运行时状态治理，而不是当作文本缓冲区。", "codex-context-management"),
+  chapter(2, "TurnContext: The Envelope Around a Turn", "TurnContext：包住一次 Turn 的信封", "How model identity, policy, tools, hooks, and workspace facts become one turn envelope.", "解释模型身份、策略、工具、hooks 与工作区事实如何变成一次 turn 的信封。", "codex-context-management"),
+  chapter(3, "ContextManager: History as Prompt-Ready State", "ContextManager：把历史变成可提示状态", "How the history ledger stores, normalizes, trims, and prepares model-visible items.", "解释历史账本如何存储、归一化、裁剪并准备模型可见 items。", "codex-context-management"),
+  chapter(4, "Typed Fragments and Settings Diffs", "类型化片段与设置 Diff", "How Codex injects changing runtime facts without repeating the entire world.", "说明 Codex 如何注入变化的运行时事实，而不是重复整个世界。", "codex-context-management"),
+  chapter(5, "Budgeting Optional Context", "为可选上下文做预算", "Skills, plugins, memory, tool output, and images as budgeted context planes.", "把 skills、plugins、memory、tool output 和 images 解释为有预算的上下文平面。", "codex-context-management"),
+  chapter(6, "Compaction as a Checkpoint Protocol", "把压缩作为 Checkpoint 协议", "Local and remote compaction as governed replacement history, not lossy summarization.", "把本地和远程压缩解释为受治理的替代历史，而不是随意摘要。", "codex-context-management"),
+  chapter(7, "Resume, Rollback, Fork, and Replay", "Resume、Rollback、Fork 与 Replay", "How rollout evidence reconstructs prompt state after time, rollback, and branching.", "解释 rollout 证据如何在时间、回滚和分叉之后重建 prompt 状态。", "codex-context-management"),
+  chapter(8, "Client-Facing Context", "面向客户端的上下文", "How TUI, realtime, app-server, token usage, and trace surfaces expose context safely.", "说明 TUI、realtime、app-server、token usage 与 trace 如何安全暴露上下文。", "codex-context-management"),
+  {
+    book: "codex-context-management",
+    path: "codex-context-management/epilogue",
+    zhPath: "zh/codex-context-management/epilogue",
+    title: "Epilogue: The Context Discipline",
+    zhTitle: "结语：上下文纪律",
+    description: "Transferable lessons for any agent runtime that must stay coherent over long work.",
+    zhDescription: "面向任何长期运行 agent runtime 的可迁移经验。",
+    kind: "epilogue",
+  },
+  reference("source-atlas", "Source Atlas", "源码索引", "Pinned source anchors for the context-management book.", "上下文管理书籍使用的固定源码锚点。", "codex-context-management"),
+];
+
+export const codexFromSourceBook = makeBook({
+  slug: "codex-from-source",
+  title: siteTitle,
+  zhTitle: "Codex 源码剖析",
+  shortTitle: "Codex",
+  zhShortTitle: "Codex",
+  description: siteDescription,
+  zhDescription: "一本中英文双语的 OpenAI Codex CLI 源码剖析在线书。",
+  coverKicker: "OpenAI Codex CLI",
+  zhCoverKicker: "OpenAI Codex CLI",
+  coverTitle: "Codex<br />From<br />Source",
+  coverFooter: "25 chapters + epilogue",
+  zhCoverFooter: "25 章 + 结语",
+  parts: codexFromSourceParts,
+  pages: codexFromSourcePages,
+});
+
+export const codexContextManagementBook = makeBook({
+  slug: "codex-context-management",
+  title: "Codex Context Management",
+  zhTitle: "Codex 上下文管理",
+  shortTitle: "Context",
+  zhShortTitle: "上下文",
+  description:
+    "A source-pinned technical book about how Codex governs context across turns, tools, compaction, replay, and clients.",
+  zhDescription:
+    "一本固定到源码 commit 的技术书，解释 Codex 如何跨 turn、tools、compaction、replay 和客户端治理上下文。",
+  coverKicker: "Runtime Context, Compaction, Replay",
+  zhCoverKicker: "Runtime Context, Compaction, Replay",
+  coverTitle: "Codex<br />Context<br />Management",
+  coverFooter: "8 chapters + epilogue",
+  zhCoverFooter: "8 章 + 结语",
+  parts: contextManagementParts,
+  pages: contextManagementPages,
+});
+
+export const books = [codexFromSourceBook, codexContextManagementBook] as const;
+export const allPages = books.flatMap((book) => book.pages);
+
+export const parts = codexFromSourceBook.parts;
+export const pages = codexFromSourceBook.pages;
+export const chapters = codexFromSourceBook.chapters;
+export const frontPages = codexFromSourceBook.frontPages;
+export const referencePages = codexFromSourceBook.referencePages;
+export const readingPages = codexFromSourceBook.readingPages;
+export const epiloguePage = codexFromSourceBook.epiloguePage;
 
 export function getPageByPath(path: string): PageConfig | undefined {
-  return pages.find((page) => page.path === path || page.zhPath === path);
+  return allPages.find((page) => page.path === path || page.zhPath === path);
 }
 
 export function getLangForPath(path: string): "en" | "zh" {
@@ -148,16 +272,46 @@ export function localizePage(page: PageConfig, lang: "en" | "zh") {
   };
 }
 
-export function getPartForChapter(chapterNumber: number): PartConfig | undefined {
-  return parts.find((part) => part.chapters.includes(chapterNumber));
+export function getBookBySlug(slug: string): BookConfig | undefined {
+  return books.find((book) => book.slug === slug);
 }
 
-export function isFirstChapterOfPart(chapterNumber: number): boolean {
-  return parts.some((part) => part.chapters[0] === chapterNumber);
+export function getBookForPage(page: PageConfig): BookConfig {
+  const book = getBookBySlug(page.book);
+  if (!book) {
+    throw new Error(`Missing book metadata for ${page.book}`);
+  }
+  return book;
+}
+
+export function getPartForChapter(
+  chapterNumber: number,
+  bookSlug = "codex-from-source",
+): PartConfig | undefined {
+  return getBookBySlug(bookSlug)?.parts.find((part) =>
+    part.chapters.includes(chapterNumber),
+  );
+}
+
+export function getPartForPage(page: PageConfig): PartConfig | undefined {
+  return page.number ? getPartForChapter(page.number, page.book) : undefined;
+}
+
+export function isFirstChapterOfPart(
+  chapterNumber: number,
+  bookSlug = "codex-from-source",
+): boolean {
+  return getBookBySlug(bookSlug)?.parts.some((part) =>
+    part.chapters[0] === chapterNumber,
+  ) ?? false;
+}
+
+export function isFirstChapterOfPartPage(page: PageConfig): boolean {
+  return Boolean(page.number && isFirstChapterOfPart(page.number, page.book));
 }
 
 export function getAdjacentPages(page: PageConfig, lang: "en" | "zh") {
-  const sequence = readingPages;
+  const sequence = getBookForPage(page).readingPages;
   const index = sequence.findIndex((item) => item.path === page.path);
   const previous = index > 0 ? sequence[index - 1] : null;
   const next = index >= 0 && index < sequence.length - 1 ? sequence[index + 1] : null;
@@ -167,18 +321,60 @@ export function getAdjacentPages(page: PageConfig, lang: "en" | "zh") {
   };
 }
 
+export function getNavigationForPath(path: string): BookConfig {
+  const page = getPageByPath(path);
+  return page ? getBookForPage(page) : codexFromSourceBook;
+}
+
+interface BookInput {
+  slug: string;
+  title: string;
+  zhTitle: string;
+  shortTitle: string;
+  zhShortTitle: string;
+  description: string;
+  zhDescription: string;
+  coverKicker: string;
+  zhCoverKicker: string;
+  coverTitle: string;
+  coverFooter: string;
+  zhCoverFooter: string;
+  parts: PartConfig[];
+  pages: PageConfig[];
+}
+
+function makeBook(input: BookInput): BookConfig {
+  const chapters = input.pages.filter((page) => page.kind === "chapter");
+  const frontPages = input.pages.filter((page) => page.kind === "front");
+  const referencePages = input.pages.filter((page) => page.kind === "reference");
+  const readingPages = input.pages.filter((page) =>
+    page.kind === "front" || page.kind === "chapter" || page.kind === "epilogue"
+  );
+  const epiloguePage = input.pages.find((page) => page.kind === "epilogue");
+  return {
+    ...input,
+    chapters,
+    frontPages,
+    referencePages,
+    readingPages,
+    epiloguePage,
+  };
+}
+
 function chapter(
   number: number,
   title: string,
   zhTitle: string,
   description: string,
   zhDescription: string,
+  book = "codex-from-source",
 ): PageConfig {
   const file = String(number).padStart(2, "0");
   return {
+    book,
     number,
-    path: `codex-from-source/chapter-${file}`,
-    zhPath: `zh/codex-from-source/chapter-${file}`,
+    path: `${book}/chapter-${file}`,
+    zhPath: `zh/${book}/chapter-${file}`,
     title,
     zhTitle,
     description,
@@ -193,10 +389,12 @@ function front(
   zhTitle: string,
   description: string,
   zhDescription: string,
+  book = "codex-from-source",
 ): PageConfig {
   return {
-    path: `codex-from-source/${slug}`,
-    zhPath: `zh/codex-from-source/${slug}`,
+    book,
+    path: `${book}/${slug}`,
+    zhPath: `zh/${book}/${slug}`,
     title,
     zhTitle,
     description,
@@ -211,10 +409,12 @@ function reference(
   zhTitle: string,
   description: string,
   zhDescription: string,
+  book = "codex-from-source",
 ): PageConfig {
   return {
-    path: `codex-from-source/${slug}`,
-    zhPath: `zh/codex-from-source/${slug}`,
+    book,
+    path: `${book}/${slug}`,
+    zhPath: `zh/${book}/${slug}`,
     title,
     zhTitle,
     description,

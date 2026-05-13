@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import ChapterLayout from "../layouts/ChapterLayout.astro";
-import { getLangForPath, getPageByPath, getPartForChapter } from "../book.config";
+import { getLangForPath, getPageByPath, getPartForPage } from "../book.config";
 
 export async function getStaticPaths() {
   const entries = await getCollection("pages");
@@ -21,7 +21,7 @@ if (!page) {
 }
 
 const lang = getLangForPath(routePath);
-const part = page.number ? getPartForChapter(page.number) : undefined;
+const part = getPartForPage(page);
 const hasMermaid = entry.body.includes("```mermaid");
 const { Content, headings } = await render(entry);
 ---

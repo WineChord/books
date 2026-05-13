@@ -9,12 +9,22 @@ const privatePattern =
 
 const root = process.cwd();
 const docsDir = join(root, "docs");
-const enBookDir = join(docsDir, "codex-from-source");
-const zhBookDir = join(docsDir, "zh", "codex-from-source");
 const bookConfigPath = join(root, "src", "book.config.ts");
 const contentConfigPath = join(root, "src", "content.config.ts");
 const packagePath = join(root, "package.json");
 const packageLockPath = join(root, "package-lock.json");
+const publicBooks = [
+  {
+    slug: "codex-from-source",
+    enDir: join(docsDir, "codex-from-source"),
+    zhDir: join(docsDir, "zh", "codex-from-source"),
+  },
+  {
+    slug: "codex-context-management",
+    enDir: join(docsDir, "codex-context-management"),
+    zhDir: join(docsDir, "zh", "codex-context-management"),
+  },
+];
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -70,13 +80,19 @@ function checkChapterContract(file, body) {
   );
 }
 
-const enFiles = publicBookFiles(enBookDir);
-const zhFiles = publicBookFiles(zhBookDir);
+const publicFilesByBook = new Map();
 
-assert(
-  JSON.stringify(enFiles) === JSON.stringify(zhFiles),
-  `English and Chinese public files differ:\nEN ${enFiles}\nZH ${zhFiles}`,
-);
+for (const book of publicBooks) {
+  const enFiles = publicBookFiles(book.enDir);
+  const zhFiles = publicBookFiles(book.zhDir);
+
+  assert(
+    JSON.stringify(enFiles) === JSON.stringify(zhFiles),
+    `English and Chinese public files differ for ${book.slug}:\nEN ${enFiles}\nZH ${zhFiles}`,
+  );
+
+  publicFilesByBook.set(book.slug, enFiles);
+}
 
 const bookConfig = readFileSync(bookConfigPath, "utf8");
 const contentConfig = readFileSync(contentConfigPath, "utf8");
@@ -114,27 +130,37 @@ const configuredPaths = new Set(
   ),
 );
 
-for (const match of bookConfig.matchAll(/\bchapter\((\d+),/g)) {
-  const file = String(Number(match[1])).padStart(2, "0");
-  configuredPaths.add(`codex-from-source/chapter-${file}`);
-  configuredPaths.add(`zh/codex-from-source/chapter-${file}`);
+for (const line of bookConfig.split("\n")) {
+  const bookSlug =
+    publicBooks.find((book) => line.includes(`"${book.slug}"`))?.slug ??
+    "codex-from-source";
+  const chapterMatch = line.match(/\bchapter\((\d+),/);
+  if (chapterMatch) {
+    const file = String(Number(chapterMatch[1])).padStart(2, "0");
+    configuredPaths.add(`${bookSlug}/chapter-${file}`);
+    configuredPaths.add(`zh/${bookSlug}/chapter-${file}`);
+    continue;
+  }
+
+  const helperMatch = line.match(/\b(?:front|reference)\("([^"]+)"/);
+  if (helperMatch) {
+    configuredPaths.add(`${bookSlug}/${helperMatch[1]}`);
+    configuredPaths.add(`zh/${bookSlug}/${helperMatch[1]}`);
+  }
 }
 
-for (const match of bookConfig.matchAll(/\b(?:front|reference)\("([^"]+)"/g)) {
-  configuredPaths.add(`codex-from-source/${match[1]}`);
-  configuredPaths.add(`zh/codex-from-source/${match[1]}`);
-}
-
-for (const file of enFiles) {
-  const page = file.replace(/\.(?:md|mdx)$/, "");
-  assert(
-    configuredPaths.has(`codex-from-source/${page}`),
-    `book.config.ts is missing English page metadata for ${page}`,
-  );
-  assert(
-    configuredPaths.has(`zh/codex-from-source/${page}`),
-    `book.config.ts is missing Chinese page metadata for ${page}`,
-  );
+for (const book of publicBooks) {
+  for (const file of publicFilesByBook.get(book.slug)) {
+    const page = file.replace(/\.(?:md|mdx)$/, "");
+    assert(
+      configuredPaths.has(`${book.slug}/${page}`),
+      `book.config.ts is missing English page metadata for ${book.slug}/${page}`,
+    );
+    assert(
+      configuredPaths.has(`zh/${book.slug}/${page}`),
+      `book.config.ts is missing Chinese page metadata for zh/${book.slug}/${page}`,
+    );
+  }
 }
 
 const files = walk(docsDir).filter((path) => /\.(?:md|mdx)$/.test(path));
@@ -159,7 +185,7 @@ for (const file of files) {
     throw new Error(`${rel} contains an unpinned Codex source link: ${link}`);
   }
 
-  if (/codex-from-source\/chapter-\d+\.mdx?$/.test(rel)) {
+  if (/(?:codex-from-source|codex-context-management)\/chapter-\d+\.mdx?$/.test(rel)) {
     checkChapterContract(rel, body);
   }
 }

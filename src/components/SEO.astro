@@ -5,15 +5,21 @@ interface Props {
   title?: string;
   description?: string;
   canonicalPath?: string;
+  titleSuffix?: string;
 }
 
-const { title = siteTitle, description = siteDescription, canonicalPath = "" } = Astro.props;
+const {
+  title = siteTitle,
+  description = siteDescription,
+  canonicalPath = "",
+  titleSuffix = siteTitle,
+} = Astro.props;
 const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://www.wineandchord.com";
 const base = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 const canonical = `${site}${base}${canonicalPath}`;
-const fullTitle = title === siteTitle ? title : `${title} | ${siteTitle}`;
+const fullTitle = title === titleSuffix ? title : `${title} | ${titleSuffix}`;
 ---
 
 <title>{fullTitle}</title>

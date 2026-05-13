@@ -1,0 +1,114 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Header from "../../../components/Header.astro";
+import { codexContextManagementBook, sourceCommit } from "../../../book.config";
+import { pageUrl } from "../../../urls";
+
+const base = import.meta.env.BASE_URL;
+const book = codexContextManagementBook;
+---
+
+<BaseLayout
+  title={book.zhTitle}
+  description={book.zhDescription}
+  canonicalPath={`zh/${book.slug}/`}
+  lang="zh"
+  titleSuffix={book.zhTitle}
+>
+  <Header
+    lang="zh"
+    alternatePath={`${book.slug}/`}
+    homePath={`zh/${book.slug}/`}
+    brandTitle={book.zhTitle}
+    brandShortTitle={book.zhShortTitle}
+  />
+  <main class="mx-auto max-w-5xl px-4 py-12 md:px-8 md:py-20">
+    <section class="mb-20 grid grid-cols-1 items-center gap-10 md:grid-cols-[1fr_18rem]">
+      <div>
+        <p class="mb-3 text-sm font-semibold uppercase tracking-wide text-terracotta">{book.zhCoverKicker}</p>
+        <h1 class="book-hero-title mb-6 font-serif text-4xl font-bold leading-tight text-charcoal dark:text-cream md:text-5xl">
+          理解 Codex 如何让长对话保持连贯。
+        </h1>
+        <p class="book-hero-copy mb-8 max-w-2xl text-lg leading-relaxed text-secondary dark:text-muted">
+          一本固定到源码 commit 的技术书：把上下文解释为运行时状态，覆盖 turn envelope、
+          历史归一化、类型化注入、可选上下文预算、压缩、rollout 重建、回滚、分叉、
+          realtime 表面和 token telemetry。
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a class="rounded-lg bg-terracotta px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90" href={pageUrl(base, `zh/${book.slug}/preface`)}>
+            从前言开始
+          </a>
+          <a class="rounded-lg border border-border px-5 py-3 font-semibold text-charcoal transition-colors hover:border-terracotta hover:text-terracotta dark:border-[#333] dark:text-cream" href={pageUrl(base, `zh/${book.slug}/source-atlas`)}>
+            源码索引
+          </a>
+        </div>
+      </div>
+      <div class="book-cover" aria-label={`${book.zhTitle} cover`}>
+        <div class="book-cover__kicker">{book.zhCoverKicker}</div>
+        <div class="book-cover__title" set:html={book.coverTitle} />
+        <div class="book-cover__footer">{book.zhCoverFooter}</div>
+      </div>
+    </section>
+
+    <section class="mb-20 grid grid-cols-1 gap-4 md:grid-cols-3">
+      {[
+        ["运行时优先", "上下文被当作受治理的运行时状态，而不是不断增长的 prompt 字符串。"],
+        ["可 checkpoint", "压缩安装替代历史，并保留足够证据用于后续 resume 与审计。"],
+        ["源码固定", `所有源码链接都指向 ${sourceCommit}，避免分支漂移影响审计。`],
+      ].map(([title, body]) => (
+        <div class="rounded-lg border border-border p-5 dark:border-[#333]">
+          <h2 class="mb-2 font-serif text-xl font-bold text-charcoal dark:text-cream">{title}</h2>
+          <p class="text-sm leading-relaxed text-muted">{body}</p>
+        </div>
+      ))}
+    </section>
+
+    <section class="mb-20">
+      <h2 class="mb-8 font-serif text-2xl font-bold text-charcoal dark:text-cream">目录</h2>
+      {book.parts.map((part) => {
+        const partChapters = book.chapters.filter((chapter) => chapter.number && part.chapters.includes(chapter.number));
+        return (
+          <div class="mb-10">
+            <p class="text-xs font-semibold uppercase tracking-wide text-terracotta">第 {part.number} 部</p>
+            <h3 class="font-serif text-xl font-bold text-charcoal dark:text-cream">{part.zhTitle}</h3>
+            <p class="mb-4 text-sm italic text-muted">{part.zhEpigraph}</p>
+            <div class="space-y-2">
+              {partChapters.map((chapter) => (
+                <a href={pageUrl(base, chapter.zhPath ?? chapter.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
+                  <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">{chapter.number}</span>
+                  <span>
+                    <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{chapter.zhTitle}</span>
+                    <span class="block text-sm text-muted">{chapter.zhDescription}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {book.epiloguePage && (
+        <div class="mt-8 border-t border-border pt-6 dark:border-[#333]">
+          <a href={pageUrl(base, book.epiloguePage.zhPath ?? book.epiloguePage.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
+            <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">结</span>
+            <span>
+              <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{book.epiloguePage.zhTitle}</span>
+              <span class="block text-sm text-muted">{book.epiloguePage.zhDescription}</span>
+            </span>
+          </a>
+        </div>
+      )}
+    </section>
+
+    <section class="border-t border-border pt-8 dark:border-[#333]">
+      <h2 class="mb-4 font-serif text-2xl font-bold text-charcoal dark:text-cream">参考页</h2>
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {book.referencePages.map((page) => (
+          <a href={pageUrl(base, page.zhPath ?? page.path)} class="rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]">
+            <span class="font-semibold text-charcoal dark:text-cream">{page.zhTitle}</span>
+            <span class="mt-1 block text-sm text-muted">{page.zhDescription}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>

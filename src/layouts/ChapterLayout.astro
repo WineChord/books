@@ -6,7 +6,7 @@ import TableOfContents from "../components/TableOfContents.astro";
 import ChapterNav from "../components/ChapterNav.astro";
 import BaseLayout from "./BaseLayout.astro";
 import type { PageConfig, PartConfig } from "../book.config";
-import { getAdjacentPages, isFirstChapterOfPart, localizePage } from "../book.config";
+import { getAdjacentPages, getBookForPage, isFirstChapterOfPartPage, localizePage } from "../book.config";
 import { canonicalPath } from "../urls";
 
 interface Heading {
@@ -25,10 +25,14 @@ interface Props {
 }
 
 const { page, currentPath, lang, headings, part, hasMermaid = false } = Astro.props;
+const book = getBookForPage(page);
 const localized = localizePage(page, lang);
 const alternatePath = lang === "zh" ? page.path : page.zhPath;
 const adjacent = getAdjacentPages(page, lang);
-const showPartHeader = page.number && part && isFirstChapterOfPart(page.number);
+const showPartHeader = page.number && part && isFirstChapterOfPartPage(page);
+const homePath = lang === "zh" ? `zh/${book.slug}/` : `${book.slug}/`;
+const brandTitle = lang === "zh" ? book.zhTitle : book.title;
+const brandShortTitle = lang === "zh" ? book.zhShortTitle : book.shortTitle;
 ---
 
 <BaseLayout
@@ -36,9 +40,17 @@ const showPartHeader = page.number && part && isFirstChapterOfPart(page.number);
   description={localized.description}
   canonicalPath={canonicalPath(localized.path)}
   lang={lang}
+  titleSuffix={brandTitle}
 >
   <ReadingProgress />
-  <Header lang={lang} alternatePath={alternatePath} showMenu />
+  <Header
+    lang={lang}
+    alternatePath={alternatePath}
+    showMenu
+    homePath={homePath}
+    brandTitle={brandTitle}
+    brandShortTitle={brandShortTitle}
+  />
 
   <div id="chapter-layout" class="mx-auto flex max-w-[92rem]">
     <Sidebar currentPath={currentPath} lang={lang} />
