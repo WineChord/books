@@ -1,4 +1,6 @@
 import ExecutionBackendBoard from "../../src/components/visual/ExecutionBackendBoard.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { shellExecutionChain } from "../../src/data/diagrams/codex-from-source/chapter-10";
 
 # Chapter 10: Shell, Exec Server, and Filesystem Tools
 
@@ -22,18 +24,7 @@ Codex has several shell-adjacent front doors because clients and model surfaces 
 
 These tools converge on the same responsibility: turn a model request into an execution request that can be governed. The convergence is important because command policy, sandboxing, and approval should not depend on which client surface happened to expose the command.
 
-```mermaid
-flowchart TD
-    Call[tool call] --> Parse[parse command and arguments]
-    Parse --> Classify[classify safety and policy]
-    Classify --> Hooks[pre-tool and permission hooks]
-    Hooks --> Approval[approval or rejection]
-    Approval --> Sandbox[permission profile to sandbox attempt]
-    Sandbox --> Env[environment and exec-server backend]
-    Env --> Process[managed process]
-    Process --> Output[sequenced output and exit]
-    Output --> Events[events, telemetry, model result]
-```
+<DiagramFlow spec={shellExecutionChain} lang="en" client:visible />
 
 This is the shell execution chain in one picture. No single box is enough to make command execution safe or explainable; the safety comes from the order and the fact that each decision has a structured representation.
 

@@ -1,4 +1,7 @@
 import TurnLoopTrace from "../../../src/components/visual/TurnLoopTrace.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
+import { turnLoopSequence, turnStateMachine } from "../../../src/data/diagrams/codex-from-source/chapter-06";
 
 # 第 6 章：Turn Loop：Agent 真正发生的地方
 
@@ -16,40 +19,7 @@ import TurnLoopTrace from "../../../src/components/visual/TurnLoopTrace.tsx";
 
 当 submission loop 判断用户输入应该成为被调度的工作时，一次 turn 就开始了。 session 解析 `TurnContext`，安装 active turn，并在 cancellation token 之下 运行循环。从这一刻开始，关键子系统都会参与：hooks 检查输入，skills 和 plugins 注入上下文，model client 流式返回事件，tool router 分发副作用， persistence 记录 items，telemetry 观察进展。
 
-```mermaid
-sequenceDiagram
-    participant Client as 客户端
-    participant Session
-    participant Hooks
-    participant Context as 上下文
-    participant Model as 模型
-    participant Tools as 工具
-    participant Store as 持久化
-
-    Client->>Session: submit user operation
-    Session->>Session: resolve turn context
-    Session->>Hooks: inspect startup and prompt
-    Session->>Context: record user input and injected context
-    loop until completion
-        Session->>Model: sample from recorded history
-        Model-->>Session: stream response events
-        Session->>Store: persist and emit stream-derived items
-        alt model requests tools
-            Session->>Tools: dispatch calls with cancellation
-            Tools-->>Session: observations or structured failures
-            Session->>Context: record observations
-        end
-        alt context is too large and follow-up is needed
-            Session->>Context: compact and reset model session if needed
-        end
-        alt pending input is allowed
-            Session->>Hooks: inspect pending input
-            Session->>Context: record accepted input
-        end
-    end
-    Session->>Hooks: run stop and after-agent hooks
-    Session-->>Client: turn completion events
-```
+<DiagramSequence spec={turnLoopSequence} lang="zh" client:visible />
 
 这张图有意画成循环。Codex 之所以像 Agent，是因为模型输出可以通过工具、 观察结果、compaction 和 pending user input 改变下一次模型输入。
 
@@ -73,22 +43,7 @@ sequenceDiagram
 
 Turn loop 最好理解成状态机，而不是一个长函数。
 
-```mermaid
-flowchart TD
-    StartState([Start])
-    EndState([End])
-    StartState --> Prepare
-    Prepare -->|hooks accepted, context is ready| Sample
-    Prepare -->|hook blocks| Stopped
-    Sample -->|tool calls finish| ExecuteTools
-    Sample -->|context pressure| Compact
-    ExecuteTools -->|observations need follow-up| Sample
-    Compact -->|compacted history| Sample
-    Sample -->|no immediate follow-up| StopHooks
-    StopHooks -->|hook adds context| Sample
-    StopHooks -->|no more work| Complete
-    Sample -->|cancellation or abort| Interrupted
-```
+<DiagramFlow spec={turnStateMachine} lang="zh" client:visible />
 
 这张图比完整伪代码更准确，因为核心不在某一段实现，而在继续条件。只有存在 明确原因时 loop 才继续：工具 follow-up、accepted pending input、compaction， 或者 stop hook 添加了新的模型可见工作。没有原因，turn 就应当落定。
 

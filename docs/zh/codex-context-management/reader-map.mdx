@@ -1,3 +1,6 @@
+import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
+import { threeReadingPaths } from "../../../src/data/diagrams/codex-context-management/reader-map";
+
 # 阅读地图
 
 本书比《Codex 源码剖析》更短更专门。它默认你已经知道 Codex 有 session runtime、tool 执行、TUI 和 app-server。它聚焦于这些系统都依赖的同一个问题：模型究竟看到了什么？为什么是这些？多轮之后 Codex 又如何让答案保持稳定？
@@ -6,13 +9,13 @@
 
 你可以用三种方式阅读本书。选择符合你目标的那一条：
 
-```text
-  目标                  按顺序阅读的章节
-  ----                  -----------------
-  架构概览              1 -> 2 -> 6 -> 7 -> 结语
-  实现深入              1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
-  模式搜寻              仅按顺序读"应用模式"小节
-```
+<DiagramAscii
+  lang="zh"
+  ascii={threeReadingPaths.ascii}
+  legend={threeReadingPaths.legend}
+  highlights={threeReadingPaths.highlights}
+  client:visible
+/>
 
 每条路径都坦白自己的取舍：概览跳过大多数实现密度，一小时内读完；深入是唯一通读全部小节的方式；模式搜寻是为另一个 runtime 提取可迁移设计动作的最快方式。
 

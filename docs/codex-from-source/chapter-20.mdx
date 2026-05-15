@@ -1,4 +1,6 @@
 import AgentGraphBoard from "../../src/components/visual/AgentGraphBoard.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { coordinationTopology, liveAndTraceGraphs } from "../../src/data/diagrams/codex-from-source/chapter-20";
 
 # Chapter 20: Multi-Agent Coordination
 
@@ -24,29 +26,7 @@ That design keeps the system compositional:
 
 The parent-child topology is persisted by a narrow graph store. It knows that a child has at most one parent edge, that an edge is open or closed, and that callers may list direct children or descendants. It does not know how a model phrased the task, how a TUI presents the child, or how a trace viewer draws the edge. That narrowness is what lets live runtime code and offline trace code reuse the same idea without sharing accidental UI policy.
 
-```mermaid
-flowchart TD
-    Parent["parent thread"]
-    SpawnTool["agent-control tool\nspawn / assign / send / close"]
-    GraphStore["graph store\nparent-child lifecycle"]
-    Child["child thread"]
-    Mailbox["mailbox delivery\nmodel-visible item"]
-    Result["result notification"]
-    Trace["interaction graph\nspawn, assign, send, result, close"]
-    Client["client surface\nTUI or app-server"]
-
-    Parent --> SpawnTool
-    SpawnTool --> GraphStore
-    GraphStore --> Child
-    SpawnTool --> Mailbox
-    Mailbox --> Child
-    Child --> Result
-    Result --> Parent
-    SpawnTool --> Trace
-    Mailbox --> Trace
-    Result --> Trace
-    Trace --> Client
-```
+<DiagramFlow spec={coordinationTopology} lang="en" client:visible />
 
 This diagram intentionally separates graph persistence from trace reduction. The graph store answers operational questions such as "which descendants are still open?" The trace graph answers explanatory questions such as "which tool call delivered the task that produced this result?"
 
@@ -75,21 +55,7 @@ The live graph is a compact operational index. It stores directional spawn edges
 
 The trace graph is a semantic reconstruction. It is built from raw protocol, runtime, tool, and model-facing events after capture. It is optimized for explanation: which inference produced a tool call, which runtime payload started or ended it, which mailbox item received the message, and which parent notification represented the child result.
 
-```mermaid
-flowchart LR
-    Raw["ordered raw events\nand payload refs"]
-    Reducer["offline reducer"]
-    Live["live graph store\nopen / closed descendants"]
-    Reduced["reduced trace graph\ninteraction edges"]
-    Viewer["debugger or client projection"]
-
-    Runtime["runtime coordination"] --> Live
-    Runtime --> Raw
-    Raw --> Reducer
-    Reducer --> Reduced
-    Live --> Runtime
-    Reduced --> Viewer
-```
+<DiagramFlow spec={liveAndTraceGraphs} lang="en" client:visible />
 
 The live graph should remain small because it participates in the running system. The trace graph can be richer because it is a replay artifact. This is the same "observe first, interpret later" pattern from Chapter 8, applied to multi-agent coordination.
 

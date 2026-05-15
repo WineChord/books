@@ -1,4 +1,11 @@
 import GeneratedContractDriftViewer from "../../../src/components/visual/GeneratedContractDriftViewer.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
+import {
+  buildSurfaceMap,
+  developerFlow,
+  schemaDriftSequence,
+} from "../../../src/data/diagrams/codex-from-source/chapter-23";
 
 # 第 23 章：构建系统与生成契约
 
@@ -23,19 +30,7 @@ Agent 运行时对构建漂移特别敏感。普通 CLI 也许可以容忍本地
 
 关键不在于“使用 Bazel”。关键在于 Bazel 没有被允许变成第二套产品架构，也没有被写成虚构的唯一发布路径。Cargo 仍然是开发者和 shipping build 的源头；Bazel 在需要证明打包、平台和生成契约仍然一致时，把它镜像并约束起来。
 
-```mermaid
-graph TD
-  Cargo[Cargo workspace] --> Crates[Rust crates and binaries]
-  Cargo --> Lock[Resolved dependency graph]
-  Bazel[Bazel overlay] --> Crates
-  Bazel --> Lock
-  Bazel --> Hermetic[Hermetic CI and release verification]
-  Cargo --> Release[GitHub release workflow]
-  Crates --> Schemas[Generated contract schemas]
-  Schemas --> Clients[SDKs, app-server clients, config authors]
-  Release --> Artifacts[Release artifacts]
-  Hermetic -. verifies .-> Artifacts
-```
+<DiagramFlow spec={buildSurfaceMap} lang="zh" client:visible />
 
 这个图就是本章的形状：一个源码图喂给两个构建接口；一个运行时图吐出多个公开契约。只要这些输出开始分叉，架构在用户运行命令之前就已经失败了。
 
@@ -66,15 +61,7 @@ for target in release_platforms:
 
 重要决策是 overlay 从产品结构推导出来，而不是替换产品结构。工程师仍然按 crate 推理；CI 和发布验证按 hermetic target 推理；实际发布 job 仍然用 Cargo 构建 artifact，然后再 package 和 publish。
 
-```mermaid
-flowchart TD
-  Dev[Developer changes a crate] --> CargoTest[Cargo test path]
-  Dev --> BazelTarget[Bazel mirrored target]
-  BazelTarget --> Launcher[Workspace-root launcher]
-  Launcher --> SameAssumptions[Cargo-like paths, snapshots, env]
-  BazelTarget --> Matrix[Platform and release matrix]
-  Matrix --> Confidence[Release confidence]
-```
+<DiagramFlow spec={developerFlow} lang="zh" client:visible />
 
 launcher 这个盒子很容易被低估。测试经常假设工作目录、snapshot 路径、fixture 布局或环境变量。Bazel 天然会打破这些假设。Codex 只恢复测试应该拥有的假设，这样同一个测试既能服务本地开发，也能服务 hermetic CI，而不需要让每个测试都学习 Bazel 内部机制。
 
@@ -84,19 +71,7 @@ launcher 这个盒子很容易被低估。测试经常假设工作目录、snaps
 
 这就是第 4 章协议纪律在构建时的版本。运行时可以内部演进，但客户端契约需要稳定词汇。生成产物让漂移可见：
 
-```mermaid
-sequenceDiagram
-  participant Type as Runtime type
-  participant Gen as Schema generator
-  participant File as Checked-in schema
-  participant CI as Drift check
-  participant Client as External client
-
-  Type->>Gen: expose contract shape
-  Gen->>File: write canonical schema
-  CI->>File: compare committed output
-  File->>Client: document machine-readable contract
-```
+<DiagramSequence spec={schemaDriftSequence} lang="zh" client:visible />
 
 过期 schema 不只是“文档没更新”。它说明代码和契约已经不再描述同一个产品。Codex 把这当作正确性问题，因为 app-server 客户端、SDK、hook 作者和配置生成器都可能依赖这些 schema。
 

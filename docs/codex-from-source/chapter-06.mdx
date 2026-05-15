@@ -1,4 +1,7 @@
 import TurnLoopTrace from "../../src/components/visual/TurnLoopTrace.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import { turnLoopSequence, turnStateMachine } from "../../src/data/diagrams/codex-from-source/chapter-06";
 
 # Chapter 6: The Turn Loop: Where the Agent Becomes an Agent
 
@@ -16,40 +19,7 @@ Chapter 5 separated durable threads from live sessions and showed how client ope
 
 A turn begins when the submission loop decides that user input should become scheduled work. The session resolves a `TurnContext`, installs an active turn, and runs the loop under a cancellation token. From that point on, every interesting subsystem is nearby: hooks inspect input, skills and plugins inject context, the model client streams events, the tool router dispatches side effects, persistence records items, and telemetry observes progress.
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Session
-    participant Hooks
-    participant Context
-    participant Model
-    participant Tools
-    participant Store
-
-    Client->>Session: submit user operation
-    Session->>Session: resolve turn context
-    Session->>Hooks: inspect startup and prompt
-    Session->>Context: record user input and injected context
-    loop until completion
-        Session->>Model: sample from recorded history
-        Model-->>Session: stream response events
-        Session->>Store: persist and emit stream-derived items
-        alt model requests tools
-            Session->>Tools: dispatch calls with cancellation
-            Tools-->>Session: observations or structured failures
-            Session->>Context: record observations
-        end
-        alt context is too large and follow-up is needed
-            Session->>Context: compact and reset model session if needed
-        end
-        alt pending input is allowed
-            Session->>Hooks: inspect pending input
-            Session->>Context: record accepted input
-        end
-    end
-    Session->>Hooks: run stop and after-agent hooks
-    Session-->>Client: turn completion events
-```
+<DiagramSequence spec={turnLoopSequence} lang="en" client:visible />
 
 This diagram is intentionally circular. Codex becomes an agent because model output can change the next model input through tools, observations, compaction, and pending user input.
 
@@ -73,28 +43,7 @@ The preparation phase is why the turn loop is not "call the model with the lates
 
 The turn loop is best read as a state machine. The source has many helper paths, but the durable states are compact: prepare a reproducible prompt, sample the model, stream and persist facts, dispatch tools when requested, record observations, repair context when needed, inspect stop hooks, and then either continue or settle.
 
-```mermaid
-flowchart TD
-    StartState([Start])
-    EndState([End])
-    StartState --> Prepare
-    Prepare -->|prompt hook rejects| Blocked
-    Prepare -->|hooks accepted, context and input recorded| Sample
-    Sample -->|provider accepts request| Stream
-    Sample -->|cancellation or fatal request error| Abort
-    Stream -->|completed tool calls| DispatchTools
-    Stream -->|follow-up needed and context limit hit| Compact
-    Stream -->|no immediate follow-up| StopHooks
-    DispatchTools --> RecordObservations
-    RecordObservations -->|continuation would overflow context| Compact
-    RecordObservations -->|tool observations recorded| Sample
-    Compact -->|compacted history installed| Sample
-    StopHooks -->|hook adds model-visible context| Sample
-    StopHooks -->|no continuation reason remains| Complete
-    Blocked --> EndState
-    Abort --> EndState
-    Complete --> EndState
-```
+<DiagramFlow spec={turnStateMachine} lang="en" client:visible />
 
 The loop has one governing rule: continue only for a concrete reason. The reason may be tool follow-up, accepted pending input, compaction, or a stop hook that adds new model-visible work. Without a reason, the turn settles.
 

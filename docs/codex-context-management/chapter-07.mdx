@@ -1,4 +1,12 @@
 import RolloutReplayScrubber from "../../src/components/visual/RolloutReplayScrubber.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
+import {
+  reconstructionOutputs,
+  rolloutLayoutScan,
+  forkBoundaries,
+  legacyCompactionTree,
+} from "../../src/data/diagrams/codex-context-management/chapter-07";
 
 # Chapter 7: Resume, Rollback, Fork, and Replay
 
@@ -24,24 +32,7 @@ Reconstruction returns three things:
 
 The last two outputs are easy to miss. Resume is not just "load messages." It must also recover the context baseline used by the diff system from Chapter 4. If compaction cleared that baseline, resume must preserve the clearing.
 
-```mermaid
-flowchart TD
-  A[Rollout items] --> B[Reverse scan]
-  B --> C{Found surviving checkpoint?}
-  C -- yes --> D[Use replacement history base]
-  C -- no --> E[Start from empty history]
-  B --> F[Recover previous settings]
-  B --> G[Recover or clear reference context]
-  D --> H[Replay surviving suffix forward]
-  E --> H
-  H --> I[Rebuilt ContextManager state]
-  classDef phase1 fill:#fef3c7,stroke:#92400e;
-  classDef phase2 fill:#dbeafe,stroke:#1e40af;
-  classDef phase3 fill:#dcfce7,stroke:#15803d;
-  class A,B phase1;
-  class C,D,E,F,G phase2;
-  class H,I phase3;
-```
+<DiagramFlow spec={reconstructionOutputs} lang="en" client:visible />
 
 The reverse scan is efficient because old rollout items become irrelevant once a newer surviving replacement-history checkpoint and needed metadata are known.
 
@@ -49,27 +40,13 @@ The reverse scan is efficient because old rollout items become irrelevant once a
 
 A rollout is an append-only log of structured items. Picture a section of one:
 
-```text
-rollout (oldest                                                 newest)
-+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
-|i_c | u1 | a1 | t1 | u2 | a2 | RB | u3 | a3 | CP | u4 | a4 | u5 | a5 |
-+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
-   |    |    |    |    |    |    |    |    |    |    |    |    |    |
-   |    |    |    |    |    |    |    |    |    |    |    |    |    +-- assistant
-   |    |    |    |    |    |    |    |    |    |    |    |    +------- user5 (latest)
-   |    |    |    |    |    |    |    |    |    |    |    +------------ assistant
-   |    |    |    |    |    |    |    |    |    |    +----------------- user4
-   |    |    |    |    |    |    |    |    |    +---------------------- CHECKPOINT
-   |    |    |    |    |    |    |    |    +--------------------------- assistant
-   |    |    |    |    |    |    |    +-------------------------------- user3
-   |    |    |    |    |    |    +------------------------------------- ROLLBACK marker
-   |    |    |    |    |    +------------------------------------------ assistant
-   |    |    |    |    +----------------------------------------------- user2
-   |    |    |    +---------------------------------------------------- tool record
-   |    |    +--------------------------------------------------------- assistant
-   |    +-------------------------------------------------------------- user1
-   +------------------------------------------------------------------- initial_ctx
-```
+<DiagramAscii
+  lang="en"
+  ascii={rolloutLayoutScan.ascii}
+  legend={rolloutLayoutScan.legend}
+  highlights={rolloutLayoutScan.highlights}
+  client:visible
+/>
 
 The scan walks right to left and short-circuits at the latest surviving checkpoint. In this example that is `CP` between `u3` and `u4`, so older items (`i_c`, `u1`, `a1`, `t1`, `u2`, `a2`) become irrelevant for the rebuilt history. The rollback marker `RB` is interpreted while scanning.
 
@@ -149,13 +126,13 @@ The pattern matters outside multi-agent systems too. If your runtime has more th
 
 A small picture clarifies what counts as a fork boundary:
 
-```text
-                fork boundaries
-                       v
-  [ user1 | asst1 | AGENT_ENVELOPE | child_user | child_asst
-  | ENV_ENV | grandchild_user | ...                          ]
-         ^ no            ^ yes                ^ yes
-```
+<DiagramAscii
+  lang="en"
+  ascii={forkBoundaries.ascii}
+  legend={forkBoundaries.legend}
+  highlights={forkBoundaries.highlights}
+  client:visible
+/>
 
 `AGENT_ENVELOPE` is an assistant message that triggered a child agent turn. It is treated as a boundary because the suffix starting there is its own unit of work. A user message is also a boundary, but it is not the only kind.
 
@@ -167,15 +144,13 @@ This is also why the source distinguishes durable rollout evidence from live his
 
 The legacy decision tree is small but worth seeing:
 
-```text
-  legacy_compaction_record found?
-        |
-        +-- yes -> rebuild from user_messages + summary_text
-        |          clear reference_context_item
-        |          accept prompt may be less clean
-        |
-        +-- no  -> use modern replacement_history checkpoint path
-```
+<DiagramAscii
+  lang="en"
+  ascii={legacyCompactionTree.ascii}
+  legend={legacyCompactionTree.legend}
+  highlights={legacyCompactionTree.highlights}
+  client:visible
+/>
 
 The branch never silently produces an inferior prompt; the shape difference is explicit, recorded, and visible to telemetry.
 

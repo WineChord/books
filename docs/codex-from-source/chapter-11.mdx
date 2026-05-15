@@ -1,4 +1,6 @@
 import PatchWorkbench from "../../src/components/visual/PatchWorkbench.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { patchLifecycle } from "../../src/data/diagrams/codex-from-source/chapter-11";
 
 # Chapter 11: Patches as a First-Class Editing Protocol
 
@@ -12,18 +14,7 @@ Direct file writes are attractive because they are simple. They are also poor ev
 
 Patch execution has a longer lifecycle than it first appears to have.
 
-```mermaid
-flowchart LR
-    Input[freeform patch or shell-like invocation] --> Detect[detect apply-patch intent]
-    Detect --> Parse[parse patch hunks]
-    Parse --> Verify[verify paths and current file content]
-    Verify --> Assess[assess safety and required permissions]
-    Assess --> Approve[approval and hooks]
-    Approve --> Apply[filesystem-backed apply]
-    Apply --> Delta[committed delta]
-    Delta --> Events[patch events and turn diff]
-    Events --> Result[model-visible result]
-```
+<DiagramFlow spec={patchLifecycle} lang="en" client:visible />
 
 The parse step understands the patch grammar. The verify step consults the workspace filesystem to compute the concrete changes that would occur. The assess step decides whether the patch is auto-approved, needs approval, or requires additional permissions. The apply step writes through the selected executor filesystem, not through an assumed local path.
 

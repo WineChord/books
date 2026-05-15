@@ -1,4 +1,7 @@
 import CompatibilityLaneBoard from "../../src/components/visual/CompatibilityLaneBoard.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import { migrationPipeline, sessionImportFlow } from "../../src/data/diagrams/codex-from-source/chapter-19";
 
 # Chapter 19: External Migration and Backward Compatibility
 
@@ -14,23 +17,7 @@ Chapter 18 separated extension planes into skills, plugins, connectors, and type
 
 Backward compatibility in an agent system is not only about accepting old API fields. It is also about accepting user history, workflow habits, and local automation without allowing ambiguous behavior to become hidden authority. Codex treats migration as a controlled import path: read a source artifact, recognize supported constructs, translate them into Codex-native shapes, skip unsafe or dynamic cases, and record enough metadata to avoid duplicate work.
 
-```mermaid
-flowchart LR
-    Source["External source artifacts"]
-    Detect["Detect and classify"]
-    Validate["Validate supported subset"]
-    Convert["Convert to Codex-native shape"]
-    Preserve["Preserve existing targets"]
-    Ledger["Record import metadata"]
-    Runtime["Use native runtime paths"]
-
-    Source --> Detect
-    Detect --> Validate
-    Validate --> Convert
-    Convert --> Preserve
-    Preserve --> Ledger
-    Ledger --> Runtime
-```
+<DiagramFlow spec={migrationPipeline} lang="en" client:visible />
 
 The final node matters. A migrated hook should run as a Codex hook. A migrated command should behave as a Codex skill or workflow unit. An imported session should become rollout history. The migration layer should not remain in the turn loop.
 
@@ -73,21 +60,7 @@ Session import is different from config migration because history is not a futur
 
 The import path therefore detects candidate sessions, validates that the working context still exists, loads only importable records, builds visible turns, adds import metadata, and records a content-hash ledger. The ledger is what prevents duplicate imports while still allowing re-detection if the source content changes.
 
-```mermaid
-sequenceDiagram
-    participant Detector
-    participant Ledger
-    participant Parser
-    participant Rollout
-    participant ThreadStore
-
-    Detector->>Ledger: has this content hash been imported?
-    Ledger-->>Detector: no
-    Detector->>Parser: load importable JSONL session
-    Parser->>Rollout: emit native rollout items
-    Rollout->>ThreadStore: create imported thread
-    ThreadStore->>Ledger: record source hash and imported thread id
-```
+<DiagramSequence spec={sessionImportFlow} lang="en" client:visible />
 
 The design preserves two facts at once: the imported conversation is usable as Codex history, and it still has provenance as imported history.
 

@@ -1,0 +1,101 @@
+import type { FlowSpec } from "../../../components/visual/diagrams/types";
+
+// Diagram 1: MCP boundary snake (replaces flowchart LR under
+// `The Boundary MCP Creates`).
+export const mcpBoundary: FlowSpec = {
+  cols: 5,
+  rows: 2,
+  width: 940,
+  height: 260,
+  nodes: [
+    {
+      id: "Config",
+      label: { en: "MCP config and built-ins", zh: "MCP config 与 built-ins" },
+      shape: "rounded",
+      tone: "muted",
+      col: 0,
+      row: 0,
+    },
+    {
+      id: "Effective",
+      label: {
+        en: "Effective server definitions",
+        zh: "Effective server definitions",
+      },
+      shape: "rounded",
+      tone: "info",
+      col: 1,
+      row: 0,
+    },
+    {
+      id: "Client",
+      label: { en: "Managed MCP clients", zh: "受管 MCP clients" },
+      shape: "rounded",
+      tone: "info",
+      col: 2,
+      row: 0,
+    },
+    {
+      id: "Listing",
+      label: { en: "Tool listings", zh: "Tool listings" },
+      shape: "cylinder",
+      tone: "info",
+      col: 3,
+      row: 0,
+    },
+    {
+      id: "Sanitize",
+      label: { en: "Sanitized model names", zh: "Sanitized model names" },
+      shape: "rounded",
+      tone: "accent",
+      col: 4,
+      row: 0,
+    },
+    {
+      id: "Model",
+      label: { en: "Model tool call", zh: "模型 tool call" },
+      shape: "pill",
+      tone: "accent",
+      col: 4,
+      row: 1,
+    },
+    {
+      id: "Route",
+      label: { en: "Route by provenance", zh: "按 provenance 路由" },
+      shape: "diamond",
+      tone: "warning",
+      col: 3,
+      row: 1,
+    },
+    {
+      id: "Server",
+      label: { en: "Owning MCP server", zh: "所属 MCP server" },
+      shape: "rounded",
+      tone: "success",
+      col: 2,
+      row: 1,
+    },
+    {
+      id: "Observe",
+      label: { en: "Tool observation", zh: "Tool observation" },
+      shape: "pill",
+      tone: "success",
+      col: 1,
+      row: 1,
+    },
+  ],
+  edges: [
+    { from: "Config", to: "Effective" },
+    { from: "Effective", to: "Client" },
+    { from: "Client", to: "Listing" },
+    { from: "Listing", to: "Sanitize" },
+    { from: "Sanitize", to: "Model", tone: "accent" },
+    { from: "Model", to: "Route", tone: "accent" },
+    { from: "Route", to: "Server", tone: "warning" },
+    { from: "Server", to: "Observe", tone: "success" },
+  ],
+  legend: {
+    en: "Discovery flows left to right; routing returns right to left through the provenance table.",
+    zh: "Discovery 从左向右流动；routing 通过 provenance 表从右向左回流。",
+  },
+};

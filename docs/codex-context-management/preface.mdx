@@ -1,3 +1,6 @@
+import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
+import { chapterMap } from "../../src/data/diagrams/codex-context-management/preface";
+
 # Preface
 
 This book is about one part of Codex that is easy to underestimate: context management. Most agent write-ups talk about tools, models, and user interfaces. Codex is interesting because it treats context as governed runtime state. The prompt sent to the model is not a string that grows until it fails. It is the projection of a thread ledger, a turn envelope, typed context fragments, policy diffs, optional knowledge planes, compaction checkpoints, and replay evidence.
@@ -17,29 +20,13 @@ That bet explains the shape of the subsystem. A turn has an explicit envelope. H
 
 The whole subsystem can be drawn as a single picture before you read any chapters. Each box becomes a chapter, in order:
 
-```text
-  +--------------- Codex context as runtime ---------------+
-  |                                                        |
-  |  [1] Boundary       [2] TurnContext envelope           |
-  |        |                       |                       |
-  |        v                       v                       |
-  |  [3] History ledger  -->  [4] Typed fragments + diffs  |
-  |        |                       |                       |
-  |        +-----------+-----------+                       |
-  |                    v                                   |
-  |             [5] Optional planes                        |
-  |                    |                                   |
-  |                    v                                   |
-  |             [6] Compaction (checkpoint)                |
-  |                    |                                   |
-  |                    v                                   |
-  |             [7] Resume / rollback / fork / replay      |
-  |                    |                                   |
-  |                    v                                   |
-  |             [8] Client surfaces (read-only)            |
-  |                                                        |
-  +--------------------------------------------------------+
-```
+<DiagramAscii
+  lang="en"
+  ascii={chapterMap.ascii}
+  legend={chapterMap.legend}
+  highlights={chapterMap.highlights}
+  client:visible
+/>
 
 Read the chapters in the same direction as the arrows. Each chapter assumes the previous owners exist and concentrates on its own concern. Reference back to this picture if a chapter feels disconnected; everything has a position in this stack.
 

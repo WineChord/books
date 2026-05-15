@@ -1,4 +1,11 @@
 import MemorySideChannel from "../../src/components/visual/MemorySideChannel.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import {
+  memoryReadWritePaths,
+  citationProvenanceFlow,
+  stageTwoConsolidation,
+} from "../../src/data/diagrams/codex-from-source/chapter-22";
 
 # Chapter 22: Memories and User-Level State
 
@@ -14,33 +21,7 @@ The read path helps the active session use existing memory. It builds developer-
 
 The write path runs in the background at root-session startup. It scans eligible past rollouts, extracts structured memory records, stores those records in the state database, synchronizes selected records into a memory workspace, computes a workspace diff, and asks a restricted internal agent to consolidate the artifacts.
 
-```mermaid
-flowchart TD
-    subgraph Read["read path"]
-        Summary["memory summary"]
-        Instructions["developer-instruction context"]
-        MCP["read-only MCP tools\nlist / read / search"]
-        Citations["citation parser"]
-    end
-
-    subgraph Write["write path"]
-        Startup["root session startup"]
-        Phase1["Stage 1\nper-rollout extraction"]
-        DB["state database\nstage-1 outputs and leases"]
-        Phase2["Stage 2\nglobal consolidation"]
-        Workspace["memory workspace\nraw memories and summaries"]
-        Internal["restricted internal agent"]
-    end
-
-    Summary --> Instructions
-    MCP --> Citations
-    Startup --> Phase1
-    Phase1 --> DB
-    DB --> Phase2
-    Phase2 --> Workspace
-    Workspace --> Internal
-    Internal --> Summary
-```
+<DiagramFlow spec={memoryReadWritePaths} lang="en" client:visible />
 
 The separation prevents a common mistake: letting the active model write its own future instructions directly. Codex can use models to extract and consolidate memory, but those models run inside a bounded pipeline rather than inside the user's ordinary turn.
 
@@ -58,21 +39,7 @@ Memory needs provenance. Codex parses citation blocks into structured entries an
 
 The citation system is intentionally narrow. It does not attempt to prove every sentence. It gives the architecture a hook for connecting memory usage back to source rollouts and memory files. That is enough to build user-facing evidence, usage metrics, and future pruning decisions without turning memory into an unbounded provenance database.
 
-```mermaid
-flowchart LR
-    Summary["memory summary or file excerpt"]
-    Citation["citation block"]
-    Parser["citation parser"]
-    IDs["rollout and thread ids"]
-    Usage["usage accounting"]
-    Selection["future Stage 2 selection"]
-
-    Summary --> Citation
-    Citation --> Parser
-    Parser --> IDs
-    IDs --> Usage
-    Usage --> Selection
-```
+<DiagramFlow spec={citationProvenanceFlow} lang="en" client:visible />
 
 A citation can be thought of as a compact receipt: "this memory artifact came from these rollout or thread sources and was used in this read path." The receipt is not model authority. It is runtime accounting. Later selection logic can prefer memories that are cited and recently useful, and pruning can remove artifacts that are neither fresh nor used.
 
@@ -116,32 +83,7 @@ Stage 2 is serialized. It claims a single global lock before touching the memory
 
 If there is no diff, Stage 2 can mark success without running a model. If there is a diff, it writes a bounded workspace-diff artifact, spawns an internal consolidation agent, heartbeats the global lease while that agent runs, and resets the workspace baseline only after successful completion.
 
-```mermaid
-sequenceDiagram
-    participant Startup
-    participant DB as State DB
-    participant FS as Memory workspace
-    participant Git as Git baseline
-    participant Agent as Restricted internal agent
-
-    Startup->>DB: claim global Stage 2 lock
-    DB-->>Startup: ownership token and watermark
-    Startup->>FS: sync selected Stage 1 outputs
-    Startup->>FS: prune stale generated artifacts
-    Startup->>Git: compute workspace diff
-    alt no changes
-        Startup->>DB: mark success without agent
-    else changes
-        Startup->>FS: write bounded diff artifact
-        Startup->>Agent: run consolidation with restricted config
-        loop while running
-            Startup->>DB: heartbeat lock
-        end
-        Agent-->>Startup: final status
-        Startup->>Git: reset successful baseline
-        Startup->>DB: mark selected inputs and watermark
-    end
-```
+<DiagramSequence spec={stageTwoConsolidation} lang="en" client:visible />
 
 The git baseline is not for collaboration. It is a deterministic diff engine for the memory workspace. Stage 2 uses the diff to decide whether consolidation is needed and to give the internal agent a bounded view of changed artifacts.
 

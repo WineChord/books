@@ -1,4 +1,6 @@
 import ToolDispatchMap from "../../src/components/visual/ToolDispatchMap.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { toolSpecPlanner } from "../../src/data/diagrams/codex-from-source/chapter-09";
 
 # Chapter 9: Tool Specifications, Routing, and Dispatch
 
@@ -28,22 +30,7 @@ Codex keeps tool metadata and execution behavior on different planes.
 
 The separation is visible in the lifecycle. A session builds a tool registry from configuration, feature flags, model capability, MCP startup state, discoverable tools, dynamic tools, and hosted tool availability. The registry then produces two products: configured specs for internal lookup, and model-visible specs for the request sent to the model.
 
-```mermaid
-flowchart LR
-    Config[resolved configuration] --> Plan[tool spec plan]
-    Model[model capability] --> Plan
-    MCP[MCP and hosted tools] --> Plan
-    Dynamic[dynamic tools] --> Plan
-    Plan --> Specs[model-visible specs]
-    Plan --> Registry[handler registry]
-    Specs --> ModelRequest[model request]
-    Registry --> Router[turn tool router]
-    ModelRequest --> ToolCall[model tool call]
-    ToolCall --> Router
-    Router --> Runtime[tool call runtime]
-    Runtime --> Events[events and rollout]
-    Runtime --> Output[model-visible result]
-```
+<DiagramFlow spec={toolSpecPlanner} lang="en" client:visible />
 
 This diagram is the core of the chapter: the model receives specifications, not handlers. The runtime keeps handlers, not just schemas. The router is the turn-local bridge between them.
 

@@ -1,4 +1,6 @@
 import ContainmentBoundaryExplorer from "../../../src/components/visual/ContainmentBoundaryExplorer.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { policyTransformEnforcement } from "../../../src/data/diagrams/codex-from-source/chapter-13";
 
 # 第 13 章：Sandboxes、网络策略与平台边界
 
@@ -10,21 +12,7 @@ Sandbox 架构有三个阶段。第一，Codex 把 permission profile 解析成 
 
 ## Policy、Transform、Enforcement
 
-```mermaid
-flowchart LR
-    Profile[permission profile] --> Split[filesystem and network policy]
-    Split --> Select[select sandbox type]
-    Select --> Transform[transform command and environment]
-    Transform --> Platform{platform helper}
-    Platform --> Mac[macOS Seatbelt]
-    Platform --> Linux[Linux bwrap, namespaces, seccomp]
-    Platform --> Windows[Windows token, ACL, firewall, WFP]
-    Platform --> None[no platform sandbox]
-    Mac --> Result[execution metadata and result]
-    Linux --> Result
-    Windows --> Result
-    None --> Result
-```
+<DiagramFlow spec={policyTransformEnforcement} lang="zh" client:visible />
 
 这不是一个 sandbox，而是一个 policy compiler 加多个 enforcement backends。Compiler 是跨平台的；enforcement 是平台相关的。因此，同一个 permission profile 在不同操作系统上可能产生不同 command、warning 或 refusal。
 

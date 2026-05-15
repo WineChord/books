@@ -1,4 +1,6 @@
 import StreamingProviderLanes from "../../../src/components/visual/StreamingProviderLanes.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { providerStack, transportConvergence, backendTaskSeparation } from "../../../src/data/diagrams/codex-from-source/chapter-07";
 
 # 第 7 章：模型 Provider、流式传输与 Backend Task
 
@@ -16,34 +18,7 @@ import StreamingProviderLanes from "../../../src/components/visual/StreamingProv
 
 provider 路径最好按五层理解，再加若干专门 integration。
 
-```mermaid
-flowchart TD
-    Config["configuration\nprovider data, model choice"]
-    ProviderInfo["provider registry\n可序列化 metadata"]
-    RuntimeProvider["runtime provider\nauth, account, capabilities"]
-    Catalog["model catalog\nbundled + remote + cache"]
-    Api["typed API layer\nResponses, Compact, Models, Realtime"]
-    Transport["transport\nHTTP, SSE, WebSocket, retries"]
-    Events["normalized response events"]
-    Turn["turn loop"]
-
-    Backend["backend task client\ncloud tasks, usage, requirements"]
-    Local["local providers\nOllama, LM Studio"]
-    Realtime["realtime\nmedia plane + sideband control"]
-
-    Config --> ProviderInfo
-    ProviderInfo --> RuntimeProvider
-    RuntimeProvider --> Catalog
-    RuntimeProvider --> Api
-    Catalog --> Turn
-    Api --> Transport
-    Transport --> Events
-    Events --> Turn
-
-    RuntimeProvider --> Local
-    Api --> Realtime
-    Config --> Backend
-```
+<DiagramFlow spec={providerStack} lang="zh" client:visible />
 
 transport layer 负责 HTTP 细节：request body、headers、compression、 retry policy、idle timeout、自定义证书、stream framing 和 telemetry hook。 typed API layer 负责 endpoint shape：Responses、compaction、model listing、 file upload、memory summarization、realtime setup 和 WebSocket session。 provider runtime 负责 account state、auth resolution、capabilities、 model-manager selection，以及 provider-specific behavior。model catalog 负责有哪些模型可用，以及哪些默认值适合当前环境。
 
@@ -61,22 +36,7 @@ runtime provider behavior 是另一层。它解析当前 auth value，暴露 acc
 
 Responses 路径可以走 HTTP streaming，也可以走 Responses WebSocket。两者机制不同， 但在回到 turn loop 之前会收敛成同一种 runtime event vocabulary。
 
-```mermaid
-flowchart LR
-    Prompt["prompt + tools + options"]
-    Http["HTTP request\nSSE frames"]
-    Ws["WebSocket session\nrequest messages"]
-    Parser["transport parser"]
-    ResponseEvents["ResponseEvent stream\nitems, deltas, usage, errors"]
-    Runtime["turn loop"]
-
-    Prompt --> Http
-    Prompt --> Ws
-    Http --> Parser
-    Ws --> Parser
-    Parser --> ResponseEvents
-    ResponseEvents --> Runtime
-```
+<DiagramFlow spec={transportConvergence} lang="zh" client:visible />
 
 WebSocket 路径可以复用 session state，减少每轮 setup 成本。HTTP 路径仍然必要： 有些 provider 不支持 WebSocket；连接失败后可能需要 fallback；某些 auth mode 也无法给 WebSocket upgrade 做等价签名。runtime 可以对临时 stream failure 做 retry， 在合适时刷新 auth，并从 WebSocket fallback 到 HTTP-style streaming，而不改变 turn loop。
 
@@ -158,27 +118,7 @@ realtime 相关但不等同于普通 inference。它有 media plane，用于 aud
 
 backend client 处理 task、usage、requirements、rate-limit 和 cloud workflow API。它可以 列出任务、获取任务详情、创建 task attempt、读取 backend-managed requirements，并获取 diff 或 sibling turns。这些 API 可能与 model provider 共享 auth 和 base URL 关注点，但它们不是 Responses stream。
 
-```mermaid
-flowchart LR
-    Turn[Local turn loop]
-    Prompt[Model prompt and tools]
-    Inference[Inference transport\nSSE or WebSocket]
-    Events[Response events]
-
-    CloudUI[Cloud CLI or TUI]
-    TaskAPI[Backend task API]
-    TaskState[Tasks, attempts, diffs]
-    Apply[Local patch apply]
-
-    Turn --> Prompt
-    Prompt --> Inference
-    Inference --> Events
-    Events --> Turn
-
-    CloudUI --> TaskAPI
-    TaskAPI --> TaskState
-    TaskState --> Apply
-```
+<DiagramFlow spec={backendTaskSeparation} lang="zh" client:visible />
 
 把 backend task 分开，可以避免一个常见架构错误：把 cloud workflow state 当成另一种 model transport。cloud task 有 lifecycle、environment、attempt、diff 和 apply semantics。 model stream 有 response events。它们可能在产品流程里相遇，但不应该共享同一个 runtime 抽象。
 

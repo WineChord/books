@@ -1,4 +1,6 @@
 import DurableThreadLedger from "../../../src/components/visual/DurableThreadLedger.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { runtimeStack, threadLifecycleOperations } from "../../../src/data/diagrams/codex-from-source/chapter-05";
 
 # 第 5 章：线程、会话与持久状态
 
@@ -16,31 +18,7 @@ import DurableThreadLedger from "../../../src/components/visual/DurableThreadLed
 
 Codex 不是围绕一个“聊天对象”组织起来的。它更像一组逐层收窄权限的 handle：越靠近外部，接口越小；越靠近内部，状态和调度责任越多。
 
-```mermaid
-flowchart TD
-    Client["客户端接入面\nCLI, TUI, app-server, SDK"]
-    Manager["ThreadManager\n管理 live thread map"]
-    Thread["CodexThread\n客户端可持有的 live handle"]
-    Facade["Codex\nsubmission/event queues"]
-    Session["Session\n状态、服务、active turn"]
-    Task["SessionTask\nturn, compact, review, shell"]
-    Router["ToolRouter\n运行时副作用"]
-
-    Store["ThreadStore\nrollout 与 metadata"]
-    Context["ContextManager\n模型可见历史"]
-    State["SQLite projections\nthreads, logs, graph, memory"]
-
-    Client --> Manager
-    Manager --> Thread
-    Thread --> Facade
-    Facade --> Session
-    Session --> Task
-    Task --> Router
-
-    Session --> Context
-    Session --> Store
-    Session --> State
-```
+<DiagramFlow spec={runtimeStack} lang="zh" client:visible />
 
 `ThreadManager` 拥有 live threads 集合，以及创建 session 所需的共享服务。 `CodexThread` 是线程创建或恢复之后交给客户端的稳定 handle。`Codex` 本身刻意保持很小：一条提交路径，一条事件路径。`Session` 才是内部的 大对象，保存解析后的配置、持久身份、active turn、mailbox、realtime 状态、目标状态、review 状态和各种 service handle。
 
@@ -112,21 +90,7 @@ function record_runtime_item(turn, item):
 
 线程操作本质上都是同一个原则的变体：加载或选择一个 replay 前缀，在它 之上构造 session，然后用相同的词汇继续追加未来 item。
 
-```mermaid
-flowchart LR
-    Start["start\n新 thread id"] --> Open["打开 live persistence"]
-    Resume["resume\n已有 rollout"] --> Replay["replay durable items"]
-    Fork["fork\n选择前缀"] --> NewThread["新 thread id\nfork metadata"]
-    Rollback["rollback\n裁剪最近 turns"] --> Rebuild["重建模型历史"]
-
-    Open --> Configured["emit SessionConfigured"]
-    Replay --> Configured
-    NewThread --> Configured
-    Rebuild --> Configured
-
-    Configured --> Append["追加未来 rollout items"]
-    Append --> Query["更新 SQLite projections"]
-```
+<DiagramFlow spec={threadLifecycleOperations} lang="zh" client:visible />
 
 resume 不是重新加载一段字符串。它要从 durable items 重建模型历史和 session metadata。fork 不是复制 UI transcript。它选择一个一致的前缀， 打开一个新的 thread，让未来从源线程分叉。rollback 也不是简单删除可见 消息；它要从保留下来的 durable record 重建 active model context，并考虑 compaction 和未完成 turn。
 

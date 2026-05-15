@@ -1,4 +1,9 @@
 import FragmentComposer from "../../src/components/visual/FragmentComposer.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import {
+  fragmentLanes,
+  settingsDiff,
+} from "../../src/data/diagrams/codex-context-management/chapter-04";
 
 # Chapter 4: Typed Fragments and Settings Diffs
 
@@ -45,39 +50,7 @@ The tag is human-readable on the model side and machine-recognizable on the runt
 
 The fragment layer is one of three rendering disciplines that meet at the prompt projection. The diagram shows their distinct responsibilities:
 
-```mermaid
-flowchart LR
-  subgraph runtime["Runtime state"]
-    A[TurnContext]
-    B[Permission profile]
-    C[Realtime / mode flags]
-    D[Skills / plugins / hooks]
-    E[Memory mode]
-  end
-  subgraph fragments["Typed fragment renderers"]
-    F[Environment fragment]
-    G[Permission fragment]
-    H[Realtime fragment]
-    I[Skill / plugin fragment]
-    J[Memory fragment]
-  end
-  subgraph projection["Projection inputs"]
-    K[Initial context bundle]
-    L[Settings diff items]
-    M[Optional plane items]
-  end
-  A --> F --> K
-  B --> G --> L
-  C --> H --> L
-  D --> I --> M
-  E --> J --> K
-  classDef rt fill:#fef3c7,stroke:#92400e;
-  classDef fr fill:#dbeafe,stroke:#1e40af;
-  classDef pj fill:#dcfce7,stroke:#15803d;
-  class A,B,C,D,E rt;
-  class F,G,H,I,J fr;
-  class K,L,M pj;
-```
+<DiagramFlow spec={fragmentLanes} lang="en" client:visible />
 
 The three lanes prevent a common bug: runtime state being rendered through inconsistent code paths. Once a fragment exists, every subsystem that wants to inject the same fact uses the same renderer.
 
@@ -102,28 +75,7 @@ The key is not that all of these become text. The key is that they become text t
 
 `build_settings_update_items` compares a previous context item with the next turn context. It can emit a contextual user message for environment changes and a developer message for model instructions, permissions, collaboration mode, realtime state, and personality. Model-switch instructions are placed first so model-specific guidance frames the rest of the diff.
 
-```mermaid
-flowchart TD
-  A[Previous TurnContextItem] --> C{Compare with next TurnContext}
-  B[Next TurnContext] --> C
-  C --> D[Environment diff]
-  C --> E[Developer update sections]
-  E --> F[Model switch first]
-  E --> G[Permissions]
-  E --> H[Collaboration and realtime]
-  E --> I[Personality]
-  D --> J[Record update items]
-  F --> J
-  G --> J
-  H --> J
-  I --> J
-  classDef start fill:#fef3c7,stroke:#92400e;
-  classDef diff fill:#fee2e2,stroke:#b91c1c;
-  classDef record fill:#dcfce7,stroke:#15803d;
-  class A,B start;
-  class D,E,F,G,H,I diff;
-  class J record;
-```
+<DiagramFlow spec={settingsDiff} lang="en" client:visible />
 
 The result is precise context churn. Codex avoids repeating everything when nothing changed, but it can still fully reinject after compaction or rollback by clearing the reference baseline.
 

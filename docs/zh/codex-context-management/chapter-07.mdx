@@ -1,4 +1,12 @@
 import RolloutReplayScrubber from "../../../src/components/visual/RolloutReplayScrubber.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
+import {
+  reconstructionOutputs,
+  rolloutLayoutScan,
+  forkBoundaries,
+  legacyCompactionTree,
+} from "../../../src/data/diagrams/codex-context-management/chapter-07";
 
 # 第 7 章：Resume、Rollback、Fork 与 Replay
 
@@ -24,24 +32,7 @@ import RolloutReplayScrubber from "../../../src/components/visual/RolloutReplayS
 
 后两个输出容易被忽视。Resume 不只是"加载消息"，它还必须恢复第 4 章 diff 系统使用的上下文 baseline。如果 compaction 清空了那个 baseline，resume 必须保持已清空的状态。
 
-```mermaid
-flowchart TD
-  A[Rollout items] --> B[逆向扫描]
-  B --> C{找到存活 checkpoint？}
-  C -- 是 --> D[使用 replacement history 起点]
-  C -- 否 --> E[从空历史开始]
-  B --> F[恢复上一次设置]
-  B --> G[恢复或清空 reference context]
-  D --> H[向前重放存活后缀]
-  E --> H
-  H --> I[重建 ContextManager 状态]
-  classDef phase1 fill:#fef3c7,stroke:#92400e;
-  classDef phase2 fill:#dbeafe,stroke:#1e40af;
-  classDef phase3 fill:#dcfce7,stroke:#15803d;
-  class A,B phase1;
-  class C,D,E,F,G phase2;
-  class H,I phase3;
-```
+<DiagramFlow spec={reconstructionOutputs} lang="zh" client:visible />
 
 逆向扫描高效，因为一旦找到更新的存活 replacement-history checkpoint 与所需元信息，旧 rollout items 就与重建无关。
 
@@ -49,27 +40,13 @@ flowchart TD
 
 Rollout 是一份 append-only 的结构化 item 日志。一段示意：
 
-```text
-rollout (oldest                                                 newest)
-+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
-|i_c | u1 | a1 | t1 | u2 | a2 | RB | u3 | a3 | CP | u4 | a4 | u5 | a5 |
-+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
-   |    |    |    |    |    |    |    |    |    |    |    |    |    |
-   |    |    |    |    |    |    |    |    |    |    |    |    |    +-- assistant
-   |    |    |    |    |    |    |    |    |    |    |    |    +------- user5 (latest)
-   |    |    |    |    |    |    |    |    |    |    |    +------------ assistant
-   |    |    |    |    |    |    |    |    |    |    +----------------- user4
-   |    |    |    |    |    |    |    |    |    +---------------------- CHECKPOINT
-   |    |    |    |    |    |    |    |    +--------------------------- assistant
-   |    |    |    |    |    |    |    +-------------------------------- user3
-   |    |    |    |    |    |    +------------------------------------- ROLLBACK marker
-   |    |    |    |    |    +------------------------------------------ assistant
-   |    |    |    |    +----------------------------------------------- user2
-   |    |    |    +---------------------------------------------------- tool record
-   |    |    +--------------------------------------------------------- assistant
-   |    +-------------------------------------------------------------- user1
-   +------------------------------------------------------------------- initial_ctx
-```
+<DiagramAscii
+  lang="zh"
+  ascii={rolloutLayoutScan.ascii}
+  legend={rolloutLayoutScan.legend}
+  highlights={rolloutLayoutScan.highlights}
+  client:visible
+/>
 
 扫描从右往左走，碰到最近的存活 checkpoint 就短路。例子里 `u3` 与 `u4` 之间的 `CP` 就是这个点，于是 `i_c`、`u1`、`a1`、`t1`、`u2`、`a2` 对重建已无意义。Rollback 标记 `RB` 在扫描中被解释。
 
@@ -149,13 +126,13 @@ return suffixStartingAtNthBoundaryFromEnd()
 
 一张小图说明 fork 边界类型：
 
-```text
-                fork 边界
-                       v
-  [ user1 | asst1 | AGENT_ENVELOPE | child_user | child_asst
-  | ENV_ENV | grandchild_user | ...                          ]
-         ^ 否            ^ 是                ^ 是
-```
+<DiagramAscii
+  lang="zh"
+  ascii={forkBoundaries.ascii}
+  legend={forkBoundaries.legend}
+  highlights={forkBoundaries.highlights}
+  client:visible
+/>
 
 `AGENT_ENVELOPE` 是触发了子 agent turn 的 assistant 消息。它被视为边界，因为从它开始的后缀本身是一个工作单元。用户消息也是边界，但不是唯一的种类。
 
@@ -167,15 +144,13 @@ return suffixStartingAtNthBoundaryFromEnd()
 
 遗留判断树虽小但值得看一眼：
 
-```text
-  legacy_compaction_record found?
-        |
-        +-- yes -> 从 user_messages + summary_text 重建
-        |          清空 reference_context_item
-        |          接受 prompt 可能不那么干净
-        |
-        +-- no  -> 使用现代 replacement_history checkpoint 路径
-```
+<DiagramAscii
+  lang="zh"
+  ascii={legacyCompactionTree.ascii}
+  legend={legacyCompactionTree.legend}
+  highlights={legacyCompactionTree.highlights}
+  client:visible
+/>
 
 分支从不"无声"产生劣化 prompt；形状差异是显式的、被记录的、telemetry 可见的。
 

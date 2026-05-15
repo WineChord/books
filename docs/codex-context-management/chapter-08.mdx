@@ -1,4 +1,12 @@
 import ClientFanoutMap from "../../src/components/visual/ClientFanoutMap.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
+import {
+  tokenFanout,
+  replayAttribution,
+  compactionTraceStream,
+} from "../../src/data/diagrams/codex-context-management/chapter-08";
 
 # Chapter 8: Client-Facing Context
 
@@ -30,20 +38,7 @@ The right column is the part that matters. Each surface has a precise way it fai
 
 The TUI token usage model separates input, cached input, output, reasoning output, and total tokens. It also computes a remaining percentage against a baseline-adjusted context window. That baseline is a display choice, not the runtime's only budget rule. The core runtime still uses model info and token usage to trigger compaction.
 
-```mermaid
-graph LR
-  A[Model usage event] --> B[ContextManager token info]
-  B --> C[Core compaction decisions]
-  B --> D[TUI token display]
-  B --> E[App-server token notification]
-  B --> F[Telemetry]
-  classDef src fill:#fef3c7,stroke:#92400e;
-  classDef hub fill:#fee2e2,stroke:#b91c1c,stroke-width:2px;
-  classDef sink fill:#dbeafe,stroke:#1e40af;
-  class A src;
-  class B hub;
-  class C,D,E,F sink;
-```
+<DiagramFlow spec={tokenFanout} lang="en" client:visible />
 
 The same source fact feeds multiple surfaces. That is what keeps the UI honest. The pattern is "fan-out from one fact" rather than "let each consumer compute its own number." If the TUI bar disagrees with compaction's threshold, that is a bug, not just a display preference.
 
@@ -64,24 +59,7 @@ else:
 
 The pattern is subtle: client replay is connection-scoped because it explains history to a new observer; it is not a new runtime event.
 
-```mermaid
-sequenceDiagram
-  participant Client
-  participant Server as App-server
-  participant Core as Runtime
-  participant Rollout
-
-  Client->>Server: attach to thread
-  Server->>Rollout: read latest token usage record
-  Server->>Core: ask for rebuilt turn ids
-  Core-->>Server: turn id map
-  alt original id still present
-    Server-->>Client: restored usage on owner.id
-  else id changed during rebuild
-    Server-->>Client: restored usage on turn at owner.position
-  end
-  Note over Server,Client: Other subscribers receive nothing<br/>(connection-scoped replay)
-```
+<DiagramSequence spec={replayAttribution} lang="en" client:visible />
 
 The diagram shows why the replay event is delivered only to the attaching client. Other subscribers already saw the original event when it was live; sending it again would look like a new model action and confuse their state.
 
@@ -106,19 +84,13 @@ Remote compaction records an installed checkpoint payload containing input histo
 
 Good observability does not just count tokens. It preserves semantic boundaries.
 
-```text
-trace stream around a compaction:
-
-  ... usage(turn N-1)
-    -> compaction_pre_hook(turn N)
-    -> compact_input(payload = old history clone)        [phase 1]
-    -> compact_output(payload = compacted items)         [phase 1]
-    -> compaction_install(payload = replacement history) [phase 2]
-    -> usage(post-compact recompute)                     [phase 2]
-    -> compaction_post_hook(turn N)
-    -> sample_request(payload = new prompt projection)   [phase 3]
-  ... usage(turn N) ...
-```
+<DiagramAscii
+  lang="en"
+  ascii={compactionTraceStream.ascii}
+  legend={compactionTraceStream.legend}
+  highlights={compactionTraceStream.highlights}
+  client:visible
+/>
 
 Three phases live in the same trace stream: compact, install, sample. A naive trace would collapse them into one "compaction event" and lose the ability to audit each phase separately.
 

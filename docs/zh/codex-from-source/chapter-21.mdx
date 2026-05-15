@@ -1,4 +1,7 @@
 import RemoteTaskContract from "../../../src/components/visual/RemoteTaskContract.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
+import { cloudBackendContract, applyTaskFlow, agentIdentityBinding } from "../../../src/data/diagrams/codex-from-source/chapter-21";
 
 # 第 21 章：云端任务、身份与远程工作
 
@@ -12,29 +15,7 @@ import RemoteTaskContract from "../../../src/components/visual/RemoteTaskContrac
 
 Cloud task client 围绕一个小的 backend interface 组织。它能 list tasks、 获取 summary、获取 diff、获取 assistant messages、获取 task text、列出 sibling attempts、创建 task、执行 apply preflight，以及 apply task。这个 interface 把 HTTP 路径细节从 CLI 和 TUI 中隔离出去，也让 mock backend 能在 开发和测试中满足同一个 contract。
 
-```mermaid
-flowchart TD
-    CLI["cloud CLI command"]
-    TUI["cloud task TUI"]
-    BackendTrait["cloud backend contract"]
-    HTTP["HTTP backend client"]
-    Mock["mock backend"]
-    Remote["remote Codex task service"]
-    Diff["task diff and attempt metadata"]
-    LocalPatch["local patch preflight/apply"]
-    Worktree["current worktree"]
-
-    CLI --> BackendTrait
-    TUI --> BackendTrait
-    BackendTrait --> HTTP
-    BackendTrait --> Mock
-    HTTP --> Remote
-    Remote --> Diff
-    CLI --> LocalPatch
-    TUI --> LocalPatch
-    Diff --> LocalPatch
-    LocalPatch --> Worktree
-```
+<DiagramFlow spec={cloudBackendContract} lang="zh" client:visible />
 
 这个布局避免 UI 变成 task 语义的事实来源。列表视图可以过滤 review-only tasks，diff overlay 可以在 attempts 之间切换，modal 可以展示 apply conflicts。这些都是呈现选择。Backend contract 是远端状态的架构中心，而 local patch path 才是能修改当前 checkout 的路径。
 
@@ -99,25 +80,7 @@ Cloud tasks 支持同一项工作产生多个 assistant attempts。因此 UI 不
 
 Cloud tasks 中最重要的边界是 apply。Task 可以在云端运行，但 apply 它的 diff 是本地 filesystem 操作。Codex 会获取或选择 unified diff，验证它确实 是兼容的 diff format，然后执行本地 patch preflight 或 application。Backend 不能单方面宣布用户工作树已经改变。
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant CloudUI as Cloud CLI/TUI
-    participant Backend
-    participant Patch as Local patch engine
-    participant Worktree
-
-    User->>CloudUI: choose task and attempt
-    CloudUI->>Backend: fetch details or selected attempt diff
-    Backend-->>CloudUI: unified diff plus metadata
-    CloudUI->>CloudUI: reject incompatible diff shape
-    CloudUI->>Patch: preflight diff against current worktree
-    Patch-->>CloudUI: clean, partial, or error
-    User->>CloudUI: confirm apply
-    CloudUI->>Patch: apply selected diff locally
-    Patch->>Worktree: modify files if clean enough
-    Patch-->>CloudUI: applied paths, skipped paths, conflicts
-```
+<DiagramSequence spec={applyTaskFlow} lang="zh" client:visible />
 
 Preflight 很重要，因为 remote output 可能相对本地 checkout 已经过期。即使 cloud task 生成时完全正确，用户之后也可能改过文件。本地 preflight 会在真正 mutation 之前把这种不确定性变成可见结果。
 
@@ -145,26 +108,7 @@ Identity layer 的职责不同于普通用户认证：
 - 附带 agent version、harness 和 running location 等 bill-of-material
   metadata。
 
-```mermaid
-flowchart LR
-    Key["runtime key material"]
-    Public["public registration identity"]
-    Register["task registration request"]
-    Signed["signed task assertion"]
-    Backend["backend identity service"]
-    JWT["identity JWT claims"]
-    Task["authorized task access"]
-    ABOM["agent bill of materials"]
-
-    Key --> Public
-    Key --> Signed
-    Public --> Register
-    Register --> Backend
-    Signed --> Backend
-    Backend --> JWT
-    JWT --> Task
-    ABOM --> Backend
-```
+<DiagramFlow spec={agentIdentityBinding} lang="zh" client:visible />
 
 这个设计避免把“用户已经登录”和“这个 runtime 可以代表这个 task 行动”混为 一谈。用户认证可以建立 account context；agent identity 把某个 runtime key 绑定到某个 task authorization。这个区别让 backend 可以推理远程 agent，而 不是按本地进程名盲目信任。
 

@@ -1,4 +1,6 @@
 import ContainmentBoundaryExplorer from "../../src/components/visual/ContainmentBoundaryExplorer.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { policyTransformEnforcement } from "../../src/data/diagrams/codex-from-source/chapter-13";
 
 # Chapter 13: Sandboxes, Network Policy, and Platform Boundaries
 
@@ -10,21 +12,7 @@ The sandbox architecture has three stages. First, Codex resolves a permission pr
 
 ## Policy, Transform, Enforcement
 
-```mermaid
-flowchart LR
-    Profile[permission profile] --> Split[filesystem and network policy]
-    Split --> Select[select sandbox type]
-    Select --> Transform[transform command and environment]
-    Transform --> Platform{platform helper}
-    Platform --> Mac[macOS Seatbelt]
-    Platform --> Linux[Linux bwrap, namespaces, seccomp]
-    Platform --> Windows[Windows token, ACL, firewall, WFP]
-    Platform --> None[no platform sandbox]
-    Mac --> Result[execution metadata and result]
-    Linux --> Result
-    Windows --> Result
-    None --> Result
-```
+<DiagramFlow spec={policyTransformEnforcement} lang="en" client:visible />
 
 This is not one sandbox. It is a policy compiler plus several enforcement backends. The compiler is cross-platform. Enforcement is platform-specific. That distinction is why the same permission profile can produce different commands, warnings, or refusals on different operating systems.
 

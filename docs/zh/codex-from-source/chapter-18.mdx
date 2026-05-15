@@ -1,4 +1,6 @@
 import ExtensionProvenance from "../../../src/components/visual/ExtensionProvenance.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { extensionPlanes } from "../../../src/data/diagrams/codex-from-source/chapter-18";
 
 # 第 18 章：Skills、Plugins、Connectors 与类型化扩展
 
@@ -16,32 +18,7 @@ import ExtensionProvenance from "../../../src/components/visual/ExtensionProvena
 
 只要保持这些 planes 分离，架构就很容易读懂。
 
-```mermaid
-flowchart TB
-    Marketplace["Marketplace and remote bundles"]
-    PluginCache["Plugin cache"]
-    PluginLoader["Plugin loader"]
-    Skills["Skill roots and metadata"]
-    MCP["MCP server configs"]
-    Hooks["Hook configs"]
-    Connectors["Hosted connector IDs"]
-    Directory["Connector directory"]
-    Typed["Typed extension registry"]
-    Thread["Thread start and prompt construction"]
-
-    Marketplace --> PluginCache
-    PluginCache --> PluginLoader
-    PluginLoader --> Skills
-    PluginLoader --> MCP
-    PluginLoader --> Hooks
-    PluginLoader --> Connectors
-    Connectors --> Directory
-    Skills --> Thread
-    MCP --> Thread
-    Hooks --> Thread
-    Directory --> Thread
-    Typed --> Thread
-```
+<DiagramFlow spec={extensionPlanes} lang="zh" client:visible />
 
 这张图刻意不是单线 pipeline。Extension loading 是多个平面汇合到 thread construction、tool exposure 和 runtime policy。
 

@@ -1,3 +1,6 @@
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { finalMentalModel } from "../../src/data/diagrams/codex-from-source/epilogue";
+
 # Epilogue: What to Steal
 
 Chapter 25 closed the implementation story with governance because that is where architecture either survives or turns into nostalgia. The epilogue is shorter and more opinionated. Codex is interesting not because every subsystem is the perfect subsystem, but because the system makes one coherent bet and pays the cost of that bet repeatedly.
@@ -52,21 +55,7 @@ Those costs are acceptable only because the product needs them. If you are build
 
 If you remember one diagram, make it this one:
 
-```mermaid
-graph TD
-  User[User intent] --> Protocol[Typed protocol]
-  Protocol --> Runtime[Event-sourced runtime]
-  Runtime --> Model[Model streaming]
-  Model --> Tools[Negotiated tools]
-  Tools --> Policy[Policy and sandbox gates]
-  Policy --> Effects[Filesystem, process, network effects]
-  Runtime --> Clients[Clients and SDKs]
-  Runtime --> Memory[Durable state and memory]
-  Runtime --> Trace[Replay and observability]
-  Build[Build and governance] --> Protocol
-  Build --> Runtime
-  Build --> Clients
-```
+<DiagramFlow spec={finalMentalModel} lang="en" client:visible />
 
 The system is not a model call. It is a bounded operating environment for a model-driven worker. The more capable that worker becomes, the more valuable the boundaries become.
 

@@ -1,4 +1,6 @@
 import JsonRpcContractMap from "../../src/components/visual/JsonRpcContractMap.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { contractSurface, eventMapping } from "../../src/data/diagrams/codex-from-source/chapter-14";
 
 # Chapter 14: The App-Server Contract
 
@@ -24,30 +26,7 @@ The app-server protocol has five visible shapes.
 
 Those shapes matter because they prevent a common architectural collapse. If a client only received terminal text, it would have to infer what happened. If a client only sent commands, the runtime could not ask it for decisions. The contract is bidirectional because an agent runtime is bidirectional: it produces observations and sometimes needs fresh authority before continuing.
 
-```mermaid
-flowchart LR
-    Client[Client connection]
-    Transport[Transport adapter]
-    Processor[Message processor]
-    Queue[Resource scoped queue]
-    Request[Request processor]
-    Thread[Core thread]
-    Listener[Thread listener]
-    Sender[Outgoing sender]
-
-    Client --> Transport
-    Transport --> Processor
-    Processor --> Queue
-    Queue --> Request
-    Request --> Thread
-    Thread --> Listener
-    Listener --> Sender
-    Sender --> Transport
-    Transport --> Client
-
-    Processor -. initialization and gates .-> Sender
-    Listener -. notifications and requests .-> Sender
-```
+<DiagramFlow spec={contractSurface} lang="en" client:visible />
 
 The diagram hides many concrete request families, but it shows the governing idea. Incoming bytes are not allowed to reach core directly. They pass through transport normalization, initialization checks, feature gates, resource serialization, and request processors. Outgoing data is also not a raw core event stream. It passes through lifecycle handlers, history builders, pending request tracking, compatibility filtering, and per-connection send queues.
 
@@ -117,25 +96,7 @@ Request ids are therefore not bookkeeping trivia. They separate "your request wa
 
 The core runtime emits events in its own vocabulary. The app-server maps those events into client-facing notifications and server requests. Some mappings are direct: a turn starts, an item appears, output grows, a command finishes, a turn completes. Other mappings are lifecycle decisions: a thread becomes idle, active, input-pending, or in a system-error state. Still others are bidirectional: a file change or command approval cannot continue until the client answers.
 
-```mermaid
-flowchart TD
-    CoreEvent[Core runtime event]
-    Classify{How should clients see it?}
-    Notify[Server notification]
-    Ask[Server request]
-    Status[Derived thread status]
-    History[History reconstruction]
-    Pending[Pending response tracker]
-
-    CoreEvent --> Classify
-    Classify --> Notify
-    Classify --> Ask
-    Classify --> Status
-    Notify --> History
-    Ask --> Pending
-    Status --> Notify
-    Pending --> CoreEvent
-```
+<DiagramFlow spec={eventMapping} lang="en" client:visible />
 
 This mapping layer is also where the app-server protects clients from internal churn. The core can add a more detailed event or change its internal rollout representation without forcing every client to change at the same time. The public contract should evolve deliberately: new item kinds, new notification fields, and new server requests must be versioned or gated so clients can survive the transition.
 

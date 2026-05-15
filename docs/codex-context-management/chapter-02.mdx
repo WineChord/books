@@ -1,4 +1,12 @@
 import ResolutionOrderTimeline from "../../src/components/visual/ResolutionOrderTimeline.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
+import {
+  envelopeGroups,
+  envelopeFlow,
+  modelSwitchSequence,
+} from "../../src/data/diagrams/codex-context-management/chapter-02";
 
 # Chapter 2: TurnContext: The Envelope Around a Turn
 
@@ -20,44 +28,17 @@ That list is not reference noise. It reveals a design position: context is not o
 
 The fields cluster into seven semantic groups. Drawing them as a single struct is the most compact way to see how dense one envelope really is:
 
-```text
-+----------------------------- TurnContext envelope -----------------------------+
-|                                                                                |
-|  identity        | model, provider, reasoning, session_source, thread_source   |
-|  workspace       | cwd, current_date, timezone, env_overlay, app_metadata      |
-|  instructions    | base_instructions, developer_instructions, compact_prompt   |
-|  policy          | approval_policy, permission_profile, sandbox_level,         |
-|                  | network_proxy, shell_env_policy                             |
-|  capabilities    | tools, dynamic_tools, feature_gates, skill_state            |
-|  modes           | collaboration_mode, personality, realtime_flag              |
-|  telemetry       | turn_id, timing_state, readiness_gates                       |
-|                                                                                |
-+--------------------------------------------------------------------------------+
-```
+<DiagramAscii
+  lang="en"
+  ascii={envelopeGroups.ascii}
+  legend={envelopeGroups.legend}
+  highlights={envelopeGroups.highlights}
+  client:visible
+/>
 
 The field groups are not arbitrary. Each one feeds a different consumer. Identity selects model behavior. Workspace defines the universe of files and shells. Instructions become message text. Policy gates which capabilities are allowed. Capabilities define what tools the model sees. Modes change interaction contract. Telemetry feeds the trace and rollout.
 
-```mermaid
-flowchart LR
-  A[Config resolution] --> T[(TurnContext)]
-  B[Auth and provider] --> T
-  C[Workspace and env] --> T
-  D[Policies and managed reqs] --> T
-  E[Tools and features] --> T
-  F[Skills and plugins] --> T
-  G[Timing and telemetry] --> T
-  T --> H[Context diffs]
-  T --> I[Tool spec construction]
-  T --> J[Sandbox executor]
-  T --> K[Model request]
-  T --> L[Rollout trace]
-  classDef inputs fill:#fef3c7,stroke:#92400e,color:#1f2937;
-  classDef envelope fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px;
-  classDef consumers fill:#dbeafe,stroke:#1e40af,color:#1e3a8a;
-  class A,B,C,D,E,F,G inputs;
-  class T envelope;
-  class H,I,J,K,L consumers;
-```
+<DiagramFlow spec={envelopeFlow} lang="en" client:visible />
 
 The envelope is intentionally broader than the prompt. Some fields become text. Some fields choose tools. Some fields choose sandbox behavior. Some fields only affect telemetry. Keeping them together prevents a common agent bug: the model sees one set of instructions while the executor enforces another.
 
@@ -107,23 +88,7 @@ Codex treats model switching as a context event, not just a config assignment. W
 
 This matters in a long thread. The previous history may have been produced under a larger window or different model behavior. Codex has a pre-sampling path that can compact against the previous model before continuing under a smaller window. That is a subtle but important choice: compact while the old model can still read the old context, then continue with the new model.
 
-```mermaid
-sequenceDiagram
-  participant User
-  participant Envelope as TurnContext
-  participant Compactor
-  participant OldModel as Old model
-  participant NewModel as New model
-
-  User->>Envelope: switch model
-  Envelope->>OldModel: detect smaller new window
-  Envelope->>Compactor: pre-sampling compaction (old model)
-  Compactor->>OldModel: ask for summary while window allows
-  OldModel-->>Compactor: replacement history
-  Compactor-->>Envelope: install checkpoint
-  Envelope->>NewModel: emit model-switch instructions first
-  Envelope->>NewModel: send compacted history + remaining diff
-```
+<DiagramSequence spec={modelSwitchSequence} lang="en" client:visible />
 
 The sequence shows why "switch the field and continue" is incomplete. A naive switch would discard whatever guidance the previous model carried in its history. Codex preserves continuity by compacting *before* the new model takes over, not after.
 

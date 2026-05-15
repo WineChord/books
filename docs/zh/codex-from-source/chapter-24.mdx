@@ -1,4 +1,11 @@
 import ReleaseArtifactConveyor from "../../../src/components/visual/ReleaseArtifactConveyor.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
+import {
+  releaseSurfaceMap,
+  installerArtifactSequence,
+  nativeDependencyQuarantine,
+} from "../../../src/data/diagrams/codex-from-source/chapter-24";
 
 # 第 24 章：打包、发布与原生依赖
 
@@ -14,19 +21,7 @@ import ReleaseArtifactConveyor from "../../../src/components/visual/ReleaseArtif
 
 如果 npm 包拥有真实行为，每个平台包都可能变成产品 fork。如果安装器拥有行为，独立分发就会偏离 npm 分发。如果原生 helper 泄漏进核心逻辑，平台差异就会污染 turn loop。Codex 让单一运行时保持中心位置，让打包层解决获取、选择和验证。
 
-```mermaid
-graph LR
-  CargoRelease[Cargo release workflow] --> NativeBinary[Native Codex binary]
-  BazelVerify[Bazel release-build verification] -. checks assumptions .-> NativeBinary
-  NativeBinary --> NpmPlatform[npm platform package]
-  NativeBinary --> ReleaseArchive[release archive]
-  NpmMeta[npm meta package] --> NpmPlatform
-  ReleaseArchive --> Installer[standalone installer]
-  Helpers[helper binaries] --> NpmPlatform
-  Helpers --> Installer
-  NpmPlatform --> UserCommand[user command]
-  Installer --> UserCommand
-```
+<DiagramFlow spec={releaseSurfaceMap} lang="zh" client:visible />
 
 meta package 和 installer 是进入同一间房子的不同门。用户不应该通过运行时语义推断自己是从哪扇门进来的。
 
@@ -53,20 +48,7 @@ wrapper 很小，但失败模式很重要。打包错误应该可诊断，而不
 
 独立安装器解决另一个问题：用户可能希望不依赖 JavaScript 包管理器也能使用 Codex。这不意味着安装器应该发明第二套产物模型。更强的模式是让安装器消费打包已经产生的同一批发布 payload，然后暴露稳定命令 shim。
 
-```mermaid
-sequenceDiagram
-  participant CI as Release CI
-  participant NPM as Package staging
-  participant GH as Release storage
-  participant Inst as Installer
-  participant User as User shell
-
-  CI->>NPM: assemble platform packages
-  CI->>GH: publish verified payloads
-  Inst->>GH: fetch matching payload
-  Inst->>Inst: verify and place binary
-  User->>Inst: invoke stable command
-```
+<DiagramSequence spec={installerArtifactSequence} lang="zh" client:visible />
 
 这样交付路径在产物层耦合，而不是在行为层分叉。安装器拥有安装机制，不拥有运行时语义。只要这条规则成立，npm install 和 standalone install 就是同一个产品的运营变体。
 
@@ -76,16 +58,7 @@ sequenceDiagram
 
 可复用模式是隔离。原生复杂性属于 `third_party`、patch 目录、Bazel repository rules、发布脚本和 helper 包组装。产品 crate 应该消费稳定 capability，而不是一团平台构建细节。
 
-```mermaid
-flowchart TD
-  Product[Product crates] --> Capability[Stable native capability]
-  Capability --> BuildBoundary[Build/release boundary]
-  BuildBoundary --> ThirdParty[Third-party metadata]
-  BuildBoundary --> Patches[Patch sets]
-  BuildBoundary --> Checksums[Checksum manifests]
-  BuildBoundary --> Helpers[Bundled helpers]
-  BuildBoundary --> Platform[Platform selectors]
-```
+<DiagramFlow spec={nativeDependencyQuarantine} lang="zh" client:visible />
 
 这个设计不免费。隔离区本身需要维护：校验和要更新，patch 要有理由，发布资产必须存在，平台 selector 必须被测试。收益是维护面可见且集中，而不是分散在运行时代码里。
 

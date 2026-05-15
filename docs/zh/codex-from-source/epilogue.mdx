@@ -1,3 +1,6 @@
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { finalMentalModel } from "../../../src/data/diagrams/codex-from-source/epilogue";
+
 # 结语：真正值得带走的东西
 
 第 25 章用治理结束实现故事，因为架构要么在那里存活，要么变成对过去的怀念。结语更短，也更直接。Codex 有趣不是因为每个子系统都完美，而是因为它做了一个连贯的架构赌注，并且在每一层反复支付这个赌注的成本。
@@ -50,21 +53,7 @@ rollout、trace、graph edge、projection、app-server history 和生成 schema 
 
 如果只记住一张图，就记住这一张：
 
-```mermaid
-graph TD
-  User[User intent] --> Protocol[Typed protocol]
-  Protocol --> Runtime[Event-sourced runtime]
-  Runtime --> Model[Model streaming]
-  Model --> Tools[Negotiated tools]
-  Tools --> Policy[Policy and sandbox gates]
-  Policy --> Effects[Filesystem, process, network effects]
-  Runtime --> Clients[Clients and SDKs]
-  Runtime --> Memory[Durable state and memory]
-  Runtime --> Trace[Replay and observability]
-  Build[Build and governance] --> Protocol
-  Build --> Runtime
-  Build --> Clients
-```
+<DiagramFlow spec={finalMentalModel} lang="zh" client:visible />
 
 系统不是一次模型调用。它是一个为模型驱动 worker 提供的有边界运行环境。worker 越有能力，边界就越有价值。
 

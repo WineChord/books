@@ -1,4 +1,12 @@
 import BudgetSimulator from "../../src/components/visual/BudgetSimulator.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
+import {
+  optionalContextSelection,
+  windowSlicing,
+  skillBreadthVsDepth,
+  toolOutputPolicy,
+} from "../../src/data/diagrams/codex-context-management/chapter-05";
 
 # Chapter 5: Budgeting Optional Context
 
@@ -27,26 +35,7 @@ Codex has several optional context planes:
 
 The common pattern is "select, budget, then inject." Optional context never gets to assume the whole window is available.
 
-```mermaid
-flowchart LR
-  A[Candidate optional context] --> B[Selection]
-  B --> C[Budget]
-  C --> D{Fits?}
-  D -- yes --> E[Inject as fragment or history item]
-  D -- partly --> F[Truncate and warn]
-  D -- no --> G[Omit and warn]
-  E --> H[Prompt projection]
-  F --> H
-  classDef step fill:#dbeafe,stroke:#1e40af;
-  classDef good fill:#dcfce7,stroke:#15803d;
-  classDef warn fill:#fef3c7,stroke:#92400e;
-  classDef bad fill:#fee2e2,stroke:#b91c1c;
-  class A,B,C step;
-  class E good;
-  class F warn;
-  class G bad;
-  class H good;
-```
+<DiagramFlow spec={optionalContextSelection} lang="en" client:visible />
 
 Warnings are part of the design. If Codex shortens skill descriptions or omits some skill metadata, the user-visible runtime can explain that the model saw a reduced capability list. Silent omission would be cheaper but harder to debug.
 
@@ -54,21 +43,13 @@ Warnings are part of the design. If Codex shortens skill descriptions or omits s
 
 The effective context window is shared between several consumers. A rough allocation diagram makes the relationships visible. Numbers are illustrative and shift with model and configuration:
 
-```text
-+------------------- Effective context window -------------------+
-|                                                                |
-|  base instructions          [#####]                            |
-|  initial context bundle     [######]                           |
-|  per-turn diffs             [###]                              |
-|  history (recent turns)     [####################]             |
-|  optional - skills          [###]   <- budgeted                |
-|  optional - plugins/apps    [##]    <- budgeted                |
-|  optional - memory summary  [##]    <- budgeted, truncated     |
-|  optional - tool outputs    [#####] <- truncation policy       |
-|  reserved for response                          [#######]      |
-|                                                                |
-+----------------------------------------------------------------+
-```
+<DiagramAscii
+  lang="en"
+  ascii={windowSlicing.ascii}
+  legend={windowSlicing.legend}
+  highlights={windowSlicing.highlights}
+  client:visible
+/>
 
 The reserved tail on the right is what makes optional planes really optional. If the model has no room left to answer, every clever skill description was wasted. Budgeting respects that asymmetry: the answer always wins.
 
@@ -94,19 +75,13 @@ The transferable idea is not the exact percentage. It is that optional capabilit
 
 A small ASCII illustration of the breadth-before-depth strategy:
 
-```text
-budget tight, naive depth-first:        budget tight, breadth-first:
-
-  [skill A: full description]             [skill A: short description]
-  [skill B: full description]             [skill B: short description]
-  ... (D, E, F omitted) ...               [skill C: short description]
-                                          [skill D: short description]
-                                          [skill E: short description]
-                                          [skill F: short description]
-
-The naive variant hides capabilities the model could mention.
-The breadth variant keeps the catalog visible at the cost of depth.
-```
+<DiagramAscii
+  lang="en"
+  ascii={skillBreadthVsDepth.ascii}
+  legend={skillBreadthVsDepth.legend}
+  highlights={skillBreadthVsDepth.highlights}
+  client:visible
+/>
 
 ## Hooks and Memory Are Side Channels
 
@@ -131,22 +106,7 @@ Tool output is optional in a different sense: the observation may be necessary f
 
 That is a better failure mode than treating tool output as raw transcript text. The output has a protocol identity, so Codex can reason about it.
 
-```mermaid
-flowchart TD
-  A[Tool execution] --> B[Raw observation]
-  B --> C{Output policy}
-  C -- small text --> D[Verbatim history item]
-  C -- large text --> E[Head + tail elision]
-  C -- image --> F{Model accepts images?}
-  F -- yes --> G[Image-bearing item]
-  F -- no --> H[Strip image content, keep text]
-  C -- binary --> I[Placeholder + size note]
-  D --> J[Prompt projection]
-  E --> J
-  G --> J
-  H --> J
-  I --> J
-```
+<DiagramFlow spec={toolOutputPolicy} lang="en" client:visible />
 
 The diagram is dense on purpose. The simplest-looking arrow, "tool output --> history," is actually four different cases under the hood. Naming them is half the design.
 

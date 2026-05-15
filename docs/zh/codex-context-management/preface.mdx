@@ -1,3 +1,6 @@
+import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
+import { chapterMap } from "../../../src/data/diagrams/codex-context-management/preface";
+
 # 前言
 
 本书讨论 Codex 中容易被低估的一个部分：上下文管理。大多数关于 agent 的文章谈的是 tools、模型和用户界面。Codex 之所以值得研究，是因为它把上下文当作受治理的运行时状态。发给模型的 prompt 不是一个会一直增长直到失败的字符串，而是一份 thread 账本、一个 turn envelope、typed context fragments、策略 diff、可选知识平面、compaction checkpoint 和 replay 证据共同投影出的视图。
@@ -16,29 +19,13 @@
 
 读任何章节之前，整个子系统可以先画成一张图。每个方框对应一章，按顺序排列：
 
-```text
-  +--------------- Codex 上下文 as runtime ---------------+
-  |                                                        |
-  |  [1] 边界           [2] TurnContext 信封               |
-  |        |                       |                       |
-  |        v                       v                       |
-  |  [3] 历史账本    -->   [4] Typed fragments + diffs      |
-  |        |                       |                       |
-  |        +-----------+-----------+                       |
-  |                    v                                   |
-  |             [5] 可选平面                               |
-  |                    |                                   |
-  |                    v                                   |
-  |             [6] Compaction (checkpoint)                |
-  |                    |                                   |
-  |                    v                                   |
-  |             [7] Resume / rollback / fork / replay      |
-  |                    |                                   |
-  |                    v                                   |
-  |             [8] 客户端面 (只读)                        |
-  |                                                        |
-  +--------------------------------------------------------+
-```
+<DiagramAscii
+  lang="zh"
+  ascii={chapterMap.ascii}
+  legend={chapterMap.legend}
+  highlights={chapterMap.highlights}
+  client:visible
+/>
 
 按箭头方向阅读章节。每一章都默认前面的 owner 已经存在，专注自己的关注点。如果某章觉得脱节，回到这张图：每件事都在这层栈中有一个位置。
 

@@ -1,0 +1,156 @@
+import type {
+  FlowSpec,
+} from "../../../components/visual/diagrams/types";
+
+// Replaces the closing graph TD that summarises the whole book's mental model.
+export const finalMentalModel: FlowSpec = {
+  cols: 5,
+  rows: 7,
+  width: 880,
+  height: 800,
+  nodes: [
+    {
+      id: "User",
+      label: { en: "User intent", zh: "用户意图" },
+      shape: "pill",
+      tone: "accent",
+      col: 2,
+      row: 0,
+    },
+    {
+      id: "Protocol",
+      label: { en: "Typed protocol", zh: "类型化协议" },
+      shape: "rounded",
+      tone: "accent",
+      col: 2,
+      row: 1,
+    },
+    {
+      id: "Build",
+      label: {
+        en: "Build and governance",
+        zh: "构建与治理",
+      },
+      shape: "pill",
+      tone: "warning",
+      col: 0,
+      row: 2,
+    },
+    {
+      id: "Runtime",
+      label: {
+        en: "Event-sourced runtime",
+        zh: "事件溯源 runtime",
+      },
+      shape: "rounded",
+      tone: "info",
+      col: 2,
+      row: 2,
+    },
+    {
+      id: "Clients",
+      label: {
+        en: "Clients and SDKs",
+        zh: "Clients 与 SDK",
+      },
+      shape: "rounded",
+      tone: "default",
+      col: 0,
+      row: 3,
+    },
+    {
+      id: "Model",
+      label: { en: "Model streaming", zh: "模型流式输出" },
+      shape: "rounded",
+      tone: "info",
+      col: 2,
+      row: 3,
+    },
+    {
+      id: "Memory",
+      label: {
+        en: "Durable state and memory",
+        zh: "持久状态与 memory",
+      },
+      shape: "cylinder",
+      tone: "warning",
+      col: 3,
+      row: 3,
+    },
+    {
+      id: "Trace",
+      label: {
+        en: "Replay and observability",
+        zh: "回放与可观测",
+      },
+      shape: "rounded",
+      tone: "muted",
+      col: 4,
+      row: 3,
+    },
+    {
+      id: "Tools",
+      label: { en: "Negotiated tools", zh: "协商出的工具" },
+      shape: "rounded",
+      tone: "accent",
+      col: 2,
+      row: 4,
+    },
+    {
+      id: "Policy",
+      label: {
+        en: "Policy and sandbox gates",
+        zh: "策略与 sandbox gate",
+      },
+      shape: "diamond",
+      tone: "danger",
+      col: 2,
+      row: 5,
+    },
+    {
+      id: "Effects",
+      label: {
+        en: "Filesystem, process, network effects",
+        zh: "文件系统、进程、网络副作用",
+      },
+      shape: "pill",
+      tone: "success",
+      col: 1,
+      row: 6,
+      colSpan: 3,
+    },
+  ],
+  edges: [
+    { from: "User", to: "Protocol" },
+    { from: "Protocol", to: "Runtime" },
+    { from: "Runtime", to: "Model" },
+    { from: "Model", to: "Tools" },
+    { from: "Tools", to: "Policy" },
+    { from: "Policy", to: "Effects", tone: "success" },
+    { from: "Runtime", to: "Clients" },
+    { from: "Runtime", to: "Memory", tone: "warning" },
+    { from: "Runtime", to: "Trace", tone: "muted" },
+    {
+      from: "Build",
+      to: "Protocol",
+      style: "dashed",
+      tone: "warning",
+    },
+    {
+      from: "Build",
+      to: "Runtime",
+      style: "dashed",
+      tone: "warning",
+    },
+    {
+      from: "Build",
+      to: "Clients",
+      style: "dashed",
+      tone: "warning",
+    },
+  ],
+  legend: {
+    en: "The system is not a model call; it is a bounded operating environment for a model-driven worker.",
+    zh: "系统不是一次模型调用，而是为模型驱动 worker 提供的有边界运行环境。",
+  },
+};

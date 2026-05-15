@@ -1,4 +1,7 @@
 import ApprovalLadder from "../../src/components/visual/ApprovalLadder.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import { gateStack, commandThroughGates } from "../../src/data/diagrams/codex-from-source/chapter-12";
 
 # Chapter 12: Hooks and Human Approval
 
@@ -10,22 +13,7 @@ Hooks are configured programs that observe or influence runtime events. Approval
 
 ## The Gate Stack
 
-```mermaid
-flowchart TD
-    RuntimeEvent[tool, prompt, compact, or stop event] --> HookPreview[hook preview]
-    HookPreview --> HookRun[trusted hook run]
-    HookRun --> HookOutcome{hook outcome}
-    HookOutcome -->|context or feedback| Continue[continue with added facts]
-    HookOutcome -->|block or stop| Reject[stop or reject]
-    Continue --> Policy[approval requirement]
-    Policy --> PermissionHook[permission-request hook]
-    PermissionHook --> Reviewer{decision source}
-    Reviewer -->|configured automation| Guardian[Guardian review]
-    Reviewer -->|human path| User[user approval]
-    Guardian --> Decision[allow, deny, timeout, amend]
-    User --> Decision
-    Decision --> ToolAttempt[tool attempt or rejection]
-```
+<DiagramFlow spec={gateStack} lang="en" client:visible />
 
 The stack is ordered, not ornamental. Hooks can add context or block specific events. Permission-request hooks can answer an approval before the normal review path. Guardian or the user can decide unresolved approvals. The tool attempt happens only after the gates produce an allowed decision.
 
@@ -33,26 +21,7 @@ The stack is ordered, not ornamental. Hooks can add context or block specific ev
 
 The easiest way to see the separation is to follow one shell command. The model requests a command. Codex first runs matching pre-tool hooks; those hooks can add context, warn, or block before policy evaluates the side effect. If hooks do not block, approval policy decides whether this command can run under the current permission profile. If the policy requires a decision, a permission-request hook may answer automatically. If it does not, Guardian or the user-facing client receives a request. Only after an allow decision does the shell handler reach sandbox selection and process execution. After the result is available, post-tool hooks can observe output and feed structured feedback back into the turn.
 
-```mermaid
-sequenceDiagram
-    participant Model
-    participant Runtime
-    participant Hook
-    participant Policy
-    participant Reviewer
-    participant Shell
-
-    Model->>Runtime: shell tool call
-    Runtime->>Hook: pre-tool event
-    Hook-->>Runtime: allow, context, warning, or block
-    Runtime->>Policy: evaluate command and profile
-    Policy->>Reviewer: approval request when needed
-    Reviewer-->>Policy: allow, deny, amend, timeout
-    Policy-->>Runtime: executable decision
-    Runtime->>Shell: run under selected sandbox
-    Shell-->>Runtime: output and status
-    Runtime->>Hook: post-tool event
-```
+<DiagramSequence spec={commandThroughGates} lang="en" client:visible />
 
 The point is not the command itself. The point is that each gate owns a different question: what automation observes, what policy permits, what the reviewer authorizes, what the sandbox contains, and what result becomes durable.
 

@@ -1,4 +1,6 @@
 import StartupBootstrapTimeline from "../../../src/components/visual/StartupBootstrapTimeline.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { startupChain, routerToFoundation } from "../../../src/data/diagrams/codex-from-source/chapter-02";
 
 # 第 2 章：从分发包装器到 Rust Router
 
@@ -14,15 +16,7 @@ import StartupBootstrapTimeline from "../../../src/components/visual/StartupBoot
 
 启动路径可以分成四个概念阶段：
 
-```mermaid
-flowchart LR
-    shell[用户运行命令] --> wrapper[分发包装器]
-    wrapper --> binary[Native Rust binary]
-    binary --> arg0[按调用名分发]
-    arg0 --> router[命令 router]
-    router --> surface[产品接入面]
-    surface --> runtime[共享 runtime crates]
-```
+<DiagramFlow spec={startupChain} lang="zh" client:visible />
 
 分发包装器存在，是因为用户会通过需要平台特定 artifact 的包渠道安装 Codex。它检测主机平台，找到匹配的 native package 或 vendored binary，在需要时加入 helper 路径，标记 install context，启动 native executable，并镜像进程退出状态。这些任务都不需要理解 thread、turn、approval、model 或 tool。
 
@@ -94,23 +88,7 @@ Router 的核心设计纪律，是让产品接入面成为共享 runtime crates 
 
 这个纪律让后续章节可以把 Codex 解释成一个系统。每个接入面都有特殊行为，但共同部分位于共享契约之后：
 
-```mermaid
-flowchart TD
-    router[Command router] --> tui[Terminal UI]
-    router --> exec[Headless exec]
-    router --> login[Login]
-    router --> server[App-server]
-    router --> plugins[Plugin commands]
-    router --> helpers[Internal helpers]
-
-    tui --> foundation[共享 config、auth、protocol、state]
-    exec --> foundation
-    login --> foundation
-    server --> foundation
-    plugins --> foundation
-    helpers --> foundation
-    foundation --> runtime[Thread 和 session runtime]
-```
+<DiagramFlow spec={routerToFoundation} lang="zh" client:visible />
 
 这个 foundation 不是便利库，而是系统防止产品接入面漂移的架构手段。
 

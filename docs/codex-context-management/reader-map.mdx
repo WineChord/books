@@ -1,3 +1,6 @@
+import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
+import { threeReadingPaths } from "../../src/data/diagrams/codex-context-management/reader-map";
+
 # Reader Map
 
 This book is shorter and narrower than _Codex From Source_. It assumes you already know that Codex has a session runtime, tool execution, a TUI, and an app-server surface. It zooms in on the question those systems all depend on: what exactly does the model see, why does it see that, and how does Codex keep the answer stable after many turns?
@@ -6,13 +9,13 @@ This book is shorter and narrower than _Codex From Source_. It assumes you alrea
 
 You can read this book in three ways. Pick the path that matches your goal:
 
-```text
-  goal                          chapters in order
-  ----                          -----------------
-  architectural overview        1 -> 2 -> 6 -> 7 -> Epilogue
-  implementation deep dive      1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
-  pattern hunting               Apply This sections only, in order
-```
+<DiagramAscii
+  lang="en"
+  ascii={threeReadingPaths.ascii}
+  legend={threeReadingPaths.legend}
+  highlights={threeReadingPaths.highlights}
+  client:visible
+/>
 
 Each path is honest about its trade-off. The overview path skips most implementation density and finishes in under an hour. The deep-dive path is the only one that reads every section. The pattern path is the fastest way to extract transferable design moves for another runtime.
 

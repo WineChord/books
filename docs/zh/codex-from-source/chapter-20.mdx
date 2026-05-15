@@ -1,4 +1,6 @@
 import AgentGraphBoard from "../../../src/components/visual/AgentGraphBoard.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { coordinationTopology, liveAndTraceGraphs } from "../../../src/data/diagrams/codex-from-source/chapter-20";
 
 # 第 20 章：多 Agent 协作
 
@@ -22,29 +24,7 @@ import AgentGraphBoard from "../../../src/components/visual/AgentGraphBoard.tsx"
 
 父子拓扑由一个很窄的 graph store 持久化。它知道 child 最多有一条父边， 知道一条边是 open 还是 closed，也知道如何列出直接 children 或 descendants。它不知道模型如何描述任务，不知道 TUI 怎么展示 child，也 不知道 trace viewer 怎么画线。正是这种窄边界，让 live runtime 和离线 trace 可以复用同一个概念，而不共享偶然的 UI 策略。
 
-```mermaid
-flowchart TD
-    Parent["parent thread"]
-    SpawnTool["agent-control tool\nspawn / assign / send / close"]
-    GraphStore["graph store\nparent-child lifecycle"]
-    Child["child thread"]
-    Mailbox["mailbox delivery\nmodel-visible item"]
-    Result["result notification"]
-    Trace["interaction graph\nspawn, assign, send, result, close"]
-    Client["client surface\nTUI or app-server"]
-
-    Parent --> SpawnTool
-    SpawnTool --> GraphStore
-    GraphStore --> Child
-    SpawnTool --> Mailbox
-    Mailbox --> Child
-    Child --> Result
-    Result --> Parent
-    SpawnTool --> Trace
-    Mailbox --> Trace
-    Result --> Trace
-    Trace --> Client
-```
+<DiagramFlow spec={coordinationTopology} lang="zh" client:visible />
 
 这张图刻意把 graph persistence 和 trace reduction 分开。Graph store 回答 运行时问题，例如“哪些 descendants 仍然 open”。Trace graph 回答解释性 问题，例如“哪个 tool call 投递了导致这个 result 的任务”。
 
@@ -73,21 +53,7 @@ Live graph 是紧凑的运行时索引。它保存 directional spawn edges 和 l
 
 Trace graph 是语义重建。它从捕获后的 raw protocol、runtime、tool 和 model-facing events 生成，优化目标是解释：哪个 inference 产生了 tool call，哪个 runtime payload 开始或结束了它，哪个 mailbox item 接收了消息， 哪个 parent notification 表示 child result。
 
-```mermaid
-flowchart LR
-    Raw["ordered raw events\nand payload refs"]
-    Reducer["offline reducer"]
-    Live["live graph store\nopen / closed descendants"]
-    Reduced["reduced trace graph\ninteraction edges"]
-    Viewer["debugger or client projection"]
-
-    Runtime["runtime coordination"] --> Live
-    Runtime --> Raw
-    Raw --> Reducer
-    Reducer --> Reduced
-    Live --> Runtime
-    Reduced --> Viewer
-```
+<DiagramFlow spec={liveAndTraceGraphs} lang="zh" client:visible />
 
 Live graph 应该保持小，因为它参与运行时。Trace graph 可以更丰富，因为 它是 replay artifact。这就是第 8 章的“先观察，再解释”模式在多 Agent 协作里的应用。
 

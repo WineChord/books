@@ -1,4 +1,11 @@
 import EventRendererLab from "../../src/components/visual/EventRendererLab.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import {
+  startupPath,
+  spatialModel,
+  eventSources,
+  streamingMarkdown,
+} from "../../src/data/diagrams/codex-from-source/chapter-16";
 
 # Chapter 16: The TUI as an Event Renderer
 
@@ -20,22 +27,7 @@ The inline model is harder than a simple fullscreen UI, but it matches the way d
 
 Startup joins three worlds: configuration/auth state, terminal capability, and app-server session state. The TUI loads configuration, determines account and model context, initializes terminal behavior, creates or resumes a thread, and then enters an event loop that multiplexes UI events with runtime events.
 
-```mermaid
-flowchart TD
-    Start[Start TUI]
-    Config[Load config and auth]
-    Terminal[Detect terminal capability]
-    Session[Create app-server session]
-    Thread[Create or resume thread]
-    Loop[Enter app loop]
-
-    Start --> Config
-    Start --> Terminal
-    Config --> Session
-    Terminal --> Loop
-    Session --> Thread
-    Thread --> Loop
-```
+<DiagramFlow spec={startupPath} lang="en" client:visible />
 
 Terminal capability is not decorative. Keyboard enhancement, focus behavior, tmux handling, color palette support, desktop notifications, inline viewport behavior, image paste, and clipboard paths can all change what the UI should attempt. The app-server gives the TUI a runtime contract. Terminal detection gives it a physical display contract.
 
@@ -43,20 +35,7 @@ Terminal capability is not decorative. Keyboard enhancement, focus behavior, tmu
 
 Before reading the event loop, picture the screen as four layers. Real scrollback is already committed and belongs to the terminal. The live viewport contains mutable cells for in-flight work. The bottom pane owns composition and focused transient views. Modal layers interrupt the composer only when a protocol request or UI task needs a decision.
 
-```mermaid
-graph TD
-    Scrollback["real terminal scrollback\ncommitted transcript cells"]
-    Viewport["live viewport\nactive cells and streaming tails"]
-    Bottom["bottom pane\ncomposer, suggestions, status"]
-    Modal["modal layer\napproval, elicitation, selection"]
-    Runtime["app-server events and requests"]
-
-    Runtime --> Viewport
-    Runtime --> Modal
-    Viewport --> Scrollback
-    Bottom --> Runtime
-    Modal --> Runtime
-```
+<DiagramFlow spec={spatialModel} lang="en" client:visible />
 
 The diagram explains the inline choice. The UI is not repainting a private world. It is deciding which runtime facts are stable enough to commit to the terminal's world and which still need to remain mutable.
 
@@ -64,27 +43,7 @@ The diagram explains the inline choice. The UI is not repainting a private world
 
 Once running, the app loop is a multiplexer. It listens to internal app events, active-thread protocol events, terminal input events, and app-server session events. It then turns them into one of three outcomes: send an app command, mutate transcript or UI state, or schedule a frame.
 
-```mermaid
-flowchart LR
-    AppEvents[Internal app events]
-    ThreadEvents[Active thread events]
-    TerminalEvents[Terminal input and resize]
-    ServerEvents[App-server events]
-    Loop[App loop]
-    Commands[App commands]
-    State[Chat and pane state]
-    Frame[Frame request]
-
-    AppEvents --> Loop
-    ThreadEvents --> Loop
-    TerminalEvents --> Loop
-    ServerEvents --> Loop
-    Loop --> Commands
-    Loop --> State
-    Loop --> Frame
-    Commands --> ServerEvents
-    State --> Frame
-```
+<DiagramFlow spec={eventSources} lang="en" client:visible />
 
 This event shape is why the TUI is better understood as actor-like than as a single mutable widget tree. The app object owns orchestration. The chat widget owns conversation state. The bottom pane owns input and transient views. Terminal control owns raw mode, resize, buffer diffing, and viewport behavior. Each component is stateful, but they communicate through typed events and commands rather than by reaching through every layer.
 
@@ -133,23 +92,7 @@ Approval handling shows why this matters. A command approval is not just a line 
 
 Streaming output is the hardest rendering path. The model may emit partial markdown, and later tokens can change how earlier visible text should wrap or parse. Tables are the clearest example: a later row can change column widths for earlier rows. The TUI therefore separates stable committed source from a mutable live tail.
 
-```mermaid
-flowchart TD
-    Delta[Streaming delta]
-    Source[Append to source buffer]
-    Stable{Line complete and layout stable?}
-    Commit[Commit to history cell]
-    Tail[Render mutable live tail]
-    Resize[Resize event]
-    Reflow[Reflow from source]
-
-    Delta --> Source
-    Source --> Stable
-    Stable -->|yes| Commit
-    Stable -->|no| Tail
-    Resize --> Reflow
-    Source --> Reflow
-```
+<DiagramFlow spec={streamingMarkdown} lang="en" client:visible />
 
 The rule is conservative: commit only what can be treated as stable source, and leave incomplete or layout-sensitive content in the live viewport. That lets scrollback remain readable while still showing fresh output quickly.
 

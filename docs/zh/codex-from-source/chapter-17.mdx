@@ -1,4 +1,6 @@
 import McpTrustPlane from "../../../src/components/visual/McpTrustPlane.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { mcpBoundary } from "../../../src/data/diagrams/codex-from-source/chapter-17";
 
 # 第 17 章：MCP：没有运行时耦合的外部工具
 
@@ -28,27 +30,7 @@ MCP 有三种身份，不能混为一谈。
 
 这个拆分不是样式问题。外部 server 可以选择会冲突的名字，也可能使用不适合模型 tool calling 的字符；它暴露的工具来源还会影响审批、沙箱和用户解释。Codex 因而把命名视为适配步骤，而不是直接复制 server 字符串。
 
-```mermaid
-flowchart LR
-    Config["MCP config and built-ins"]
-    Effective["Effective server definitions"]
-    Client["Managed MCP clients"]
-    Listing["Tool listings"]
-    Sanitize["Sanitized model names"]
-    Model["Model tool call"]
-    Route["Route by provenance"]
-    Server["Owning MCP server"]
-    Observe["Tool observation"]
-
-    Config --> Effective
-    Effective --> Client
-    Client --> Listing
-    Listing --> Sanitize
-    Sanitize --> Model
-    Model --> Route
-    Route --> Server
-    Server --> Observe
-```
+<DiagramFlow spec={mcpBoundary} lang="zh" client:visible />
 
 这张图说明 MCP 为什么是协议边界，而不是直接的 function registry。Discovery、naming 和 routing 是三个不同动作。
 

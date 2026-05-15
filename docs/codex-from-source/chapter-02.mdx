@@ -1,4 +1,6 @@
 import StartupBootstrapTimeline from "../../src/components/visual/StartupBootstrapTimeline.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { startupChain, routerToFoundation } from "../../src/data/diagrams/codex-from-source/chapter-02";
 
 # Chapter 2: From Distribution Wrapper to Rust Router
 
@@ -14,15 +16,7 @@ The result is not merely a faster executable. It is an architectural boundary: d
 
 The startup path has four conceptual stages:
 
-```mermaid
-flowchart LR
-    shell[User runs command] --> wrapper[Distribution wrapper]
-    wrapper --> binary[Native Rust binary]
-    binary --> arg0[Invocation-name dispatch]
-    arg0 --> router[Command router]
-    router --> surface[Product surface]
-    surface --> runtime[Shared runtime crates]
-```
+<DiagramFlow spec={startupChain} lang="en" client:visible />
 
 The distribution wrapper exists because users install Codex through package channels that need platform-specific artifacts. It detects the host platform, finds the matching native package or vendored binary, adds bundled helper paths when needed, marks the install context, spawns the native executable, and mirrors process termination. None of those tasks require knowledge of threads, turns, approvals, models, or tools.
 
@@ -94,23 +88,7 @@ The router's main design discipline is that product surfaces should be thin over
 
 This discipline is what lets later chapters explain Codex as one system. Each surface has special behavior, but the common behavior sits behind shared contracts:
 
-```mermaid
-flowchart TD
-    router[Command router] --> tui[Terminal UI]
-    router --> exec[Headless exec]
-    router --> login[Login]
-    router --> server[App-server]
-    router --> plugins[Plugin commands]
-    router --> helpers[Internal helpers]
-
-    tui --> foundation[Shared config, auth, protocol, state]
-    exec --> foundation
-    login --> foundation
-    server --> foundation
-    plugins --> foundation
-    helpers --> foundation
-    foundation --> runtime[Thread and session runtime]
-```
+<DiagramFlow spec={routerToFoundation} lang="en" client:visible />
 
 The foundation is not a convenience library. It is the architecture's defense against product-surface drift.
 

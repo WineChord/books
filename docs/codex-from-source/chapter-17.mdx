@@ -1,4 +1,6 @@
 import McpTrustPlane from "../../src/components/visual/McpTrustPlane.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { mcpBoundary } from "../../src/data/diagrams/codex-from-source/chapter-17";
 
 # Chapter 17: MCP: External Tools Without Runtime Entanglement
 
@@ -28,27 +30,7 @@ MCP has three identities that must not be collapsed.
 
 The separation is not cosmetic. External servers can choose names that collide, use characters that are awkward for model tool calling, or expose tools whose origin matters for approval, sandboxing, and user explanation. Codex therefore treats naming as an adaptation step, not as a string copied from the server.
 
-```mermaid
-flowchart LR
-    Config["MCP config and built-ins"]
-    Effective["Effective server definitions"]
-    Client["Managed MCP clients"]
-    Listing["Tool listings"]
-    Sanitize["Sanitized model names"]
-    Model["Model tool call"]
-    Route["Route by provenance"]
-    Server["Owning MCP server"]
-    Observe["Tool observation"]
-
-    Config --> Effective
-    Effective --> Client
-    Client --> Listing
-    Listing --> Sanitize
-    Sanitize --> Model
-    Model --> Route
-    Route --> Server
-    Server --> Observe
-```
+<DiagramFlow spec={mcpBoundary} lang="en" client:visible />
 
 This diagram shows why MCP is a protocol boundary rather than a direct function registry. Discovery, naming, and routing are separate operations.
 

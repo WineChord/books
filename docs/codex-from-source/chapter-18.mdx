@@ -1,4 +1,6 @@
 import ExtensionProvenance from "../../src/components/visual/ExtensionProvenance.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { extensionPlanes } from "../../src/data/diagrams/codex-from-source/chapter-18";
 
 # Chapter 18: Skills, Plugins, Connectors, and Typed Extensions
 
@@ -16,32 +18,7 @@ These surfaces are related but not interchangeable. A skill is primarily a model
 
 The architecture becomes readable when those planes stay separate.
 
-```mermaid
-flowchart TB
-    Marketplace["Marketplace and remote bundles"]
-    PluginCache["Plugin cache"]
-    PluginLoader["Plugin loader"]
-    Skills["Skill roots and metadata"]
-    MCP["MCP server configs"]
-    Hooks["Hook configs"]
-    Connectors["Hosted connector IDs"]
-    Directory["Connector directory"]
-    Typed["Typed extension registry"]
-    Thread["Thread start and prompt construction"]
-
-    Marketplace --> PluginCache
-    PluginCache --> PluginLoader
-    PluginLoader --> Skills
-    PluginLoader --> MCP
-    PluginLoader --> Hooks
-    PluginLoader --> Connectors
-    Connectors --> Directory
-    Skills --> Thread
-    MCP --> Thread
-    Hooks --> Thread
-    Directory --> Thread
-    Typed --> Thread
-```
+<DiagramFlow spec={extensionPlanes} lang="en" client:visible />
 
 The diagram is intentionally not a single pipeline. Extension loading is a set of converging planes that meet at thread construction, tool exposure, and runtime policy.
 

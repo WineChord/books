@@ -1,4 +1,11 @@
 import GeneratedContractDriftViewer from "../../src/components/visual/GeneratedContractDriftViewer.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import {
+  buildSurfaceMap,
+  developerFlow,
+  schemaDriftSequence,
+} from "../../src/data/diagrams/codex-from-source/chapter-23";
 
 # Chapter 23: Build Systems and Generated Contracts
 
@@ -23,19 +30,7 @@ The repository therefore makes a deliberate split:
 
 The clever part is not "use Bazel." The clever part is that Bazel is not allowed to become a second product architecture or a fictional release path. Cargo remains the developer and shipping-build source of truth; Bazel mirrors and constrains it when the system must prove that packaging, platforms, and generated contracts still agree.
 
-```mermaid
-graph TD
-  Cargo[Cargo workspace] --> Crates[Rust crates and binaries]
-  Cargo --> Lock[Resolved dependency graph]
-  Bazel[Bazel overlay] --> Crates
-  Bazel --> Lock
-  Bazel --> Hermetic[Hermetic CI and release verification]
-  Cargo --> Release[GitHub release workflow]
-  Crates --> Schemas[Generated contract schemas]
-  Schemas --> Clients[SDKs, app-server clients, config authors]
-  Release --> Artifacts[Release artifacts]
-  Hermetic -. verifies .-> Artifacts
-```
+<DiagramFlow spec={buildSurfaceMap} lang="en" client:visible />
 
 This diagram is the shape to keep in mind. One source graph feeds two build interfaces. One runtime graph emits several public contracts. If those outputs diverge, the architecture has already failed before a user runs a command.
 
@@ -70,15 +65,7 @@ for target in release_platforms:
 
 The important decision is that the overlay derives from product structure instead of replacing it. Engineers still reason in crates. CI and release verification reason in hermetic targets. Shipping release jobs still use Cargo as the artifact build path, then package and publish the staged outputs.
 
-```mermaid
-flowchart TD
-  Dev[Developer changes a crate] --> CargoTest[Cargo test path]
-  Dev --> BazelTarget[Bazel mirrored target]
-  BazelTarget --> Launcher[Workspace-root launcher]
-  Launcher --> SameAssumptions[Cargo-like paths, snapshots, env]
-  BazelTarget --> Matrix[Platform and release matrix]
-  Matrix --> Confidence[Release confidence]
-```
+<DiagramFlow spec={developerFlow} lang="en" client:visible />
 
 The launcher box is easy to underestimate. Tests often assume a working directory, snapshot path, fixture layout, or environment variable. Bazel breaks those assumptions by design. Codex restores only the assumptions the tests are supposed to have, so the same test can serve both local development and hermetic CI without teaching every test about Bazel internals.
 
@@ -88,19 +75,7 @@ Generated schemas are not build byproducts. They are commitments. Codex uses typ
 
 This is the build-time version of the protocol discipline from Chapter 4. The runtime can evolve internally, but client contracts need stable vocabulary. Generated artifacts make drift visible:
 
-```mermaid
-sequenceDiagram
-  participant Type as Runtime type
-  participant Gen as Schema generator
-  participant File as Checked-in schema
-  participant CI as Drift check
-  participant Client as External client
-
-  Type->>Gen: expose contract shape
-  Gen->>File: write canonical schema
-  CI->>File: compare committed output
-  File->>Client: document machine-readable contract
-```
+<DiagramSequence spec={schemaDriftSequence} lang="en" client:visible />
 
 A stale schema is not merely "docs out of date." It is evidence that the code and contract no longer describe the same product. Codex's build pipeline treats that as a correctness problem because app-server clients, SDKs, hook authors, and config generators may all depend on those schemas.
 

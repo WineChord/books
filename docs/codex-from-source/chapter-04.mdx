@@ -1,4 +1,12 @@
 import SubmissionFlowExplorer from "../../src/components/visual/SubmissionFlowExplorer.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import {
+  submissionLifecycle,
+  appServerPipeline,
+  eventToItemMapping,
+  partOneGates,
+} from "../../src/data/diagrams/codex-from-source/chapter-04";
 
 # Chapter 4: The Protocol Boundary
 
@@ -21,25 +29,7 @@ The core runtime protocol has a simple outer shape:
 
 This split lets the runtime behave like an evented kernel. Clients do not call private session methods directly. They submit operations and observe events. The runtime may queue, reject, transform, or serialize operations according to active state.
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Runtime
-    participant Model
-    participant Tool
-    participant Store
-
-    Client->>Runtime: submission(operation)
-    Runtime->>Store: append accepted fact
-    Runtime->>Client: event(turn started)
-    Runtime->>Model: request with context
-    Model-->>Runtime: model item stream
-    Runtime->>Client: event(item delta)
-    Runtime->>Tool: bounded tool request
-    Tool-->>Runtime: observation
-    Runtime->>Store: append observation
-    Runtime->>Client: event(turn completed)
-```
+<DiagramSequence spec={submissionLifecycle} lang="en" client:visible />
 
 The sequence is simplified, but the contract is accurate: the runtime is the only component that converts submitted intent into durable progress.
 
@@ -67,45 +57,13 @@ The important word is "like." App-server is not a generic JSON-RPC server onto w
 | Resource serialization | Requests must be ordered by thread, path, process, account, or global state. |
 | Replay and rejoin | A reconnecting client needs committed history plus live updates without duplicates. |
 
-```mermaid
-flowchart TD
-    ide[IDE or SDK client] --> transport[Transport: stdio, socket, websocket, in-process]
-    transport --> rpc[JSON-RPC envelope]
-    rpc --> processor[Message processor]
-    processor --> appmodel[Thread, turn, item APIs]
-    appmodel --> core[Core runtime operations]
-    core --> events[Core events]
-    events --> mapper[App-server item mapper]
-    mapper --> notify[Client notifications]
-    notify --> ide
-    processor --> serverreq[Server-to-client requests]
-    serverreq --> ide
-```
+<DiagramFlow spec={appServerPipeline} lang="en" client:visible />
 
 The app-server boundary adds concerns that a local terminal UI can often hide: connection initialization, experimental capability negotiation, request serialization, backpressure, replay on rejoin, thread listeners, pending approvals, and derived status. Those are protocol concerns because clients may be separate processes with their own lifecycle.
 
 The mapping from core events to app-server items is the most important translation layer:
 
-```mermaid
-flowchart TD
-    CoreEvent[Core event]
-    Kind{event kind}
-    Item[Thread item]
-    Delta[Item delta]
-    Status[Thread or turn status]
-    ServerRequest[Server-to-client request]
-    Projection[Client projection]
-
-    CoreEvent --> Kind
-    Kind --> Item
-    Kind --> Delta
-    Kind --> Status
-    Kind --> ServerRequest
-    Item --> Projection
-    Delta --> Projection
-    Status --> Projection
-    ServerRequest --> Projection
-```
+<DiagramFlow spec={eventToItemMapping} lang="en" client:visible />
 
 A client should not reconstruct this projection by parsing terminal text. The server does that mapping once, exposes stable item and notification shapes, and keeps enough request ids and pending-request state to reconnect decisions to the turns they unblock.
 
@@ -161,16 +119,7 @@ The bounded-OS analogy helps here too. Operating systems carry compatibility for
 
 By the end of Part I, the architecture has four gates:
 
-```mermaid
-flowchart LR
-    install[Installed command] --> router[Rust router]
-    router --> envelope[Resolved runtime envelope]
-    envelope --> protocol[Protocol boundary]
-    protocol --> runtime[Session runtime]
-
-    protocol --> enters[Can enter: operations, approvals, tool responses, turn input]
-    protocol --> leaves[Can leave: events, items, status, requests, errors]
-```
+<DiagramFlow spec={partOneGates} lang="en" client:visible />
 
 The runtime is powerful precisely because the boundary is narrow. A client can start or steer work, interrupt it, answer approval requests, provide dynamic tool outputs, refresh external state, or request thread lifecycle actions. A client can observe setup, streaming, tool activity, approval prompts, errors, completion, and reconstructed items. It cannot reach inside the session and mutate private state directly.
 

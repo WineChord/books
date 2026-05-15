@@ -1,4 +1,6 @@
 import StreamingProviderLanes from "../../src/components/visual/StreamingProviderLanes.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { providerStack, transportConvergence, backendTaskSeparation } from "../../src/data/diagrams/codex-from-source/chapter-07";
 
 # Chapter 7: Model Providers, Streaming, and Backend Tasks
 
@@ -16,34 +18,7 @@ Chapter 6 followed a turn until it needed to sample the model. This chapter open
 
 The provider path is easiest to understand as five layers plus specialized integrations.
 
-```mermaid
-flowchart TD
-    Config["configuration\nprovider data, model choice"]
-    ProviderInfo["provider registry\nserializable metadata"]
-    RuntimeProvider["runtime provider\nauth, account, capabilities"]
-    Catalog["model catalog\nbundled + remote + cache"]
-    Api["typed API layer\nResponses, Compact, Models, Realtime"]
-    Transport["transport\nHTTP, SSE, WebSocket, retries"]
-    Events["normalized response events"]
-    Turn["turn loop"]
-
-    Backend["backend task client\ncloud tasks, usage, requirements"]
-    Local["local providers\nOllama, LM Studio"]
-    Realtime["realtime\nmedia plane + sideband control"]
-
-    Config --> ProviderInfo
-    ProviderInfo --> RuntimeProvider
-    RuntimeProvider --> Catalog
-    RuntimeProvider --> Api
-    Catalog --> Turn
-    Api --> Transport
-    Transport --> Events
-    Events --> Turn
-
-    RuntimeProvider --> Local
-    Api --> Realtime
-    Config --> Backend
-```
+<DiagramFlow spec={providerStack} lang="en" client:visible />
 
 The transport layer owns HTTP details: request bodies, headers, compression, retry policy, idle timeouts, custom certificates, stream framing, and telemetry hooks. The typed API layer owns endpoint shapes: Responses, compaction, model listing, file upload, memory summarization, realtime setup, and WebSocket sessions. The provider runtime owns account state, auth resolution, capabilities, model-manager selection, and provider-specific behavior. The model catalog owns what models are available and which defaults are suitable.
 
@@ -63,22 +38,7 @@ This split is a governance choice. A configuration file can describe a provider,
 
 The Responses path can travel over HTTP streaming or over a Responses WebSocket. Those transports have different mechanics, but they converge on the same runtime event vocabulary before returning to the turn loop.
 
-```mermaid
-flowchart LR
-    Prompt["prompt + tools + options"]
-    Http["HTTP request\nSSE frames"]
-    Ws["WebSocket session\nrequest messages"]
-    Parser["transport parser"]
-    ResponseEvents["ResponseEvent stream\nitems, deltas, usage, errors"]
-    Runtime["turn loop"]
-
-    Prompt --> Http
-    Prompt --> Ws
-    Http --> Parser
-    Ws --> Parser
-    Parser --> ResponseEvents
-    ResponseEvents --> Runtime
-```
+<DiagramFlow spec={transportConvergence} lang="en" client:visible />
 
 The WebSocket path can reuse session state and reduce per-turn setup cost. The HTTP path remains necessary for providers that do not support WebSockets, for fallback after connection failures, and for auth modes that cannot sign a WebSocket upgrade. The runtime can retry transient stream failures, refresh auth where appropriate, and fall back from WebSocket to HTTP-style streaming without changing the rest of the turn loop.
 
@@ -160,27 +120,7 @@ Realtime is related but not identical to normal inference. It has a media plane 
 
 The backend client speaks task, usage, requirements, rate-limit, and cloud workflow APIs. It can list tasks, fetch task details, create task attempts, read backend-managed requirements, and retrieve diffs or sibling turns. Those APIs may share auth and base URL concerns with model providers, but they are not the Responses stream.
 
-```mermaid
-flowchart LR
-    Turn[Local turn loop]
-    Prompt[Model prompt and tools]
-    Inference[Inference transport\nSSE or WebSocket]
-    Events[Response events]
-
-    CloudUI[Cloud CLI or TUI]
-    TaskAPI[Backend task API]
-    TaskState[Tasks, attempts, diffs]
-    Apply[Local patch apply]
-
-    Turn --> Prompt
-    Prompt --> Inference
-    Inference --> Events
-    Events --> Turn
-
-    CloudUI --> TaskAPI
-    TaskAPI --> TaskState
-    TaskState --> Apply
-```
+<DiagramFlow spec={backendTaskSeparation} lang="en" client:visible />
 
 Keeping backend tasks separate prevents a common architecture error: treating cloud workflow state as another model transport. A cloud task has lifecycle, environment, attempts, diffs, and apply semantics. A model stream has response events. They may meet in product flows, but they should not share the same runtime abstraction.
 

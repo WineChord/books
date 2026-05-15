@@ -1,4 +1,6 @@
 import JsonRpcContractMap from "../../../src/components/visual/JsonRpcContractMap.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { contractSurface, eventMapping } from "../../../src/data/diagrams/codex-from-source/chapter-14";
 
 # 第 14 章：App-Server 契约
 
@@ -23,30 +25,7 @@ App-server protocol 有四种可见形状。
 
 这些形状重要，是因为它们避免架构坍缩。如果 client 只收到终端文本，就只能猜发生了什么。如果 client 只能发送命令，runtime 就无法向它请求决定。契约必须是双向的，因为 agent runtime 本身就是双向的：它产生 observations，也可能在继续之前需要新的授权。
 
-```mermaid
-flowchart LR
-    Client[Client connection]
-    Transport[Transport adapter]
-    Processor[Message processor]
-    Queue[Resource scoped queue]
-    Request[Request processor]
-    Thread[Core thread]
-    Listener[Thread listener]
-    Sender[Outgoing sender]
-
-    Client --> Transport
-    Transport --> Processor
-    Processor --> Queue
-    Queue --> Request
-    Request --> Thread
-    Thread --> Listener
-    Listener --> Sender
-    Sender --> Transport
-    Transport --> Client
-
-    Processor -. initialization and gates .-> Sender
-    Listener -. notifications and requests .-> Sender
-```
+<DiagramFlow spec={contractSurface} lang="zh" client:visible />
 
 这张图省略了很多具体 request family，但保留了支配性思想：incoming bytes 不能直接进入 core。它们要经过 transport normalization、initialization checks、feature gates、resource serialization 和 request processors。Outgoing data 也不是裸 core event stream，而是经过 lifecycle handlers、history builders、pending request tracking、compatibility filtering 和每个 connection 的 send queue。
 
@@ -114,25 +93,7 @@ Response 和 notification 的分离非常关键。Request response 表示 server
 
 Core runtime 用自己的词汇发出 events。App-server 把这些 events 映射成 client-facing notifications 和 server requests。有些映射很直接：turn started、item appeared、output grew、command finished、turn completed。另一些是 lifecycle decisions：thread 变成 idle、active、input-pending 或 system-error。还有一些是双向的：file change 或 command approval 需要 client 回答后才能继续。
 
-```mermaid
-flowchart TD
-    CoreEvent[Core runtime event]
-    Classify{How should clients see it?}
-    Notify[Server notification]
-    Ask[Server request]
-    Status[Derived thread status]
-    History[History reconstruction]
-    Pending[Pending response tracker]
-
-    CoreEvent --> Classify
-    Classify --> Notify
-    Classify --> Ask
-    Classify --> Status
-    Notify --> History
-    Ask --> Pending
-    Status --> Notify
-    Pending --> CoreEvent
-```
+<DiagramFlow spec={eventMapping} lang="zh" client:visible />
 
 这个 mapping layer 也是 app-server 保护 clients 免受内部变化影响的地方。Core 可以增加更细的 event，或改变内部 rollout 表达，而不强迫每个 client 同时改变。公开契约应该有意识地演进：新的 item kind、新的 notification fields、新的 server request，都应该通过版本或 gate 管理，让 client 能承受过渡期。
 

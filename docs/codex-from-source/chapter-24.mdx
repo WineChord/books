@@ -1,4 +1,11 @@
 import ReleaseArtifactConveyor from "../../src/components/visual/ReleaseArtifactConveyor.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import {
+  releaseSurfaceMap,
+  installerArtifactSequence,
+  nativeDependencyQuarantine,
+} from "../../src/data/diagrams/codex-from-source/chapter-24";
 
 # Chapter 24: Packaging, Release, and Native Dependencies
 
@@ -14,19 +21,7 @@ The first architectural fact about packaging is that the installed command is no
 
 If npm packaging owned real behavior, every platform package would risk becoming a product fork. If installers owned behavior, standalone distribution would drift from npm distribution. If native helper binaries leaked into core logic, platform differences would infect the turn loop. Codex instead keeps a single runtime center and lets packaging solve acquisition, selection, and verification.
 
-```mermaid
-graph LR
-  CargoRelease[Cargo release workflow] --> NativeBinary[Native Codex binary]
-  BazelVerify[Bazel release-build verification] -. checks assumptions .-> NativeBinary
-  NativeBinary --> NpmPlatform[npm platform package]
-  NativeBinary --> ReleaseArchive[release archive]
-  NpmMeta[npm meta package] --> NpmPlatform
-  ReleaseArchive --> Installer[standalone installer]
-  Helpers[helper binaries] --> NpmPlatform
-  Helpers --> Installer
-  NpmPlatform --> UserCommand[user command]
-  Installer --> UserCommand
-```
+<DiagramFlow spec={releaseSurfaceMap} lang="en" client:visible />
 
 The meta package and installer are different doors into the same house. The user should not be able to infer which door they used by observing runtime semantics.
 
@@ -55,20 +50,7 @@ This is also where DotSlash and helper packages matter. The public package famil
 
 Standalone installers solve a different problem: users may want Codex without depending on a JavaScript package manager at runtime. That does not mean the installer should invent a second artifact model. A stronger pattern is to let the installer consume the same release payloads that packaging produces, then expose a stable command shim.
 
-```mermaid
-sequenceDiagram
-  participant CI as Release CI
-  participant NPM as Package staging
-  participant GH as Release storage
-  participant Inst as Installer
-  participant User as User shell
-
-  CI->>NPM: assemble platform packages
-  CI->>GH: publish verified payloads
-  Inst->>GH: fetch matching payload
-  Inst->>Inst: verify and place binary
-  User->>Inst: invoke stable command
-```
+<DiagramSequence spec={installerArtifactSequence} lang="en" client:visible />
 
 This keeps delivery paths coupled at the artifact level rather than forked at the behavior level. The installer owns installation mechanics. It should not own runtime semantics. When that rule holds, npm install and standalone install become operational variants of the same product.
 
@@ -80,16 +62,7 @@ V8 and Bubblewrap are the useful examples. V8 brings archive selection, checksum
 
 The reusable pattern is quarantine. Native complexity belongs in `third_party`, patch directories, Bazel repository rules, release scripts, and helper package assembly. Product crates should consume a stable capability, not a maze of platform build details.
 
-```mermaid
-flowchart TD
-  Product[Product crates] --> Capability[Stable native capability]
-  Capability --> BuildBoundary[Build/release boundary]
-  BuildBoundary --> ThirdParty[Third-party metadata]
-  BuildBoundary --> Patches[Patch sets]
-  BuildBoundary --> Checksums[Checksum manifests]
-  BuildBoundary --> Helpers[Bundled helpers]
-  BuildBoundary --> Platform[Platform selectors]
-```
+<DiagramFlow spec={nativeDependencyQuarantine} lang="en" client:visible />
 
 The design is not free. Quarantine creates a maintenance surface: checksums must be updated, patches must be justified, release assets must be present, and platform selectors must be tested. The benefit is that the maintenance surface is visible and centralized instead of being smeared across runtime code.
 

@@ -1,4 +1,6 @@
 import RolloutTraceLab from "../../src/components/visual/RolloutTraceLab.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { rolloutTracePipeline, traceReducerInputs } from "../../src/data/diagrams/codex-from-source/chapter-08";
 
 # Chapter 8: Observability and Rollout Trace
 
@@ -50,24 +52,7 @@ The replay spine must be conservative. It should preserve what future Codex vers
 
 Rollout trace is an opt-in diagnostic path. When enabled, runtime code records ordered raw events and stores larger raw payloads separately. The hot path does not try to build the final explanation graph while the session is running. It captures facts and leaves interpretation to an offline reducer.
 
-```mermaid
-flowchart TD
-    Runtime["runtime sources\nturns, inference, tools, terminal, agents"]
-    Context["trace context\nroot and child threads"]
-    Writer["trace writer\nsequence numbers"]
-    Events["raw event log"]
-    Payloads["raw payload files"]
-    Reducer["offline reducer"]
-    Graph["reduced graph\nthreads, turns, items, tools, terminals, edges"]
-
-    Runtime --> Context
-    Context --> Writer
-    Writer --> Events
-    Writer --> Payloads
-    Events --> Reducer
-    Payloads --> Reducer
-    Reducer --> Graph
-```
+<DiagramFlow spec={rolloutTracePipeline} lang="en" client:visible />
 
 Raw trace data can include prompts, model responses, tool inputs and outputs, terminal output, runtime payloads, and paths. It therefore belongs to local diagnostics, not ordinary telemetry. The value of the design is that raw payloads remain available when the reduced graph is not enough to explain a failure.
 
@@ -75,25 +60,7 @@ Raw trace data can include prompts, model responses, tool inputs and outputs, te
 
 The reduced trace graph is not a transcript. It contains semantic objects: agent threads, Codex turns, model-visible conversation items, inference calls, tool calls, code cells, terminal operations, compactions, and interaction edges. Each object can retain references back to raw payloads.
 
-```mermaid
-flowchart LR
-    RawModel["raw model payloads"]
-    RawRuntime["raw runtime payloads"]
-    RawTerminal["raw terminal payloads"]
-    Reducer["strict reducer"]
-    Conversation["conversation items\nwhat the model saw"]
-    RuntimeObjects["runtime objects\ntools, terminals, compactions"]
-    Edges["interaction edges\ncausal flow"]
-    Refs["raw payload references"]
-
-    RawModel --> Reducer
-    RawRuntime --> Reducer
-    RawTerminal --> Reducer
-    Reducer --> Conversation
-    Reducer --> RuntimeObjects
-    Reducer --> Edges
-    Reducer --> Refs
-```
+<DiagramFlow spec={traceReducerInputs} lang="en" client:visible />
 
 This distinction prevents a common debugging mistake. Runtime output is not automatically model-visible output. A terminal operation may produce bytes that appear in a local process log, while the model only sees a summarized tool result. A nested runtime call may be part of a code-mode execution object, while the model-visible transcript contains only the surrounding tool boundary. The trace graph preserves both views without confusing them.
 

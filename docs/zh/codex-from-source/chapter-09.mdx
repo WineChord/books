@@ -1,4 +1,6 @@
 import ToolDispatchMap from "../../../src/components/visual/ToolDispatchMap.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { toolSpecPlanner } from "../../../src/data/diagrams/codex-from-source/chapter-09";
 
 # 第 9 章：工具规格、路由与分发
 
@@ -22,22 +24,7 @@ Codex 把工具元数据和执行行为放在不同平面。
 
 这个分离体现在生命周期中。Session 会根据配置、feature flag、模型能力、MCP 启动状态、discoverable tools、dynamic tools 和 hosted tool 可用性构造工具 registry。Registry 产出两类结果：供内部查找的 configured specs，以及发给模型请求的 model-visible specs。
 
-```mermaid
-flowchart LR
-    Config[resolved configuration] --> Plan[tool spec plan]
-    Model[model capability] --> Plan
-    MCP[MCP and hosted tools] --> Plan
-    Dynamic[dynamic tools] --> Plan
-    Plan --> Specs[model-visible specs]
-    Plan --> Registry[handler registry]
-    Specs --> ModelRequest[model request]
-    Registry --> Router[turn tool router]
-    ModelRequest --> ToolCall[model tool call]
-    ToolCall --> Router
-    Router --> Runtime[tool call runtime]
-    Runtime --> Events[events and rollout]
-    Runtime --> Output[model-visible result]
-```
+<DiagramFlow spec={toolSpecPlanner} lang="zh" client:visible />
 
 这张图就是本章主线：模型拿到的是规格，不是 handler；运行时保留的是 handler，不只是 schema；router 是一个 turn 内部连接二者的桥。
 

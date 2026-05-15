@@ -1,4 +1,12 @@
 import ClientFanoutMap from "../../../src/components/visual/ClientFanoutMap.tsx";
+import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
+import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
+import {
+  tokenFanout,
+  replayAttribution,
+  compactionTraceStream,
+} from "../../../src/data/diagrams/codex-context-management/chapter-08";
 
 # 第 8 章：面向客户端的上下文
 
@@ -30,20 +38,7 @@ Codex 通过几个面暴露上下文。表很短但值得记住：
 
 TUI token usage 模型把 input、cached input、output、reasoning output 和 total token 分开，再相对于经过 baseline 调整的上下文窗口计算剩余百分比。这个 baseline 是显示选择，不是 runtime 的唯一预算规则。Core runtime 仍然用模型信息和 token usage 触发 compaction。
 
-```mermaid
-graph LR
-  A[Model usage event] --> B[ContextManager token info]
-  B --> C[Core compaction decisions]
-  B --> D[TUI token display]
-  B --> E[App-server token notification]
-  B --> F[Telemetry]
-  classDef src fill:#fef3c7,stroke:#92400e;
-  classDef hub fill:#fee2e2,stroke:#b91c1c,stroke-width:2px;
-  classDef sink fill:#dbeafe,stroke:#1e40af;
-  class A src;
-  class B hub;
-  class C,D,E,F sink;
-```
+<DiagramFlow spec={tokenFanout} lang="zh" client:visible />
 
 同一份源事实喂给多个面。这就是 UI 不撒谎的原因。模式是"从一个事实 fan-out"，而不是"让每个消费者算自己的数字"。如果 TUI bar 与 compaction 阈值不一致，那是 bug，不是显示偏好。
 
@@ -64,24 +59,7 @@ else:
 
 模式很微妙：客户端回放是"连接作用域"的，因为它向新观察者解释历史，而不是一次新的 runtime 事件。
 
-```mermaid
-sequenceDiagram
-  participant Client
-  participant Server as App-server
-  participant Core as Runtime
-  participant Rollout
-
-  Client->>Server: attach to thread
-  Server->>Rollout: 读取最近的 token usage 记录
-  Server->>Core: 询问重建后的 turn id 映射
-  Core-->>Server: turn id map
-  alt 原 id 仍存在
-    Server-->>Client: 在 owner.id 上发送 restored usage
-  else 重建中 id 已变
-    Server-->>Client: 在 owner.position 对应的 turn 上发送 restored usage
-  end
-  Note over Server,Client: 其他订阅者不会收到任何事件<br/>(connection-scoped replay)
-```
+<DiagramSequence spec={replayAttribution} lang="zh" client:visible />
 
 图说明了为什么这次 replay 事件只发给附加的客户端：其他订阅者已经在事件实时发生时看过它，再发一次会被当成新模型动作，扰乱它们的状态。
 
@@ -106,19 +84,13 @@ Realtime 状态出现在 settings update 逻辑中。Realtime 起止可以发出
 
 好的可观测性不只是数 token，它还保留语义边界。
 
-```text
-一次 compaction 周围的 trace 流:
-
-  ... usage(turn N-1)
-    -> compaction_pre_hook(turn N)
-    -> compact_input(payload = old history clone)        [phase 1]
-    -> compact_output(payload = compacted items)         [phase 1]
-    -> compaction_install(payload = replacement history) [phase 2]
-    -> usage(post-compact recompute)                     [phase 2]
-    -> compaction_post_hook(turn N)
-    -> sample_request(payload = new prompt projection)   [phase 3]
-  ... usage(turn N) ...
-```
+<DiagramAscii
+  lang="zh"
+  ascii={compactionTraceStream.ascii}
+  legend={compactionTraceStream.legend}
+  highlights={compactionTraceStream.highlights}
+  client:visible
+/>
 
 三阶段同处一条 trace：compact、install、sample。朴素 trace 会把它们折成一个"compaction 事件"，让单独审计每个阶段变得不可能。
 

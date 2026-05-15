@@ -1,4 +1,6 @@
 import DurableThreadLedger from "../../src/components/visual/DurableThreadLedger.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import { runtimeStack, threadLifecycleOperations } from "../../src/data/diagrams/codex-from-source/chapter-05";
 
 # Chapter 5: Threads, Sessions, and Durable State
 
@@ -16,31 +18,7 @@ Chapter 4 ended at the protocol boundary: clients can submit operations, receive
 
 Codex is not organized around a single "chat object." The runtime is a stack of handles, each narrowing the authority of the layer above it.
 
-```mermaid
-flowchart TD
-    Client["client surface\nCLI, TUI, app-server, SDK"]
-    Manager["ThreadManager\nowns live thread map"]
-    Thread["CodexThread\nclient-facing live handle"]
-    Facade["Codex\nsubmission and event queues"]
-    Session["Session\nstate, services, active turn"]
-    Task["SessionTask\nturn, compact, review, shell"]
-    Router["ToolRouter\nruntime side effects"]
-
-    Store["ThreadStore\nrollout + metadata"]
-    Context["ContextManager\nmodel-visible history"]
-    State["SQLite projections\nthreads, logs, graph, memory"]
-
-    Client --> Manager
-    Manager --> Thread
-    Thread --> Facade
-    Facade --> Session
-    Session --> Task
-    Task --> Router
-
-    Session --> Context
-    Session --> Store
-    Session --> State
-```
+<DiagramFlow spec={runtimeStack} lang="en" client:visible />
 
 `ThreadManager` owns the set of live threads and the shared services needed to create new sessions. `CodexThread` is the stable external handle clients use after a thread is created or resumed. `Codex` is intentionally narrow: it exposes a submission path and an event path. `Session` is the large interior object that holds resolved configuration, persistent identity, active turn state, mailbox state, realtime state, goals, review state, and service handles.
 
@@ -112,21 +90,7 @@ This design protects replay. A client can disappear and rejoin. A database row c
 
 Thread operations are variations on the same principle: load or choose a replay prefix, build a session over it, then append future items in the same vocabulary.
 
-```mermaid
-flowchart LR
-    Start["start\nnew thread id"] --> Open["open live persistence"]
-    Resume["resume\nexisting rollout"] --> Replay["replay durable items"]
-    Fork["fork\nchoose prefix"] --> NewThread["new thread id\nfork metadata"]
-    Rollback["rollback\ntrim recent turns"] --> Rebuild["rebuild model history"]
-
-    Open --> Configured["emit SessionConfigured"]
-    Replay --> Configured
-    NewThread --> Configured
-    Rebuild --> Configured
-
-    Configured --> Append["append future rollout items"]
-    Append --> Query["update SQLite projections"]
-```
+<DiagramFlow spec={threadLifecycleOperations} lang="en" client:visible />
 
 Resume is not a string reload. It reconstructs model history and session metadata from durable items. Fork is not a copy of a UI transcript. It selects a coherent prefix and opens a new thread whose future diverges from the source. Rollback is not merely deleting visible messages. It rebuilds the active model context from the surviving durable record, taking compaction and incomplete turns into account.
 

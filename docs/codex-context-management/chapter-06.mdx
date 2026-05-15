@@ -1,4 +1,13 @@
 import CompactionSimulator from "../../src/components/visual/CompactionSimulator.tsx";
+import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
+import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
+import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
+import {
+  compactionHookFlow,
+  compactionBeforeAfter,
+  remoteCompactionFlow,
+  summaryOnlyVsReplacement,
+} from "../../src/data/diagrams/codex-context-management/chapter-06";
 
 # Chapter 6: Compaction as a Checkpoint Protocol
 
@@ -23,22 +32,7 @@ Compaction can happen manually, before sampling, or mid-turn after a sampling re
 
 This distinction is the heart of the protocol. Compaction is not only "smaller history." It is smaller history placed in a model-compatible order.
 
-```mermaid
-sequenceDiagram
-  participant Turn
-  participant Hooks
-  participant Compactor
-  participant History
-  participant Client
-  Turn->>Hooks: pre-compact
-  Hooks-->>Turn: continue or stop
-  Turn->>Compactor: compact selected history
-  Compactor->>History: install replacement history
-  History->>History: update reference baseline
-  History->>Client: emit compaction completion
-  Turn->>Hooks: post-compact
-  Turn->>Client: token usage recomputed
-```
+<DiagramSequence spec={compactionHookFlow} lang="en" client:visible />
 
 Hooks wrap compaction because compaction is a side effect on the thread's semantic state. External policy may need to block or observe it.
 
@@ -46,28 +40,13 @@ Hooks wrap compaction because compaction is a side effect on the thread's semant
 
 The clearest way to understand compaction is to see history before and after. Square brackets group items chronologically; braces note item type:
 
-```text
-Before compaction (mid-turn, near auto-compact limit):
-
-  [ initial_ctx
-  | user1 | asst1 | tool_call1 | tool_out1 | asst1b
-  | user2 | asst2 | tool_call2 | tool_out2 | asst2b
-  | user3 | asst3 | ... many items ...
-  | userN ]                                <-- triggering user
-                                           ^^^^^^ window almost full
-
-After mid-turn compaction:
-
-  [ summary_message                        <-- replacement history opens
-  | user(recent_summarized)
-  | initial_ctx                            <-- re-inserted before last user
-  | userN ]                                <-- last real user preserved
-
-After pre-turn compaction:
-
-  [ summary_message                        <-- replacement history opens
-  | user(recent_summarized) ]              <-- baseline cleared
-```
+<DiagramAscii
+  lang="en"
+  ascii={compactionBeforeAfter.ascii}
+  legend={compactionBeforeAfter.legend}
+  highlights={compactionBeforeAfter.highlights}
+  client:visible
+/>
 
 Notice how the mid-turn variant re-injects `initial_ctx` because the continuation that follows still needs runtime facts. The pre-turn variant clears the baseline so the *next* regular turn rebuilds the bundle from scratch.
 
@@ -104,20 +83,7 @@ Remote compaction uses a provider compact endpoint when available. It trims func
 
 Remote compaction is not just an optimization. It gives the provider a first- class conversation-history compaction path while Codex still owns the semantic install boundary. The endpoint may produce compacted history, but Codex decides which items survive and where canonical context goes.
 
-```mermaid
-graph TD
-  A[Live history clone] --> B[Trim to compact window]
-  B --> C[Build compact prompt with tools]
-  C --> D[Provider compact endpoint]
-  D --> E[Filter compacted items]
-  E --> F[Insert canonical context if mid-turn]
-  F --> G[Record installed checkpoint]
-  G --> H[Replace live history]
-  classDef provider fill:#fce7f3,stroke:#be185d;
-  classDef local fill:#dbeafe,stroke:#1e40af;
-  class C,D provider;
-  class A,B,E,F,G,H local;
-```
+<DiagramFlow spec={remoteCompactionFlow} lang="en" client:visible />
 
 The pink nodes belong to the provider. The blue nodes belong to Codex. The line between them is the contract: provider produces, runtime installs.
 
@@ -140,28 +106,13 @@ A summary is prose. Replacement history is protocol state. The difference is hug
 
 A small "summary-only" failure illustrates the trap:
 
-```text
-With summary only:
-
-  [ "Earlier, the user fixed bug X and asked for feature Y;
-     the assistant offered patch P and ran command Q." ]
-
-Resume now must infer:
-  - Were any tool calls accepted?
-  - Did command Q succeed?
-  - What is the current cwd, permissions, model?
-  - Was patch P merged?
-
-With replacement history:
-
-  [ summary_message
-  | tool_call_record(command="Q", exit=0)
-  | patch_record(file="...", status="applied")
-  | initial_ctx
-  | userN ]
-
-Resume now reads protocol items and rebuilds without inference.
-```
+<DiagramAscii
+  lang="en"
+  ascii={summaryOnlyVsReplacement.ascii}
+  legend={summaryOnlyVsReplacement.legend}
+  highlights={summaryOnlyVsReplacement.highlights}
+  client:visible
+/>
 
 Codex still carries summary text, but the checkpoint is the real abstraction.
 
