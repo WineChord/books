@@ -4,10 +4,7 @@ import JsonRpcContractMap from "../../../src/components/visual/JsonRpcContractMa
 
 <JsonRpcContractMap lang="zh" client:visible />
 
-第 13 章停在 runtime 边界：permissions、sandbox selection 和 managed
-networking 决定一次 tool attempt 可以触碰什么。本章再往外走一层。当 runtime
-已经能够执行这些决策，它还需要一份契约，让 terminal client、SDK client、
-daemon 管理的 client 和 remote client 共享同一套 thread，而不是共享同一份实现。
+第 13 章停在 runtime 边界：permissions、sandbox selection 和 managed networking 决定一次 tool attempt 可以触碰什么。本章再往外走一层。当 runtime 已经能够执行这些决策，它还需要一份契约，让 terminal client、SDK client、 daemon 管理的 client 和 remote client 共享同一套 thread，而不是共享同一份实现。
 
 App-server 就是这份契约。它很容易被误读成一个本地 Web API：请求进来，响应出去，状态藏在 server 后面。源码里的结构更接近一个运行在本机、也可能跨过 remote-control bridge 的小型分布式系统。它负责统一 transports，按资源序列化工作，把 runtime events 转成 client 可见的 items，保存足够的历史以便 client 重新加入，并在 runtime 需要人或 client 做决定时发出 server-to-client requests。
 

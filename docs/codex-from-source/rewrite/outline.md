@@ -1,13 +1,10 @@
 # Proposed Full Outline
 
-This page executes Phase 3 of the rewrite brief. It presents the full proposed
-book structure and stops at the approval gate. Chapter titles and sequencing
-are designed as if the reader were building Codex from scratch.
+This page executes Phase 3 of the rewrite brief. It presents the full proposed book structure and stops at the approval gate. Chapter titles and sequencing are designed as if the reader were building Codex from scratch.
 
 ## Part I: Establish the Contract
 
-_A complex agent becomes understandable when every actor speaks the same
-language._
+_A complex agent becomes understandable when every actor speaks the same language._
 
 ### Chapter 1: The Architectural Bet
 
@@ -47,8 +44,7 @@ language._
 
 ## Part II: Build the Agent Runtime
 
-_The runtime is not a model call. It is a scheduler for context, streaming,
-tools, cancellation, and replay._
+_The runtime is not a model call. It is a scheduler for context, streaming, tools, cancellation, and replay._
 
 ### Chapter 5: Threads, Sessions, and Durable State
 
@@ -87,8 +83,7 @@ tools, cancellation, and replay._
 
 ## Part III: Execute Side Effects
 
-_A model can suggest an action. Codex decides whether that action becomes a
-side effect._
+_A model can suggest an action. Codex decides whether that action becomes a side effect._
 
 ### Chapter 9: Tool Specs, Routing, and Runtime Dispatch
 
@@ -135,8 +130,7 @@ side effect._
 
 ## Part IV: Open the Runtime to Clients
 
-_A runtime becomes a platform when multiple clients can share the same thread
-model._
+_A runtime becomes a platform when multiple clients can share the same thread model._
 
 ### Chapter 14: App-Server as Local Distributed System
 
@@ -199,8 +193,7 @@ _Extension points are useful only when each trust boundary is explicit._
 
 ## Part VI: Coordinate Work Beyond One Turn
 
-_Once actions are durable, the system can coordinate agents, tasks, memory, and
-cloud workflows._
+_Once actions are durable, the system can coordinate agents, tasks, memory, and cloud workflows._
 
 ### Chapter 20: Multi-Agent Threads and Interaction Graphs
 
@@ -273,5 +266,4 @@ _Architecture survives only when release, tests, and governance enforce it._
 
 ## Approval Gate
 
-Per the rewrite brief, writing chapters from scratch should begin only after
-this outline is approved or revised.
+Per the rewrite brief, writing chapters from scratch should begin only after this outline is approved or revised.

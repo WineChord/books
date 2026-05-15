@@ -1,9 +1,6 @@
 # Pattern Index
 
-This page collects the reusable design patterns that appear across the book.
-They are not Codex-only tricks. They are architectural moves that matter
-whenever an LLM product can inspect files, run commands, call external tools,
-or serve multiple clients.
+This page collects the reusable design patterns that appear across the book. They are not Codex-only tricks. They are architectural moves that matter whenever an LLM product can inspect files, run commands, call external tools, or serve multiple clients.
 
 ## The Patterns
 
@@ -57,7 +54,4 @@ or serve multiple clients.
 
 ## Reading the Patterns Safely
 
-Patterns are only useful when they stay attached to evidence. For each pattern,
-the chapter provides an evidence map with pinned source links, an explanation
-for beginners, and a small reading exercise. If you want the complete map in
-one place, use the [Source Atlas](source-atlas.html).
+Patterns are only useful when they stay attached to evidence. For each pattern, the chapter provides an evidence map with pinned source links, an explanation for beginners, and a small reading exercise. If you want the complete map in one place, use the [Source Atlas](source-atlas.html).

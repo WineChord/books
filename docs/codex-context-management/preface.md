@@ -1,16 +1,8 @@
 # Preface
 
-This book is about one part of Codex that is easy to underestimate: context
-management. Most agent write-ups talk about tools, models, and user interfaces.
-Codex is interesting because it treats context as governed runtime state. The
-prompt sent to the model is not a string that grows until it fails. It is the
-projection of a thread ledger, a turn envelope, typed context fragments, policy
-diffs, optional knowledge planes, compaction checkpoints, and replay evidence.
+This book is about one part of Codex that is easy to underestimate: context management. Most agent write-ups talk about tools, models, and user interfaces. Codex is interesting because it treats context as governed runtime state. The prompt sent to the model is not a string that grows until it fails. It is the projection of a thread ledger, a turn envelope, typed context fragments, policy diffs, optional knowledge planes, compaction checkpoints, and replay evidence.
 
-The source snapshot used throughout this book is
-[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
-The book is meant to be read without opening the source first. Source links are
-evidence, not homework.
+The source snapshot used throughout this book is [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). The book is meant to be read without opening the source first. Source links are evidence, not homework.
 
 ## The Thesis
 
@@ -19,16 +11,11 @@ The architectural bet is simple:
 > Codex keeps long agent work coherent by making context a runtime boundary, not
 > a prompt-building convenience.
 
-That bet explains the shape of the subsystem. A turn has an explicit envelope.
-History is normalized before sampling. Runtime facts are injected as typed
-fragments. Optional material is budgeted. Compaction installs replacement
-history. Resume and fork rebuild the prompt from rollout evidence. Clients
-render context state, but they do not own it.
+That bet explains the shape of the subsystem. A turn has an explicit envelope. History is normalized before sampling. Runtime facts are injected as typed fragments. Optional material is budgeted. Compaction installs replacement history. Resume and fork rebuild the prompt from rollout evidence. Clients render context state, but they do not own it.
 
 ## A Map Before You Start
 
-The whole subsystem can be drawn as a single picture before you read any
-chapters. Each box becomes a chapter, in order:
+The whole subsystem can be drawn as a single picture before you read any chapters. Each box becomes a chapter, in order:
 
 ```text
   +--------------- Codex context as runtime ---------------+
@@ -54,15 +41,11 @@ chapters. Each box becomes a chapter, in order:
   +--------------------------------------------------------+
 ```
 
-Read the chapters in the same direction as the arrows. Each chapter assumes the
-previous owners exist and concentrates on its own concern. Reference back to
-this picture if a chapter feels disconnected; everything has a position in this
-stack.
+Read the chapters in the same direction as the arrows. Each chapter assumes the previous owners exist and concentrates on its own concern. Reference back to this picture if a chapter feels disconnected; everything has a position in this stack.
 
 ## What This Book Covers
 
-This is not a tutorial on using Codex. It is a technical publication about how
-Codex carries context through a long-running software-engineering agent:
+This is not a tutorial on using Codex. It is a technical publication about how Codex carries context through a long-running software-engineering agent:
 
 | Layer | What it teaches |
 | --- | --- |
@@ -76,24 +59,12 @@ Codex carries context through a long-running software-engineering agent:
 
 ## Reading Without Rust Expertise
 
-Rust details appear only when they expose design. When the book says "struct",
-read it as "a named packet of state." When it says "enum", read it as "a closed
-set of runtime cases." When it says "async task", read it as "work that can
-pause while waiting for the model, tools, hooks, or I/O."
+Rust details appear only when they expose design. When the book says "struct", read it as "a named packet of state." When it says "enum", read it as "a closed set of runtime cases." When it says "async task", read it as "work that can pause while waiting for the model, tools, hooks, or I/O."
 
-The source links point to the public Codex repository. The prose intentionally
-does not reproduce proprietary prompt templates or exact implementation bodies.
-When pseudocode appears, it illustrates a pattern and uses generic names.
+The source links point to the public Codex repository. The prose intentionally does not reproduce proprietary prompt templates or exact implementation bodies. When pseudocode appears, it illustrates a pattern and uses generic names.
 
 ## How to Use This Book
 
-Technical leaders can read the opening sections, diagrams, and "Apply This"
-sections to understand the design rationale. Senior engineers should read every
-chapter, including the deep dives, because the real lesson is not "summarize old
-messages." The lesson is how to keep a mutable prompt projection tied to durable
-evidence.
+Technical leaders can read the opening sections, diagrams, and "Apply This" sections to understand the design rationale. Senior engineers should read every chapter, including the deep dives, because the real lesson is not "summarize old messages." The lesson is how to keep a mutable prompt projection tied to durable evidence.
 
-Each chapter ends with five "Apply This" items. They are the transferable
-patterns. If you are designing a new agent runtime, the patterns matter more
-than the exact field names. If you are reading Codex source, the chapter
-narrative matters more than the patterns.
+Each chapter ends with five "Apply This" items. They are the transferable patterns. If you are designing a new agent runtime, the patterns matter more than the exact field names. If you are reading Codex source, the chapter narrative matters more than the patterns.

@@ -1,9 +1,6 @@
 # Research Notes: Core Runtime and State
 
-Scope: `codex-rs/core`, `codex-rs/protocol`, `codex-rs/core-api`,
-`codex-rs/state`, `codex-rs/rollout`, `codex-rs/message-history`,
-`codex-rs/thread-store`, `codex-rs/analytics`, `codex-rs/otel`, and
-`codex-rs/response-debug-context`.
+Scope: `codex-rs/core`, `codex-rs/protocol`, `codex-rs/core-api`, `codex-rs/state`, `codex-rs/rollout`, `codex-rs/message-history`, `codex-rs/thread-store`, `codex-rs/analytics`, `codex-rs/otel`, and `codex-rs/response-debug-context`.
 
 ## Module Boundaries
 

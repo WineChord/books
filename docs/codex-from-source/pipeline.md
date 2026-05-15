@@ -1,8 +1,6 @@
 # Production Pipeline
 
-This book is produced with a source-first multi-agent workflow. The workflow
-matters because source-code explanation can easily drift into unsupported
-claims. Each role has a narrow job and a concrete artifact.
+This book is produced with a source-first multi-agent workflow. The workflow matters because source-code explanation can easily drift into unsupported claims. Each role has a narrow job and a concrete artifact.
 
 | Stage | Role | Output |
 | --- | --- | --- |
@@ -53,6 +51,4 @@ The repository includes automated gates:
   file URLs, required metadata, and broken generated `href`/`src` targets.
 - `npm run verify` runs all of the above in the same order used by CI.
 
-The pipeline is intentionally practical. Its goal is not ceremony; it is to
-keep the book reproducible, source-grounded, bilingual, and safe to publish
-under the public WineChord domain.
+The pipeline is intentionally practical. Its goal is not ceremony; it is to keep the book reproducible, source-grounded, bilingual, and safe to publish under the public WineChord domain.

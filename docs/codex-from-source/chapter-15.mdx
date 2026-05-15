@@ -4,20 +4,9 @@ import ClientReachabilityBoard from "../../src/components/visual/ClientReachabil
 
 <ClientReachabilityBoard lang="en" client:visible />
 
-Chapter 14 described the app-server as the contract around shared thread
-ownership. This chapter follows that contract into the clients and supervisors
-that make it usable: SDKs that hide protocol mechanics, a daemon that manages
-local server lifecycle, transports that preserve message semantics, and
-remote-control streams that carry the same runtime model beyond the local
-process boundary.
+Chapter 14 described the app-server as the contract around shared thread ownership. This chapter follows that contract into the clients and supervisors that make it usable: SDKs that hide protocol mechanics, a daemon that manages local server lifecycle, transports that preserve message semantics, and remote-control streams that carry the same runtime model beyond the local process boundary.
 
-The key distinction is between the protocol and the developer experience built
-on top of it. A protocol schema says which messages exist. An SDK says how a
-programmer should start a session, route responses, consume turn events, and
-answer server requests without becoming a protocol engineer. A daemon says how
-the local app-server process is found, started, probed, restarted, and updated.
-Remote control says how a backend-mediated client can behave like another
-connection without pretending the network is reliable.
+The key distinction is between the protocol and the developer experience built on top of it. A protocol schema says which messages exist. An SDK says how a programmer should start a session, route responses, consume turn events, and answer server requests without becoming a protocol engineer. A daemon says how the local app-server process is found, started, probed, restarted, and updated. Remote control says how a backend-mediated client can behave like another connection without pretending the network is reliable.
 
 ## Client Taxonomy
 
@@ -31,11 +20,7 @@ The system has several client shapes, and they are intentionally not the same.
 | Daemon-managed client | Local app-server process | Stable local lifecycle, probing, pid files, locks, restart, and update behavior. |
 | Remote-control client | Backend-mediated stream | Remote access to app-server sessions with reconnect, cursor, and replay behavior. |
 
-This taxonomy prevents a misleading sentence such as "the SDK calls the
-app-server." Some SDKs do. Some intentionally wrap a different command surface.
-Some clients run in-process. Some reach the server through a daemon-managed
-socket. The architecture is coherent because each client still respects a
-clear boundary.
+This taxonomy prevents a misleading sentence such as "the SDK calls the app-server." Some SDKs do. Some intentionally wrap a different command surface. Some clients run in-process. Some reach the server through a daemon-managed socket. The architecture is coherent because each client still respects a clear boundary.
 
 ```mermaid
 flowchart TD
@@ -59,52 +44,25 @@ flowchart TD
     Backend --> Server
 ```
 
-The diagram is deliberately asymmetric. The Python SDK and Rust facade are
-protocol clients. The TypeScript SDK is a process/event-stream client. The
-daemon is not a user-facing language SDK at all; it is a lifecycle manager.
-Remote control is a transport bridge with protocol consequences.
+The diagram is deliberately asymmetric. The Python SDK and Rust facade are protocol clients. The TypeScript SDK is a process/event-stream client. The daemon is not a user-facing language SDK at all; it is a lifecycle manager. Remote control is a transport bridge with protocol consequences.
 
 ## Schema as Source of Contract
 
-The app-server protocol types generate schema artifacts so clients can agree
-on message shapes without copying handwritten definitions. This matters most
-when the contract evolves. A field added to a notification, a new server
-request variant, or an experimental method should be reflected in generated
-contracts and compatibility filters rather than discovered by a client at
-runtime.
+The app-server protocol types generate schema artifacts so clients can agree on message shapes without copying handwritten definitions. This matters most when the contract evolves. A field added to a notification, a new server request variant, or an experimental method should be reflected in generated contracts and compatibility filters rather than discovered by a client at runtime.
 
-Schemas do not eliminate judgment. The server still has to decide which
-features are stable, which are experimental, which are connection-gated, and
-which older clients need special handling. But generated contracts reduce the
-surface area where drift can hide. They make the question concrete: is the
-client out of date, or is the server sending a shape outside the declared
-contract?
+Schemas do not eliminate judgment. The server still has to decide which features are stable, which are experimental, which are connection-gated, and which older clients need special handling. But generated contracts reduce the surface area where drift can hide. They make the question concrete: is the client out of date, or is the server sending a shape outside the declared contract?
 
 ## The Rust Facade
 
-The Rust app-server client is closest to the protocol. Its job is not to
-invent a new abstraction over threads and turns. Its job is to make protocol
-use reliable from Rust code: send requests, await responses, consume
-notifications, and preserve the semantics of server requests.
+The Rust app-server client is closest to the protocol. Its job is not to invent a new abstraction over threads and turns. Its job is to make protocol use reliable from Rust code: send requests, await responses, consume notifications, and preserve the semantics of server requests.
 
-That is a useful design restraint. Internal clients can be tempted to bypass
-the protocol because they live in the same repository or even the same
-process. The facade keeps the boundary honest. If a Rust caller observes a
-thread, starts a turn, or answers an approval, it should do so through the
-same conceptual contract external clients rely on.
+That is a useful design restraint. Internal clients can be tempted to bypass the protocol because they live in the same repository or even the same process. The facade keeps the boundary honest. If a Rust caller observes a thread, starts a turn, or answers an approval, it should do so through the same conceptual contract external clients rely on.
 
 ## The Python SDK
 
-The Python SDK is a fuller app-server client. It launches or connects to an
-app-server process over standard I/O, uses generated model types, and exposes
-developer-facing methods for session control. Its most important internal
-problem is stream routing.
+The Python SDK is a fuller app-server client. It launches or connects to an app-server process over standard I/O, uses generated model types, and exposes developer-facing methods for session control. Its most important internal problem is stream routing.
 
-Standard I/O gives the SDK one incoming stream. Responses to requests,
-notifications about active turns, and server requests all arrive through that
-stream. If two parts of the SDK tried to read from it directly, they would
-race. The SDK therefore uses one reader and routes messages to queues owned by
-the waiting request, the turn stream, or the server-request handler.
+Standard I/O gives the SDK one incoming stream. Responses to requests, notifications about active turns, and server requests all arrive through that stream. If two parts of the SDK tried to read from it directly, they would race. The SDK therefore uses one reader and routes messages to queues owned by the waiting request, the turn stream, or the server-request handler.
 
 ```text
 pseudocode: SDK stream router
@@ -122,46 +80,21 @@ for each incoming protocol message:
         report an unknown or unsupported message
 ```
 
-This design is not a Python detail. It is the client-side mirror of the
-app-server contract. The server promises typed messages; the SDK must preserve
-their ordering and destination without letting concurrent user code steal from
-the same stream.
+This design is not a Python detail. It is the client-side mirror of the app-server contract. The server promises typed messages; the SDK must preserve their ordering and destination without letting concurrent user code steal from the same stream.
 
-One compatibility caveat deserves explicit mention. Default server-request
-handling can be convenient during automation, but approvals are policy-bearing
-events. A serious client should choose explicit handlers for command
-approval, file-change approval, dynamic tool calls, and elicitation rather
-than accidentally accepting behavior that belongs in the application.
+One compatibility caveat deserves explicit mention. Default server-request handling can be convenient during automation, but approvals are policy-bearing events. A serious client should choose explicit handlers for command approval, file-change approval, dynamic tool calls, and elicitation rather than accidentally accepting behavior that belongs in the application.
 
 ## The TypeScript SDK
 
-The TypeScript SDK has a different architectural role. It wraps the execution
-command and consumes an experimental JSON event stream. That makes it useful
-for scriptable execution flows, but it is not the same thing as a full
-app-server protocol client.
+The TypeScript SDK has a different architectural role. It wraps the execution command and consumes an experimental JSON event stream. That makes it useful for scriptable execution flows, but it is not the same thing as a full app-server protocol client.
 
-This difference is not a flaw. It is a product choice. A process-oriented SDK
-can be easier to install, easier to reason about in short-lived jobs, and
-less coupled to app-server lifecycle. The cost is that it does not expose the
-complete thread-sharing, server-request, replay, and daemon-managed contract
-described in Chapter 14. Code that needs those semantics should use a protocol
-client. Code that needs "run this task and read structured events" may be
-better served by the command wrapper.
+This difference is not a flaw. It is a product choice. A process-oriented SDK can be easier to install, easier to reason about in short-lived jobs, and less coupled to app-server lifecycle. The cost is that it does not expose the complete thread-sharing, server-request, replay, and daemon-managed contract described in Chapter 14. Code that needs those semantics should use a protocol client. Code that needs "run this task and read structured events" may be better served by the command wrapper.
 
 ## Daemon Lifecycle
 
-The daemon turns app-server startup into an operating concern. It manages pid
-files, operation locks, probing, bootstrap, restart, remote-control enrollment,
-and update loops. Those words sound mundane until a client tries to connect
-while the server is starting, restarting, stale, or already owned by another
-process.
+The daemon turns app-server startup into an operating concern. It manages pid files, operation locks, probing, bootstrap, restart, remote-control enrollment, and update loops. Those words sound mundane until a client tries to connect while the server is starting, restarting, stale, or already owned by another process.
 
-The daemon's job is to make the local server discoverable and stable without
-letting two supervisors corrupt the same state. Operation locks prevent
-overlapping lifecycle actions. Probing distinguishes "server is healthy" from
-"pid file exists." Restart behavior gives clients a path out of stale state.
-Update behavior lets the product improve the server without making every SDK
-invent a process manager.
+The daemon's job is to make the local server discoverable and stable without letting two supervisors corrupt the same state. Operation locks prevent overlapping lifecycle actions. Probing distinguishes "server is healthy" from "pid file exists." Restart behavior gives clients a path out of stale state. Update behavior lets the product improve the server without making every SDK invent a process manager.
 
 ```mermaid
 flowchart TD
@@ -179,13 +112,11 @@ flowchart TD
     Failed -->|retry under lock| Starting
 ```
 
-A daemon is not just a convenience wrapper. It is the component that makes a
-long-lived local contract practical for short-lived tools and SDK processes.
+A daemon is not just a convenience wrapper. It is the component that makes a long-lived local contract practical for short-lived tools and SDK processes.
 
 ## Transport Choices
 
-Different transports exist because different clients need different process
-and deployment shapes.
+Different transports exist because different clients need different process and deployment shapes.
 
 | Transport | Useful when | Architectural concern |
 | --- | --- | --- |
@@ -195,19 +126,11 @@ and deployment shapes.
 | In-process transport | Tests or internal callers need the same contract without a process hop. | It must not bypass protocol semantics. |
 | Remote-control stream | A backend connects a remote client to the local app-server. | Reconnect, cursor ack, buffering, and identity are part of correctness. |
 
-The transport layer should make these options boring above the boundary. A
-request should not become semantically different because it arrived over a
-socket instead of standard I/O. What can differ is latency, lifecycle,
-authentication, framing, and failure behavior.
+The transport layer should make these options boring above the boundary. A request should not become semantically different because it arrived over a socket instead of standard I/O. What can differ is latency, lifecycle, authentication, framing, and failure behavior.
 
 ## Remote Control
 
-Remote control extends the app-server contract through a backend-mediated
-stream. The local side enrolls with backend identity and installation
-metadata. Remote streams are mapped to app-server connection ids. Messages are
-chunked, cursors are acknowledged, outbound messages are buffered where
-appropriate, and reconnect can replay data the remote client has not yet
-acknowledged.
+Remote control extends the app-server contract through a backend-mediated stream. The local side enrolls with backend identity and installation metadata. Remote streams are mapped to app-server connection ids. Messages are chunked, cursors are acknowledged, outbound messages are buffered where appropriate, and reconnect can replay data the remote client has not yet acknowledged.
 
 ```mermaid
 sequenceDiagram
@@ -229,26 +152,13 @@ sequenceDiagram
     Backend->>Bridge: record ack for replay window
 ```
 
-The network makes the hidden assumptions visible. A local socket can often get
-away with "if it disconnects, it disconnects." Remote control cannot. It needs
-explicit cursor and replay behavior because a remote client may cross network
-failures while the local runtime keeps producing notifications.
+The network makes the hidden assumptions visible. A local socket can often get away with "if it disconnects, it disconnects." Remote control cannot. It needs explicit cursor and replay behavior because a remote client may cross network failures while the local runtime keeps producing notifications.
 
 ## Compatibility Costs
 
-The app-server protocol has versioned concepts, but evolution still has
-costs. Some v2 behavior remains anchored to v1 initialization ideas. Some
-experimental support is checked at runtime and filtered in generated
-contracts. Some older clients need response or notification workarounds. Some
-threads are shared by connections with different capability levels.
+The app-server protocol has versioned concepts, but evolution still has costs. Some v2 behavior remains anchored to v1 initialization ideas. Some experimental support is checked at runtime and filtered in generated contracts. Some older clients need response or notification workarounds. Some threads are shared by connections with different capability levels.
 
-These costs are normal for a living protocol. The lesson is not "avoid
-compatibility"; it is "put compatibility at the boundary." A client-version
-workaround inside a request processor is easier to remove later than a
-workaround spread into core runtime state. A feature gate on a connection is
-easier to reason about than a silent failure in an SDK method. A schema drift
-check is cheaper than a bug report from a remote client that received an
-unknown server request.
+These costs are normal for a living protocol. The lesson is not "avoid compatibility"; it is "put compatibility at the boundary." A client-version workaround inside a request processor is easier to remove later than a workaround spread into core runtime state. A feature gate on a connection is easier to reason about than a silent failure in an SDK method. A schema drift check is cheaper than a bug report from a remote client that received an unknown server request.
 
 ## Failure Modes
 
@@ -262,9 +172,7 @@ SDKs and daemons create their own failure surface.
 | Experimental mismatch | Client calls a method it does not support. | Gate by capability and return a protocol error. |
 | Remote reconnect gap | Client misses notifications after network loss. | Use cursor ack and replay buffered outbound messages. |
 
-The goal is not to hide every failure. The goal is to keep failures located at
-the right boundary so the caller can decide whether to retry, restart, ask the
-user, or abort.
+The goal is not to hide every failure. The goal is to keep failures located at the right boundary so the caller can decide whether to retry, restart, ask the user, or abort.
 
 ## Trace Ledger
 
@@ -285,11 +193,7 @@ user, or abort.
 
 ## Closing
 
-SDKs, daemons, and remote control make the app-server contract reachable from
-real programs. They also show that a protocol is not finished when message
-types exist. It becomes usable when lifecycle, routing, transport, and
-compatibility are engineered as deliberately as the runtime itself. Chapter 16
-turns to the most visible client of that contract: the terminal UI.
+SDKs, daemons, and remote control make the app-server contract reachable from real programs. They also show that a protocol is not finished when message types exist. It becomes usable when lifecycle, routing, transport, and compatibility are engineered as deliberately as the runtime itself. Chapter 16 turns to the most visible client of that contract: the terminal UI.
 
 <div class="source-equivalence">
 

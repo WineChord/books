@@ -1,9 +1,6 @@
 # Research Notes: Terminal UI and Rendering
 
-Scope: `codex-rs/tui`, `codex-rs/ansi-escape`,
-`codex-rs/terminal-detection`, `codex-rs/feedback`,
-`codex-rs/code-mode`, `codex-rs/debug-client`, and
-`codex-rs/async-utils`.
+Scope: `codex-rs/tui`, `codex-rs/ansi-escape`, `codex-rs/terminal-detection`, `codex-rs/feedback`, `codex-rs/code-mode`, `codex-rs/debug-client`, and `codex-rs/async-utils`.
 
 ## Module Boundaries
 

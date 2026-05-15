@@ -1,10 +1,6 @@
 # Research Notes: Extensions, MCP, Skills, and Plugins
 
-Scope: `codex-rs/codex-mcp`, `codex-rs/mcp-server`,
-`codex-rs/rmcp-client`, `codex-rs/builtin-mcps`,
-`codex-rs/core-skills`, `codex-rs/skills`, `codex-rs/plugin`,
-`codex-rs/core-plugins`, `codex-rs/connectors`, `codex-rs/ext`, and
-`.codex/skills`.
+Scope: `codex-rs/codex-mcp`, `codex-rs/mcp-server`, `codex-rs/rmcp-client`, `codex-rs/builtin-mcps`, `codex-rs/core-skills`, `codex-rs/skills`, `codex-rs/plugin`, `codex-rs/core-plugins`, `codex-rs/connectors`, `codex-rs/ext`, and `.codex/skills`.
 
 ## Module Boundaries
 

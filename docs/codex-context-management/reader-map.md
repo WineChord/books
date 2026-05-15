@@ -1,10 +1,6 @@
 # Reader Map
 
-This book is shorter and narrower than _Codex From Source_. It assumes you
-already know that Codex has a session runtime, tool execution, a TUI, and an
-app-server surface. It zooms in on the question those systems all depend on:
-what exactly does the model see, why does it see that, and how does Codex keep
-the answer stable after many turns?
+This book is shorter and narrower than _Codex From Source_. It assumes you already know that Codex has a session runtime, tool execution, a TUI, and an app-server surface. It zooms in on the question those systems all depend on: what exactly does the model see, why does it see that, and how does Codex keep the answer stable after many turns?
 
 ## Three Reading Paths
 
@@ -18,15 +14,11 @@ You can read this book in three ways. Pick the path that matches your goal:
   pattern hunting               Apply This sections only, in order
 ```
 
-Each path is honest about its trade-off. The overview path skips most
-implementation density and finishes in under an hour. The deep-dive path is
-the only one that reads every section. The pattern path is the fastest way to
-extract transferable design moves for another runtime.
+Each path is honest about its trade-off. The overview path skips most implementation density and finishes in under an hour. The deep-dive path is the only one that reads every section. The pattern path is the fastest way to extract transferable design moves for another runtime.
 
 ## For Architecture Readers
 
-Read chapters 1, 2, 6, 7, and the epilogue. That path gives you the central
-design:
+Read chapters 1, 2, 6, 7, and the epilogue. That path gives you the central design:
 
 - Context is an enforced boundary rather than a loose transcript.
 - A turn envelope freezes the runtime facts that are allowed to affect one
@@ -64,8 +56,7 @@ Each concept has one home:
 
 ## Cross-References at a Glance
 
-The chapters reuse a small set of vocabulary. The table below shows which
-chapter introduces each term and which chapters depend on it:
+The chapters reuse a small set of vocabulary. The table below shows which chapter introduces each term and which chapters depend on it:
 
 | Term | Introduced in | Reused in |
 | --- | --- | --- |
@@ -79,6 +70,4 @@ chapter introduces each term and which chapters depend on it:
 | Replacement history | Chapter 6 | 7 |
 | Rollback marker | Chapter 7 | 8 |
 
-Later chapters reference earlier ideas instead of re-explaining them. If a
-section feels terse, follow its source atlas links after you finish the chapter;
-the book gives the narrative, the links give auditability.
+Later chapters reference earlier ideas instead of re-explaining them. If a section feels terse, follow its source atlas links after you finish the chapter; the book gives the narrative, the links give auditability.

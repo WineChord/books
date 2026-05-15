@@ -4,42 +4,24 @@ import CompactionSimulator from "../../src/components/visual/CompactionSimulator
 
 <CompactionSimulator lang="en" client:visible />
 
-Chapter 5 covered optional context budgets. Budgets delay the inevitable; they
-do not eliminate it. Long threads eventually exceed the useful context window.
-Codex's answer is compaction, but the important design choice is that compaction
-is a checkpoint protocol. It does not merely ask a model to summarize old text.
-It installs replacement history, updates the reference context baseline, emits
-events, runs hooks, resets provider session state when needed, and recomputes
-token usage.
+Chapter 5 covered optional context budgets. Budgets delay the inevitable; they do not eliminate it. Long threads eventually exceed the useful context window. Codex's answer is compaction, but the important design choice is that compaction is a checkpoint protocol. It does not merely ask a model to summarize old text. It installs replacement history, updates the reference context baseline, emits events, runs hooks, resets provider session state when needed, and recomputes token usage.
 
 This is where Codex most clearly treats forgetting as a governed operation.
 
-By the end of this chapter, you should understand local and remote compaction as
-two implementations of the same semantic boundary: replace the live history with
-a smaller history that can still support future turns.
+By the end of this chapter, you should understand local and remote compaction as two implementations of the same semantic boundary: replace the live history with a smaller history that can still support future turns.
 
-<div class="source-equivalence">
-This chapter maps to
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L50">InitialContextInjection</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L121">local compaction flow</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L260">replacement-history construction</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact_remote.rs#L84">remote compaction flow</a>, and
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L721">pre-sampling compaction</a>.
-</div>
+<div class="source-equivalence"> This chapter maps to <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L50">InitialContextInjection</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L121">local compaction flow</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L260">replacement-history construction</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact_remote.rs#L84">remote compaction flow</a>, and <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L721">pre-sampling compaction</a>. </div>
 
 ## Two Triggers, One Boundary
 
-Compaction can happen manually, before sampling, or mid-turn after a sampling
-request reaches the auto-compact limit and the model still needs follow-up. The
-timing changes context placement:
+Compaction can happen manually, before sampling, or mid-turn after a sampling request reaches the auto-compact limit and the model still needs follow-up. The timing changes context placement:
 
 | Timing | Initial context placement | Reason |
 | --- | --- | --- |
 | Manual or pre-turn | Do not inject into replacement history; clear reference baseline. | The next regular turn can fully reinject canonical context. |
 | Mid-turn | Inject before the last real user message or summary. | The model expects the compaction item to remain last while continuation still has current context. |
 
-This distinction is the heart of the protocol. Compaction is not only "smaller
-history." It is smaller history placed in a model-compatible order.
+This distinction is the heart of the protocol. Compaction is not only "smaller history." It is smaller history placed in a model-compatible order.
 
 ```mermaid
 sequenceDiagram
@@ -58,13 +40,11 @@ sequenceDiagram
   Turn->>Client: token usage recomputed
 ```
 
-Hooks wrap compaction because compaction is a side effect on the thread's
-semantic state. External policy may need to block or observe it.
+Hooks wrap compaction because compaction is a side effect on the thread's semantic state. External policy may need to block or observe it.
 
 ## Before and After
 
-The clearest way to understand compaction is to see history before and after.
-Square brackets group items chronologically; braces note item type:
+The clearest way to understand compaction is to see history before and after. Square brackets group items chronologically; braces note item type:
 
 ```text
 Before compaction (mid-turn, near auto-compact limit):
@@ -89,19 +69,11 @@ After pre-turn compaction:
   | user(recent_summarized) ]              <-- baseline cleared
 ```
 
-Notice how the mid-turn variant re-injects `initial_ctx` because the
-continuation that follows still needs runtime facts. The pre-turn variant
-clears the baseline so the *next* regular turn rebuilds the bundle from scratch.
+Notice how the mid-turn variant re-injects `initial_ctx` because the continuation that follows still needs runtime facts. The pre-turn variant clears the baseline so the *next* regular turn rebuilds the bundle from scratch.
 
 ## Local Compaction
 
-Local compaction appends a synthesized compaction request to a clone of history,
-then samples the model until completion. If the context window is exceeded while
-compacting, it removes the oldest history item and retries, preserving recent
-messages and prefix cache as much as possible. After completion, it extracts the
-latest assistant summary, collects user messages, builds a new compacted history,
-optionally inserts initial context, installs a `CompactedItem` with replacement
-history, resets websocket session state, and recomputes token usage.
+Local compaction appends a synthesized compaction request to a clone of history, then samples the model until completion. If the context window is exceeded while compacting, it removes the oldest history item and retries, preserving recent messages and prefix cache as much as possible. After completion, it extracts the latest assistant summary, collects user messages, builds a new compacted history, optionally inserts initial context, installs a `CompactedItem` with replacement history, resets websocket session state, and recomputes token usage.
 
 ```text
 // Pseudocode -- illustrates local checkpoint installation.
@@ -122,27 +94,15 @@ installReplacementHistory(
 )
 ```
 
-The important detail is replacement history. A later resume does not have to
-infer what compaction meant from a free-form summary alone; it can start from
-the installed replacement.
+The important detail is replacement history. A later resume does not have to infer what compaction meant from a free-form summary alone; it can start from the installed replacement.
 
-The retry-by-dropping-oldest loop is small but worth noticing. It keeps prefix
-cache hits as high as possible by trimming from the *old* end. A naive
-implementation would shrink the entire window proportionally, losing both
-warm-cache prefixes and the most recent messages.
+The retry-by-dropping-oldest loop is small but worth noticing. It keeps prefix cache hits as high as possible by trimming from the *old* end. A naive implementation would shrink the entire window proportionally, losing both warm-cache prefixes and the most recent messages.
 
 ## Remote Compaction
 
-Remote compaction uses a provider compact endpoint when available. It trims
-function-call history to fit the compact endpoint, builds a prompt with current
-tools, calls the compact endpoint, filters the returned compacted history,
-optionally inserts initial context, records an installed checkpoint in rollout
-trace, replaces live history, and recomputes token usage.
+Remote compaction uses a provider compact endpoint when available. It trims function-call history to fit the compact endpoint, builds a prompt with current tools, calls the compact endpoint, filters the returned compacted history, optionally inserts initial context, records an installed checkpoint in rollout trace, replaces live history, and recomputes token usage.
 
-Remote compaction is not just an optimization. It gives the provider a first-
-class conversation-history compaction path while Codex still owns the semantic
-install boundary. The endpoint may produce compacted history, but Codex decides
-which items survive and where canonical context goes.
+Remote compaction is not just an optimization. It gives the provider a first- class conversation-history compaction path while Codex still owns the semantic install boundary. The endpoint may produce compacted history, but Codex decides which items survive and where canonical context goes.
 
 ```mermaid
 graph TD
@@ -159,8 +119,7 @@ graph TD
   class A,B,E,F,G,H local;
 ```
 
-The pink nodes belong to the provider. The blue nodes belong to Codex. The line
-between them is the contract: provider produces, runtime installs.
+The pink nodes belong to the provider. The blue nodes belong to Codex. The line between them is the contract: provider produces, runtime installs.
 
 ## Local vs Remote at a Glance
 
@@ -173,17 +132,11 @@ between them is the contract: provider produces, runtime installs.
 | Determinism | Depends on live model behavior. | Depends on provider compact contract. |
 | Rollback compatibility | Works against arbitrary models. | Requires provider compact endpoint support. |
 
-Both strategies emit the same kind of event downstream: an installed checkpoint
-that resume code can recognize. Differences are confined to who produces the
-compacted material.
+Both strategies emit the same kind of event downstream: an installed checkpoint that resume code can recognize. Differences are confined to who produces the compacted material.
 
 ## Why Summary Alone Is Not Enough
 
-A summary is prose. Replacement history is protocol state. The difference is
-huge. Replacement history can preserve user-message boundaries, compaction item
-placement, and current context insertion. It gives rollout reconstruction a
-concrete base. Summary text alone would force resume code to reinterpret old
-events every time.
+A summary is prose. Replacement history is protocol state. The difference is huge. Replacement history can preserve user-message boundaries, compaction item placement, and current context insertion. It gives rollout reconstruction a concrete base. Summary text alone would force resume code to reinterpret old events every time.
 
 A small "summary-only" failure illustrates the trap:
 

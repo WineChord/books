@@ -1,9 +1,6 @@
 # 章节 VisualSpec 记录
 
-机器可读 canonical records 位于 `src/visual/visual-specs.mjs`。本页是给 reviewer
-看的索引。`npm run check:visual-spec` 会验证下表每一行的 route、component、
-fallback、motion policy、target phase 和 comprehension-check count 都匹配 canonical
-record。
+机器可读 canonical records 位于 `src/visual/visual-specs.mjs`。本页是给 reviewer 看的索引。`npm run check:visual-spec` 会验证下表每一行的 route、component、 fallback、motion policy、target phase 和 comprehension-check count 都匹配 canonical record。
 
 | Record ID | Route | Primary Interactive | Fallback / Motion | Phase | Checks |
 | --- | --- | --- | --- | --- | --- |
@@ -34,7 +31,4 @@ record。
 | `ch25-policy-lanes` | `zh/codex-from-source/chapter-25` | PolicyLaneDashboard | table / step | P3 governance | 2 |
 | `epilogue-transfer-atlas` | `zh/codex-from-source/epilogue` | TransferPatternAtlas | table / step | P4 synthesis | 2 |
 
-reviewer 应检查 `src/visual/visual-specs.mjs` 中的完整记录。checker 还会强制每条
-canonical 记录拥有指向具体源码行的结构化 source anchors，并至少包含两个带 expected
-answers 的 comprehension checks；每个 source evidence 都必须引用同一 record 中的
-source path。
+reviewer 应检查 `src/visual/visual-specs.mjs` 中的完整记录。checker 还会强制每条 canonical 记录拥有指向具体源码行的结构化 source anchors，并至少包含两个带 expected answers 的 comprehension checks；每个 source evidence 都必须引用同一 record 中的 source path。

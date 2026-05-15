@@ -4,11 +4,7 @@ import ExtensionProvenance from "../../src/components/visual/ExtensionProvenance
 
 <ExtensionProvenance lang="en" client:visible />
 
-Chapter 17 showed MCP as a runtime tool protocol: external servers are
-discovered, sanitized, routed, and observed without becoming part of the core
-turn loop. This chapter moves up a layer. Before a tool can be routed, the
-system must decide which instructions, packages, hosted app identities, and
-in-process contributors are allowed to shape a thread.
+Chapter 17 showed MCP as a runtime tool protocol: external servers are discovered, sanitized, routed, and observed without becoming part of the core turn loop. This chapter moves up a layer. Before a tool can be routed, the system must decide which instructions, packages, hosted app identities, and in-process contributors are allowed to shape a thread.
 
 <div class="chapter-lede">
   <p><strong>You are here:</strong> external tool calls now have a clean protocol boundary.</p>
@@ -16,12 +12,7 @@ in-process contributors are allowed to shape a thread.
   <p><strong>Mental model:</strong> Codex has four extension planes: skills teach behavior, plugins package assets, connectors describe hosted app access, and typed extensions contribute in-process state.</p>
 </div>
 
-These surfaces are related but not interchangeable. A skill is primarily a
-model-instruction and workflow unit. A plugin is a distribution package that
-can contain skills, MCP server definitions, hooks, and app connector IDs. A
-connector is hosted app metadata tied to account access. A typed extension is
-compiled into the process and contributes through explicit traits rather than
-through a dynamic plugin ABI.
+These surfaces are related but not interchangeable. A skill is primarily a model-instruction and workflow unit. A plugin is a distribution package that can contain skills, MCP server definitions, hooks, and app connector IDs. A connector is hosted app metadata tied to account access. A typed extension is compiled into the process and contributes through explicit traits rather than through a dynamic plugin ABI.
 
 The architecture becomes readable when those planes stay separate.
 
@@ -52,29 +43,15 @@ flowchart TB
     Typed --> Thread
 ```
 
-The diagram is intentionally not a single pipeline. Extension loading is a
-set of converging planes that meet at thread construction, tool exposure, and
-runtime policy.
+The diagram is intentionally not a single pipeline. Extension loading is a set of converging planes that meet at thread construction, tool exposure, and runtime policy.
 
 ## Skills: Instruction With a Budget
 
-A skill is a named body of instructions, metadata, and optional workflow files.
-It can come from bundled system roots, user or admin roots, repository-local
-roots, or plugins. The runtime does not simply concatenate every skill into
-the prompt. It discovers skill metadata, records load outcomes, renders
-summaries within a budget, and loads full skill bodies only when invocation
-rules justify it.
+A skill is a named body of instructions, metadata, and optional workflow files. It can come from bundled system roots, user or admin roots, repository-local roots, or plugins. The runtime does not simply concatenate every skill into the prompt. It discovers skill metadata, records load outcomes, renders summaries within a budget, and loads full skill bodies only when invocation rules justify it.
 
-This is the first-principles reason for a skill budget. Model context is a
-scarce runtime resource. A skill that is always fully present is not an
-extension; it is permanent system prompt growth. Codex instead treats skills as
-available capabilities whose summaries can be shown and whose full bodies can
-be pulled in explicitly or implicitly.
+This is the first-principles reason for a skill budget. Model context is a scarce runtime resource. A skill that is always fully present is not an extension; it is permanent system prompt growth. Codex instead treats skills as available capabilities whose summaries can be shown and whose full bodies can be pulled in explicitly or implicitly.
 
-Explicit invocation is the clean path: the user or structured input names a
-skill. Implicit invocation is more inferential: the system can notice commands
-or file access patterns associated with a skill. Both paths should leave an
-audit-friendly explanation of why the skill entered the turn.
+Explicit invocation is the clean path: the user or structured input names a skill. Implicit invocation is more inferential: the system can notice commands or file access patterns associated with a skill. Both paths should leave an audit-friendly explanation of why the skill entered the turn.
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -96,64 +73,31 @@ for each mention in user_input:
         prompt.add(load_full_skill_body(skill))
 ```
 
-The pseudocode is generic, but the invariant is concrete: discovery, summary,
-and full-body loading are different phases.
+The pseudocode is generic, but the invariant is concrete: discovery, summary, and full-body loading are different phases.
 
 ## Plugins: Packaging and Distribution
 
-Plugins answer a different question: how do extension assets arrive and stay
-updated? A plugin can be installed from a marketplace, loaded from a cache,
-synced from remote sources, shared, and unpacked into contribution types. That
-unpacking is the architectural point. A plugin is not itself a runtime tool.
-It is a package that may contribute skill roots, MCP server definitions,
-connector IDs, and hooks.
+Plugins answer a different question: how do extension assets arrive and stay updated? A plugin can be installed from a marketplace, loaded from a cache, synced from remote sources, shared, and unpacked into contribution types. That unpacking is the architectural point. A plugin is not itself a runtime tool. It is a package that may contribute skill roots, MCP server definitions, connector IDs, and hooks.
 
-This packaging layer has to be strict about trust. Marketplace names, remote
-plugin IDs, archive entries, bundle paths, and plugin-relative paths all need
-validation. A plugin loader that accepts arbitrary paths has crossed from
-extension loading into filesystem authority.
+This packaging layer has to be strict about trust. Marketplace names, remote plugin IDs, archive entries, bundle paths, and plugin-relative paths all need validation. A plugin loader that accepts arbitrary paths has crossed from extension loading into filesystem authority.
 
-Plugin sync is also eventually consistent. Marketplace lookup may fail.
-Remote bundles may be stale. A startup refresh can be useful without becoming
-a hard dependency for every thread. Good extension infrastructure treats those
-failures as load outcomes: installed, skipped, invalid, unavailable, or
-warning-producing.
+Plugin sync is also eventually consistent. Marketplace lookup may fail. Remote bundles may be stale. A startup refresh can be useful without becoming a hard dependency for every thread. Good extension infrastructure treats those failures as load outcomes: installed, skipped, invalid, unavailable, or warning-producing.
 
 ## Connectors: Hosted App Metadata
 
-Connectors normalize hosted app directory metadata. They answer questions such
-as: which app identity is this, what display name should clients show, what
-tools are known, what logo or directory data exists, and whether the current
-account can access it. That metadata is related to MCP and hosted app tools,
-but it is not the same thing as an MCP server.
+Connectors normalize hosted app directory metadata. They answer questions such as: which app identity is this, what display name should clients show, what tools are known, what logo or directory data exists, and whether the current account can access it. That metadata is related to MCP and hosted app tools, but it is not the same thing as an MCP server.
 
-The important split is directory knowledge versus accessible capability. A
-directory can describe an app even when the user is not authenticated for it.
-The runtime can therefore show a connector, ask for authentication, and later
-expose hosted tools only when access metadata supports that decision.
+The important split is directory knowledge versus accessible capability. A directory can describe an app even when the user is not authenticated for it. The runtime can therefore show a connector, ask for authentication, and later expose hosted tools only when access metadata supports that decision.
 
 ## Typed Extensions: Compiled Contributions
 
-Typed extensions are the least dynamic of the four planes. They are in-process
-contributors registered through explicit types. Instead of loading arbitrary
-code at runtime, they participate through a narrow API: contribute thread-start
-state, prompt fragments, or other typed data that the app-server and runtime
-know how to consume.
+Typed extensions are the least dynamic of the four planes. They are in-process contributors registered through explicit types. Instead of loading arbitrary code at runtime, they participate through a narrow API: contribute thread-start state, prompt fragments, or other typed data that the app-server and runtime know how to consume.
 
-That makes typed extensions useful for internal integration points where the
-extension author and runtime author share a compile-time contract. It also
-explains why they are not a replacement for plugins. Plugins distribute
-configuration and workflow assets; typed extensions contribute code through
-the build.
+That makes typed extensions useful for internal integration points where the extension author and runtime author share a compile-time contract. It also explains why they are not a replacement for plugins. Plugins distribute configuration and workflow assets; typed extensions contribute code through the build.
 
 ## Trust and Fail-Soft Loading
 
-Extension loading has to be both strict and forgiving. It is strict about the
-boundary it is validating, and forgiving about optional capabilities that fail.
-Invalid metadata should not become prompt text. A missing connector should not
-crash thread startup. A plugin path outside the allowed bundle should not be
-followed. A remote sync failure should be visible, but ordinary local work
-should continue when cached state is sufficient.
+Extension loading has to be both strict and forgiving. It is strict about the boundary it is validating, and forgiving about optional capabilities that fail. Invalid metadata should not become prompt text. A missing connector should not crash thread startup. A plugin path outside the allowed bundle should not be followed. A remote sync failure should be visible, but ordinary local work should continue when cached state is sufficient.
 
 | Plane | Trust question | Fail-soft behavior |
 | --- | --- | --- |
@@ -162,8 +106,7 @@ should continue when cached state is sufficient.
 | connectors | Is hosted metadata available and account-accessible? | show unavailable or auth-needed state |
 | typed extensions | Does the compiled contributor match the registry contract? | reject incompatible typed data early |
 
-This pattern is more important than any one file. Extension systems age well
-when each boundary has its own validation and its own degraded mode.
+This pattern is more important than any one file. Extension systems age well when each boundary has its own validation and its own degraded mode.
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -183,8 +126,7 @@ for each contribution in plugin.contributions:
         register_connector_id(validate_connector_id(contribution.id))
 ```
 
-The loader is a classifier and validator. It should not silently turn every
-plugin field into runtime authority.
+The loader is a classifier and validator. It should not silently turn every plugin field into runtime authority.
 
 <div class="trace-ledger">
 
@@ -213,9 +155,7 @@ plugin field into runtime authority.
 
 ## What Comes Next
 
-Extension loading is only half of compatibility. Chapter 19 looks at external
-migration: how Codex imports configurations and sessions from other agent
-systems without pretending their semantics are identical.
+Extension loading is only half of compatibility. Chapter 19 looks at external migration: how Codex imports configurations and sessions from other agent systems without pretending their semantics are identical.
 
 <div class="source-equivalence">
 

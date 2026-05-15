@@ -4,17 +4,9 @@ import SubmissionFlowExplorer from "../../src/components/visual/SubmissionFlowEx
 
 <SubmissionFlowExplorer lang="en" client:visible />
 
-Chapter 3 established that Codex starts work only after configuration,
-authentication, feature state, and managed requirements have been resolved into
-a constrained runtime envelope. This chapter explains the language that carries
-work across that envelope. The protocol boundary is where product intent stops
-being private method calls and becomes durable messages: submissions, events,
-model items, app-server JSON-RPC requests, server-to-client requests, and
-generated schemas.
+Chapter 3 established that Codex starts work only after configuration, authentication, feature state, and managed requirements have been resolved into a constrained runtime envelope. This chapter explains the language that carries work across that envelope. The protocol boundary is where product intent stops being private method calls and becomes durable messages: submissions, events, model items, app-server JSON-RPC requests, server-to-client requests, and generated schemas.
 
-The protocol is a product boundary, not a serialization afterthought. It tells
-clients what they may ask for, tells the runtime what it must report, and tells
-future versions what compatibility obligations they have inherited.
+The protocol is a product boundary, not a serialization afterthought. It tells clients what they may ask for, tells the runtime what it must report, and tells future versions what compatibility obligations they have inherited.
 
 ## Core Runtime Protocol
 
@@ -27,10 +19,7 @@ The core runtime protocol has a simple outer shape:
 | Out of runtime | Event | A sequenced fact emitted by the runtime. |
 | Out of runtime | Event message | The typed payload of that fact: setup, progress, item delta, approval request, tool result, completion, error. |
 
-This split lets the runtime behave like an evented kernel. Clients do not call
-private session methods directly. They submit operations and observe events.
-The runtime may queue, reject, transform, or serialize operations according to
-active state.
+This split lets the runtime behave like an evented kernel. Clients do not call private session methods directly. They submit operations and observe events. The runtime may queue, reject, transform, or serialize operations according to active state.
 
 ```mermaid
 sequenceDiagram
@@ -52,43 +41,23 @@ sequenceDiagram
     Runtime->>Client: event(turn completed)
 ```
 
-The sequence is simplified, but the contract is accurate: the runtime is the
-only component that converts submitted intent into durable progress.
+The sequence is simplified, but the contract is accurate: the runtime is the only component that converts submitted intent into durable progress.
 
 ## Items Are Not Just Messages
 
-In a simple chat application, "message" can carry most of the system. Codex
-needs a richer item vocabulary. A thread may contain user text, images, model
-output, reasoning summaries, command calls, command output, file changes,
-approval records, tool observations, plan updates, hook activity, realtime
-transcripts, and collaboration events.
+In a simple chat application, "message" can carry most of the system. Codex needs a richer item vocabulary. A thread may contain user text, images, model output, reasoning summaries, command calls, command output, file changes, approval records, tool observations, plan updates, hook activity, realtime transcripts, and collaboration events.
 
-Calling all of these "messages" would hide the key distinction: different
-items have different rules for streaming, persistence, display, replay, and
-compatibility. A command output delta should not be treated like an assistant
-paragraph. A patch update should not be treated like a model-visible instruction.
-An approval request is not final history until it is resolved.
+Calling all of these "messages" would hide the key distinction: different items have different rules for streaming, persistence, display, replay, and compatibility. A command output delta should not be treated like an assistant paragraph. A patch update should not be treated like a model-visible instruction. An approval request is not final history until it is resolved.
 
-The item model is therefore an architectural vocabulary. It lets the runtime,
-app-server, terminal UI, SDKs, and rollout reducers agree on what kind of fact
-they are handling.
+The item model is therefore an architectural vocabulary. It lets the runtime, app-server, terminal UI, SDKs, and rollout reducers agree on what kind of fact they are handling.
 
 ## App-Server JSON-RPC
 
-App-server introduces a second protocol boundary. It is not a replacement for
-the core runtime protocol; it is a client-facing distributed-system layer around
-threads, turns, items, approvals, filesystem APIs, process APIs, MCP, plugins,
-account state, and remote-control flows.
+App-server introduces a second protocol boundary. It is not a replacement for the core runtime protocol; it is a client-facing distributed-system layer around threads, turns, items, approvals, filesystem APIs, process APIs, MCP, plugins, account state, and remote-control flows.
 
-Its wire shape is JSON-RPC-like: requests expect responses, notifications do
-not, errors carry structured failure information, and server-to-client requests
-allow the runtime side to ask a connected client for decisions such as
-approvals or input. Codex intentionally keeps the envelope lightweight, but the
-request/response/notification distinction remains central.
+Its wire shape is JSON-RPC-like: requests expect responses, notifications do not, errors carry structured failure information, and server-to-client requests allow the runtime side to ask a connected client for decisions such as approvals or input. Codex intentionally keeps the envelope lightweight, but the request/response/notification distinction remains central.
 
-The important word is "like." App-server is not a generic JSON-RPC server onto
-which an agent was bolted. It adds protocol obligations that are specific to
-long-running agent work:
+The important word is "like." App-server is not a generic JSON-RPC server onto which an agent was bolted. It adds protocol obligations that are specific to long-running agent work:
 
 | Obligation | Why plain request/response is insufficient |
 | --- | --- |
@@ -113,14 +82,9 @@ flowchart TD
     serverreq --> ide
 ```
 
-The app-server boundary adds concerns that a local terminal UI can often hide:
-connection initialization, experimental capability negotiation, request
-serialization, backpressure, replay on rejoin, thread listeners, pending
-approvals, and derived status. Those are protocol concerns because clients may
-be separate processes with their own lifecycle.
+The app-server boundary adds concerns that a local terminal UI can often hide: connection initialization, experimental capability negotiation, request serialization, backpressure, replay on rejoin, thread listeners, pending approvals, and derived status. Those are protocol concerns because clients may be separate processes with their own lifecycle.
 
-The mapping from core events to app-server items is the most important
-translation layer:
+The mapping from core events to app-server items is the most important translation layer:
 
 ```mermaid
 flowchart TD
@@ -143,16 +107,11 @@ flowchart TD
     ServerRequest --> Projection
 ```
 
-A client should not reconstruct this projection by parsing terminal text. The
-server does that mapping once, exposes stable item and notification shapes,
-and keeps enough request ids and pending-request state to reconnect decisions
-to the turns they unblock.
+A client should not reconstruct this projection by parsing terminal text. The server does that mapping once, exposes stable item and notification shapes, and keeps enough request ids and pending-request state to reconnect decisions to the turns they unblock.
 
 ## From App Request to Core Operation
 
-The app-server model uses user-facing concepts such as thread, turn, item, and
-environment selection. The core runtime uses submissions and operations. A
-request to start a turn therefore has to be validated and translated.
+The app-server model uses user-facing concepts such as thread, turn, item, and environment selection. The core runtime uses submissions and operations. A request to start a turn therefore has to be validated and translated.
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -180,43 +139,23 @@ function map_core_event(event):
         send_server_request(event.decision_request)
 ```
 
-Again, this is pseudocode. The important idea is translation with validation.
-App-server is not a tunnel that blindly forwards arbitrary JSON into the core.
-It owns a client contract and maps that contract onto runtime operations.
+Again, this is pseudocode. The important idea is translation with validation. App-server is not a tunnel that blindly forwards arbitrary JSON into the core. It owns a client contract and maps that contract onto runtime operations.
 
 ## Generated Schemas as Governance
 
-Generated schemas make the protocol auditable outside Rust. JSON Schema and
-TypeScript-facing artifacts let clients, tests, and release checks detect drift.
-They also force the source types to carry enough metadata for stable and
-experimental surfaces to be separated.
+Generated schemas make the protocol auditable outside Rust. JSON Schema and TypeScript-facing artifacts let clients, tests, and release checks detect drift. They also force the source types to carry enough metadata for stable and experimental surfaces to be separated.
 
-Schema generation is a form of architectural governance. Without it, a field
-can be added to a Rust type and accidentally become a client obligation. With
-it, protocol evolution has to pass through exported contracts, compatibility
-filters, and tests that notice changes.
+Schema generation is a form of architectural governance. Without it, a field can be added to a Rust type and accidentally become a client obligation. With it, protocol evolution has to pass through exported contracts, compatibility filters, and tests that notice changes.
 
-This is especially important because Codex has more than one client generation
-target. A Rust app-server client, a Python SDK, generated TypeScript bindings,
-and test clients all need a shared understanding of the wire model even when
-they expose different ergonomics.
+This is especially important because Codex has more than one client generation target. A Rust app-server client, a Python SDK, generated TypeScript bindings, and test clients all need a shared understanding of the wire model even when they expose different ergonomics.
 
 ## Compatibility Is a Code Path
 
-Protocol compatibility in Codex is explicit. Legacy aliases are accepted for
-some values. Older request forms coexist with newer turn-context operations.
-App-server v1 and v2 concepts overlap. Experimental fields are gated by
-connection capability and filtered from stable schema output. Deprecated fields
-may remain accepted even when ignored so older clients keep working.
+Protocol compatibility in Codex is explicit. Legacy aliases are accepted for some values. Older request forms coexist with newer turn-context operations. App-server v1 and v2 concepts overlap. Experimental fields are gated by connection capability and filtered from stable schema output. Deprecated fields may remain accepted even when ignored so older clients keep working.
 
-This is not accidental clutter. It is the cost of a protocol boundary that
-other clients can depend on. Once a field crosses the boundary, removing it is
-not the same as refactoring a private helper. It may break a terminal, SDK,
-daemon, extension, or persisted rollout.
+This is not accidental clutter. It is the cost of a protocol boundary that other clients can depend on. Once a field crosses the boundary, removing it is not the same as refactoring a private helper. It may break a terminal, SDK, daemon, extension, or persisted rollout.
 
-The bounded-OS analogy helps here too. Operating systems carry compatibility
-for old system calls because applications depend on them. Agent runtimes that
-want multiple clients inherit a smaller version of the same obligation.
+The bounded-OS analogy helps here too. Operating systems carry compatibility for old system calls because applications depend on them. Agent runtimes that want multiple clients inherit a smaller version of the same obligation.
 
 ## What Can Enter and Leave
 
@@ -233,12 +172,7 @@ flowchart LR
     protocol --> leaves[Can leave: events, items, status, requests, errors]
 ```
 
-The runtime is powerful precisely because the boundary is narrow. A client can
-start or steer work, interrupt it, answer approval requests, provide dynamic
-tool outputs, refresh external state, or request thread lifecycle actions. A
-client can observe setup, streaming, tool activity, approval prompts, errors,
-completion, and reconstructed items. It cannot reach inside the session and
-mutate private state directly.
+The runtime is powerful precisely because the boundary is narrow. A client can start or steer work, interrupt it, answer approval requests, provide dynamic tool outputs, refresh external state, or request thread lifecycle actions. A client can observe setup, streaming, tool activity, approval prompts, errors, completion, and reconstructed items. It cannot reach inside the session and mutate private state directly.
 
 ## Apply This
 
@@ -255,10 +189,7 @@ mutate private state directly.
 
 ## Closing
 
-Part I established the contract: distribution reaches the Rust router, the
-router resolves a constrained runtime envelope, and protocol messages define
-what may enter or leave the agent. Part II can now open the runtime itself,
-beginning with threads, sessions, and durable state.
+Part I established the contract: distribution reaches the Rust router, the router resolves a constrained runtime envelope, and protocol messages define what may enter or leave the agent. Part II can now open the runtime itself, beginning with threads, sessions, and durable state.
 
 <div class="source-equivalence">
 

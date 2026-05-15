@@ -1,9 +1,6 @@
 # Book Rewrite Prompt
 
-This page preserves the original rewrite brief for the next full edition of
-the book. It is intentionally stored verbatim so the research, outline,
-writing, editorial review, revision, and source-audit requirements remain part
-of the repository history.
+This page preserves the original rewrite brief for the next full edition of the book. It is intentionally stored verbatim so the research, outline, writing, editorial review, revision, and source-audit requirements remain part of the repository history.
 
 ````text
 I want you to analyze the source code at ../codex and produce a comprehensive

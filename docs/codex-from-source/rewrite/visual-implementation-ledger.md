@@ -1,11 +1,6 @@
 # Visual Implementation Ledger
 
-This ledger tracks implementation against the [Visual Experience Spec](visual-experience-spec)
-and the canonical records in `src/visual/visual-specs.mjs`. The checker
-`npm run check:visual-spec` validates the records and verifies that this ledger
-matches the canonical component, phase, fallback, source-anchor source, and
-ledger state machine. This ledger records whether the reader-facing site has
-implemented and verified each visual.
+This ledger tracks implementation against the [Visual Experience Spec](visual-experience-spec) and the canonical records in `src/visual/visual-specs.mjs`. The checker `npm run check:visual-spec` validates the records and verifies that this ledger matches the canonical component, phase, fallback, source-anchor source, and ledger state machine. This ledger records whether the reader-facing site has implemented and verified each visual.
 
 Status values:
 

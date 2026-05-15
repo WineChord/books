@@ -1,11 +1,6 @@
 # Research Notes: Security, Permissions, and Sandboxing
 
-Scope: `codex-rs/sandboxing`, `codex-rs/linux-sandbox`,
-`codex-rs/windows-sandbox-rs`, `codex-rs/bwrap`,
-`codex-rs/process-hardening`, `codex-rs/shell-escalation`,
-`codex-rs/network-proxy`, `codex-rs/secrets`,
-`codex-rs/terminal-detection`, `codex-rs/uds`, and
-`codex-rs/stdio-to-uds`.
+Scope: `codex-rs/sandboxing`, `codex-rs/linux-sandbox`, `codex-rs/windows-sandbox-rs`, `codex-rs/bwrap`, `codex-rs/process-hardening`, `codex-rs/shell-escalation`, `codex-rs/network-proxy`, `codex-rs/secrets`, `codex-rs/terminal-detection`, `codex-rs/uds`, and `codex-rs/stdio-to-uds`.
 
 ## Module Boundaries
 

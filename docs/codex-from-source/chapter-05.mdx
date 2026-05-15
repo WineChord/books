@@ -4,10 +4,7 @@ import DurableThreadLedger from "../../src/components/visual/DurableThreadLedger
 
 <DurableThreadLedger lang="en" client:visible />
 
-Chapter 4 ended at the protocol boundary: clients can submit operations,
-receive events, and exchange model items without knowing how the runtime works.
-This chapter steps behind that boundary and shows the durable machinery that
-turns those messages into a live agent thread.
+Chapter 4 ended at the protocol boundary: clients can submit operations, receive events, and exchange model items without knowing how the runtime works. This chapter steps behind that boundary and shows the durable machinery that turns those messages into a live agent thread.
 
 <div class="chapter-lede">
   <p><strong>Problem:</strong> an agent must be resumable, forkable, interruptible, and observable while still feeling like one continuous conversation.</p>
@@ -17,8 +14,7 @@ turns those messages into a live agent thread.
 
 ## The Runtime Stack
 
-Codex is not organized around a single "chat object." The runtime is a stack of
-handles, each narrowing the authority of the layer above it.
+Codex is not organized around a single "chat object." The runtime is a stack of handles, each narrowing the authority of the layer above it.
 
 ```mermaid
 flowchart TD
@@ -46,29 +42,15 @@ flowchart TD
     Session --> State
 ```
 
-`ThreadManager` owns the set of live threads and the shared services needed to
-create new sessions. `CodexThread` is the stable external handle clients use
-after a thread is created or resumed. `Codex` is intentionally narrow: it
-exposes a submission path and an event path. `Session` is the large interior
-object that holds resolved configuration, persistent identity, active turn
-state, mailbox state, realtime state, goals, review state, and service handles.
+`ThreadManager` owns the set of live threads and the shared services needed to create new sessions. `CodexThread` is the stable external handle clients use after a thread is created or resumed. `Codex` is intentionally narrow: it exposes a submission path and an event path. `Session` is the large interior object that holds resolved configuration, persistent identity, active turn state, mailbox state, realtime state, goals, review state, and service handles.
 
-This separation matters because clients should not be able to accidentally
-reach into the scheduler. They submit an operation. The session decides whether
-that operation starts a new task, steers an active one, records pending input,
-updates durable metadata, or shuts the thread down.
+This separation matters because clients should not be able to accidentally reach into the scheduler. They submit an operation. The session decides whether that operation starts a new task, steers an active one, records pending input, updates durable metadata, or shuts the thread down.
 
 ## The First Event Is a Contract
 
-The first client-visible event in a newly opened runtime is the session setup
-event. It carries the thread identity, session identity, working directory,
-model choice, provider identifier, approval policy, permission profile, initial
-messages, and other resolved settings.
+The first client-visible event in a newly opened runtime is the session setup event. It carries the thread identity, session identity, working directory, model choice, provider identifier, approval policy, permission profile, initial messages, and other resolved settings.
 
-That ordering is deliberate. Some startup work can continue after the session
-is visible: MCP servers may initialize, plugins may report delayed capability,
-and prewarm work may run in the background. The setup event gives every client
-a deterministic anchor before those later events arrive.
+That ordering is deliberate. Some startup work can continue after the session is visible: MCP servers may initialize, plugins may report delayed capability, and prewarm work may run in the background. The setup event gives every client a deterministic anchor before those later events arrive.
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -86,15 +68,11 @@ function open_runtime_thread(request):
     return client_thread_handle(session)
 ```
 
-The important property is not the exact implementation order. The important
-property is that clients can treat setup as the beginning of the event stream
-and can render a resumed thread without waiting for every optional capability
-to finish loading.
+The important property is not the exact implementation order. The important property is that clients can treat setup as the beginning of the event stream and can render a resumed thread without waiting for every optional capability to finish loading.
 
 ## Three Histories
 
-Most mistakes in agent architecture begin by treating "history" as one thing.
-Codex keeps three histories with different purposes.
+Most mistakes in agent architecture begin by treating "history" as one thing. Codex keeps three histories with different purposes.
 
 | History | Primary owner | What it answers |
 | --- | --- | --- |
@@ -102,28 +80,15 @@ Codex keeps three histories with different purposes.
 | Rollout JSONL | thread persistence | What happened, in replay order, so this thread can resume or fork? |
 | SQLite projections | state layer | What can be queried efficiently without replaying every line? |
 
-The model-visible context is normalized into model items. It is not a UI
-transcript and not a raw log. It contains the items that should participate in
-future inference, filtered by model modality and adjusted by compaction,
-context injection, tool observations, and pending input.
+The model-visible context is normalized into model items. It is not a UI transcript and not a raw log. It contains the items that should participate in future inference, filtered by model modality and adjusted by compaction, context injection, tool observations, and pending input.
 
-The rollout file is the replay spine. It records durable runtime facts in order:
-session metadata, turn context snapshots, model-visible items, event records,
-compaction records, rollback markers, and other replayable items. It is the
-source of truth for reconstructing a thread.
+The rollout file is the replay spine. It records durable runtime facts in order: session metadata, turn context snapshots, model-visible items, event records, compaction records, rollback markers, and other replayable items. It is the source of truth for reconstructing a thread.
 
-The SQLite state is a projection layer. It stores thread metadata, list/search
-indexes, logs, memory jobs, graph edges, and other query-friendly state. A
-projection can be repaired or rebuilt from the durable record when the design
-allows it. The rollout is the ledger; the database is the index and operational
-state.
+The SQLite state is a projection layer. It stores thread metadata, list/search indexes, logs, memory jobs, graph edges, and other query-friendly state. A projection can be repaired or rebuilt from the durable record when the design allows it. The rollout is the ledger; the database is the index and operational state.
 
 ## Recording One Item May Touch All Three
 
-When a turn records a new item, the runtime has to decide which surfaces should
-learn about it. A tool result might be model-visible, replayable, useful for
-client rendering, relevant to analytics, and relevant to trace diagnostics.
-Those are related, but they are not identical.
+When a turn records a new item, the runtime has to decide which surfaces should learn about it. A tool result might be model-visible, replayable, useful for client rendering, relevant to analytics, and relevant to trace diagnostics. Those are related, but they are not identical.
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -141,16 +106,11 @@ function record_runtime_item(turn, item):
         event_stream.emit(item.as_event)
 ```
 
-This design protects replay. A client can disappear and rejoin. A database row
-can be stale and refreshed. A model request can be rebuilt from normalized
-context instead of screen text. Durable state remains the common language among
-those surfaces.
+This design protects replay. A client can disappear and rejoin. A database row can be stale and refreshed. A model request can be rebuilt from normalized context instead of screen text. Durable state remains the common language among those surfaces.
 
 ## Start, Resume, Fork, Roll Back
 
-Thread operations are variations on the same principle: load or choose a
-replay prefix, build a session over it, then append future items in the same
-vocabulary.
+Thread operations are variations on the same principle: load or choose a replay prefix, build a session over it, then append future items in the same vocabulary.
 
 ```mermaid
 flowchart LR
@@ -168,17 +128,9 @@ flowchart LR
     Append --> Query["update SQLite projections"]
 ```
 
-Resume is not a string reload. It reconstructs model history and session
-metadata from durable items. Fork is not a copy of a UI transcript. It selects
-a coherent prefix and opens a new thread whose future diverges from the
-source. Rollback is not merely deleting visible messages. It rebuilds the
-active model context from the surviving durable record, taking compaction and
-incomplete turns into account.
+Resume is not a string reload. It reconstructs model history and session metadata from durable items. Fork is not a copy of a UI transcript. It selects a coherent prefix and opens a new thread whose future diverges from the source. Rollback is not merely deleting visible messages. It rebuilds the active model context from the surviving durable record, taking compaction and incomplete turns into account.
 
-This is why turn context snapshots are durable. They let a later session know
-which working directory, permissions, model settings, network policy, memory
-mode, and environment choices surrounded a turn. Without that context, replay
-would be text without execution semantics.
+This is why turn context snapshots are durable. They let a later session know which working directory, permissions, model settings, network policy, memory mode, and environment choices surrounded a turn. Without that context, replay would be text without execution semantics.
 
 ## Session State Is Layered
 
@@ -192,24 +144,13 @@ The live session holds several kinds of state that should not be collapsed.
 | Mailbox and pending input | across scheduling boundaries | messages that arrive while another turn is running |
 | Durable store handles | thread lifetime | rollout writer, thread metadata, state database handle |
 
-The layering lets Codex answer a subtle question: "Did this operation change
-the durable thread, the current live turn, the next turn, or only a client
-view?" Those are different commitments. A runtime that cannot separate them
-will eventually lose user input, duplicate tool results, or make resume
-incoherent.
+The layering lets Codex answer a subtle question: "Did this operation change the durable thread, the current live turn, the next turn, or only a client view?" Those are different commitments. A runtime that cannot separate them will eventually lose user input, duplicate tool results, or make resume incoherent.
 
 ## Metadata Is Extracted, Not Invented
 
-Thread lists and search views should not require full replay on every request.
-Codex therefore maintains metadata projections: title or preview fields, model
-provider, memory mode, archive state, working directory, git information,
-created and updated positions, and pagination anchors.
+Thread lists and search views should not require full replay on every request. Codex therefore maintains metadata projections: title or preview fields, model provider, memory mode, archive state, working directory, git information, created and updated positions, and pagination anchors.
 
-The projection is useful because it is queryable. It is safe because the
-durable rollout still exists behind it. When a listing row is missing or stale,
-the system can scan the corresponding rollout head or replay metadata-bearing
-items to repair the index. That is the durable-state pattern: optimize reads
-with projections, but keep the event record authoritative.
+The projection is useful because it is queryable. It is safe because the durable rollout still exists behind it. When a listing row is missing or stale, the system can scan the corresponding rollout head or replay metadata-bearing items to repair the index. That is the durable-state pattern: optimize reads with projections, but keep the event record authoritative.
 
 <div class="apply-this">
 
@@ -225,11 +166,7 @@ with projections, but keep the event record authoritative.
 
 ## Closing
 
-Chapter 5 turns the protocol from Chapter 4 into a living runtime. The thread
-is durable; the session is active; the turn is scheduled work inside that
-session. Chapter 6 follows one scheduled turn through the loop where Codex
-builds context, samples the model, executes tools, handles interruptions, and
-decides whether the agent is done.
+Chapter 5 turns the protocol from Chapter 4 into a living runtime. The thread is durable; the session is active; the turn is scheduled work inside that session. Chapter 6 follows one scheduled turn through the loop where Codex builds context, samples the model, executes tools, handles interruptions, and decides whether the agent is done.
 
 <div class="source-equivalence">
 

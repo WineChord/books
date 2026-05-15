@@ -1,10 +1,6 @@
 # Research Notes: Tool Execution and Mutation Paths
 
-Scope: `codex-rs/tools`, `codex-rs/exec`, `codex-rs/exec-server`,
-`codex-rs/shell-command`, `codex-rs/apply-patch`, `codex-rs/git-utils`,
-`codex-rs/hooks`, `codex-rs/file-search`, `codex-rs/file-system`,
-`codex-rs/file-watcher`, `codex-rs/execpolicy`, and
-`codex-rs/execpolicy-legacy`.
+Scope: `codex-rs/tools`, `codex-rs/exec`, `codex-rs/exec-server`, `codex-rs/shell-command`, `codex-rs/apply-patch`, `codex-rs/git-utils`, `codex-rs/hooks`, `codex-rs/file-search`, `codex-rs/file-system`, `codex-rs/file-watcher`, `codex-rs/execpolicy`, and `codex-rs/execpolicy-legacy`.
 
 ## Module Boundaries
 

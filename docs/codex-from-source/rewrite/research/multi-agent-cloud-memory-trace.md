@@ -1,10 +1,6 @@
 # Research Notes: Multi-Agent, Cloud Tasks, Memories, and Trace
 
-Scope: `codex-rs/agent-graph-store`, `codex-rs/agent-identity`,
-`codex-rs/cloud-tasks`, `codex-rs/cloud-tasks-client`,
-`codex-rs/cloud-tasks-mock-client`, `codex-rs/external-agent-migration`,
-`codex-rs/external-agent-sessions`, `codex-rs/memories`,
-`codex-rs/rollout-trace`, and `codex-rs/thread-manager-sample`.
+Scope: `codex-rs/agent-graph-store`, `codex-rs/agent-identity`, `codex-rs/cloud-tasks`, `codex-rs/cloud-tasks-client`, `codex-rs/cloud-tasks-mock-client`, `codex-rs/external-agent-migration`, `codex-rs/external-agent-sessions`, `codex-rs/memories`, `codex-rs/rollout-trace`, and `codex-rs/thread-manager-sample`.
 
 ## Module Boundaries
 

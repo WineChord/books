@@ -1,19 +1,14 @@
 # 视觉体验规范
 
-这份规范定义 *Codex From Source* 的视觉理解层。它不是主题样式指南，而是把一本
-源码等价的技术书做成可视化、可交互、可享受阅读系统的准出标准。
+这份规范定义 *Codex From Source* 的视觉理解层。它不是主题样式指南，而是把一本 源码等价的技术书做成可视化、可交互、可享受阅读系统的准出标准。
 
-参考目标是 `claude-code-from-source` 的交互密度：章节图不是被动插图，而是模拟器、
-状态机、流水线、计算器、图探索器和决策工具。Codex 的目标不是照抄，而是在源码
-锚点、双语一致性、审美约束和可访问性上超过它。
+参考目标是 `claude-code-from-source` 的交互密度：章节图不是被动插图，而是模拟器、 状态机、流水线、计算器、图探索器和决策工具。Codex 的目标不是照抄，而是在源码 锚点、双语一致性、审美约束和可访问性上超过它。
 
 ## 核心主张
 
 网站不是 Markdown renderer，而是 Agent runtime 的视觉解释系统。
 
-每个重要运行时概念都必须有一个视觉归宿。正文解释架构为什么存在；交互让读者能
-在脑中模拟架构。如果读者必须完全靠记忆保存 lifecycle、routing rule、trust
-boundary、state machine 或 component relationship，页面就是失败的。
+每个重要运行时概念都必须有一个视觉归宿。正文解释架构为什么存在；交互让读者能 在脑中模拟架构。如果读者必须完全靠记忆保存 lifecycle、routing rule、trust boundary、state machine 或 component relationship，页面就是失败的。
 
 ## 与参考站的差距
 
@@ -69,14 +64,9 @@ Icon 规则：
 
 必备可复用 icon 名称：
 
-`user`、`model`、`runtime`、`thread`、`turn`、`event`、`item`、`tool`、
-`shell`、`file`、`patch`、`approval`、`hook`、`sandbox`、`network`、
-`client`、`cloud`、`memory`、`schema`、`release`、`ci`、`error`、
-`source`、`policy`、`mcp`、`skill`、`plugin`、`connector`、`trace`、
-`state`、`config`、`auth`。
+`user`、`model`、`runtime`、`thread`、`turn`、`event`、`item`、`tool`、 `shell`、`file`、`patch`、`approval`、`hook`、`sandbox`、`network`、 `client`、`cloud`、`memory`、`schema`、`release`、`ci`、`error`、 `source`、`policy`、`mcp`、`skill`、`plugin`、`connector`、`trace`、 `state`、`config`、`auth`。
 
-实现可以增加 icon，但不能随意重命名这些核心概念。术语必须与章节正文、source
-atlas 和实现引用保持一致。
+实现可以增加 icon，但不能随意重命名这些核心概念。术语必须与章节正文、source atlas 和实现引用保持一致。
 
 ## 动效语言
 
@@ -143,8 +133,7 @@ atlas 和实现引用保持一致。
 
 ## 结构化 VisualSpec 记录
 
-每个源码阅读章节在实现前都必须有一条 `visualSpec` 记录。它既是规划产物，也是
-review 对象。
+每个源码阅读章节在实现前都必须有一条 `visualSpec` 记录。它既是规划产物，也是 review 对象。
 
 必备形状：
 
@@ -232,20 +221,13 @@ type ChapterVisualSpec = {
 - 中英文页面共享等价记录。
 - 面向 reviewer 的记录镜像和台账必须匹配 canonical records，不能静默漂移。
 
-机器可读 canonical records 位于 `src/visual/visual-specs.mjs`。人类可读镜像位于
-[章节 VisualSpec 记录](visual-spec-records) 和
-`docs/codex-from-source/rewrite/visual-spec-records.md`。实现必须使用稳定的章节
-record identity，并本地化展示文本，而不是复制出两套会漂移的架构契约。
-`npm run check:visual-spec` 是这份数据的最低执行门禁。
+机器可读 canonical records 位于 `src/visual/visual-specs.mjs`。人类可读镜像位于 [章节 VisualSpec 记录](visual-spec-records) 和 `docs/codex-from-source/rewrite/visual-spec-records.md`。实现必须使用稳定的章节 record identity，并本地化展示文本，而不是复制出两套会漂移的架构契约。 `npm run check:visual-spec` 是这份数据的最低执行门禁。
 
-canonical `sourceAnchors`、invariants 和 review questions 是内部源码等价断言，
-不能直接当作读者可见 UI 的本地化文案。章节只有在实现提供英文和中文组件文案，
-并在台账中记录两种语言的截图和 review 证据后，才能离开 `planned` 状态。
+canonical `sourceAnchors`、invariants 和 review questions 是内部源码等价断言， 不能直接当作读者可见 UI 的本地化文案。章节只有在实现提供英文和中文组件文案， 并在台账中记录两种语言的截图和 review 证据后，才能离开 `planned` 状态。
 
 ## 实现架构
 
-rewrite workspace 是内部规划材料，按设计不进入 public routes。“Approved for
-publication” 指未来读者可见的视觉实现，不指这个未发布的 rewrite workspace 本身。
+rewrite workspace 是内部规划材料，按设计不进入 public routes。“Approved for publication” 指未来读者可见的视觉实现，不指这个未发布的 rewrite workspace 本身。
 
 实现契约如下：
 
@@ -263,9 +245,7 @@ publication” 指未来读者可见的视觉实现，不指这个未发布的 r
    Mermaid fallback 不能和交互组件讲不同的 teaching claim。
 6. islands 必须按 route 和 visibility hydrate。单个章节不能加载全书所有视觉组件。
 
-spec-only 变更使用单独门禁：`npm run verify`、`npm run check:visual-spec`、无私有路径
-泄漏、暂存区无 `.vscode`，以及至少三个 reviewer 批准 spec contract。实现变更还需要
-下面的 browser、screenshot、accessibility 和 live deploy 门禁。
+spec-only 变更使用单独门禁：`npm run verify`、`npm run check:visual-spec`、无私有路径 泄漏、暂存区无 `.vscode`，以及至少三个 reviewer 批准 spec contract。实现变更还需要 下面的 browser、screenshot、accessibility 和 live deploy 门禁。
 
 ## 组件目录
 
@@ -286,8 +266,7 @@ spec-only 变更使用单独门禁：`npm run verify`、`npm run check:visual-sp
 | Trace Replay | 展示事件/输出重建 | step through events、show UI/model/source views |
 | Boundary Diagram | 解释 trust、sandbox、network、extension plane | toggle actor、show allowed/blocked edges |
 
-每个组件必须有一个明确的 reader question。例如：“一个 tool call 变成 side effect
-之前必须经过什么？”
+每个组件必须有一个明确的 reader question。例如：“一个 tool call 变成 side effect 之前必须经过什么？”
 
 每个交互解释器都必须暴露四个认知脚手架：
 
@@ -298,8 +277,7 @@ spec-only 变更使用单独门禁：`npm run verify`、`npm run check:visual-sp
 
 ## Codex 章节视觉计划
 
-下表定义第一轮实现目标。组件名是概念名，最终代码名可以不同，但 reader question
-必须被覆盖。
+下表定义第一轮实现目标。组件名是概念名，最终代码名可以不同，但 reader question 必须被覆盖。
 
 | 章节 | 必备主解释器 | Reader Question |
 | --- | --- | --- |
@@ -342,8 +320,7 @@ spec-only 变更使用单独门禁：`npm run verify`、`npm run check:visual-sp
 | P3 Extensions and Governance | 第 15、17-25 章 | 覆盖 SDK、MCP、extensions、compatibility、cloud、memory、build、release、CI |
 | P4 Synthesis | 结语和跨章节 pattern atlas | 让可迁移经验可以被视觉化扫描 |
 
-只有 P0 可以在读者可见组件不存在时标记完成。planned chapter 可以出现在 ledger 中，
-但 “visually complete” 只允许用于 implemented、verified、approved 的行。
+只有 P0 可以在读者可见组件不存在时标记完成。planned chapter 可以出现在 ledger 中， 但 “visually complete” 只允许用于 implemented、verified、approved 的行。
 
 ## 章节视觉密度
 
@@ -412,8 +389,7 @@ spec-only 变更使用单独门禁：`npm run verify`、`npm run check:visual-sp
 - 禁止 card 套 card；
 - 除 book cover 或明确媒体对象外，圆角不超过 8 px。
 
-每个 major component 必须通过“眯眼测试”：一眼能看出 active state、primary path、
-blocked path 和 next action。
+每个 major component 必须通过“眯眼测试”：一眼能看出 active state、primary path、 blocked path 和 next action。
 
 ## 可访问性与输入标准
 
@@ -510,8 +486,7 @@ blocked path 和 next action。
 
 ## Review 角色
 
-每次规范修订和实现 pass 都必须使用高 reasoning effort 的全新 reviewer agents。实现
-pass 至少需要三个 reviewer；大改或争议变更应使用四个或更多。
+每次规范修订和实现 pass 都必须使用高 reasoning effort 的全新 reviewer agents。实现 pass 至少需要三个 reviewer；大改或争议变更应使用四个或更多。
 
 1. **Product Experience Reviewer**
    - 检查视觉方向是否服务目标读者旅程。
@@ -612,8 +587,7 @@ review 开始前，作者必须提供 review packet。
 - 视觉很好看但不符合源码架构；
 - 中心 runtime 概念仍然只依赖正文加 Mermaid。
 
-blocking issue 必须修复后才能批准。blocker 不能被接受为 known risk。要移除
-blocker，要么修复问题，要么降低范围，不再声称已满足失败的要求。
+blocking issue 必须修复后才能批准。blocker 不能被接受为 known risk。要移除 blocker，要么修复问题，要么降低范围，不再声称已满足失败的要求。
 
 ## Non-Blocking Issue Policy
 

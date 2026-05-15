@@ -1,8 +1,6 @@
 # Source Atlas
 
-All links point to public Codex source pinned at
-[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
-The book should stand on its own; this page is for audit.
+All links point to public Codex source pinned at [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). The book should stand on its own; this page is for audit.
 
 ## Context Boundary
 

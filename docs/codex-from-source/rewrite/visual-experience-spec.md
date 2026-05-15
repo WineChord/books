@@ -1,30 +1,18 @@
 # Visual Experience Spec
 
-This spec defines the visual comprehension layer for *Codex From Source*. It is
-not a theme guide. It is the acceptance standard for turning a source-equivalent
-technical book into a system that readers can understand visually, interactively,
-and pleasurably.
+This spec defines the visual comprehension layer for *Codex From Source*. It is not a theme guide. It is the acceptance standard for turning a source-equivalent technical book into a system that readers can understand visually, interactively, and pleasurably.
 
-The benchmark is the interactive density of `claude-code-from-source`: chapter
-diagrams are not passive illustrations; they become simulators, state machines,
-pipelines, calculators, graph explorers, and decision tools. The goal here is to
-match that effect and exceed it for Codex by making every visual component serve
-source-level understanding.
+The benchmark is the interactive density of `claude-code-from-source`: chapter diagrams are not passive illustrations; they become simulators, state machines, pipelines, calculators, graph explorers, and decision tools. The goal here is to match that effect and exceed it for Codex by making every visual component serve source-level understanding.
 
 ## Core Thesis
 
-The site is not a Markdown renderer. It is a visual explanation system for an
-agent runtime.
+The site is not a Markdown renderer. It is a visual explanation system for an agent runtime.
 
-Every important runtime concept must have a visual home. Prose explains why the
-architecture exists; interaction lets the reader test the architecture in their
-head. If a reader has to hold a lifecycle, routing rule, trust boundary, state
-machine, or component relationship entirely in memory, the page has failed.
+Every important runtime concept must have a visual home. Prose explains why the architecture exists; interaction lets the reader test the architecture in their head. If a reader has to hold a lifecycle, routing rule, trust boundary, state machine, or component relationship entirely in memory, the page has failed.
 
 ## Reference Delta
 
-The current Codex site has strong typography, navigation, and static diagrams.
-The reference site goes further in four ways:
+The current Codex site has strong typography, navigation, and static diagrams. The reference site goes further in four ways:
 
 1. Mermaid slots are treated as temporary stand-ins for chapter-specific interactive
    components.
@@ -36,8 +24,7 @@ The reference site goes further in four ways:
 4. Visual density is high but controlled. The reader sees many useful surfaces,
    but each surface has a clear job.
 
-Codex must adopt this model and improve it with stricter aesthetics, bilingual
-parity, stronger source anchors, and better accessibility.
+Codex must adopt this model and improve it with stricter aesthetics, bilingual parity, stronger source anchors, and better accessibility.
 
 ## Non-Negotiable Principles
 
@@ -58,8 +45,7 @@ parity, stronger source anchors, and better accessibility.
 
 ## Visual Vocabulary
 
-The book needs a stable icon and symbol system. Do not invent a new visual style
-per chapter.
+The book needs a stable icon and symbol system. Do not invent a new visual style per chapter.
 
 | Concept Family | Icon Motif | Color Role | Interaction Role |
 | --- | --- | --- | --- |
@@ -86,14 +72,9 @@ Icon rules:
 
 Required reusable icon names:
 
-`user`, `model`, `runtime`, `thread`, `turn`, `event`, `item`, `tool`, `shell`,
-`file`, `patch`, `approval`, `hook`, `sandbox`, `network`, `client`, `cloud`,
-`memory`, `schema`, `release`, `ci`, `error`, `source`, `policy`, `mcp`,
-`skill`, `plugin`, `connector`, `trace`, `state`, `config`, `auth`.
+`user`, `model`, `runtime`, `thread`, `turn`, `event`, `item`, `tool`, `shell`, `file`, `patch`, `approval`, `hook`, `sandbox`, `network`, `client`, `cloud`, `memory`, `schema`, `release`, `ci`, `error`, `source`, `policy`, `mcp`, `skill`, `plugin`, `connector`, `trace`, `state`, `config`, `auth`.
 
-The implementation may add icons, but it may not rename these concepts casually.
-Terminology must match chapter prose, the source atlas, and the implementation
-reference.
+The implementation may add icons, but it may not rename these concepts casually. Terminology must match chapter prose, the source atlas, and the implementation reference.
 
 ## Motion Language
 
@@ -124,8 +105,7 @@ Timing standards:
 
 ## Required Page-Level Surfaces
 
-Every chapter must include these surfaces unless a reviewer explicitly accepts a
-documented exception.
+Every chapter must include these surfaces unless a reviewer explicitly accepts a documented exception.
 
 1. **Chapter Visual Brief**
    - Appears near the opening.
@@ -165,8 +145,7 @@ documented exception.
 
 ## Structured VisualSpec Records
 
-Every source-reading chapter must have a `visualSpec` record before
-implementation begins. The record is both planning artifact and review target.
+Every source-reading chapter must have a `visualSpec` record before implementation begins. The record is both planning artifact and review target.
 
 Required shape:
 
@@ -260,26 +239,13 @@ Coverage gate:
 - reviewer-facing record and ledger mirrors match the canonical records and
   cannot drift silently.
 
-Machine-readable canonical records live in
-`src/visual/visual-specs.mjs`. Human-readable mirrors live in
-[Chapter VisualSpec Records](visual-spec-records) and
-`docs/zh/codex-from-source/rewrite/visual-spec-records.md`. Implementation must
-consume one stable record identity per chapter and localize display text rather
-than forking the architecture contract. `npm run check:visual-spec` is the
-minimum enforcement gate for this data.
+Machine-readable canonical records live in `src/visual/visual-specs.mjs`. Human-readable mirrors live in [Chapter VisualSpec Records](visual-spec-records) and `docs/zh/codex-from-source/rewrite/visual-spec-records.md`. Implementation must consume one stable record identity per chapter and localize display text rather than forking the architecture contract. `npm run check:visual-spec` is the minimum enforcement gate for this data.
 
-Canonical `sourceAnchors`, invariants, and review questions are internal
-source-equivalence assertions. They are not a localization shortcut for the
-reader-facing UI. A chapter can leave `planned` status only when the
-implementation supplies localized English and Chinese component copy and the
-ledger records screenshot/review evidence for both languages.
+Canonical `sourceAnchors`, invariants, and review questions are internal source-equivalence assertions. They are not a localization shortcut for the reader-facing UI. A chapter can leave `planned` status only when the implementation supplies localized English and Chinese component copy and the ledger records screenshot/review evidence for both languages.
 
 ## Implementation Architecture
 
-The rewrite workspace is internal planning material. It is intentionally
-excluded from public routes. "Approved for publication" applies to the future
-reader-facing visual implementation, not to the unpublished rewrite workspace
-itself.
+The rewrite workspace is internal planning material. It is intentionally excluded from public routes. "Approved for publication" applies to the future reader-facing visual implementation, not to the unpublished rewrite workspace itself.
 
 The implementation contract is:
 
@@ -302,15 +268,11 @@ The implementation contract is:
 6. Islands must hydrate by route and visibility. A chapter must not load every
    visual component for the whole book.
 
-Spec-only changes have a separate gate: `npm run verify`,
-`npm run check:visual-spec`, no private-path leaks, no staged `.vscode`, and at
-least three reviewer approvals for the spec contract. Implementation changes
-also need the browser, screenshot, accessibility, and live-deploy gates below.
+Spec-only changes have a separate gate: `npm run verify`, `npm run check:visual-spec`, no private-path leaks, no staged `.vscode`, and at least three reviewer approvals for the spec contract. Implementation changes also need the browser, screenshot, accessibility, and live-deploy gates below.
 
 ## Component Catalogue
 
-The implementation should build reusable primitives before chapter-specific
-components:
+The implementation should build reusable primitives before chapter-specific components:
 
 | Component Type | Purpose | Minimum Interaction |
 | --- | --- | --- |
@@ -327,8 +289,7 @@ components:
 | Trace Replay | Show event/output reconstruction | step through events, show UI/model/source views |
 | Boundary Diagram | Explain trust, sandbox, network, or extension planes | toggle actor, show allowed and blocked edges |
 
-Every component must have a written "reader question" in code or adjacent
-metadata. Example: "What must happen before a tool call becomes an effect?"
+Every component must have a written "reader question" in code or adjacent metadata. Example: "What must happen before a tool call becomes an effect?"
 
 Every interactive explainer must expose these four cognitive scaffolds:
 
@@ -339,8 +300,7 @@ Every interactive explainer must expose these four cognitive scaffolds:
 
 ## Codex Chapter Visual Plan
 
-The table below defines the first implementation target. Names are conceptual;
-final component names may differ, but the reader question must remain covered.
+The table below defines the first implementation target. Names are conceptual; final component names may differ, but the reader question must remain covered.
 
 | Chapter | Required Primary Explainer | Reader Question |
 | --- | --- | --- |
@@ -373,8 +333,7 @@ final component names may differ, but the reader question must remain covered.
 
 ## Delivery Phases
 
-The full visual layer is deliberately large. Scope must be delivered in phases
-so the site improves without claiming completion too early.
+The full visual layer is deliberately large. Scope must be delivered in phases so the site improves without claiming completion too early.
 
 | Phase | Scope | Exit Standard |
 | --- | --- | --- |
@@ -384,9 +343,7 @@ so the site improves without claiming completion too early.
 | P3 Extensions and Governance | Chapters 15, 17-25 | Covers SDKs, MCP, extensions, compatibility, cloud, memory, build, release, CI |
 | P4 Synthesis | Epilogue and cross-chapter pattern atlas | Makes reusable lessons visually scannable |
 
-Only P0 can be marked complete before reader-facing components exist. A planned
-chapter may be present in the ledger, but "visually complete" is reserved for
-implemented, verified, and approved rows.
+Only P0 can be marked complete before reader-facing components exist. A planned chapter may be present in the ledger, but "visually complete" is reserved for implemented, verified, and approved rows.
 
 ## Chapter Visual Density
 
@@ -413,8 +370,7 @@ Maximum:
 
 ## Aesthetic Standard
 
-The visual system should feel like a high-end engineering monograph, not a SaaS
-dashboard and not a tutorial playground.
+The visual system should feel like a high-end engineering monograph, not a SaaS dashboard and not a tutorial playground.
 
 Concrete tokens:
 
@@ -430,8 +386,7 @@ Concrete tokens:
 | `border` | `#c2c0b6` | structural rules and card borders |
 | `highlight` | `#eda100` | caution, pending review, focused comparison |
 
-Additional semantic colors may be added only with a named role and contrast
-evidence. Do not add untracked one-off hues.
+Additional semantic colors may be added only with a named role and contrast evidence. Do not add untracked one-off hues.
 
 Observable craft rules:
 
@@ -462,8 +417,7 @@ Required qualities:
 - no cards inside cards;
 - rounded corners at 8 px or less except book covers or intentional media.
 
-Each major component must pass a "squint test": at a glance the reader should
-see the active state, primary path, blocked path, and next action.
+Each major component must pass a "squint test": at a glance the reader should see the active state, primary path, blocked path, and next action.
 
 ## Accessibility and Input Standards
 
@@ -483,8 +437,7 @@ Every interactive component must support:
 - non-color encodings for every state;
 - screen-reader summaries for visual explainers.
 
-If the component cannot be made accessible, it must degrade to a clear static
-diagram and table without losing the chapter's core meaning.
+If the component cannot be made accessible, it must degrade to a clear static diagram and table without losing the chapter's core meaning.
 
 ## Performance Standards
 
@@ -511,8 +464,7 @@ The visual layer must keep reading responsive under explicit budgets.
 
 ## Source Integrity Standards
 
-Visual explainers must teach patterns and architecture without leaking exact
-source implementations.
+Visual explainers must teach patterns and architecture without leaking exact source implementations.
 
 - No verbatim source code in component fixtures.
 - Public file names, public type names, and public function names may be used
@@ -572,9 +524,7 @@ A chapter's visual layer is complete only when all conditions are true:
 
 ## Review Roles
 
-Every spec revision and implementation pass must use fresh reviewer agents with
-high reasoning effort. Implementation passes require at least three reviewers;
-large or contentious changes should use four or more.
+Every spec revision and implementation pass must use fresh reviewer agents with high reasoning effort. Implementation passes require at least three reviewers; large or contentious changes should use four or more.
 
 1. **Product Experience Reviewer**
    - Checks whether the visual direction serves the intended reader journey.
@@ -684,9 +634,7 @@ An issue is blocking if any of the following are true:
 - a visual is attractive but source-inaccurate;
 - a central runtime concept still depends only on prose plus Mermaid.
 
-Blocking issues must be fixed before approval. A blocker cannot be accepted as
-"known risk." To remove a blocker, either fix the issue or reduce scope so the
-failing requirement is no longer claimed.
+Blocking issues must be fixed before approval. A blocker cannot be accepted as "known risk." To remove a blocker, either fix the issue or reduce scope so the failing requirement is no longer claimed.
 
 ## Non-Blocking Issue Policy
 
@@ -698,9 +646,7 @@ An issue is non-blocking only when all conditions are true:
 - no rubric category falls below the approval threshold;
 - the reviewer records a concrete follow-up, owner, and target phase.
 
-Examples: copy polish, minor spacing refinement, optional illustration
-improvements, or future component consolidation that does not affect approved
-behavior.
+Examples: copy polish, minor spacing refinement, optional illustration improvements, or future component consolidation that does not affect approved behavior.
 
 ## Repeated Review Protocol
 
@@ -716,8 +662,7 @@ behavior.
 8. Repeat until all mandatory reviewers report no blocking issues, no meaningful
    non-blocking issues, and approval for publication.
 
-If the same blocker survives two review cycles, reduce scope or rewrite the
-requirement before another cycle begins.
+If the same blocker survives two review cycles, reduce scope or rewrite the requirement before another cycle begins.
 
 Stopping early because the page is "good enough" violates this spec.
 

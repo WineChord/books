@@ -4,28 +4,13 @@ import HistoryLedgerAnimator from "../../src/components/visual/HistoryLedgerAnim
 
 <HistoryLedgerAnimator lang="en" client:visible />
 
-Chapter 2 described the turn envelope. The next problem is the durable side:
-what happens to all the model-visible items accumulated over a thread? Codex
-does not keep history as an opaque transcript. It uses `ContextManager` as a
-ledger of response items ordered oldest to newest, with token information,
-history versioning, and a reference context baseline for future settings diffs.
+Chapter 2 described the turn envelope. The next problem is the durable side: what happens to all the model-visible items accumulated over a thread? Codex does not keep history as an opaque transcript. It uses `ContextManager` as a ledger of response items ordered oldest to newest, with token information, history versioning, and a reference context baseline for future settings diffs.
 
-The job of the history ledger is deceptively hard. It must record only the items
-that belong in API history, apply truncation policy to large outputs, preserve
-function-call invariants, strip unsupported modalities before sampling, estimate
-token usage, and survive replacement during compaction or rollback.
+The job of the history ledger is deceptively hard. It must record only the items that belong in API history, apply truncation policy to large outputs, preserve function-call invariants, strip unsupported modalities before sampling, estimate token usage, and survive replacement during compaction or rollback.
 
-By the end of this chapter, you should understand the ledger as the bridge
-between durable thread evidence and prompt-ready model input.
+By the end of this chapter, you should understand the ledger as the bridge between durable thread evidence and prompt-ready model input.
 
-<div class="source-equivalence">
-This chapter is grounded in
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32">ContextManager fields</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L98">record_items</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L115">for_prompt</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L160">paired removal</a>, and
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L221">rollback-aware turn dropping</a>.
-</div>
+<div class="source-equivalence"> This chapter is grounded in <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32">ContextManager fields</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L98">record_items</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L115">for_prompt</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L160">paired removal</a>, and <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L221">rollback-aware turn dropping</a>. </div>
 
 ## Ledger Shape
 
@@ -38,10 +23,7 @@ The core shape is small:
 | `token_info` | Latest token usage facts or estimates. |
 | `reference_context_item` | Baseline turn context used when injecting settings diffs. |
 
-The surprising field is the reference context item. It means history is not only
-past conversation; it is also the baseline for deciding which runtime facts must
-be reintroduced on the next turn. When compaction or rollback invalidates that
-baseline, Codex clears it and falls back to full reinjection.
+The surprising field is the reference context item. It means history is not only past conversation; it is also the baseline for deciding which runtime facts must be reintroduced on the next turn. When compaction or rollback invalidates that baseline, Codex clears it and falls back to full reinjection.
 
 A compact ASCII layout makes the four-field shape easier to remember:
 
@@ -61,9 +43,7 @@ A compact ASCII layout makes the four-field shape easier to remember:
 +----------------------------------------------------+
 ```
 
-Three of the four fields look ordinary. The reference baseline is the one that
-quietly turns the ledger into more than a vector. It is the link between
-Chapter 2's envelope and the diff fragments of Chapter 4.
+Three of the four fields look ordinary. The reference baseline is the one that quietly turns the ledger into more than a vector. It is the link between Chapter 2's envelope and the diff fragments of Chapter 4.
 
 ```mermaid
 stateDiagram-v2
@@ -75,21 +55,13 @@ stateDiagram-v2
   PromptReady --> Recording: model and tool output recorded
 ```
 
-The state machine is conceptual. The code mostly uses cloning and mutation, but
-the lifecycle is real: record raw-enough items, normalize for the target model,
-then record new evidence.
+The state machine is conceptual. The code mostly uses cloning and mutation, but the lifecycle is real: record raw-enough items, normalize for the target model, then record new evidence.
 
 ## Recording Is Filtered
 
-`record_items` accepts ordered items and records only API-message items. That
-filter is essential. The rollout can contain events, UI facts, token counts, and
-context checkpoints. Not all of those belong in the next model request. The
-ledger stores the subset that should participate in prompt history.
+`record_items` accepts ordered items and records only API-message items. That filter is essential. The rollout can contain events, UI facts, token counts, and context checkpoints. Not all of those belong in the next model request. The ledger stores the subset that should participate in prompt history.
 
-Before pushing an item, the manager processes it under the active truncation
-policy. Tool outputs are the classic danger: they can be huge, binary-ish, or
-image-bearing. Codex lets truncation helpers turn them into bounded history
-instead of allowing one command to consume the whole context window.
+Before pushing an item, the manager processes it under the active truncation policy. Tool outputs are the classic danger: they can be huge, binary-ish, or image-bearing. Codex lets truncation helpers turn them into bounded history instead of allowing one command to consume the whole context window.
 
 The pattern looks like this:
 
@@ -102,12 +74,9 @@ for item in incomingItems:
     ledger.append(bounded)
 ```
 
-This is the right abstraction because it records policy-shaped evidence, not raw
-side effects. The raw side effect may still exist in the rollout or UI, but the
-model-visible ledger stays bounded.
+This is the right abstraction because it records policy-shaped evidence, not raw side effects. The raw side effect may still exist in the rollout or UI, but the model-visible ledger stays bounded.
 
-The truncation policy itself is a small state machine driven by the active
-output limits. Picture it as a funnel:
+The truncation policy itself is a small state machine driven by the active output limits. Picture it as a funnel:
 
 ```text
                 raw tool output
@@ -130,23 +99,13 @@ output limits. Picture it as a funnel:
         +---------------------------+
 ```
 
-This funnel is the reason chapters later in the book can talk about "tool
-output as a budgeted plane." Tool output enters history through one funnel,
-not through ad-hoc truncation in every call site.
+This funnel is the reason chapters later in the book can talk about "tool output as a budgeted plane." Tool output enters history through one funnel, not through ad-hoc truncation in every call site.
 
 ## Normalization Protects Invariants
 
-Function calls and function outputs are paired. Removing one without the other
-can create a prompt shape the model API rejects or misinterprets. The history
-manager delegates paired removal to normalization helpers when dropping oldest or
-newest items. That is why `remove_first_item` removes a corresponding counterpart
-when needed.
+Function calls and function outputs are paired. Removing one without the other can create a prompt shape the model API rejects or misinterprets. The history manager delegates paired removal to normalization helpers when dropping oldest or newest items. That is why `remove_first_item` removes a corresponding counterpart when needed.
 
-The same idea appears before sampling. `for_prompt` clones the manager, applies
-normalization, and strips items unsuitable for the active model modalities. If a
-model does not accept images, image content is removed from messages and tool
-outputs. The original ledger remains able to hold richer history, while the
-prompt projection respects the model contract.
+The same idea appears before sampling. `for_prompt` clones the manager, applies normalization, and strips items unsuitable for the active model modalities. If a model does not accept images, image content is removed from messages and tool outputs. The original ledger remains able to hold richer history, while the prompt projection respects the model contract.
 
 ```mermaid
 flowchart TD
@@ -166,22 +125,13 @@ flowchart TD
   class F,H safe;
 ```
 
-The trade-off is visible: Codex chooses safe prompt shape over maximal fidelity
-for every provider. If an item cannot be represented safely for the model, the
-projection changes rather than corrupting the ledger.
+The trade-off is visible: Codex chooses safe prompt shape over maximal fidelity for every provider. If an item cannot be represented safely for the model, the projection changes rather than corrupting the ledger.
 
 ## Token Estimates Are Coarse by Design
 
-The manager estimates tokens from base instructions and item estimates using
-byte-based heuristics. The source explicitly treats this as a coarse lower
-bound, not tokenizer-perfect accounting. That is a pragmatic choice. Exact
-tokenization across providers and modalities would be expensive and brittle.
-Codex needs a signal good enough for compaction thresholds, UI feedback, and
-budgeting.
+The manager estimates tokens from base instructions and item estimates using byte-based heuristics. The source explicitly treats this as a coarse lower bound, not tokenizer-perfect accounting. That is a pragmatic choice. Exact tokenization across providers and modalities would be expensive and brittle. Codex needs a signal good enough for compaction thresholds, UI feedback, and budgeting.
 
-The estimate is best understood as a *floor*: it never promises that the real
-cost is lower, only that it is not higher than its ceiling-shaped neighbours.
-That property is what allows downstream code to make conservative decisions:
+The estimate is best understood as a *floor*: it never promises that the real cost is lower, only that it is not higher than its ceiling-shaped neighbours. That property is what allows downstream code to make conservative decisions:
 
 | Consumer | Decision driven by the estimate | Risk if the estimate is too low |
 | --- | --- | --- |
@@ -190,21 +140,13 @@ That property is what allows downstream code to make conservative decisions:
 | Memory write | Truncate rollout payload before writing. | Memory generation receives larger payload than usual. |
 | UI display | Show remaining context bar. | UI underreports; user sees a more comfortable margin than reality. |
 
-The exact token count arrives when the model response reports usage. Until then,
-the estimate prevents the runtime from flying blind.
+The exact token count arrives when the model response reports usage. Until then, the estimate prevents the runtime from flying blind.
 
 ## Rollback and the Reference Baseline
 
-Rollback is where the ledger proves it is more than a vector. Dropping the last
-N user turns must preserve pre-user material, handle no-op cases, respect
-assistant inter-agent boundaries, and clear the reference context baseline when
-the surviving history no longer contains the initial context bundle that
-established it.
+Rollback is where the ledger proves it is more than a vector. Dropping the last N user turns must preserve pre-user material, handle no-op cases, respect assistant inter-agent boundaries, and clear the reference context baseline when the surviving history no longer contains the initial context bundle that established it.
 
-That last behavior is subtle. If Codex kept diffing against a baseline whose
-source text was removed, future turns could omit important context. Clearing the
-baseline makes the next regular turn reinject full context instead of trusting a
-stale diff.
+That last behavior is subtle. If Codex kept diffing against a baseline whose source text was removed, future turns could omit important context. Clearing the baseline makes the next regular turn reinject full context instead of trusting a stale diff.
 
 A small worked example clarifies the choice:
 
@@ -224,9 +166,7 @@ After rollback that also removed initial_ctx:
   baseline cleared -> next turn fully reinjects context
 ```
 
-The first case is the happy path. The third case is the one that prevents
-silent context drift. The decision rule is conservative on purpose: when in
-doubt, reinject.
+The first case is the happy path. The third case is the one that prevents silent context drift. The decision rule is conservative on purpose: when in doubt, reinject.
 
 ## Apply This
 

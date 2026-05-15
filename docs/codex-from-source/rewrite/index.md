@@ -1,9 +1,6 @@
 # Rewrite Workspace
 
-This workspace records the execution of the full rewrite brief preserved in
-[Book Rewrite Prompt](../book-rewrite-prompt). It is not the final book. It is
-the research and planning layer that must exist before the chapters are written
-from scratch.
+This workspace records the execution of the full rewrite brief preserved in [Book Rewrite Prompt](../book-rewrite-prompt). It is not the final book. It is the research and planning layer that must exist before the chapters are written from scratch.
 
 Source snapshot: `569ff6a1c400bd514ff79f5f1050a684dc3afde3`.
 
@@ -22,8 +19,7 @@ Source snapshot: `569ff6a1c400bd514ff79f5f1050a684dc3afde3`.
 
 ## Phase 1 Research Notes
 
-Each file below is a raw subsystem analysis document. These are not chapters
-and should not be polished into the final book directly.
+Each file below is a raw subsystem analysis document. These are not chapters and should not be polished into the final book directly.
 
 - [Entrypoints, config, and auth](research/entrypoints-config-auth)
 - [Core runtime and state](research/core-runtime-state)
@@ -38,15 +34,8 @@ and should not be polished into the final book directly.
 
 ## Current Status
 
-The outline was approved, the chapters were written, and the publication pass
-now lives in the main book pages. Future work should update the final chapters,
-source atlas, and implementation reference first.
+The outline was approved, the chapters were written, and the publication pass now lives in the main book pages. Future work should update the final chapters, source atlas, and implementation reference first.
 
-The next major improvement is the visual comprehension layer. The governing
-standard is [Visual Experience Spec](visual-experience-spec): every central
-runtime concept should become a beautiful, interactive, accessible explanation,
-not merely prose plus Mermaid.
+The next major improvement is the visual comprehension layer. The governing standard is [Visual Experience Spec](visual-experience-spec): every central runtime concept should become a beautiful, interactive, accessible explanation, not merely prose plus Mermaid.
 
-The canonical machine-readable contract lives in `src/visual/visual-specs.mjs`;
-the reviewer-facing index is [Chapter VisualSpec Records](visual-spec-records).
-Implementation status must be tracked in the [Visual Implementation Ledger](visual-implementation-ledger).
+The canonical machine-readable contract lives in `src/visual/visual-specs.mjs`; the reviewer-facing index is [Chapter VisualSpec Records](visual-spec-records). Implementation status must be tracked in the [Visual Implementation Ledger](visual-implementation-ledger).

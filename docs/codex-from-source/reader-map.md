@@ -1,8 +1,6 @@
 # Reader Map
 
-This book is written for source-equivalent understanding. You can still open
-the pinned source links, but the main reading path should teach the system
-without requiring a source checkout beside the book.
+This book is written for source-equivalent understanding. You can still open the pinned source links, but the main reading path should teach the system without requiring a source checkout beside the book.
 
 ## Two Reading Tracks
 
@@ -26,9 +24,7 @@ Use this path when you need a fast mental model:
 6. Read [Chapter 14](chapter-14.html) for app-server as the multi-client boundary.
 7. Finish with the [Epilogue](epilogue.html) for the transferable design lessons.
 
-You should be able to explain how one user request becomes a protocol
-operation, a scheduled turn, a model stream, one or more supervised tool calls,
-approval or sandbox decisions, durable events, and client-visible output.
+You should be able to explain how one user request becomes a protocol operation, a scheduled turn, a model stream, one or more supervised tool calls, approval or sandbox decisions, durable events, and client-visible output.
 
 ## Two-Hour Path
 
@@ -45,8 +41,7 @@ Use this path when you want source-reader knowledge without opening source:
 5. Use [Pattern Index](patterns.html), [Source Atlas](source-atlas.html), and
    [Implementation Reference](implementation-reference.html) as reference tables.
 
-This path should teach stable implementation facts and design rationale, not
-just file names.
+This path should teach stable implementation facts and design rationale, not just file names.
 
 ## Source-Audit Path
 
@@ -68,5 +63,4 @@ When a chapter describes a subsystem, answer four questions:
 | Who owns the next decision? | Separates entry, protocol, runtime, tools, clients, and governance. |
 | What can fail here? | Makes denial, retry, cancellation, and error reporting visible. |
 
-If you can answer these questions for the main subsystems, you understand the
-system at the level this book promises.
+If you can answer these questions for the main subsystems, you understand the system at the level this book promises.

@@ -1,8 +1,6 @@
 # Audience and Positioning
 
-This page executes Phase 2 of the rewrite brief. It defines the audience, core
-thesis, value of the book, and editorial stance before the outline becomes a
-chapter plan.
+This page executes Phase 2 of the rewrite brief. It defines the audience, core thesis, value of the book, and editorial stance before the outline becomes a chapter plan.
 
 ## Primary Audience
 
@@ -10,9 +8,7 @@ The book serves two readers at the same time.
 
 ### Technical Leaders
 
-These readers want architectural judgment more than line-by-line mechanics.
-They already understand distributed systems, typed APIs, product surfaces, and
-operational risk. They want to know why Codex is shaped this way:
+These readers want architectural judgment more than line-by-line mechanics. They already understand distributed systems, typed APIs, product surfaces, and operational risk. They want to know why Codex is shaped this way:
 
 - why the system centers on threads, turns, items, tools, and events;
 - why app-server exists beside the terminal UI and `exec`;
@@ -22,14 +18,11 @@ operational risk. They want to know why Codex is shaped this way:
   in-process contributors layered separately;
 - where compatibility obligations constrain cleaner designs.
 
-They can skip deep dives, pseudocode blocks, and source-adjacent sidebars while
-still understanding the system's architectural bet.
+They can skip deep dives, pseudocode blocks, and source-adjacent sidebars while still understanding the system's architectural bet.
 
 ### Senior Engineers
 
-These readers want implementation-level understanding without reading every
-source file first. They already know enough Rust, async systems, JSON-RPC,
-terminal UI, and model-tool loops to appreciate details. They want:
+These readers want implementation-level understanding without reading every source file first. They already know enough Rust, async systems, JSON-RPC, terminal UI, and model-tool loops to appreciate details. They want:
 
 - the control path from command startup to thread creation and turn execution;
 - the model path from provider registry to Responses streaming;
@@ -40,8 +33,7 @@ terminal UI, and model-tool loops to appreciate details. They want:
 - the extension path from plugin manifests and skill metadata to runtime
   context and MCP tool calls.
 
-They should read every chapter, including deep dives, Apply This sections, and
-source-audit appendices.
+They should read every chapter, including deep dives, Apply This sections, and source-audit appendices.
 
 ## Core Thesis
 
@@ -72,10 +64,7 @@ Everything else serves that bet:
 
 Reading the source gives facts. The book must give a system.
 
-The source is split by crate ownership: core runtime, protocol, model clients,
-tool execution, app-server, TUI, sandboxing, plugins, SDKs, cloud tasks, and
-release infrastructure all tell local truths. The important knowledge is often
-cross-cutting:
+The source is split by crate ownership: core runtime, protocol, model clients, tool execution, app-server, TUI, sandboxing, plugins, SDKs, cloud tasks, and release infrastructure all tell local truths. The important knowledge is often cross-cutting:
 
 - an approval notification begins in tool execution, passes through core
   runtime, becomes app-server JSON-RPC, renders as TUI modal state, and may be
@@ -99,8 +88,7 @@ The book earns its place by adding:
 
 ## Editorial Contract
 
-The rewrite must not become reference documentation. Each chapter must answer a
-problem:
+The rewrite must not become reference documentation. Each chapter must answer a problem:
 
 - What pressure forced this layer to exist?
 - What boundary did the implementation choose?
@@ -108,6 +96,4 @@ problem:
 - What pattern is reusable outside Codex?
 - What compatibility or safety cost came with the choice?
 
-The book should not reproduce source. Code blocks in the final draft must be
-pseudocode and must use generic names. Source identifiers may appear as
-architectural anchors, but implementation bodies must not be copied.
+The book should not reproduce source. Code blocks in the final draft must be pseudocode and must use generic names. Source identifiers may appear as architectural anchors, but implementation bodies must not be copied.

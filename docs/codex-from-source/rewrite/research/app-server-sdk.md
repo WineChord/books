@@ -1,9 +1,6 @@
 # Research Notes: App-Server and SDKs
 
-Scope: `codex-rs/app-server`, `codex-rs/app-server-client`,
-`codex-rs/app-server-daemon`, `codex-rs/app-server-protocol`,
-`codex-rs/app-server-test-client`, `codex-rs/app-server-transport`,
-`sdk/python`, `sdk/python-runtime`, and `sdk/typescript`.
+Scope: `codex-rs/app-server`, `codex-rs/app-server-client`, `codex-rs/app-server-daemon`, `codex-rs/app-server-protocol`, `codex-rs/app-server-test-client`, `codex-rs/app-server-transport`, `sdk/python`, `sdk/python-runtime`, and `sdk/typescript`.
 
 ## Module Boundaries
 

@@ -4,32 +4,13 @@ import ContextLifecycleExplorer from "../../src/components/visual/ContextLifecyc
 
 <ContextLifecycleExplorer lang="en" client:visible />
 
-The larger Codex architecture book treats the session runtime as the place where
-events, tools, policy, streaming, and durable state meet. This book starts one
-layer deeper: before a model can decide anything, Codex must decide what counts
-as context. Without that boundary, every later feature becomes a prompt
-concatenation trick. Tools leak observations forever. Policy changes get buried
-in old text. Compaction becomes lossy amnesia. Resume becomes guesswork.
+The larger Codex architecture book treats the session runtime as the place where events, tools, policy, streaming, and durable state meet. This book starts one layer deeper: before a model can decide anything, Codex must decide what counts as context. Without that boundary, every later feature becomes a prompt concatenation trick. Tools leak observations forever. Policy changes get buried in old text. Compaction becomes lossy amnesia. Resume becomes guesswork.
 
-Codex avoids that failure mode by making context a runtime-managed artifact. A
-turn does not send "the conversation" to the model. It sends a prompt projection
-of a thread ledger under a turn-specific envelope. The projection may include
-history, initial context, settings diffs, skill guidance, plugin guidance, hook
-context, memory summaries, tool outputs, images, and compaction summaries. Each
-piece has ownership and timing.
+Codex avoids that failure mode by making context a runtime-managed artifact. A turn does not send "the conversation" to the model. It sends a prompt projection of a thread ledger under a turn-specific envelope. The projection may include history, initial context, settings diffs, skill guidance, plugin guidance, hook context, memory summaries, tool outputs, images, and compaction summaries. Each piece has ownership and timing.
 
-By the end of this chapter, you should see the system's core move: context is
-treated like a mutable database view with audit logs, not like a text area.
+By the end of this chapter, you should see the system's core move: context is treated like a mutable database view with audit logs, not like a text area.
 
-<div class="source-equivalence">
-This chapter is grounded in the history manager, turn context, context fragments,
-compaction entry points, and rollout reconstruction code:
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32">ContextManager</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L53">TurnContext</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context/fragment.rs#L31">ContextualUserFragment</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L50">InitialContextInjection</a>, and
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">rollout reconstruction</a>.
-</div>
+<div class="source-equivalence"> This chapter is grounded in the history manager, turn context, context fragments, compaction entry points, and rollout reconstruction code: <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32">ContextManager</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L53">TurnContext</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context/fragment.rs#L31">ContextualUserFragment</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/compact.rs#L50">InitialContextInjection</a>, and <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">rollout reconstruction</a>. </div>
 
 ## The Boundary Codex Needs
 
@@ -43,11 +24,7 @@ An agent context system has to answer five questions every turn:
 | What is optional? | Skills, plugins, memory, tool outputs, images, and other material with budgets or filtering. |
 | What is replaceable? | Compacted history installed as a checkpoint with explicit replacement history. |
 
-That split matters because context changes at different speeds. The user prompt
-changes every turn. Environment metadata changes occasionally. Permission policy
-may change mid-thread. Skills may be explicitly mentioned for one turn. Tool
-outputs may be too large. Compaction may rewrite the old transcript entirely.
-One buffer cannot represent those lifetimes cleanly.
+That split matters because context changes at different speeds. The user prompt changes every turn. Environment metadata changes occasionally. Permission policy may change mid-thread. Skills may be explicitly mentioned for one turn. Tool outputs may be too large. Compaction may rewrite the old transcript entirely. One buffer cannot represent those lifetimes cleanly.
 
 ```mermaid
 flowchart TD
@@ -82,15 +59,11 @@ flowchart TD
   class G projection;
 ```
 
-The important arrow is not the one into the model. It is the loop back into the
-rollout and history ledger. Codex keeps enough evidence to later rebuild why a
-prompt looked the way it did.
+The important arrow is not the one into the model. It is the loop back into the rollout and history ledger. Codex keeps enough evidence to later rebuild why a prompt looked the way it did.
 
 ## Naive Prompt vs Runtime-Managed Context
 
-The simplest agent design treats the prompt as a mutable string. Each turn,
-the previous transcript is concatenated with the new user message and sent to
-the model. That design has predictable failure modes:
+The simplest agent design treats the prompt as a mutable string. Each turn, the previous transcript is concatenated with the new user message and sent to the model. That design has predictable failure modes:
 
 | Failure mode | Why it happens with naive prompts | What Codex does instead |
 | --- | --- | --- |
@@ -100,20 +73,13 @@ the model. That design has predictable failure modes:
 | Compaction amnesia | A summary loses paired call/output protocol shape. | Compaction installs replacement history that preserves protocol pairing. |
 | Resume guesswork | Reloading a JSON dump of messages misses why the prompt was shaped that way. | Rollout reconstruction replays evidence to rebuild ledger and baseline together. |
 
-Each row corresponds to a Codex subsystem covered later. The point of the
-table is not the rows themselves but the underlying move: every failure mode
-of a naive prompt becomes a runtime concern with a named owner.
+Each row corresponds to a Codex subsystem covered later. The point of the table is not the rows themselves but the underlying move: every failure mode of a naive prompt becomes a runtime concern with a named owner.
 
 ## The Prompt Is a Projection
 
-The prompt projection is assembled from state that is deliberately not all in
-the same object. `ContextManager` owns model-visible history. `TurnContext` owns
-the active turn envelope. The context module owns typed fragments. Compaction
-owns replacement history. Rollout reconstruction owns the logic for rebuilding
-the effective ledger after resume or fork.
+The prompt projection is assembled from state that is deliberately not all in the same object. `ContextManager` owns model-visible history. `TurnContext` owns the active turn envelope. The context module owns typed fragments. Compaction owns replacement history. Rollout reconstruction owns the logic for rebuilding the effective ledger after resume or fork.
 
-This separation is more expensive than appending strings. It buys three
-properties Codex needs:
+This separation is more expensive than appending strings. It buys three properties Codex needs:
 
 - **Reinterpretability.** History can be normalized differently for a model that
   does not accept images or for a provider with a different truncation policy.
@@ -134,14 +100,11 @@ promptInput = ledger.clone().normalizeFor(modelCapabilities)
 sendToModel(baseInstructions, promptInput, toolSpecs)
 ```
 
-The pattern matters because it makes prompt construction a repeatable runtime
-operation. If context is a projection, Codex can change how it projects without
-corrupting the underlying ledger.
+The pattern matters because it makes prompt construction a repeatable runtime operation. If context is a projection, Codex can change how it projects without corrupting the underlying ledger.
 
 ## A Map of the Owners
 
-The five owners can be drawn as a layered stack. Each owner is responsible for
-one concern; the projection step at the top reads from all of them.
+The five owners can be drawn as a layered stack. Each owner is responsible for one concern; the projection step at the top reads from all of them.
 
 ```text
                     +---------------------------------------+
@@ -164,9 +127,7 @@ one concern; the projection step at the top reads from all of them.
                               +------------------+
 ```
 
-Read the diagram top-down for prompt construction and bottom-up for replay.
-Both directions touch the same five owners; the difference is whether the
-ledger is being read or rebuilt.
+Read the diagram top-down for prompt construction and bottom-up for replay. Both directions touch the same five owners; the difference is whether the ledger is being read or rebuilt.
 
 ## Context Has Multiple Lifetimes
 
@@ -180,12 +141,9 @@ Codex context is easier to reason about if you classify every piece by lifetime.
 | Checkpoint lifetime | compaction summary and replacement history. | A long thread forgets the wrong details. |
 | Client lifetime | token usage, TUI display state, app-server replay. | UI reports a context state the runtime did not own. |
 
-The road not taken is a single "conversation messages" list. That is tempting
-because every model API eventually needs a list. Codex keeps the list as an
-output format, not as the core abstraction.
+The road not taken is a single "conversation messages" list. That is tempting because every model API eventually needs a list. Codex keeps the list as an output format, not as the core abstraction.
 
-The lifetimes can be plotted on a time axis showing when each value is
-materialized, mutated, and discarded:
+The lifetimes can be plotted on a time axis showing when each value is materialized, mutated, and discarded:
 
 ```text
 session  |==============================================|  thread close
@@ -196,10 +154,7 @@ client            |--reads--|        |--reads--|         observers
                   start          turn N          end
 ```
 
-The horizontal bars are not equal. A single session usually contains many
-turns; each turn produces a single prompt projection; checkpoints span ranges
-of turns; clients reattach over time. Reading code in this layout makes it
-clear why a single mutable buffer cannot represent every owner.
+The horizontal bars are not equal. A single session usually contains many turns; each turn produces a single prompt projection; checkpoints span ranges of turns; clients reattach over time. Reading code in this layout makes it clear why a single mutable buffer cannot represent every owner.
 
 ## Source-Level Map
 
@@ -215,9 +170,7 @@ The source tree confirms the boundary:
 - `session/rollout_reconstruction.rs` reconstructs effective history from
   durable rollout facts.
 
-This is why the system is worth a book. The knowledge is scattered across
-modules because the responsibilities are real; the narrative has to put them
-back together.
+This is why the system is worth a book. The knowledge is scattered across modules because the responsibilities are real; the narrative has to put them back together.
 
 ## Apply This
 

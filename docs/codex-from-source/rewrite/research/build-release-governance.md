@@ -1,10 +1,6 @@
 # Research Notes: Build, Release, and Governance
 
-Scope: root package files, `MODULE.bazel`, `BUILD.bazel`, `justfile`,
-`codex-rs/Cargo.toml`, `codex-rs/BUILD.bazel`, scripts, patches,
-`tools/argument-comment-lint`, `third_party`, GitHub Actions, docs,
-`codex-rs/docs`, vendored code, V8 proof-of-concept code, test support, and
-workspace launcher templates.
+Scope: root package files, `MODULE.bazel`, `BUILD.bazel`, `justfile`, `codex-rs/Cargo.toml`, `codex-rs/BUILD.bazel`, scripts, patches, `tools/argument-comment-lint`, `third_party`, GitHub Actions, docs, `codex-rs/docs`, vendored code, V8 proof-of-concept code, test support, and workspace launcher templates.
 
 ## Module Boundaries
 

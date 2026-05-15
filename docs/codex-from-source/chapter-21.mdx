@@ -4,26 +4,13 @@ import RemoteTaskContract from "../../src/components/visual/RemoteTaskContract.t
 
 <RemoteTaskContract lang="en" client:visible />
 
-Chapter 20 showed that local multi-agent coordination becomes understandable
-when each relationship is explicit: spawn edges, mailbox deliveries, result
-edges, and close events. This chapter moves the same discipline to remote work.
-Cloud tasks are not a second agent loop hidden behind a button. They are a
-backend task workflow with its own identity, environment, attempts, diffs, and
-local apply path.
+Chapter 20 showed that local multi-agent coordination becomes understandable when each relationship is explicit: spawn edges, mailbox deliveries, result edges, and close events. This chapter moves the same discipline to remote work. Cloud tasks are not a second agent loop hidden behind a button. They are a backend task workflow with its own identity, environment, attempts, diffs, and local apply path.
 
-The separation is crucial. Local Codex turns stream model output and execute
-tools in a local permission context. Cloud tasks submit work to a backend
-environment, later fetch task state, and may apply a returned patch to the
-current working tree. Those are related product experiences, but they are not
-the same execution boundary.
+The separation is crucial. Local Codex turns stream model output and execute tools in a local permission context. Cloud tasks submit work to a backend environment, later fetch task state, and may apply a returned patch to the current working tree. Those are related product experiences, but they are not the same execution boundary.
 
 ## Task Workflows Are Backend Contracts
 
-The cloud task client is shaped around a small backend interface. It can list
-tasks, fetch a summary, fetch a diff, fetch assistant messages, fetch task text,
-list sibling attempts, create a task, run apply preflight, and apply a task.
-That interface hides HTTP path details from the CLI and TUI. It also lets a
-mock backend satisfy the same contract during development and tests.
+The cloud task client is shaped around a small backend interface. It can list tasks, fetch a summary, fetch a diff, fetch assistant messages, fetch task text, list sibling attempts, create a task, run apply preflight, and apply a task. That interface hides HTTP path details from the CLI and TUI. It also lets a mock backend satisfy the same contract during development and tests.
 
 ```mermaid
 flowchart TD
@@ -49,11 +36,7 @@ flowchart TD
     LocalPatch --> Worktree
 ```
 
-This layout prevents the UI from becoming the source of task semantics. A list
-view may filter review-only tasks, a diff overlay may switch between attempts,
-and a modal may show apply conflicts. Those are presentation choices. The
-backend contract remains the architectural center for remote state, while the
-local patch path remains the only path that mutates the checkout.
+This layout prevents the UI from becoming the source of task semantics. A list view may filter review-only tasks, a diff overlay may switch between attempts, and a modal may show apply conflicts. Those are presentation choices. The backend contract remains the architectural center for remote state, while the local patch path remains the only path that mutates the checkout.
 
 The task data model is deliberately compact:
 
@@ -65,27 +48,15 @@ The task data model is deliberately compact:
 | turn attempt | one assistant attempt in a best-of-N task |
 | apply outcome | local result: success, partial, or error with affected paths |
 
-The status vocabulary is small for the same reason the graph store in Chapter
-20 is small. Product surfaces need a predictable state machine; detailed
-backend bodies can still be parsed and mapped behind the client boundary.
+The status vocabulary is small for the same reason the graph store in Chapter 20 is small. Product surfaces need a predictable state machine; detailed backend bodies can still be parsed and mapped behind the client boundary.
 
 ## Creating a Task Resolves Environment and Branch
 
-A cloud task needs more than a prompt. It needs a target environment and a git
-reference. Codex resolves both before calling the backend.
+A cloud task needs more than a prompt. It needs a target environment and a git reference. Codex resolves both before calling the backend.
 
-Environment detection begins with local git origins. If an origin identifies a
-repository hosted by a supported provider, Codex asks the backend for
-repo-specific environments. If no single repo-specific choice is good enough,
-it falls back to the broader environment list. Selection prefers an explicit
-label match, then a single available environment, then a pinned environment,
-then a usage-count heuristic.
+Environment detection begins with local git origins. If an origin identifies a repository hosted by a supported provider, Codex asks the backend for repo-specific environments. If no single repo-specific choice is good enough, it falls back to the broader environment list. Selection prefers an explicit label match, then a single available environment, then a pinned environment, then a usage-count heuristic.
 
-Branch detection follows a similar conservative path. An explicit branch wins.
-Otherwise Codex asks git for the current branch, then for the default branch,
-then falls back to a generic default only when local discovery fails. The
-important point is that cloud execution should be anchored to a branch the user
-can reason about, not an implicit local guess buried in a request body.
+Branch detection follows a similar conservative path. An explicit branch wins. Otherwise Codex asks git for the current branch, then for the default branch, then falls back to a generic default only when local discovery fails. The important point is that cloud execution should be anchored to a branch the user can reason about, not an implicit local guess buried in a request body.
 
 ```text
 // Pseudocode - illustrative pattern.
@@ -114,34 +85,19 @@ procedure resolve_branch(branch_override):
     return generic_default_branch
 ```
 
-The concrete cloud-task client named in the source map owns the backend
-request, but the contract is the same: resolve context locally, submit a
-bounded request remotely, and return a stable task handle.
+The concrete cloud-task client named in the source map owns the backend request, but the contract is the same: resolve context locally, submit a bounded request remotely, and return a stable task handle.
 
 ## Attempts Are First-Class
 
-Cloud tasks support multiple assistant attempts for the same requested work.
-The UI therefore cannot treat "task detail" as a single diff and a single
-message stream. It needs a base task, optional sibling turns, attempt status,
-attempt placement, prompt text, messages, and an optional diff per attempt.
+Cloud tasks support multiple assistant attempts for the same requested work. The UI therefore cannot treat "task detail" as a single diff and a single message stream. It needs a base task, optional sibling turns, attempt status, attempt placement, prompt text, messages, and an optional diff per attempt.
 
-This is why apply and diff commands accept an attempt selector. Applying an
-attempt should use that attempt's diff, not accidentally refetch the base diff
-and ignore the user's selection. The task detail view keeps the currently
-selected attempt as state, then copies that attempt's diff and text into the
-visible fields.
+This is why apply and diff commands accept an attempt selector. Applying an attempt should use that attempt's diff, not accidentally refetch the base diff and ignore the user's selection. The task detail view keeps the currently selected attempt as state, then copies that attempt's diff and text into the visible fields.
 
-The broader architecture lesson is that remote work often has a result set, not
-a result. Once a backend can produce alternatives, every local operation that
-acts on "the answer" must name which answer it means.
+The broader architecture lesson is that remote work often has a result set, not a result. Once a backend can produce alternatives, every local operation that acts on "the answer" must name which answer it means.
 
 ## Apply Is Local Patch Work
 
-The most important boundary in cloud tasks is apply. A task may run in the
-cloud, but applying its diff is a local filesystem operation. Codex fetches or
-selects a unified diff, validates that it is actually a compatible diff format,
-and then runs local patch preflight or application. The backend does not get to
-declare that the user's working tree changed.
+The most important boundary in cloud tasks is apply. A task may run in the cloud, but applying its diff is a local filesystem operation. Codex fetches or selects a unified diff, validates that it is actually a compatible diff format, and then runs local patch preflight or application. The backend does not get to declare that the user's working tree changed.
 
 ```mermaid
 sequenceDiagram
@@ -163,40 +119,21 @@ sequenceDiagram
     Patch-->>CloudUI: applied paths, skipped paths, conflicts
 ```
 
-Preflight matters because remote output can be stale relative to the local
-checkout. Even if the cloud task was correct when produced, the user may have
-changed files since then. A local preflight turns that uncertainty into a
-visible result before mutation.
+Preflight matters because remote output can be stale relative to the local checkout. Even if the cloud task was correct when produced, the user may have changed files since then. A local preflight turns that uncertainty into a visible result before mutation.
 
-The apply outcome reports three classes: success, partial, and error. Partial
-is not a cosmetic state. It tells the client that some paths were applied or
-conflicted while others were skipped, which changes how the user should inspect
-the working tree.
+The apply outcome reports three classes: success, partial, and error. Partial is not a cosmetic state. It tells the client that some paths were applied or conflicted while others were skipped, which changes how the user should inspect the working tree.
 
 ## The Cloud TUI Is a Task Operator
 
-The cloud TUI is not a thin table. It holds app state for the task list,
-environment modal, best-of attempt selector, diff overlay, prompt/messages
-view, background enrichment, preflight spinner, apply spinner, and result
-modal. That complexity is justified because remote work is asynchronous and
-multi-result.
+The cloud TUI is not a thin table. It holds app state for the task list, environment modal, best-of attempt selector, diff overlay, prompt/messages view, background enrichment, preflight spinner, apply spinner, and result modal. That complexity is justified because remote work is asynchronous and multi-result.
 
-However, the TUI still does not own backend semantics. It uses the backend
-contract to load tasks and attempts. It uses environment detection helpers to
-populate filters. It uses apply preflight before local mutation. It uses
-attempt state to render the right diff or prompt. The UI is an operator's
-control surface over a task system, not the task system itself.
+However, the TUI still does not own backend semantics. It uses the backend contract to load tasks and attempts. It uses environment detection helpers to populate filters. It uses apply preflight before local mutation. It uses attempt state to render the right diff or prompt. The UI is an operator's control surface over a task system, not the task system itself.
 
-That distinction keeps remote work from leaking into the local turn loop. A
-local session may still use model streaming, tool execution, approvals, and
-rollout persistence. Cloud task browsing and application are separate flows
-that meet the local machine only at auth, git context, and patch application.
+That distinction keeps remote work from leaking into the local turn loop. A local session may still use model streaming, tool execution, approvals, and rollout persistence. Cloud task browsing and application are separate flows that meet the local machine only at auth, git context, and patch application.
 
 ## Agent Identity Binds Runtime to Task
 
-Cloud work also needs identity. Codex uses agent runtime key material, signed
-task authorization, task registration, encrypted task ids, JWT claims, and an
-agent bill of materials to bind a running agent to a backend task.
+Cloud work also needs identity. Codex uses agent runtime key material, signed task authorization, task registration, encrypted task ids, JWT claims, and an agent bill of materials to bind a running agent to a backend task.
 
 The identity layer has a distinct job from ordinary user authentication:
 
@@ -229,18 +166,11 @@ flowchart LR
     ABOM --> Backend
 ```
 
-The design avoids conflating "the user is logged in" with "this runtime may act
-for this task." User auth can establish account context; agent identity binds a
-particular runtime key to a particular task authorization. That distinction is
-what lets a backend reason about remote agents without trusting arbitrary local
-processes by name.
+The design avoids conflating "the user is logged in" with "this runtime may act for this task." User auth can establish account context; agent identity binds a particular runtime key to a particular task authorization. That distinction is what lets a backend reason about remote agents without trusting arbitrary local processes by name.
 
 ## Local and Remote Execution Stay Separate
 
-The easiest cloud-task mistake is to describe it as "Codex running somewhere
-else." That is too vague. A cloud task has a backend lifecycle. A local turn has
-a runtime lifecycle. They may share concepts such as prompts, diffs, models,
-and agent identity, but their control planes differ.
+The easiest cloud-task mistake is to describe it as "Codex running somewhere else." That is too vague. A cloud task has a backend lifecycle. A local turn has a runtime lifecycle. They may share concepts such as prompts, diffs, models, and agent identity, but their control planes differ.
 
 | Local turn execution | Cloud task workflow |
 | --- | --- |
@@ -250,30 +180,15 @@ and agent identity, but their control planes differ.
 | approvals guard local side effects | local preflight guards applying remote diffs |
 | client sees live event stream | client polls or fetches task detail |
 
-This separation is why cloud tasks can be integrated without rewriting the core
-agent loop. The system adds a task operator surface and identity layer around
-remote work, then uses the existing local patch discipline when remote output
-comes back to the user's checkout.
+This separation is why cloud tasks can be integrated without rewriting the core agent loop. The system adds a task operator surface and identity layer around remote work, then uses the existing local patch discipline when remote output comes back to the user's checkout.
 
 ## Failure Modes
 
-Cloud task failures cluster around boundary errors. Authentication may be
-missing or may not use the backend mode required for cloud tasks. Environment
-detection may find no matching environment or multiple environments with the
-same label. Branch discovery may fall back because the current directory is not
-a git checkout. A backend detail response may lack a diff, produce an
-incompatible diff shape, or expose multiple attempts that the user must choose
-between. Local preflight may fail because the worktree moved.
+Cloud task failures cluster around boundary errors. Authentication may be missing or may not use the backend mode required for cloud tasks. Environment detection may find no matching environment or multiple environments with the same label. Branch discovery may fall back because the current directory is not a git checkout. A backend detail response may lack a diff, produce an incompatible diff shape, or expose multiple attempts that the user must choose between. Local preflight may fail because the worktree moved.
 
-Identity has its own failure modes. A runtime id can mismatch stored key
-material. A JWT can be decoded for inspection but only verified when trusted
-keys are present. A registration response can omit the direct task id and
-require decryption. These are not UI errors; they are proof boundaries.
+Identity has its own failure modes. A runtime id can mismatch stored key material. A JWT can be decoded for inspection but only verified when trusted keys are present. A registration response can omit the direct task id and require decryption. These are not UI errors; they are proof boundaries.
 
-The practical rule is simple: do not let a remote success imply a local success
-until the local boundary has checked it. A completed task means the backend has
-produced an outcome. It does not mean the user's current checkout accepted that
-outcome.
+The practical rule is simple: do not let a remote success imply a local success until the local boundary has checked it. A completed task means the backend has produced an outcome. It does not mean the user's current checkout accepted that outcome.
 
 ## Apply This
 
@@ -285,12 +200,7 @@ outcome.
 
 ## Closing
 
-Cloud tasks extend Codex beyond one local turn without blurring the runtime
-boundary. Remote work is created, listed, inspected, and authorized through
-backend contracts; local mutation still goes through local patch checks. Chapter
-22 applies the same separation to long-term state: memories are useful because
-they are a controlled side channel, not because they secretly become another
-chat history.
+Cloud tasks extend Codex beyond one local turn without blurring the runtime boundary. Remote work is created, listed, inspected, and authorized through backend contracts; local mutation still goes through local patch checks. Chapter 22 applies the same separation to long-term state: memories are useful because they are a controlled side channel, not because they secretly become another chat history.
 
 <div class="source-equivalence">
 

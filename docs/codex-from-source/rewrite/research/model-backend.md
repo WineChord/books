@@ -1,11 +1,6 @@
 # Research Notes: Model Providers and Backend Clients
 
-Scope: `codex-rs/codex-client`, `codex-rs/codex-api`,
-`codex-rs/backend-client`, `codex-rs/codex-backend-openapi-models`,
-`codex-rs/model-provider`, `codex-rs/model-provider-info`,
-`codex-rs/models-manager`, `codex-rs/responses-api-proxy`,
-`codex-rs/aws-auth`, `codex-rs/lmstudio`, `codex-rs/ollama`, and
-`codex-rs/realtime-webrtc`.
+Scope: `codex-rs/codex-client`, `codex-rs/codex-api`, `codex-rs/backend-client`, `codex-rs/codex-backend-openapi-models`, `codex-rs/model-provider`, `codex-rs/model-provider-info`, `codex-rs/models-manager`, `codex-rs/responses-api-proxy`, `codex-rs/aws-auth`, `codex-rs/lmstudio`, `codex-rs/ollama`, and `codex-rs/realtime-webrtc`.
 
 ## Module Boundaries
 

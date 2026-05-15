@@ -1,9 +1,6 @@
 # 前言
 
-本书是对公开
-[OpenAI Codex 仓库](https://github.com/openai/codex) 的源码等价导读。
-它不是 OpenAI 私有模型训练栈、托管云服务或内部后端的说明。全书使用的源码快照是
-[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
+本书是对公开 [OpenAI Codex 仓库](https://github.com/openai/codex) 的源码等价导读。 它不是 OpenAI 私有模型训练栈、托管云服务或内部后端的说明。全书使用的源码快照是 [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
 
 默认目标是：你不打开源码，只读本书，也能掌握源码读者会保留下来的架构、控制流、数据合同、失败路径、策略层和客户端接入面。源码链接用于证据和行级审计，不是理解正文的前置条件。
 
@@ -57,8 +54,7 @@ OpenAI 公开材料把 Codex 描述为一个可以在隔离环境里工作、运
 
 ## 为什么固定源码链接
 
-源码会变化。指向 `main` 的链接下周可能已经不是同一段代码。本书把源码链接固定到一个公开 commit，让解释可复现。如果章节说 `Op` 位于
-[`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403)，你以后重新打开也应看到同一份代码。
+源码会变化。指向 `main` 的链接下周可能已经不是同一段代码。本书把源码链接固定到一个公开 commit，让解释可复现。如果章节说 `Op` 位于 [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403)，你以后重新打开也应看到同一份代码。
 
 ## 如何使用证据表
 

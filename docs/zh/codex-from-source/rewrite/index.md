@@ -1,7 +1,6 @@
 # 重写工作区
 
-本工作区记录 [Book Rewrite Prompt](../book-rewrite-prompt) 的执行产物。这里
-不是最终正文，而是正式重写前必须存在的研究和规划层。
+本工作区记录 [Book Rewrite Prompt](../book-rewrite-prompt) 的执行产物。这里 不是最终正文，而是正式重写前必须存在的研究和规划层。
 
 源码快照：`569ff6a1c400bd514ff79f5f1050a684dc3afde3`。
 
@@ -37,9 +36,6 @@
 
 大纲已批准，正文已完成，后续更新应优先修改正式章节和源码索引。
 
-下一项大改进是视觉理解层。准出标准见 [视觉体验规范](visual-experience-spec)：每个
-核心 runtime 概念都应该变成美观、可交互、可访问的解释界面，而不只是正文加 Mermaid。
+下一项大改进是视觉理解层。准出标准见 [视觉体验规范](visual-experience-spec)：每个 核心 runtime 概念都应该变成美观、可交互、可访问的解释界面，而不只是正文加 Mermaid。
 
-机器可读 canonical contract 位于 `src/visual/visual-specs.mjs`；reviewer-facing index
-是 [章节 VisualSpec 记录](visual-spec-records)。实现进度必须记录在
-[视觉实现台账](visual-implementation-ledger) 中。
+机器可读 canonical contract 位于 `src/visual/visual-specs.mjs`；reviewer-facing index 是 [章节 VisualSpec 记录](visual-spec-records)。实现进度必须记录在 [视觉实现台账](visual-implementation-ledger) 中。

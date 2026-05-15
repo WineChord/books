@@ -4,9 +4,7 @@
 
 ## 快照规则
 
-本页所有事实都对应 Codex commit
-[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
-如果后续 Codex 版本改变类型或路径，应更新本页，而不是依赖分支链接。
+本页所有事实都对应 Codex commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。 如果后续 Codex 版本改变类型或路径，应更新本页，而不是依赖分支链接。
 
 ## 按子系统定位源码锚点
 

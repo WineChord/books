@@ -1,9 +1,6 @@
 # Chapter VisualSpec Records
 
-The canonical machine-readable records live in `src/visual/visual-specs.mjs`.
-This page is the human-readable index for reviewers. `npm run check:visual-spec`
-validates that every row below matches the canonical record for route, component,
-fallback, motion policy, target phase, and comprehension-check count.
+The canonical machine-readable records live in `src/visual/visual-specs.mjs`. This page is the human-readable index for reviewers. `npm run check:visual-spec` validates that every row below matches the canonical record for route, component, fallback, motion policy, target phase, and comprehension-check count.
 
 | Record ID | Route | Primary Interactive | Fallback / Motion | Phase | Checks |
 | --- | --- | --- | --- | --- | --- |
@@ -34,7 +31,4 @@ fallback, motion policy, target phase, and comprehension-check count.
 | `ch25-policy-lanes` | `codex-from-source/chapter-25` | PolicyLaneDashboard | table / step | P3 governance | 2 |
 | `epilogue-transfer-atlas` | `codex-from-source/epilogue` | TransferPatternAtlas | table / step | P4 synthesis | 2 |
 
-Reviewers should inspect `src/visual/visual-specs.mjs` for the full record body.
-The checker also enforces that every canonical record has structured source
-anchors on concrete source lines, and at least two comprehension checks whose
-source evidence cites paths from that same record.
+Reviewers should inspect `src/visual/visual-specs.mjs` for the full record body. The checker also enforces that every canonical record has structured source anchors on concrete source lines, and at least two comprehension checks whose source evidence cites paths from that same record.

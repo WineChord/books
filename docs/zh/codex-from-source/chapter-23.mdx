@@ -4,10 +4,7 @@ import GeneratedContractDriftViewer from "../../../src/components/visual/Generat
 
 <GeneratedContractDriftViewer lang="zh" client:visible />
 
-第 22 章仍然在 runtime 内部：长期记忆只能通过 read path、write path、lock、
-citation 和受限 internal agent 改变。第七部把同样的纪律推进到仓库层面。
-如果 runtime 由持久契约治理，source tree 也需要一套机器，确保每一次依赖变更、
-schema 编辑、平台移植和 release build 之后，这些契约仍然成立。
+第 22 章仍然在 runtime 内部：长期记忆只能通过 read path、write path、lock、 citation 和受限 internal agent 改变。第七部把同样的纪律推进到仓库层面。 如果 runtime 由持久契约治理，source tree 也需要一套机器，确保每一次依赖变更、 schema 编辑、平台移植和 release build 之后，这些契约仍然成立。
 
 本章解释 Codex 为什么同时保留两种 Rust 构建视图，为什么生成的 schema 被当作产品契约，以及为什么测试 launcher 只是为了让 hermetic CI 里的测试仍然像普通 Cargo 测试。读完本章，你应该把构建系统看成第二层协议：Cargo 服务本地开发和实际发布构建，Bazel 服务 hermetic 验证 overlay，schema 生成服务所有不链接运行时却要集成 Codex 的客户端。
 

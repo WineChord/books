@@ -1,20 +1,14 @@
 # Implementation Reference
 
-This appendix is the book's "read this instead of opening the source" page. It
-collects the implementation facts that are too detailed for a smooth chapter
-but too important to leave only in source links.
+This appendix is the book's "read this instead of opening the source" page. It collects the implementation facts that are too detailed for a smooth chapter but too important to leave only in source links.
 
 ## Snapshot Rule
 
-All facts on this page refer to Codex commit
-[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
-If a later Codex version changes a type or code path, this page must be
-updated instead of silently relying on branch links.
+All facts on this page refer to Codex commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). If a later Codex version changes a type or code path, this page must be updated instead of silently relying on branch links.
 
 ## Source Anchors by Subsystem
 
-Use this table when you want the implementation names behind the conceptual
-inventory below.
+Use this table when you want the implementation names behind the conceptual inventory below.
 
 | Subsystem | Concrete anchors |
 | --- | --- |
@@ -48,8 +42,7 @@ inventory below.
 
 ## Operation Inventory
 
-`Op` is larger than "user input." Group the variants by what they let clients
-do:
+`Op` is larger than "user input." Group the variants by what they let clients do:
 
 | Group | Examples | Why it matters |
 | --- | --- | --- |
@@ -79,9 +72,7 @@ do:
 
 ## Config, Constraints, and Security Inputs
 
-Configuration is layered. Source readers look for four questions: who provided
-the setting, which layer wins, what constraints apply, and whether the runtime
-is allowed to ignore it.
+Configuration is layered. Source readers look for four questions: who provided the setting, which layer wins, what constraints apply, and whether the runtime is allowed to ignore it.
 
 | Area | Source-level behavior |
 | --- | --- |
@@ -93,9 +84,7 @@ is allowed to ignore it.
 | Auth storage | ChatGPT/API-key credentials, MCP OAuth credentials, and connector credentials are handled as security-sensitive state with storage fallback behavior. |
 | Secret handling | Logs, events, and UI paths must avoid exposing tokens, bearer credentials, and connector secrets. |
 
-This matters because "config" can be part of safety. A model, sandbox, approval
-mode, permission profile, writable root, or network rule is not just display
-state; it can decide whether a tool call runs.
+This matters because "config" can be part of safety. A model, sandbox, approval mode, permission profile, writable root, or network rule is not just display state; it can decide whether a tool call runs.
 
 ## State and Persistence
 
@@ -141,8 +130,7 @@ Important branches:
 
 ## Model Streaming
 
-Streaming goes through a client boundary before the turn loop sees useful
-events.
+Streaming goes through a client boundary before the turn loop sees useful events.
 
 | Piece | Source-reader fact |
 | --- | --- |
@@ -165,10 +153,7 @@ events.
 | Parallel runtime | Allows safe concurrent calls while serializing writes or nonparallel-safe behavior. |
 | Orchestrator | Handles hooks, approval, sandbox attempt, retry/escalation, event emission, and model-visible results. |
 
-Tool inventory includes more than local shell and patch: hosted web search,
-image generation, MCP tools and resources, dynamic client-owned tools,
-plugin-discovery helpers such as tool search, code-mode or nested tools, and
-placeholders for unavailable tools that the model should not call.
+Tool inventory includes more than local shell and patch: hosted web search, image generation, MCP tools and resources, dynamic client-owned tools, plugin-discovery helpers such as tool search, code-mode or nested tools, and placeholders for unavailable tools that the model should not call.
 
 ## Shell and Exec Taxonomy
 
@@ -180,10 +165,7 @@ placeholders for unavailable tools that the model should not call.
 | user shell command | A user-requested shell action queued through session/thread protocol, not a model tool call. |
 | remote/container backend | A runtime backend may execute through a remote or container-like environment instead of the local OS directly. |
 
-Important details: command output can be truncated for telemetry or UI, PTY
-sessions have lifecycle ids, zsh-style shell startup has fallback behavior, and
-`apply_patch` may be intercepted from shell-like command text so edits still go
-through patch semantics.
+Important details: command output can be truncated for telemetry or UI, PTY sessions have lifecycle ids, zsh-style shell startup has fallback behavior, and `apply_patch` may be intercepted from shell-like command text so edits still go through patch semantics.
 
 ## Patch Runtime
 
@@ -195,10 +177,7 @@ Patch handling has three layers:
 | Runtime handler | Turns model arguments into a patch attempt, computes effective permissions, asks approval when needed, emits patch events, and returns model-visible output. |
 | Diff tracker | Records committed file deltas for the current turn so clients can show a turn diff. |
 
-Source readers also know that patch arguments can stream, patch events can
-begin/update/end before final success, shell/unified-exec can delegate to the
-patch runtime, remote filesystems can alter where patching executes, and denied
-or failed patches still need clear model-visible results.
+Source readers also know that patch arguments can stream, patch events can begin/update/end before final success, shell/unified-exec can delegate to the patch runtime, remote filesystems can alter where patching executes, and denied or failed patches still need clear model-visible results.
 
 ## Approval, Permissions, Guardian, and Network
 
@@ -213,9 +192,7 @@ or failed patches still need clear model-visible results.
 | Guardian | Automatic review can cover shell, unified exec, patch, network, MCP, and permissions requests. It should fail closed on timeout or reviewer failure. |
 | Network approval | Network access can be immediate or deferred, involve host approval caches, managed proxy registration, cancellation on denial, and policy amendments. |
 
-Honest security language matters: approval is a decision process, permission
-profiles describe intended access, and sandboxing is enforcement only when the
-chosen platform/backend actually enforces it.
+Honest security language matters: approval is a decision process, permission profiles describe intended access, and sandboxing is enforcement only when the chosen platform/backend actually enforces it.
 
 ## Sandbox Platform Behavior
 
@@ -229,8 +206,7 @@ chosen platform/backend actually enforces it.
 | External sandbox | The runtime may know it is already inside a sandbox and preserve only the network semantics it can reason about. |
 | Remote exec | Remote execution can participate in the filesystem/sandbox story instead of using local process launch. |
 
-Sandbox denial is a policy signal, not just a process error. It can carry a
-network policy decision and may or may not be eligible for unsandboxed retry.
+Sandbox denial is a policy signal, not just a process error. It can carry a network policy decision and may or may not be eligible for unsandboxed retry.
 
 ## MCP, Apps, Plugins, and Skills
 
@@ -244,9 +220,7 @@ network policy decision and may or may not be eligible for unsandboxed retry.
 | Mentions | User input can include structured mentions that affect turn-scoped context and tool availability. |
 | Hooks | Session start, user prompt submit, pre/post tool use, permission request, stop, and after-agent hooks are policy extension points. |
 
-The key design rule is that extensions enter through typed inventories,
-mentions, hooks, or injected context. They should not silently rewrite the
-central turn loop.
+The key design rule is that extensions enter through typed inventories, mentions, hooks, or injected context. They should not silently rewrite the central turn loop.
 
 ## TUI and App-Server Surface
 
@@ -261,9 +235,7 @@ central turn loop.
 | Client APIs | The surface includes filesystem APIs/watchers, command exec, process spawn experiments, fuzzy search, accounts/rate limits, model/provider info, config writes, feedback upload, remote control, realtime audio/text, and thread operations. |
 | Notification mapping | Runtime events become app-server notifications such as turn started/completed, item updates, command approval requests, turn diff updates, token usage, and compaction. |
 
-App-server is therefore both a presentation bridge and a runtime entry surface.
-Modern TUI or exec paths can interact with app-server-style boundaries rather
-than always calling the old core facade directly.
+App-server is therefore both a presentation bridge and a runtime entry surface. Modern TUI or exec paths can interact with app-server-style boundaries rather than always calling the old core facade directly.
 
 ## Error and Retry Taxonomy
 
@@ -309,5 +281,4 @@ You should be able to answer these without opening source:
 5. Why is app-server more than a thin UI adapter?
 6. What state must survive resume/fork/archive operations?
 
-If any answer feels vague, return to the matching table above before opening
-source.
+If any answer feels vague, return to the matching table above before opening source.

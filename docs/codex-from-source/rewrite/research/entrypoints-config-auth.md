@@ -1,9 +1,6 @@
 # Research Notes: Entrypoints, Config, and Auth
 
-Scope: `README.md`, `docs`, `codex-cli`, `codex-rs/cli`,
-`codex-rs/chatgpt`, `codex-rs/login`, `codex-rs/config`,
-`codex-rs/install-context`, `codex-rs/arg0`, `codex-rs/features`,
-and `codex-rs/cloud-requirements`.
+Scope: `README.md`, `docs`, `codex-cli`, `codex-rs/cli`, `codex-rs/chatgpt`, `codex-rs/login`, `codex-rs/config`, `codex-rs/install-context`, `codex-rs/arg0`, `codex-rs/features`, and `codex-rs/cloud-requirements`.
 
 ## Module Boundaries
 

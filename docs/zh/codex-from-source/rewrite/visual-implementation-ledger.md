@@ -1,9 +1,6 @@
 # 视觉实现台账
 
-本台账跟踪 [视觉体验规范](visual-experience-spec) 与 `src/visual/visual-specs.mjs`
-中的 canonical records。`npm run check:visual-spec` 会校验记录本身，并验证本台账
-匹配 canonical component、phase、fallback、source-anchor source 与 ledger 状态机；
-本台账记录读者可见网站是否已经实现、验证并通过 review。
+本台账跟踪 [视觉体验规范](visual-experience-spec) 与 `src/visual/visual-specs.mjs` 中的 canonical records。`npm run check:visual-spec` 会校验记录本身，并验证本台账 匹配 canonical component、phase、fallback、source-anchor source 与 ledger 状态机； 本台账记录读者可见网站是否已经实现、验证并通过 review。
 
 状态值：
 

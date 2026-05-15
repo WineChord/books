@@ -1,7 +1,6 @@
 # Book Rewrite Prompt
 
-本页保存下一版完整重写的原始任务书。正文保留英文 prompt 原文，便于后续
-按同一套探索、定位、大纲、写作、编辑审阅、修订和源码审计标准继续推进。
+本页保存下一版完整重写的原始任务书。正文保留英文 prompt 原文，便于后续 按同一套探索、定位、大纲、写作、编辑审阅、修订和源码审计标准继续推进。
 
 ````text
 I want you to analyze the source code at ../codex and produce a comprehensive
