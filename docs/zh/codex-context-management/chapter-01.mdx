@@ -1,4 +1,8 @@
+import ContextLifecycleExplorer from "../../../src/components/visual/ContextLifecycleExplorer.tsx";
+
 # 第 1 章：上下文是运行时边界
+
+<ContextLifecycleExplorer lang="zh" client:visible />
 
 《Codex 源码剖析》把 session runtime 解释为事件、工具、策略、流式输出和持久状态汇合的地方。本书从更深一层开始：模型能做出任何决定之前，Codex 必须先决定什么算上下文。如果没有这个边界，后面的功能都会退化成 prompt 拼接技巧。工具观察会永久泄漏，策略变化会埋在旧文本里，压缩会变成失忆，resume 会变成猜测。
 

@@ -1,4 +1,8 @@
+import RolloutReplayScrubber from "../../../src/components/visual/RolloutReplayScrubber.tsx";
+
 # 第 7 章：Resume、Rollback、Fork 与 Replay
+
+<RolloutReplayScrubber lang="zh" client:visible />
 
 第 6 章把 compaction 解释为 checkpoint 协议。这套协议只有在系统之后能重建有效上下文时才划算。Codex 必须能 resume 旧 thread、回滚最近用户 turn、为子 agent 派生工作、并向客户端 replay 足够多的历史。进程退出或分叉之后，runtime 不能信任内存里的 vector，必须从 rollout 证据重建。
 

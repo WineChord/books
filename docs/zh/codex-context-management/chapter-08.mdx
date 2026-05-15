@@ -1,4 +1,8 @@
+import ClientFanoutMap from "../../../src/components/visual/ClientFanoutMap.tsx";
+
 # 第 8 章：面向客户端的上下文
+
+<ClientFanoutMap lang="zh" client:visible />
 
 第 7 章展示了 runtime 可以从 rollout 证据重建有效上下文。最后一层是暴露：用户和客户端需要看到上下文状态：token usage、compaction 提示、realtime 模式、thread 历史，以及附加到已存在线程时的回放 usage。Codex 通过 TUI、app-server 通知、realtime context 模块、rollout trace 和 telemetry 暴露这些事实。核心规则始终是：客户端渲染上下文，runtime 拥有上下文。
 

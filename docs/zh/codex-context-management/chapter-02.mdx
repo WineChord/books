@@ -1,4 +1,8 @@
+import ResolutionOrderTimeline from "../../../src/components/visual/ResolutionOrderTimeline.tsx";
+
 # 第 2 章：TurnContext：包住一次 Turn 的信封
+
+<ResolutionOrderTimeline lang="zh" client:visible />
 
 第 1 章论证了上下文是一个运行时边界。这个边界后面第一个具体对象就是 turn envelope。一次 turn 不只是"下一条用户消息"，它是在特定模型、provider、cwd、permission profile、网络策略、tools 配置、feature 集合、realtime 状态、协作模式、hook 状态、skill 加载结果和 telemetry 上下文下的一次采样尝试。
 

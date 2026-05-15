@@ -1,4 +1,8 @@
+import HistoryLedgerAnimator from "../../../src/components/visual/HistoryLedgerAnimator.tsx";
+
 # 第 3 章：ContextManager：把历史变成可提示状态
+
+<HistoryLedgerAnimator lang="zh" client:visible />
 
 第 2 章描述了 turn envelope。下一个问题在持久侧：一个 thread 累积的所有模型可见 items 该如何处理？Codex 不把历史当作不透明 transcript，而是用 `ContextManager` 作为 response items 的账本，按从旧到新排序，附带 token 信息、history 版本号，以及未来设置 diff 的 reference context baseline。
 

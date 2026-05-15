@@ -1,4 +1,8 @@
+import CompactionSimulator from "../../../src/components/visual/CompactionSimulator.tsx";
+
 # 第 6 章：把压缩作为 Checkpoint 协议
+
+<CompactionSimulator lang="zh" client:visible />
 
 第 5 章讨论了可选上下文预算。预算只能延后不可避免；它不能消灭。长线程最终一定会超过有效上下文窗口。Codex 的答案是 compaction，但关键设计是 compaction 是一个 checkpoint 协议。它不只是请模型摘要旧文本，而是安装 replacement history、更新 reference context baseline、发送事件、运行 hooks、必要时重置 provider session 状态、重新计算 token 使用量。
 

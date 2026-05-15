@@ -1,4 +1,8 @@
+import FragmentComposer from "../../../src/components/visual/FragmentComposer.tsx";
+
 # 第 4 章：类型化片段与设置 Diff
+
+<FragmentComposer lang="zh" client:visible />
 
 第 3 章展示了 Codex 如何保持 prompt-ready 历史。下一个问题是运行时事实如何进入这份历史。朴素系统每个 turn 都重复一段巨大的开场白：当前目录、权限、模式、realtime 状态、模型指引、skills 和用户指令。Codex 改用 typed context fragments 和 settings diffs：稳定上下文只注入一次；后续 turn 仅在存在 reference baseline 时注入变化。
 
