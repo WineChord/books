@@ -25,6 +25,22 @@ This chapter maps to
 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L474">post-sampling token checks</a>.
 </div>
 
+## Surfaces and Their Owners
+
+Codex exposes context through several surfaces. The table is short but worth
+internalising:
+
+| Surface | What it shows | Runtime owner | Failure mode if owner is wrong |
+| --- | --- | --- | --- |
+| TUI token bar | Input/cached/output tokens, remaining ratio. | `ContextManager.token_info` + display baseline. | UI invents its own budget number. |
+| App-server token notification | Live token usage events for connected clients. | Token usage events from sampling. | Clients infer state from text rendering. |
+| App-server replay | Restored token usage update on reattach. | Rollout evidence + reattach scope. | Replay duplicates events to other subscribers. |
+| Realtime fragment | Realtime mode start/end as model context. | `TurnContext.modes` + settings update. | Mode appears in transport but not in prompt. |
+| Rollout trace | Installed checkpoint, compaction reason. | Compaction install events. | Trace blends compact-input and post-compact prompt. |
+
+The right column is the part that matters. Each surface has a precise way it
+fails when the runtime is not the source of truth.
+
 ## Token Usage Is a Context Surface
 
 The TUI token usage model separates input, cached input, output, reasoning
@@ -40,9 +56,18 @@ graph LR
   B --> D[TUI token display]
   B --> E[App-server token notification]
   B --> F[Telemetry]
+  classDef src fill:#fef3c7,stroke:#92400e;
+  classDef hub fill:#fee2e2,stroke:#b91c1c,stroke-width:2px;
+  classDef sink fill:#dbeafe,stroke:#1e40af;
+  class A src;
+  class B hub;
+  class C,D,E,F sink;
 ```
 
 The same source fact feeds multiple surfaces. That is what keeps the UI honest.
+The pattern is "fan-out from one fact" rather than "let each consumer compute
+its own number." If the TUI bar disagrees with compaction's threshold, that is
+a bug, not just a display preference.
 
 ## App-Server Replay
 
@@ -57,7 +82,7 @@ during reconstruction, it falls back to the active turn position recorded when
 the token count appeared.
 
 ```text
-// Pseudocode — illustrates replay attribution.
+// Pseudocode -- illustrates replay attribution.
 owner = findTurnActiveWhenLatestTokenCountWasPersisted(rollout)
 if rebuiltThread.hasTurn(owner.id):
     notify(connection, owner.id, usage)
@@ -67,6 +92,29 @@ else:
 
 The pattern is subtle: client replay is connection-scoped because it explains
 history to a new observer; it is not a new runtime event.
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Server as App-server
+  participant Core as Runtime
+  participant Rollout
+
+  Client->>Server: attach to thread
+  Server->>Rollout: read latest token usage record
+  Server->>Core: ask for rebuilt turn ids
+  Core-->>Server: turn id map
+  alt original id still present
+    Server-->>Client: restored usage on owner.id
+  else id changed during rebuild
+    Server-->>Client: restored usage on turn at owner.position
+  end
+  Note over Server,Client: Other subscribers receive nothing<br/>(connection-scoped replay)
+```
+
+The diagram shows why the replay event is delivered only to the attaching
+client. Other subscribers already saw the original event when it was live;
+sending it again would look like a new model action and confuse their state.
 
 ## Realtime Is Context, Not Just Transport
 
@@ -78,6 +126,17 @@ changes the interaction contract, the model needs context about that mode.
 This reinforces Chapter 2's envelope idea: client metadata and realtime flags
 belong in the turn context because they alter the runtime contract.
 
+A small comparison clarifies the move:
+
+| Treatment | Result |
+| --- | --- |
+| Realtime as transport flag only. | Model keeps sending long-form text while audio client expects turn-by-turn replies. |
+| Realtime as context fragment. | Model receives explicit guidance: shorter turns, expect interruption, leave silence. |
+
+The correct treatment crosses a layer boundary. A piece of client metadata
+becomes prompt-visible state because it changes meaning at the model level,
+not just at the wire level.
+
 ## Trace Gives Compaction Evidence
 
 Remote compaction records an installed checkpoint payload containing input
@@ -87,6 +146,24 @@ what happened: the provider compacted one history, Codex installed another live
 history, and future sampling used the updated prompt projection.
 
 Good observability does not just count tokens. It preserves semantic boundaries.
+
+```text
+trace stream around a compaction:
+
+  ... usage(turn N-1)
+    -> compaction_pre_hook(turn N)
+    -> compact_input(payload = old history clone)        [phase 1]
+    -> compact_output(payload = compacted items)         [phase 1]
+    -> compaction_install(payload = replacement history) [phase 2]
+    -> usage(post-compact recompute)                     [phase 2]
+    -> compaction_post_hook(turn N)
+    -> sample_request(payload = new prompt projection)   [phase 3]
+  ... usage(turn N) ...
+```
+
+Three phases live in the same trace stream: compact, install, sample. A naive
+trace would collapse them into one "compaction event" and lose the ability to
+audit each phase separately.
 
 ## Apply This
 

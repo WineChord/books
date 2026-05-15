@@ -1,45 +1,74 @@
 # 第 3 章：ContextManager：把历史变成可提示状态
 
-第 2 章讲的是 turn envelope。接下来的问题是持久侧：线程里积累的模型可见 items 怎么处理？Codex 没有把 history 当作不透明 transcript，而是用 `ContextManager` 维护一个按时间从旧到新的 response item ledger，并附带 token 信息、history version 和 reference context baseline。
+第 2 章描述了 turn envelope。下一个问题在持久侧：一个 thread 累积的所有模型可见 items 该如何处理？Codex 不把历史当作不透明 transcript，而是用 `ContextManager` 作为 response items 的账本，按从旧到新排序，附带 token 信息、history 版本号，以及未来设置 diff 的 reference context baseline。
 
-这个 ledger 的职责很难：它只记录属于 API history 的 items，对大输出应用 truncation policy，保护 function-call/output 配对关系，采样前剥离模型不支持的 modality，估算 token，并在 compaction 或 rollback 时整体替换。
+历史账本看似简单，实则做了不少事：只记录属于 API 历史的 items、对大型输出执行 truncation policy、保留 function-call 配对不变量、采样前剥离不支持的模态、估算 token 使用量、以及在 compaction 或 rollback 中能被替换。
+
+读完本章，你应该把 ledger 理解为持久 thread 证据与 prompt-ready 模型输入之间的桥梁。
 
 <div class="source-equivalence">
-本章基于
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32">ContextManager 字段</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L98">record_items</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L115">for_prompt</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L160">paired removal</a>，以及
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L221">rollback-aware turn dropping</a>。
+本章对应
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32">ContextManager 字段</a>、
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L98">record_items</a>、
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L115">for_prompt</a>、
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L160">配对删除</a>，以及
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L221">支持 rollback 的 turn 删除</a>。
 </div>
 
-## Ledger 形状
+## 账本结构
 
-| 字段 | 作用 |
+核心结构很小：
+
+| 字段 | 用途 |
 | --- | --- |
-| `items` | oldest-first response items，是模型可见历史候选。 |
-| `history_version` | 历史被重写时递增。 |
-| `token_info` | 最新 token usage 或估算。 |
-| `reference_context_item` | settings diff 使用的 turn context baseline。 |
+| `items` | 候选模型可见历史的 response items，从旧到新。 |
+| `history_version` | 历史被重写时递增的单调标记。 |
+| `token_info` | 最近一次 token 使用事实或估计。 |
+| `reference_context_item` | 注入 settings diff 时使用的 baseline turn context。 |
 
-最容易被低估的是 `reference_context_item`。History 不只是过去对话，也是在决定下一个 turn 应该注入哪些 runtime facts 时使用的 baseline。Compaction 或 rollback 让 baseline 失效时，Codex 会清掉它并回退到 full reinjection。
+让人意外的字段是 reference context item。它说明历史不只是过去的对话，还是下一次 turn 决定要重新引入哪些运行时事实的 baseline。当 compaction 或 rollback 让这个 baseline 失效时，Codex 清除它，回退到完整重新注入。
+
+用 ASCII 把四个字段画在一起，更容易记住整体形状：
+
+```text
++------------------ ContextManager ------------------+
+|                                                    |
+|  items:                                            |
+|  [ user_msg | tool_call | tool_out | asst_msg ...] |    oldest -> newest
+|                                                    |
+|  history_version: u64       (rewrite 时递增)        |
+|  token_info:      TokenInfo (最近一次估计或精确用量)  |
+|  reference_context_item: Option<TurnContextItem>   |
+|       Some(item) -> 下次 turn 与它做 diff           |
+|       None       -> 下次 turn 完整重新注入          |
+|                                                    |
++----------------------------------------------------+
+```
+
+四个字段中三个看起来普通，但 reference baseline 让账本不再只是一个 vector。它是第 2 章 envelope 与第 4 章 diff fragments 之间的链接。
 
 ```mermaid
 stateDiagram-v2
   [*] --> Recording
   Recording --> Normalizing: for_prompt()
   Recording --> Rewritten: compaction or rollback
-  Rewritten --> Recording: history_version++
-  Normalizing --> PromptReady: strip unsupported items
-  PromptReady --> Recording: record new evidence
+  Rewritten --> Recording: 新 history_version, baseline 清空
+  Normalizing --> PromptReady: 剥离不支持的 items
+  PromptReady --> Recording: 模型与 tool 输出已记录
 ```
 
-## Recording 是过滤后的记录
+这是概念状态机。代码主要是 clone 与 mutate，但生命周期是真的：先记录足够原始的 items，再根据目标模型 normalize，再记录新证据。
 
-`record_items` 只记录 API-message items。rollout 中可能有事件、UI facts、token counts 和 context checkpoints，不是所有东西都应该进入下一次模型请求。进入 ledger 前，item 还会经过 active truncation policy，避免一个工具输出吞掉整个窗口。
+## 记录是经过过滤的
+
+`record_items` 接受按顺序到来的 items，只记录 API-message 类型。这层过滤至关重要。Rollout 里可能包含事件、UI 事实、token 计数、context checkpoint，这些不一定都属于下一次模型请求。账本只存那些应该参与 prompt history 的子集。
+
+把 item 推入之前，manager 会按当前 truncation policy 处理。Tool output 是经典风险：它可能很大、近似二进制、或带图片。Codex 通过 truncation helper 把它们变成有界历史，避免一次命令耗尽整个上下文窗口。
+
+模式如下：
 
 ```text
-// 伪代码：说明 filtered recording。
+// 伪代码 -- 说明经过过滤的账本写入。
 for item in incomingItems:
     if not modelHistoryItem(item):
         continue
@@ -47,38 +76,104 @@ for item in incomingItems:
     ledger.append(bounded)
 ```
 
-这记录的是被策略塑形后的证据，而不是原始副作用。原始事实可以仍在 rollout 或 UI 中，但模型可见 ledger 保持有界。
+这个抽象正确地把策略塑形过的证据写入历史，而不是 raw side effect。Raw side effect 仍可能在 rollout 或 UI 中存在，但模型可见账本保持有界。
+
+Truncation policy 本身是一个由当前输出上限驱动的小型状态机。可以把它画成漏斗：
+
+```text
+                raw tool output
+                       |
+                       v
+        +---------------------------+
+        |   under per-output limit? | -- yes --> 原样记录
+        +---------------------------+
+                       |
+                       no
+                       v
+        +---------------------------+
+        |   has a structured tail?  | -- yes --> 保留 head + tail elision
+        +---------------------------+
+                       |
+                       no
+                       v
+        +---------------------------+
+        |   replace body with note  | --------> 写入 placeholder + size
+        +---------------------------+
+```
+
+这条漏斗也是后面章节能讨论"tool output 作为有预算的平面"的原因。Tool output 通过单一漏斗进入历史，而不是被每个调用点临时截断。
 
 ## Normalization 保护不变量
 
-Function call 和 function output 是配对的。删一个不删另一个，会让 prompt 形状被模型 API 拒绝或误解。因此 history manager 删除 oldest/newest item 时会让 normalize helper 移除对应 counterpart。
+Function call 与 function output 是配对的。删除其中一方不删另一方，会让 prompt 形状被模型 API 拒绝或误解。历史 manager 在丢弃最旧或最新 items 时把配对删除委托给 normalization helper。这是 `remove_first_item` 在需要时也会移除对应方的原因。
 
-采样前也类似。`for_prompt` 克隆 manager，归一化，并按模型 input modalities 剥离不适合的内容。模型不支持图片时，图片会从 message 和 tool output 中移除。持久 ledger 可以保留更丰富的证据，prompt projection 只暴露当前模型能接受的形状。
+同样的思想出现在采样前。`for_prompt` 克隆 manager、做 normalization，再剥离不适合当前模型模态的 items。如果模型不支持图片，message 与 tool output 中的图片内容会被移除。原始账本仍能保留更丰富的历史，prompt projection 则尊重当前模型契约。
 
 ```mermaid
 flowchart TD
-  A[Raw ledger clone] --> B[Normalize pairs]
-  B --> C{Model accepts images?}
-  C -- yes --> D[Keep images]
-  C -- no --> E[Strip image content]
-  D --> F[Prompt input]
-  E --> F
+  A[Raw ledger clone] --> B{配对检查}
+  B -- "call 缺 output" --> C[丢弃 call 或补 stub output]
+  B -- "output 缺 call" --> D[丢弃 orphan output]
+  B -- 配对正常 --> E{模型支持图片？}
+  E -- 是 --> F[保留可含图片的 items]
+  E -- 否 --> G[剥离图片内容]
+  F --> H[Prompt input]
+  G --> H
+  C --> E
+  D --> E
+  classDef safe fill:#dcfce7,stroke:#15803d;
+  classDef warn fill:#fee2e2,stroke:#b91c1c;
+  class C,D,G warn;
+  class F,H safe;
 ```
 
-## Token 估算是有意粗糙的
+权衡很明显：Codex 选择对每个 provider 都安全的 prompt 形状，而不是最大保真度。如果某个 item 在当前模型下无法安全表示，是 projection 改变，而不是账本被破坏。
 
-ContextManager 用 base instructions 加 item 估算做 token 估计，并且源码明确把它看成粗略下界，而不是 tokenizer 精确计数。这个选择务实：跨 provider 和 modality 做精确 tokenizer 会很脆弱。Codex 需要的是足以触发 compaction、展示 UI 和预算决策的信号。
+## Token 估计天然粗糙
 
-## Rollback 与 Baseline
+Manager 用 byte-based 启发式从 base instructions 与每条 item 估计 token。源码明确把它视为粗糙下界，而非 tokenizer 级精确计费。这是务实选择：跨 provider 与多模态做精确分词代价高且脆弱，Codex 只需要足够好的信号来驱动 compaction 阈值、UI 反馈和预算。
 
-Rollback 证明 ledger 不是普通 vector。丢掉最近 N 个 user turns 时，Codex 要保留 first user message 前的材料，处理 no-op，尊重 assistant inter-agent 边界，并在 surviving history 不再包含建立 baseline 的 initial context bundle 时清掉 `reference_context_item`。
+更好的理解是它是一个*下限*：从不承诺真实代价更低，只承诺不会超过其上限附近的邻居。这个性质让下游代码做出保守决策：
 
-否则未来 turn 会对一个已经不存在的 baseline 做 diff，漏掉重要 context。
+| 消费者 | 由估计驱动的决策 | 估计偏低的风险 |
+| --- | --- | --- |
+| Compaction 阈值 | 触发采样前 compaction。 | Compaction 触发稍晚但不会过早。 |
+| Skill 预算 | 决定是否截断描述。 | 略多于理想的材料溜进来。 |
+| Memory write | 写入前截断 rollout payload。 | Memory 生成收到比平时更大的 payload。 |
+| UI 展示 | 显示剩余上下文进度条。 | UI 报告偏少；用户感受到的余量比实际更宽。 |
+
+模型响应报告 usage 时，精确 token 计数才到达。在那之前，估计让 runtime 不至于盲飞。
+
+## Rollback 与 Reference Baseline
+
+Rollback 才让账本证明自己不只是 vector。删除最近 N 个用户 turn 必须保留 pre-user 材料、处理 no-op、尊重 assistant 之间的 inter-agent 边界，以及在剩余历史不再包含原 initial context bundle 时清空 reference context baseline。
+
+最后这条行为很微妙。如果 Codex 继续 diff 一个其源文本已被移除的 baseline，未来的 turn 就可能省略关键上下文。清空 baseline 让下一次常规 turn 完整重新注入 context，而不是信任过期的 diff。
+
+一个小例子让这个选择更清楚：
+
+```text
+回滚前 (drop last 1 user turn):
+  [ initial_ctx | user1 | asst1 | user2 | asst2 ]
+                         ^^^^^^^^^^^^^^
+                         baseline references "initial_ctx" only
+
+回滚后:
+  [ initial_ctx | user1 | asst1 ]
+                ^^^^^^^^^^^^^^^^
+                baseline 仍有效, 保留
+
+回滚同时移除 initial_ctx 后:
+  [ user1 | asst1 ]
+  baseline 清空 -> 下次 turn 完整重新注入 context
+```
+
+第一种情况是 happy path；第三种情况避免了无声 context 漂移。规则故意保守：拿不准就重新注入。
 
 ## 应用模式
 
-1. **Prompt Ledger** -> 用结构化 items 存储模型可见历史，迁移时在插入时过滤非 prompt 事件，注意 UI 事件泄漏进模型历史。
-2. **Normalize on Projection** -> 构造 prompt view 时修复 provider-facing 不变量，迁移时先 clone 再 normalize，注意 normalization 破坏持久证据。
-3. **Paired Deletion** -> 把 tool call 和 output 作为一组删除，迁移到任何 request/response 协议都适用，注意 truncation 留下孤儿协议帧。
-4. **Baseline Clearing** -> rewrite 删除 baseline 来源时让 diff baseline 失效，迁移时保存显式 baseline metadata，注意历史重写后的 stale context diff。
-5. **Coarse Budget Signal** -> 用便宜估算做实时决策，用精确计数做事后事实，迁移时设置保守阈值，注意把估算当作账单级真相。
+1. **Prompt Ledger** -> 用结构化 items 存储模型可见历史，迁移时在写入时过滤非 prompt 事件，注意 UI 事件渗入模型历史。
+2. **Normalize on Projection** -> 在构造 prompt view 时修复 provider-facing 不变量，迁移时先 clone 再 normalize，注意 normalization 摧毁了持久证据。
+3. **Paired Deletion** -> 把 tool call 与 output 当作一个单元删除，迁移到任何请求/响应协议，注意截断后留下孤立协议帧。
+4. **Baseline Clearing** -> 当 rollback 或 compaction 移除其来源时，让 diff baseline 失效，迁移时存显式 baseline 元信息，注意历史重写后仍用旧 diff。
+5. **Coarse Budget Signal** -> 用便宜估计做实时决策，可用时再用精确计数，迁移时使用保守阈值，注意把估计当作账单级真相。

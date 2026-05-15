@@ -1,71 +1,191 @@
 # 第 7 章：Resume、Rollback、Fork 与 Replay
 
-第 6 章说明了 compaction 是 checkpoint 协议。这个协议只有在系统能重建有效上下文时才有价值。Codex 必须 resume 旧线程、rollback 最近 user turns、为 child agents fork 工作，并为客户端 replay 足够历史。runtime 不能在进程退出或分叉后相信内存 vector；它必须从 rollout 证据重建。
+第 6 章把 compaction 解释为 checkpoint 协议。这套协议只有在系统之后能重建有效上下文时才划算。Codex 必须能 resume 旧 thread、回滚最近用户 turn、为子 agent 派生工作、并向客户端 replay 足够多的历史。进程退出或分叉之后，runtime 不能信任内存里的 vector，必须从 rollout 证据重建。
 
-Reconstruction 代码体现了 Codex 的上下文纪律。它从新到旧扫描 rollout items，找到最新 surviving replacement-history checkpoint 和 resume metadata，然后把 surviving suffix 正向 replay。Rollback markers 在扫描时被应用，所以 rebuilt history 代表有效状态，而不是 raw event order。
+重建代码是 Codex 上下文纪律最清楚的例子之一。它从新到旧扫描 rollout items，找到最近仍有效的 replacement-history checkpoint 与 resume 元信息，然后把存活的后缀向前重放。Rollback 标记在扫描时被解释，重建出的历史反映的是有效状态，而不是 raw 事件顺序。
+
+读完本章，你应该明白持久上下文与持久 transcript 不是一回事。
 
 <div class="source-equivalence">
 本章对应
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L4">RolloutReconstruction</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">reverse reconstruction</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L250">legacy compaction handling</a>,
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L26">user-turn rollout positions</a>，以及
-<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L57">fork-turn positions</a>。
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L4">RolloutReconstruction</a>、
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">逆向重建</a>、
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L250">遗留 compaction 处理</a>、
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L26">user-turn rollout 位置</a>，以及
+<a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L57">fork-turn 位置</a>。
 </div>
 
-## Reconstruction 的三个输出
+## 重建的三个输出
+
+重建返回三件东西：
 
 | 输出 | 为什么重要 |
 | --- | --- |
-| Rebuilt history | 后续 turn 使用的模型可见 ledger。 |
-| Previous turn settings | resume 后决定 model/realtime diff 的 metadata。 |
-| Reference context item | settings diff baseline，或显式 cleared 状态。 |
+| 重建的历史 | 后续 turn 用的模型可见账本。 |
+| 上一次 turn 设置 | resume 时决定模型/realtime diff 所需的元信息。 |
+| Reference context item | 设置 diff 的 baseline，或显式的"已清空"状态。 |
 
-后两项很容易漏掉。Resume 不只是“加载 messages”，还要恢复第 4 章 diff 系统需要的 context baseline。如果 compaction 清掉 baseline，resume 也必须保留这个清除动作。
+后两个输出容易被忽视。Resume 不只是"加载消息"，它还必须恢复第 4 章 diff 系统使用的上下文 baseline。如果 compaction 清空了那个 baseline，resume 必须保持已清空的状态。
 
 ```mermaid
 flowchart TD
-  A[Rollout items] --> B[Reverse scan]
-  B --> C{Found surviving checkpoint?}
-  C -- yes --> D[Use replacement history base]
-  C -- no --> E[Start from empty history]
-  B --> F[Recover previous settings]
-  B --> G[Recover or clear reference context]
-  D --> H[Replay surviving suffix forward]
+  A[Rollout items] --> B[逆向扫描]
+  B --> C{找到存活 checkpoint？}
+  C -- 是 --> D[使用 replacement history 起点]
+  C -- 否 --> E[从空历史开始]
+  B --> F[恢复上一次设置]
+  B --> G[恢复或清空 reference context]
+  D --> H[向前重放存活后缀]
   E --> H
-  H --> I[Rebuilt ContextManager state]
+  H --> I[重建 ContextManager 状态]
+  classDef phase1 fill:#fef3c7,stroke:#92400e;
+  classDef phase2 fill:#dbeafe,stroke:#1e40af;
+  classDef phase3 fill:#dcfce7,stroke:#15803d;
+  class A,B phase1;
+  class C,D,E,F,G phase2;
+  class H,I phase3;
 ```
 
-## Rollback 改变过去的意义
+逆向扫描高效，因为一旦找到更新的存活 replacement-history checkpoint 与所需元信息，旧 rollout items 就与重建无关。
 
-Rollback marker 不删除 raw rollout records。它改变哪些 user-turn segments 算作 effective history。逆向扫描时，“丢掉最新 N 个 user turns”被解释成“跳过接下来 N 个 finalized user-turn segments”。这样 Codex 保留审计证据，同时重建用户要求的状态。
+## 阅读 Rollout 布局
 
-Rollout truncation helpers 也遵循同一思想：user-message positions 会在应用 rollback markers 时更新；fork-turn positions 同时考虑真实用户消息和会触发 turn 的 assistant inter-agent envelope。
-
-## Fork Boundary 不只是人类消息
-
-多 agent 工作让上下文边界更复杂。child agent 可能从 assistant inter-agent envelope 开始，而不是普通 user message。Codex 的 fork turn 逻辑会把触发 turn 的 assistant envelope 当作 boundary，以保留 delegated work 的语义单元。
+Rollout 是一份 append-only 的结构化 item 日志。一段示意：
 
 ```text
-// 伪代码：说明 effective fork truncation。
+rollout (oldest                                                 newest)
++----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+|i_c | u1 | a1 | t1 | u2 | a2 | RB | u3 | a3 | CP | u4 | a4 | u5 | a5 |
++----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+   |    |    |    |    |    |    |    |    |    |    |    |    |    |
+   |    |    |    |    |    |    |    |    |    |    |    |    |    +-- assistant
+   |    |    |    |    |    |    |    |    |    |    |    |    +------- user5 (latest)
+   |    |    |    |    |    |    |    |    |    |    |    +------------ assistant
+   |    |    |    |    |    |    |    |    |    |    +----------------- user4
+   |    |    |    |    |    |    |    |    |    +---------------------- CHECKPOINT
+   |    |    |    |    |    |    |    |    +--------------------------- assistant
+   |    |    |    |    |    |    |    +-------------------------------- user3
+   |    |    |    |    |    |    +------------------------------------- ROLLBACK marker
+   |    |    |    |    |    +------------------------------------------ assistant
+   |    |    |    |    +----------------------------------------------- user2
+   |    |    |    +---------------------------------------------------- tool record
+   |    |    +--------------------------------------------------------- assistant
+   |    +-------------------------------------------------------------- user1
+   +------------------------------------------------------------------- initial_ctx
+```
+
+扫描从右往左走，碰到最近的存活 checkpoint 就短路。例子里 `u3` 与 `u4` 之间的 `CP` 就是这个点，于是 `i_c`、`u1`、`a1`、`t1`、`u2`、`a2` 对重建已无意义。Rollback 标记 `RB` 在扫描中被解释。
+
+## 逆向扫描算法
+
+算法不长但谨慎。下面的伪代码忠实地反映其形状：
+
+```text
+// 伪代码 -- 逆向重建。
+rebuiltSuffix      = []
+referenceCleared   = false
+sawCheckpoint      = false
+
+for item in reversed(rollout):
+    if not sawCheckpoint and item.isReplacementCheckpoint():
+        rebuiltSuffix = item.replacementBase + rebuiltSuffix
+        sawCheckpoint = true
+        continue
+
+    if item.isRollbackMarker():
+        applyRollback(rebuiltSuffix, item.scope)
+        continue
+
+    if item.isPreviousSettings():
+        previousSettings = previousSettings or item.value
+        continue
+
+    if item.isReferenceContext():
+        referenceContext = referenceContext or item.value
+        if item.cleared: referenceCleared = true
+        continue
+
+    if not sawCheckpoint:
+        rebuiltSuffix.prepend(item)
+
+if referenceCleared:
+    referenceContext = None
+
+return rebuiltSuffix, previousSettings, referenceContext
+```
+
+注意三条性质。其一，循环在拿到所需信息后立刻终止；其二，"已清空"标志即使较早出现（逆序中较晚扫到），也会胜过更早的 baseline；其三，rollback 标记在构建过程中应用，避免对 suffix 编辑两次。
+
+## Rollback 改变过去的含义
+
+Rollback 标记不会删除 raw rollout 记录，它改变哪些 user-turn 段落计入有效历史。逆向扫描时，Codex 把"丢弃最近 N 个用户 turn"理解为"跳过接下来 N 个完成的 user-turn 段落"。这让重建在保留 raw 证据的同时，重建出用户要求的状态。
+
+同样的逻辑出现在 rollout truncation helpers：在应用 rollback 标记的同时跟踪 user-message 位置。Fork-turn 位置同时包含真实用户消息与触发 turn 的 assistant inter-agent envelope；rollback 按 instruction-turn 边界移除过期后缀。
+
+这是一个严肃设计：rollback 是账本里的事件，而不是对日志的破坏性编辑。
+
+| 朴素做法 | Codex 做法 |
+| --- | --- |
+| 修改日志：删除被回滚的 items。 | 追加一个 marker, 在重建时应用。 |
+| Resume 直接读磁盘上的内容。 | Resume 读取 rollout 并做投影。 |
+| 审计只能看到存活状态, 看不到为什么存活。 | 审计可以重放回滚决定。 |
+| 删除前后读到的客户端会出现分歧。 | 所有客户端看到同一份 append-only 日志。 |
+
+Codex 方式付出少量重放代价，换来完整可审计性。
+
+## Fork 边界不止是人类消息
+
+多 agent 工作让上下文边界更复杂。子 agent 可能从 assistant inter-agent envelope 而不是普通用户消息开始。Codex 的 fork turn 逻辑把某些 assistant envelope 在它们触发 turn 时视为边界，保住了被委托工作的语义单元。
+
+```text
+// 伪代码 -- 说明有效 fork 截断。
 for item in rollout:
     if item.isRollbackMarker():
         removeRolledBackInstructionTurns()
-    if item.isRealUserMessage() or item.isTriggeringAgentEnvelope():
+    if item.isRealUserMessage()
+       or item.isTriggeringAgentEnvelope():
         rememberForkBoundary(item.position)
 return suffixStartingAtNthBoundaryFromEnd()
 ```
 
-如果你的 runtime 有多种启动工作的方式，truncation 就必须理解所有方式。
+这个模式不限于多 agent 场景。如果你的 runtime 启动工作的方式不止一种，上下文截断必须理解所有方式。
 
-## Legacy Compaction
+一张小图说明 fork 边界类型：
 
-源码仍然兼容没有 replacement history 的旧 compaction 记录。它会从用户消息和 compaction message 重建 compacted history，清掉 reference baseline，并接受不那么理想的 prompt 形状。这个兼容路径说明了新 checkpoint 协议存在的原因：只有 summary 不够。
+```text
+                fork 边界
+                       v
+  [ user1 | asst1 | AGENT_ENVELOPE | child_user | child_asst
+  | ENV_ENV | grandchild_user | ...                          ]
+         ^ 否            ^ 是                ^ 是
+```
+
+`AGENT_ENVELOPE` 是触发了子 agent turn 的 assistant 消息。它被视为边界，因为从它开始的后缀本身是一个工作单元。用户消息也是边界，但不是唯一的种类。
+
+## 遗留 Compaction
+
+重建代码仍然处理没有 replacement history 的遗留 compaction 记录：从用户消息和已存的 compaction message 重建 compacted history、清空 reference baseline、接受相对不那么理想的 prompt 形状。这条向后兼容路径有教育意义：新 checkpoint 协议存在，正是因为单纯摘要不够。
+
+这也是源码区分持久 rollout 证据与 live history 的原因。Live history 可以随时间改进，rollout replay 则要兼容旧记录。
+
+遗留判断树虽小但值得看一眼：
+
+```text
+  legacy_compaction_record found?
+        |
+        +-- yes -> 从 user_messages + summary_text 重建
+        |          清空 reference_context_item
+        |          接受 prompt 可能不那么干净
+        |
+        +-- no  -> 使用现代 replacement_history checkpoint 路径
+```
+
+分支从不"无声"产生劣化 prompt；形状差异是显式的、被记录的、telemetry 可见的。
 
 ## 应用模式
 
-1. **Replay From Evidence** -> 从 append-only rollout facts 重建上下文，迁移时把 live memory 当 cache，注意 resume 路径相信 stale in-memory state。
-2. **Reverse Checkpoint Search** -> 逆向扫描找最新 surviving base，迁移到 event-sourced 系统时适用，注意有 checkpoint 还全量 replay 整个 log。
-3. **Rollback Marker** -> 把 rollback 记录为事件，迁移时在 reconstruction 阶段应用 marker，注意破坏性编辑 log 擦掉审计性。
-4. **Semantic Boundaries** -> 显式定义 user、agent 和 fork turn boundaries，迁移到每种工作来源，注意 truncation 只理解人类消息。
-5. **Legacy Bridge** -> 保持兼容路径但清掉不安全 baseline，迁移时正确性优先于完美 prompt 形状，注意把旧记录当新 checkpoint。
+1. **Replay From Evidence** -> 从 append-only rollout 事实重建上下文，迁移时把 live 内存当作缓存，注意 resume 路径信任过期内存状态。
+2. **Reverse Checkpoint Search** -> 反向扫描找最新存活起点，迁移到事件溯源系统，注意有 checkpoint 时仍重放整段日志。
+3. **Rollback Marker** -> 把 rollback 记录为事件，迁移时在重建时应用 marker，注意破坏性日志编辑抹掉可审计性。
+4. **Semantic Boundaries** -> 显式定义 user、agent 与 fork turn 边界，迁移到每一种工作来源，注意截断只懂人类消息。
+5. **Legacy Bridge** -> 保留兼容路径但清空不安全 baseline，迁移时把正确性放在 prompt 完美形状之前，注意把旧记录当作新 checkpoint。

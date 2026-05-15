@@ -50,11 +50,46 @@ flowchart LR
   D -- no --> G[Omit and warn]
   E --> H[Prompt projection]
   F --> H
+  classDef step fill:#dbeafe,stroke:#1e40af;
+  classDef good fill:#dcfce7,stroke:#15803d;
+  classDef warn fill:#fef3c7,stroke:#92400e;
+  classDef bad fill:#fee2e2,stroke:#b91c1c;
+  class A,B,C step;
+  class E good;
+  class F warn;
+  class G bad;
+  class H good;
 ```
 
 Warnings are part of the design. If Codex shortens skill descriptions or omits
 some skill metadata, the user-visible runtime can explain that the model saw a
 reduced capability list. Silent omission would be cheaper but harder to debug.
+
+## How the Window Is Sliced
+
+The effective context window is shared between several consumers. A rough
+allocation diagram makes the relationships visible. Numbers are illustrative
+and shift with model and configuration:
+
+```text
++------------------- Effective context window -------------------+
+|                                                                |
+|  base instructions          [#####]                            |
+|  initial context bundle     [######]                           |
+|  per-turn diffs             [###]                              |
+|  history (recent turns)     [####################]             |
+|  optional - skills          [###]   <- budgeted                |
+|  optional - plugins/apps    [##]    <- budgeted                |
+|  optional - memory summary  [##]    <- budgeted, truncated     |
+|  optional - tool outputs    [#####] <- truncation policy       |
+|  reserved for response                          [#######]      |
+|                                                                |
++----------------------------------------------------------------+
+```
+
+The reserved tail on the right is what makes optional planes really optional.
+If the model has no room left to answer, every clever skill description was
+wasted. Budgeting respects that asymmetry: the answer always wins.
 
 ## Skills: Budgeted Discovery
 
@@ -70,16 +105,35 @@ rather show every skill with shorter descriptions than hide capabilities early.
 Only after descriptions are exhausted does it omit skills.
 
 ```text
-// Pseudocode — illustrates optional skill budgeting.
+// Pseudocode -- illustrates optional skill budgeting.
 budget = contextWindow ? percent(contextWindow) : defaultChars
 rendered = renderWithFullPaths(skills, budget)
 if rendered.omitsOrTruncates:
-    rendered = betterOf(rendered, renderWithAliases(skills, budget))
+    rendered = betterOf(
+      rendered,
+      renderWithAliases(skills, budget),
+    )
 emitWarnings(rendered.report)
 ```
 
 The transferable idea is not the exact percentage. It is that optional
 capability discovery has a budget owner and emits diagnostics.
+
+A small ASCII illustration of the breadth-before-depth strategy:
+
+```text
+budget tight, naive depth-first:        budget tight, breadth-first:
+
+  [skill A: full description]             [skill A: short description]
+  [skill B: full description]             [skill B: short description]
+  ... (D, E, F omitted) ...               [skill C: short description]
+                                          [skill D: short description]
+                                          [skill E: short description]
+                                          [skill F: short description]
+
+The naive variant hides capabilities the model could mention.
+The breadth variant keeps the catalog visible at the cost of depth.
+```
 
 ## Hooks and Memory Are Side Channels
 
@@ -95,6 +149,19 @@ important policy context; a memory summary may be helpful personalization. Both
 must enter the same governed context pipeline instead of silently modifying the
 base prompt.
 
+The four side channels and how they are bounded:
+
+| Side channel | Where it enters | Where it is bounded |
+| --- | --- | --- |
+| Hook pre-prompt | Before model sampling each turn. | Hook return shape; hook can reject. |
+| Hook stop continuation | After a stop event. | Hook can refuse to continue. |
+| Memory read | Once per turn, as developer instructions. | Truncation in template rendering. |
+| Memory write | Asynchronously, generating new memory file. | Rollout payload truncated to a percentage of the input window. |
+
+The point is not that side channels are bad; it is that they must be enumerated
+and bounded. Codex treats every additional injection path as a first-class
+plane with the same selection / budget / inject discipline.
+
 ## Tool Outputs and Images
 
 Tool output is optional in a different sense: the observation may be necessary
@@ -106,6 +173,27 @@ turn output and retry.
 
 That is a better failure mode than treating tool output as raw transcript text.
 The output has a protocol identity, so Codex can reason about it.
+
+```mermaid
+flowchart TD
+  A[Tool execution] --> B[Raw observation]
+  B --> C{Output policy}
+  C -- small text --> D[Verbatim history item]
+  C -- large text --> E[Head + tail elision]
+  C -- image --> F{Model accepts images?}
+  F -- yes --> G[Image-bearing item]
+  F -- no --> H[Strip image content, keep text]
+  C -- binary --> I[Placeholder + size note]
+  D --> J[Prompt projection]
+  E --> J
+  G --> J
+  H --> J
+  I --> J
+```
+
+The diagram is dense on purpose. The simplest-looking arrow, "tool output -->
+history," is actually four different cases under the hood. Naming them is half
+the design.
 
 ## Apply This
 

@@ -57,6 +57,38 @@ sequenceDiagram
 Hooks wrap compaction because compaction is a side effect on the thread's
 semantic state. External policy may need to block or observe it.
 
+## Before and After
+
+The clearest way to understand compaction is to see history before and after.
+Square brackets group items chronologically; braces note item type:
+
+```text
+Before compaction (mid-turn, near auto-compact limit):
+
+  [ initial_ctx
+  | user1 | asst1 | tool_call1 | tool_out1 | asst1b
+  | user2 | asst2 | tool_call2 | tool_out2 | asst2b
+  | user3 | asst3 | ... many items ...
+  | userN ]                                <-- triggering user
+                                           ^^^^^^ window almost full
+
+After mid-turn compaction:
+
+  [ summary_message                        <-- replacement history opens
+  | user(recent_summarized)
+  | initial_ctx                            <-- re-inserted before last user
+  | userN ]                                <-- last real user preserved
+
+After pre-turn compaction:
+
+  [ summary_message                        <-- replacement history opens
+  | user(recent_summarized) ]              <-- baseline cleared
+```
+
+Notice how the mid-turn variant re-injects `initial_ctx` because the
+continuation that follows still needs runtime facts. The pre-turn variant
+clears the baseline so the *next* regular turn rebuilds the bundle from scratch.
+
 ## Local Compaction
 
 Local compaction appends a synthesized compaction request to a clone of history,
@@ -68,19 +100,32 @@ optionally inserts initial context, installs a `CompactedItem` with replacement
 history, resets websocket session state, and recomputes token usage.
 
 ```text
-// Pseudocode — illustrates local checkpoint installation.
+// Pseudocode -- illustrates local checkpoint installation.
 history = cloneLiveHistory()
 history.record(compactionRequest)
+while not history.fitsModelWindow():
+    history.dropOldest()
 summary = askModelForSummary(history.forPrompt(model))
-replacement = buildHistory(recentUserMessages(history), summary)
+replacement = buildHistory(
+  recentUserMessages(history),
+  summary,
+)
 if midTurn:
     replacement.insertBeforeLastUser(currentInitialContext)
-installReplacementHistory(replacement, referenceContextForPlacement)
+installReplacementHistory(
+  replacement,
+  referenceContextForPlacement,
+)
 ```
 
 The important detail is replacement history. A later resume does not have to
 infer what compaction meant from a free-form summary alone; it can start from
 the installed replacement.
+
+The retry-by-dropping-oldest loop is small but worth noticing. It keeps prefix
+cache hits as high as possible by trimming from the *old* end. A naive
+implementation would shrink the entire window proportionally, losing both
+warm-cache prefixes and the most recent messages.
 
 ## Remote Compaction
 
@@ -104,7 +149,29 @@ graph TD
   E --> F[Insert canonical context if mid-turn]
   F --> G[Record installed checkpoint]
   G --> H[Replace live history]
+  classDef provider fill:#fce7f3,stroke:#be185d;
+  classDef local fill:#dbeafe,stroke:#1e40af;
+  class C,D provider;
+  class A,B,E,F,G,H local;
 ```
+
+The pink nodes belong to the provider. The blue nodes belong to Codex. The line
+between them is the contract: provider produces, runtime installs.
+
+## Local vs Remote at a Glance
+
+| Aspect | Local compaction | Remote compaction |
+| --- | --- | --- |
+| Compaction work | Codex prompts the live model for a summary. | Provider compact endpoint produces compacted items. |
+| Window protection | Drop-oldest retry loop. | Trim to compact window before request. |
+| Filtering | Codex extracts summary; constructs replacement. | Codex filters returned compacted items. |
+| Trace recording | Replacement history install event. | Installed-checkpoint payload in rollout trace. |
+| Determinism | Depends on live model behavior. | Depends on provider compact contract. |
+| Rollback compatibility | Works against arbitrary models. | Requires provider compact endpoint support. |
+
+Both strategies emit the same kind of event downstream: an installed checkpoint
+that resume code can recognize. Differences are confined to who produces the
+compacted material.
 
 ## Why Summary Alone Is Not Enough
 
@@ -113,6 +180,31 @@ huge. Replacement history can preserve user-message boundaries, compaction item
 placement, and current context insertion. It gives rollout reconstruction a
 concrete base. Summary text alone would force resume code to reinterpret old
 events every time.
+
+A small "summary-only" failure illustrates the trap:
+
+```text
+With summary only:
+
+  [ "Earlier, the user fixed bug X and asked for feature Y;
+     the assistant offered patch P and ran command Q." ]
+
+Resume now must infer:
+  - Were any tool calls accepted?
+  - Did command Q succeed?
+  - What is the current cwd, permissions, model?
+  - Was patch P merged?
+
+With replacement history:
+
+  [ summary_message
+  | tool_call_record(command="Q", exit=0)
+  | patch_record(file="...", status="applied")
+  | initial_ctx
+  | userN ]
+
+Resume now reads protocol items and rebuilds without inference.
+```
 
 Codex still carries summary text, but the checkpoint is the real abstraction.
 

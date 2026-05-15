@@ -49,10 +49,92 @@ flowchart TD
   D --> H[Replay surviving suffix forward]
   E --> H
   H --> I[Rebuilt ContextManager state]
+  classDef phase1 fill:#fef3c7,stroke:#92400e;
+  classDef phase2 fill:#dbeafe,stroke:#1e40af;
+  classDef phase3 fill:#dcfce7,stroke:#15803d;
+  class A,B phase1;
+  class C,D,E,F,G phase2;
+  class H,I phase3;
 ```
 
 The reverse scan is efficient because old rollout items become irrelevant once a
 newer surviving replacement-history checkpoint and needed metadata are known.
+
+## Reading the Rollout Layout
+
+A rollout is an append-only log of structured items. Picture a section of one:
+
+```text
+rollout (oldest                                                 newest)
++----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+|i_c | u1 | a1 | t1 | u2 | a2 | RB | u3 | a3 | CP | u4 | a4 | u5 | a5 |
++----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+   |    |    |    |    |    |    |    |    |    |    |    |    |    |
+   |    |    |    |    |    |    |    |    |    |    |    |    |    +-- assistant
+   |    |    |    |    |    |    |    |    |    |    |    |    +------- user5 (latest)
+   |    |    |    |    |    |    |    |    |    |    |    +------------ assistant
+   |    |    |    |    |    |    |    |    |    |    +----------------- user4
+   |    |    |    |    |    |    |    |    |    +---------------------- CHECKPOINT
+   |    |    |    |    |    |    |    |    +--------------------------- assistant
+   |    |    |    |    |    |    |    +-------------------------------- user3
+   |    |    |    |    |    |    +------------------------------------- ROLLBACK marker
+   |    |    |    |    |    +------------------------------------------ assistant
+   |    |    |    |    +----------------------------------------------- user2
+   |    |    |    +---------------------------------------------------- tool record
+   |    |    +--------------------------------------------------------- assistant
+   |    +-------------------------------------------------------------- user1
+   +------------------------------------------------------------------- initial_ctx
+```
+
+The scan walks right to left and short-circuits at the latest surviving
+checkpoint. In this example that is `CP` between `u3` and `u4`, so older items
+(`i_c`, `u1`, `a1`, `t1`, `u2`, `a2`) become irrelevant for the rebuilt
+history. The rollback marker `RB` is interpreted while scanning.
+
+## Reverse Scan Algorithm
+
+The algorithm is small but careful. The pseudocode below preserves the actual
+shape:
+
+```text
+// Pseudocode -- reverse reconstruction.
+rebuiltSuffix      = []
+referenceCleared   = false
+sawCheckpoint      = false
+
+for item in reversed(rollout):
+    if not sawCheckpoint and item.isReplacementCheckpoint():
+        rebuiltSuffix = item.replacementBase + rebuiltSuffix
+        sawCheckpoint = true
+        continue
+
+    if item.isRollbackMarker():
+        applyRollback(rebuiltSuffix, item.scope)
+        continue
+
+    if item.isPreviousSettings():
+        previousSettings = previousSettings or item.value
+        continue
+
+    if item.isReferenceContext():
+        referenceContext = referenceContext or item.value
+        if item.cleared: referenceCleared = true
+        continue
+
+    if not sawCheckpoint:
+        rebuiltSuffix.prepend(item)
+
+if referenceCleared:
+    referenceContext = None
+
+return rebuiltSuffix, previousSettings, referenceContext
+```
+
+Notice three properties. First, the loop terminates as soon as it has the
+information it needs. Second, the cleared flag wins over an earlier baseline
+even if the baseline appears later in reverse order. Third, rollback markers
+are applied while building, not after, so the suffix does not have to be edited
+twice.
 
 ## Rollback Changes the Meaning of the Past
 
@@ -70,6 +152,15 @@ stale suffixes based on instruction-turn boundaries.
 This is a serious design choice. It means rollback is an event in the ledger,
 not a destructive edit to the log.
 
+| Naive approach | Codex approach |
+| --- | --- |
+| Mutate the log: delete rolled-back items. | Append a marker and apply it during reconstruction. |
+| Resume reads exactly what is on disk. | Resume reads the rollout and projects it. |
+| Every audit shows the surviving state, not why it survived. | Every audit can replay the rollback decision. |
+| Two clients can disagree if one read before, one after, the deletion. | Both clients see the same append-only log. |
+
+The Codex approach pays a small replay cost in exchange for full auditability.
+
 ## Fork Boundaries Are Not Only Human Messages
 
 Multi-agent work complicates context boundaries. A child agent may start from an
@@ -78,17 +169,32 @@ turn logic treats certain assistant envelopes as boundaries when they trigger a
 turn. That preserves the semantic unit of delegated work.
 
 ```text
-// Pseudocode — illustrates effective fork truncation.
+// Pseudocode -- illustrates effective fork truncation.
 for item in rollout:
     if item.isRollbackMarker():
         removeRolledBackInstructionTurns()
-    if item.isRealUserMessage() or item.isTriggeringAgentEnvelope():
+    if item.isRealUserMessage()
+       or item.isTriggeringAgentEnvelope():
         rememberForkBoundary(item.position)
 return suffixStartingAtNthBoundaryFromEnd()
 ```
 
 The pattern matters outside multi-agent systems too. If your runtime has more
 than one way to start work, your context truncation must understand all of them.
+
+A small picture clarifies what counts as a fork boundary:
+
+```text
+                fork boundaries
+                       v
+  [ user1 | asst1 | AGENT_ENVELOPE | child_user | child_asst
+  | ENV_ENV | grandchild_user | ...                          ]
+         ^ no            ^ yes                ^ yes
+```
+
+`AGENT_ENVELOPE` is an assistant message that triggered a child agent turn. It
+is treated as a boundary because the suffix starting there is its own unit of
+work. A user message is also a boundary, but it is not the only kind.
 
 ## Legacy Compaction
 
@@ -101,6 +207,21 @@ checkpoint protocol exists because summary-only compaction is not enough.
 This is also why the source distinguishes durable rollout evidence from live
 history. The live history can improve over time, while rollout replay preserves
 compatibility with older records.
+
+The legacy decision tree is small but worth seeing:
+
+```text
+  legacy_compaction_record found?
+        |
+        +-- yes -> rebuild from user_messages + summary_text
+        |          clear reference_context_item
+        |          accept prompt may be less clean
+        |
+        +-- no  -> use modern replacement_history checkpoint path
+```
+
+The branch never silently produces an inferior prompt; the shape difference is
+explicit, recorded, and visible to telemetry.
 
 ## Apply This
 

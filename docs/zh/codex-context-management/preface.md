@@ -1,33 +1,69 @@
 # 前言
 
-这本书只讲 Codex 的一个核心主题：上下文管理。很多 agent 文章会先讲工具、模型和界面，但 Codex 最值得拆开的地方在于：它没有把上下文当作不断增长的字符串，而是把上下文当作受 runtime 治理的状态。
+本书讨论 Codex 中容易被低估的一个部分：上下文管理。大多数关于 agent 的文章谈的是 tools、模型和用户界面。Codex 之所以值得研究，是因为它把上下文当作受治理的运行时状态。发给模型的 prompt 不是一个会一直增长直到失败的字符串，而是一份 thread 账本、一个 turn envelope、typed context fragments、策略 diff、可选知识平面、compaction checkpoint 和 replay 证据共同投影出的视图。
 
-全书固定到这个公开源码快照：
-[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
-你应当可以只读书先理解系统，源码链接用于审计，而不是阅读前置条件。
+本书使用的源码快照是 [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。本书的设计目标是无需先打开源码就能读懂。源码链接是证据，不是作业。
 
-## 核心论点
+## 论点
 
-这本书的核心论点是：
+架构赌注很简单：
 
-> Codex 让长时间 agent 工作保持连贯的方式，是把上下文作为运行时边界治理，而不是把它当作 prompt 拼接工具。
+> Codex 通过把上下文做成运行时边界，而不是 prompt 构造的便利，让长期 agent 工作保持连贯。
 
-这个论点解释了整个子系统的形状。一次 turn 有显式 envelope。历史在采样前被归一化。运行时事实通过类型化 fragment 注入。可选上下文有预算。压缩安装 replacement history。resume 和 fork 从 rollout 证据重建 prompt 状态。客户端可以渲染上下文状态，但不能拥有它。
+这个赌注解释了整个子系统的形状：每个 turn 都有显式信封；采样前历史会 normalize；运行时事实通过 typed fragments 注入；可选材料受预算约束；compaction 安装 replacement history；resume 与 fork 从 rollout 证据重建 prompt；客户端渲染上下文状态，但不拥有它。
 
-## 本书覆盖什么
+## 一张总览
 
-| 层次 | 你会学到什么 |
+读任何章节之前，整个子系统可以先画成一张图。每个方框对应一章，按顺序排列：
+
+```text
+  +--------------- Codex 上下文 as runtime ---------------+
+  |                                                        |
+  |  [1] 边界           [2] TurnContext 信封               |
+  |        |                       |                       |
+  |        v                       v                       |
+  |  [3] 历史账本    -->   [4] Typed fragments + diffs      |
+  |        |                       |                       |
+  |        +-----------+-----------+                       |
+  |                    v                                   |
+  |             [5] 可选平面                               |
+  |                    |                                   |
+  |                    v                                   |
+  |             [6] Compaction (checkpoint)                |
+  |                    |                                   |
+  |                    v                                   |
+  |             [7] Resume / rollback / fork / replay      |
+  |                    |                                   |
+  |                    v                                   |
+  |             [8] 客户端面 (只读)                        |
+  |                                                        |
+  +--------------------------------------------------------+
+```
+
+按箭头方向阅读章节。每一章都默认前面的 owner 已经存在，专注自己的关注点。如果某章觉得脱节，回到这张图：每件事都在这层栈中有一个位置。
+
+## 本书覆盖的范围
+
+本书不是 Codex 使用教程，而是关于 Codex 如何在一个长期运行的软件工程 agent 中承载上下文的技术读物：
+
+| 层 | 它讲什么 |
 | --- | --- |
-| Turn envelope | 模型、策略、workspace、tools、hooks 和 feature gates 如何被收束到一次 turn。 |
-| History ledger | response items 如何变成可发送给模型的 prompt history。 |
-| Context fragments | 环境、权限、realtime、skills、plugins、hooks 和 memory 如何变成模型可见状态。 |
-| Budgeting | Codex 如何避免可选上下文吞掉整个窗口。 |
-| Compaction | 长线程如何被重写为 checkpointed replacement history。 |
-| Replay | resume、rollback、fork 如何重建有效上下文。 |
-| Client surfaces | TUI、app-server、realtime、trace 与 token usage 如何展示上下文但不拥有上下文。 |
+| Turn envelope | 模型身份、策略、工作区、tools、hooks、feature gates 如何为一次 turn 收集起来。 |
+| 历史账本 | response items 如何变成 prompt-ready 历史，同时保留 call/output 不变量。 |
+| Context fragments | environment、permissions、realtime、skills、plugins、hooks、memory 如何变成模型可见状态。 |
+| Budgeting | Codex 如何防止可选上下文吃掉整个窗口。 |
+| Compaction | 长线程如何被重写成带 checkpoint 的 replacement history。 |
+| Replay | resume、rollback、fork 后的 thread 如何重建有效上下文。 |
+| 客户端面 | TUI、app-server、realtime、trace、token usage 如何在不变成真相来源的前提下暴露上下文。 |
 
-## 阅读方式
+## 不需要 Rust 专家也能读
 
-架构读者可以重点读每章开头、图、取舍和“应用模式”。实现读者应当通读所有章节，因为真正的知识不在“摘要旧消息”，而在“如何把可变 prompt projection 绑定到可审计证据”。
+只有当 Rust 细节能揭示设计时，本书才会引入它们。读到 "struct" 就理解为"有名字的状态包"，读到 "enum" 就理解为"封闭的运行时分支集合"，读到 "async task" 就理解为"在等待模型、tools、hooks 或 I/O 时可以暂停的工作"。
 
-本书不会复刻源码中的 prompt 模板或具体函数体。出现的代码块都是说明模式的伪代码。
+源码链接指向 Codex 公开仓库。叙述刻意不复制专有 prompt 模板或具体实现体；出现伪代码时，它说明的是模式，使用通用名称。
+
+## 如何使用本书
+
+技术负责人可以读每章开头、图示与"应用模式"，理解设计原理。资深工程师建议读完每一章，包括深入部分，因为真正的功课不是"摘要旧消息"，而是如何让一个可变 prompt projection 始终与持久证据绑定。
+
+每章末尾五条"应用模式"是可迁移的模式：如果你在设计新的 agent runtime，模式比具体字段名更重要；如果你在阅读 Codex 源码，章节叙事比模式更重要。

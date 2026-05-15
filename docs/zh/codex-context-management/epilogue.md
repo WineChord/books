@@ -1,17 +1,69 @@
 # 结语：上下文纪律
 
-这本书最重要的结论不是 Codex 有一个聪明的 summary prompt，而是严肃的 agent runtime 必须像数据库治理状态一样治理上下文。它需要 owners、lifetimes、checkpoints、diffs、projections 和 replay。
+核心教训不是 Codex 有一个聪明的摘要 prompt，而是一个严肃的 agent runtime 必须像数据库治理状态那样治理上下文：它需要 owner、生命周期、checkpoint、diff、projection 和 replay。
 
-可以迁移的经验是：
+模式可以迁移：
 
-- 把 raw evidence 和 model-ready projection 分开。
-- 构造 prompt state 之前先 resolve turn envelope。
+- 把 raw 证据与 model-ready projection 分开。
+- 在构造 prompt 之前先解析 turn envelope。
 - 通过 typed fragments 渲染运行时事实。
-- 给可选上下文明确定义预算和诊断。
-- 把 compaction 当 checkpoint installation。
-- 把 rollback 保留为事件，而不是破坏性编辑。
-- 让客户端观察上下文，但不要拥有上下文。
+- 给可选上下文显式预算与诊断。
+- 把 compaction 当作 checkpoint 安装。
+- 把 rollback 保留为事件, 而不是破坏性编辑。
+- 让客户端观察上下文, 但不拥有它。
 
-Codex 并不完美。有些 diff path 仍未覆盖所有 initial context，估算是粗糙的，legacy compaction 兼容路径也带来复杂度。正因为这些边缘存在，这个设计更值得学：它展示了真实产品如何从 prompt 拼接压力演进到一个必须 resume、branch、compact 并解释自己的 runtime。
+## 全书速查图
 
-如果只带走一个问题，请带走这个：不要问“我应该把什么塞进 prompt？”而要问“哪些运行时状态允许变成模型可见，谁拥有它，它应该活多久，我以后如何重建它？”
+如果你只记住本书一张图，让它是这一张。它把 8 章压缩成一次阅读：
+
+```text
+                +------------------------------+
+                |        TurnContext           |   <- 第 2 章 envelope
+                +------+----------+------------+
+                       |          |
+                       v          v
+   +--------------+  fragments  +-----------+
+   | History      |<-- diffs --->| Optional |    <- 第 3, 4, 5 章
+   | ledger       |             | planes    |
+   +------+-------+             +-----+-----+
+          |                           |
+          +------------+--------------+
+                       v
+              +-----------------+
+              | Prompt projection|              <- 第 1 章 边界
+              +--------+--------+
+                       |
+                       v
+                  Model request
+                       |
+                       v
+              +-----------------+
+              | New items + log |
+              +--------+--------+
+                       |
+        +--------------+--------------+
+        v                             v
+  +-----------+                +--------------+
+  | Compaction|                | Rollout      |   <- 第 6, 7 章
+  | checkpoint|                | reconstruction|
+  +-----------+                +------+-------+
+                                      |
+                                      v
+                               +--------------+
+                               | 客户端 view  |   <- 第 8 章
+                               +--------------+
+```
+
+正向 turn 时从上往下读；resume、rollback、replay 时从下往上读。两个方向都经过每一个 owner，差别只在 ledger 是被读还是被重建。
+
+## Codex 并不完美
+
+Codex 并不完美：有些 diff 路径仍不完整，估计较粗糙，遗留 compaction 兼容性带来复杂度。这些粗糙边缘反而让设计更有研究价值，它展示了一个真实产品从"prompt 拼接"压力演化为必须能 resume、分叉、压缩并解释自己的 runtime 时会发生什么。
+
+正确的反应不是"设计错了"，而是"设计承认它哪里不完整"。这种承认本身就是一种架构模式：在显式冗余的正确性，与可能悄悄丢失必需状态的聪明优化之间，宁愿选择前者。
+
+## 一句话带走
+
+只带走一句话的话，请带这一句：不要问"我应该把什么放进 prompt？"，而要问"哪些 runtime 状态允许变成模型可见？谁拥有它？它应该存活多久？以后我怎么重建它？"
+
+第一个问题让你拿到能跑的 demo。第二个问题让你拿到能撑住长期 agent 工作的 runtime。

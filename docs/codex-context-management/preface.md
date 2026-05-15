@@ -25,6 +25,40 @@ fragments. Optional material is budgeted. Compaction installs replacement
 history. Resume and fork rebuild the prompt from rollout evidence. Clients
 render context state, but they do not own it.
 
+## A Map Before You Start
+
+The whole subsystem can be drawn as a single picture before you read any
+chapters. Each box becomes a chapter, in order:
+
+```text
+  +--------------- Codex context as runtime ---------------+
+  |                                                        |
+  |  [1] Boundary       [2] TurnContext envelope           |
+  |        |                       |                       |
+  |        v                       v                       |
+  |  [3] History ledger  -->  [4] Typed fragments + diffs  |
+  |        |                       |                       |
+  |        +-----------+-----------+                       |
+  |                    v                                   |
+  |             [5] Optional planes                        |
+  |                    |                                   |
+  |                    v                                   |
+  |             [6] Compaction (checkpoint)                |
+  |                    |                                   |
+  |                    v                                   |
+  |             [7] Resume / rollback / fork / replay      |
+  |                    |                                   |
+  |                    v                                   |
+  |             [8] Client surfaces (read-only)            |
+  |                                                        |
+  +--------------------------------------------------------+
+```
+
+Read the chapters in the same direction as the arrows. Each chapter assumes the
+previous owners exist and concentrates on its own concern. Reference back to
+this picture if a chapter feels disconnected; everything has a position in this
+stack.
+
 ## What This Book Covers
 
 This is not a tutorial on using Codex. It is a technical publication about how
@@ -58,3 +92,8 @@ sections to understand the design rationale. Senior engineers should read every
 chapter, including the deep dives, because the real lesson is not "summarize old
 messages." The lesson is how to keep a mutable prompt projection tied to durable
 evidence.
+
+Each chapter ends with five "Apply This" items. They are the transferable
+patterns. If you are designing a new agent runtime, the patterns matter more
+than the exact field names. If you are reading Codex source, the chapter
+narrative matters more than the patterns.

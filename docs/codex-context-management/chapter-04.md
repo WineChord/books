@@ -30,17 +30,76 @@ later code to recognize the fragment. That is stronger than "return a string."
 It creates a typed registry of model-visible runtime facts.
 
 ```text
-// Pseudocode — illustrates typed fragment rendering.
-fragment.role = "user" or "developer"
+// Pseudocode -- illustrates typed fragment rendering.
+fragment.role    = "user" or "developer"
 fragment.markers = optionalRecognitionTags()
-fragment.body = renderRuntimeFact()
-message = makeResponseItem(fragment.role, fragment.markers + fragment.body)
+fragment.body    = renderRuntimeFact()
+message = makeResponseItem(
+  fragment.role,
+  fragment.markers + fragment.body,
+)
 ```
 
 Markers are especially important. They let filtering and replay logic recognize
 injected context without reconstructing every concrete payload. Unmarked
 fragments can still render text, but they opt out of recognition. That is a
 clean trade-off: recognition requires explicit syntax.
+
+A typical marker pair looks like inline tags wrapping the body:
+
+```text
+<environment_context cwd="/repo" shell="bash">
+  current directory: /repo
+  permissions: read+write inside /repo, no network
+  date: 2025-...
+</environment_context>
+```
+
+The tag is human-readable on the model side and machine-recognizable on the
+runtime side. Codex pays a small token cost to keep replay code uncomplicated.
+
+## Where the Fragment Stack Sits
+
+The fragment layer is one of three rendering disciplines that meet at the
+prompt projection. The diagram shows their distinct responsibilities:
+
+```mermaid
+flowchart LR
+  subgraph runtime["Runtime state"]
+    A[TurnContext]
+    B[Permission profile]
+    C[Realtime / mode flags]
+    D[Skills / plugins / hooks]
+    E[Memory mode]
+  end
+  subgraph fragments["Typed fragment renderers"]
+    F[Environment fragment]
+    G[Permission fragment]
+    H[Realtime fragment]
+    I[Skill / plugin fragment]
+    J[Memory fragment]
+  end
+  subgraph projection["Projection inputs"]
+    K[Initial context bundle]
+    L[Settings diff items]
+    M[Optional plane items]
+  end
+  A --> F --> K
+  B --> G --> L
+  C --> H --> L
+  D --> I --> M
+  E --> J --> K
+  classDef rt fill:#fef3c7,stroke:#92400e;
+  classDef fr fill:#dbeafe,stroke:#1e40af;
+  classDef pj fill:#dcfce7,stroke:#15803d;
+  class A,B,C,D,E rt;
+  class F,G,H,I,J fr;
+  class K,L,M pj;
+```
+
+The three lanes prevent a common bug: runtime state being rendered through
+inconsistent code paths. Once a fragment exists, every subsystem that wants to
+inject the same fact uses the same renderer.
 
 ## The Fragment Catalog
 
@@ -87,11 +146,32 @@ flowchart TD
   G --> J
   H --> J
   I --> J
+  classDef start fill:#fef3c7,stroke:#92400e;
+  classDef diff fill:#fee2e2,stroke:#b91c1c;
+  classDef record fill:#dcfce7,stroke:#15803d;
+  class A,B start;
+  class D,E,F,G,H,I diff;
+  class J record;
 ```
 
 The result is precise context churn. Codex avoids repeating everything when
 nothing changed, but it can still fully reinject after compaction or rollback by
 clearing the reference baseline.
+
+The diff order is deliberately not alphabetic. Reading from top to bottom of
+the developer update sections, each section assumes the previous ones have
+already taken effect:
+
+```text
+1. model switch       - frames every later section in this turn
+2. permissions        - establishes what tools the model may attempt
+3. collaboration/mode - changes interaction contract under those permissions
+4. personality        - tunes voice without changing capabilities
+```
+
+If you reverse this order, the model can read mode guidance under the wrong
+permissions, or personality guidance referring to tools that the new model does
+not have.
 
 ## Initial Context Versus Update Context
 
@@ -103,6 +183,19 @@ updates, you waste tokens and bury signal.
 Codex keeps the distinction by storing a `TurnContextItem` baseline and by
 letting compaction choose whether replacement history should include initial
 context. Chapter 6 covers that placement in detail.
+
+A short table makes the distinction unambiguous:
+
+| | Initial context | Update context |
+| --- | --- | --- |
+| Frequency | Once per "session start" or after baseline cleared. | Per turn when a baseline already exists. |
+| Shape | Full bundle of environment, permissions, mode, hooks, skills. | Diff fragments, possibly empty. |
+| Trigger | Compaction without baseline, rollback that cleared baseline, fresh thread. | Any turn whose envelope differs from baseline. |
+| Failure if confused | Resume sees an updates-only prompt with missing facts. | Token waste and a noisy model context. |
+
+The distinction is also visible in code as two different rendering paths.
+"Build the bundle" and "build the diff" never share the same function: they
+share the same fragment renderers.
 
 ## A Design Tension
 

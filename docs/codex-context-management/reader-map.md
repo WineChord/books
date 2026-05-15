@@ -6,6 +6,23 @@ app-server surface. It zooms in on the question those systems all depend on:
 what exactly does the model see, why does it see that, and how does Codex keep
 the answer stable after many turns?
 
+## Three Reading Paths
+
+You can read this book in three ways. Pick the path that matches your goal:
+
+```text
+  goal                          chapters in order
+  ----                          -----------------
+  architectural overview        1 -> 2 -> 6 -> 7 -> Epilogue
+  implementation deep dive      1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
+  pattern hunting               Apply This sections only, in order
+```
+
+Each path is honest about its trade-off. The overview path skips most
+implementation density and finishes in under an hour. The deep-dive path is
+the only one that reads every section. The pattern path is the fastest way to
+extract transferable design moves for another runtime.
+
 ## For Architecture Readers
 
 Read chapters 1, 2, 6, 7, and the epilogue. That path gives you the central
@@ -44,6 +61,23 @@ Each concept has one home:
 | Local and remote compaction | Chapter 6 |
 | Rollout reconstruction and truncation | Chapter 7 |
 | TUI/app-server/realtime/token usage surfaces | Chapter 8 |
+
+## Cross-References at a Glance
+
+The chapters reuse a small set of vocabulary. The table below shows which
+chapter introduces each term and which chapters depend on it:
+
+| Term | Introduced in | Reused in |
+| --- | --- | --- |
+| Prompt projection | Chapter 1 | every later chapter |
+| Turn envelope (`TurnContext`) | Chapter 2 | 4, 6, 7, 8 |
+| History ledger | Chapter 3 | 4, 5, 6, 7 |
+| Reference baseline | Chapter 3 | 4, 6, 7 |
+| Typed fragment | Chapter 4 | 5, 8 |
+| Settings diff | Chapter 4 | 6, 7 |
+| Optional plane | Chapter 5 | 8 |
+| Replacement history | Chapter 6 | 7 |
+| Rollback marker | Chapter 7 | 8 |
 
 Later chapters reference earlier ideas instead of re-explaining them. If a
 section feels terse, follow its source atlas links after you finish the chapter;

@@ -39,14 +39,36 @@ past conversation; it is also the baseline for deciding which runtime facts must
 be reintroduced on the next turn. When compaction or rollback invalidates that
 baseline, Codex clears it and falls back to full reinjection.
 
+A compact ASCII layout makes the four-field shape easier to remember:
+
+```text
++------------------ ContextManager ------------------+
+|                                                    |
+|  items:                                            |
+|  [ user_msg | tool_call | tool_out | asst_msg ...] |    oldest -> newest
+|                                                    |
+|  history_version: u64       (bumped on rewrite)    |
+|  token_info:      TokenInfo (latest estimate or    |
+|                              exact usage)          |
+|  reference_context_item: Option<TurnContextItem>   |
+|       Some(item) -> next turn diffs against it     |
+|       None       -> next turn fully reinjects      |
+|                                                    |
++----------------------------------------------------+
+```
+
+Three of the four fields look ordinary. The reference baseline is the one that
+quietly turns the ledger into more than a vector. It is the link between
+Chapter 2's envelope and the diff fragments of Chapter 4.
+
 ```mermaid
 stateDiagram-v2
   [*] --> Recording
   Recording --> Normalizing: for_prompt()
   Recording --> Rewritten: compaction or rollback
-  Rewritten --> Recording: new history_version
+  Rewritten --> Recording: new history_version, baseline cleared
   Normalizing --> PromptReady: strip unsupported items
-  PromptReady --> Recording: model/tool output recorded
+  PromptReady --> Recording: model and tool output recorded
 ```
 
 The state machine is conceptual. The code mostly uses cloning and mutation, but
@@ -68,7 +90,7 @@ instead of allowing one command to consume the whole context window.
 The pattern looks like this:
 
 ```text
-// Pseudocode — illustrates filtered ledger recording.
+// Pseudocode -- illustrates filtered ledger recording.
 for item in incomingItems:
     if not modelHistoryItem(item):
         continue
@@ -79,6 +101,34 @@ for item in incomingItems:
 This is the right abstraction because it records policy-shaped evidence, not raw
 side effects. The raw side effect may still exist in the rollout or UI, but the
 model-visible ledger stays bounded.
+
+The truncation policy itself is a small state machine driven by the active
+output limits. Picture it as a funnel:
+
+```text
+                raw tool output
+                       |
+                       v
+        +---------------------------+
+        |   under per-output limit? | -- yes --> record verbatim
+        +---------------------------+
+                       |
+                       no
+                       v
+        +---------------------------+
+        |   has a structured tail?  | -- yes --> keep head + tail elision
+        +---------------------------+
+                       |
+                       no
+                       v
+        +---------------------------+
+        |   replace body with note  | --------> record placeholder + size
+        +---------------------------+
+```
+
+This funnel is the reason chapters later in the book can talk about "tool
+output as a budgeted plane." Tool output enters history through one funnel,
+not through ad-hoc truncation in every call site.
 
 ## Normalization Protects Invariants
 
@@ -96,12 +146,20 @@ prompt projection respects the model contract.
 
 ```mermaid
 flowchart TD
-  A[Raw ledger clone] --> B[Normalize call/output pairs]
-  B --> C{Model accepts images?}
-  C -- yes --> D[Keep image-capable items]
-  C -- no --> E[Strip image content]
-  D --> F[Prompt input]
-  E --> F
+  A[Raw ledger clone] --> B{Pair check}
+  B -- "call without output" --> C[Drop call or stub output]
+  B -- "output without call" --> D[Drop orphan output]
+  B -- pairs ok --> E{Model accepts images?}
+  E -- yes --> F[Keep image-capable items]
+  E -- no --> G[Strip image content]
+  F --> H[Prompt input]
+  G --> H
+  C --> E
+  D --> E
+  classDef safe fill:#dcfce7,stroke:#15803d;
+  classDef warn fill:#fee2e2,stroke:#b91c1c;
+  class C,D,G warn;
+  class F,H safe;
 ```
 
 The trade-off is visible: Codex chooses safe prompt shape over maximal fidelity
@@ -116,6 +174,17 @@ bound, not tokenizer-perfect accounting. That is a pragmatic choice. Exact
 tokenization across providers and modalities would be expensive and brittle.
 Codex needs a signal good enough for compaction thresholds, UI feedback, and
 budgeting.
+
+The estimate is best understood as a *floor*: it never promises that the real
+cost is lower, only that it is not higher than its ceiling-shaped neighbours.
+That property is what allows downstream code to make conservative decisions:
+
+| Consumer | Decision driven by the estimate | Risk if the estimate is too low |
+| --- | --- | --- |
+| Compaction threshold | Trigger pre-sampling compaction. | Compaction triggers slightly late but never early. |
+| Skill budget | Decide whether to truncate descriptions. | Slightly more material than ideal slips through. |
+| Memory write | Truncate rollout payload before writing. | Memory generation receives larger payload than usual. |
+| UI display | Show remaining context bar. | UI underreports; user sees a more comfortable margin than reality. |
 
 The exact token count arrives when the model response reports usage. Until then,
 the estimate prevents the runtime from flying blind.
@@ -132,6 +201,28 @@ That last behavior is subtle. If Codex kept diffing against a baseline whose
 source text was removed, future turns could omit important context. Clearing the
 baseline makes the next regular turn reinject full context instead of trusting a
 stale diff.
+
+A small worked example clarifies the choice:
+
+```text
+Before rollback (drop last 1 user turn):
+  [ initial_ctx | user1 | asst1 | user2 | asst2 ]
+                         ^^^^^^^^^^^^^^
+                         baseline references "initial_ctx" only
+
+After rollback:
+  [ initial_ctx | user1 | asst1 ]
+                ^^^^^^^^^^^^^^^^
+                baseline still valid, kept
+
+After rollback that also removed initial_ctx:
+  [ user1 | asst1 ]
+  baseline cleared -> next turn fully reinjects context
+```
+
+The first case is the happy path. The third case is the one that prevents
+silent context drift. The decision rule is conservative on purpose: when in
+doubt, reinject.
 
 ## Apply This
 

@@ -46,22 +46,59 @@ outputs may be too large. Compaction may rewrite the old transcript entirely.
 One buffer cannot represent those lifetimes cleanly.
 
 ```mermaid
-graph TD
-  A[Thread rollout] --> B[History ledger]
-  C[Turn envelope] --> D[Context updates]
-  E[Optional planes] --> F[Budgeted injections]
-  B --> G[Prompt projection]
-  D --> G
+flowchart TD
+  subgraph durable["Durable evidence (append-only)"]
+    A[Thread rollout]
+    B[History ledger]
+  end
+  subgraph runtime["Per-turn runtime state"]
+    C[Turn envelope]
+    D[Settings diffs]
+  end
+  subgraph optional["Budgeted optional planes"]
+    E[Skills / plugins / memory]
+    F[Tool outputs / images]
+  end
+  A --> B
+  B --> G((Prompt projection))
+  C --> D --> G
+  E --> G
   F --> G
   G --> H[Model request]
   H --> I[New response items]
   I --> A
   I --> B
+  classDef plane fill:#fef3c7,stroke:#92400e,color:#1f2937,stroke-width:1px;
+  classDef runtime fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e,stroke-width:1px;
+  classDef optional fill:#ecfccb,stroke:#3f6212,color:#1a2e05,stroke-width:1px;
+  classDef projection fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px;
+  class A,B plane;
+  class C,D runtime;
+  class E,F optional;
+  class G projection;
 ```
 
 The important arrow is not the one into the model. It is the loop back into the
 rollout and history ledger. Codex keeps enough evidence to later rebuild why a
 prompt looked the way it did.
+
+## Naive Prompt vs Runtime-Managed Context
+
+The simplest agent design treats the prompt as a mutable string. Each turn,
+the previous transcript is concatenated with the new user message and sent to
+the model. That design has predictable failure modes:
+
+| Failure mode | Why it happens with naive prompts | What Codex does instead |
+| --- | --- | --- |
+| Permission drift | Stale policy text remains long after the policy changes. | Policy is computed per turn from the envelope and emitted as a diff fragment. |
+| Tool flood | Large tool outputs consume the entire window. | Output truncation is applied at insertion time; the rollout still carries the full payload. |
+| Modality crashes | An image-bearing message is sent to a text-only model. | History is normalized for the active model just before sampling. |
+| Compaction amnesia | A summary loses paired call/output protocol shape. | Compaction installs replacement history that preserves protocol pairing. |
+| Resume guesswork | Reloading a JSON dump of messages misses why the prompt was shaped that way. | Rollout reconstruction replays evidence to rebuild ledger and baseline together. |
+
+Each row corresponds to a Codex subsystem covered later. The point of the
+table is not the rows themselves but the underlying move: every failure mode
+of a naive prompt becomes a runtime concern with a named owner.
 
 ## The Prompt Is a Projection
 
@@ -84,7 +121,7 @@ properties Codex needs:
 The following pseudocode is the pattern, not the implementation:
 
 ```text
-// Pseudocode — illustrates the projection boundary.
+// Pseudocode -- illustrates the projection boundary.
 turnEnvelope = resolveTurnEnvelope(config, runtimeState)
 ledger = loadThreadHistory(threadId)
 ledger.record(contextDiffs(previousEnvelope, turnEnvelope))
@@ -96,6 +133,36 @@ sendToModel(baseInstructions, promptInput, toolSpecs)
 The pattern matters because it makes prompt construction a repeatable runtime
 operation. If context is a projection, Codex can change how it projects without
 corrupting the underlying ledger.
+
+## A Map of the Owners
+
+The five owners can be drawn as a layered stack. Each owner is responsible for
+one concern; the projection step at the top reads from all of them.
+
+```text
+                    +---------------------------------------+
+                    |          Prompt Projection            |
+                    |   (clone, normalize, render fragments) |
+                    +-------+----------+----------+---------+
+                            |          |          |
+            +---------------+      +---+----+ +---+--------------+
+            |                      |        | |                  |
+    +-------v-------+   +---------v-+   +---v---------+   +------v-------+
+    | ContextManager|   | TurnContext|   |  context/*  |   |  Compaction  |
+    | history ledger|   |  envelope  |   |  fragments  |   |  checkpoint  |
+    +-------+-------+   +-----+------+   +------+------+   +------+-------+
+            |                 |                 |                 |
+            +-----------------+--------+--------+-----------------+
+                                       |
+                              +--------v---------+
+                              | Rollout evidence |
+                              |  (append-only)   |
+                              +------------------+
+```
+
+Read the diagram top-down for prompt construction and bottom-up for replay.
+Both directions touch the same five owners; the difference is whether the
+ledger is being read or rebuilt.
 
 ## Context Has Multiple Lifetimes
 
@@ -112,6 +179,23 @@ Codex context is easier to reason about if you classify every piece by lifetime.
 The road not taken is a single "conversation messages" list. That is tempting
 because every model API eventually needs a list. Codex keeps the list as an
 output format, not as the core abstraction.
+
+The lifetimes can be plotted on a time axis showing when each value is
+materialized, mutated, and discarded:
+
+```text
+session  |==============================================|  thread close
+turn         |---|     |---|     |---|     |---|
+prompt        ^^         ^^        ^^        ^^         each turn rebuilds
+checkpoint                |================|             compaction window
+client            |--reads--|        |--reads--|         observers
+                  start          turn N          end
+```
+
+The horizontal bars are not equal. A single session usually contains many
+turns; each turn produces a single prompt projection; checkpoints span ranges
+of turns; clients reattach over time. Reading code in this layout makes it
+clear why a single mutable buffer cannot represent every owner.
 
 ## Source-Level Map
 
