@@ -1,0 +1,233 @@
+import ExtensionProvenance from "../../src/components/visual/ExtensionProvenance.tsx";
+
+# Chapter 18: Skills, Plugins, Connectors, and Typed Extensions
+
+<ExtensionProvenance lang="en" client:visible />
+
+Chapter 17 showed MCP as a runtime tool protocol: external servers are
+discovered, sanitized, routed, and observed without becoming part of the core
+turn loop. This chapter moves up a layer. Before a tool can be routed, the
+system must decide which instructions, packages, hosted app identities, and
+in-process contributors are allowed to shape a thread.
+
+<div class="chapter-lede">
+  <p><strong>You are here:</strong> external tool calls now have a clean protocol boundary.</p>
+  <p><strong>Problem:</strong> an agent platform needs extension packages, workflow instructions, hosted app metadata, and compiled contributors, but each carries a different trust model.</p>
+  <p><strong>Mental model:</strong> Codex has four extension planes: skills teach behavior, plugins package assets, connectors describe hosted app access, and typed extensions contribute in-process state.</p>
+</div>
+
+These surfaces are related but not interchangeable. A skill is primarily a
+model-instruction and workflow unit. A plugin is a distribution package that
+can contain skills, MCP server definitions, hooks, and app connector IDs. A
+connector is hosted app metadata tied to account access. A typed extension is
+compiled into the process and contributes through explicit traits rather than
+through a dynamic plugin ABI.
+
+The architecture becomes readable when those planes stay separate.
+
+```mermaid
+flowchart TB
+    Marketplace["Marketplace and remote bundles"]
+    PluginCache["Plugin cache"]
+    PluginLoader["Plugin loader"]
+    Skills["Skill roots and metadata"]
+    MCP["MCP server configs"]
+    Hooks["Hook configs"]
+    Connectors["Hosted connector IDs"]
+    Directory["Connector directory"]
+    Typed["Typed extension registry"]
+    Thread["Thread start and prompt construction"]
+
+    Marketplace --> PluginCache
+    PluginCache --> PluginLoader
+    PluginLoader --> Skills
+    PluginLoader --> MCP
+    PluginLoader --> Hooks
+    PluginLoader --> Connectors
+    Connectors --> Directory
+    Skills --> Thread
+    MCP --> Thread
+    Hooks --> Thread
+    Directory --> Thread
+    Typed --> Thread
+```
+
+The diagram is intentionally not a single pipeline. Extension loading is a
+set of converging planes that meet at thread construction, tool exposure, and
+runtime policy.
+
+## Skills: Instruction With a Budget
+
+A skill is a named body of instructions, metadata, and optional workflow files.
+It can come from bundled system roots, user or admin roots, repository-local
+roots, or plugins. The runtime does not simply concatenate every skill into
+the prompt. It discovers skill metadata, records load outcomes, renders
+summaries within a budget, and loads full skill bodies only when invocation
+rules justify it.
+
+This is the first-principles reason for a skill budget. Model context is a
+scarce runtime resource. A skill that is always fully present is not an
+extension; it is permanent system prompt growth. Codex instead treats skills as
+available capabilities whose summaries can be shown and whose full bodies can
+be pulled in explicitly or implicitly.
+
+Explicit invocation is the clean path: the user or structured input names a
+skill. Implicit invocation is more inferential: the system can notice commands
+or file access patterns associated with a skill. Both paths should leave an
+audit-friendly explanation of why the skill entered the turn.
+
+```text
+// Pseudocode - illustrative pattern.
+available_skills = discover_skill_roots(config, plugins, repository)
+summaries = []
+
+for each skill in available_skills:
+    outcome = parse_metadata(skill)
+    if outcome.valid:
+        summaries.append(render_summary(outcome.metadata))
+    else:
+        record_warning(outcome.problem)
+
+prompt.add(fit_to_budget(summaries))
+
+for each mention in user_input:
+    skill = resolve_skill_mention(mention)
+    if skill.allowed:
+        prompt.add(load_full_skill_body(skill))
+```
+
+The pseudocode is generic, but the invariant is concrete: discovery, summary,
+and full-body loading are different phases.
+
+## Plugins: Packaging and Distribution
+
+Plugins answer a different question: how do extension assets arrive and stay
+updated? A plugin can be installed from a marketplace, loaded from a cache,
+synced from remote sources, shared, and unpacked into contribution types. That
+unpacking is the architectural point. A plugin is not itself a runtime tool.
+It is a package that may contribute skill roots, MCP server definitions,
+connector IDs, and hooks.
+
+This packaging layer has to be strict about trust. Marketplace names, remote
+plugin IDs, archive entries, bundle paths, and plugin-relative paths all need
+validation. A plugin loader that accepts arbitrary paths has crossed from
+extension loading into filesystem authority.
+
+Plugin sync is also eventually consistent. Marketplace lookup may fail.
+Remote bundles may be stale. A startup refresh can be useful without becoming
+a hard dependency for every thread. Good extension infrastructure treats those
+failures as load outcomes: installed, skipped, invalid, unavailable, or
+warning-producing.
+
+## Connectors: Hosted App Metadata
+
+Connectors normalize hosted app directory metadata. They answer questions such
+as: which app identity is this, what display name should clients show, what
+tools are known, what logo or directory data exists, and whether the current
+account can access it. That metadata is related to MCP and hosted app tools,
+but it is not the same thing as an MCP server.
+
+The important split is directory knowledge versus accessible capability. A
+directory can describe an app even when the user is not authenticated for it.
+The runtime can therefore show a connector, ask for authentication, and later
+expose hosted tools only when access metadata supports that decision.
+
+## Typed Extensions: Compiled Contributions
+
+Typed extensions are the least dynamic of the four planes. They are in-process
+contributors registered through explicit types. Instead of loading arbitrary
+code at runtime, they participate through a narrow API: contribute thread-start
+state, prompt fragments, or other typed data that the app-server and runtime
+know how to consume.
+
+That makes typed extensions useful for internal integration points where the
+extension author and runtime author share a compile-time contract. It also
+explains why they are not a replacement for plugins. Plugins distribute
+configuration and workflow assets; typed extensions contribute code through
+the build.
+
+## Trust and Fail-Soft Loading
+
+Extension loading has to be both strict and forgiving. It is strict about the
+boundary it is validating, and forgiving about optional capabilities that fail.
+Invalid metadata should not become prompt text. A missing connector should not
+crash thread startup. A plugin path outside the allowed bundle should not be
+followed. A remote sync failure should be visible, but ordinary local work
+should continue when cached state is sufficient.
+
+| Plane | Trust question | Fail-soft behavior |
+| --- | --- | --- |
+| skills | Is the metadata parseable and allowed by policy? | skip invalid entries and report warnings |
+| plugins | Is the package identity and path layout trusted? | load valid contributions and ignore rejected ones |
+| connectors | Is hosted metadata available and account-accessible? | show unavailable or auth-needed state |
+| typed extensions | Does the compiled contributor match the registry contract? | reject incompatible typed data early |
+
+This pattern is more important than any one file. Extension systems age well
+when each boundary has its own validation and its own degraded mode.
+
+```text
+// Pseudocode - illustrative pattern.
+plugin = load_plugin_from_cache(plugin_id)
+if not plugin.valid:
+    record_load_outcome(plugin_id, "invalid")
+    continue
+
+for each contribution in plugin.contributions:
+    if contribution.kind == "skill":
+        register_skill_root(validate_plugin_relative_path(contribution.path))
+    if contribution.kind == "mcp_server":
+        register_mcp_server(validate_server_config(contribution.config))
+    if contribution.kind == "hook":
+        register_hook(validate_hook_config(contribution.config))
+    if contribution.kind == "connector":
+        register_connector_id(validate_connector_id(contribution.id))
+```
+
+The loader is a classifier and validator. It should not silently turn every
+plugin field into runtime authority.
+
+<div class="trace-ledger">
+
+## Trace Ledger
+
+| Question | Chapter 18 answer |
+| --- | --- |
+| Where is the user request now? | It is being shaped by extension context before and during thread startup. |
+| What carries it? | skill metadata, plugin load outcomes, connector directory entries, MCP configs, hook configs, and typed extension state. |
+| Who decides next? | policy, loaders, registries, prompt construction, connector auth state, and eventually the model. |
+| What can fail here? | invalid metadata, untrusted bundle paths, marketplace or remote sync failure, missing connector access, disabled skills, or incompatible typed data. |
+
+</div>
+
+<div class="apply-this">
+
+## Apply This
+
+1. **Plane separation.** Solves extension sprawl -> keep skills, plugins, connectors, and typed extensions as distinct planes -> Pitfall: making every package format equally authoritative.
+2. **Budgeted rendering.** Solves prompt bloat from rich extensions -> summarize metadata before loading full bodies -> Pitfall: hiding critical constraints behind an over-compressed summary.
+3. **Validated contribution paths.** Solves plugin path escape risk -> validate plugin-relative paths before registering assets -> Pitfall: trusting manifest strings as filesystem authority.
+4. **Connector indirection.** Solves hosted-app access confusion -> separate directory metadata from account-accessible tools -> Pitfall: showing unavailable hosted tools as usable capabilities.
+5. **Typed compiled seams.** Solves in-process extension safety -> use traits or typed APIs for compiled contributors -> Pitfall: turning typed extensions into arbitrary dynamic code loading.
+
+</div>
+
+## What Comes Next
+
+Extension loading is only half of compatibility. Chapter 19 looks at external
+migration: how Codex imports configurations and sessions from other agent
+systems without pretending their semantics are identical.
+
+<div class="source-equivalence">
+
+## Source Map
+
+| Concept | Source anchor |
+| --- | --- |
+| Skills manager | [`codex-rs/core-skills/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L51) |
+| Skill metadata model | [`codex-rs/core-skills/src/model.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/model.rs#L12) |
+| Plugin manifest | [`codex-rs/core-plugins/src/manifest.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L38) |
+| Plugin manager | [`codex-rs/core-plugins/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L396) |
+| Connector directory model | [`codex-rs/connectors/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/connectors/src/lib.rs#L66) |
+| Typed prompt extension API | [`codex-rs/ext/extension-api/src/contributors/prompt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ext/extension-api/src/contributors/prompt.rs#L12) |
+
+</div>

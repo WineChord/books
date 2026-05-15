@@ -108,6 +108,22 @@ const chapterOneHtml = new Set([
 ]);
 const forbiddenPublicationPattern =
   /book-rewrite-prompt|\/rewrite\/|codex-from-source_rewrite|zh_codex-from-source_rewrite|vitepress/i;
+// Canonical visual-spec component names that have been shipped as Astro
+// islands and are therefore allowed to appear in the published bundles. The
+// rest stay forbidden so internal placeholder names cannot leak through.
+const shippedVisualComponents = new Set([
+  "BoundedAgentOSMap",
+  "ConstraintEnvelopeBuilder",
+  "DurableThreadLedger",
+  "ContainmentBoundaryExplorer",
+  "JsonRpcContractMap",
+  "EventRendererLab",
+  "CompatibilityLaneBoard",
+  "GeneratedContractDriftViewer",
+  "ReleaseArtifactConveyor",
+  "PolicyLaneDashboard",
+]);
+
 const forbiddenPublicationTokens = [
   "chapterVisualSpecs",
   "visualSpecStatus",
@@ -118,7 +134,7 @@ const forbiddenPublicationTokens = [
   ...chapterVisualSpecs.map((spec) => spec.id),
   ...chapterVisualSpecs
     .map((spec) => spec.primaryInteractive.component)
-    .filter((component) => component !== "BoundedAgentOSMap"),
+    .filter((component) => !shippedVisualComponents.has(component)),
 ];
 
 for (const file of walk(distDir)) {

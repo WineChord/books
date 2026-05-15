@@ -1,0 +1,105 @@
+import PatchWorkbench from "../../../src/components/visual/PatchWorkbench.tsx";
+
+# 第 11 章：把 Patch 作为一等编辑协议
+
+<PatchWorkbench lang="zh" client:visible />
+
+第 10 章说明了 shell execution 如何成为受监督的进程。本章把一条常见编辑路径从 shell 中拆出来：patch application。Codex 把 `apply_patch` 当作 mutation protocol，而不是传给命令的一段文本。这个差别是架构性的。协议可以被解析、验证、评估、审批，通过正确的文件系统应用，并在模型看到最终结果前记录为 turn diff。
+
+直接写文件很诱人，因为简单。但它作为证据很差。直接写只表达“让这个文件变成这些内容”。Patch 表达的是“在这些路径上执行添加、删除、更新、移动和这些 hunk”。这个结构让 runtime 在副作用发生前有东西可检查。
+
+## Patch 生命周期
+
+Patch execution 的生命周期比表面看起来更长。
+
+```mermaid
+flowchart LR
+    Input[freeform patch or shell-like invocation] --> Detect[detect apply-patch intent]
+    Detect --> Parse[parse patch hunks]
+    Parse --> Verify[verify paths and current file content]
+    Verify --> Assess[assess safety and required permissions]
+    Assess --> Approve[approval and hooks]
+    Approve --> Apply[filesystem-backed apply]
+    Apply --> Delta[committed delta]
+    Delta --> Events[patch events and turn diff]
+    Events --> Result[model-visible result]
+```
+
+Parse step 理解 patch grammar。Verify step 访问 workspace filesystem，计算实际会发生的具体 changes。Assess step 判断 patch 是 auto-approved、需要 approval，还是需要 additional permissions。Apply step 通过 selected executor filesystem 写入，而不是假设本地路径就是目标。
+
+## Grammar 只是第一道门
+
+Patch grammar 描述的是一门很小的编辑语言：开始 patch，声明一个或多个 file hunk，添加、删除、更新或移动内容，最后结束 patch。Codex 的 parser 可以比用户文档中的形式更宽容，因为模型输出不总是完美包裹。宽容不等于应用模糊编辑；它只表示 runtime 尝试恢复出意图协议，然后再用文件系统验证。
+
+真正的边界是 verification。Update 需要知道 hunk 期望替换的旧内容。Delete 需要读出即将删除的文件。Move 需要同时考虑 source 和 destination path。如果这些检查失败，结果应是模型可见的 verification failure，而不是 best-effort write。
+
+## 拦截 Shell 形式的 Patch
+
+模型经常学会用 shell heredoc 表达 patch。Codex 可以识别某些顶层形式，例如“运行 patch 工具并传入这段 patch body”，或“先切到某个相对工作目录，再运行 patch 工具”。当模式被识别出来时，runtime 会拦截它，并把它路由到 patch protocol。
+
+这是兼容桥，不是鼓励通过 shell 文本编辑。Runtime 可以提醒模型直接使用 patch tool，但仍会按 patch 治理这次修改：parse、verify、compute paths、run approval、apply through executor filesystem、emit events、update turn diff。
+
+```text
+// Pseudocode - simplified for clarity.
+  if tool_call is the patch tool:
+      patch_body = tool_call.freeform_input
+  else if command_invocation is a recognized patch heredoc:
+      patch_body, effective_cwd = extract_patch_body(command_invocation)
+  else:
+      continue with ordinary shell execution
+
+  action = parse_and_verify_patch(patch_body, effective_cwd, executor_filesystem)
+  permissions = compute_required_file_permissions(action.paths)
+  decision = assess_patch_safety(action, permissions)
+
+  if decision requires approval:
+      approval = request_patch_approval(action.summary)
+      stop_unless_approved(approval)
+
+  delta = apply_patch_to_executor_filesystem(action, permissions)
+  record_patch_events(action, delta)
+  update_turn_diff_tracker(delta)
+  return patch_result_for_model(delta)
+```
+
+这段伪代码不对应具体源码，但保留了关键区别：被识别出的 shell syntax 会先转成 patch action，再发生 mutation。
+
+## 通过文件系统抽象应用
+
+Patch application 使用 executor filesystem。这个细节能避免一类隐蔽错误。在 local turn 中，executor filesystem 可能就是本地 workspace；在 remote turn 中，它可能是远端环境的 filesystem。两种情况下，patch code 都接收同类 filesystem object 和可选 sandbox context。编辑会落到拥有当前 turn 的 workspace。
+
+应用层还会跟踪实际 committed delta。成功的 add、delete、update 或 move 会变成结构化 delta。如果某次写入在部分修改后失败，runtime 会保留已经确定 committed 的前缀，并相应标记 exactness。这样比假装操作完全成功或完全没发生更诚实。
+
+## Diff Tracking 是证据，不是装饰
+
+Turn diff tracker 为 committed patch mutations 维护净文本 diff。它记录 baseline、current content、rename origins 和 invalidation state。当 tracker 能证明 delta 时，它可以不重新读取 workspace 就渲染 unified diff。当 exactness 丢失时，它会让 diff 失效，而不是显示一个误导性的自信 diff。
+
+这种行为值得复用。一个系统如果不能证明自己的证据，就应该显式降级，而不是因为 UI 需要 diff 形状就硬展示。
+
+## Git Patch 是另一条路径
+
+Codex 也有辅助逻辑，用 Git 应用普通 unified diff。这条路径会写临时 patch，可以用 dry run 做 preflight，调用 Git，并把输出解析成 applied、skipped 或 conflicted paths。它和一等 `apply_patch` protocol 相关，但不是同一条路径。两者共享的重要思想是 preflight：在 mutation 变成 durable 之前，先知道它会改什么。
+
+## 应用到实践
+
+1. **优先使用结构化编辑。** 在 mutation 前暴露 paths、operations 和 context。
+2. **用文件系统验证。** Parse success 不够，还要确认预期旧状态存在。
+3. **把兼容形式转回协议。** Shell 文本如果明确表示 patch，就按 patch 治理。
+4. **诚实跟踪 committed delta。** 保留 exact evidence，无法证明时就 invalidate。
+5. **通过拥有者文件系统应用。** Local 与 remote workspace 应共享同一套 mutation semantics。
+
+第 12 章会解释围绕这些 mutation 的人类和自动化关卡：hooks、approval requests、Guardian review，以及等待决策时可能打断执行的客户端表面。
+
+<div class="source-equivalence">
+
+## 源码地图
+
+| 概念 | 源码锚点 |
+| --- | --- |
+| Patch tool handler | [`codex-rs/core/src/tools/handlers/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55) |
+| Patch runtime | [`codex-rs/core/src/tools/runtimes/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L50) |
+| Patch grammar parser | [`codex-rs/apply-patch/src/parser.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L126) |
+| Patch safety assessment | [`codex-rs/core/src/safety.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33) |
+| Turn diff tracker | [`codex-rs/core/src/turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) |
+
+</div>
