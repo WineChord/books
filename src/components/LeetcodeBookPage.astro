@@ -86,6 +86,10 @@ const description = isZh ? book.zhDescription : book.description;
         <span>{leetcodeStats.bytedance}</span>
         <p>{isZh ? "字节出现" : "ByteDance"}</p>
       </div>
+      <div>
+        <span>{leetcodeStats.companyFollowUps}</span>
+        <p>{isZh ? "公司追问" : "Follow-ups"}</p>
+      </div>
     </section>
 
     <section class="leetcode-workspace" aria-label={isZh ? "题目列表" : "Problem list"}>
@@ -98,6 +102,7 @@ const description = isZh ? book.zhDescription : book.description;
         <div class="leetcode-filter-group" role="group" aria-label={isZh ? "筛选" : "Filters"}>
           <button type="button" class="is-active" data-filter="all">{isZh ? "全部" : "All"}</button>
           <button type="button" data-filter="hot100">Hot100</button>
+          <button type="button" data-filter="companyFollowUps">{isZh ? "公司追问" : "Follow-ups"}</button>
           <button type="button" data-filter="bytedance">{isZh ? "字节全部" : "ByteDance"}</button>
           <button type="button" data-filter="bytedancePast3Months">{isZh ? "字节近3月" : "BD 3m"}</button>
           <button type="button" data-filter="bytedancePast6Months">{isZh ? "字节3-6月" : "BD 3-6m"}</button>
@@ -211,6 +216,7 @@ const description = isZh ? book.zhDescription : book.description;
       const status = rowState(problem.titleSlug);
       const byteDance = problem.bytedancePeriods || {};
       if (state.filter === "hot100" && !problem.hot100) return false;
+      if (state.filter === "companyFollowUps" && !problem.companyFollowUps?.length) return false;
       if (state.filter === "bytedance" && !problem.bytedance) return false;
       if (state.filter === "bytedancePast3Months" && !byteDance.past3Months) return false;
       if (state.filter === "bytedancePast6Months" && !byteDance.past6Months) return false;
@@ -226,6 +232,13 @@ const description = isZh ? book.zhDescription : book.description;
         problem.difficulty,
         problem.bytedance ? "字节跳动 bytedance" : "",
         ...problem.tags.map((tag) => tag.name),
+        ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
+        ...(problem.companyFollowUps || []).flatMap((item) => [
+          item.question,
+          item.answer,
+          item.company,
+          item.sourceTitle,
+        ]),
       ].join(" ").toLowerCase();
       return haystack.includes(state.query.toLowerCase());
     }
@@ -264,6 +277,60 @@ const description = isZh ? book.zhDescription : book.description;
         .join("");
     }
 
+    function renderStudyChecks(problem) {
+      const checks = problem.followUps || [];
+      if (!checks.length) return "";
+      return `
+        <span class="leetcode-popover-section">
+          <strong>通用检查点</strong>
+          ${checks
+            .map(
+              (item) => `
+                <span class="leetcode-check">
+                  <em>${escapeHtml(item.question)}</em>
+                  <span>${escapeHtml(item.answer)}</span>
+                </span>
+              `,
+            )
+            .join("")}
+        </span>
+      `;
+    }
+
+    function renderCompanyFollowUps(problem) {
+      const followUps = problem.companyFollowUps || [];
+      if (!followUps.length) {
+        return '<span class="leetcode-popover-muted">暂无公开核实到的公司追问来源。</span>';
+      }
+      return `
+        <span class="leetcode-popover-section">
+          <strong>公司追问</strong>
+          ${followUps
+            .map(
+              (item) => `
+                <span class="leetcode-company-follow-up">
+                  <span class="leetcode-followup-source">
+                    <b>${escapeHtml(item.company)}</b>
+                    <a
+                      class="leetcode-source-link"
+                      href="${escapeHtml(item.sourceUrl)}"
+                      title="${escapeHtml(item.sourceTitle)}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      来源
+                    </a>
+                  </span>
+                  <em>${escapeHtml(item.question)}</em>
+                  <span>${escapeHtml(item.answer)}</span>
+                </span>
+              `,
+            )
+            .join("")}
+        </span>
+      `;
+    }
+
     function renderProblem(problem) {
       const status = rowState(problem.titleSlug);
       const visitedClass = clicked[problem.titleSlug] ? " is-visited" : "";
@@ -282,6 +349,7 @@ const description = isZh ? book.zhDescription : book.description;
             <div class="leetcode-row-meta" aria-hidden="true">
               ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
               ${problem.hot100 ? "<span>Hot100</span>" : ""}
+              ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
               ${renderTags(problem)}
             </div>
           </div>
@@ -294,17 +362,18 @@ const description = isZh ? book.zhDescription : book.description;
             <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}">熟练</button>
           </div>
           <div class="leetcode-preview">
-            <button type="button" data-preview aria-expanded="false">
+            <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
               题意
               <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
-            </button>
-            <button type="button" data-preview aria-expanded="false">
+            </span>
+            <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
               思路
               <span class="leetcode-popover">
-                ${escapeHtml(problem.approachPreview)}
-                ${problem.followUps.map((item) => `<em>${escapeHtml(item)}</em>`).join("")}
+                <span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>
+                ${renderStudyChecks(problem)}
+                ${renderCompanyFollowUps(problem)}
               </span>
-            </button>
+            </span>
           </div>
         </article>
       `;
@@ -374,6 +443,7 @@ const description = isZh ? book.zhDescription : book.description;
         writeState();
         return;
       }
+      if (target.closest(".leetcode-source-link")) return;
       const previewButton = target.closest("[data-preview]");
       if (previewButton instanceof HTMLElement) {
         const isOpen = previewButton.classList.contains("is-open");
@@ -406,6 +476,16 @@ const description = isZh ? book.zhDescription : book.description;
       progress[slug] = next;
       writeState();
       render();
+    });
+
+    list?.addEventListener("keydown", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const previewButton = target.closest("[data-preview]");
+      if (!(previewButton instanceof HTMLElement)) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      previewButton.click();
     });
 
     render();
@@ -506,7 +586,7 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 0.75rem;
       margin-bottom: 2rem;
       border-top: 1px solid var(--color-border);
@@ -590,7 +670,7 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-filter-group button,
     .leetcode-status button,
-    .leetcode-preview button,
+    .leetcode-preview-control,
     .leetcode-pagination button {
       border: 1px solid var(--color-border);
       border-radius: 0.45rem;
@@ -804,11 +884,13 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-status button,
-    .leetcode-preview button {
+    .leetcode-preview-control {
       padding: 0.3rem 0.42rem;
     }
 
-    .leetcode-preview button {
+    .leetcode-preview-control {
+      display: inline-flex;
+      align-items: center;
       position: static;
     }
 
@@ -818,7 +900,7 @@ const description = isZh ? book.zhDescription : book.description;
       top: calc(100% + 0.5rem);
       z-index: 5;
       display: none;
-      width: min(22rem, 72vw);
+      width: min(30rem, 76vw);
       border: 1px solid var(--color-border);
       border-radius: 0.5rem;
       background: var(--color-cream);
@@ -831,25 +913,96 @@ const description = isZh ? book.zhDescription : book.description;
       white-space: normal;
     }
 
+    .leetcode-popover-lead,
+    .leetcode-popover-section,
+    .leetcode-check,
+    .leetcode-company-follow-up,
+    .leetcode-followup-source,
+    .leetcode-popover-muted {
+      display: block;
+    }
+
+    .leetcode-popover-section {
+      margin-top: 0.65rem;
+      border-top: 1px solid rgb(194 192 182 / 52%);
+      padding-top: 0.55rem;
+    }
+
+    .leetcode-popover-section > strong {
+      display: block;
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+    }
+
+    .leetcode-check,
+    .leetcode-company-follow-up {
+      margin-top: 0.45rem;
+    }
+
     .leetcode-popover em {
       display: block;
-      margin-top: 0.5rem;
+      margin-bottom: 0.1rem;
       color: var(--color-terracotta);
       font-style: normal;
       font-weight: 650;
     }
 
-    .leetcode-preview button:hover .leetcode-popover,
-    .leetcode-preview button.is-open .leetcode-popover,
-    .leetcode-preview button:focus .leetcode-popover,
-    .leetcode-preview button:focus-visible .leetcode-popover {
+    .leetcode-followup-source {
+      margin-bottom: 0.18rem;
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+
+    .leetcode-followup-source b {
+      color: var(--color-charcoal);
+      margin-right: 0.45rem;
+    }
+
+    .leetcode-source-link {
+      color: var(--color-terracotta);
+      text-decoration: none;
+    }
+
+    .leetcode-source-link:hover {
+      text-decoration: underline;
+    }
+
+    .leetcode-popover-muted {
+      margin-top: 0.6rem;
+      color: var(--color-muted);
+    }
+
+    .leetcode-preview-control:hover .leetcode-popover,
+    .leetcode-preview-control.is-open .leetcode-popover,
+    .leetcode-preview-control:focus .leetcode-popover,
+    .leetcode-preview-control:focus-visible .leetcode-popover,
+    .leetcode-preview-control:focus-within .leetcode-popover {
       display: block;
+    }
+
+    .leetcode-preview-control:focus-visible {
+      outline: 2px solid rgb(217 119 87 / 45%);
+      outline-offset: 2px;
     }
 
     html.dark .leetcode-popover {
       border-color: #333;
       background: var(--color-dark-surface);
       color: var(--color-muted);
+    }
+
+    html.dark .leetcode-popover-section {
+      border-top-color: #333;
+    }
+
+    html.dark .leetcode-popover-section > strong,
+    html.dark .leetcode-followup-source b {
+      color: var(--color-cream);
     }
 
     .leetcode-pagination {
