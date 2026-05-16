@@ -106,7 +106,11 @@ implementation code may be committed to this repository and published through
 GitHub Pages. The current page starts with harvested recent accepted
 submissions for the highest-frequency rows, then falls back to generated
 interview guidance where a personal accepted submission has not been synced
-yet. Implementation provenance has three states:
+yet. The implementation preview prefers C++ reference code and applies local
+C++ syntax highlighting. If a problem currently has only a non-C++ historical
+submission, the page does not present that code as C++; it marks the C++
+reference implementation as pending instead. Implementation provenance has
+three states:
 
 1. my recent accepted submission, meaning it came from the account history;
 2. optimized, meaning it was corrected for complexity, edge cases, or style;

@@ -313,6 +313,153 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         .replaceAll('"', "&quot;");
     }
 
+    function escapeToken(value) {
+      return escapeHtml(value);
+    }
+
+    function isIdentifierStart(char) {
+      return /[A-Za-z_]/.test(char);
+    }
+
+    function isIdentifierPart(char) {
+      return /[A-Za-z0-9_]/.test(char);
+    }
+
+    function highlightCpp(code) {
+      const keywords = new Set([
+        "alignas",
+        "auto",
+        "bool",
+        "break",
+        "case",
+        "catch",
+        "class",
+        "const",
+        "constexpr",
+        "continue",
+        "default",
+        "delete",
+        "do",
+        "else",
+        "enum",
+        "explicit",
+        "false",
+        "for",
+        "friend",
+        "if",
+        "inline",
+        "mutable",
+        "namespace",
+        "new",
+        "noexcept",
+        "nullptr",
+        "operator",
+        "private",
+        "protected",
+        "public",
+        "return",
+        "sizeof",
+        "static",
+        "struct",
+        "switch",
+        "template",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typedef",
+        "typename",
+        "using",
+        "virtual",
+        "void",
+        "while",
+      ]);
+      const types = new Set([
+        "char",
+        "double",
+        "float",
+        "int",
+        "long",
+        "map",
+        "pair",
+        "priority_queue",
+        "queue",
+        "set",
+        "short",
+        "size_t",
+        "stack",
+        "string",
+        "unordered_map",
+        "unordered_set",
+        "vector",
+      ]);
+      let html = "";
+      for (let index = 0; index < code.length;) {
+        const char = code[index];
+        const next = code[index + 1] || "";
+        if (char === "/" && next === "/") {
+          let end = index + 2;
+          while (end < code.length && code[end] !== "\n") end += 1;
+          html += `<span class="leetcode-token-comment">${escapeToken(code.slice(index, end))}</span>`;
+          index = end;
+          continue;
+        }
+        if (char === "/" && next === "*") {
+          const end = code.indexOf("*/", index + 2);
+          const stop = end === -1 ? code.length : end + 2;
+          html += `<span class="leetcode-token-comment">${escapeToken(code.slice(index, stop))}</span>`;
+          index = stop;
+          continue;
+        }
+        if (char === "#") {
+          let end = index + 1;
+          while (end < code.length && code[end] !== "\n") end += 1;
+          html += `<span class="leetcode-token-directive">${escapeToken(code.slice(index, end))}</span>`;
+          index = end;
+          continue;
+        }
+        if (char === '"' || char === "'") {
+          const quote = char;
+          let end = index + 1;
+          while (end < code.length) {
+            if (code[end] === "\\") {
+              end += 2;
+              continue;
+            }
+            end += 1;
+            if (code[end - 1] === quote) break;
+          }
+          html += `<span class="leetcode-token-string">${escapeToken(code.slice(index, end))}</span>`;
+          index = end;
+          continue;
+        }
+        if (/[0-9]/.test(char)) {
+          let end = index + 1;
+          while (end < code.length && /[A-Za-z0-9_.]/.test(code[end])) end += 1;
+          html += `<span class="leetcode-token-number">${escapeToken(code.slice(index, end))}</span>`;
+          index = end;
+          continue;
+        }
+        if (isIdentifierStart(char)) {
+          let end = index + 1;
+          while (end < code.length && isIdentifierPart(code[end])) end += 1;
+          const word = code.slice(index, end);
+          if (keywords.has(word)) {
+            html += `<span class="leetcode-token-keyword">${escapeToken(word)}</span>`;
+          } else if (types.has(word)) {
+            html += `<span class="leetcode-token-type">${escapeToken(word)}</span>`;
+          } else {
+            html += escapeToken(word);
+          }
+          index = end;
+          continue;
+        }
+        html += escapeToken(char);
+        index += 1;
+      }
+      return html;
+    }
+
     function rowState(slug) {
       return progress[slug] || { done: false, review: false, mastered: false };
     }
@@ -498,7 +645,19 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       return "生成参考";
     }
 
+    function isCppReference(reference) {
+      return reference.language === "C++" || reference.language === "C++17";
+    }
+
+    function implementationReferencesForDisplay(problem) {
+      const references = problem.implementationReferences || [];
+      return references.filter(isCppReference);
+    }
+
     function renderImplementationCode(reference) {
+      const code = isCppReference(reference)
+        ? highlightCpp(reference.code)
+        : escapeHtml(reference.code);
       return `
         <span class="leetcode-implementation-card">
           <span class="leetcode-implementation-meta">
@@ -516,16 +675,19 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
               提交来源
             </a>
           </span>
-          <pre class="leetcode-code-block"><code>${escapeHtml(reference.code)}</code></pre>
+          <pre class="leetcode-code-block"><code class="language-cpp">${code}</code></pre>
         </span>
       `;
     }
 
     function renderImplementationReference(problem) {
       const tracks = implementationTracks(problem);
-      const references = problem.implementationReferences || [];
+      const references = implementationReferencesForDisplay(problem);
+      const allReferences = problem.implementationReferences || [];
       const lead = references.length
-        ? `Reference implementation 已公开同步 ${references.length} 份最近通过提交；优先展示我的提交，后续可继续补充优化版和生成参考。`
+        ? `C++ reference implementation 已公开同步 ${references.length} 份最近通过提交；优先展示 C++ 我的提交，后续可继续补充优化版和生成参考。`
+        : allReferences.length
+          ? `这题暂时只有 ${allReferences.length} 份非 C++ 历史提交；C++ reference implementation 待同步。`
         : "Reference implementation 待同步最近提交。当前先展示面试实现顺序；最终代码会标记为「我的提交」「已优化」或「生成参考」。";
       return `
         <span class="leetcode-popover-lead">
@@ -1561,6 +1723,36 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       margin: 0;
       padding: 0.65rem;
       white-space: pre;
+    }
+
+    .leetcode-code-block code {
+      color: #f6efe2;
+    }
+
+    .leetcode-token-keyword {
+      color: #f4a261;
+      font-weight: 650;
+    }
+
+    .leetcode-token-type {
+      color: #8bd3dd;
+    }
+
+    .leetcode-token-string {
+      color: #b8e986;
+    }
+
+    .leetcode-token-number {
+      color: #c792ea;
+    }
+
+    .leetcode-token-comment {
+      color: #8d9187;
+      font-style: italic;
+    }
+
+    .leetcode-token-directive {
+      color: #ffd166;
     }
 
     .leetcode-popover-lead,
