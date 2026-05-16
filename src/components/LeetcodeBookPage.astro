@@ -56,7 +56,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     brandShortTitle={isZh ? book.zhShortTitle : book.shortTitle}
   />
 
-  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-2 md:px-8 md:py-3">
+  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-1 md:px-8 md:py-2">
     <section class="leetcode-hero">
       <div>
         <p class="leetcode-kicker">{book.coverKicker}</p>
@@ -170,24 +170,43 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         </div>
       </div>
 
-      <div class="leetcode-summary">
-        <span id="leetcode-result-count"></span>
-        <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
-        <span>
-          {isZh
-            ? "力扣中国区按出题频率排序；字节数据来自可核实企业题库/companyTagStatsV2；公司追问来自公开 Discuss。"
-            : leetcodeDataSource}
-        </span>
-        <span>
-          {isZh
-            ? `${leetcodeImplementationStats.references} 份公开 reference implementation 已同步`
-            : `${leetcodeImplementationStats.references} public reference implementations synced`}
-        </span>
-        <span>
-          {isZh
-            ? `${leetcodeCodeTemplateStats.problems} 道题官方代码模板已同步`
-            : `${leetcodeCodeTemplateStats.problems} problems with official code templates synced`}
-        </span>
+      <div class="leetcode-list-meta">
+        <div class="leetcode-summary">
+          <span id="leetcode-result-count"></span>
+          <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
+          <span>
+            {isZh
+              ? "力扣中国区按出题频率排序；字节数据来自可核实企业题库/companyTagStatsV2；公司追问来自公开 Discuss。"
+              : leetcodeDataSource}
+          </span>
+          <span>
+            {isZh
+              ? `${leetcodeImplementationStats.references} 份公开 reference implementation 已同步`
+              : `${leetcodeImplementationStats.references} public reference implementations synced`}
+          </span>
+          <span>
+            {isZh
+              ? `${leetcodeCodeTemplateStats.problems} 道题官方代码模板已同步`
+              : `${leetcodeCodeTemplateStats.problems} problems with official code templates synced`}
+          </span>
+        </div>
+
+        <nav
+          class="leetcode-pagination leetcode-pagination-top"
+          data-pagination
+          aria-label={isZh ? "顶部分页" : "Top pagination"}
+        >
+          <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
+          <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
+          <label class="leetcode-page-jump">
+            <span>{isZh ? "第" : "Page"}</span>
+            <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
+            <span data-page-indicator></span>
+          </label>
+          <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
+          <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
+          <span class="leetcode-page-shortcut">{isZh ? "←/→ 翻页" : "←/→ pages"}</span>
+        </nav>
       </div>
 
       {
@@ -237,11 +256,22 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         <div id="leetcode-problem-list" class="leetcode-problem-list"></div>
       </div>
 
-      <div class="leetcode-pagination">
-        <button type="button" id="leetcode-prev">{isZh ? "上一页" : "Prev"}</button>
-        <span id="leetcode-page-indicator"></span>
-        <button type="button" id="leetcode-next">{isZh ? "下一页" : "Next"}</button>
-      </div>
+      <nav
+        class="leetcode-pagination leetcode-pagination-bottom"
+        data-pagination
+        aria-label={isZh ? "底部分页" : "Bottom pagination"}
+      >
+        <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
+        <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
+        <label class="leetcode-page-jump">
+          <span>{isZh ? "第" : "Page"}</span>
+          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
+          <span data-page-indicator></span>
+        </label>
+        <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
+        <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
+        <span class="leetcode-page-shortcut">{isZh ? "←/→ 翻页" : "←/→ pages"}</span>
+      </nav>
     </section>
   </main>
 
@@ -259,9 +289,9 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     const pageSizeSelect = document.getElementById("leetcode-page-size");
     const customSizeInput = document.getElementById("leetcode-custom-size");
     const resultCount = document.getElementById("leetcode-result-count");
-    const pageIndicator = document.getElementById("leetcode-page-indicator");
-    const prevButton = document.getElementById("leetcode-prev");
-    const nextButton = document.getElementById("leetcode-next");
+    const pageActionButtons = Array.from(document.querySelectorAll("[data-page-action]"));
+    const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
+    const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
     const fallbackLanguages = [
       ["cpp", "C++"],
@@ -283,6 +313,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       filter: "all",
       page: 1,
       pageSize: 20,
+      totalPages: 1,
       query: "",
       expandedSlug: "",
     };
@@ -570,6 +601,55 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         return Math.max(1, Math.min(maxPageSize, Number.isFinite(custom) ? custom : 20));
       }
       return Number(pageSizeSelect?.value || 20);
+    }
+
+    function clampPage(page, totalPages = state.totalPages) {
+      const nextPage = Number(page);
+      if (!Number.isFinite(nextPage)) return state.page;
+      return Math.max(1, Math.min(totalPages, Math.trunc(nextPage)));
+    }
+
+    function syncPagination() {
+      pageIndicators.forEach((indicator) => {
+        indicator.textContent = `/ ${state.totalPages}`;
+      });
+      pageJumpInputs.forEach((input) => {
+        if (!(input instanceof HTMLInputElement)) return;
+        input.max = String(state.totalPages);
+        input.value = String(state.page);
+      });
+      pageActionButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const action = button.dataset.pageAction;
+        button.disabled =
+          ((action === "first" || action === "prev") && state.page <= 1) ||
+          ((action === "next" || action === "last") && state.page >= state.totalPages);
+      });
+    }
+
+    function setPage(page) {
+      const nextPage = clampPage(page);
+      if (nextPage === state.page) {
+        syncPagination();
+        return;
+      }
+      state.page = nextPage;
+      render();
+    }
+
+    function jumpToInputPage(input) {
+      if (!(input instanceof HTMLInputElement)) return;
+      setPage(input.value);
+    }
+
+    function isEditableTarget(element) {
+      if (!(element instanceof HTMLElement)) return false;
+      if (element.isContentEditable) return true;
+      return Boolean(
+        element.closest(
+          "input, textarea, select, button, a, [contenteditable='true'], .leetcode-practice-panel",
+        ),
+      );
     }
 
     function matchesFilter(problem) {
@@ -1005,19 +1085,15 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     function render() {
       const items = orderedProblems();
       state.pageSize = pageSize();
-      const totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
-      state.page = Math.min(state.page, totalPages);
+      state.totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      state.page = clampPage(state.page, state.totalPages);
       const start = (state.page - 1) * state.pageSize;
       const pageItems = items.slice(start, start + state.pageSize);
       if (list) list.innerHTML = pageItems.map(renderProblemBundle).join("");
       if (resultCount) {
         resultCount.textContent = `${items.length} 道题`;
       }
-      if (pageIndicator) {
-        pageIndicator.textContent = `${state.page} / ${totalPages}`;
-      }
-      if (prevButton) prevButton.disabled = state.page <= 1;
-      if (nextButton) nextButton.disabled = state.page >= totalPages;
+      syncPagination();
     }
 
     searchInput?.addEventListener("input", (event) => {
@@ -1047,14 +1123,24 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       });
     });
 
-    prevButton?.addEventListener("click", () => {
-      state.page = Math.max(1, state.page - 1);
-      render();
+    pageActionButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!(button instanceof HTMLElement)) return;
+        const action = button.dataset.pageAction;
+        if (action === "first") setPage(1);
+        if (action === "prev") setPage(state.page - 1);
+        if (action === "next") setPage(state.page + 1);
+        if (action === "last") setPage(state.totalPages);
+      });
     });
 
-    nextButton?.addEventListener("click", () => {
-      state.page += 1;
-      render();
+    pageJumpInputs.forEach((input) => {
+      input.addEventListener("change", () => jumpToInputPage(input));
+      input.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        jumpToInputPage(input);
+      });
     });
 
     list?.addEventListener("click", (event) => {
@@ -1197,6 +1283,19 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       previewButton.click();
     });
 
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (isEditableTarget(document.activeElement)) return;
+      if (event.key === "ArrowLeft" && state.page > 1) {
+        event.preventDefault();
+        setPage(state.page - 1);
+      }
+      if (event.key === "ArrowRight" && state.page < state.totalPages) {
+        event.preventDefault();
+        setPage(state.page + 1);
+      }
+    });
+
     render();
   </script>
 
@@ -1214,13 +1313,13 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       grid-template-columns: 1fr;
       gap: 0;
       align-items: center;
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.25rem;
     }
 
     .leetcode-hero > div:first-child {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 0.35rem 0.75rem;
+      gap: 0.25rem 0.65rem;
       align-items: center;
     }
 
@@ -1249,10 +1348,10 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     }
 
     .leetcode-title {
-      max-width: 12ch;
+      max-width: 11ch;
       margin: 0;
       font-family: var(--font-serif);
-      font-size: clamp(1.45rem, 2.2vw, 1.8rem);
+      font-size: clamp(1.22rem, 1.75vw, 1.55rem);
       line-height: 1;
       white-space: nowrap;
     }
@@ -1261,8 +1360,8 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       max-width: none;
       margin: 0;
       color: var(--color-secondary);
-      font-size: 0.82rem;
-      line-height: 1.35;
+      font-size: 0.74rem;
+      line-height: 1.28;
     }
 
     html.dark .leetcode-copy {
@@ -1273,7 +1372,9 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-filter-panel,
     .leetcode-filter-cluster,
     .leetcode-filter-group,
+    .leetcode-list-meta,
     .leetcode-page-size,
+    .leetcode-page-jump,
     .leetcode-summary,
     .leetcode-pagination,
     .leetcode-status,
@@ -1284,7 +1385,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
 
     .leetcode-actions {
       flex-wrap: wrap;
-      gap: 0.35rem;
+      gap: 0.28rem;
       justify-content: flex-end;
       margin-top: 0;
     }
@@ -1292,8 +1393,8 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-primary-link,
     .leetcode-secondary-link {
       border-radius: 0.42rem;
-      font-size: 0.8rem;
-      padding: 0.38rem 0.55rem;
+      font-size: 0.72rem;
+      padding: 0.28rem 0.45rem;
       font-weight: 650;
       text-decoration: none;
     }
@@ -1316,11 +1417,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-stats {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 0.35rem;
-      margin-bottom: 0.5rem;
+      gap: 0.25rem;
+      margin-bottom: 0.3rem;
       border-top: 1px solid var(--color-border);
       border-bottom: 1px solid var(--color-border);
-      padding: 0.34rem 0;
+      padding: 0.2rem 0;
     }
 
     html.dark .leetcode-stats {
@@ -1334,14 +1435,14 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-stats span {
       display: block;
       font-family: var(--font-mono);
-      font-size: 0.98rem;
+      font-size: 0.84rem;
       font-weight: 700;
     }
 
     .leetcode-stats p {
       margin: 0.02rem 0 0;
       color: var(--color-muted);
-      font-size: 0.66rem;
+      font-size: 0.58rem;
     }
 
     .leetcode-workspace {
@@ -1351,9 +1452,9 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-toolbar {
       display: grid;
       grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr) auto;
-      gap: 0.65rem;
+      gap: 0.45rem;
       align-items: start;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.24rem;
     }
 
     .leetcode-search,
@@ -1365,7 +1466,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-search label,
     .leetcode-page-size label {
       color: var(--color-muted);
-      font-size: 0.64rem;
+      font-size: 0.58rem;
       font-weight: 700;
       text-transform: uppercase;
     }
@@ -1373,13 +1474,13 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-search input,
     .leetcode-page-size select,
     .leetcode-page-size input {
-      min-height: 2rem;
+      min-height: 1.8rem;
       border: 1px solid var(--color-border);
       border-radius: 0.45rem;
       background: rgb(255 255 255 / 48%);
       color: inherit;
       font: inherit;
-      padding: 0.3rem 0.55rem;
+      padding: 0.22rem 0.5rem;
     }
 
     .leetcode-search input {
@@ -1393,9 +1494,9 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
 
     .leetcode-filter-panel {
       flex-wrap: wrap;
-      gap: 0.28rem 0.6rem;
+      gap: 0.22rem 0.5rem;
       justify-content: center;
-      padding-top: 0.7rem;
+      padding-top: 0.5rem;
     }
 
     .leetcode-filter-cluster {
@@ -1407,7 +1508,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-filter-cluster > span {
       color: var(--color-muted);
       font-family: var(--font-mono);
-      font-size: 0.6rem;
+      font-size: 0.56rem;
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -1429,8 +1530,8 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       color: inherit;
       cursor: pointer;
       font: inherit;
-      font-size: 0.74rem;
-      padding: 0.26rem 0.42rem;
+      font-size: 0.7rem;
+      padding: 0.22rem 0.36rem;
     }
 
     .leetcode-filter-group button.is-active,
@@ -1441,16 +1542,24 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       font-weight: 650;
     }
 
-    .leetcode-summary {
+    .leetcode-list-meta {
       flex-wrap: wrap;
-      gap: 0.5rem;
-      margin: 0 0 0.35rem;
+      justify-content: space-between;
+      gap: 0.55rem;
+      margin: 0 0 0.25rem;
+    }
+
+    .leetcode-summary {
+      flex: 1 1 auto;
+      flex-wrap: wrap;
+      gap: 0.42rem;
+      margin: 0;
       color: var(--color-muted);
-      font-size: 0.68rem;
+      font-size: 0.62rem;
     }
 
     .leetcode-duplicate-audit {
-      margin: 0 0 0.35rem;
+      margin: 0 0 0.25rem;
       border: 1px solid rgb(194 192 182 / 58%);
       border-radius: 0.5rem;
       background: rgb(255 255 255 / 28%);
@@ -1535,7 +1644,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       font-family: var(--font-mono);
       font-size: 0.64rem;
       font-weight: 700;
-      padding: 0.35rem 0.25rem;
+      padding: 0.28rem 0.25rem;
       text-transform: uppercase;
     }
 
@@ -1551,10 +1660,10 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
 
     .leetcode-row {
       position: relative;
-      min-height: 2.25rem;
+      min-height: 2.15rem;
       border-top: 1px solid rgb(194 192 182 / 48%);
       cursor: pointer;
-      padding: 0.2rem 0.25rem;
+      padding: 0.18rem 0.25rem;
     }
 
     .leetcode-row > div {
@@ -2041,14 +2150,57 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     }
 
     .leetcode-pagination {
+      flex: 0 0 auto;
+      flex-wrap: wrap;
       justify-content: center;
-      gap: 0.75rem;
-      margin-top: 1rem;
+      gap: 0.28rem;
+      color: var(--color-secondary);
+      font-size: 0.7rem;
+    }
+
+    .leetcode-pagination-top {
+      justify-content: flex-end;
+    }
+
+    .leetcode-pagination-bottom {
+      margin-top: 0.45rem;
+    }
+
+    .leetcode-page-jump {
+      gap: 0.25rem;
+      color: var(--color-muted);
+      white-space: nowrap;
+    }
+
+    .leetcode-page-jump input {
+      width: 3.3rem;
+      min-height: 1.72rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 48%);
+      color: var(--color-charcoal);
+      font: inherit;
+      font-family: var(--font-mono);
+      padding: 0.16rem 0.28rem;
+      text-align: center;
+    }
+
+    .leetcode-page-shortcut {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      white-space: nowrap;
     }
 
     .leetcode-pagination button:disabled {
       cursor: default;
       opacity: 0.45;
+    }
+
+    html.dark .leetcode-page-jump input {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-cream);
     }
 
     @media (max-width: 900px) {
@@ -2080,6 +2232,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       .leetcode-filter-panel {
         justify-content: flex-start;
         padding-top: 0;
+      }
+
+      .leetcode-list-meta,
+      .leetcode-pagination-top {
+        justify-content: flex-start;
       }
 
       .leetcode-filter-cluster,

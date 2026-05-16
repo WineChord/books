@@ -82,7 +82,15 @@ The duplicate audit appears above the table in a collapsed details section. It
 lists every removed duplicate, the kept row, and the original frequency ranks.
 
 The page supports 10, 20, 50, 100, and custom page sizes. It defaults to 20
-items per page.
+items per page. Pagination controls must appear both above and below the
+problem table, with first page, previous page, next page, last page, and a page
+number jump input. Left and right arrow keys turn pages when the current focus
+is not inside search, filters, selectors, the practice editor, or another
+editable control.
+
+The top of the page is intentionally compact. The book title, stats, filters,
+summary, and top pagination should take as little vertical space as possible so
+the problem list is the visual center immediately after opening the page.
 
 Filters are grouped by scope, ByteDance, and practice state. Scope includes all
 problems, Hot 100, and sourced company follow-ups. ByteDance includes any
