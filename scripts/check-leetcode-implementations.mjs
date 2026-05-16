@@ -1,13 +1,72 @@
-import { leetcodeByteDanceProblems } from "../src/data/leetcode-bytedance.ts";
-import { leetcodeCodeTemplates } from "../src/data/leetcode-code-templates.ts";
-import {
-  leetcodeImplementationReferences,
-} from "../src/data/leetcode-implementation-references.ts";
-import {
-  leetcodeGeneratedImplementationReferences,
-  leetcodeGeneratedImplementationStats,
-} from "../src/data/leetcode-implementation-generated.ts";
-import { leetcodeProblems } from "../src/data/leetcode-problems.ts";
+import { readFile } from "node:fs/promises";
+
+const repoRoot = new URL("../", import.meta.url);
+const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
+const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const codeTemplatesPath = new URL("src/data/leetcode-code-templates.ts", repoRoot);
+const personalReferencesPath = new URL(
+  "src/data/leetcode-implementation-references.ts",
+  repoRoot,
+);
+const generatedReferencesPath = new URL(
+  "src/data/leetcode-implementation-generated.ts",
+  repoRoot,
+);
+
+function extractJsonArray(source, exportName, suffix) {
+  const pattern = new RegExp(
+    `export const ${exportName} = \\(?(\\[[\\s\\S]*?\\n\\])\\)? ${suffix}`,
+  );
+  const match = source.match(pattern);
+  if (!match) throw new Error(`Could not find ${exportName}`);
+  return JSON.parse(match[1]);
+}
+
+function extractJsonObject(source, exportName) {
+  const pattern = new RegExp(
+    `export const ${exportName} = \\((\\{[\\s\\S]*?\\n\\})\\) satisfies Record`,
+  );
+  const match = source.match(pattern);
+  if (!match) throw new Error(`Could not find ${exportName}`);
+  return JSON.parse(match[1]);
+}
+
+function extractConstObject(source, exportName) {
+  const pattern = new RegExp(
+    `export const ${exportName} = (\\{[\\s\\S]*?\\n\\}) as const;`,
+  );
+  const match = source.match(pattern);
+  if (!match) throw new Error(`Could not find ${exportName}`);
+  return JSON.parse(match[1]);
+}
+
+const leetcodeProblems = extractJsonArray(
+  await readFile(problemsPath, "utf8"),
+  "leetcodeProblems",
+  "satisfies LeetcodeProblem\\[\\];",
+);
+const leetcodeByteDanceProblems = extractJsonArray(
+  await readFile(bytedancePath, "utf8"),
+  "leetcodeByteDanceProblems",
+  "satisfies LeetcodeByteDanceProblem\\[\\];",
+);
+const leetcodeCodeTemplates = extractJsonObject(
+  await readFile(codeTemplatesPath, "utf8"),
+  "leetcodeCodeTemplates",
+);
+const leetcodeImplementationReferences = extractJsonObject(
+  await readFile(personalReferencesPath, "utf8"),
+  "leetcodeImplementationReferences",
+);
+const generatedReferencesSource = await readFile(generatedReferencesPath, "utf8");
+const leetcodeGeneratedImplementationReferences = extractJsonObject(
+  generatedReferencesSource,
+  "leetcodeGeneratedImplementationReferences",
+);
+const leetcodeGeneratedImplementationStats = extractConstObject(
+  generatedReferencesSource,
+  "leetcodeGeneratedImplementationStats",
+);
 
 function targetProblems() {
   const result = [];

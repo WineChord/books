@@ -2,10 +2,10 @@ import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { leetcodeByteDanceProblems } from "../src/data/leetcode-bytedance.ts";
-import { leetcodeProblems } from "../src/data/leetcode-problems.ts";
 
 const repoRoot = new URL("../", import.meta.url);
+const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
+const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
 const outputPath = new URL(
   "src/data/leetcode-implementation-generated.ts",
   repoRoot,
@@ -86,10 +86,29 @@ function githubBlobUrl(repoUrl, relativePath, branch = "main") {
   return `${repoUrl}/blob/${branch}/${encodePathForUrl(relativePath)}`;
 }
 
-function targetProblems() {
+function extractJsonArray(source, exportName, suffix) {
+  const pattern = new RegExp(
+    `export const ${exportName} = \\(?(\\[[\\s\\S]*?\\n\\])\\)? ${suffix}`,
+  );
+  const match = source.match(pattern);
+  if (!match) throw new Error(`Could not find ${exportName}`);
+  return JSON.parse(match[1]);
+}
+
+async function targetProblems() {
+  const problems = extractJsonArray(
+    await readFile(problemsPath, "utf8"),
+    "leetcodeProblems",
+    "satisfies LeetcodeProblem\\[\\];",
+  );
+  const bytedanceProblems = extractJsonArray(
+    await readFile(bytedancePath, "utf8"),
+    "leetcodeByteDanceProblems",
+    "satisfies LeetcodeByteDanceProblem\\[\\];",
+  );
   const result = [];
   const seen = new Set();
-  for (const problem of [...leetcodeProblems, ...leetcodeByteDanceProblems]) {
+  for (const problem of [...problems, ...bytedanceProblems]) {
     if (seen.has(problem.titleSlug)) continue;
     seen.add(problem.titleSlug);
     result.push(problem);
@@ -602,7 +621,7 @@ async function main() {
     process.env.KAMYU_LEETCODE_DIR || defaultKamyuDir,
   );
   const maxRefs = numberOption("max-refs-per-problem", defaultMaxRefsPerProblem);
-  const problems = targetProblems();
+  const problems = await targetProblems();
   const doocs = await doocsReferences(doocsDir);
   const kamyu = await kamyuReferences(kamyuDir);
   const manual = manualReferences();
