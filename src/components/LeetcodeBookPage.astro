@@ -605,10 +605,8 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-table-head {
-      position: sticky;
-      top: 3.5rem;
-      z-index: 1;
       background: var(--color-cream);
+      border-bottom: 1px solid rgb(194 192 182 / 48%);
       color: var(--color-muted);
       font-family: var(--font-mono);
       font-size: 0.72rem;
@@ -619,6 +617,7 @@ const description = isZh ? book.zhDescription : book.description;
 
     html.dark .leetcode-table-head {
       background: var(--color-charcoal);
+      border-bottom-color: #333;
     }
 
     .leetcode-row {
