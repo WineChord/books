@@ -70,6 +70,26 @@ than six months ago. State includes unsolved, needs thought, and not mastered.
 Text search matches id, title, tags, ByteDance, study-check answers, company
 follow-up answers, companies, and source titles.
 
+Clicking a row opens a local practice panel. The panel stores drafts only in
+the current browser's local storage and provides language selection, editing,
+copy, reset, and a direct link to LeetCode. The pure GitHub Pages version does
+not read the LeetCode login session and does not submit code to LeetCode.
+
+Preview controls include statement, approach, and implementation. The
+implementation preview is the home for reference implementation ordering,
+final reference code, provenance state, and follow-ups. Implementation
+provenance has three states:
+
+1. my recent accepted submission, meaning it came from the account history;
+2. optimized, meaning it was corrected for complexity, edge cases, or style;
+3. generated reference, meaning no usable personal submission was found.
+
+Direct LeetCode submission is an optional enhancement rather than the default
+static-page behavior. The viable paths are a browser extension, a user script,
+or a local companion service; implementation requires an explicit decision on
+the security boundary, account authorization, and whether code may leave the
+browser.
+
 ## Practice State
 
 The site is static, so it cannot store a server-side solve counter. Practice
