@@ -1,14 +1,19 @@
-# LeetCode Frequency 888 Spec
+# LeetCode Frequency 1888 Spec
 
 This book is a compact practice surface for LeetCode China interview
 preparation.
 
 ## Data Contract
 
-The ranking starts from the LeetCode China problemset sorted by 出题频率 on
-May 16, 2026. The pinned daily-question row is excluded because it is not part
-of the frequency order. The source ranking therefore contains the first 888
-real frequency rows.
+The target ranking starts from the LeetCode China problemset sorted by
+出题频率 on May 16, 2026. The pinned daily-question row is excluded because it is
+not part of the frequency order. The target source ranking contains the first
+1888 real frequency rows.
+
+The current repository snapshot contains a verified Top 888 data slice. The
+page may show Top 1888 as the target, but it must not relabel the Top 888
+snapshot as complete Top 1888 data. Rows 889-1888 need a follow-up data
+generation pass from LeetCode China before the target is fully satisfied.
 
 The default problem list is deduplicated. Obvious duplicates are detected by a
 normalized Chinese title, such as the LCCI/LCR variant of the same canonical
@@ -18,7 +23,7 @@ rank shown on kept rows remains the original frequency rank, so removed rows
 leave intentional gaps.
 
 Hot 100 membership comes from the public Hot 100 study plan. If a Hot 100
-problem is outside the top 888, it is appended without a Top 888 rank and keeps
+problem is outside the top 1888, it is appended without a Top 1888 rank and keeps
 its frequency-order position for Hot 100 sorting.
 
 ByteDance data is stored as LeetCode company buckets: past three months, three
@@ -49,13 +54,17 @@ scrollbar.
 
 Each row shows three identifiers:
 
-1. the Top 888 frequency rank;
+1. the Top 1888 frequency rank;
 2. the Hot 100 rank, sorted by frequency rather than by the study-plan order;
 3. the original LeetCode frontend problem id inside the clickable title.
 
-Topic tags and supplemental row badges are collapsed by default. They appear
-when the title area is hovered or the title link receives keyboard focus, so
-the list stays dense while the tags remain nearby.
+Statement, approach, implementation, and tags are all attached to the title
+cell so the pointer does not need to cross the table. Hovering the linked title
+shows the statement. Moving slightly right to Approach shows the approach.
+Moving slightly farther right to Implementation shows the reference
+implementation. Moving one more small step to Tags shows topic tags and
+supplemental badges. These preview targets stay compact and must not increase
+the normal row height.
 
 The duplicate audit appears above the table in a collapsed details section. It
 lists every removed duplicate, the kept row, and the original frequency ranks.

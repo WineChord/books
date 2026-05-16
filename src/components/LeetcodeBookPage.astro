@@ -22,6 +22,9 @@ const isZh = lang === "zh";
 const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
 const title = isZh ? book.zhTitle : book.title;
 const description = isZh ? book.zhDescription : book.description;
+const leetcodeTargetLimit = 1888;
+const syncedTopLimit = leetcodeStats.top888;
+const syncedDedupedLimit = leetcodeStats.dedupedTop888;
 ---
 
 <BaseLayout
@@ -46,8 +49,8 @@ const description = isZh ? book.zhDescription : book.description;
         <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
         <p class="leetcode-copy">
           {isZh
-            ? "按力扣中国区出题频率整理的 Top888 练习清单，合并 Hot100 标记、重复题核对、字节跳动时间段、题面预览、思路速览和本地练习状态。"
-            : "A compact Top 888 LeetCode China frequency workbook with Hot 100 flags, duplicate audit, ByteDance time buckets, previews, and local practice state."}
+            ? "目标覆盖 Top1888；当前展示已核实的 Top888 数据，合并 Hot100、重复题核对、字节跳动时间段、题意/思路/实现预览和本地状态。"
+            : "Targets Top 1888; currently shows verified Top 888 data with Hot 100 flags, duplicate audit, ByteDance buckets, previews, implementation references, and local state."}
         </p>
         <div class="leetcode-actions">
           <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
@@ -72,20 +75,20 @@ const description = isZh ? book.zhDescription : book.description;
 
     <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
       <div>
-        <span>{leetcodeStats.top888}</span>
-        <p>Top 888</p>
+        <span>{leetcodeTargetLimit}</span>
+        <p>{isZh ? "Top1888 目标" : "Top 1888 target"}</p>
       </div>
       <div>
-        <span>{leetcodeStats.dedupedTop888}</span>
+        <span>{syncedTopLimit}</span>
+        <p>{isZh ? "已同步" : "Synced"}</p>
+      </div>
+      <div>
+        <span>{syncedDedupedLimit}</span>
         <p>{isZh ? "去重后" : "Deduped"}</p>
       </div>
       <div>
         <span>{leetcodeStats.hot100}</span>
         <p>Hot 100</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.hot100OutsideTop888}</span>
-        <p>{isZh ? "Hot100 补充" : "Hot supplements"}</p>
       </div>
       <div>
         <span>{leetcodeStats.duplicatesRemoved}</span>
@@ -206,7 +209,6 @@ const description = isZh ? book.zhDescription : book.description;
           <span>{isZh ? "频率" : "Freq"}</span>
           <span>{isZh ? "字节" : "BD"}</span>
           <span>{isZh ? "状态" : "State"}</span>
-          <span>{isZh ? "预览" : "Preview"}</span>
         </div>
         <div id="leetcode-problem-list" class="leetcode-problem-list"></div>
       </div>
@@ -416,6 +418,19 @@ const description = isZh ? book.zhDescription : book.description;
       `;
     }
 
+    function renderTagReference(problem, topLabel) {
+      return `
+        <span class="leetcode-tag-popover">
+          ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
+          ${problem.hot100 ? "<span>Hot100</span>" : ""}
+          ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
+          ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
+          ${renderByteDanceMeta(problem)}
+          ${renderTags(problem)}
+        </span>
+      `;
+    }
+
     function implementationTracks(problem) {
       const tags = new Set(problem.tags.map((tag) => tag.slug));
       const tracks = [];
@@ -527,16 +542,31 @@ const description = isZh ? book.zhDescription : book.description;
           <div class="leetcode-rank is-hot">${hotRank}</div>
           <div class="leetcode-problem-main">
             <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
-              ${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}
+              <span class="leetcode-title-text">${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</span>
+              <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
             </a>
-            <div class="leetcode-row-meta" aria-hidden="true">
-              ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
-              ${problem.hot100 ? "<span>Hot100</span>" : ""}
-              ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
-              ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
-              ${renderByteDanceMeta(problem)}
-              ${renderTags(problem)}
-            </div>
+            <span class="leetcode-title-tools">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+                思路
+                <span class="leetcode-popover">
+                  <span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>
+                  ${renderStudyChecks(problem)}
+                  ${renderCompanyFollowUps(problem)}
+                </span>
+              </span>
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+                实现
+                <span class="leetcode-popover">
+                  ${renderImplementationReference(problem)}
+                </span>
+              </span>
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+                标签
+                <span class="leetcode-popover">
+                  ${renderTagReference(problem, topLabel)}
+                </span>
+              </span>
+            </span>
           </div>
           <div><span class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</span></div>
           <div class="leetcode-frequency">${escapeHtml(problem.frequency)}</div>
@@ -545,26 +575,6 @@ const description = isZh ? book.zhDescription : book.description;
             <button type="button" data-action="done" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.done ? "is-on" : ""}">做过</button>
             <button type="button" data-action="review" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.review ? "is-on" : ""}">思考</button>
             <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}">熟练</button>
-          </div>
-          <div class="leetcode-preview">
-            <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
-              题意
-              <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
-            </span>
-            <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
-              思路
-              <span class="leetcode-popover">
-                <span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>
-                ${renderStudyChecks(problem)}
-                ${renderCompanyFollowUps(problem)}
-              </span>
-            </span>
-            <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
-              实现
-              <span class="leetcode-popover">
-                ${renderImplementationReference(problem)}
-              </span>
-            </span>
           </div>
         </article>
       `;
@@ -823,8 +833,7 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-summary,
     .leetcode-pagination,
     .leetcode-status,
-    .leetcode-preview,
-    .leetcode-row-meta {
+    .leetcode-title-tools {
       display: flex;
       align-items: center;
     }
@@ -1069,9 +1078,9 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 2.75rem 2.75rem minmax(13rem, 1fr) 3.65rem 4.35rem 3.45rem 7.35rem 7.85rem;
+      grid-template-columns: 2.75rem 2.75rem minmax(20rem, 1fr) 3.65rem 4.35rem 3.45rem 7.35rem;
       min-width: 0;
-      gap: 0.35rem;
+      gap: 0.3rem;
       align-items: center;
     }
 
@@ -1098,10 +1107,10 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-row {
       position: relative;
-      min-height: 2.35rem;
+      min-height: 2.25rem;
       border-top: 1px solid rgb(194 192 182 / 48%);
       cursor: pointer;
-      padding: 0.24rem 0.25rem;
+      padding: 0.2rem 0.25rem;
     }
 
     .leetcode-row > div {
@@ -1146,11 +1155,23 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-problem-link {
+      position: relative;
+      display: inline-flex;
+      min-width: 0;
+      max-width: 100%;
+      align-items: center;
+      flex: 0 1 auto;
       color: var(--color-charcoal);
       font-weight: 700;
       font-size: 0.93rem;
-      overflow-wrap: anywhere;
       text-decoration: none;
+    }
+
+    .leetcode-title-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .leetcode-problem-link:visited,
@@ -1168,48 +1189,16 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-problem-main {
       position: relative;
-      min-width: 0;
-    }
-
-    .leetcode-row-meta {
-      position: absolute;
-      left: -0.15rem;
-      top: calc(100% + 0.35rem);
-      z-index: 4;
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.3rem;
-      max-width: min(24rem, 70vw);
-      border: 1px solid var(--color-border);
-      border-radius: 0.5rem;
-      background: var(--color-cream);
-      box-shadow: 0 14px 36px rgb(20 20 19 / 14%);
-      opacity: 0;
-      padding: 0.42rem;
-      pointer-events: none;
-      transform: translateY(-0.2rem);
-      transition: opacity 140ms ease, transform 140ms ease;
-      visibility: hidden;
+      align-items: center;
+      gap: 0.25rem;
+      min-width: 0;
+      white-space: nowrap;
     }
 
-    .leetcode-row-meta span {
-      border-radius: 999px;
-      background: rgb(217 119 87 / 10%);
-      color: var(--color-muted);
-      font-size: 0.72rem;
-      padding: 0.08rem 0.42rem;
-    }
-
-    .leetcode-problem-main:hover .leetcode-row-meta,
-    .leetcode-problem-main:focus-within .leetcode-row-meta {
-      opacity: 1;
-      transform: translateY(0);
-      visibility: visible;
-    }
-
-    html.dark .leetcode-row-meta {
-      border-color: #333;
-      background: var(--color-dark-surface);
+    .leetcode-title-tools {
+      flex: 0 0 auto;
+      gap: 0.14rem;
     }
 
     .leetcode-practice-panel {
@@ -1336,8 +1325,7 @@ const description = isZh ? book.zhDescription : book.description;
       padding: 0.1rem 0.3rem;
     }
 
-    .leetcode-status,
-    .leetcode-preview {
+    .leetcode-status {
       flex-wrap: wrap;
       gap: 0.15rem;
     }
@@ -1351,16 +1339,19 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-preview-control {
       display: inline-flex;
       align-items: center;
-      position: static;
+      position: relative;
+      line-height: 1.15;
     }
 
     .leetcode-popover {
       position: absolute;
-      right: 0;
-      top: calc(100% + 0.5rem);
+      left: 0;
+      top: calc(100% + 0.34rem);
       z-index: 5;
       display: none;
-      width: min(30rem, 76vw);
+      width: min(31rem, 78vw);
+      max-height: min(30rem, 72vh);
+      overflow: auto;
       border: 1px solid var(--color-border);
       border-radius: 0.5rem;
       background: var(--color-cream);
@@ -1371,6 +1362,22 @@ const description = isZh ? book.zhDescription : book.description;
       padding: 0.8rem;
       text-align: left;
       white-space: normal;
+    }
+
+    .leetcode-tag-popover {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+
+    .leetcode-tag-popover span {
+      display: inline-flex;
+      border-radius: 999px;
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      line-height: 1.25;
+      padding: 0.08rem 0.42rem;
     }
 
     .leetcode-popover-lead,
@@ -1437,6 +1444,9 @@ const description = isZh ? book.zhDescription : book.description;
       color: var(--color-muted);
     }
 
+    .leetcode-problem-link:hover .leetcode-popover,
+    .leetcode-problem-link:focus .leetcode-popover,
+    .leetcode-problem-link:focus-visible .leetcode-popover,
     .leetcode-preview-control:hover .leetcode-popover,
     .leetcode-preview-control.is-open .leetcode-popover,
     .leetcode-preview-control:focus .leetcode-popover,
@@ -1541,11 +1551,6 @@ const description = isZh ? book.zhDescription : book.description;
       .leetcode-row > .leetcode-status {
         grid-column: 1 / -1;
         grid-row: 3;
-      }
-
-      .leetcode-row > .leetcode-preview {
-        grid-column: 1 / -1;
-        grid-row: 4;
       }
     }
 

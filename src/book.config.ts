@@ -261,19 +261,19 @@ export const codexContextManagementBook = makeBook({
 
 export const leetcodeBook = makeBook({
   slug: "leetcode",
-  title: "LeetCode Frequency 888",
-  zhTitle: "力扣高频 888",
+  title: "LeetCode Frequency 1888",
+  zhTitle: "力扣高频 1888",
   shortTitle: "LeetCode",
   zhShortTitle: "力扣",
   description:
-    "A compact, filterable LeetCode China frequency workbook with Top 888 ranking, Hot 100 membership, duplicate audit, ByteDance flags, previews, and local practice marks.",
+    "A compact, filterable LeetCode China frequency workbook targeting Top 1888 ranking, with Hot 100 membership, duplicate audit, ByteDance flags, previews, and local practice marks.",
   zhDescription:
-    "一本紧凑可筛选的力扣中国区高频题册，包含 Top888、Hot100、重复题核对、字节跳动标记、题面预览和本地练习标记。",
+    "一本紧凑可筛选的力扣中国区高频题册，目标覆盖 Top1888，并包含 Hot100、重复题核对、字节跳动标记、题面预览和本地练习标记。",
   coverKicker: "Frequency, Hot 100, Local Practice",
   zhCoverKicker: "Frequency, Hot 100, Local Practice",
-  coverTitle: "LeetCode<br />Frequency<br />888",
-  coverFooter: "888 ranked + Hot 100 supplements",
-  zhCoverFooter: "888 高频 + Hot100 补充",
+  coverTitle: "LeetCode<br />Frequency<br />1888",
+  coverFooter: "1888 target + verified 888 sync",
+  zhCoverFooter: "1888 目标 + 888 已同步",
   parts: [],
   pages: leetcodePages,
 });
