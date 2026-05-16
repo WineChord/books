@@ -3,6 +3,10 @@ import Header from "./Header.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { leetcodeBook } from "../book.config";
 import {
+  leetcodeImplementationReferences,
+  leetcodeImplementationStats,
+} from "../data/leetcode-implementation-references";
+import {
   leetcodeDataSource,
   leetcodeDataUpdatedAt,
   leetcodeDuplicateAudit,
@@ -25,6 +29,11 @@ const description = isZh ? book.zhDescription : book.description;
 const leetcodeTargetLimit = 1888;
 const syncedTopLimit = leetcodeStats.top888;
 const syncedDedupedLimit = leetcodeStats.dedupedTop888;
+const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
+  ...problem,
+  implementationReferences:
+    leetcodeImplementationReferences[problem.titleSlug] ?? [],
+}));
 ---
 
 <BaseLayout
@@ -164,6 +173,11 @@ const syncedDedupedLimit = leetcodeStats.dedupedTop888;
             ? "力扣中国区按出题频率排序；字节数据来自可核实企业题库/companyTagStatsV2；公司追问来自公开 Discuss。"
             : leetcodeDataSource}
         </span>
+        <span>
+          {isZh
+            ? `${leetcodeImplementationStats.references} 份公开 reference implementation 已同步`
+            : `${leetcodeImplementationStats.references} public reference implementations synced`}
+        </span>
       </div>
 
       {
@@ -221,7 +235,7 @@ const syncedDedupedLimit = leetcodeStats.dedupedTop888;
     </section>
   </main>
 
-  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblems)}></script>
+  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemsWithReferences)}></script>
 
   <script>
     const progressKey = "leetcode-book-progress-v1";
@@ -310,6 +324,11 @@ const syncedDedupedLimit = leetcodeStats.dedupedTop888;
           item.question,
           item.answer,
           item.company,
+          item.sourceTitle,
+        ]),
+        ...(problem.implementationReferences || []).flatMap((item) => [
+          item.language,
+          item.provenance,
           item.sourceTitle,
         ]),
       ].join(" ").toLowerCase();
@@ -425,6 +444,7 @@ const syncedDedupedLimit = leetcodeStats.dedupedTop888;
           ${problem.hot100 ? "<span>Hot100</span>" : ""}
           ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
           ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
+          ${problem.implementationReferences?.length ? `<span>实现参考 ${escapeHtml(problem.implementationReferences.length)}</span>` : ""}
           ${renderByteDanceMeta(problem)}
           ${renderTags(problem)}
         </span>
@@ -446,13 +466,53 @@ const syncedDedupedLimit = leetcodeStats.dedupedTop888;
       return tracks.slice(0, 4);
     }
 
+    function implementationProvenanceLabel(provenance) {
+      if (provenance === "my-recent-accepted-submission") return "我的提交";
+      if (provenance === "optimized") return "已优化";
+      return "生成参考";
+    }
+
+    function renderImplementationCode(reference) {
+      return `
+        <span class="leetcode-implementation-card">
+          <span class="leetcode-implementation-meta">
+            <span>${escapeHtml(implementationProvenanceLabel(reference.provenance))}</span>
+            <span>${escapeHtml(reference.language)}</span>
+            ${reference.submittedAt ? `<span>${escapeHtml(reference.submittedAt)}</span>` : ""}
+            ${reference.runtime ? `<span>${escapeHtml(reference.runtime)}</span>` : ""}
+            ${reference.memory ? `<span>${escapeHtml(reference.memory)}</span>` : ""}
+            <a
+              href="${escapeHtml(reference.sourceUrl)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="leetcode-source-link"
+            >
+              提交来源
+            </a>
+          </span>
+          <pre class="leetcode-code-block"><code>${escapeHtml(reference.code)}</code></pre>
+        </span>
+      `;
+    }
+
     function renderImplementationReference(problem) {
       const tracks = implementationTracks(problem);
+      const references = problem.implementationReferences || [];
+      const lead = references.length
+        ? `Reference implementation 已公开同步 ${references.length} 份最近通过提交；优先展示我的提交，后续可继续补充优化版和生成参考。`
+        : "Reference implementation 待同步最近提交。当前先展示面试实现顺序；最终代码会标记为「我的提交」「已优化」或「生成参考」。";
       return `
         <span class="leetcode-popover-lead">
-          Reference implementation 待同步最近提交。当前先展示面试实现顺序；
-          最终代码会标记为「我的提交」「已优化」或「生成参考」。
+          ${escapeHtml(lead)}
         </span>
+        ${
+          references.length
+            ? `<span class="leetcode-popover-section">
+                <strong>参考实现</strong>
+                ${references.map(renderImplementationCode).join("")}
+              </span>`
+            : ""
+        }
         <span class="leetcode-popover-section">
           <strong>建议展开顺序</strong>
           ${tracks
@@ -1380,6 +1440,45 @@ const syncedDedupedLimit = leetcodeStats.dedupedTop888;
       padding: 0.08rem 0.42rem;
     }
 
+    .leetcode-implementation-card,
+    .leetcode-implementation-meta {
+      display: block;
+    }
+
+    .leetcode-implementation-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .leetcode-implementation-meta span,
+    .leetcode-implementation-meta a {
+      display: inline-flex;
+      border: 1px solid rgb(217 119 87 / 28%);
+      border-radius: 999px;
+      color: var(--color-muted);
+      font-size: 0.7rem;
+      line-height: 1.25;
+      padding: 0.08rem 0.42rem;
+      text-decoration: none;
+    }
+
+    .leetcode-code-block {
+      max-height: 18rem;
+      overflow: auto;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.45rem;
+      background: rgb(20 20 19 / 92%);
+      color: var(--color-cream);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0.65rem;
+      white-space: pre;
+    }
+
     .leetcode-popover-lead,
     .leetcode-popover-section,
     .leetcode-check,
@@ -1473,6 +1572,11 @@ const syncedDedupedLimit = leetcodeStats.dedupedTop888;
     html.dark .leetcode-popover-section > strong,
     html.dark .leetcode-followup-source b {
       color: var(--color-cream);
+    }
+
+    html.dark .leetcode-code-block {
+      border-color: #333;
+      background: rgb(8 8 7 / 92%);
     }
 
     .leetcode-pagination {

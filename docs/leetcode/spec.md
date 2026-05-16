@@ -86,8 +86,12 @@ not read the LeetCode login session and does not submit code to LeetCode.
 
 Preview controls include statement, approach, and implementation. The
 implementation preview is the home for reference implementation ordering,
-final reference code, provenance state, and follow-ups. Implementation
-provenance has three states:
+final reference code, provenance state, and follow-ups. Reference
+implementation code may be committed to this repository and published through
+GitHub Pages. The current page starts with harvested recent accepted
+submissions for the highest-frequency rows, then falls back to generated
+interview guidance where a personal accepted submission has not been synced
+yet. Implementation provenance has three states:
 
 1. my recent accepted submission, meaning it came from the account history;
 2. optimized, meaning it was corrected for complexity, edge cases, or style;
