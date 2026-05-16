@@ -129,6 +129,20 @@ LeetCode submit. Practice navigation is also keyboard-first: `Option+J` or
 shortcut affordance near pagination and a full shortcut block near the page
 end list every supported key.
 
+Practice timing is automatic. Opening or keyboard-switching into a problem
+starts that problem's forward timer without requiring a start button. A full
+LeetCode submit that returns Accepted records the elapsed time from the latest
+switch/open moment, marks the problem done, updates the problem's last Accepted
+time and personal best, and then resets the active-attempt timer for any
+repeat attempt. Running examples does not count as an Accepted solve. The page
+also starts a session timer when it loads and shows current problem time,
+session elapsed time, distinct session Accepted count, session average,
+today's Accepted count, and the current problem PB. Session counters live only
+in memory for the current page load; per-problem PB/last Accepted and daily
+Accepted summaries persist in local storage. Manual reset controls may restart
+the current session timer or clear the active problem's timing record, but the
+normal flow remains automatic.
+
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and
 the current editor code through `window.postMessage` for `run` and `submit`.

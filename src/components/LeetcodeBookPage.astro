@@ -278,6 +278,37 @@ const shortcutRows = [
         </div>
       </div>
 
+      <section class="leetcode-session-board" aria-label={isZh ? "刷题计时" : "Practice timing"}>
+        <div class="leetcode-session-metric is-live">
+          <span data-timing-active>00:00</span>
+          <p>{isZh ? "当前题" : "Current"}</p>
+        </div>
+        <div class="leetcode-session-metric">
+          <span data-timing-session>00:00</span>
+          <p>{isZh ? "本次总耗时" : "Session"}</p>
+        </div>
+        <div class="leetcode-session-metric">
+          <span data-timing-session-solved>0 题</span>
+          <p>{isZh ? "本次 AC" : "Accepted"}</p>
+        </div>
+        <div class="leetcode-session-metric">
+          <span data-timing-session-avg>--</span>
+          <p>{isZh ? "本次均速" : "Average"}</p>
+        </div>
+        <div class="leetcode-session-metric">
+          <span data-timing-today>0 题</span>
+          <p>{isZh ? "今日 AC" : "Today"}</p>
+        </div>
+        <div class="leetcode-session-metric">
+          <span data-timing-current-best>--</span>
+          <p>{isZh ? "本题 PB" : "Problem PB"}</p>
+        </div>
+        <div class="leetcode-session-actions">
+          <button type="button" data-timing-action="reset-session">{isZh ? "重开本次" : "Reset session"}</button>
+          <button type="button" data-timing-action="reset-problem">{isZh ? "清本题" : "Clear problem"}</button>
+        </div>
+      </section>
+
       <div class="leetcode-list-meta">
         <div class="leetcode-summary">
           <span id="leetcode-result-count"></span>
@@ -413,6 +444,7 @@ const shortcutRows = [
     const progressKey = "leetcode-book-progress-v1";
     const clickedKey = "leetcode-book-clicked-v1";
     const editorKey = "leetcode-book-editor-v1";
+    const timingKey = "leetcode-book-timing-v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
     const maxPageSize = problems.length || 20;
@@ -459,6 +491,7 @@ const shortcutRows = [
     const editorIndentUnit = "    ";
     const editorClosingTokens = new Set(["}", "]", ")"]);
     const pendingExtensionRequests = new Map();
+    const isChinesePage = document.documentElement.lang.startsWith("zh");
     let extensionRequestSequence = 0;
 
     function readJson(key, fallback) {
@@ -472,11 +505,223 @@ const shortcutRows = [
     let progress = readJson(progressKey, {});
     let clicked = readJson(clickedKey, {});
     let editorDrafts = readJson(editorKey, {});
+    let timing = readJson(timingKey, {});
+    if (!timing || typeof timing !== "object") timing = {};
+    timing.problems = timing.problems && typeof timing.problems === "object"
+      ? timing.problems
+      : {};
+    timing.days = timing.days && typeof timing.days === "object"
+      ? timing.days
+      : {};
+    const sessionTiming = {
+      acceptedDurations: [],
+      acceptedSlugs: new Set(),
+      startedAt: Date.now(),
+    };
+    let activePracticeTimer = { slug: "", startedAt: 0 };
 
     function writeState() {
       localStorage.setItem(progressKey, JSON.stringify(progress));
       localStorage.setItem(clickedKey, JSON.stringify(clicked));
       localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
+    }
+
+    function writeTiming() {
+      localStorage.setItem(timingKey, JSON.stringify(timing));
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function localDateKey(date = new Date()) {
+      return [
+        date.getFullYear(),
+        pad2(date.getMonth() + 1),
+        pad2(date.getDate()),
+      ].join("-");
+    }
+
+    function formatDuration(ms) {
+      const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      if (hours > 0) return `${hours}:${pad2(minutes)}:${pad2(seconds)}`;
+      return `${minutes}:${pad2(seconds)}`;
+    }
+
+    function formatProblemCount(count) {
+      const value = Number(count || 0);
+      return isChinesePage ? `${value} 题` : `${value} solved`;
+    }
+
+    function dayTiming(dateKey = localDateKey()) {
+      if (!timing.days[dateKey] || typeof timing.days[dateKey] !== "object") {
+        timing.days[dateKey] = {
+          acceptedCount: 0,
+          acceptedSlugs: [],
+          totalAcceptedMs: 0,
+        };
+      }
+      const day = timing.days[dateKey];
+      if (!Array.isArray(day.acceptedSlugs)) day.acceptedSlugs = [];
+      day.acceptedCount = Number(day.acceptedCount || 0);
+      day.totalAcceptedMs = Number(day.totalAcceptedMs || 0);
+      return day;
+    }
+
+    function problemTiming(slug) {
+      if (!slug) return {};
+      if (!timing.problems[slug] || typeof timing.problems[slug] !== "object") {
+        timing.problems[slug] = {
+          acceptedCount: 0,
+          bestMs: null,
+          lastAcceptedAt: null,
+          lastMs: null,
+          totalAcceptedMs: 0,
+        };
+      }
+      const record = timing.problems[slug];
+      record.acceptedCount = Number(record.acceptedCount || 0);
+      record.totalAcceptedMs = Number(record.totalAcceptedMs || 0);
+      record.bestMs = record.bestMs === null ? null : Number(record.bestMs || 0);
+      record.lastMs = record.lastMs === null ? null : Number(record.lastMs || 0);
+      return record;
+    }
+
+    function storedProblemTiming(slug) {
+      const record = slug ? timing.problems[slug] : null;
+      return record && typeof record === "object" ? record : {};
+    }
+
+    function activePracticeElapsed() {
+      if (!activePracticeTimer.slug || !activePracticeTimer.startedAt) return 0;
+      return Date.now() - activePracticeTimer.startedAt;
+    }
+
+    function setTextAll(selector, value) {
+      document.querySelectorAll(selector).forEach((node) => {
+        node.textContent = value;
+      });
+    }
+
+    function syncTimingUi() {
+      const elapsed = activePracticeElapsed();
+      const activeSlug = activePracticeTimer.slug;
+      const activeRecord = activeSlug ? storedProblemTiming(activeSlug) : {};
+      const sessionElapsed = Date.now() - sessionTiming.startedAt;
+      const sessionAcceptedCount = sessionTiming.acceptedDurations.length;
+      const sessionAverage = sessionAcceptedCount
+        ? sessionTiming.acceptedDurations.reduce((sum, item) => sum + item, 0) /
+          sessionAcceptedCount
+        : 0;
+      const today = dayTiming();
+
+      setTextAll("[data-timing-active]", formatDuration(elapsed));
+      setTextAll("[data-timing-session]", formatDuration(sessionElapsed));
+      setTextAll(
+        "[data-timing-session-solved]",
+        formatProblemCount(sessionTiming.acceptedSlugs.size),
+      );
+      setTextAll(
+        "[data-timing-session-avg]",
+        sessionAverage ? formatDuration(sessionAverage) : "--",
+      );
+      setTextAll("[data-timing-today]", formatProblemCount(today.acceptedSlugs.length));
+      setTextAll(
+        "[data-timing-current-best]",
+        activeRecord.bestMs ? formatDuration(activeRecord.bestMs) : "--",
+      );
+
+      document.querySelectorAll("[data-problem-active]").forEach((node) => {
+        const slug = node instanceof HTMLElement ? node.dataset.problemActive : "";
+        node.textContent =
+          slug && slug === activeSlug ? formatDuration(elapsed) : "0:00";
+      });
+      document.querySelectorAll("[data-problem-best]").forEach((node) => {
+        const slug = node instanceof HTMLElement ? node.dataset.problemBest : "";
+        const record = slug ? storedProblemTiming(slug) : {};
+        node.textContent = record.bestMs ? formatDuration(record.bestMs) : "--";
+      });
+      document.querySelectorAll("[data-problem-last]").forEach((node) => {
+        const slug = node instanceof HTMLElement ? node.dataset.problemLast : "";
+        const record = slug ? storedProblemTiming(slug) : {};
+        node.textContent = record.lastMs ? formatDuration(record.lastMs) : "--";
+      });
+      document.querySelectorAll("[data-timing-action='reset-problem']").forEach((button) => {
+        if (button instanceof HTMLButtonElement) {
+          button.disabled = !activeSlug || !timing.problems[activeSlug];
+        }
+      });
+    }
+
+    function syncActivePracticeTimerAfterRender() {
+      const hasPanel = Boolean(
+        state.expandedSlug &&
+          Array.from(list?.querySelectorAll("[data-editor-panel]") || []).some(
+            (item) =>
+              item instanceof HTMLElement &&
+              item.dataset.editorPanel === state.expandedSlug,
+          ),
+      );
+      const nextSlug = hasPanel ? state.expandedSlug : "";
+      if (activePracticeTimer.slug !== nextSlug) {
+        activePracticeTimer = {
+          slug: nextSlug,
+          startedAt: nextSlug ? Date.now() : 0,
+        };
+      }
+      syncTimingUi();
+    }
+
+    function resetSessionTiming() {
+      sessionTiming.acceptedDurations = [];
+      sessionTiming.acceptedSlugs = new Set();
+      sessionTiming.startedAt = Date.now();
+      if (activePracticeTimer.slug) {
+        activePracticeTimer.startedAt = Date.now();
+      }
+      syncTimingUi();
+    }
+
+    function resetActiveProblemTiming() {
+      const slug = activePracticeTimer.slug;
+      if (!slug) return;
+      delete timing.problems[slug];
+      if (activePracticeTimer.startedAt) {
+        activePracticeTimer.startedAt = Date.now();
+      }
+      writeTiming();
+      syncTimingUi();
+    }
+
+    function recordAcceptedTiming(slug) {
+      const elapsed = Math.max(0, activePracticeTimer.slug === slug
+        ? Date.now() - activePracticeTimer.startedAt
+        : 0);
+      const record = problemTiming(slug);
+      const previousBest = record.bestMs || null;
+      const isPersonalBest = !previousBest || elapsed < previousBest;
+      record.acceptedCount += 1;
+      record.totalAcceptedMs += elapsed;
+      record.lastAcceptedAt = new Date().toISOString();
+      record.lastMs = elapsed;
+      record.bestMs = isPersonalBest ? elapsed : previousBest;
+
+      const today = dayTiming();
+      today.acceptedCount += 1;
+      today.totalAcceptedMs += elapsed;
+      if (!today.acceptedSlugs.includes(slug)) today.acceptedSlugs.push(slug);
+
+      sessionTiming.acceptedDurations.push(elapsed);
+      sessionTiming.acceptedSlugs.add(slug);
+      if (activePracticeTimer.slug === slug) {
+        activePracticeTimer.startedAt = Date.now();
+      }
+      writeTiming();
+      syncTimingUi();
+      return { elapsed, isPersonalBest, bestMs: record.bestMs };
     }
 
     function escapeHtml(value) {
@@ -1629,12 +1874,18 @@ const shortcutRows = [
         const result = response.data?.result || {};
         const summary = submissionSummary(result);
         if (submissionAccepted(result)) {
+          const timingResult = recordAcceptedTiming(problem.titleSlug);
+          const timingSummary =
+            `${isChinesePage ? "本题" : "Problem"} ${formatDuration(timingResult.elapsed)}` +
+            (timingResult.isPersonalBest
+              ? (isChinesePage ? "，新 PB" : ", new PB")
+              : "");
           progress[problem.titleSlug] = {
             ...rowState(problem.titleSlug),
             done: true,
           };
           writeState();
-          setSubmitStatus(panel, `Accepted ${summary}`, "success");
+          setSubmitStatus(panel, `Accepted ${summary} · ${timingSummary}`, "success");
           return;
         }
         setSubmitStatus(panel, summary, "error");
@@ -1660,6 +1911,11 @@ const shortcutRows = [
                   ? "官方模板已同步；草稿保存在当前浏览器。"
                   : "官方模板缺失，先使用本地 fallback；草稿保存在当前浏览器。"
               }</span>
+              <span class="leetcode-practice-meter">
+                <b>${isChinesePage ? "当前" : "Now"} <em data-problem-active="${escapeHtml(problem.titleSlug)}">0:00</em></b>
+                <b>PB <em data-problem-best="${escapeHtml(problem.titleSlug)}">--</em></b>
+                <b>${isChinesePage ? "上次 AC" : "Last AC"} <em data-problem-last="${escapeHtml(problem.titleSlug)}">--</em></b>
+              </span>
             </div>
             <div class="leetcode-practice-actions">
               <select data-editor-lang="${escapeHtml(problem.titleSlug)}" aria-label="Language">
@@ -1765,6 +2021,7 @@ const shortcutRows = [
         resultCount.textContent = `${items.length} 道题`;
       }
       syncPagination();
+      syncActivePracticeTimerAfterRender();
     }
 
     searchInput?.addEventListener("input", (event) => {
@@ -1812,6 +2069,20 @@ const shortcutRows = [
         event.preventDefault();
         jumpToInputPage(input);
       });
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const actionButton = target.closest("[data-timing-action]");
+      if (!(actionButton instanceof HTMLElement)) return;
+      const action = actionButton.dataset.timingAction || "";
+      if (action === "reset-session") {
+        resetSessionTiming();
+      }
+      if (action === "reset-problem") {
+        resetActiveProblemTiming();
+      }
     });
 
     window.addEventListener("message", (event) => {
@@ -2003,6 +2274,7 @@ const shortcutRows = [
     });
 
     render();
+    window.setInterval(syncTimingUi, 1000);
   </script>
 
   <style is:global>
@@ -2236,6 +2508,78 @@ const shortcutRows = [
       font-weight: 700;
       padding: 0.12rem 0.3rem;
       white-space: nowrap;
+    }
+
+    .leetcode-session-board {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
+      gap: 0.28rem;
+      align-items: stretch;
+      margin: 0 0 0.25rem;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.5rem;
+      background: rgb(255 255 255 / 22%);
+      padding: 0.25rem;
+    }
+
+    .leetcode-session-metric {
+      min-width: 0;
+      border-radius: 0.36rem;
+      background: rgb(20 20 19 / 3%);
+      padding: 0.22rem 0.35rem;
+    }
+
+    .leetcode-session-metric.is-live {
+      background: rgb(217 119 87 / 10%);
+    }
+
+    .leetcode-session-metric span {
+      display: block;
+      overflow: hidden;
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      font-weight: 800;
+      line-height: 1.1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-session-metric p {
+      margin: 0.08rem 0 0;
+      color: var(--color-muted);
+      font-size: 0.52rem;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .leetcode-session-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.22rem;
+      justify-content: flex-end;
+    }
+
+    .leetcode-session-actions button {
+      border: 1px solid var(--color-border);
+      border-radius: 0.38rem;
+      background: transparent;
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.62rem;
+      padding: 0.16rem 0.32rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-session-actions button:hover {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-session-actions button:disabled {
+      cursor: default;
+      opacity: 0.45;
     }
 
     .leetcode-toolbar {
@@ -2580,6 +2924,32 @@ const shortcutRows = [
       display: block;
     }
 
+    .leetcode-practice-meter {
+      display: flex !important;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin-top: 0.22rem;
+    }
+
+    .leetcode-practice-meter b {
+      display: inline-flex;
+      gap: 0.22rem;
+      align-items: baseline;
+      border: 1px solid rgb(217 119 87 / 28%);
+      border-radius: 999px;
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      line-height: 1.2;
+      padding: 0.08rem 0.34rem;
+    }
+
+    .leetcode-practice-meter em {
+      color: var(--color-terracotta);
+      font-style: normal;
+    }
+
     .leetcode-practice-head span,
     .leetcode-practice-panel p {
       color: var(--color-muted);
@@ -2716,6 +3086,28 @@ const shortcutRows = [
 
     html.dark .leetcode-practice-panel {
       background: rgb(30 30 28 / 42%);
+    }
+
+    html.dark .leetcode-session-board {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
+    }
+
+    html.dark .leetcode-session-metric {
+      background: rgb(255 255 255 / 4%);
+    }
+
+    html.dark .leetcode-session-metric.is-live {
+      background: rgb(217 119 87 / 14%);
+    }
+
+    html.dark .leetcode-session-metric span {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-session-actions button,
+    html.dark .leetcode-practice-meter b {
+      border-color: #333;
     }
 
     html.dark .leetcode-practice-actions select,
@@ -3097,6 +3489,15 @@ const shortcutRows = [
         grid-template-columns: 1fr;
       }
 
+      .leetcode-session-board {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .leetcode-session-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+      }
+
       .leetcode-filter-panel {
         justify-content: flex-start;
         padding-top: 0;
@@ -3152,6 +3553,10 @@ const shortcutRows = [
     @media (max-width: 520px) {
       .leetcode-title {
         max-width: 9ch;
+      }
+
+      .leetcode-session-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .leetcode-page-size {
