@@ -5,6 +5,7 @@ import { leetcodeBook } from "../book.config";
 import {
   leetcodeDataSource,
   leetcodeDataUpdatedAt,
+  leetcodeDuplicateAudit,
   leetcodeProblems,
   leetcodeStats,
 } from "../data/leetcode-problems";
@@ -45,8 +46,8 @@ const description = isZh ? book.zhDescription : book.description;
         <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
         <p class="leetcode-copy">
           {isZh
-            ? "按力扣中国区出题频率整理的练习清单，合并 Hot100 标记、字节跳动时间段、题面预览、思路速览和本地练习状态。"
-            : "A compact LeetCode China frequency workbook with Hot 100 flags, ByteDance time buckets, previews, and local practice state."}
+            ? "按力扣中国区出题频率整理的 Top888 练习清单，合并 Hot100 标记、重复题核对、字节跳动时间段、题面预览、思路速览和本地练习状态。"
+            : "A compact Top 888 LeetCode China frequency workbook with Hot 100 flags, duplicate audit, ByteDance time buckets, previews, and local practice state."}
         </p>
         <div class="leetcode-actions">
           <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
@@ -71,24 +72,28 @@ const description = isZh ? book.zhDescription : book.description;
 
     <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
       <div>
-        <span>{leetcodeStats.top500}</span>
-        <p>Top 500</p>
+        <span>{leetcodeStats.top888}</span>
+        <p>Top 888</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.dedupedTop888}</span>
+        <p>{isZh ? "去重后" : "Deduped"}</p>
       </div>
       <div>
         <span>{leetcodeStats.hot100}</span>
         <p>Hot 100</p>
       </div>
       <div>
-        <span>{leetcodeStats.hot100OutsideTop500}</span>
+        <span>{leetcodeStats.hot100OutsideTop888}</span>
         <p>{isZh ? "Hot100 补充" : "Hot supplements"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.duplicatesRemoved}</span>
+        <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
       </div>
       <div>
         <span>{leetcodeStats.bytedance}</span>
         <p>{isZh ? "字节出现" : "ByteDance"}</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.companyFollowUps}</span>
-        <p>{isZh ? "公司追问" : "Follow-ups"}</p>
       </div>
     </section>
 
@@ -121,15 +126,61 @@ const description = isZh ? book.zhDescription : book.description;
             <option value="100">100</option>
             <option value="custom">{isZh ? "自定义" : "Custom"}</option>
           </select>
-          <input id="leetcode-custom-size" type="number" min="1" max="505" inputmode="numeric" placeholder="32" hidden />
+          <input
+            id="leetcode-custom-size"
+            type="number"
+            min="1"
+            max={leetcodeStats.total}
+            inputmode="numeric"
+            placeholder="32"
+            hidden
+          />
         </div>
       </div>
 
       <div class="leetcode-summary">
         <span id="leetcode-result-count"></span>
         <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
-        <span>{leetcodeDataSource}</span>
+        <span>
+          {isZh
+            ? "力扣中国区按出题频率排序；字节数据来自可核实企业题库/companyTagStatsV2；公司追问来自公开 Discuss。"
+            : leetcodeDataSource}
+        </span>
       </div>
+
+      {
+        leetcodeDuplicateAudit.length > 0 && (
+          <details class="leetcode-duplicate-audit">
+            <summary>
+              {isZh
+                ? `去重核对：默认隐藏 ${leetcodeDuplicateAudit.length} 道明显重复题`
+                : `Duplicate audit: ${leetcodeDuplicateAudit.length} hidden by default`}
+            </summary>
+            <div class="leetcode-duplicate-list">
+              {leetcodeDuplicateAudit.map((item) => (
+                <div class="leetcode-duplicate-row">
+                  <span>#{item.duplicateRank}</span>
+                  <a
+                    href={`https://leetcode.cn/problems/${item.duplicateTitleSlug}/description/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {item.duplicateFrontendId}. {item.duplicateTitleCn}
+                  </a>
+                  <span>{isZh ? "保留" : "kept"}</span>
+                  <a
+                    href={`https://leetcode.cn/problems/${item.keptTitleSlug}/description/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    #{item.keptRank} {item.keptFrontendId}. {item.keptTitleCn}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </details>
+        )
+      }
 
       <div class="leetcode-table-wrap">
         <div class="leetcode-table-head" aria-hidden="true">
@@ -160,6 +211,7 @@ const description = isZh ? book.zhDescription : book.description;
     const clickedKey = "leetcode-book-clicked-v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
+    const maxPageSize = problems.length || 20;
     const list = document.getElementById("leetcode-problem-list");
     const searchInput = document.getElementById("leetcode-search");
     const pageSizeSelect = document.getElementById("leetcode-page-size");
@@ -207,7 +259,7 @@ const description = isZh ? book.zhDescription : book.description;
     function pageSize() {
       if (pageSizeSelect?.value === "custom") {
         const custom = Number(customSizeInput?.value || 20);
-        return Math.max(1, Math.min(505, Number.isFinite(custom) ? custom : 20));
+        return Math.max(1, Math.min(maxPageSize, Number.isFinite(custom) ? custom : 20));
       }
       return Number(pageSizeSelect?.value || 20);
     }
@@ -265,9 +317,23 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     function renderByteDance(problem) {
+      if (!problem.bytedance) return "";
+      const periods = problem.bytedancePeriods || {};
+      const labels = [
+        ["近3月", periods.past3Months],
+        ["3-6月", periods.past6Months],
+        ["6月前", periods.before6Months],
+      ]
+        .filter(([, count]) => count)
+        .map(([label, count]) => `${label} ${count}`)
+        .join(" / ");
+      return `<span title="${escapeHtml(labels || "字节跳动")}">是</span>`;
+    }
+
+    function renderByteDanceMeta(problem) {
       const periods = problem.bytedancePeriods || {};
       const chips = [
-        ["3月", periods.past3Months],
+        ["字节近3月", periods.past3Months],
         ["3-6月", periods.past6Months],
         ["6月前", periods.before6Months],
       ].filter(([, count]) => count);
@@ -349,7 +415,9 @@ const description = isZh ? book.zhDescription : book.description;
             <div class="leetcode-row-meta" aria-hidden="true">
               ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
               ${problem.hot100 ? "<span>Hot100</span>" : ""}
+              ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
               ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
+              ${renderByteDanceMeta(problem)}
               ${renderTags(problem)}
             </div>
           </div>
@@ -586,7 +654,7 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-stats {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 0.75rem;
       margin-bottom: 2rem;
       border-top: 1px solid var(--color-border);
@@ -698,6 +766,65 @@ const description = isZh ? book.zhDescription : book.description;
       font-size: 0.78rem;
     }
 
+    .leetcode-duplicate-audit {
+      margin: 0 0 0.85rem;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.5rem;
+      background: rgb(255 255 255 / 28%);
+      color: var(--color-secondary);
+      font-size: 0.82rem;
+    }
+
+    .leetcode-duplicate-audit summary {
+      cursor: pointer;
+      font-weight: 700;
+      padding: 0.55rem 0.7rem;
+    }
+
+    .leetcode-duplicate-list {
+      display: grid;
+      gap: 0.1rem;
+      max-height: 18rem;
+      overflow: auto;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      padding: 0.45rem 0.7rem 0.65rem;
+    }
+
+    .leetcode-duplicate-row {
+      display: grid;
+      grid-template-columns: 4rem minmax(12rem, 1fr) 3rem minmax(12rem, 1fr);
+      gap: 0.45rem;
+      align-items: baseline;
+      min-width: 38rem;
+      padding: 0.22rem 0;
+    }
+
+    .leetcode-duplicate-row span {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .leetcode-duplicate-row a {
+      color: var(--color-charcoal);
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .leetcode-duplicate-row a:hover {
+      color: var(--color-terracotta);
+    }
+
+    html.dark .leetcode-duplicate-audit {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-duplicate-row a {
+      color: var(--color-cream);
+    }
+
     .leetcode-table-wrap {
       width: 100%;
       overflow-x: auto;
@@ -712,8 +839,8 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 3.25rem 3.25rem minmax(17rem, 1fr) 4.4rem 4.8rem 7.4rem 11rem 7rem;
-      min-width: 64rem;
+      grid-template-columns: 3.25rem 3.25rem minmax(18rem, 1fr) 4.4rem 5rem 4.2rem 11rem 7rem;
+      min-width: 62rem;
       gap: 0.5rem;
       align-items: center;
     }
