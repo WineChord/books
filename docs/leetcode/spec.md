@@ -117,16 +117,21 @@ Enter keeps the current line indentation and adds one indentation level after
 opening braces, brackets, parentheses, or Python colons; `Tab` and `Shift+Tab`
 indent and outdent the current line or selected lines; typing a closing brace,
 bracket, or parenthesis on an indentation-only line aligns it back one level.
+The editor shows a fixed line-number gutter synchronized with the textarea and
+highlight layer. Editor shortcuts match the primary LeetCode muscle memory:
+`Cmd+'` runs the official example testcases and `Cmd+Enter` performs a full
+LeetCode submit.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and
-the current editor code through `window.postMessage`. The content script
-forwards that request to the extension background. The background owns the
-LeetCode cookies, queries `questionEditorData`, posts the submission to
+the current editor code through `window.postMessage` for `run` and `submit`.
+The content script forwards that request to the extension background. The
+background owns the LeetCode cookies, queries `questionEditorData`, runs
+official examples through `interpret_solution`, posts full submissions to
 LeetCode China, polls the submission result, and returns only structured status
 to the page. Cookie values are never sent to page JavaScript or stored in the
 repo. If the extension is not installed or the user is not logged in, the page
-shows that as submit status and keeps the local editor usable.
+shows that as status and keeps the local editor usable.
 
 Preview controls include statement, approach, and implementation. The
 implementation preview is the home for reference implementation ordering,

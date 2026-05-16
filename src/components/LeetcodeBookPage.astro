@@ -397,6 +397,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     const extensionResponseSource = "books-leetcode-extension";
     const extensionProtocolVersion = 1;
     const extensionPingTimeoutMs = 2500;
+    const extensionRunTimeoutMs = 45000;
     const extensionRequestTimeoutMs = 120000;
     const editorIndentUnit = "    ";
     const editorClosingTokens = new Set(["}", "]", ")"]);
@@ -1099,11 +1100,21 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       return highlightCode(code, lang);
     }
 
+    function editorLineNumbersText(code) {
+      const lineCount = Math.max(1, String(code).split("\n").length);
+      return Array.from({ length: lineCount }, (_, index) => String(index + 1)).join("\n");
+    }
+
     function syncEditorHighlight(panel, textarea, lang) {
       const highlight = panel?.querySelector(".leetcode-editor-highlight");
       const code = highlight?.querySelector("code");
+      const lineNumbers = panel?.querySelector(".leetcode-editor-lines");
       if (code) {
         code.innerHTML = editorHighlightHtml(textarea.value, lang);
+      }
+      if (lineNumbers instanceof HTMLElement) {
+        lineNumbers.textContent = editorLineNumbersText(textarea.value);
+        lineNumbers.scrollTop = textarea.scrollTop;
       }
       if (highlight instanceof HTMLElement) {
         highlight.scrollTop = textarea.scrollTop;
@@ -1272,9 +1283,53 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       return true;
     }
 
+    function isEditorRunShortcut(event) {
+      return (
+        event.metaKey &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        (event.key === "'" || event.code === "Quote")
+      );
+    }
+
+    function isEditorSubmitShortcut(event) {
+      return (
+        event.metaKey &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.key === "Enter"
+      );
+    }
+
+    function editorActionButton(panel, action) {
+      return panel?.querySelector(`[data-editor-action="${action}"]`);
+    }
+
     function handleEditorKeydown(event, textarea) {
       const context = editorContextFor(textarea);
       if (!context) return false;
+      if (isEditorRunShortcut(event)) {
+        event.preventDefault();
+        runLeetcode(
+          context.panel,
+          editorActionButton(context.panel, "run-leetcode"),
+          context.problem,
+          textarea,
+        );
+        return true;
+      }
+      if (isEditorSubmitShortcut(event)) {
+        event.preventDefault();
+        submitLeetcode(
+          context.panel,
+          editorActionButton(context.panel, "submit-leetcode"),
+          context.problem,
+          textarea,
+        );
+        return true;
+      }
       if (event.key === "Enter") {
         handleEditorEnter(event, textarea, context);
         return true;
@@ -1289,6 +1344,44 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
         return true;
       }
       return handleEditorClosingToken(event, textarea);
+    }
+
+    async function ensureLeetcodeReady(panel) {
+      setSubmitStatus(panel, "正在检测 Chrome 扩展...", "pending");
+      const loginStatus = await extensionRequest(
+        "login-status",
+        {},
+        extensionPingTimeoutMs,
+      );
+      if (!loginStatus?.ok) {
+        throw new Error(loginStatus?.error?.message || "扩展检测失败。");
+      }
+      if (!loginStatus.data?.isLoggedIn) {
+        throw new Error("Chrome 扩展已连接，但当前 Chrome 未登录 leetcode.cn。");
+      }
+      if (!loginStatus.data?.hasCsrfToken) {
+        throw new Error("Chrome 扩展已连接，但缺少 leetcode.cn CSRF cookie。");
+      }
+    }
+
+    function editorPayload(problem, textarea) {
+      const panel = textarea.closest(".leetcode-practice-panel");
+      const select = panel?.querySelector("[data-editor-lang]");
+      const lang =
+        select instanceof HTMLSelectElement
+          ? preferredLang(problem, select.value)
+          : preferredLang(problem, editorDrafts[problem.titleSlug]?.lang);
+      return {
+        code: textarea.value,
+        langSlug: normalizeLangSlug(lang),
+        titleSlug: problem.titleSlug,
+      };
+    }
+
+    function setActionBusy(actionButton, busy) {
+      if (actionButton instanceof HTMLButtonElement) {
+        actionButton.disabled = busy;
+      }
     }
 
     function setSubmitStatus(panel, message, tone = "") {
@@ -1365,36 +1458,39 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       return `${status}${tests}${runtime}${memory}`.trim();
     }
 
-    async function submitLeetcode(panel, actionButton, problem, textarea) {
-      const select = panel?.querySelector("[data-editor-lang]");
-      const lang =
-        select instanceof HTMLSelectElement
-          ? preferredLang(problem, select.value)
-          : preferredLang(problem, editorDrafts[problem.titleSlug]?.lang);
-      const code = textarea.value;
-      if (actionButton instanceof HTMLButtonElement) actionButton.disabled = true;
-      setSubmitStatus(panel, "正在检测 Chrome 扩展...", "pending");
+    async function runLeetcode(panel, actionButton, problem, textarea) {
+      setActionBusy(actionButton, true);
       try {
-        const loginStatus = await extensionRequest(
-          "login-status",
-          {},
-          extensionPingTimeoutMs,
+        await ensureLeetcodeReady(panel);
+        setSubmitStatus(panel, "正在运行官方示例...", "pending");
+        const response = await extensionRequest(
+          "run",
+          editorPayload(problem, textarea),
+          extensionRunTimeoutMs,
         );
-        if (!loginStatus?.ok) {
-          throw new Error(loginStatus?.error?.message || "扩展检测失败。");
+        if (!response?.ok) {
+          throw new Error(response?.error?.message || "运行失败。");
         }
-        if (!loginStatus.data?.isLoggedIn) {
-          throw new Error("Chrome 扩展已连接，但当前 Chrome 未登录 leetcode.cn。");
+        const result = response.data?.result || {};
+        const summary = submissionSummary(result);
+        if (submissionAccepted(result)) {
+          setSubmitStatus(panel, `样例通过 ${summary}`, "success");
+          return;
         }
-        if (!loginStatus.data?.hasCsrfToken) {
-          throw new Error("Chrome 扩展已连接，但缺少 leetcode.cn CSRF cookie。");
-        }
+        setSubmitStatus(panel, `样例未通过 ${summary}`, "error");
+      } catch (error) {
+        setSubmitStatus(panel, error.message || "运行失败。", "error");
+      } finally {
+        setActionBusy(actionButton, false);
+      }
+    }
+
+    async function submitLeetcode(panel, actionButton, problem, textarea) {
+      setActionBusy(actionButton, true);
+      try {
+        await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在提交到力扣...", "pending");
-        const response = await extensionRequest("submit", {
-          code,
-          langSlug: normalizeLangSlug(lang),
-          titleSlug: problem.titleSlug,
-        });
+        const response = await extensionRequest("submit", editorPayload(problem, textarea));
         if (!response?.ok) {
           throw new Error(response?.error?.message || "提交失败。");
         }
@@ -1413,7 +1509,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       } catch (error) {
         setSubmitStatus(panel, error.message || "提交失败。", "error");
       } finally {
-        if (actionButton instanceof HTMLButtonElement) actionButton.disabled = false;
+        setActionBusy(actionButton, false);
       }
     }
 
@@ -1446,11 +1542,13 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
               </select>
               <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}">复制</button>
               <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}">重置</button>
-              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}">提交力扣</button>
+              <button type="button" data-editor-action="run-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="Cmd+'">运行样例</button>
+              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="Cmd+Enter">提交力扣</button>
               <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer">打开力扣</a>
             </div>
           </div>
           <div class="leetcode-editor-shell">
+            <pre class="leetcode-editor-lines" aria-hidden="true">${editorLineNumbersText(code)}</pre>
             <pre class="leetcode-editor-highlight" aria-hidden="true"><code>${editorHighlightHtml(code, lang)}</code></pre>
             <textarea
               spellcheck="false"
@@ -1637,6 +1735,11 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
             editorDrafts[slug] = { lang, code: defaultTemplate(problem, lang) };
             writeState();
             render();
+          }
+          if (actionButton.dataset.editorAction === "run-leetcode") {
+            const problem = problems.find((item) => item.titleSlug === slug);
+            if (!problem) return;
+            runLeetcode(panel, actionButton, problem, textarea);
           }
           if (actionButton.dataset.editorAction === "submit-leetcode") {
             const problem = problems.find((item) => item.titleSlug === slug);
@@ -2283,6 +2386,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     }
 
     .leetcode-editor-shell {
+      --leetcode-editor-gutter: 3.25rem;
       position: relative;
       min-height: 13rem;
       width: 100%;
@@ -2293,23 +2397,38 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     }
 
     .leetcode-editor-highlight,
+    .leetcode-editor-lines,
     .leetcode-practice-panel textarea {
       box-sizing: border-box;
       min-height: 13rem;
-      width: 100%;
       font-family: var(--font-mono);
       font-size: 0.82rem;
       line-height: 1.55;
-      padding: 0.7rem;
-      tab-size: 2;
+      tab-size: 4;
       white-space: pre;
+    }
+
+    .leetcode-editor-lines {
+      position: absolute;
+      inset: 0 auto 0 0;
+      z-index: 1;
+      width: var(--leetcode-editor-gutter);
+      margin: 0;
+      overflow: hidden;
+      border-right: 1px solid rgb(255 255 255 / 9%);
+      background: rgb(255 255 255 / 3%);
+      color: rgb(245 241 232 / 36%);
+      padding: 0.7rem 0.55rem 0.7rem 0.35rem;
+      text-align: right;
+      user-select: none;
     }
 
     .leetcode-editor-highlight {
       position: absolute;
-      inset: 0;
+      inset: 0 0 0 var(--leetcode-editor-gutter);
       margin: 0;
       overflow: hidden;
+      padding: 0.7rem;
       pointer-events: none;
     }
 
@@ -2325,8 +2444,12 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       caret-color: var(--color-cream);
       font-family: var(--font-mono);
       color: transparent;
+      margin-left: var(--leetcode-editor-gutter);
       outline: 0;
+      padding: 0.7rem;
       resize: vertical;
+      width: calc(100% - var(--leetcode-editor-gutter));
+      z-index: 2;
     }
 
     .leetcode-practice-panel textarea::selection {

@@ -11,7 +11,7 @@ const allowedPathPatterns = [
   /^\/books\/leetcode\/?$/,
   /^\/books\/zh\/leetcode\/?$/,
 ];
-const allowedRequestTypes = new Set(["submit", "login-status"]);
+const allowedRequestTypes = new Set(["run", "submit", "login-status"]);
 
 function isAllowedOrigin(origin) {
   return allowedOriginPatterns.some((pattern) => pattern.test(origin));
@@ -31,8 +31,8 @@ function isPageRequest(message) {
   );
 }
 
-function hasValidSubmitPayload(message) {
-  if (message.type !== "submit") return true;
+function hasValidCodePayload(message) {
+  if (message.type !== "run" && message.type !== "submit") return true;
   const payload = message.payload;
   return (
     payload &&
@@ -63,7 +63,7 @@ window.addEventListener("message", (event) => {
   if (!isAllowedOrigin(event.origin)) return;
   if (!isAllowedPath(window.location.pathname)) return;
   if (!isPageRequest(event.data)) return;
-  if (!hasValidSubmitPayload(event.data)) return;
+  if (!hasValidCodePayload(event.data)) return;
 
   postResponse({
     ok: true,
