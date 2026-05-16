@@ -273,11 +273,11 @@ const description = isZh ? book.zhDescription : book.description;
             <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}">熟练</button>
           </div>
           <div class="leetcode-preview">
-            <button type="button">
+            <button type="button" data-preview aria-expanded="false">
               题意
               <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
             </button>
-            <button type="button">
+            <button type="button" data-preview aria-expanded="false">
               思路
               <span class="leetcode-popover">
                 ${escapeHtml(problem.approachPreview)}
@@ -351,6 +351,17 @@ const description = isZh ? book.zhDescription : book.description;
       if (link instanceof HTMLElement) {
         clicked[link.dataset.linkSlug || ""] = true;
         writeState();
+        return;
+      }
+      const previewButton = target.closest("[data-preview]");
+      if (previewButton instanceof HTMLElement) {
+        const isOpen = previewButton.classList.contains("is-open");
+        list.querySelectorAll("[data-preview].is-open").forEach((item) => {
+          item.classList.remove("is-open");
+          item.setAttribute("aria-expanded", "false");
+        });
+        previewButton.classList.toggle("is-open", !isOpen);
+        previewButton.setAttribute("aria-expanded", String(!isOpen));
         return;
       }
       const button = target.closest("[data-action]");
@@ -615,12 +626,18 @@ const description = isZh ? book.zhDescription : book.description;
       text-transform: uppercase;
     }
 
+    .leetcode-table-head span:nth-child(1),
+    .leetcode-table-head span:nth-child(2) {
+      text-align: center;
+    }
+
     html.dark .leetcode-table-head {
       background: var(--color-charcoal);
       border-bottom-color: #333;
     }
 
     .leetcode-row {
+      position: relative;
       min-height: 3.25rem;
       border-top: 1px solid rgb(194 192 182 / 48%);
       padding: 0.5rem 0.35rem;
@@ -647,7 +664,7 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-rank {
       color: var(--color-muted);
-      text-align: right;
+      text-align: center;
     }
 
     .leetcode-rank.is-hot {
@@ -725,13 +742,13 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-preview button {
-      position: relative;
+      position: static;
     }
 
     .leetcode-popover {
       position: absolute;
       right: 0;
-      bottom: calc(100% + 0.5rem);
+      top: calc(100% + 0.5rem);
       z-index: 5;
       display: none;
       width: min(22rem, 72vw);
@@ -756,6 +773,8 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-preview button:hover .leetcode-popover,
+    .leetcode-preview button.is-open .leetcode-popover,
+    .leetcode-preview button:focus .leetcode-popover,
     .leetcode-preview button:focus-visible .leetcode-popover {
       display: block;
     }
