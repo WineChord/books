@@ -26,6 +26,10 @@ Each row shows three identifiers:
 2. the Hot 100 rank, sorted by frequency rather than by the study-plan order;
 3. the original LeetCode frontend problem id inside the clickable title.
 
+Topic tags and supplemental row badges are collapsed by default. They appear
+when the title area is hovered or the title link receives keyboard focus, so
+the list stays dense while the tags remain nearby.
+
 The page supports 10, 20, 50, 100, and custom page sizes. It defaults to 20
 items per page.
 
