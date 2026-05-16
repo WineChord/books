@@ -318,125 +318,225 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     }
 
     function isIdentifierStart(char) {
-      return /[A-Za-z_]/.test(char);
+      return /[A-Za-z_$@]/.test(char);
     }
 
     function isIdentifierPart(char) {
-      return /[A-Za-z0-9_]/.test(char);
+      return /[A-Za-z0-9_$@]/.test(char);
     }
 
-    function highlightCpp(code) {
-      const keywords = new Set([
-        "alignas",
-        "auto",
-        "bool",
-        "break",
-        "case",
-        "catch",
-        "class",
-        "const",
-        "constexpr",
-        "continue",
-        "default",
-        "delete",
-        "do",
-        "else",
-        "enum",
-        "explicit",
-        "false",
-        "for",
-        "friend",
-        "if",
-        "inline",
-        "mutable",
-        "namespace",
-        "new",
-        "noexcept",
-        "nullptr",
-        "operator",
-        "private",
-        "protected",
-        "public",
-        "return",
-        "sizeof",
-        "static",
-        "struct",
-        "switch",
-        "template",
-        "this",
-        "throw",
-        "true",
-        "try",
-        "typedef",
-        "typename",
-        "using",
-        "virtual",
-        "void",
-        "while",
-      ]);
-      const types = new Set([
-        "char",
-        "double",
-        "float",
-        "int",
-        "long",
-        "map",
-        "pair",
-        "priority_queue",
-        "queue",
-        "set",
-        "short",
-        "size_t",
-        "stack",
-        "string",
-        "unordered_map",
-        "unordered_set",
-        "vector",
-      ]);
+    function wordSet(words) {
+      return new Set(words.split(/\s+/).filter(Boolean));
+    }
+
+    const highlightGrammarByLanguage = {
+      c: {
+        comments: ["slash", "directive"],
+        keywords: wordSet("auto break case const continue default do else enum extern for goto if inline register return sizeof static struct switch typedef union volatile while"),
+        types: wordSet("bool char double float int long short signed size_t unsigned void"),
+      },
+      cpp: {
+        comments: ["slash", "directive"],
+        keywords: wordSet("alignas auto bool break case catch class const constexpr continue default delete do else enum explicit false for friend if inline mutable namespace new noexcept nullptr operator private protected public return sizeof static struct switch template this throw true try typedef typename using virtual void while"),
+        types: wordSet("array char deque double float int list long map pair priority_queue queue set short size_t stack string unordered_map unordered_set vector"),
+      },
+      csharp: {
+        comments: ["slash"],
+        keywords: wordSet("abstract as base break case catch checked class const continue default delegate do else enum event explicit extern false finally fixed for foreach get if implicit in interface internal is lock namespace new null operator out override params private protected public readonly ref return sealed set sizeof stackalloc static struct switch this throw true try typeof unchecked unsafe using virtual void volatile while"),
+        types: wordSet("bool byte char decimal double float int long object sbyte short string uint ulong ushort var"),
+      },
+      dart: {
+        comments: ["slash"],
+        keywords: wordSet("abstract as assert async await break case catch class const continue default deferred do dynamic else enum export extends extension external factory false final finally for get if implements import in interface is late library mixin new null on operator part required rethrow return set static super switch sync this throw true try typedef var void while with yield"),
+        types: wordSet("bool double int List Map Never num Object Queue Set String"),
+      },
+      elixir: {
+        comments: ["hash"],
+        keywords: wordSet("after alias and case catch cond def defdelegate defexception defguard defguardp defimpl defmacro defmacrop defmodule defoverridable defp defprotocol defstruct do else end false fn for if import in nil not or quote raise receive require rescue throw true try unless unquote use when with"),
+        types: wordSet("binary boolean float integer list map number pid port reference tuple"),
+      },
+      erlang: {
+        comments: ["percent"],
+        keywords: wordSet("after and andalso band begin bnot bor bsl bsr bxor case catch cond div end fun if let not of or orelse receive rem try when xor"),
+        types: wordSet("atom binary boolean float integer list map number pid port reference tuple"),
+      },
+      go: {
+        comments: ["slash"],
+        keywords: wordSet("break case chan const continue default defer else fallthrough false for func go goto if import interface iota map nil package range return select struct switch true type var"),
+        types: wordSet("any bool byte complex64 complex128 error float32 float64 int int8 int16 int32 int64 rune string uint uint8 uint16 uint32 uint64 uintptr"),
+      },
+      java: {
+        comments: ["slash"],
+        keywords: wordSet("abstract assert boolean break byte case catch char class const continue default do double else enum extends false final finally float for if implements import instanceof int interface long native new null package private protected public return short static strictfp super switch synchronized this throw throws transient true try var void volatile while"),
+        types: wordSet("ArrayDeque ArrayList Arrays Boolean Character Collections Deque HashMap HashSet Integer List Long Map Math PriorityQueue Queue Set Stack String StringBuilder"),
+      },
+      javascript: {
+        comments: ["slash"],
+        keywords: wordSet("async await break case catch class const continue debugger default delete do else export extends false finally for from function get if import in instanceof let new null of return set static super switch this throw true try typeof undefined var void while with yield"),
+        types: wordSet("Array BigInt Boolean Date Error Map Math Number Object Promise RegExp Set String WeakMap WeakSet"),
+      },
+      kotlin: {
+        comments: ["slash"],
+        keywords: wordSet("as break by catch class companion const constructor continue data do else enum false finally for fun if import in init interface internal is lateinit null object open operator out override package private protected public reified return sealed super suspend tailrec this throw true try typealias val var when where while"),
+        types: wordSet("Any Array Boolean Char Double Float Int List Long Map MutableList MutableMap MutableSet Pair Queue Set String"),
+      },
+      php: {
+        comments: ["slash", "hash"],
+        keywords: wordSet("abstract and array as break callable case catch class clone const continue declare default die do echo else elseif empty enddeclare endfor endforeach endif endswitch endwhile eval exit extends false final finally fn for foreach function global goto if implements include include_once instanceof insteadof interface isset list namespace new null or print private protected public require require_once return static switch throw trait true try unset use var while xor yield"),
+        types: wordSet("bool boolean double float int integer mixed object string void"),
+      },
+      python: {
+        comments: ["hash"],
+        keywords: wordSet("False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return self try while with yield"),
+        types: wordSet("bool dict float int list set str tuple"),
+      },
+      racket: {
+        comments: ["semicolon", "racketBlock"],
+        keywords: wordSet("and begin cond define define/contract else if lambda let let* letrec match not or quote require struct"),
+        types: wordSet("boolean? exact-integer? integer? listof number? or/c string? vector?"),
+      },
+      ruby: {
+        comments: ["hash"],
+        keywords: wordSet("BEGIN END alias and begin break case class def defined? do else elsif end ensure false for if in module next nil not or redo rescue retry return self super then true undef unless until when while yield"),
+        types: wordSet("Array FalseClass Hash Integer NilClass Numeric Object String Symbol TrueClass"),
+      },
+      rust: {
+        comments: ["slash"],
+        keywords: wordSet("as async await break const continue crate dyn else enum extern false fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait true type unsafe use where while"),
+        types: wordSet("bool char f32 f64 i8 i16 i32 i64 i128 isize Option Result String u8 u16 u32 u64 u128 usize Vec"),
+      },
+      scala: {
+        comments: ["slash"],
+        keywords: wordSet("abstract case catch class def do else enum export extends false final finally for forSome given if implicit import lazy match new null object override package private protected return sealed super then this throw trait true try type val var while with yield"),
+        types: wordSet("Array Boolean Char Double Float Int List Long Map Option Queue Seq Set String Vector"),
+      },
+      sql: {
+        comments: ["sql", "slash", "hash"],
+        keywords: wordSet("add all alter and as asc between by case check column create database delete desc distinct drop else end exists false from full group having if in inner insert into is join left like limit not null on or order outer primary procedure right select set table then true union update values view when where"),
+        types: wordSet("bigint boolean char date datetime decimal float int integer numeric text timestamp varchar"),
+      },
+      swift: {
+        comments: ["slash"],
+        keywords: wordSet("Any as associatedtype break case catch class continue default defer deinit do else enum extension false fileprivate final for func guard if import in init inout internal is let nil open operator private protocol public repeat rethrows return self Self static struct subscript super switch throw throws true try typealias var where while"),
+        types: wordSet("Array Bool Character Dictionary Double Float Int Set String"),
+      },
+      typescript: {
+        comments: ["slash"],
+        keywords: wordSet("abstract any as async await boolean break case catch class const constructor continue debugger declare default delete do else enum export extends false finally for from function get if implements import in instanceof interface keyof let module namespace new null number object of private protected public readonly require return set static string super switch this throw true try type typeof undefined var void while with yield"),
+        types: wordSet("Array BigInt Boolean Date Error Map Math Number Object Promise Record RegExp Set String WeakMap WeakSet"),
+      },
+    };
+
+    function languageKey(lang) {
+      const normalized = String(lang || "").toLowerCase();
+      if (["c++", "c++17", "cpp"].includes(normalized)) return "cpp";
+      if (["c#", "csharp"].includes(normalized)) return "csharp";
+      if (["go", "golang"].includes(normalized)) return "go";
+      if (["js", "javascript"].includes(normalized)) return "javascript";
+      if (["mysql", "mssql", "oracle", "oraclesql", "sql"].includes(normalized)) return "sql";
+      if (["pandas", "python", "python3"].includes(normalized)) return "python";
+      if (["ts", "typescript"].includes(normalized)) return "typescript";
+      return normalized;
+    }
+
+    function lineEnd(code, index) {
+      let end = index;
+      while (end < code.length && code[end] !== "\n") end += 1;
+      return end;
+    }
+
+    function highlightedSpan(className, value) {
+      return `<span class="${className}">${escapeToken(value)}</span>`;
+    }
+
+    function matchComment(code, index, grammar) {
+      const char = code[index];
+      const next = code[index + 1] || "";
+      const comments = grammar.comments || [];
+      if (comments.includes("racketBlock") && char === "#" && next === "|") {
+        const end = code.indexOf("|#", index + 2);
+        return end === -1 ? code.length : end + 2;
+      }
+      if (comments.includes("slash") && char === "/" && next === "/") {
+        return lineEnd(code, index + 2);
+      }
+      if (comments.includes("slash") && char === "/" && next === "*") {
+        const end = code.indexOf("*/", index + 2);
+        return end === -1 ? code.length : end + 2;
+      }
+      if (comments.includes("sql") && char === "-" && next === "-") {
+        return lineEnd(code, index + 2);
+      }
+      if (comments.includes("semicolon") && char === ";") {
+        return lineEnd(code, index + 1);
+      }
+      if (comments.includes("percent") && char === "%") {
+        return lineEnd(code, index + 1);
+      }
+      if (comments.includes("hash") && char === "#") {
+        return lineEnd(code, index + 1);
+      }
+      return -1;
+    }
+
+    function matchString(code, index, grammar) {
+      const char = code[index];
+      if (grammar === highlightGrammarByLanguage.python) {
+        const triple = code.slice(index, index + 3);
+        if (triple === "'''" || triple === '"""') {
+          const end = code.indexOf(triple, index + 3);
+          return end === -1 ? code.length : end + 3;
+        }
+      }
+      if (char !== '"' && char !== "'" && char !== "`") return -1;
+      let end = index + 1;
+      while (end < code.length) {
+        if (code[end] === "\\") {
+          end += 2;
+          continue;
+        }
+        end += 1;
+        if (code[end - 1] === char) break;
+      }
+      return end;
+    }
+
+    function highlightCode(code, lang) {
+      const grammar =
+        highlightGrammarByLanguage[languageKey(lang)] || {
+          comments: ["slash", "hash"],
+          keywords: new Set(),
+          types: new Set(),
+        };
       let html = "";
       for (let index = 0; index < code.length;) {
         const char = code[index];
-        const next = code[index + 1] || "";
-        if (char === "/" && next === "/") {
-          let end = index + 2;
-          while (end < code.length && code[end] !== "\n") end += 1;
-          html += `<span class="leetcode-token-comment">${escapeToken(code.slice(index, end))}</span>`;
+        const commentEnd = matchComment(code, index, grammar);
+        if (commentEnd !== -1) {
+          const tokenClass =
+            char === "#" && grammar.comments?.includes("directive")
+              ? "leetcode-token-directive"
+              : "leetcode-token-comment";
+          html += highlightedSpan(tokenClass, code.slice(index, commentEnd));
+          index = commentEnd;
+          continue;
+        }
+        if (char === "#" && grammar.comments?.includes("directive")) {
+          const end = lineEnd(code, index + 1);
+          html += highlightedSpan("leetcode-token-directive", code.slice(index, end));
           index = end;
           continue;
         }
-        if (char === "/" && next === "*") {
-          const end = code.indexOf("*/", index + 2);
-          const stop = end === -1 ? code.length : end + 2;
-          html += `<span class="leetcode-token-comment">${escapeToken(code.slice(index, stop))}</span>`;
-          index = stop;
-          continue;
-        }
-        if (char === "#") {
-          let end = index + 1;
-          while (end < code.length && code[end] !== "\n") end += 1;
-          html += `<span class="leetcode-token-directive">${escapeToken(code.slice(index, end))}</span>`;
-          index = end;
-          continue;
-        }
-        if (char === '"' || char === "'") {
-          const quote = char;
-          let end = index + 1;
-          while (end < code.length) {
-            if (code[end] === "\\") {
-              end += 2;
-              continue;
-            }
-            end += 1;
-            if (code[end - 1] === quote) break;
-          }
-          html += `<span class="leetcode-token-string">${escapeToken(code.slice(index, end))}</span>`;
-          index = end;
+        const stringEnd = matchString(code, index, grammar);
+        if (stringEnd !== -1) {
+          html += highlightedSpan("leetcode-token-string", code.slice(index, stringEnd));
+          index = stringEnd;
           continue;
         }
         if (/[0-9]/.test(char)) {
           let end = index + 1;
           while (end < code.length && /[A-Za-z0-9_.]/.test(code[end])) end += 1;
-          html += `<span class="leetcode-token-number">${escapeToken(code.slice(index, end))}</span>`;
+          html += highlightedSpan("leetcode-token-number", code.slice(index, end));
           index = end;
           continue;
         }
@@ -444,10 +544,10 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
           let end = index + 1;
           while (end < code.length && isIdentifierPart(code[end])) end += 1;
           const word = code.slice(index, end);
-          if (keywords.has(word)) {
-            html += `<span class="leetcode-token-keyword">${escapeToken(word)}</span>`;
-          } else if (types.has(word)) {
-            html += `<span class="leetcode-token-type">${escapeToken(word)}</span>`;
+          if (grammar.keywords.has(word) || grammar.keywords.has(word.toLowerCase())) {
+            html += highlightedSpan("leetcode-token-keyword", word);
+          } else if (grammar.types.has(word) || grammar.types.has(word.toLowerCase())) {
+            html += highlightedSpan("leetcode-token-type", word);
           } else {
             html += escapeToken(word);
           }
@@ -655,9 +755,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     }
 
     function renderImplementationCode(reference) {
-      const code = isCppReference(reference)
-        ? highlightCpp(reference.code)
-        : escapeHtml(reference.code);
+      const code = highlightCode(reference.code, reference.language);
       return `
         <span class="leetcode-implementation-card">
           <span class="leetcode-implementation-meta">
@@ -675,7 +773,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
               提交来源
             </a>
           </span>
-          <pre class="leetcode-code-block"><code class="language-cpp">${code}</code></pre>
+          <pre class="leetcode-code-block"><code class="language-${escapeHtml(languageKey(reference.language))}">${code}</code></pre>
         </span>
       `;
     }
@@ -784,13 +882,8 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       return officialTemplate(problem, lang) || fallbackTemplate(problem, lang);
     }
 
-    function isCppLanguage(lang) {
-      const normalized = String(lang || "").toLowerCase();
-      return normalized === "cpp" || normalized === "c++" || normalized === "c++17";
-    }
-
     function editorHighlightHtml(code, lang) {
-      return isCppLanguage(lang) ? highlightCpp(code) : escapeHtml(code);
+      return highlightCode(code, lang);
     }
 
     function syncEditorHighlight(panel, textarea, lang) {
