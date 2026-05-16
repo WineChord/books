@@ -1156,14 +1156,30 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       );
     }
 
+    function meaningfulSubmissionValue(value) {
+      if (value === null || value === undefined) return "";
+      const text = String(value).trim();
+      if (!text || text === "N/A") return "";
+      return text;
+    }
+
+    function firstSubmissionLine(value) {
+      const text = meaningfulSubmissionValue(value);
+      if (!text) return "";
+      return text.split("\n").map((line) => line.trim()).find(Boolean) || "";
+    }
+
     function submissionSummary(result) {
       const status = result?.statusMessage || result?.status_msg || result?.state || "已返回";
-      const tests =
-        result?.totalCorrect !== null && result?.totalTestcases !== null
-          ? ` ${result.totalCorrect}/${result.totalTestcases}`
-          : "";
-      const runtime = result?.runtime ? ` ${result.runtime}` : "";
-      const memory = result?.memory ? ` ${result.memory}` : "";
+      const compileError = firstSubmissionLine(result?.compileError);
+      if (compileError) {
+        return `${status}: ${compileError}`.slice(0, 220);
+      }
+      const totalCorrect = meaningfulSubmissionValue(result?.totalCorrect);
+      const totalTestcases = meaningfulSubmissionValue(result?.totalTestcases);
+      const tests = totalCorrect && totalTestcases ? ` ${totalCorrect}/${totalTestcases}` : "";
+      const runtime = meaningfulSubmissionValue(result?.runtime);
+      const memory = meaningfulSubmissionValue(result?.memory);
       return `${status}${tests}${runtime}${memory}`.trim();
     }
 
