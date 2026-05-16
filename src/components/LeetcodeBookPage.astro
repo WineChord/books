@@ -3,6 +3,10 @@ import Header from "./Header.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { leetcodeBook } from "../book.config";
 import {
+  leetcodeCodeTemplateStats,
+  leetcodeCodeTemplates,
+} from "../data/leetcode-code-templates";
+import {
   leetcodeImplementationReferences,
   leetcodeImplementationStats,
 } from "../data/leetcode-implementation-references";
@@ -31,6 +35,7 @@ const syncedTopLimit = leetcodeStats.top888;
 const syncedDedupedLimit = leetcodeStats.dedupedTop888;
 const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
   ...problem,
+  codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
   implementationReferences:
     leetcodeImplementationReferences[problem.titleSlug] ?? [],
 }));
@@ -178,6 +183,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
             ? `${leetcodeImplementationStats.references} 份公开 reference implementation 已同步`
             : `${leetcodeImplementationStats.references} public reference implementations synced`}
         </span>
+        <span>
+          {isZh
+            ? `${leetcodeCodeTemplateStats.problems} 道题官方代码模板已同步`
+            : `${leetcodeCodeTemplateStats.problems} problems with official code templates synced`}
+        </span>
       </div>
 
       {
@@ -253,6 +263,22 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     const prevButton = document.getElementById("leetcode-prev");
     const nextButton = document.getElementById("leetcode-next");
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const fallbackLanguages = [
+      ["cpp", "C++"],
+      ["python3", "Python3"],
+      ["golang", "Go"],
+      ["java", "Java"],
+      ["typescript", "TypeScript"],
+    ];
+    const preferredLanguageOrder = [
+      "cpp",
+      "python3",
+      "golang",
+      "java",
+      "typescript",
+      "mysql",
+      "javascript",
+    ];
     const state = {
       filter: "all",
       page: 1,
@@ -535,12 +561,52 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       return editorDrafts[problem.titleSlug] || {};
     }
 
-    function defaultTemplate(problem, lang) {
+    function normalizeLangSlug(lang) {
+      return lang === "go" ? "golang" : lang;
+    }
+
+    function editorLanguages(problem) {
+      const templates = problem.codeTemplates || [];
+      if (!templates.length) return fallbackLanguages;
+      const seen = new Set();
+      return templates
+        .filter((template) => {
+          if (seen.has(template.langSlug)) return false;
+          seen.add(template.langSlug);
+          return true;
+        })
+        .map((template) => [template.langSlug, template.lang]);
+    }
+
+    function preferredLang(problem, draftLang) {
+      const languages = editorLanguages(problem);
+      const normalized = normalizeLangSlug(draftLang || "");
+      if (languages.some(([langSlug]) => langSlug === normalized)) {
+        return normalized;
+      }
+      return (
+        preferredLanguageOrder.find((langSlug) =>
+          languages.some(([item]) => item === langSlug),
+        ) ||
+        languages[0]?.[0] ||
+        "cpp"
+      );
+    }
+
+    function officialTemplate(problem, lang) {
+      const normalized = normalizeLangSlug(lang);
+      return (
+        problem.codeTemplates?.find((template) => template.langSlug === normalized)
+          ?.code || ""
+      );
+    }
+
+    function fallbackTemplate(problem, lang) {
       const heading = `${problem.frontendId}. ${problem.titleCn}`;
       if (lang === "python3") {
         return `# ${heading}\n# TODO: sync the official LeetCode signature.\nclass Solution:\n    pass\n`;
       }
-      if (lang === "go") {
+      if (lang === "go" || lang === "golang") {
         return `// ${heading}\n// TODO: sync the official LeetCode signature.\npackage main\n`;
       }
       if (lang === "java") {
@@ -552,24 +618,36 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       return `// ${heading}\n// TODO: sync the official LeetCode signature.\nclass Solution {\npublic:\n};\n`;
     }
 
+    function defaultTemplate(problem, lang) {
+      return officialTemplate(problem, lang) || fallbackTemplate(problem, lang);
+    }
+
     function renderPracticePanel(problem) {
       const draft = draftFor(problem);
-      const lang = draft.lang || "cpp";
+      const lang = preferredLang(problem, draft.lang);
       const code = draft.code || defaultTemplate(problem, lang);
+      const languages = editorLanguages(problem);
       return `
         <section class="leetcode-practice-panel" data-editor-panel="${escapeHtml(problem.titleSlug)}">
           <div class="leetcode-practice-head">
             <div>
               <strong>${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</strong>
-              <span>本地练习草稿，保存在当前浏览器。</span>
+              <span>${
+                problem.codeTemplates?.length
+                  ? "官方模板已同步；草稿保存在当前浏览器。"
+                  : "官方模板缺失，先使用本地 fallback；草稿保存在当前浏览器。"
+              }</span>
             </div>
             <div class="leetcode-practice-actions">
               <select data-editor-lang="${escapeHtml(problem.titleSlug)}" aria-label="Language">
-                <option value="cpp" ${lang === "cpp" ? "selected" : ""}>C++</option>
-                <option value="python3" ${lang === "python3" ? "selected" : ""}>Python3</option>
-                <option value="go" ${lang === "go" ? "selected" : ""}>Go</option>
-                <option value="java" ${lang === "java" ? "selected" : ""}>Java</option>
-                <option value="typescript" ${lang === "typescript" ? "selected" : ""}>TypeScript</option>
+                ${languages
+                  .map(
+                    ([value, label]) =>
+                      `<option value="${escapeHtml(value)}" ${
+                        lang === value ? "selected" : ""
+                      }>${escapeHtml(label)}</option>`,
+                  )
+                  .join("")}
               </select>
               <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}">复制</button>
               <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}">重置</button>
@@ -724,9 +802,9 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
             }, 1200);
           }
           if (actionButton.dataset.editorAction === "reset") {
-            const lang = editorDrafts[slug]?.lang || "cpp";
             const problem = problems.find((item) => item.titleSlug === slug);
             if (!problem) return;
+            const lang = preferredLang(problem, editorDrafts[slug]?.lang);
             editorDrafts[slug] = { lang, code: defaultTemplate(problem, lang) };
             writeState();
             render();
@@ -783,9 +861,10 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       if (!slug) return;
       const problem = problems.find((item) => item.titleSlug === slug);
       if (!problem) return;
+      const lang = preferredLang(problem, target.value);
       editorDrafts[slug] = {
-        lang: target.value,
-        code: defaultTemplate(problem, target.value),
+        lang,
+        code: defaultTemplate(problem, lang),
       };
       writeState();
       render();
@@ -798,7 +877,12 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       if (!slug) return;
       const panel = target.closest(".leetcode-practice-panel");
       const select = panel?.querySelector("[data-editor-lang]");
-      const lang = select instanceof HTMLSelectElement ? select.value : editorDrafts[slug]?.lang || "cpp";
+      const problem = problems.find((item) => item.titleSlug === slug);
+      if (!problem) return;
+      const lang =
+        select instanceof HTMLSelectElement
+          ? preferredLang(problem, select.value)
+          : preferredLang(problem, editorDrafts[slug]?.lang);
       editorDrafts[slug] = { lang, code: target.value };
       writeState();
     });
