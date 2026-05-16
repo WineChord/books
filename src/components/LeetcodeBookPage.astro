@@ -1780,18 +1780,18 @@ const shortcutRows = [
     function fallbackTemplate(problem, lang) {
       const heading = `${problem.frontendId}. ${problem.titleCn}`;
       if (lang === "python3") {
-        return `# ${heading}\n# TODO: sync the official LeetCode signature.\nclass Solution:\n    pass\n`;
+        return `# ${heading}\n# Official signature is unavailable locally; start from this minimal shell.\nclass Solution:\n    pass\n`;
       }
       if (lang === "go" || lang === "golang") {
-        return `// ${heading}\n// TODO: sync the official LeetCode signature.\npackage main\n`;
+        return `// ${heading}\n// Official signature is unavailable locally; start from this minimal shell.\npackage main\n`;
       }
       if (lang === "java") {
-        return `// ${heading}\n// TODO: sync the official LeetCode signature.\nclass Solution {\n}\n`;
+        return `// ${heading}\n// Official signature is unavailable locally; start from this minimal shell.\nclass Solution {\n}\n`;
       }
       if (lang === "typescript") {
-        return `// ${heading}\n// TODO: sync the official LeetCode signature.\n`;
+        return `// ${heading}\n// Official signature is unavailable locally; start from this minimal shell.\n`;
       }
-      return `// ${heading}\n// TODO: sync the official LeetCode signature.\nclass Solution {\npublic:\n};\n`;
+      return `// ${heading}\n// Official signature is unavailable locally; start from this minimal shell.\nclass Solution {\npublic:\n};\n`;
     }
 
     function defaultTemplate(problem, lang) {
