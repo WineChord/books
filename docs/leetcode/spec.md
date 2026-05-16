@@ -112,7 +112,11 @@ optional extension submit. The language selector comes from the official
 official template, the page uses a local fallback template and says so. The
 practice editor uses a native textarea over a local syntax-highlight layer
 covering the common languages in the official templates, avoiding a heavier
-editor dependency.
+editor dependency. The native editor still needs LeetCode-like editing basics:
+Enter keeps the current line indentation and adds one indentation level after
+opening braces, brackets, parentheses, or Python colons; `Tab` and `Shift+Tab`
+indent and outdent the current line or selected lines; typing a closing brace,
+bracket, or parenthesis on an indentation-only line aligns it back one level.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and

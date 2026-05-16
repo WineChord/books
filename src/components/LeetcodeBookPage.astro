@@ -398,6 +398,8 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     const extensionProtocolVersion = 1;
     const extensionPingTimeoutMs = 2500;
     const extensionRequestTimeoutMs = 120000;
+    const editorIndentUnit = "    ";
+    const editorClosingTokens = new Set(["}", "]", ")"]);
     const pendingExtensionRequests = new Map();
     let extensionRequestSequence = 0;
 
@@ -1109,6 +1111,186 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       }
     }
 
+    function editorContextFor(textarea) {
+      const slug = textarea.dataset.editorCode || "";
+      const panel = textarea.closest(".leetcode-practice-panel");
+      const select = panel?.querySelector("[data-editor-lang]");
+      const problem = problems.find((item) => item.titleSlug === slug);
+      if (!problem) return null;
+      const lang =
+        select instanceof HTMLSelectElement
+          ? preferredLang(problem, select.value)
+          : preferredLang(problem, editorDrafts[slug]?.lang);
+      return { lang, panel, problem, slug };
+    }
+
+    function persistEditorTextarea(textarea) {
+      const context = editorContextFor(textarea);
+      if (!context) return;
+      editorDrafts[context.slug] = { lang: context.lang, code: textarea.value };
+      syncEditorHighlight(context.panel, textarea, context.lang);
+      writeState();
+    }
+
+    function replaceTextareaRange(textarea, start, end, value, nextStart, nextEnd = nextStart) {
+      textarea.setRangeText(value, start, end, "preserve");
+      textarea.selectionStart = nextStart;
+      textarea.selectionEnd = nextEnd;
+      persistEditorTextarea(textarea);
+    }
+
+    function lineBounds(value, position) {
+      const start = value.lastIndexOf("\n", Math.max(0, position - 1)) + 1;
+      const nextBreak = value.indexOf("\n", position);
+      const end = nextBreak === -1 ? value.length : nextBreak;
+      return {
+        afterCursor: value.slice(position, end),
+        beforeCursor: value.slice(start, position),
+        end,
+        start,
+        text: value.slice(start, end),
+      };
+    }
+
+    function lineIndent(line) {
+      return line.match(/^[\t ]*/)?.[0] || "";
+    }
+
+    function shouldIncreaseIndent(beforeCursor, lang) {
+      const trimmed = beforeCursor.trimEnd();
+      if (!trimmed) return false;
+      if (/[\{\[\(]$/.test(trimmed)) return true;
+      if (languageKey(lang) === "python" && /:\s*(#.*)?$/.test(trimmed)) {
+        return true;
+      }
+      return false;
+    }
+
+    function startsWithClosingToken(text) {
+      return /^[\t ]*[\}\]\)]/.test(text);
+    }
+
+    function removeOneIndent(value) {
+      if (value.startsWith("\t")) return value.slice(1);
+      const spaces = value.match(/^ {1,4}/)?.[0] || "";
+      return value.slice(spaces.length);
+    }
+
+    function handleEditorEnter(event, textarea, context) {
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const bounds = lineBounds(value, start);
+      const baseIndent = lineIndent(bounds.beforeCursor);
+      const extraIndent = shouldIncreaseIndent(bounds.beforeCursor, context.lang)
+        ? editorIndentUnit
+        : "";
+      const shouldSplitPair = extraIndent && startsWithClosingToken(bounds.afterCursor);
+      const insertion = shouldSplitPair
+        ? `\n${baseIndent}${extraIndent}\n${baseIndent}`
+        : `\n${baseIndent}${extraIndent}`;
+      const nextPosition = start + 1 + baseIndent.length + extraIndent.length;
+      event.preventDefault();
+      replaceTextareaRange(textarea, start, end, insertion, nextPosition);
+    }
+
+    function indentTextareaSelection(textarea) {
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      if (start === end) {
+        replaceTextareaRange(
+          textarea,
+          start,
+          end,
+          editorIndentUnit,
+          start + editorIndentUnit.length,
+        );
+        return;
+      }
+
+      const blockStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+      const nextBreak = value.indexOf("\n", end);
+      const blockEnd = nextBreak === -1 ? value.length : nextBreak;
+      const block = value.slice(blockStart, blockEnd);
+      const lineCount = block.split("\n").length;
+      const replacement = block.replace(/^/gm, editorIndentUnit);
+      replaceTextareaRange(
+        textarea,
+        blockStart,
+        blockEnd,
+        replacement,
+        start + editorIndentUnit.length,
+        end + editorIndentUnit.length * lineCount,
+      );
+    }
+
+    function outdentTextareaSelection(textarea) {
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const blockStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+      const nextBreak = value.indexOf("\n", end);
+      const blockEnd = nextBreak === -1 ? value.length : nextBreak;
+      const block = value.slice(blockStart, blockEnd);
+      let nextStart = start;
+      let nextEnd = end;
+      let cursor = blockStart;
+      const replacement = block
+        .split("\n")
+        .map((line) => {
+          const removed = line.length - removeOneIndent(line).length;
+          if (cursor < start) {
+            nextStart -= Math.min(removed, start - cursor);
+          }
+          if (cursor < end) {
+            nextEnd -= Math.min(removed, Math.max(0, end - cursor));
+          }
+          cursor += line.length + 1;
+          return removeOneIndent(line);
+        })
+        .join("\n");
+      replaceTextareaRange(textarea, blockStart, blockEnd, replacement, nextStart, nextEnd);
+    }
+
+    function handleEditorClosingToken(event, textarea) {
+      if (!editorClosingTokens.has(event.key)) return false;
+      if (textarea.selectionStart !== textarea.selectionEnd) return false;
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const bounds = lineBounds(value, start);
+      if (!/^[\t ]+$/.test(bounds.beforeCursor)) return false;
+      const nextIndent = removeOneIndent(bounds.beforeCursor);
+      event.preventDefault();
+      replaceTextareaRange(
+        textarea,
+        bounds.start,
+        start,
+        `${nextIndent}${event.key}`,
+        bounds.start + nextIndent.length + 1,
+      );
+      return true;
+    }
+
+    function handleEditorKeydown(event, textarea) {
+      const context = editorContextFor(textarea);
+      if (!context) return false;
+      if (event.key === "Enter") {
+        handleEditorEnter(event, textarea, context);
+        return true;
+      }
+      if (event.key === "Tab") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          outdentTextareaSelection(textarea);
+        } else {
+          indentTextareaSelection(textarea);
+        }
+        return true;
+      }
+      return handleEditorClosingToken(event, textarea);
+    }
+
     function setSubmitStatus(panel, message, tone = "") {
       const status = panel?.querySelector("[data-submit-status]");
       if (!(status instanceof HTMLElement)) return;
@@ -1525,19 +1707,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     list?.addEventListener("input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLTextAreaElement)) return;
-      const slug = target.dataset.editorCode || "";
-      if (!slug) return;
-      const panel = target.closest(".leetcode-practice-panel");
-      const select = panel?.querySelector("[data-editor-lang]");
-      const problem = problems.find((item) => item.titleSlug === slug);
-      if (!problem) return;
-      const lang =
-        select instanceof HTMLSelectElement
-          ? preferredLang(problem, select.value)
-          : preferredLang(problem, editorDrafts[slug]?.lang);
-      editorDrafts[slug] = { lang, code: target.value };
-      syncEditorHighlight(panel, target, lang);
-      writeState();
+      persistEditorTextarea(target);
     });
 
     list?.addEventListener(
@@ -1561,6 +1731,9 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
 
     list?.addEventListener("keydown", (event) => {
       const target = event.target;
+      if (target instanceof HTMLTextAreaElement && handleEditorKeydown(event, target)) {
+        return;
+      }
       if (!(target instanceof HTMLElement)) return;
       const previewButton = target.closest("[data-preview]");
       if (!(previewButton instanceof HTMLElement)) return;
