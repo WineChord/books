@@ -41,8 +41,9 @@ rather than assigning a company by inference.
 
 ## Page Contract
 
-The title, cover, and stats area stays compact so it does not dominate the
-first viewport. The problem list is the primary workspace, and the desktop
+The title and stats area uses a compact workspace layout, and the large cover
+is not shown in the first viewport. The problem list is the primary workspace;
+on desktop, the first problem rows should be visible without scrolling. The
 table is sized to fit the content column without an internal horizontal
 scrollbar.
 
