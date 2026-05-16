@@ -128,6 +128,11 @@ html.dark .sidebar-link:hover {
   justify-content: center;
 }
 
+.site-brand-mark--compact {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
 .site-brand-mark svg {
   width: 100%;
   height: 100%;

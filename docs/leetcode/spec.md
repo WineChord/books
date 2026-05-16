@@ -94,10 +94,11 @@ jump input. Left and right arrow keys turn pages when the current focus is not
 inside search, filters, selectors, the practice editor, or another editable
 control.
 
-The top of the page is intentionally compact. Search, filters, summary,
-pagination, and the problem rows should be the first meaningful page content.
-The larger book title, stats, and reading links may live near the page end so
-they do not push the working list out of the opening viewport.
+The top of the page is intentionally compact. A small stats strip and a
+single-line title/action row stay at the page opening for orientation, but
+their combined height must remain smaller than the working controls. Search,
+filters, summary, pagination, and the problem rows remain the first visual
+priority and should appear without excessive scrolling.
 
 Filters are grouped by scope, ByteDance, and practice state. Scope includes all
 problems, Hot 100, and sourced company follow-ups. ByteDance includes all,
