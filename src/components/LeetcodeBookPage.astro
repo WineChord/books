@@ -784,6 +784,27 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       return officialTemplate(problem, lang) || fallbackTemplate(problem, lang);
     }
 
+    function isCppLanguage(lang) {
+      const normalized = String(lang || "").toLowerCase();
+      return normalized === "cpp" || normalized === "c++" || normalized === "c++17";
+    }
+
+    function editorHighlightHtml(code, lang) {
+      return isCppLanguage(lang) ? highlightCpp(code) : escapeHtml(code);
+    }
+
+    function syncEditorHighlight(panel, textarea, lang) {
+      const highlight = panel?.querySelector(".leetcode-editor-highlight");
+      const code = highlight?.querySelector("code");
+      if (code) {
+        code.innerHTML = editorHighlightHtml(textarea.value, lang);
+      }
+      if (highlight instanceof HTMLElement) {
+        highlight.scrollTop = textarea.scrollTop;
+        highlight.scrollLeft = textarea.scrollLeft;
+      }
+    }
+
     function renderPracticePanel(problem) {
       const draft = draftFor(problem);
       const lang = preferredLang(problem, draft.lang);
@@ -816,11 +837,15 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
               <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer">打开力扣</a>
             </div>
           </div>
-          <textarea
-            spellcheck="false"
-            data-editor-code="${escapeHtml(problem.titleSlug)}"
-            aria-label="Local code editor for ${escapeHtml(problem.titleCn)}"
-          >${escapeHtml(code)}</textarea>
+          <div class="leetcode-editor-shell">
+            <pre class="leetcode-editor-highlight" aria-hidden="true"><code>${editorHighlightHtml(code, lang)}</code></pre>
+            <textarea
+              spellcheck="false"
+              wrap="off"
+              data-editor-code="${escapeHtml(problem.titleSlug)}"
+              aria-label="Local code editor for ${escapeHtml(problem.titleCn)}"
+            >${escapeHtml(code)}</textarea>
+          </div>
           <p>
             直接提交到力扣需要浏览器扩展、用户脚本或本地 companion。纯 GitHub Pages
             版本只做本地练习、复制和跳转，不读取你的登录 cookie。
@@ -1046,8 +1071,28 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
           ? preferredLang(problem, select.value)
           : preferredLang(problem, editorDrafts[slug]?.lang);
       editorDrafts[slug] = { lang, code: target.value };
+      syncEditorHighlight(panel, target, lang);
       writeState();
     });
+
+    list?.addEventListener(
+      "scroll",
+      (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLTextAreaElement)) return;
+        const slug = target.dataset.editorCode || "";
+        const panel = target.closest(".leetcode-practice-panel");
+        const select = panel?.querySelector("[data-editor-lang]");
+        const problem = problems.find((item) => item.titleSlug === slug);
+        if (!problem) return;
+        const lang =
+          select instanceof HTMLSelectElement
+            ? preferredLang(problem, select.value)
+            : preferredLang(problem, editorDrafts[slug]?.lang);
+        syncEditorHighlight(panel, target, lang);
+      },
+      true,
+    );
 
     list?.addEventListener("keydown", (event) => {
       const target = event.target;
@@ -1565,19 +1610,61 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       color: var(--color-terracotta);
     }
 
-    .leetcode-practice-panel textarea {
+    .leetcode-editor-shell {
+      position: relative;
       min-height: 13rem;
       width: 100%;
       border: 1px solid rgb(194 192 182 / 70%);
       border-radius: 0.45rem;
       background: rgb(20 20 19 / 92%);
-      color: var(--color-cream);
+      overflow: hidden;
+    }
+
+    .leetcode-editor-highlight,
+    .leetcode-practice-panel textarea {
+      box-sizing: border-box;
+      min-height: 13rem;
+      width: 100%;
       font-family: var(--font-mono);
       font-size: 0.82rem;
       line-height: 1.55;
       padding: 0.7rem;
-      resize: vertical;
       tab-size: 2;
+      white-space: pre;
+    }
+
+    .leetcode-editor-highlight {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .leetcode-editor-highlight code {
+      color: var(--color-cream);
+    }
+
+    .leetcode-practice-panel textarea {
+      position: relative;
+      display: block;
+      border: 0;
+      background: transparent;
+      caret-color: var(--color-cream);
+      font-family: var(--font-mono);
+      color: transparent;
+      outline: 0;
+      resize: vertical;
+    }
+
+    .leetcode-practice-panel textarea::selection {
+      background: rgb(217 119 87 / 42%);
+      color: transparent;
+    }
+
+    .leetcode-editor-shell:focus-within {
+      border-color: rgb(217 119 87 / 72%);
+      box-shadow: 0 0 0 2px rgb(217 119 87 / 14%);
     }
 
     .leetcode-practice-panel p {
@@ -1592,6 +1679,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     html.dark .leetcode-practice-actions button,
     html.dark .leetcode-practice-actions a {
       border-color: #333;
+    }
+
+    html.dark .leetcode-editor-shell {
+      border-color: #333;
+      background: rgb(8 8 7 / 92%);
     }
 
     .leetcode-difficulty {

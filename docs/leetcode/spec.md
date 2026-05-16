@@ -96,8 +96,10 @@ the current browser's local storage and provides language selection, official
 code-template initialization, editing, copy, reset, and a direct link to
 LeetCode. The language selector comes from the official `codeSnippets` synced
 into the repository. If a problem is still missing an official template, the
-page uses a local fallback template and says so. The pure GitHub Pages version
-does not read the LeetCode login session and does not submit code to LeetCode.
+page uses a local fallback template and says so. The C++ practice editor uses a
+native textarea over a local syntax-highlight layer, avoiding a heavier editor
+dependency. The pure GitHub Pages version does not read the LeetCode login
+session and does not submit code to LeetCode.
 
 Preview controls include statement, approach, and implementation. The
 implementation preview is the home for reference implementation ordering,
