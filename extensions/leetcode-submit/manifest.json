@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "WineChord Books LeetCode Submit",
+  "description": "Submits code from WineChord Books LeetCode pages to leetcode.cn.",
+  "version": "0.1.0",
+  "permissions": ["cookies", "declarativeNetRequestWithHostAccess"],
+  "host_permissions": [
+    "https://leetcode.cn/*",
+    "https://wineandchord.com/*",
+    "https://www.wineandchord.com/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.wineandchord.com/books/leetcode",
+        "https://www.wineandchord.com/books/leetcode/*",
+        "https://www.wineandchord.com/books/zh/leetcode",
+        "https://www.wineandchord.com/books/zh/leetcode/*",
+        "https://wineandchord.com/books/leetcode",
+        "https://wineandchord.com/books/leetcode/*",
+        "https://wineandchord.com/books/zh/leetcode",
+        "https://wineandchord.com/books/zh/leetcode/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*"
+      ],
+      "js": ["content-books.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

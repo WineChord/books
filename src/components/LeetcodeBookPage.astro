@@ -1,0 +1,2564 @@
+---
+import Header from "./Header.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { leetcodeBook } from "../book.config";
+import {
+  leetcodeCodeTemplateStats,
+  leetcodeCodeTemplates,
+} from "../data/leetcode-code-templates";
+import {
+  leetcodeImplementationReferences,
+  leetcodeImplementationStats,
+} from "../data/leetcode-implementation-references";
+import {
+  leetcodeByteDanceProblems,
+  leetcodeByteDanceStats,
+} from "../data/leetcode-bytedance";
+import {
+  leetcodeDataSource,
+  leetcodeDataUpdatedAt,
+  leetcodeDuplicateAudit,
+  leetcodeProblems,
+  leetcodeStats,
+} from "../data/leetcode-problems";
+import { pageUrl } from "../urls";
+
+interface Props {
+  lang?: "en" | "zh";
+}
+
+const { lang = "zh" } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const book = leetcodeBook;
+const isZh = lang === "zh";
+const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
+const title = isZh ? book.zhTitle : book.title;
+const description = isZh ? book.zhDescription : book.description;
+const leetcodeTargetLimit = 888;
+const syncedDedupedLimit = leetcodeStats.dedupedTop888;
+const byteDanceBySlug = new Map(
+  leetcodeByteDanceProblems.map((problem) => [problem.titleSlug, problem]),
+);
+
+function mergedByteDanceBuckets(problem) {
+  const entry = byteDanceBySlug.get(problem.titleSlug);
+  if (entry) return entry.buckets;
+  const periods = problem.bytedancePeriods || {};
+  return {
+    all: problem.bytedance ? problem.frequencyRank : null,
+    thirtyDays: null,
+    threeMonths: periods.past3Months,
+    sixMonths: periods.past6Months,
+    moreThanSixMonths: periods.before6Months,
+  };
+}
+
+function frequencyLabel(value) {
+  if (value === null || value === undefined) return "字节补充";
+  return `${Number(value).toFixed(1)}%`;
+}
+
+const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
+  const entry = byteDanceBySlug.get(problem.titleSlug);
+  return {
+    ...problem,
+    bytedance: Boolean(entry || problem.bytedance),
+    bytedanceBuckets: mergedByteDanceBuckets(problem),
+    bytedanceRank: entry?.bytedanceRank ?? null,
+    bytedanceSource: entry?.source ?? (problem.bytedance ? "legacyTop888" : null),
+    bytedanceVerified: Boolean(entry) || problem.bytedanceVerified,
+  };
+});
+const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
+const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
+  .filter((problem) => !existingSlugs.has(problem.titleSlug))
+  .map((problem, index) => ({
+    topRank: null,
+    frequencyRank: leetcodeTargetLimit + index + 1,
+    hotRank: null,
+    frontendId: problem.frontendId,
+    titleCn: problem.titleCn,
+    titleSlug: problem.titleSlug,
+    url: problem.url,
+    difficulty: problem.difficulty,
+    acRate: problem.acRate,
+    frequency: frequencyLabel(problem.frequency),
+    bytedance: true,
+    bytedanceVerified: problem.source === "companyFavorite",
+    bytedancePeriods: {
+      past3Months: null,
+      past6Months: null,
+      before6Months: null,
+    },
+    bytedanceBuckets: problem.buckets,
+    bytedanceRank: problem.bytedanceRank,
+    bytedanceSource: problem.source,
+    hot100: false,
+    paidOnly: problem.paidOnly,
+    tags: problem.tags,
+    statementPreview:
+      "字节跳动企业题库补充题。题面预览需要后续同步，当前可点击题目链接打开力扣原题。",
+    approachPreview:
+      "按字节企业题库频率补充展示；先用官方模板练习，后续再同步题面、思路和 reference implementation。",
+    followUps: [],
+  }));
+const mergedLeetcodeProblems = [
+  ...leetcodeProblemsWithByteDance,
+  ...leetcodeByteDanceSupplements,
+];
+const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => ({
+  ...problem,
+  codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
+  implementationReferences:
+    leetcodeImplementationReferences[problem.titleSlug] ?? [],
+}));
+const totalProblemCount = leetcodeProblemsWithReferences.length;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonicalPath={homePath}
+  lang={lang}
+  titleSuffix={title}
+>
+  <Header
+    lang={lang}
+    alternatePath={null}
+    homePath={homePath}
+    brandTitle={title}
+    brandShortTitle={isZh ? book.zhShortTitle : book.shortTitle}
+  />
+
+  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-1 md:px-8 md:py-2">
+    <section class="leetcode-hero">
+      <div>
+        <p class="leetcode-kicker">{book.coverKicker}</p>
+        <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
+        <p class="leetcode-copy">
+          {isZh
+            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、题意/思路/实现预览、本地状态和扩展提交。"
+            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance company lists, previews, local state, and extension submit."}
+        </p>
+        <div class="leetcode-actions">
+          <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
+            {isZh ? "查看规格" : "Read spec"}
+          </a>
+          <a
+            href="https://leetcode.cn/studyplan/top-100-liked/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="leetcode-secondary-link"
+          >
+            Hot 100
+          </a>
+        </div>
+      </div>
+      <div class="book-cover" aria-label={`${title} cover`}>
+        <div class="book-cover__kicker">{book.coverKicker}</div>
+        <div class="book-cover__title" set:html={book.coverTitle} />
+        <div class="book-cover__footer">{book.coverFooter}</div>
+      </div>
+    </section>
+
+    <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
+      <div>
+        <span>{leetcodeTargetLimit}</span>
+        <p>{isZh ? "Top888 目标" : "Top 888 target"}</p>
+      </div>
+      <div>
+        <span>{syncedDedupedLimit}</span>
+        <p>{isZh ? "去重后" : "Deduped"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100}</span>
+        <p>Hot 100</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100OutsideTop888}</span>
+        <p>{isZh ? "Hot100 补充" : "Hot 100 extras"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.duplicatesRemoved}</span>
+        <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
+      </div>
+      <div>
+        <span>{leetcodeByteDanceStats.syncedAll}/{leetcodeByteDanceStats.targetAll}</span>
+        <p>{isZh ? "字节题库" : "ByteDance"}</p>
+      </div>
+    </section>
+
+    <section class="leetcode-workspace" aria-label={isZh ? "题目列表" : "Problem list"}>
+      <div class="leetcode-toolbar">
+        <div class="leetcode-search">
+          <label for="leetcode-search">{isZh ? "搜索" : "Search"}</label>
+          <input id="leetcode-search" type="search" placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"} />
+        </div>
+
+        <div class="leetcode-filter-panel" aria-label={isZh ? "筛选" : "Filters"}>
+          <div class="leetcode-filter-cluster">
+            <span>{isZh ? "范围" : "Scope"}</span>
+            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
+              <button type="button" class="is-active" data-filter="all">{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="hot100">Hot100</button>
+              <button type="button" data-filter="companyFollowUps">{isZh ? "公司追问" : "Follow-ups"}</button>
+            </div>
+          </div>
+          <div class="leetcode-filter-cluster">
+            <span>{isZh ? "字节" : "ByteDance"}</span>
+            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
+              <button type="button" data-filter="bytedanceAll">{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="bytedanceThirtyDays">{isZh ? "近30天" : "30d"}</button>
+              <button type="button" data-filter="bytedanceThreeMonths">{isZh ? "近3月" : "3m"}</button>
+              <button type="button" data-filter="bytedanceSixMonths">{isZh ? "近6月" : "6m"}</button>
+              <button type="button" data-filter="bytedanceMoreThanSixMonths">{isZh ? "6月前" : "Old"}</button>
+            </div>
+          </div>
+          <div class="leetcode-filter-cluster">
+            <span>{isZh ? "状态" : "State"}</span>
+            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
+              <button type="button" data-filter="unsolved">{isZh ? "未做" : "Unsolved"}</button>
+              <button type="button" data-filter="review">{isZh ? "需思考" : "Review"}</button>
+              <button type="button" data-filter="unmastered">{isZh ? "未熟练" : "Unmastered"}</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="leetcode-page-size">
+          <label for="leetcode-page-size">{isZh ? "每页" : "Page size"}</label>
+          <select id="leetcode-page-size">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="custom">{isZh ? "自定义" : "Custom"}</option>
+          </select>
+          <input
+            id="leetcode-custom-size"
+            type="number"
+            min="1"
+            max={totalProblemCount}
+            inputmode="numeric"
+            placeholder="32"
+            hidden
+          />
+        </div>
+      </div>
+
+      <div class="leetcode-list-meta">
+        <div class="leetcode-summary">
+          <span id="leetcode-result-count"></span>
+          <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
+          <span>
+            {isZh
+              ? `力扣中国区按出题频率排序；字节题库来自 company favorite 同步，当前状态：${leetcodeByteDanceStats.sourceStatus}。`
+              : leetcodeDataSource}
+          </span>
+          <span>
+            {isZh
+              ? `${leetcodeImplementationStats.references} 份公开 reference implementation 已同步`
+              : `${leetcodeImplementationStats.references} public reference implementations synced`}
+          </span>
+          <span>
+            {isZh
+              ? `${leetcodeCodeTemplateStats.problems} 道题官方代码模板已同步`
+              : `${leetcodeCodeTemplateStats.problems} problems with official code templates synced`}
+          </span>
+        </div>
+
+        <nav
+          class="leetcode-pagination leetcode-pagination-top"
+          data-pagination
+          aria-label={isZh ? "顶部分页" : "Top pagination"}
+        >
+          <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
+          <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
+          <label class="leetcode-page-jump">
+            <span>{isZh ? "第" : "Page"}</span>
+            <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
+            <span data-page-indicator></span>
+          </label>
+          <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
+          <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
+          <span class="leetcode-page-shortcut">{isZh ? "←/→ 翻页" : "←/→ pages"}</span>
+        </nav>
+      </div>
+
+      {
+        leetcodeDuplicateAudit.length > 0 && (
+          <details class="leetcode-duplicate-audit">
+            <summary>
+              {isZh
+                ? `去重核对：默认隐藏 ${leetcodeDuplicateAudit.length} 道明显重复题`
+                : `Duplicate audit: ${leetcodeDuplicateAudit.length} hidden by default`}
+            </summary>
+            <div class="leetcode-duplicate-list">
+              {leetcodeDuplicateAudit.map((item) => (
+                <div class="leetcode-duplicate-row">
+                  <span>#{item.duplicateRank}</span>
+                  <a
+                    href={`https://leetcode.cn/problems/${item.duplicateTitleSlug}/description/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {item.duplicateFrontendId}. {item.duplicateTitleCn}
+                  </a>
+                  <span>{isZh ? "保留" : "kept"}</span>
+                  <a
+                    href={`https://leetcode.cn/problems/${item.keptTitleSlug}/description/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    #{item.keptRank} {item.keptFrontendId}. {item.keptTitleCn}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </details>
+        )
+      }
+
+      <div class="leetcode-table-wrap">
+        <div class="leetcode-table-head" aria-hidden="true">
+          <span>Top</span>
+          <span>Hot</span>
+          <span>BD</span>
+          <span>{isZh ? "题目" : "Problem"}</span>
+          <span>{isZh ? "难度" : "Level"}</span>
+          <span>{isZh ? "频率" : "Freq"}</span>
+          <span>{isZh ? "字节" : "BD"}</span>
+          <span>{isZh ? "状态" : "State"}</span>
+        </div>
+        <div id="leetcode-problem-list" class="leetcode-problem-list"></div>
+      </div>
+
+      <nav
+        class="leetcode-pagination leetcode-pagination-bottom"
+        data-pagination
+        aria-label={isZh ? "底部分页" : "Bottom pagination"}
+      >
+        <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
+        <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
+        <label class="leetcode-page-jump">
+          <span>{isZh ? "第" : "Page"}</span>
+          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
+          <span data-page-indicator></span>
+        </label>
+        <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
+        <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
+        <span class="leetcode-page-shortcut">{isZh ? "←/→ 翻页" : "←/→ pages"}</span>
+      </nav>
+    </section>
+  </main>
+
+  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemsWithReferences)}></script>
+
+  <script>
+    const progressKey = "leetcode-book-progress-v1";
+    const clickedKey = "leetcode-book-clicked-v1";
+    const editorKey = "leetcode-book-editor-v1";
+    const dataNode = document.getElementById("leetcode-data");
+    const problems = JSON.parse(dataNode?.textContent || "[]");
+    const maxPageSize = problems.length || 20;
+    const list = document.getElementById("leetcode-problem-list");
+    const searchInput = document.getElementById("leetcode-search");
+    const pageSizeSelect = document.getElementById("leetcode-page-size");
+    const customSizeInput = document.getElementById("leetcode-custom-size");
+    const resultCount = document.getElementById("leetcode-result-count");
+    const pageActionButtons = Array.from(document.querySelectorAll("[data-page-action]"));
+    const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
+    const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
+    const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const fallbackLanguages = [
+      ["cpp", "C++"],
+      ["python3", "Python3"],
+      ["golang", "Go"],
+      ["java", "Java"],
+      ["typescript", "TypeScript"],
+    ];
+    const preferredLanguageOrder = [
+      "cpp",
+      "python3",
+      "golang",
+      "java",
+      "typescript",
+      "mysql",
+      "javascript",
+    ];
+    const state = {
+      filter: "all",
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+      query: "",
+      expandedSlug: "",
+    };
+    const extensionRequestSource = "books-leetcode-page";
+    const extensionResponseSource = "books-leetcode-extension";
+    const extensionProtocolVersion = 1;
+    const extensionRequestTimeoutMs = 120000;
+    const pendingExtensionRequests = new Map();
+    let extensionRequestSequence = 0;
+
+    function readJson(key, fallback) {
+      try {
+        return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+      } catch {
+        return fallback;
+      }
+    }
+
+    let progress = readJson(progressKey, {});
+    let clicked = readJson(clickedKey, {});
+    let editorDrafts = readJson(editorKey, {});
+
+    function writeState() {
+      localStorage.setItem(progressKey, JSON.stringify(progress));
+      localStorage.setItem(clickedKey, JSON.stringify(clicked));
+      localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function escapeToken(value) {
+      return escapeHtml(value);
+    }
+
+    function isIdentifierStart(char) {
+      return /[A-Za-z_$@]/.test(char);
+    }
+
+    function isIdentifierPart(char) {
+      return /[A-Za-z0-9_$@]/.test(char);
+    }
+
+    function wordSet(words) {
+      return new Set(words.split(/\s+/).filter(Boolean));
+    }
+
+    const highlightGrammarByLanguage = {
+      c: {
+        comments: ["slash", "directive"],
+        keywords: wordSet("auto break case const continue default do else enum extern for goto if inline register return sizeof static struct switch typedef union volatile while"),
+        types: wordSet("bool char double float int long short signed size_t unsigned void"),
+      },
+      cpp: {
+        comments: ["slash", "directive"],
+        keywords: wordSet("alignas auto bool break case catch class const constexpr continue default delete do else enum explicit false for friend if inline mutable namespace new noexcept nullptr operator private protected public return sizeof static struct switch template this throw true try typedef typename using virtual void while"),
+        types: wordSet("array char deque double float int list long map pair priority_queue queue set short size_t stack string unordered_map unordered_set vector"),
+      },
+      csharp: {
+        comments: ["slash"],
+        keywords: wordSet("abstract as base break case catch checked class const continue default delegate do else enum event explicit extern false finally fixed for foreach get if implicit in interface internal is lock namespace new null operator out override params private protected public readonly ref return sealed set sizeof stackalloc static struct switch this throw true try typeof unchecked unsafe using virtual void volatile while"),
+        types: wordSet("bool byte char decimal double float int long object sbyte short string uint ulong ushort var"),
+      },
+      dart: {
+        comments: ["slash"],
+        keywords: wordSet("abstract as assert async await break case catch class const continue default deferred do dynamic else enum export extends extension external factory false final finally for get if implements import in interface is late library mixin new null on operator part required rethrow return set static super switch sync this throw true try typedef var void while with yield"),
+        types: wordSet("bool double int List Map Never num Object Queue Set String"),
+      },
+      elixir: {
+        comments: ["hash"],
+        keywords: wordSet("after alias and case catch cond def defdelegate defexception defguard defguardp defimpl defmacro defmacrop defmodule defoverridable defp defprotocol defstruct do else end false fn for if import in nil not or quote raise receive require rescue throw true try unless unquote use when with"),
+        types: wordSet("binary boolean float integer list map number pid port reference tuple"),
+      },
+      erlang: {
+        comments: ["percent"],
+        keywords: wordSet("after and andalso band begin bnot bor bsl bsr bxor case catch cond div end fun if let not of or orelse receive rem try when xor"),
+        types: wordSet("atom binary boolean float integer list map number pid port reference tuple"),
+      },
+      go: {
+        comments: ["slash"],
+        keywords: wordSet("break case chan const continue default defer else fallthrough false for func go goto if import interface iota map nil package range return select struct switch true type var"),
+        types: wordSet("any bool byte complex64 complex128 error float32 float64 int int8 int16 int32 int64 rune string uint uint8 uint16 uint32 uint64 uintptr"),
+      },
+      java: {
+        comments: ["slash"],
+        keywords: wordSet("abstract assert boolean break byte case catch char class const continue default do double else enum extends false final finally float for if implements import instanceof int interface long native new null package private protected public return short static strictfp super switch synchronized this throw throws transient true try var void volatile while"),
+        types: wordSet("ArrayDeque ArrayList Arrays Boolean Character Collections Deque HashMap HashSet Integer List Long Map Math PriorityQueue Queue Set Stack String StringBuilder"),
+      },
+      javascript: {
+        comments: ["slash"],
+        keywords: wordSet("async await break case catch class const continue debugger default delete do else export extends false finally for from function get if import in instanceof let new null of return set static super switch this throw true try typeof undefined var void while with yield"),
+        types: wordSet("Array BigInt Boolean Date Error Map Math Number Object Promise RegExp Set String WeakMap WeakSet"),
+      },
+      kotlin: {
+        comments: ["slash"],
+        keywords: wordSet("as break by catch class companion const constructor continue data do else enum false finally for fun if import in init interface internal is lateinit null object open operator out override package private protected public reified return sealed super suspend tailrec this throw true try typealias val var when where while"),
+        types: wordSet("Any Array Boolean Char Double Float Int List Long Map MutableList MutableMap MutableSet Pair Queue Set String"),
+      },
+      php: {
+        comments: ["slash", "hash"],
+        keywords: wordSet("abstract and array as break callable case catch class clone const continue declare default die do echo else elseif empty enddeclare endfor endforeach endif endswitch endwhile eval exit extends false final finally fn for foreach function global goto if implements include include_once instanceof insteadof interface isset list namespace new null or print private protected public require require_once return static switch throw trait true try unset use var while xor yield"),
+        types: wordSet("bool boolean double float int integer mixed object string void"),
+      },
+      python: {
+        comments: ["hash"],
+        keywords: wordSet("False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return self try while with yield"),
+        types: wordSet("bool dict float int list set str tuple"),
+      },
+      racket: {
+        comments: ["semicolon", "racketBlock"],
+        keywords: wordSet("and begin cond define define/contract else if lambda let let* letrec match not or quote require struct"),
+        types: wordSet("boolean? exact-integer? integer? listof number? or/c string? vector?"),
+      },
+      ruby: {
+        comments: ["hash"],
+        keywords: wordSet("BEGIN END alias and begin break case class def defined? do else elsif end ensure false for if in module next nil not or redo rescue retry return self super then true undef unless until when while yield"),
+        types: wordSet("Array FalseClass Hash Integer NilClass Numeric Object String Symbol TrueClass"),
+      },
+      rust: {
+        comments: ["slash"],
+        keywords: wordSet("as async await break const continue crate dyn else enum extern false fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait true type unsafe use where while"),
+        types: wordSet("bool char f32 f64 i8 i16 i32 i64 i128 isize Option Result String u8 u16 u32 u64 u128 usize Vec"),
+      },
+      scala: {
+        comments: ["slash"],
+        keywords: wordSet("abstract case catch class def do else enum export extends false final finally for forSome given if implicit import lazy match new null object override package private protected return sealed super then this throw trait true try type val var while with yield"),
+        types: wordSet("Array Boolean Char Double Float Int List Long Map Option Queue Seq Set String Vector"),
+      },
+      sql: {
+        comments: ["sql", "slash", "hash"],
+        keywords: wordSet("add all alter and as asc between by case check column create database delete desc distinct drop else end exists false from full group having if in inner insert into is join left like limit not null on or order outer primary procedure right select set table then true union update values view when where"),
+        types: wordSet("bigint boolean char date datetime decimal float int integer numeric text timestamp varchar"),
+      },
+      swift: {
+        comments: ["slash"],
+        keywords: wordSet("Any as associatedtype break case catch class continue default defer deinit do else enum extension false fileprivate final for func guard if import in init inout internal is let nil open operator private protocol public repeat rethrows return self Self static struct subscript super switch throw throws true try typealias var where while"),
+        types: wordSet("Array Bool Character Dictionary Double Float Int Set String"),
+      },
+      typescript: {
+        comments: ["slash"],
+        keywords: wordSet("abstract any as async await boolean break case catch class const constructor continue debugger declare default delete do else enum export extends false finally for from function get if implements import in instanceof interface keyof let module namespace new null number object of private protected public readonly require return set static string super switch this throw true try type typeof undefined var void while with yield"),
+        types: wordSet("Array BigInt Boolean Date Error Map Math Number Object Promise Record RegExp Set String WeakMap WeakSet"),
+      },
+    };
+
+    function languageKey(lang) {
+      const normalized = String(lang || "").toLowerCase();
+      if (["c++", "c++17", "cpp"].includes(normalized)) return "cpp";
+      if (["c#", "csharp"].includes(normalized)) return "csharp";
+      if (["go", "golang"].includes(normalized)) return "go";
+      if (["js", "javascript"].includes(normalized)) return "javascript";
+      if (["mysql", "mssql", "oracle", "oraclesql", "sql"].includes(normalized)) return "sql";
+      if (["pandas", "python", "python3"].includes(normalized)) return "python";
+      if (["ts", "typescript"].includes(normalized)) return "typescript";
+      return normalized;
+    }
+
+    function lineEnd(code, index) {
+      let end = index;
+      while (end < code.length && code[end] !== "\n") end += 1;
+      return end;
+    }
+
+    function highlightedSpan(className, value) {
+      return `<span class="${className}">${escapeToken(value)}</span>`;
+    }
+
+    function matchComment(code, index, grammar) {
+      const char = code[index];
+      const next = code[index + 1] || "";
+      const comments = grammar.comments || [];
+      if (comments.includes("racketBlock") && char === "#" && next === "|") {
+        const end = code.indexOf("|#", index + 2);
+        return end === -1 ? code.length : end + 2;
+      }
+      if (comments.includes("slash") && char === "/" && next === "/") {
+        return lineEnd(code, index + 2);
+      }
+      if (comments.includes("slash") && char === "/" && next === "*") {
+        const end = code.indexOf("*/", index + 2);
+        return end === -1 ? code.length : end + 2;
+      }
+      if (comments.includes("sql") && char === "-" && next === "-") {
+        return lineEnd(code, index + 2);
+      }
+      if (comments.includes("semicolon") && char === ";") {
+        return lineEnd(code, index + 1);
+      }
+      if (comments.includes("percent") && char === "%") {
+        return lineEnd(code, index + 1);
+      }
+      if (comments.includes("hash") && char === "#") {
+        return lineEnd(code, index + 1);
+      }
+      return -1;
+    }
+
+    function matchString(code, index, grammar) {
+      const char = code[index];
+      if (grammar === highlightGrammarByLanguage.python) {
+        const triple = code.slice(index, index + 3);
+        if (triple === "'''" || triple === '"""') {
+          const end = code.indexOf(triple, index + 3);
+          return end === -1 ? code.length : end + 3;
+        }
+      }
+      if (char !== '"' && char !== "'" && char !== "`") return -1;
+      let end = index + 1;
+      while (end < code.length) {
+        if (code[end] === "\\") {
+          end += 2;
+          continue;
+        }
+        end += 1;
+        if (code[end - 1] === char) break;
+      }
+      return end;
+    }
+
+    function highlightCode(code, lang) {
+      const grammar =
+        highlightGrammarByLanguage[languageKey(lang)] || {
+          comments: ["slash", "hash"],
+          keywords: new Set(),
+          types: new Set(),
+        };
+      let html = "";
+      for (let index = 0; index < code.length;) {
+        const char = code[index];
+        const commentEnd = matchComment(code, index, grammar);
+        if (commentEnd !== -1) {
+          const tokenClass =
+            char === "#" && grammar.comments?.includes("directive")
+              ? "leetcode-token-directive"
+              : "leetcode-token-comment";
+          html += highlightedSpan(tokenClass, code.slice(index, commentEnd));
+          index = commentEnd;
+          continue;
+        }
+        if (char === "#" && grammar.comments?.includes("directive")) {
+          const end = lineEnd(code, index + 1);
+          html += highlightedSpan("leetcode-token-directive", code.slice(index, end));
+          index = end;
+          continue;
+        }
+        const stringEnd = matchString(code, index, grammar);
+        if (stringEnd !== -1) {
+          html += highlightedSpan("leetcode-token-string", code.slice(index, stringEnd));
+          index = stringEnd;
+          continue;
+        }
+        if (/[0-9]/.test(char)) {
+          let end = index + 1;
+          while (end < code.length && /[A-Za-z0-9_.]/.test(code[end])) end += 1;
+          html += highlightedSpan("leetcode-token-number", code.slice(index, end));
+          index = end;
+          continue;
+        }
+        if (isIdentifierStart(char)) {
+          let end = index + 1;
+          while (end < code.length && isIdentifierPart(code[end])) end += 1;
+          const word = code.slice(index, end);
+          if (grammar.keywords.has(word) || grammar.keywords.has(word.toLowerCase())) {
+            html += highlightedSpan("leetcode-token-keyword", word);
+          } else if (grammar.types.has(word) || grammar.types.has(word.toLowerCase())) {
+            html += highlightedSpan("leetcode-token-type", word);
+          } else {
+            html += escapeToken(word);
+          }
+          index = end;
+          continue;
+        }
+        html += escapeToken(char);
+        index += 1;
+      }
+      return html;
+    }
+
+    function rowState(slug) {
+      return progress[slug] || { done: false, review: false, mastered: false };
+    }
+
+    function byteDanceBuckets(problem) {
+      const buckets = problem.bytedanceBuckets || {};
+      const periods = problem.bytedancePeriods || {};
+      return {
+        all: buckets.all ?? (problem.bytedance ? problem.bytedanceRank : null),
+        thirtyDays: buckets.thirtyDays ?? null,
+        threeMonths: buckets.threeMonths ?? periods.past3Months ?? null,
+        sixMonths: buckets.sixMonths ?? periods.past6Months ?? null,
+        moreThanSixMonths:
+          buckets.moreThanSixMonths ?? periods.before6Months ?? null,
+      };
+    }
+
+    function byteDanceRankFor(problem, filter = "bytedanceAll") {
+      const buckets = byteDanceBuckets(problem);
+      if (filter === "bytedanceThirtyDays") return buckets.thirtyDays;
+      if (filter === "bytedanceThreeMonths") return buckets.threeMonths;
+      if (filter === "bytedanceSixMonths") return buckets.sixMonths;
+      if (filter === "bytedanceMoreThanSixMonths") return buckets.moreThanSixMonths;
+      return problem.bytedanceRank ?? buckets.all;
+    }
+
+    function pageSize() {
+      if (pageSizeSelect?.value === "custom") {
+        const custom = Number(customSizeInput?.value || 20);
+        return Math.max(1, Math.min(maxPageSize, Number.isFinite(custom) ? custom : 20));
+      }
+      return Number(pageSizeSelect?.value || 20);
+    }
+
+    function clampPage(page, totalPages = state.totalPages) {
+      const nextPage = Number(page);
+      if (!Number.isFinite(nextPage)) return state.page;
+      return Math.max(1, Math.min(totalPages, Math.trunc(nextPage)));
+    }
+
+    function syncPagination() {
+      pageIndicators.forEach((indicator) => {
+        indicator.textContent = `/ ${state.totalPages}`;
+      });
+      pageJumpInputs.forEach((input) => {
+        if (!(input instanceof HTMLInputElement)) return;
+        input.max = String(state.totalPages);
+        input.value = String(state.page);
+      });
+      pageActionButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const action = button.dataset.pageAction;
+        button.disabled =
+          ((action === "first" || action === "prev") && state.page <= 1) ||
+          ((action === "next" || action === "last") && state.page >= state.totalPages);
+      });
+    }
+
+    function setPage(page) {
+      const nextPage = clampPage(page);
+      if (nextPage === state.page) {
+        syncPagination();
+        return;
+      }
+      state.page = nextPage;
+      render();
+    }
+
+    function jumpToInputPage(input) {
+      if (!(input instanceof HTMLInputElement)) return;
+      setPage(input.value);
+    }
+
+    function isEditableTarget(element) {
+      if (!(element instanceof HTMLElement)) return false;
+      if (element.isContentEditable) return true;
+      return Boolean(
+        element.closest(
+          "input, textarea, select, button, a, [contenteditable='true'], .leetcode-practice-panel",
+        ),
+      );
+    }
+
+    function matchesFilter(problem) {
+      const status = rowState(problem.titleSlug);
+      const byteDance = byteDanceBuckets(problem);
+      if (state.filter === "hot100" && !problem.hot100) return false;
+      if (state.filter === "companyFollowUps" && !problem.companyFollowUps?.length) return false;
+      if (state.filter === "bytedanceAll" && !byteDance.all) return false;
+      if (state.filter === "bytedanceThirtyDays" && !byteDance.thirtyDays) return false;
+      if (state.filter === "bytedanceThreeMonths" && !byteDance.threeMonths) return false;
+      if (state.filter === "bytedanceSixMonths" && !byteDance.sixMonths) return false;
+      if (state.filter === "bytedanceMoreThanSixMonths" && !byteDance.moreThanSixMonths) return false;
+      if (state.filter === "unsolved" && status.done) return false;
+      if (state.filter === "review" && !status.review) return false;
+      if (state.filter === "unmastered" && status.mastered) return false;
+      if (!state.query) return true;
+      const haystack = [
+        problem.frontendId,
+        problem.titleCn,
+        problem.titleSlug,
+        problem.difficulty,
+        problem.bytedance ? "字节跳动 bytedance" : "",
+        problem.bytedanceRank ? `bd ${problem.bytedanceRank}` : "",
+        byteDance.thirtyDays ? `字节近30天 ${byteDance.thirtyDays}` : "",
+        byteDance.threeMonths ? `字节近3月 ${byteDance.threeMonths}` : "",
+        byteDance.sixMonths ? `字节近6月 ${byteDance.sixMonths}` : "",
+        byteDance.moreThanSixMonths ? `字节6月前 ${byteDance.moreThanSixMonths}` : "",
+        ...problem.tags.map((tag) => tag.name),
+        ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
+        ...(problem.companyFollowUps || []).flatMap((item) => [
+          item.question,
+          item.answer,
+          item.company,
+          item.sourceTitle,
+        ]),
+        ...(problem.implementationReferences || []).flatMap((item) => [
+          item.language,
+          item.provenance,
+          item.sourceTitle,
+        ]),
+      ].join(" ").toLowerCase();
+      return haystack.includes(state.query.toLowerCase());
+    }
+
+    function orderedProblems() {
+      const filtered = problems.filter(matchesFilter);
+      if (state.filter === "hot100") {
+        return filtered.sort((a, b) => (a.hotRank || 999) - (b.hotRank || 999));
+      }
+      if (state.filter.startsWith("bytedance")) {
+        return filtered.sort((a, b) => {
+          const left = byteDanceRankFor(a, state.filter) || Number.MAX_SAFE_INTEGER;
+          const right = byteDanceRankFor(b, state.filter) || Number.MAX_SAFE_INTEGER;
+          return left - right || (a.frequencyRank || 999999) - (b.frequencyRank || 999999);
+        });
+      }
+      return filtered;
+    }
+
+    function badgeClass(difficulty) {
+      if (difficulty === "简单") return "is-easy";
+      if (difficulty === "困难") return "is-hard";
+      return "is-medium";
+    }
+
+    function renderTags(problem) {
+      return problem.tags
+        .slice(0, 3)
+        .map((tag) => `<span>${escapeHtml(tag.name)}</span>`)
+        .join("");
+    }
+
+    function renderByteDance(problem) {
+      if (!problem.bytedance) return "";
+      const buckets = byteDanceBuckets(problem);
+      const labels = [
+        ["全量", buckets.all],
+        ["近30天", buckets.thirtyDays],
+        ["近3月", buckets.threeMonths],
+        ["近6月", buckets.sixMonths],
+        ["6月前", buckets.moreThanSixMonths],
+      ]
+        .filter(([, count]) => count)
+        .map(([label, count]) => `${label} #${count}`)
+        .join(" / ");
+      const shortLabels = [
+        ["30", buckets.thirtyDays],
+        ["3", buckets.threeMonths],
+        ["6", buckets.sixMonths],
+        ["旧", buckets.moreThanSixMonths],
+      ]
+        .filter(([, count]) => count)
+        .map(([label]) => label)
+        .join("/");
+      return `<span title="${escapeHtml(labels || "字节跳动")}">${escapeHtml(shortLabels || "全")}</span>`;
+    }
+
+    function renderByteDanceMeta(problem) {
+      const buckets = byteDanceBuckets(problem);
+      const chips = [
+        ["字节全量", buckets.all],
+        ["近30天", buckets.thirtyDays],
+        ["近3月", buckets.threeMonths],
+        ["近6月", buckets.sixMonths],
+        ["6月前", buckets.moreThanSixMonths],
+      ].filter(([, count]) => count);
+      if (!chips.length) return "";
+      return chips
+        .map(([label, count]) => `<span>${escapeHtml(label)} #${escapeHtml(count)}</span>`)
+        .join("");
+    }
+
+    function renderStudyChecks(problem) {
+      const checks = problem.followUps || [];
+      if (!checks.length) return "";
+      return `
+        <span class="leetcode-popover-section">
+          <strong>通用检查点</strong>
+          ${checks
+            .map(
+              (item) => `
+                <span class="leetcode-check">
+                  <em>${escapeHtml(item.question)}</em>
+                  <span>${escapeHtml(item.answer)}</span>
+                </span>
+              `,
+            )
+            .join("")}
+        </span>
+      `;
+    }
+
+    function renderCompanyFollowUps(problem) {
+      const followUps = problem.companyFollowUps || [];
+      if (!followUps.length) {
+        return '<span class="leetcode-popover-muted">暂无公开核实到的公司追问来源。</span>';
+      }
+      return `
+        <span class="leetcode-popover-section">
+          <strong>公司追问</strong>
+          ${followUps
+            .map(
+              (item) => `
+                <span class="leetcode-company-follow-up">
+                  <span class="leetcode-followup-source">
+                    <b>${escapeHtml(item.company)}</b>
+                    <a
+                      class="leetcode-source-link"
+                      href="${escapeHtml(item.sourceUrl)}"
+                      title="${escapeHtml(item.sourceTitle)}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      来源
+                    </a>
+                  </span>
+                  <em>${escapeHtml(item.question)}</em>
+                  <span>${escapeHtml(item.answer)}</span>
+                </span>
+              `,
+            )
+            .join("")}
+        </span>
+      `;
+    }
+
+    function renderTagReference(problem, topLabel) {
+      return `
+        <span class="leetcode-tag-popover">
+          ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
+          ${problem.hot100 ? "<span>Hot100</span>" : ""}
+          ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
+          ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
+          ${problem.implementationReferences?.length ? `<span>实现参考 ${escapeHtml(problem.implementationReferences.length)}</span>` : ""}
+          ${renderByteDanceMeta(problem)}
+          ${renderTags(problem)}
+        </span>
+      `;
+    }
+
+    function implementationTracks(problem) {
+      const tags = new Set(problem.tags.map((tag) => tag.slug));
+      const tracks = [];
+      if (tags.has("hash-table")) tracks.push(["哈希表", "先写清 key/value 语义，再确认写入时机和重复值处理。"]);
+      if (tags.has("two-pointers")) tracks.push(["双指针", "用区间不变量解释每次移动能排除哪一批候选答案。"]);
+      if (tags.has("sliding-window")) tracks.push(["滑动窗口", "维护窗口内计数或约束，右端扩张、左端按条件单调收缩。"]);
+      if (tags.has("dynamic-programming")) tracks.push(["动态规划", "先定义状态和转移，再检查是否能滚动压缩空间。"]);
+      if (tags.has("stack") || tags.has("monotonic-stack")) tracks.push(["栈/单调栈", "栈里保存尚未确定答案的元素，出栈时一次性结算贡献。"]);
+      if (tags.has("binary-search")) tracks.push(["二分", "明确单调谓词，使用左闭右闭或左闭右开一种模板到底。"]);
+      if (tags.has("tree") || tags.has("binary-tree")) tracks.push(["树遍历", "先确定递归返回值，再决定前序、后序或层序。"]);
+      if (tags.has("graph")) tracks.push(["图搜索", "建图、访问状态和队列/栈边界分开写，避免重复入队。"]);
+      if (!tracks.length) tracks.push(["主解法", "先按题面约束写出可讲清楚的不变量，再做复杂度优化。"]);
+      return tracks.slice(0, 4);
+    }
+
+    function implementationProvenanceLabel(provenance) {
+      if (provenance === "my-recent-accepted-submission") return "我的提交";
+      if (provenance === "optimized") return "已优化";
+      return "生成参考";
+    }
+
+    function isCppReference(reference) {
+      return reference.language === "C++" || reference.language === "C++17";
+    }
+
+    function implementationReferencesForDisplay(problem) {
+      const references = problem.implementationReferences || [];
+      return references.filter(isCppReference);
+    }
+
+    function renderImplementationCode(reference) {
+      const code = highlightCode(reference.code, reference.language);
+      return `
+        <span class="leetcode-implementation-card">
+          <span class="leetcode-implementation-meta">
+            <span>${escapeHtml(implementationProvenanceLabel(reference.provenance))}</span>
+            <span>${escapeHtml(reference.language)}</span>
+            ${reference.submittedAt ? `<span>${escapeHtml(reference.submittedAt)}</span>` : ""}
+            ${reference.runtime ? `<span>${escapeHtml(reference.runtime)}</span>` : ""}
+            ${reference.memory ? `<span>${escapeHtml(reference.memory)}</span>` : ""}
+            <a
+              href="${escapeHtml(reference.sourceUrl)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="leetcode-source-link"
+            >
+              提交来源
+            </a>
+          </span>
+          <pre class="leetcode-code-block"><code class="language-${escapeHtml(languageKey(reference.language))}">${code}</code></pre>
+        </span>
+      `;
+    }
+
+    function renderImplementationReference(problem) {
+      const tracks = implementationTracks(problem);
+      const references = implementationReferencesForDisplay(problem);
+      const allReferences = problem.implementationReferences || [];
+      const lead = references.length
+        ? `C++ reference implementation 已公开同步 ${references.length} 份最近通过提交；优先展示 C++ 我的提交，后续可继续补充优化版和生成参考。`
+        : allReferences.length
+          ? `这题暂时只有 ${allReferences.length} 份非 C++ 历史提交；C++ reference implementation 待同步。`
+        : "Reference implementation 待同步最近提交。当前先展示面试实现顺序；最终代码会标记为「我的提交」「已优化」或「生成参考」。";
+      return `
+        <span class="leetcode-popover-lead">
+          ${escapeHtml(lead)}
+        </span>
+        ${
+          references.length
+            ? `<span class="leetcode-popover-section">
+                <strong>参考实现</strong>
+                ${references.map(renderImplementationCode).join("")}
+              </span>`
+            : ""
+        }
+        <span class="leetcode-popover-section">
+          <strong>建议展开顺序</strong>
+          ${tracks
+            .map(
+              ([name, detail], index) => `
+                <span class="leetcode-check">
+                  <em>${index + 1}. ${escapeHtml(name)}</em>
+                  <span>${escapeHtml(detail)}</span>
+                </span>
+              `,
+            )
+            .join("")}
+        </span>
+        ${renderStudyChecks(problem)}
+        ${renderCompanyFollowUps(problem)}
+      `;
+    }
+
+    function draftFor(problem) {
+      return editorDrafts[problem.titleSlug] || {};
+    }
+
+    function normalizeLangSlug(lang) {
+      return lang === "go" ? "golang" : lang;
+    }
+
+    function editorLanguages(problem) {
+      const templates = problem.codeTemplates || [];
+      if (!templates.length) return fallbackLanguages;
+      const seen = new Set();
+      return templates
+        .filter((template) => {
+          if (seen.has(template.langSlug)) return false;
+          seen.add(template.langSlug);
+          return true;
+        })
+        .map((template) => [template.langSlug, template.lang]);
+    }
+
+    function preferredLang(problem, draftLang) {
+      const languages = editorLanguages(problem);
+      const normalized = normalizeLangSlug(draftLang || "");
+      if (languages.some(([langSlug]) => langSlug === normalized)) {
+        return normalized;
+      }
+      return (
+        preferredLanguageOrder.find((langSlug) =>
+          languages.some(([item]) => item === langSlug),
+        ) ||
+        languages[0]?.[0] ||
+        "cpp"
+      );
+    }
+
+    function officialTemplate(problem, lang) {
+      const normalized = normalizeLangSlug(lang);
+      return (
+        problem.codeTemplates?.find((template) => template.langSlug === normalized)
+          ?.code || ""
+      );
+    }
+
+    function fallbackTemplate(problem, lang) {
+      const heading = `${problem.frontendId}. ${problem.titleCn}`;
+      if (lang === "python3") {
+        return `# ${heading}\n# TODO: sync the official LeetCode signature.\nclass Solution:\n    pass\n`;
+      }
+      if (lang === "go" || lang === "golang") {
+        return `// ${heading}\n// TODO: sync the official LeetCode signature.\npackage main\n`;
+      }
+      if (lang === "java") {
+        return `// ${heading}\n// TODO: sync the official LeetCode signature.\nclass Solution {\n}\n`;
+      }
+      if (lang === "typescript") {
+        return `// ${heading}\n// TODO: sync the official LeetCode signature.\n`;
+      }
+      return `// ${heading}\n// TODO: sync the official LeetCode signature.\nclass Solution {\npublic:\n};\n`;
+    }
+
+    function defaultTemplate(problem, lang) {
+      return officialTemplate(problem, lang) || fallbackTemplate(problem, lang);
+    }
+
+    function editorHighlightHtml(code, lang) {
+      return highlightCode(code, lang);
+    }
+
+    function syncEditorHighlight(panel, textarea, lang) {
+      const highlight = panel?.querySelector(".leetcode-editor-highlight");
+      const code = highlight?.querySelector("code");
+      if (code) {
+        code.innerHTML = editorHighlightHtml(textarea.value, lang);
+      }
+      if (highlight instanceof HTMLElement) {
+        highlight.scrollTop = textarea.scrollTop;
+        highlight.scrollLeft = textarea.scrollLeft;
+      }
+    }
+
+    function setSubmitStatus(panel, message, tone = "") {
+      const status = panel?.querySelector("[data-submit-status]");
+      if (!(status instanceof HTMLElement)) return;
+      status.textContent = message;
+      status.dataset.tone = tone;
+    }
+
+    function extensionRequest(type, payload, timeoutMs = extensionRequestTimeoutMs) {
+      return new Promise((resolve, reject) => {
+        const requestId = `leetcode-${Date.now()}-${extensionRequestSequence += 1}`;
+        const timeout = window.setTimeout(() => {
+          pendingExtensionRequests.delete(requestId);
+          reject(new Error("未检测到 Chrome 扩展响应，请确认已加载 extensions/leetcode-submit。"));
+        }, timeoutMs);
+        pendingExtensionRequests.set(requestId, { reject, resolve, timeout });
+        window.postMessage(
+          {
+            payload,
+            requestId,
+            source: extensionRequestSource,
+            type,
+            version: extensionProtocolVersion,
+          },
+          window.location.origin,
+        );
+      });
+    }
+
+    function submissionAccepted(result) {
+      return (
+        result?.statusMessage === "Accepted" ||
+        result?.status_msg === "Accepted" ||
+        (result?.runSuccess &&
+          result?.totalCorrect !== null &&
+          result?.totalCorrect === result?.totalTestcases)
+      );
+    }
+
+    function submissionSummary(result) {
+      const status = result?.statusMessage || result?.status_msg || result?.state || "已返回";
+      const tests =
+        result?.totalCorrect !== null && result?.totalTestcases !== null
+          ? ` ${result.totalCorrect}/${result.totalTestcases}`
+          : "";
+      const runtime = result?.runtime ? ` ${result.runtime}` : "";
+      const memory = result?.memory ? ` ${result.memory}` : "";
+      return `${status}${tests}${runtime}${memory}`.trim();
+    }
+
+    async function submitLeetcode(panel, actionButton, problem, textarea) {
+      const select = panel?.querySelector("[data-editor-lang]");
+      const lang =
+        select instanceof HTMLSelectElement
+          ? preferredLang(problem, select.value)
+          : preferredLang(problem, editorDrafts[problem.titleSlug]?.lang);
+      const code = textarea.value;
+      if (actionButton instanceof HTMLButtonElement) actionButton.disabled = true;
+      setSubmitStatus(panel, "正在提交到力扣...", "pending");
+      try {
+        const response = await extensionRequest("submit", {
+          code,
+          langSlug: normalizeLangSlug(lang),
+          titleSlug: problem.titleSlug,
+        });
+        if (!response?.ok) {
+          throw new Error(response?.error?.message || "提交失败。");
+        }
+        const result = response.data?.result || {};
+        const summary = submissionSummary(result);
+        if (submissionAccepted(result)) {
+          progress[problem.titleSlug] = {
+            ...rowState(problem.titleSlug),
+            done: true,
+          };
+          writeState();
+          setSubmitStatus(panel, `Accepted ${summary}`, "success");
+          return;
+        }
+        setSubmitStatus(panel, summary, "error");
+      } catch (error) {
+        setSubmitStatus(panel, error.message || "提交失败。", "error");
+      } finally {
+        if (actionButton instanceof HTMLButtonElement) actionButton.disabled = false;
+      }
+    }
+
+    function renderPracticePanel(problem) {
+      const draft = draftFor(problem);
+      const lang = preferredLang(problem, draft.lang);
+      const code = draft.code || defaultTemplate(problem, lang);
+      const languages = editorLanguages(problem);
+      return `
+        <section class="leetcode-practice-panel" data-editor-panel="${escapeHtml(problem.titleSlug)}">
+          <div class="leetcode-practice-head">
+            <div>
+              <strong>${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</strong>
+              <span>${
+                problem.codeTemplates?.length
+                  ? "官方模板已同步；草稿保存在当前浏览器。"
+                  : "官方模板缺失，先使用本地 fallback；草稿保存在当前浏览器。"
+              }</span>
+            </div>
+            <div class="leetcode-practice-actions">
+              <select data-editor-lang="${escapeHtml(problem.titleSlug)}" aria-label="Language">
+                ${languages
+                  .map(
+                    ([value, label]) =>
+                      `<option value="${escapeHtml(value)}" ${
+                        lang === value ? "selected" : ""
+                      }>${escapeHtml(label)}</option>`,
+                  )
+                  .join("")}
+              </select>
+              <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}">复制</button>
+              <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}">重置</button>
+              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}">提交力扣</button>
+              <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer">打开力扣</a>
+            </div>
+          </div>
+          <div class="leetcode-editor-shell">
+            <pre class="leetcode-editor-highlight" aria-hidden="true"><code>${editorHighlightHtml(code, lang)}</code></pre>
+            <textarea
+              spellcheck="false"
+              wrap="off"
+              data-editor-code="${escapeHtml(problem.titleSlug)}"
+              aria-label="Local code editor for ${escapeHtml(problem.titleCn)}"
+            >${escapeHtml(code)}</textarea>
+          </div>
+          <p class="leetcode-submit-note">
+            <span data-submit-status="${escapeHtml(problem.titleSlug)}">安装本仓库 Chrome 扩展后可直接提交到力扣；页面不会读取你的登录 cookie。</span>
+          </p>
+        </section>
+      `;
+    }
+
+    function renderProblem(problem) {
+      const status = rowState(problem.titleSlug);
+      const visitedClass = clicked[problem.titleSlug] ? " is-visited" : "";
+      const topRank = problem.topRank ?? "";
+      const hotRank = problem.hotRank ?? "";
+      const bytedanceRank = byteDanceRankFor(problem) ?? "";
+      const byteDance = renderByteDance(problem);
+      const topLabel = problem.topRank === null ? `#${problem.frequencyRank}` : "";
+      return `
+        <article class="leetcode-row${visitedClass}" data-slug="${escapeHtml(problem.titleSlug)}">
+          <div class="leetcode-rank">${topRank}</div>
+          <div class="leetcode-rank is-hot">${hotRank}</div>
+          <div class="leetcode-rank is-bytedance">${bytedanceRank}</div>
+          <div class="leetcode-problem-main">
+            <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
+              <span class="leetcode-title-text">${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</span>
+              <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
+            </a>
+            <span class="leetcode-title-tools">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+                思路
+                <span class="leetcode-popover">
+                  <span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>
+                  ${renderStudyChecks(problem)}
+                  ${renderCompanyFollowUps(problem)}
+                </span>
+              </span>
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+                实现
+                <span class="leetcode-popover">
+                  ${renderImplementationReference(problem)}
+                </span>
+              </span>
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+                标签
+                <span class="leetcode-popover">
+                  ${renderTagReference(problem, topLabel)}
+                </span>
+              </span>
+            </span>
+          </div>
+          <div><span class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</span></div>
+          <div class="leetcode-frequency">${escapeHtml(problem.frequency)}</div>
+          <div class="leetcode-byte">${byteDance}</div>
+          <div class="leetcode-status">
+            <button type="button" data-action="done" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.done ? "is-on" : ""}">做过</button>
+            <button type="button" data-action="review" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.review ? "is-on" : ""}">思考</button>
+            <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}">熟练</button>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderProblemBundle(problem) {
+      return renderProblem(problem) + (state.expandedSlug === problem.titleSlug ? renderPracticePanel(problem) : "");
+    }
+
+    function render() {
+      const items = orderedProblems();
+      state.pageSize = pageSize();
+      state.totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      state.page = clampPage(state.page, state.totalPages);
+      const start = (state.page - 1) * state.pageSize;
+      const pageItems = items.slice(start, start + state.pageSize);
+      if (list) list.innerHTML = pageItems.map(renderProblemBundle).join("");
+      if (resultCount) {
+        resultCount.textContent = `${items.length} 道题`;
+      }
+      syncPagination();
+    }
+
+    searchInput?.addEventListener("input", (event) => {
+      state.query = event.target.value.trim();
+      state.page = 1;
+      render();
+    });
+
+    pageSizeSelect?.addEventListener("change", () => {
+      customSizeInput.hidden = pageSizeSelect.value !== "custom";
+      state.page = 1;
+      render();
+    });
+
+    customSizeInput?.addEventListener("input", () => {
+      state.page = 1;
+      render();
+    });
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        filterButtons.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        state.filter = button.dataset.filter || "all";
+        state.page = 1;
+        render();
+      });
+    });
+
+    pageActionButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!(button instanceof HTMLElement)) return;
+        const action = button.dataset.pageAction;
+        if (action === "first") setPage(1);
+        if (action === "prev") setPage(state.page - 1);
+        if (action === "next") setPage(state.page + 1);
+        if (action === "last") setPage(state.totalPages);
+      });
+    });
+
+    pageJumpInputs.forEach((input) => {
+      input.addEventListener("change", () => jumpToInputPage(input));
+      input.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        jumpToInputPage(input);
+      });
+    });
+
+    window.addEventListener("message", (event) => {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const message = event.data;
+      if (
+        !message ||
+        message.source !== extensionResponseSource ||
+        message.version !== extensionProtocolVersion ||
+        typeof message.requestId !== "string"
+      ) {
+        return;
+      }
+      const pending = pendingExtensionRequests.get(message.requestId);
+      if (!pending) return;
+      window.clearTimeout(pending.timeout);
+      pendingExtensionRequests.delete(message.requestId);
+      pending.resolve(message);
+    });
+
+    list?.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const link = target.closest("[data-link-slug]");
+      if (link instanceof HTMLElement) {
+        clicked[link.dataset.linkSlug || ""] = true;
+        writeState();
+        return;
+      }
+      if (target.closest(".leetcode-source-link")) return;
+      if (target.closest(".leetcode-practice-panel")) {
+        const actionButton = target.closest("[data-editor-action]");
+        if (actionButton instanceof HTMLElement) {
+          const slug = actionButton.dataset.slug || "";
+          const panel = actionButton.closest(".leetcode-practice-panel");
+          const textarea = panel?.querySelector("[data-editor-code]");
+          if (!(textarea instanceof HTMLTextAreaElement)) return;
+          if (actionButton.dataset.editorAction === "copy") {
+            navigator.clipboard?.writeText(textarea.value);
+            actionButton.textContent = "已复制";
+            setTimeout(() => {
+              actionButton.textContent = "复制";
+            }, 1200);
+          }
+          if (actionButton.dataset.editorAction === "reset") {
+            const problem = problems.find((item) => item.titleSlug === slug);
+            if (!problem) return;
+            const lang = preferredLang(problem, editorDrafts[slug]?.lang);
+            editorDrafts[slug] = { lang, code: defaultTemplate(problem, lang) };
+            writeState();
+            render();
+          }
+          if (actionButton.dataset.editorAction === "submit-leetcode") {
+            const problem = problems.find((item) => item.titleSlug === slug);
+            if (!problem) return;
+            submitLeetcode(panel, actionButton, problem, textarea);
+          }
+        }
+        return;
+      }
+      const previewButton = target.closest("[data-preview]");
+      if (previewButton instanceof HTMLElement) {
+        const isOpen = previewButton.classList.contains("is-open");
+        list.querySelectorAll("[data-preview].is-open").forEach((item) => {
+          item.classList.remove("is-open");
+          item.setAttribute("aria-expanded", "false");
+        });
+        previewButton.classList.toggle("is-open", !isOpen);
+        previewButton.setAttribute("aria-expanded", String(!isOpen));
+        return;
+      }
+      const button = target.closest("[data-action]");
+      if (button instanceof HTMLElement) {
+        const slug = button.dataset.slug || "";
+        const action = button.dataset.action || "";
+        const current = rowState(slug);
+        const next = { ...current };
+        if (action === "done") next.done = !next.done;
+        if (action === "review") {
+          next.review = !next.review;
+          if (next.review) next.mastered = false;
+        }
+        if (action === "mastered") {
+          next.mastered = !next.mastered;
+          if (next.mastered) {
+            next.done = true;
+            next.review = false;
+          }
+        }
+        progress[slug] = next;
+        writeState();
+        render();
+        return;
+      }
+
+      const row = target.closest(".leetcode-row");
+      if (!(row instanceof HTMLElement)) return;
+      const slug = row.dataset.slug || "";
+      state.expandedSlug = state.expandedSlug === slug ? "" : slug;
+      render();
+    });
+
+    list?.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      const slug = target.dataset.editorLang || "";
+      if (!slug) return;
+      const problem = problems.find((item) => item.titleSlug === slug);
+      if (!problem) return;
+      const lang = preferredLang(problem, target.value);
+      editorDrafts[slug] = {
+        lang,
+        code: defaultTemplate(problem, lang),
+      };
+      writeState();
+      render();
+    });
+
+    list?.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) return;
+      const slug = target.dataset.editorCode || "";
+      if (!slug) return;
+      const panel = target.closest(".leetcode-practice-panel");
+      const select = panel?.querySelector("[data-editor-lang]");
+      const problem = problems.find((item) => item.titleSlug === slug);
+      if (!problem) return;
+      const lang =
+        select instanceof HTMLSelectElement
+          ? preferredLang(problem, select.value)
+          : preferredLang(problem, editorDrafts[slug]?.lang);
+      editorDrafts[slug] = { lang, code: target.value };
+      syncEditorHighlight(panel, target, lang);
+      writeState();
+    });
+
+    list?.addEventListener(
+      "scroll",
+      (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLTextAreaElement)) return;
+        const slug = target.dataset.editorCode || "";
+        const panel = target.closest(".leetcode-practice-panel");
+        const select = panel?.querySelector("[data-editor-lang]");
+        const problem = problems.find((item) => item.titleSlug === slug);
+        if (!problem) return;
+        const lang =
+          select instanceof HTMLSelectElement
+            ? preferredLang(problem, select.value)
+            : preferredLang(problem, editorDrafts[slug]?.lang);
+        syncEditorHighlight(panel, target, lang);
+      },
+      true,
+    );
+
+    list?.addEventListener("keydown", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const previewButton = target.closest("[data-preview]");
+      if (!(previewButton instanceof HTMLElement)) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      previewButton.click();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (isEditableTarget(document.activeElement)) return;
+      if (event.key === "ArrowLeft" && state.page > 1) {
+        event.preventDefault();
+        setPage(state.page - 1);
+      }
+      if (event.key === "ArrowRight" && state.page < state.totalPages) {
+        event.preventDefault();
+        setPage(state.page + 1);
+      }
+    });
+
+    render();
+  </script>
+
+  <style is:global>
+    .leetcode-shell {
+      color: var(--color-charcoal);
+    }
+
+    html.dark .leetcode-shell {
+      color: var(--color-cream);
+    }
+
+    .leetcode-hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .leetcode-hero > div:first-child {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.25rem 0.65rem;
+      align-items: center;
+    }
+
+    .leetcode-hero .book-cover {
+      display: none;
+    }
+
+    .leetcode-hero .book-cover__title {
+      font-size: 1.65rem;
+    }
+
+    .leetcode-hero .book-cover__kicker,
+    .leetcode-hero .book-cover__footer {
+      font-size: 0.58rem;
+    }
+
+    .leetcode-kicker {
+      display: none;
+      margin: 0 0 0.45rem;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .leetcode-title {
+      max-width: 11ch;
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(1.22rem, 1.75vw, 1.55rem);
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .leetcode-copy {
+      max-width: none;
+      margin: 0;
+      color: var(--color-secondary);
+      font-size: 0.74rem;
+      line-height: 1.28;
+    }
+
+    html.dark .leetcode-copy {
+      color: var(--color-muted);
+    }
+
+    .leetcode-actions,
+    .leetcode-filter-panel,
+    .leetcode-filter-cluster,
+    .leetcode-filter-group,
+    .leetcode-list-meta,
+    .leetcode-page-size,
+    .leetcode-page-jump,
+    .leetcode-summary,
+    .leetcode-pagination,
+    .leetcode-status,
+    .leetcode-title-tools {
+      display: flex;
+      align-items: center;
+    }
+
+    .leetcode-actions {
+      flex-wrap: wrap;
+      gap: 0.28rem;
+      justify-content: flex-end;
+      margin-top: 0;
+    }
+
+    .leetcode-primary-link,
+    .leetcode-secondary-link {
+      border-radius: 0.42rem;
+      font-size: 0.72rem;
+      padding: 0.28rem 0.45rem;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .leetcode-primary-link {
+      background: var(--color-terracotta);
+      color: white;
+    }
+
+    .leetcode-secondary-link {
+      border: 1px solid var(--color-border);
+      color: var(--color-charcoal);
+    }
+
+    html.dark .leetcode-secondary-link {
+      border-color: #333;
+      color: var(--color-cream);
+    }
+
+    .leetcode-stats {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.25rem;
+      margin-bottom: 0.3rem;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0.2rem 0;
+    }
+
+    html.dark .leetcode-stats {
+      border-color: #333;
+    }
+
+    .leetcode-stats div {
+      min-width: 0;
+    }
+
+    .leetcode-stats span {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .leetcode-stats p {
+      margin: 0.02rem 0 0;
+      color: var(--color-muted);
+      font-size: 0.58rem;
+    }
+
+    .leetcode-workspace {
+      min-width: 0;
+    }
+
+    .leetcode-toolbar {
+      display: grid;
+      grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr) auto;
+      gap: 0.45rem;
+      align-items: start;
+      margin-bottom: 0.24rem;
+    }
+
+    .leetcode-search,
+    .leetcode-page-size {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .leetcode-search label,
+    .leetcode-page-size label {
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .leetcode-search input,
+    .leetcode-page-size select,
+    .leetcode-page-size input {
+      min-height: 1.8rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.45rem;
+      background: rgb(255 255 255 / 48%);
+      color: inherit;
+      font: inherit;
+      padding: 0.22rem 0.5rem;
+    }
+
+    .leetcode-search input {
+      width: 100%;
+    }
+
+    .leetcode-page-size {
+      grid-template-columns: auto auto auto;
+      align-items: end;
+    }
+
+    .leetcode-filter-panel {
+      flex-wrap: wrap;
+      gap: 0.22rem 0.5rem;
+      justify-content: center;
+      padding-top: 0.5rem;
+    }
+
+    .leetcode-filter-cluster {
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+
+    .leetcode-filter-cluster > span {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .leetcode-filter-group {
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      justify-content: flex-start;
+    }
+
+    .leetcode-filter-group button,
+    .leetcode-status button,
+    .leetcode-preview-control,
+    .leetcode-pagination button {
+      border: 1px solid var(--color-border);
+      border-radius: 0.45rem;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.7rem;
+      padding: 0.22rem 0.36rem;
+    }
+
+    .leetcode-filter-group button.is-active,
+    .leetcode-status button.is-on {
+      border-color: var(--color-terracotta);
+      background: rgb(217 119 87 / 12%);
+      color: var(--color-terracotta);
+      font-weight: 650;
+    }
+
+    .leetcode-list-meta {
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.55rem;
+      margin: 0 0 0.25rem;
+    }
+
+    .leetcode-summary {
+      flex: 1 1 auto;
+      flex-wrap: wrap;
+      gap: 0.42rem;
+      margin: 0;
+      color: var(--color-muted);
+      font-size: 0.62rem;
+    }
+
+    .leetcode-duplicate-audit {
+      margin: 0 0 0.25rem;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.5rem;
+      background: rgb(255 255 255 / 28%);
+      color: var(--color-secondary);
+      font-size: 0.72rem;
+    }
+
+    .leetcode-duplicate-audit summary {
+      cursor: pointer;
+      font-weight: 700;
+      padding: 0.34rem 0.5rem;
+    }
+
+    .leetcode-duplicate-list {
+      display: grid;
+      gap: 0.1rem;
+      max-height: 18rem;
+      overflow: auto;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      padding: 0.45rem 0.7rem 0.65rem;
+    }
+
+    .leetcode-duplicate-row {
+      display: grid;
+      grid-template-columns: 4rem minmax(12rem, 1fr) 3rem minmax(12rem, 1fr);
+      gap: 0.45rem;
+      align-items: baseline;
+      min-width: 38rem;
+      padding: 0.22rem 0;
+    }
+
+    .leetcode-duplicate-row span {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .leetcode-duplicate-row a {
+      color: var(--color-charcoal);
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .leetcode-duplicate-row a:hover {
+      color: var(--color-terracotta);
+    }
+
+    html.dark .leetcode-duplicate-audit {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-duplicate-row a {
+      color: var(--color-cream);
+    }
+
+    .leetcode-table-wrap {
+      width: 100%;
+      overflow-x: visible;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    html.dark .leetcode-table-wrap {
+      border-color: #333;
+    }
+
+    .leetcode-table-head,
+    .leetcode-row {
+      display: grid;
+      grid-template-columns: 2.45rem 2.45rem 2.45rem minmax(18rem, 1fr) 3.5rem 4.15rem 4rem 7.35rem;
+      min-width: 0;
+      gap: 0.3rem;
+      align-items: center;
+    }
+
+    .leetcode-table-head {
+      background: var(--color-cream);
+      border-bottom: 1px solid rgb(194 192 182 / 48%);
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 0.28rem 0.25rem;
+      text-transform: uppercase;
+    }
+
+    .leetcode-table-head span:nth-child(1),
+    .leetcode-table-head span:nth-child(2),
+    .leetcode-table-head span:nth-child(3) {
+      text-align: center;
+    }
+
+    html.dark .leetcode-table-head {
+      background: var(--color-charcoal);
+      border-bottom-color: #333;
+    }
+
+    .leetcode-row {
+      position: relative;
+      min-height: 2.15rem;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      cursor: pointer;
+      padding: 0.18rem 0.25rem;
+    }
+
+    .leetcode-row > div {
+      min-width: 0;
+    }
+
+    html.dark .leetcode-row {
+      border-top-color: #333;
+    }
+
+    .leetcode-row:nth-child(even) {
+      background: rgb(255 255 255 / 28%);
+    }
+
+    .leetcode-row:hover {
+      background: rgb(217 119 87 / 8%);
+    }
+
+    html.dark .leetcode-row:nth-child(even) {
+      background: rgb(30 30 28 / 38%);
+    }
+
+    html.dark .leetcode-row:hover {
+      background: rgb(217 119 87 / 12%);
+    }
+
+    .leetcode-rank,
+    .leetcode-frequency,
+    .leetcode-byte {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    .leetcode-rank {
+      color: var(--color-muted);
+      text-align: center;
+    }
+
+    .leetcode-rank.is-hot {
+      color: var(--color-terracotta);
+      font-weight: 700;
+    }
+
+    .leetcode-rank.is-bytedance {
+      color: #b77b00;
+      font-weight: 700;
+    }
+
+    .leetcode-problem-link {
+      position: relative;
+      display: inline-flex;
+      min-width: 0;
+      max-width: 100%;
+      align-items: center;
+      flex: 0 1 auto;
+      color: var(--color-charcoal);
+      font-weight: 700;
+      font-size: 0.93rem;
+      text-decoration: none;
+    }
+
+    .leetcode-title-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-problem-link:visited,
+    .leetcode-row.is-visited .leetcode-problem-link {
+      color: #7a5aa6;
+    }
+
+    .leetcode-problem-link:hover {
+      color: var(--color-terracotta);
+    }
+
+    html.dark .leetcode-problem-link {
+      color: var(--color-cream);
+    }
+
+    .leetcode-problem-main {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    .leetcode-title-tools {
+      flex: 0 0 auto;
+      gap: 0.14rem;
+    }
+
+    .leetcode-practice-panel {
+      display: grid;
+      gap: 0.55rem;
+      border-top: 1px solid rgb(217 119 87 / 30%);
+      background: rgb(255 255 255 / 34%);
+      padding: 0.7rem 0.85rem 0.8rem;
+    }
+
+    .leetcode-practice-head,
+    .leetcode-practice-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .leetcode-practice-head {
+      justify-content: space-between;
+    }
+
+    .leetcode-practice-head strong,
+    .leetcode-practice-head span {
+      display: block;
+    }
+
+    .leetcode-practice-head span,
+    .leetcode-practice-panel p {
+      color: var(--color-muted);
+      font-size: 0.74rem;
+    }
+
+    .leetcode-practice-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .leetcode-practice-actions select,
+    .leetcode-practice-actions button,
+    .leetcode-practice-actions a {
+      border: 1px solid var(--color-border);
+      border-radius: 0.42rem;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 0.76rem;
+      padding: 0.28rem 0.45rem;
+      text-decoration: none;
+    }
+
+    .leetcode-practice-actions button {
+      cursor: pointer;
+    }
+
+    .leetcode-practice-actions button:disabled {
+      cursor: default;
+      opacity: 0.62;
+    }
+
+    .leetcode-practice-actions a:hover,
+    .leetcode-practice-actions button:hover {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-editor-shell {
+      position: relative;
+      min-height: 13rem;
+      width: 100%;
+      border: 1px solid rgb(194 192 182 / 70%);
+      border-radius: 0.45rem;
+      background: rgb(20 20 19 / 92%);
+      overflow: hidden;
+    }
+
+    .leetcode-editor-highlight,
+    .leetcode-practice-panel textarea {
+      box-sizing: border-box;
+      min-height: 13rem;
+      width: 100%;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.55;
+      padding: 0.7rem;
+      tab-size: 2;
+      white-space: pre;
+    }
+
+    .leetcode-editor-highlight {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .leetcode-editor-highlight code {
+      color: var(--color-cream);
+    }
+
+    .leetcode-practice-panel textarea {
+      position: relative;
+      display: block;
+      border: 0;
+      background: transparent;
+      caret-color: var(--color-cream);
+      font-family: var(--font-mono);
+      color: transparent;
+      outline: 0;
+      resize: vertical;
+    }
+
+    .leetcode-practice-panel textarea::selection {
+      background: rgb(217 119 87 / 42%);
+      color: transparent;
+    }
+
+    .leetcode-editor-shell:focus-within {
+      border-color: rgb(217 119 87 / 72%);
+      box-shadow: 0 0 0 2px rgb(217 119 87 / 14%);
+    }
+
+    .leetcode-practice-panel p {
+      margin: 0;
+    }
+
+    .leetcode-submit-note [data-tone="pending"] {
+      color: #b77b00;
+    }
+
+    .leetcode-submit-note [data-tone="success"] {
+      color: #168a77;
+      font-weight: 700;
+    }
+
+    .leetcode-submit-note [data-tone="error"] {
+      color: #d64242;
+      font-weight: 700;
+    }
+
+    html.dark .leetcode-practice-panel {
+      background: rgb(30 30 28 / 42%);
+    }
+
+    html.dark .leetcode-practice-actions select,
+    html.dark .leetcode-practice-actions button,
+    html.dark .leetcode-practice-actions a {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-editor-shell {
+      border-color: #333;
+      background: rgb(8 8 7 / 92%);
+    }
+
+    .leetcode-difficulty {
+      display: inline-flex;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 0.14rem 0.42rem;
+    }
+
+    .leetcode-difficulty.is-easy {
+      color: #168a77;
+    }
+
+    .leetcode-difficulty.is-medium {
+      color: #b77b00;
+    }
+
+    .leetcode-difficulty.is-hard {
+      color: #d64242;
+    }
+
+    .leetcode-byte {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.22rem;
+    }
+
+    .leetcode-byte span {
+      display: inline-flex;
+      border: 1px solid rgb(217 119 87 / 38%);
+      border-radius: 999px;
+      color: var(--color-terracotta);
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.2;
+      padding: 0.1rem 0.3rem;
+    }
+
+    .leetcode-status {
+      flex-wrap: wrap;
+      gap: 0.15rem;
+    }
+
+    .leetcode-status button,
+    .leetcode-preview-control {
+      font-size: 0.72rem;
+      padding: 0.22rem 0.3rem;
+    }
+
+    .leetcode-preview-control {
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      line-height: 1.15;
+    }
+
+    .leetcode-popover {
+      position: absolute;
+      left: 0;
+      top: calc(100% + 0.34rem);
+      z-index: 5;
+      display: none;
+      width: min(31rem, 78vw);
+      max-height: min(30rem, 72vh);
+      overflow: auto;
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      background: var(--color-cream);
+      box-shadow: 0 18px 45px rgb(20 20 19 / 18%);
+      color: var(--color-secondary);
+      font-size: 0.84rem;
+      line-height: 1.55;
+      padding: 0.8rem;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .leetcode-tag-popover {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+
+    .leetcode-tag-popover span {
+      display: inline-flex;
+      border-radius: 999px;
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      line-height: 1.25;
+      padding: 0.08rem 0.42rem;
+    }
+
+    .leetcode-implementation-card,
+    .leetcode-implementation-meta {
+      display: block;
+    }
+
+    .leetcode-implementation-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .leetcode-implementation-meta span,
+    .leetcode-implementation-meta a {
+      display: inline-flex;
+      border: 1px solid rgb(217 119 87 / 28%);
+      border-radius: 999px;
+      color: var(--color-muted);
+      font-size: 0.7rem;
+      line-height: 1.25;
+      padding: 0.08rem 0.42rem;
+      text-decoration: none;
+    }
+
+    .leetcode-code-block {
+      max-height: 18rem;
+      overflow: auto;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.45rem;
+      background: rgb(20 20 19 / 92%);
+      color: var(--color-cream);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0.65rem;
+      white-space: pre;
+    }
+
+    .leetcode-code-block code {
+      color: #f6efe2;
+    }
+
+    .leetcode-token-keyword {
+      color: #f4a261;
+      font-weight: 650;
+    }
+
+    .leetcode-token-type {
+      color: #8bd3dd;
+    }
+
+    .leetcode-token-string {
+      color: #b8e986;
+    }
+
+    .leetcode-token-number {
+      color: #c792ea;
+    }
+
+    .leetcode-token-comment {
+      color: #8d9187;
+      font-style: italic;
+    }
+
+    .leetcode-token-directive {
+      color: #ffd166;
+    }
+
+    .leetcode-popover-lead,
+    .leetcode-popover-section,
+    .leetcode-check,
+    .leetcode-company-follow-up,
+    .leetcode-followup-source,
+    .leetcode-popover-muted {
+      display: block;
+    }
+
+    .leetcode-popover-section {
+      margin-top: 0.65rem;
+      border-top: 1px solid rgb(194 192 182 / 52%);
+      padding-top: 0.55rem;
+    }
+
+    .leetcode-popover-section > strong {
+      display: block;
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+    }
+
+    .leetcode-check,
+    .leetcode-company-follow-up {
+      margin-top: 0.45rem;
+    }
+
+    .leetcode-popover em {
+      display: block;
+      margin-bottom: 0.1rem;
+      color: var(--color-terracotta);
+      font-style: normal;
+      font-weight: 650;
+    }
+
+    .leetcode-followup-source {
+      margin-bottom: 0.18rem;
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+
+    .leetcode-followup-source b {
+      color: var(--color-charcoal);
+      margin-right: 0.45rem;
+    }
+
+    .leetcode-source-link {
+      color: var(--color-terracotta);
+      text-decoration: none;
+    }
+
+    .leetcode-source-link:hover {
+      text-decoration: underline;
+    }
+
+    .leetcode-popover-muted {
+      margin-top: 0.6rem;
+      color: var(--color-muted);
+    }
+
+    .leetcode-problem-link:hover .leetcode-popover,
+    .leetcode-problem-link:focus .leetcode-popover,
+    .leetcode-problem-link:focus-visible .leetcode-popover,
+    .leetcode-preview-control:hover .leetcode-popover,
+    .leetcode-preview-control.is-open .leetcode-popover,
+    .leetcode-preview-control:focus .leetcode-popover,
+    .leetcode-preview-control:focus-visible .leetcode-popover,
+    .leetcode-preview-control:focus-within .leetcode-popover {
+      display: block;
+    }
+
+    .leetcode-preview-control:focus-visible {
+      outline: 2px solid rgb(217 119 87 / 45%);
+      outline-offset: 2px;
+    }
+
+    html.dark .leetcode-popover {
+      border-color: #333;
+      background: var(--color-dark-surface);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-popover-section {
+      border-top-color: #333;
+    }
+
+    html.dark .leetcode-popover-section > strong,
+    html.dark .leetcode-followup-source b {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-code-block {
+      border-color: #333;
+      background: rgb(8 8 7 / 92%);
+    }
+
+    .leetcode-pagination {
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.28rem;
+      color: var(--color-secondary);
+      font-size: 0.7rem;
+    }
+
+    .leetcode-pagination-top {
+      justify-content: flex-end;
+    }
+
+    .leetcode-pagination-bottom {
+      margin-top: 0.45rem;
+    }
+
+    .leetcode-page-jump {
+      gap: 0.25rem;
+      color: var(--color-muted);
+      white-space: nowrap;
+    }
+
+    .leetcode-page-jump input {
+      width: 3.3rem;
+      min-height: 1.72rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 48%);
+      color: var(--color-charcoal);
+      font: inherit;
+      font-family: var(--font-mono);
+      padding: 0.16rem 0.28rem;
+      text-align: center;
+    }
+
+    .leetcode-page-shortcut {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-pagination button:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
+
+    html.dark .leetcode-page-jump input {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-cream);
+    }
+
+    @media (max-width: 900px) {
+      .leetcode-hero {
+        grid-template-columns: 1fr;
+        gap: 0.9rem;
+      }
+
+      .leetcode-hero > div:first-child {
+        grid-template-columns: 1fr;
+      }
+
+      .leetcode-copy {
+        font-size: 0.8rem;
+      }
+
+      .leetcode-actions {
+        justify-content: flex-start;
+      }
+
+      .leetcode-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .leetcode-toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .leetcode-filter-panel {
+        justify-content: flex-start;
+        padding-top: 0;
+      }
+
+      .leetcode-list-meta,
+      .leetcode-pagination-top {
+        justify-content: flex-start;
+      }
+
+      .leetcode-filter-cluster,
+      .leetcode-filter-group {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .leetcode-table-head {
+        display: none;
+      }
+
+      .leetcode-row {
+        grid-template-columns: 2.1rem 2.1rem 2.1rem minmax(0, 1fr);
+        row-gap: 0.25rem;
+      }
+
+      .leetcode-row > div:nth-child(4) {
+        grid-column: 4;
+        grid-row: 1;
+      }
+
+      .leetcode-row > div:nth-child(5) {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .leetcode-row > .leetcode-frequency {
+        grid-column: 2;
+        grid-row: 2;
+      }
+
+      .leetcode-row > .leetcode-byte {
+        grid-column: 3 / -1;
+        grid-row: 2;
+      }
+
+      .leetcode-row > .leetcode-status {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .leetcode-title {
+        max-width: 9ch;
+      }
+
+      .leetcode-page-size {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .leetcode-page-size input {
+        grid-column: 1 / -1;
+      }
+    }
+  </style>
+</BaseLayout>

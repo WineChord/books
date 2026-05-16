@@ -9,6 +9,8 @@
     "check:content": "node scripts/check-content.mjs",
     "check:visual-spec": "node scripts/check-visual-spec.mjs",
     "check:dist": "bash scripts/check-dist.sh",
+    "sync:leetcode-templates": "node scripts/sync-leetcode-templates.mjs",
+    "sync:leetcode-bytedance": "node scripts/sync-leetcode-bytedance.mjs",
     "verify": "npm run check:content && npm run check:visual-spec && npm run build && npm run check:dist"
   },
   "devDependencies": {
