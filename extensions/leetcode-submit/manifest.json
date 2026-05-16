@@ -6,10 +6,14 @@
   "permissions": ["cookies", "declarativeNetRequestWithHostAccess"],
   "host_permissions": [
     "https://leetcode.cn/*",
-    "https://wineandchord.com/*",
-    "https://www.wineandchord.com/*",
-    "http://localhost:*/*",
-    "http://127.0.0.1:*/*"
+    "https://wineandchord.com/books/leetcode*",
+    "https://wineandchord.com/books/zh/leetcode*",
+    "https://www.wineandchord.com/books/leetcode*",
+    "https://www.wineandchord.com/books/zh/leetcode*",
+    "http://localhost:*/books/leetcode*",
+    "http://localhost:*/books/zh/leetcode*",
+    "http://127.0.0.1:*/books/leetcode*",
+    "http://127.0.0.1:*/books/zh/leetcode*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -26,8 +30,14 @@
         "https://wineandchord.com/books/leetcode/*",
         "https://wineandchord.com/books/zh/leetcode",
         "https://wineandchord.com/books/zh/leetcode/*",
-        "http://localhost:*/*",
-        "http://127.0.0.1:*/*"
+        "http://localhost:*/books/leetcode",
+        "http://localhost:*/books/leetcode/*",
+        "http://localhost:*/books/zh/leetcode",
+        "http://localhost:*/books/zh/leetcode/*",
+        "http://127.0.0.1:*/books/leetcode",
+        "http://127.0.0.1:*/books/leetcode/*",
+        "http://127.0.0.1:*/books/zh/leetcode",
+        "http://127.0.0.1:*/books/zh/leetcode/*"
       ],
       "js": ["content-books.js"],
       "run_at": "document_start"

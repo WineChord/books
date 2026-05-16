@@ -396,6 +396,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     const extensionRequestSource = "books-leetcode-page";
     const extensionResponseSource = "books-leetcode-extension";
     const extensionProtocolVersion = 1;
+    const extensionPingTimeoutMs = 2500;
     const extensionRequestTimeoutMs = 120000;
     const pendingExtensionRequests = new Map();
     let extensionRequestSequence = 0;
@@ -1119,10 +1120,19 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       return new Promise((resolve, reject) => {
         const requestId = `leetcode-${Date.now()}-${extensionRequestSequence += 1}`;
         const timeout = window.setTimeout(() => {
+          const pending = pendingExtensionRequests.get(requestId);
           pendingExtensionRequests.delete(requestId);
-          reject(new Error("未检测到 Chrome 扩展响应，请确认已加载 extensions/leetcode-submit。"));
+          const message = pending?.ack
+            ? "扩展已连接，但力扣请求超时；请稍后查看力扣提交记录。"
+            : "未检测到 Chrome 扩展响应，请确认已加载 extensions/leetcode-submit。";
+          reject(new Error(message));
         }, timeoutMs);
-        pendingExtensionRequests.set(requestId, { reject, resolve, timeout });
+        pendingExtensionRequests.set(requestId, {
+          ack: false,
+          reject,
+          resolve,
+          timeout,
+        });
         window.postMessage(
           {
             payload,
@@ -1165,8 +1175,23 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
           : preferredLang(problem, editorDrafts[problem.titleSlug]?.lang);
       const code = textarea.value;
       if (actionButton instanceof HTMLButtonElement) actionButton.disabled = true;
-      setSubmitStatus(panel, "正在提交到力扣...", "pending");
+      setSubmitStatus(panel, "正在检测 Chrome 扩展...", "pending");
       try {
+        const loginStatus = await extensionRequest(
+          "login-status",
+          {},
+          extensionPingTimeoutMs,
+        );
+        if (!loginStatus?.ok) {
+          throw new Error(loginStatus?.error?.message || "扩展检测失败。");
+        }
+        if (!loginStatus.data?.isLoggedIn) {
+          throw new Error("Chrome 扩展已连接，但当前 Chrome 未登录 leetcode.cn。");
+        }
+        if (!loginStatus.data?.hasCsrfToken) {
+          throw new Error("Chrome 扩展已连接，但缺少 leetcode.cn CSRF cookie。");
+        }
+        setSubmitStatus(panel, "正在提交到力扣...", "pending");
         const response = await extensionRequest("submit", {
           code,
           langSlug: normalizeLangSlug(lang),
@@ -1374,6 +1399,10 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       }
       const pending = pendingExtensionRequests.get(message.requestId);
       if (!pending) return;
+      if (message.type === "ack") {
+        pending.ack = true;
+        return;
+      }
       window.clearTimeout(pending.timeout);
       pendingExtensionRequests.delete(message.requestId);
       pending.resolve(message);

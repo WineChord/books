@@ -118,34 +118,44 @@ function updateDynamicRules(options) {
 }
 
 async function ensureLeetcodeHeaderRules() {
-  await updateDynamicRules({
-    addRules: [
+  try {
+    await updateDynamicRules({
+      addRules: [
+        {
+          action: {
+            requestHeaders: [
+              {
+                header: "Origin",
+                operation: "set",
+                value: leetcodeOrigin,
+              },
+              {
+                header: "Referer",
+                operation: "set",
+                value: `${leetcodeOrigin}/`,
+              },
+            ],
+            type: "modifyHeaders",
+          },
+          condition: {
+            resourceTypes: ["xmlhttprequest"],
+            urlFilter: leetcodeUrlFilter,
+          },
+          id: leetcodeHeaderRuleId,
+          priority: 1,
+        },
+      ],
+      removeRuleIds: [leetcodeHeaderRuleId],
+    });
+  } catch (error) {
+    throw new ExtensionError(
+      "leetcode_header_rule_failed",
+      "Failed to prepare LeetCode request headers.",
       {
-        action: {
-          requestHeaders: [
-            {
-              header: "Origin",
-              operation: "set",
-              value: leetcodeOrigin,
-            },
-            {
-              header: "Referer",
-              operation: "set",
-              value: `${leetcodeOrigin}/`,
-            },
-          ],
-          type: "modifyHeaders",
-        },
-        condition: {
-          resourceTypes: ["xmlhttprequest"],
-          urlFilter: leetcodeUrlFilter,
-        },
-        id: leetcodeHeaderRuleId,
-        priority: 1,
+        message: error.message || "Unknown declarativeNetRequest error.",
       },
-    ],
-    removeRuleIds: [leetcodeHeaderRuleId],
-  });
+    );
+  }
 }
 
 async function leetcodeLoginState() {

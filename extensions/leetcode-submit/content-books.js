@@ -7,9 +7,18 @@ const allowedOriginPatterns = [
   /^http:\/\/localhost(?::\d+)?$/,
   /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
 ];
+const allowedPathPatterns = [
+  /^\/books\/leetcode\/?$/,
+  /^\/books\/zh\/leetcode\/?$/,
+];
+const allowedRequestTypes = new Set(["submit", "login-status"]);
 
 function isAllowedOrigin(origin) {
   return allowedOriginPatterns.some((pattern) => pattern.test(origin));
+}
+
+function isAllowedPath(pathname) {
+  return allowedPathPatterns.some((pattern) => pattern.test(pathname));
 }
 
 function isPageRequest(message) {
@@ -17,7 +26,20 @@ function isPageRequest(message) {
     message &&
     typeof message === "object" &&
     message.source === pageMessageSource &&
-    message.version === protocolVersion
+    message.version === protocolVersion &&
+    allowedRequestTypes.has(message.type)
+  );
+}
+
+function hasValidSubmitPayload(message) {
+  if (message.type !== "submit") return true;
+  const payload = message.payload;
+  return (
+    payload &&
+    typeof payload === "object" &&
+    typeof payload.titleSlug === "string" &&
+    typeof payload.langSlug === "string" &&
+    typeof payload.code === "string"
   );
 }
 
@@ -39,7 +61,15 @@ function postResponse(response) {
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
   if (!isAllowedOrigin(event.origin)) return;
+  if (!isAllowedPath(window.location.pathname)) return;
   if (!isPageRequest(event.data)) return;
+  if (!hasValidSubmitPayload(event.data)) return;
+
+  postResponse({
+    ok: true,
+    requestId: requestIdFrom(event.data),
+    type: "ack",
+  });
 
   chrome.runtime.sendMessage(event.data, (response) => {
     const runtimeError = chrome.runtime.lastError;
@@ -51,6 +81,19 @@ window.addEventListener("message", (event) => {
         error: {
           code: "extension_unavailable",
           message: runtimeError.message,
+        },
+      });
+      return;
+    }
+
+    if (!response) {
+      postResponse({
+        ok: false,
+        requestId: requestIdFrom(event.data),
+        type: "error",
+        error: {
+          code: "extension_empty_response",
+          message: "Extension returned no response.",
         },
       });
       return;
