@@ -11,6 +11,10 @@ import {
   leetcodeImplementationStats,
 } from "../data/leetcode-implementation-references";
 import {
+  leetcodeGeneratedImplementationReferences,
+  leetcodeGeneratedImplementationStats,
+} from "../data/leetcode-implementation-generated";
+import {
   leetcodeByteDanceProblems,
   leetcodeByteDanceStats,
 } from "../data/leetcode-bytedance";
@@ -110,8 +114,14 @@ const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => (
   ...problem,
   codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
   implementationReferences:
-    leetcodeImplementationReferences[problem.titleSlug] ?? [],
+    [
+      ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
+      ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
+    ],
 }));
+const leetcodeReferenceCount =
+  leetcodeImplementationStats.references +
+  leetcodeGeneratedImplementationStats.references;
 const totalProblemCount = leetcodeProblemsWithReferences.length;
 const shortcutRows = [
   {
@@ -336,8 +346,8 @@ const shortcutRows = [
           </span>
           <span>
             {isZh
-              ? `${leetcodeImplementationStats.references} 份公开 reference implementation 已同步`
-              : `${leetcodeImplementationStats.references} public reference implementations synced`}
+              ? `${leetcodeReferenceCount} 份公开 reference implementation 已同步`
+              : `${leetcodeReferenceCount} public reference implementations synced`}
           </span>
           <span>
             {isZh
@@ -1429,6 +1439,9 @@ const shortcutRows = [
         ...(problem.implementationReferences || []).flatMap((item) => [
           item.language,
           item.provenance,
+          item.approachTitle,
+          item.complexity,
+          item.license,
           item.sourceTitle,
         ]),
       ].join(" ").toLowerCase();
@@ -1635,6 +1648,7 @@ const shortcutRows = [
     function implementationProvenanceLabel(provenance) {
       if (provenance === "my-recent-accepted-submission") return "我的提交";
       if (provenance === "optimized") return "已优化";
+      if (provenance === "external-reference") return "授权参考";
       return "生成参考";
     }
 
@@ -1644,7 +1658,8 @@ const shortcutRows = [
 
     function implementationReferencesForDisplay(problem) {
       const references = problem.implementationReferences || [];
-      return references.filter(isCppReference);
+      const cppReferences = references.filter(isCppReference);
+      return cppReferences.length ? cppReferences : references;
     }
 
     function renderImplementationCode(reference) {
@@ -1652,18 +1667,23 @@ const shortcutRows = [
       return `
         <span class="leetcode-implementation-card">
           <span class="leetcode-implementation-meta">
+            ${reference.approachTitle ? `<span>${escapeHtml(reference.approachTitle)}</span>` : ""}
             <span>${escapeHtml(implementationProvenanceLabel(reference.provenance))}</span>
             <span>${escapeHtml(reference.language)}</span>
+            ${reference.status ? `<span>${escapeHtml(reference.status)}</span>` : ""}
             ${reference.submittedAt ? `<span>${escapeHtml(reference.submittedAt)}</span>` : ""}
             ${reference.runtime ? `<span>${escapeHtml(reference.runtime)}</span>` : ""}
             ${reference.memory ? `<span>${escapeHtml(reference.memory)}</span>` : ""}
+            ${reference.complexity ? `<span>${escapeHtml(reference.complexity)}</span>` : ""}
+            ${reference.license ? `<span>${escapeHtml(reference.license)}</span>` : ""}
+            ${reference.modified ? "<span>已按本页风格整理</span>" : ""}
             <a
               href="${escapeHtml(reference.sourceUrl)}"
               target="_blank"
               rel="noopener noreferrer"
               class="leetcode-source-link"
             >
-              提交来源
+              来源
             </a>
           </span>
           <pre class="leetcode-code-block"><code class="language-${escapeHtml(languageKey(reference.language))}">${code}</code></pre>
@@ -1675,8 +1695,11 @@ const shortcutRows = [
       const tracks = implementationTracks(problem);
       const references = implementationReferencesForDisplay(problem);
       const allReferences = problem.implementationReferences || [];
+      const cppReferences = allReferences.filter(isCppReference);
       const lead = references.length
-        ? `C++ reference implementation 已公开同步 ${references.length} 份最近通过提交；优先展示 C++ 我的提交，后续可继续补充优化版和生成参考。`
+        ? cppReferences.length
+          ? `C++ reference implementation 已同步 ${cppReferences.length} 份；我的通过提交优先，其余按公开授权题解和本页生成参考补齐。`
+          : `这题没有可用 C++ reference，展示与官方题型匹配的 ${references.map((item) => item.language).join(" / ")} 实现。`
         : allReferences.length
           ? `这题暂时只有 ${allReferences.length} 份非 C++ 历史提交；C++ reference implementation 待同步。`
         : "Reference implementation 待同步最近提交。当前先展示面试实现顺序；最终代码会标记为「我的提交」「已优化」或「生成参考」。";

@@ -221,6 +221,17 @@ const leetcodePages: PageConfig[] = [
     zhDescription: "说明力扣高频题册的数据、排序、筛选和进度契约。",
     kind: "front",
   },
+  {
+    book: "leetcode",
+    path: "leetcode/reference-implementation-sources",
+    zhPath: "zh/leetcode/reference-implementation-sources",
+    title: "Reference Implementation Sources",
+    zhTitle: "Reference Implementation 来源",
+    description:
+      "Attribution and license notes for the LeetCode reference implementation dataset.",
+    zhDescription: "力扣 reference implementation 数据集的来源归因和授权说明。",
+    kind: "reference",
+  },
 ];
 
 export const codexFromSourceBook = makeBook({

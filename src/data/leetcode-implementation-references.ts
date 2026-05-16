@@ -1,10 +1,15 @@
 export interface LeetcodeImplementationReference {
   language: string;
-  status: "Accepted";
+  status: "Accepted" | "Reference";
   provenance:
     | "my-recent-accepted-submission"
     | "optimized"
-    | "generated-reference";
+    | "generated-reference"
+    | "external-reference";
+  approachTitle?: string;
+  complexity?: string | null;
+  license?: string;
+  modified?: boolean;
   submittedAt: string | null;
   runtime: string | null;
   memory: string | null;

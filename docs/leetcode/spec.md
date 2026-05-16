@@ -176,12 +176,27 @@ implementation preview is the home for reference implementation ordering,
 final reference code, provenance state, and follow-ups. Reference
 implementation code may be committed to this repository and published through
 GitHub Pages. The current page starts with harvested recent accepted
-submissions for the highest-frequency rows, then falls back to generated
-interview guidance where a personal accepted submission has not been synced
-yet. The implementation preview prefers C++ reference code and applies local
-C++ syntax highlighting. If a problem currently has only a non-C++ historical
-submission, the page does not present that code as C++; it marks the C++
-reference implementation as pending instead.
+submissions for the highest-frequency rows, then fills the rest of the target
+set with public, attributed reference implementations. The implementation
+preview prefers C++ reference code and applies local C++ syntax highlighting.
+When a problem has multiple mainstream approaches, those implementations are
+shown in recommended order, following the source solution order where the
+source already separates Solution 1, Solution 2, and so on. Problems that are
+not C++ problems in LeetCode, such as SQL, JavaScript, Shell, or Pandas
+practice rows, show the matching official-language reference instead of
+pretending that a C++ submission exists.
+
+Reference implementation coverage is generated and audited locally. The sync
+command is `npm run sync:leetcode-implementations`; it reads public solution
+packs and writes `src/data/leetcode-implementation-generated.ts`. The audit
+command is `npm run check:leetcode-implementations`; it fails if any target row
+has no implementation reference, if a row with an official C++ template has no
+C++ reference, or if a reference still contains placeholder TODO code. Current
+sources are recorded per implementation: recent personal accepted submissions,
+Doocs LeetCode (`CC-BY-SA-4.0`), kamyu104 LeetCode-Solutions (`MIT`), and a
+small set of generated-original fallbacks for sparse LCP/LCCI gaps. Every
+external reference keeps its source URL, source title, license label, language,
+and provenance label in the hover card.
 
 ## Practice State
 
