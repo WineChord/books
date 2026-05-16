@@ -121,13 +121,19 @@ opening braces, brackets, parentheses, or Python colons; `Tab` and `Shift+Tab`
 indent and outdent the current line or selected lines; typing a closing brace,
 bracket, or parenthesis on an indentation-only line aligns it back one level.
 The editor shows a fixed line-number gutter synchronized with the textarea and
-highlight layer. Editor shortcuts match the primary LeetCode muscle memory:
-`Cmd+'` runs the official example testcases and `Cmd+Enter` performs a full
-LeetCode submit. Practice navigation is also keyboard-first: `Option+J` or
-`Option+Down` opens and focuses the next visible problem's editor, while
-`Option+K` or `Option+Up` opens and focuses the previous one. A compact
-shortcut affordance near pagination and a full shortcut block near the page
-end list every supported key.
+highlight layer. The editor defaults to an auto-growing height, starting at
+18 visible lines and growing with the code up to a bounded maximum, so normal
+practice code keeps surrounding context visible without constant internal
+scrolling. A compact toolbar toggle can switch the editor to a smaller
+14-visible-line fixed-height mode when the user wants a smaller panel;
+fixed-height mode remains resizable and scrollable. Editor shortcuts match the
+primary LeetCode muscle memory: `Cmd+'`
+runs the official example testcases and `Cmd+Enter` performs a full LeetCode
+submit. Practice navigation is also keyboard-first: `Option+J` or `Option+Down`
+opens and focuses the next visible problem's editor, while `Option+K` or
+`Option+Up` opens and focuses the previous one. A compact shortcut affordance
+near pagination and a full shortcut block near the page end list every
+supported key.
 
 Practice timing is automatic. Opening or keyboard-switching into a problem
 starts that problem's forward timer without requiring a start button. A full
@@ -149,10 +155,13 @@ the current editor code through `window.postMessage` for `run` and `submit`.
 The content script forwards that request to the extension background. The
 background owns the LeetCode cookies, queries `questionEditorData`, runs
 official examples through `interpret_solution`, posts full submissions to
-LeetCode China, polls the submission result, and returns only structured status
-to the page. Cookie values are never sent to page JavaScript or stored in the
-repo. If the extension is not installed or the user is not logged in, the page
-shows that as status and keeps the local editor usable.
+LeetCode China, and returns the LeetCode submission or interpretation id
+quickly. The page then polls the extension with short `check` requests, and
+the extension checks `/submissions/detail/{id}/check/` once per request. This
+avoids keeping a Manifest V3 message channel open while LeetCode is still
+running the job. Cookie values are never sent to page JavaScript or stored in
+the repo. If the extension is not installed or the user is not logged in, the
+page shows that as status and keeps the local editor usable.
 
 Preview controls include statement, approach, and implementation. The
 implementation preview is the home for reference implementation ordering,

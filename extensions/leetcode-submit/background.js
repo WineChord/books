@@ -12,18 +12,14 @@ const submissionCheckPathSuffix = "/check/";
 const csrfCookieName = "csrftoken";
 const sessionCookieName = "LEETCODE_SESSION";
 const requestTimeoutMs = 15000;
-const pollInitialDelayMs = 1000;
-const pollIntervalMs = 1500;
-const maxPollAttempts = 40;
-const maxRunPollAttempts = 12;
 const jsonContentType = "application/json";
 const questionEditorOperationName = "questionEditorData";
+const checkRequestType = "check";
 const runRequestType = "run";
 const submitRequestType = "submit";
 const loginStatusRequestType = "login-status";
 const pendingState = "PENDING";
 const startedState = "STARTED";
-const successState = "SUCCESS";
 
 const questionEditorQuery = `
 query questionEditorData($titleSlug: String!) {
@@ -49,12 +45,6 @@ class ExtensionError extends Error {
     this.code = code;
     this.details = details;
   }
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }
 
 function isPageRequest(message) {
@@ -301,6 +291,19 @@ function normalizedCodeInput(request) {
   return { code, langSlug, titleSlug };
 }
 
+function normalizedCheckInput(request) {
+  const payload = request.payload && typeof request.payload === "object"
+    ? request.payload
+    : request;
+  const submissionId = String(payload.submissionId || "").trim();
+
+  if (!submissionId) {
+    throw new ExtensionError("invalid_request", "Missing submissionId.");
+  }
+
+  return { submissionId };
+}
+
 function submitUrl(slug) {
   return `${leetcodeOrigin}/problems/${encodeURIComponent(slug)}/` +
     submitPathSuffix;
@@ -383,7 +386,8 @@ async function createSubmission(input, question, csrfToken) {
 
 function isFinishedSubmission(payload) {
   const state = payload?.state;
-  return state && state !== pendingState && state !== startedState;
+  if (state) return state !== pendingState && state !== startedState;
+  return Boolean(payload?.status_msg || payload?.status_code);
 }
 
 function normalizeSubmission(payload, submissionId) {
@@ -406,33 +410,12 @@ function normalizeSubmission(payload, submissionId) {
   };
 }
 
-async function pollSubmission(
-  submissionId,
-  csrfToken,
-  maxAttempts = maxPollAttempts,
-) {
-  await sleep(pollInitialDelayMs);
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const payload = await fetchJson(submissionCheckUrl(submissionId), {
-      headers: headersFor("", csrfToken),
-      method: "GET",
-    });
-    const submission = normalizeSubmission(payload, submissionId);
-    if (submission.finished || submission.state === successState) {
-      return {
-        ...submission,
-        pollAttempts: attempt,
-      };
-    }
-    await sleep(pollIntervalMs);
-  }
-
-  throw new ExtensionError(
-    "leetcode_submission_timeout",
-    "Timed out while waiting for LeetCode submission result.",
-    { submissionId },
-  );
+async function checkSubmissionOnce(submissionId, csrfToken) {
+  const payload = await fetchJson(submissionCheckUrl(submissionId), {
+    headers: headersFor("", csrfToken),
+    method: "GET",
+  });
+  return normalizeSubmission(payload, submissionId);
 }
 
 async function handleLoginStatus(request) {
@@ -456,11 +439,6 @@ async function handleRun(request) {
     loginState.csrfToken,
   );
   const run = await createRun(input, question, loginState.csrfToken);
-  const result = await pollSubmission(
-    run.submissionId,
-    loginState.csrfToken,
-    maxRunPollAttempts,
-  );
 
   return responseFor(request, {
     ok: true,
@@ -473,7 +451,7 @@ async function handleRun(request) {
         titleSlug: question.titleSlug,
       },
       run: run.payload,
-      result,
+      submissionId: run.submissionId,
     },
   });
 }
@@ -491,10 +469,6 @@ async function handleSubmit(request) {
     question,
     loginState.csrfToken,
   );
-  const result = await pollSubmission(
-    submission.submissionId,
-    loginState.csrfToken,
-  );
 
   return responseFor(request, {
     ok: true,
@@ -507,7 +481,26 @@ async function handleSubmit(request) {
         titleSlug: question.titleSlug,
       },
       submit: submission.payload,
+      submissionId: submission.submissionId,
+    },
+  });
+}
+
+async function handleCheck(request) {
+  const input = normalizedCheckInput(request);
+  await ensureLeetcodeHeaderRules();
+  const loginState = await requireLoginState();
+  const result = await checkSubmissionOnce(
+    input.submissionId,
+    loginState.csrfToken,
+  );
+
+  return responseFor(request, {
+    ok: true,
+    type: checkRequestType,
+    data: {
       result,
+      submissionId: input.submissionId,
     },
   });
 }
@@ -519,6 +512,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     try {
       if (request.type === loginStatusRequestType) {
         sendResponse(await handleLoginStatus(request));
+        return;
+      }
+      if (request.type === checkRequestType) {
+        sendResponse(await handleCheck(request));
         return;
       }
       if (request.type === runRequestType) {

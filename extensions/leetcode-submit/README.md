@@ -37,9 +37,10 @@ window.postMessage(
 );
 ```
 
-`run` executes the official example testcases returned by LeetCode's
-`questionEditorData.exampleTestcases`. `submit` performs a full LeetCode
-submission. Both request types use the same payload shape.
+`run` creates an official-example run with the testcases returned by
+LeetCode's `questionEditorData.exampleTestcases`. `submit` creates a full
+LeetCode submission. Both request types use the same payload shape and return a
+LeetCode id quickly. The page then polls `check` with that id.
 
 The content script accepts messages only from the current page window on
 `wineandchord.com`, `www.wineandchord.com`, `localhost`, or `127.0.0.1`.
@@ -64,6 +65,37 @@ The extension responds back to the page with the same `requestId`.
     run: {
       interpret_id: 123456789,
     },
+    submissionId: 123456789
+  }
+}
+```
+
+The page checks the result with a separate short request.
+
+```js
+window.postMessage(
+  {
+    source: "books-leetcode-page",
+    version: 1,
+    type: "check",
+    requestId: "client-generated-id",
+    payload: {
+      submissionId: 123456789,
+    },
+  },
+  window.location.origin,
+);
+```
+
+```js
+{
+  source: "books-leetcode-extension",
+  version: 1,
+  requestId: "client-generated-id",
+  ok: true,
+  type: "check",
+  data: {
+    submissionId: 123456789,
     result: {
       submissionId: 123456789,
       state: "SUCCESS",
@@ -79,7 +111,6 @@ The extension responds back to the page with the same `requestId`.
       output: "",
       expectedOutput: "",
       finished: true,
-      pollAttempts: 2,
       raw: {}
     }
   }
@@ -143,9 +174,10 @@ For a run or submit request, the background service worker:
    `https://leetcode.cn/problems/{titleSlug}/interpret_solution/`.
 5. For `submit`, posts `{ lang, question_id, typed_code }` to
    `https://leetcode.cn/problems/{titleSlug}/submit/`.
-6. Polls
-   `https://leetcode.cn/submissions/detail/{submissionId}/check/`.
-7. Returns a structured result or structured error to the page.
+6. Returns the LeetCode interpretation or submission id to the page.
+7. For later `check` requests, reads
+   `https://leetcode.cn/submissions/detail/{submissionId}/check/` once and
+   returns a structured result or structured error to the page.
 
 Cookie values are not logged, hardcoded, sent to the page, or stored by this
 extension.

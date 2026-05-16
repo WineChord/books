@@ -444,6 +444,7 @@ const shortcutRows = [
     const progressKey = "leetcode-book-progress-v1";
     const clickedKey = "leetcode-book-clicked-v1";
     const editorKey = "leetcode-book-editor-v1";
+    const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
     const timingKey = "leetcode-book-timing-v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
@@ -486,8 +487,15 @@ const shortcutRows = [
     const extensionResponseSource = "books-leetcode-extension";
     const extensionProtocolVersion = 1;
     const extensionPingTimeoutMs = 2500;
-    const extensionRunTimeoutMs = 45000;
-    const extensionRequestTimeoutMs = 120000;
+    const extensionCheckTimeoutMs = 20000;
+    const extensionRequestTimeoutMs = 30000;
+    const submissionPollInitialDelayMs = 800;
+    const submissionPollIntervalMs = 1500;
+    const runPollAttempts = 24;
+    const submitPollAttempts = 80;
+    const editorMinVisibleLines = 18;
+    const editorFixedVisibleLines = 14;
+    const editorMaxAutoVisibleLines = 56;
     const editorIndentUnit = "    ";
     const editorClosingTokens = new Set(["}", "]", ")"]);
     const pendingExtensionRequests = new Map();
@@ -505,6 +513,7 @@ const shortcutRows = [
     let progress = readJson(progressKey, {});
     let clicked = readJson(clickedKey, {});
     let editorDrafts = readJson(editorKey, {});
+    let editorAutoGrow = localStorage.getItem(editorHeightModeKey) !== "fixed";
     let timing = readJson(timingKey, {});
     if (!timing || typeof timing !== "object") timing = {};
     timing.problems = timing.problems && typeof timing.problems === "object"
@@ -1459,10 +1468,51 @@ const shortcutRows = [
       return Array.from({ length: lineCount }, (_, index) => String(index + 1)).join("\n");
     }
 
+    function editorLineCount(textarea) {
+      return Math.max(1, String(textarea.value || "").split("\n").length);
+    }
+
+    function editorLineHeight(textarea) {
+      const style = window.getComputedStyle(textarea);
+      const lineHeight = Number.parseFloat(style.lineHeight);
+      if (Number.isFinite(lineHeight)) return lineHeight;
+      const fontSize = Number.parseFloat(style.fontSize);
+      return Number.isFinite(fontSize) ? fontSize * 1.55 : 20;
+    }
+
+    function editorVerticalPadding(textarea) {
+      const style = window.getComputedStyle(textarea);
+      const top = Number.parseFloat(style.paddingTop);
+      const bottom = Number.parseFloat(style.paddingBottom);
+      return (Number.isFinite(top) ? top : 0) + (Number.isFinite(bottom) ? bottom : 0);
+    }
+
+    function syncEditorHeight(panel, textarea) {
+      const shell = panel?.querySelector(".leetcode-editor-shell");
+      if (!(shell instanceof HTMLElement)) return;
+      const visibleLines = editorAutoGrow
+        ? Math.min(
+            editorMaxAutoVisibleLines,
+            Math.max(editorMinVisibleLines, editorLineCount(textarea) + 1),
+          )
+        : editorFixedVisibleLines;
+      const height = Math.ceil(
+        visibleLines * editorLineHeight(textarea) + editorVerticalPadding(textarea),
+      );
+      shell.style.setProperty("--leetcode-editor-height", `${height}px`);
+      if (editorAutoGrow) shell.style.height = "";
+      shell.classList.toggle("is-fixed-height", !editorAutoGrow);
+      textarea.style.overflowY =
+        editorAutoGrow && editorLineCount(textarea) < editorMaxAutoVisibleLines
+          ? "hidden"
+          : "auto";
+    }
+
     function syncEditorHighlight(panel, textarea, lang) {
       const highlight = panel?.querySelector(".leetcode-editor-highlight");
       const code = highlight?.querySelector("code");
       const lineNumbers = panel?.querySelector(".leetcode-editor-lines");
+      syncEditorHeight(panel, textarea);
       if (code) {
         code.innerHTML = editorHighlightHtml(textarea.value, lang);
       }
@@ -1474,6 +1524,15 @@ const shortcutRows = [
         highlight.scrollTop = textarea.scrollTop;
         highlight.scrollLeft = textarea.scrollLeft;
       }
+    }
+
+    function syncRenderedEditors() {
+      list?.querySelectorAll("[data-editor-code]").forEach((textarea) => {
+        if (!(textarea instanceof HTMLTextAreaElement)) return;
+        const context = editorContextFor(textarea);
+        if (!context) return;
+        syncEditorHighlight(context.panel, textarea, context.lang);
+      });
     }
 
     function editorContextFor(textarea) {
@@ -1768,6 +1827,12 @@ const shortcutRows = [
       status.dataset.tone = tone;
     }
 
+    function delay(ms) {
+      return new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+      });
+    }
+
     function extensionRequest(type, payload, timeoutMs = extensionRequestTimeoutMs) {
       return new Promise((resolve, reject) => {
         const requestId = `leetcode-${Date.now()}-${extensionRequestSequence += 1}`;
@@ -1835,20 +1900,59 @@ const shortcutRows = [
       return `${status}${tests}${runtime}${memory}`.trim();
     }
 
+    function resultFinished(result) {
+      const state = result?.state;
+      if (state) return state !== "PENDING" && state !== "STARTED";
+      return Boolean(result?.finished || result?.statusMessage || result?.statusCode);
+    }
+
+    function submissionIdFrom(response, kind) {
+      return (
+        response?.data?.submissionId ||
+        response?.data?.[kind]?.interpret_id ||
+        response?.data?.[kind]?.submission_id ||
+        ""
+      );
+    }
+
+    async function pollLeetcodeResult(panel, submissionId, label, maxAttempts) {
+      await delay(submissionPollInitialDelayMs);
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        setSubmitStatus(panel, `${label}，等待结果 ${attempt}/${maxAttempts}...`, "pending");
+        const response = await extensionRequest(
+          "check",
+          { submissionId },
+          extensionCheckTimeoutMs,
+        );
+        if (!response?.ok) {
+          throw new Error(response?.error?.message || "查询结果失败。");
+        }
+        const result = response.data?.result || {};
+        if (resultFinished(result)) return result;
+        await delay(submissionPollIntervalMs);
+      }
+      throw new Error(`${label}超时；请稍后查看力扣提交记录。`);
+    }
+
     async function runLeetcode(panel, actionButton, problem, textarea) {
       setActionBusy(actionButton, true);
       try {
         await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在运行官方示例...", "pending");
-        const response = await extensionRequest(
-          "run",
-          editorPayload(problem, textarea),
-          extensionRunTimeoutMs,
-        );
+        const response = await extensionRequest("run", editorPayload(problem, textarea));
         if (!response?.ok) {
           throw new Error(response?.error?.message || "运行失败。");
         }
-        const result = response.data?.result || {};
+        const submissionId = submissionIdFrom(response, "run");
+        if (!submissionId) {
+          throw new Error("力扣没有返回样例运行 ID。");
+        }
+        const result = await pollLeetcodeResult(
+          panel,
+          submissionId,
+          "正在运行官方示例",
+          runPollAttempts,
+        );
         const summary = submissionSummary(result);
         if (submissionAccepted(result)) {
           setSubmitStatus(panel, `样例通过 ${summary}`, "success");
@@ -1871,7 +1975,16 @@ const shortcutRows = [
         if (!response?.ok) {
           throw new Error(response?.error?.message || "提交失败。");
         }
-        const result = response.data?.result || {};
+        const submissionId = submissionIdFrom(response, "submit");
+        if (!submissionId) {
+          throw new Error("力扣没有返回提交 ID。");
+        }
+        const result = await pollLeetcodeResult(
+          panel,
+          submissionId,
+          "正在提交到力扣",
+          submitPollAttempts,
+        );
         const summary = submissionSummary(result);
         if (submissionAccepted(result)) {
           const timingResult = recordAcceptedTiming(problem.titleSlug);
@@ -1930,6 +2043,7 @@ const shortcutRows = [
               </select>
               <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}">复制</button>
               <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}">重置</button>
+              <button type="button" data-editor-action="height-mode" data-slug="${escapeHtml(problem.titleSlug)}">高度：${editorAutoGrow ? "自适应" : "固定"}</button>
               <button type="button" data-editor-action="run-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="Cmd+'">运行样例</button>
               <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="Cmd+Enter">提交力扣</button>
               <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer">打开力扣</a>
@@ -2021,6 +2135,7 @@ const shortcutRows = [
         resultCount.textContent = `${items.length} 道题`;
       }
       syncPagination();
+      syncRenderedEditors();
       syncActivePracticeTimerAfterRender();
     }
 
@@ -2138,6 +2253,16 @@ const shortcutRows = [
             editorDrafts[slug] = { lang, code: defaultTemplate(problem, lang) };
             writeState();
             render();
+          }
+          if (actionButton.dataset.editorAction === "height-mode") {
+            editorAutoGrow = !editorAutoGrow;
+            localStorage.setItem(editorHeightModeKey, editorAutoGrow ? "auto" : "fixed");
+            list
+              ?.querySelectorAll('[data-editor-action="height-mode"]')
+              .forEach((button) => {
+                button.textContent = `高度：${editorAutoGrow ? "自适应" : "固定"}`;
+              });
+            syncRenderedEditors();
           }
           if (actionButton.dataset.editorAction === "run-leetcode") {
             const problem = problems.find((item) => item.titleSlug === slug);
@@ -2991,20 +3116,24 @@ const shortcutRows = [
 
     .leetcode-editor-shell {
       --leetcode-editor-gutter: 3.25rem;
+      --leetcode-editor-height: 18rem;
       position: relative;
-      min-height: 13rem;
+      height: var(--leetcode-editor-height);
+      min-height: var(--leetcode-editor-height);
       width: 100%;
       border: 1px solid rgb(194 192 182 / 70%);
       border-radius: 0.45rem;
       background: rgb(20 20 19 / 92%);
       overflow: hidden;
+      resize: none;
     }
 
     .leetcode-editor-highlight,
     .leetcode-editor-lines,
     .leetcode-practice-panel textarea {
       box-sizing: border-box;
-      min-height: 13rem;
+      height: 100%;
+      min-height: 100%;
       font-family: var(--font-mono);
       font-size: 0.82rem;
       line-height: 1.55;
@@ -3051,9 +3180,13 @@ const shortcutRows = [
       margin-left: var(--leetcode-editor-gutter);
       outline: 0;
       padding: 0.7rem;
-      resize: vertical;
+      resize: none;
       width: calc(100% - var(--leetcode-editor-gutter));
       z-index: 2;
+    }
+
+    .leetcode-editor-shell.is-fixed-height {
+      resize: vertical;
     }
 
     .leetcode-practice-panel textarea::selection {
