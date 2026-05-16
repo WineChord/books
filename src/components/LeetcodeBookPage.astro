@@ -11,6 +11,10 @@ import {
   leetcodeImplementationStats,
 } from "../data/leetcode-implementation-references";
 import {
+  leetcodeByteDanceProblems,
+  leetcodeByteDanceStats,
+} from "../data/leetcode-bytedance";
+import {
   leetcodeDataSource,
   leetcodeDataUpdatedAt,
   leetcodeDuplicateAudit,
@@ -30,15 +34,85 @@ const isZh = lang === "zh";
 const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
 const title = isZh ? book.zhTitle : book.title;
 const description = isZh ? book.zhDescription : book.description;
-const leetcodeTargetLimit = 1888;
-const syncedTopLimit = leetcodeStats.top888;
+const leetcodeTargetLimit = 888;
 const syncedDedupedLimit = leetcodeStats.dedupedTop888;
-const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
+const byteDanceBySlug = new Map(
+  leetcodeByteDanceProblems.map((problem) => [problem.titleSlug, problem]),
+);
+
+function mergedByteDanceBuckets(problem) {
+  const entry = byteDanceBySlug.get(problem.titleSlug);
+  if (entry) return entry.buckets;
+  const periods = problem.bytedancePeriods || {};
+  return {
+    all: problem.bytedance ? problem.frequencyRank : null,
+    thirtyDays: null,
+    threeMonths: periods.past3Months,
+    sixMonths: periods.past6Months,
+    moreThanSixMonths: periods.before6Months,
+  };
+}
+
+function frequencyLabel(value) {
+  if (value === null || value === undefined) return "字节补充";
+  return `${Number(value).toFixed(1)}%`;
+}
+
+const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
+  const entry = byteDanceBySlug.get(problem.titleSlug);
+  return {
+    ...problem,
+    bytedance: Boolean(entry || problem.bytedance),
+    bytedanceBuckets: mergedByteDanceBuckets(problem),
+    bytedanceRank: entry?.bytedanceRank ?? null,
+    bytedanceSource: entry?.source ?? (problem.bytedance ? "legacyTop888" : null),
+    bytedanceVerified: Boolean(entry) || problem.bytedanceVerified,
+  };
+});
+const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
+const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
+  .filter((problem) => !existingSlugs.has(problem.titleSlug))
+  .map((problem, index) => ({
+    topRank: null,
+    frequencyRank: leetcodeTargetLimit + index + 1,
+    hotRank: null,
+    frontendId: problem.frontendId,
+    titleCn: problem.titleCn,
+    titleSlug: problem.titleSlug,
+    url: problem.url,
+    difficulty: problem.difficulty,
+    acRate: problem.acRate,
+    frequency: frequencyLabel(problem.frequency),
+    bytedance: true,
+    bytedanceVerified: problem.source === "companyFavorite",
+    bytedancePeriods: {
+      past3Months: null,
+      past6Months: null,
+      before6Months: null,
+    },
+    bytedanceBuckets: problem.buckets,
+    bytedanceRank: problem.bytedanceRank,
+    bytedanceSource: problem.source,
+    hot100: false,
+    paidOnly: problem.paidOnly,
+    tags: problem.tags,
+    statementPreview:
+      "字节跳动企业题库补充题。题面预览需要后续同步，当前可点击题目链接打开力扣原题。",
+    approachPreview:
+      "按字节企业题库频率补充展示；先用官方模板练习，后续再同步题面、思路和 reference implementation。",
+    followUps: [],
+  }));
+const mergedLeetcodeProblems = [
+  ...leetcodeProblemsWithByteDance,
+  ...leetcodeByteDanceSupplements,
+];
+const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => ({
   ...problem,
   codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
   implementationReferences:
     leetcodeImplementationReferences[problem.titleSlug] ?? [],
 }));
+const totalProblemCount = leetcodeProblemsWithReferences.length;
 ---
 
 <BaseLayout
@@ -63,8 +137,8 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
         <p class="leetcode-copy">
           {isZh
-            ? "目标覆盖 Top1888；当前展示已核实的 Top888 数据，合并 Hot100、重复题核对、字节跳动时间段、题意/思路/实现预览和本地状态。"
-            : "Targets Top 1888; currently shows verified Top 888 data with Hot 100 flags, duplicate audit, ByteDance buckets, previews, implementation references, and local state."}
+            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、题意/思路/实现预览、本地状态和扩展提交。"
+            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance company lists, previews, local state, and extension submit."}
         </p>
         <div class="leetcode-actions">
           <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
@@ -90,11 +164,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
       <div>
         <span>{leetcodeTargetLimit}</span>
-        <p>{isZh ? "Top1888 目标" : "Top 1888 target"}</p>
-      </div>
-      <div>
-        <span>{syncedTopLimit}</span>
-        <p>{isZh ? "已同步" : "Synced"}</p>
+        <p>{isZh ? "Top888 目标" : "Top 888 target"}</p>
       </div>
       <div>
         <span>{syncedDedupedLimit}</span>
@@ -105,12 +175,16 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         <p>Hot 100</p>
       </div>
       <div>
+        <span>{leetcodeStats.hot100OutsideTop888}</span>
+        <p>{isZh ? "Hot100 补充" : "Hot 100 extras"}</p>
+      </div>
+      <div>
         <span>{leetcodeStats.duplicatesRemoved}</span>
         <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
       </div>
       <div>
-        <span>{leetcodeStats.bytedance}</span>
-        <p>{isZh ? "字节出现" : "ByteDance"}</p>
+        <span>{leetcodeByteDanceStats.syncedAll}/{leetcodeByteDanceStats.targetAll}</span>
+        <p>{isZh ? "字节题库" : "ByteDance"}</p>
       </div>
     </section>
 
@@ -133,10 +207,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "字节" : "ByteDance"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
-              <button type="button" data-filter="bytedance">{isZh ? "全部" : "Any"}</button>
-              <button type="button" data-filter="bytedancePast3Months">{isZh ? "近3月" : "3m"}</button>
-              <button type="button" data-filter="bytedancePast6Months">{isZh ? "3-6月" : "3-6m"}</button>
-              <button type="button" data-filter="bytedanceBefore6Months">{isZh ? "6月前" : "Old"}</button>
+              <button type="button" data-filter="bytedanceAll">{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="bytedanceThirtyDays">{isZh ? "近30天" : "30d"}</button>
+              <button type="button" data-filter="bytedanceThreeMonths">{isZh ? "近3月" : "3m"}</button>
+              <button type="button" data-filter="bytedanceSixMonths">{isZh ? "近6月" : "6m"}</button>
+              <button type="button" data-filter="bytedanceMoreThanSixMonths">{isZh ? "6月前" : "Old"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
@@ -162,7 +237,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
             id="leetcode-custom-size"
             type="number"
             min="1"
-            max={leetcodeStats.total}
+            max={totalProblemCount}
             inputmode="numeric"
             placeholder="32"
             hidden
@@ -176,7 +251,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
           <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
           <span>
             {isZh
-              ? "力扣中国区按出题频率排序；字节数据来自可核实企业题库/companyTagStatsV2；公司追问来自公开 Discuss。"
+              ? `力扣中国区按出题频率排序；字节题库来自 company favorite 同步，当前状态：${leetcodeByteDanceStats.sourceStatus}。`
               : leetcodeDataSource}
           </span>
           <span>
@@ -247,6 +322,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         <div class="leetcode-table-head" aria-hidden="true">
           <span>Top</span>
           <span>Hot</span>
+          <span>BD</span>
           <span>{isZh ? "题目" : "Problem"}</span>
           <span>{isZh ? "难度" : "Level"}</span>
           <span>{isZh ? "频率" : "Freq"}</span>
@@ -317,6 +393,12 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       query: "",
       expandedSlug: "",
     };
+    const extensionRequestSource = "books-leetcode-page";
+    const extensionResponseSource = "books-leetcode-extension";
+    const extensionProtocolVersion = 1;
+    const extensionRequestTimeoutMs = 120000;
+    const pendingExtensionRequests = new Map();
+    let extensionRequestSequence = 0;
 
     function readJson(key, fallback) {
       try {
@@ -595,6 +677,28 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       return progress[slug] || { done: false, review: false, mastered: false };
     }
 
+    function byteDanceBuckets(problem) {
+      const buckets = problem.bytedanceBuckets || {};
+      const periods = problem.bytedancePeriods || {};
+      return {
+        all: buckets.all ?? (problem.bytedance ? problem.bytedanceRank : null),
+        thirtyDays: buckets.thirtyDays ?? null,
+        threeMonths: buckets.threeMonths ?? periods.past3Months ?? null,
+        sixMonths: buckets.sixMonths ?? periods.past6Months ?? null,
+        moreThanSixMonths:
+          buckets.moreThanSixMonths ?? periods.before6Months ?? null,
+      };
+    }
+
+    function byteDanceRankFor(problem, filter = "bytedanceAll") {
+      const buckets = byteDanceBuckets(problem);
+      if (filter === "bytedanceThirtyDays") return buckets.thirtyDays;
+      if (filter === "bytedanceThreeMonths") return buckets.threeMonths;
+      if (filter === "bytedanceSixMonths") return buckets.sixMonths;
+      if (filter === "bytedanceMoreThanSixMonths") return buckets.moreThanSixMonths;
+      return problem.bytedanceRank ?? buckets.all;
+    }
+
     function pageSize() {
       if (pageSizeSelect?.value === "custom") {
         const custom = Number(customSizeInput?.value || 20);
@@ -654,13 +758,14 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
 
     function matchesFilter(problem) {
       const status = rowState(problem.titleSlug);
-      const byteDance = problem.bytedancePeriods || {};
+      const byteDance = byteDanceBuckets(problem);
       if (state.filter === "hot100" && !problem.hot100) return false;
       if (state.filter === "companyFollowUps" && !problem.companyFollowUps?.length) return false;
-      if (state.filter === "bytedance" && !problem.bytedance) return false;
-      if (state.filter === "bytedancePast3Months" && !byteDance.past3Months) return false;
-      if (state.filter === "bytedancePast6Months" && !byteDance.past6Months) return false;
-      if (state.filter === "bytedanceBefore6Months" && !byteDance.before6Months) return false;
+      if (state.filter === "bytedanceAll" && !byteDance.all) return false;
+      if (state.filter === "bytedanceThirtyDays" && !byteDance.thirtyDays) return false;
+      if (state.filter === "bytedanceThreeMonths" && !byteDance.threeMonths) return false;
+      if (state.filter === "bytedanceSixMonths" && !byteDance.sixMonths) return false;
+      if (state.filter === "bytedanceMoreThanSixMonths" && !byteDance.moreThanSixMonths) return false;
       if (state.filter === "unsolved" && status.done) return false;
       if (state.filter === "review" && !status.review) return false;
       if (state.filter === "unmastered" && status.mastered) return false;
@@ -671,6 +776,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
         problem.titleSlug,
         problem.difficulty,
         problem.bytedance ? "字节跳动 bytedance" : "",
+        problem.bytedanceRank ? `bd ${problem.bytedanceRank}` : "",
+        byteDance.thirtyDays ? `字节近30天 ${byteDance.thirtyDays}` : "",
+        byteDance.threeMonths ? `字节近3月 ${byteDance.threeMonths}` : "",
+        byteDance.sixMonths ? `字节近6月 ${byteDance.sixMonths}` : "",
+        byteDance.moreThanSixMonths ? `字节6月前 ${byteDance.moreThanSixMonths}` : "",
         ...problem.tags.map((tag) => tag.name),
         ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
         ...(problem.companyFollowUps || []).flatMap((item) => [
@@ -693,6 +803,13 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       if (state.filter === "hot100") {
         return filtered.sort((a, b) => (a.hotRank || 999) - (b.hotRank || 999));
       }
+      if (state.filter.startsWith("bytedance")) {
+        return filtered.sort((a, b) => {
+          const left = byteDanceRankFor(a, state.filter) || Number.MAX_SAFE_INTEGER;
+          const right = byteDanceRankFor(b, state.filter) || Number.MAX_SAFE_INTEGER;
+          return left - right || (a.frequencyRank || 999999) - (b.frequencyRank || 999999);
+        });
+      }
       return filtered;
     }
 
@@ -711,28 +828,41 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
 
     function renderByteDance(problem) {
       if (!problem.bytedance) return "";
-      const periods = problem.bytedancePeriods || {};
+      const buckets = byteDanceBuckets(problem);
       const labels = [
-        ["近3月", periods.past3Months],
-        ["3-6月", periods.past6Months],
-        ["6月前", periods.before6Months],
+        ["全量", buckets.all],
+        ["近30天", buckets.thirtyDays],
+        ["近3月", buckets.threeMonths],
+        ["近6月", buckets.sixMonths],
+        ["6月前", buckets.moreThanSixMonths],
       ]
         .filter(([, count]) => count)
-        .map(([label, count]) => `${label} ${count}`)
+        .map(([label, count]) => `${label} #${count}`)
         .join(" / ");
-      return `<span title="${escapeHtml(labels || "字节跳动")}">是</span>`;
+      const shortLabels = [
+        ["30", buckets.thirtyDays],
+        ["3", buckets.threeMonths],
+        ["6", buckets.sixMonths],
+        ["旧", buckets.moreThanSixMonths],
+      ]
+        .filter(([, count]) => count)
+        .map(([label]) => label)
+        .join("/");
+      return `<span title="${escapeHtml(labels || "字节跳动")}">${escapeHtml(shortLabels || "全")}</span>`;
     }
 
     function renderByteDanceMeta(problem) {
-      const periods = problem.bytedancePeriods || {};
+      const buckets = byteDanceBuckets(problem);
       const chips = [
-        ["字节近3月", periods.past3Months],
-        ["3-6月", periods.past6Months],
-        ["6月前", periods.before6Months],
+        ["字节全量", buckets.all],
+        ["近30天", buckets.thirtyDays],
+        ["近3月", buckets.threeMonths],
+        ["近6月", buckets.sixMonths],
+        ["6月前", buckets.moreThanSixMonths],
       ].filter(([, count]) => count);
       if (!chips.length) return "";
       return chips
-        .map(([label, count]) => `<span>${escapeHtml(label)} ${escapeHtml(count)}</span>`)
+        .map(([label, count]) => `<span>${escapeHtml(label)} #${escapeHtml(count)}</span>`)
         .join("");
     }
 
@@ -978,6 +1108,92 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       }
     }
 
+    function setSubmitStatus(panel, message, tone = "") {
+      const status = panel?.querySelector("[data-submit-status]");
+      if (!(status instanceof HTMLElement)) return;
+      status.textContent = message;
+      status.dataset.tone = tone;
+    }
+
+    function extensionRequest(type, payload, timeoutMs = extensionRequestTimeoutMs) {
+      return new Promise((resolve, reject) => {
+        const requestId = `leetcode-${Date.now()}-${extensionRequestSequence += 1}`;
+        const timeout = window.setTimeout(() => {
+          pendingExtensionRequests.delete(requestId);
+          reject(new Error("未检测到 Chrome 扩展响应，请确认已加载 extensions/leetcode-submit。"));
+        }, timeoutMs);
+        pendingExtensionRequests.set(requestId, { reject, resolve, timeout });
+        window.postMessage(
+          {
+            payload,
+            requestId,
+            source: extensionRequestSource,
+            type,
+            version: extensionProtocolVersion,
+          },
+          window.location.origin,
+        );
+      });
+    }
+
+    function submissionAccepted(result) {
+      return (
+        result?.statusMessage === "Accepted" ||
+        result?.status_msg === "Accepted" ||
+        (result?.runSuccess &&
+          result?.totalCorrect !== null &&
+          result?.totalCorrect === result?.totalTestcases)
+      );
+    }
+
+    function submissionSummary(result) {
+      const status = result?.statusMessage || result?.status_msg || result?.state || "已返回";
+      const tests =
+        result?.totalCorrect !== null && result?.totalTestcases !== null
+          ? ` ${result.totalCorrect}/${result.totalTestcases}`
+          : "";
+      const runtime = result?.runtime ? ` ${result.runtime}` : "";
+      const memory = result?.memory ? ` ${result.memory}` : "";
+      return `${status}${tests}${runtime}${memory}`.trim();
+    }
+
+    async function submitLeetcode(panel, actionButton, problem, textarea) {
+      const select = panel?.querySelector("[data-editor-lang]");
+      const lang =
+        select instanceof HTMLSelectElement
+          ? preferredLang(problem, select.value)
+          : preferredLang(problem, editorDrafts[problem.titleSlug]?.lang);
+      const code = textarea.value;
+      if (actionButton instanceof HTMLButtonElement) actionButton.disabled = true;
+      setSubmitStatus(panel, "正在提交到力扣...", "pending");
+      try {
+        const response = await extensionRequest("submit", {
+          code,
+          langSlug: normalizeLangSlug(lang),
+          titleSlug: problem.titleSlug,
+        });
+        if (!response?.ok) {
+          throw new Error(response?.error?.message || "提交失败。");
+        }
+        const result = response.data?.result || {};
+        const summary = submissionSummary(result);
+        if (submissionAccepted(result)) {
+          progress[problem.titleSlug] = {
+            ...rowState(problem.titleSlug),
+            done: true,
+          };
+          writeState();
+          setSubmitStatus(panel, `Accepted ${summary}`, "success");
+          return;
+        }
+        setSubmitStatus(panel, summary, "error");
+      } catch (error) {
+        setSubmitStatus(panel, error.message || "提交失败。", "error");
+      } finally {
+        if (actionButton instanceof HTMLButtonElement) actionButton.disabled = false;
+      }
+    }
+
     function renderPracticePanel(problem) {
       const draft = draftFor(problem);
       const lang = preferredLang(problem, draft.lang);
@@ -1007,6 +1223,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
               </select>
               <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}">复制</button>
               <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}">重置</button>
+              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}">提交力扣</button>
               <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer">打开力扣</a>
             </div>
           </div>
@@ -1019,9 +1236,8 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
               aria-label="Local code editor for ${escapeHtml(problem.titleCn)}"
             >${escapeHtml(code)}</textarea>
           </div>
-          <p>
-            直接提交到力扣需要浏览器扩展、用户脚本或本地 companion。纯 GitHub Pages
-            版本只做本地练习、复制和跳转，不读取你的登录 cookie。
+          <p class="leetcode-submit-note">
+            <span data-submit-status="${escapeHtml(problem.titleSlug)}">安装本仓库 Chrome 扩展后可直接提交到力扣；页面不会读取你的登录 cookie。</span>
           </p>
         </section>
       `;
@@ -1032,12 +1248,14 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       const visitedClass = clicked[problem.titleSlug] ? " is-visited" : "";
       const topRank = problem.topRank ?? "";
       const hotRank = problem.hotRank ?? "";
+      const bytedanceRank = byteDanceRankFor(problem) ?? "";
       const byteDance = renderByteDance(problem);
       const topLabel = problem.topRank === null ? `#${problem.frequencyRank}` : "";
       return `
         <article class="leetcode-row${visitedClass}" data-slug="${escapeHtml(problem.titleSlug)}">
           <div class="leetcode-rank">${topRank}</div>
           <div class="leetcode-rank is-hot">${hotRank}</div>
+          <div class="leetcode-rank is-bytedance">${bytedanceRank}</div>
           <div class="leetcode-problem-main">
             <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
               <span class="leetcode-title-text">${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</span>
@@ -1143,6 +1361,24 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       });
     });
 
+    window.addEventListener("message", (event) => {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const message = event.data;
+      if (
+        !message ||
+        message.source !== extensionResponseSource ||
+        message.version !== extensionProtocolVersion ||
+        typeof message.requestId !== "string"
+      ) {
+        return;
+      }
+      const pending = pendingExtensionRequests.get(message.requestId);
+      if (!pending) return;
+      window.clearTimeout(pending.timeout);
+      pendingExtensionRequests.delete(message.requestId);
+      pending.resolve(message);
+    });
+
     list?.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
@@ -1174,6 +1410,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
             editorDrafts[slug] = { lang, code: defaultTemplate(problem, lang) };
             writeState();
             render();
+          }
+          if (actionButton.dataset.editorAction === "submit-leetcode") {
+            const problem = problems.find((item) => item.titleSlug === slug);
+            if (!problem) return;
+            submitLeetcode(panel, actionButton, problem, textarea);
           }
         }
         return;
@@ -1631,7 +1872,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 2.75rem 2.75rem minmax(20rem, 1fr) 3.65rem 4.35rem 3.45rem 7.35rem;
+      grid-template-columns: 2.45rem 2.45rem 2.45rem minmax(18rem, 1fr) 3.5rem 4.15rem 4rem 7.35rem;
       min-width: 0;
       gap: 0.3rem;
       align-items: center;
@@ -1649,7 +1890,8 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
     }
 
     .leetcode-table-head span:nth-child(1),
-    .leetcode-table-head span:nth-child(2) {
+    .leetcode-table-head span:nth-child(2),
+    .leetcode-table-head span:nth-child(3) {
       text-align: center;
     }
 
@@ -1704,6 +1946,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
 
     .leetcode-rank.is-hot {
       color: var(--color-terracotta);
+      font-weight: 700;
+    }
+
+    .leetcode-rank.is-bytedance {
+      color: #b77b00;
       font-weight: 700;
     }
 
@@ -1806,6 +2053,11 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       cursor: pointer;
     }
 
+    .leetcode-practice-actions button:disabled {
+      cursor: default;
+      opacity: 0.62;
+    }
+
     .leetcode-practice-actions a:hover,
     .leetcode-practice-actions button:hover {
       border-color: var(--color-terracotta);
@@ -1871,6 +2123,20 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
 
     .leetcode-practice-panel p {
       margin: 0;
+    }
+
+    .leetcode-submit-note [data-tone="pending"] {
+      color: #b77b00;
+    }
+
+    .leetcode-submit-note [data-tone="success"] {
+      color: #168a77;
+      font-weight: 700;
+    }
+
+    .leetcode-submit-note [data-tone="error"] {
+      color: #d64242;
+      font-weight: 700;
     }
 
     html.dark .leetcode-practice-panel {
@@ -2251,11 +2517,16 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       }
 
       .leetcode-row {
-        grid-template-columns: 2.1rem 2.1rem minmax(0, 1fr);
+        grid-template-columns: 2.1rem 2.1rem 2.1rem minmax(0, 1fr);
         row-gap: 0.25rem;
       }
 
       .leetcode-row > div:nth-child(4) {
+        grid-column: 4;
+        grid-row: 1;
+      }
+
+      .leetcode-row > div:nth-child(5) {
         grid-column: 1;
         grid-row: 2;
       }
@@ -2266,7 +2537,7 @@ const leetcodeProblemsWithReferences = leetcodeProblems.map((problem) => ({
       }
 
       .leetcode-row > .leetcode-byte {
-        grid-column: 3;
+        grid-column: 3 / -1;
         grid-row: 2;
       }
 
