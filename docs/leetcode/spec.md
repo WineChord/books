@@ -143,11 +143,19 @@ time and personal best, and then resets the active-attempt timer for any
 repeat attempt. Running examples does not count as an Accepted solve. The page
 also starts a session timer when it loads and shows current problem time,
 session elapsed time, distinct session Accepted count, session average,
-today's Accepted count, and the current problem PB. Session counters live only
-in memory for the current page load; per-problem PB/last Accepted and daily
-Accepted summaries persist in local storage. Manual reset controls may restart
-the current session timer or clear the active problem's timing record, but the
-normal flow remains automatic.
+today versus best daily count, current streak, seven-day count, and the current
+problem PB. Day boundaries are always computed in `Asia/Shanghai`
+(`北京时间`), not the browser's current local timezone. Session counters live
+only in memory for the current page load; per-problem PB/last Accepted and
+daily Accepted summaries persist in local storage. Daily summaries store the
+unique solved problems, total Accepted submissions, total Accepted time, fastest
+single problem, first Accepted time, and last Accepted time for each Beijing
+date. The compact board surfaces comparison cues such as new daily record,
+tied daily record, best per-problem solve, fastest daily average, seven-day
+activity, and streak status. A collapsed daily-history view shows the last
+14 Beijing calendar days for quick comparison. Manual reset controls may
+restart the current session timer or clear the active problem's timing record,
+but the normal flow remains automatic.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and

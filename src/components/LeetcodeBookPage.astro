@@ -297,7 +297,15 @@ const shortcutRows = [
         </div>
         <div class="leetcode-session-metric">
           <span data-timing-today>0 题</span>
-          <p>{isZh ? "今日 AC" : "Today"}</p>
+          <p>{isZh ? "今日/纪录" : "Today/Best"}</p>
+        </div>
+        <div class="leetcode-session-metric">
+          <span data-timing-streak>0 天</span>
+          <p>{isZh ? "连续" : "Streak"}</p>
+        </div>
+        <div class="leetcode-session-metric">
+          <span data-timing-week>0 题</span>
+          <p>{isZh ? "近7日" : "7 days"}</p>
         </div>
         <div class="leetcode-session-metric">
           <span data-timing-current-best>--</span>
@@ -306,6 +314,14 @@ const shortcutRows = [
         <div class="leetcode-session-actions">
           <button type="button" data-timing-action="reset-session">{isZh ? "重开本次" : "Reset session"}</button>
           <button type="button" data-timing-action="reset-problem">{isZh ? "清本题" : "Clear problem"}</button>
+        </div>
+        <div class="leetcode-session-history">
+          <span data-timing-timezone>{isZh ? "北京时间" : "Beijing time"}</span>
+          <strong data-timing-milestone>{isZh ? "今天 AC 后自动进入日统计" : "Daily stats start after today's first Accepted"}</strong>
+          <details>
+            <summary>{isZh ? "日统计" : "Daily history"}</summary>
+            <div data-timing-history-list></div>
+          </details>
         </div>
       </section>
 
@@ -498,6 +514,15 @@ const shortcutRows = [
     const editorMaxAutoVisibleLines = 56;
     const editorIndentUnit = "    ";
     const editorClosingTokens = new Set(["}", "]", ")"]);
+    const timingTimeZone = "Asia/Shanghai";
+    const timingDayMs = 24 * 60 * 60 * 1000;
+    const timingHistoryDays = 14;
+    const timingDateFormatter = new Intl.DateTimeFormat("en-CA", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: timingTimeZone,
+      year: "numeric",
+    });
     const pendingExtensionRequests = new Map();
     const isChinesePage = document.documentElement.lang.startsWith("zh");
     let extensionRequestSequence = 0;
@@ -528,6 +553,7 @@ const shortcutRows = [
       startedAt: Date.now(),
     };
     let activePracticeTimer = { slug: "", startedAt: 0 };
+    let timingMilestone = "";
 
     function writeState() {
       localStorage.setItem(progressKey, JSON.stringify(progress));
@@ -544,11 +570,40 @@ const shortcutRows = [
     }
 
     function localDateKey(date = new Date()) {
+      const parts = Object.fromEntries(
+        timingDateFormatter
+          .formatToParts(date)
+          .map((part) => [part.type, part.value]),
+      );
+      return [parts.year, parts.month, parts.day].join("-");
+    }
+
+    function dateKeyParts(dateKey) {
+      const [year, month, day] = String(dateKey || "")
+        .split("-")
+        .map((part) => Number.parseInt(part, 10));
+      if (!year || !month || !day) return null;
+      return { day, month, year };
+    }
+
+    function shiftDateKey(dateKey, offsetDays) {
+      const parts = dateKeyParts(dateKey);
+      if (!parts) return localDateKey();
+      const date = new Date(
+        Date.UTC(parts.year, parts.month - 1, parts.day) +
+          offsetDays * timingDayMs,
+      );
       return [
-        date.getFullYear(),
-        pad2(date.getMonth() + 1),
-        pad2(date.getDate()),
+        date.getUTCFullYear(),
+        pad2(date.getUTCMonth() + 1),
+        pad2(date.getUTCDate()),
       ].join("-");
+    }
+
+    function shortDateLabel(dateKey) {
+      const parts = dateKeyParts(dateKey);
+      if (!parts) return dateKey;
+      return `${pad2(parts.month)}/${pad2(parts.day)}`;
     }
 
     function formatDuration(ms) {
@@ -570,6 +625,9 @@ const shortcutRows = [
         timing.days[dateKey] = {
           acceptedCount: 0,
           acceptedSlugs: [],
+          bestMs: null,
+          firstAcceptedAt: null,
+          lastAcceptedAt: null,
           totalAcceptedMs: 0,
         };
       }
@@ -577,7 +635,213 @@ const shortcutRows = [
       if (!Array.isArray(day.acceptedSlugs)) day.acceptedSlugs = [];
       day.acceptedCount = Number(day.acceptedCount || 0);
       day.totalAcceptedMs = Number(day.totalAcceptedMs || 0);
+      day.bestMs = day.bestMs === null ? null : Number(day.bestMs || 0) || null;
+      day.firstAcceptedAt = day.firstAcceptedAt || null;
+      day.lastAcceptedAt = day.lastAcceptedAt || null;
       return day;
+    }
+
+    function dayUniqueCount(day) {
+      return Array.isArray(day?.acceptedSlugs) ? day.acceptedSlugs.length : 0;
+    }
+
+    function dayAcceptedCount(day) {
+      return Number(day?.acceptedCount || 0);
+    }
+
+    function dayAverageMs(day) {
+      const acceptedCount = dayAcceptedCount(day);
+      return acceptedCount ? Number(day?.totalAcceptedMs || 0) / acceptedCount : 0;
+    }
+
+    function validDayKeys() {
+      return Object.keys(timing.days || {})
+        .filter((dateKey) => /^\d{4}-\d{2}-\d{2}$/.test(dateKey))
+        .sort();
+    }
+
+    function bestDayStats(excludeKey = "") {
+      return validDayKeys().reduce(
+        (best, dateKey) => {
+          if (dateKey === excludeKey) return best;
+          const day = timing.days[dateKey];
+          const unique = dayUniqueCount(day);
+          if (!unique) return best;
+          const accepted = dayAcceptedCount(day);
+          const averageMs = dayAverageMs(day);
+          const isBetter =
+            unique > best.unique ||
+            (unique === best.unique && accepted > best.accepted) ||
+            (unique === best.unique &&
+              accepted === best.accepted &&
+              averageMs > 0 &&
+              (!best.averageMs || averageMs < best.averageMs));
+          return isBetter
+            ? { accepted, averageMs, dateKey, unique }
+            : best;
+        },
+        { accepted: 0, averageMs: 0, dateKey: "", unique: 0 },
+      );
+    }
+
+    function fastestDayStats(excludeKey = "") {
+      return validDayKeys().reduce(
+        (fastest, dateKey) => {
+          if (dateKey === excludeKey) return fastest;
+          const day = timing.days[dateKey];
+          const averageMs = dayAverageMs(day);
+          if (!averageMs) return fastest;
+          return !fastest.averageMs || averageMs < fastest.averageMs
+            ? { averageMs, dateKey }
+            : fastest;
+        },
+        { averageMs: 0, dateKey: "" },
+      );
+    }
+
+    function recentTimingStats(todayKey = localDateKey()) {
+      const slugs = new Set();
+      let accepted = 0;
+      let activeDays = 0;
+      let totalMs = 0;
+      for (let index = 0; index < 7; index += 1) {
+        const dateKey = shiftDateKey(todayKey, -index);
+        const day = timing.days[dateKey];
+        if (!day) continue;
+        day.acceptedSlugs?.forEach((slug) => slugs.add(slug));
+        accepted += dayAcceptedCount(day);
+        totalMs += Number(day.totalAcceptedMs || 0);
+        if (dayUniqueCount(day)) activeDays += 1;
+      }
+      return {
+        accepted,
+        activeDays,
+        averageMs: accepted ? totalMs / accepted : 0,
+        unique: slugs.size,
+      };
+    }
+
+    function streakStats(todayKey = localDateKey()) {
+      const todaySolved = dayUniqueCount(timing.days[todayKey]) > 0;
+      let cursor = todaySolved ? todayKey : shiftDateKey(todayKey, -1);
+      let count = 0;
+      while (dayUniqueCount(timing.days[cursor]) > 0) {
+        count += 1;
+        cursor = shiftDateKey(cursor, -1);
+      }
+      return {
+        count,
+        pendingToday: !todaySolved && count > 0,
+      };
+    }
+
+    function timingOverview() {
+      const todayKey = localDateKey();
+      const today = dayTiming(todayKey);
+      return {
+        bestDay: bestDayStats(),
+        bestDayBeforeToday: bestDayStats(todayKey),
+        fastestDayBeforeToday: fastestDayStats(todayKey),
+        recent: recentTimingStats(todayKey),
+        streak: streakStats(todayKey),
+        today,
+        todayKey,
+        todayUnique: dayUniqueCount(today),
+      };
+    }
+
+    function formatStreak(streak) {
+      if (!streak.count) return isChinesePage ? "0 天" : "0 days";
+      const suffix = streak.pendingToday
+        ? (isChinesePage ? "待续" : "pending")
+        : "";
+      return isChinesePage
+        ? `${streak.count} 天${suffix}`
+        : `${streak.count} days${suffix ? ` ${suffix}` : ""}`;
+    }
+
+    function defaultTimingMilestone(overview) {
+      const bestBefore = overview.bestDayBeforeToday;
+      if (!overview.todayUnique) {
+        if (overview.streak.pendingToday) {
+          return isChinesePage
+            ? `连续 ${overview.streak.count} 天待续，今天 AC 后续上`
+            : `${overview.streak.count}-day streak pending today`;
+        }
+        return isChinesePage
+          ? "今天 AC 后自动进入日统计"
+          : "Daily stats start after today's first Accepted";
+      }
+      if (!bestBefore.unique || overview.todayUnique > bestBefore.unique) {
+        return isChinesePage
+          ? `今日新纪录 ${overview.todayUnique} 题`
+          : `New daily record: ${overview.todayUnique}`;
+      }
+      if (overview.todayUnique === bestBefore.unique) {
+        return isChinesePage
+          ? `今日追平历史日记录 ${overview.todayUnique} 题`
+          : `Tied daily record: ${overview.todayUnique}`;
+      }
+      return isChinesePage
+        ? `距历史日记录还差 ${bestBefore.unique - overview.todayUnique} 题`
+        : `${bestBefore.unique - overview.todayUnique} away from daily record`;
+    }
+
+    function acceptedTimingMilestone(result) {
+      const messages = [];
+      if (result.isNewDailyRecord) {
+        messages.push(isChinesePage ? "今日新纪录" : "new daily record");
+      } else if (result.tiedDailyRecord) {
+        messages.push(isChinesePage ? "追平日记录" : "tied daily record");
+      }
+      if (result.isPersonalBest) {
+        messages.push(isChinesePage ? "本题 PB" : "problem PB");
+      }
+      if (result.isFastestDayAverage) {
+        messages.push(isChinesePage ? "均速新高" : "best daily pace");
+      }
+      if (result.streakCount > 1 && !result.streakPendingToday) {
+        messages.push(
+          isChinesePage
+            ? `连续 ${result.streakCount} 天`
+            : `${result.streakCount}-day streak`,
+        );
+      }
+      if (!messages.length) {
+        messages.push(
+          isChinesePage
+            ? `今日 ${result.todayUnique} 题`
+            : `${result.todayUnique} today`,
+        );
+      }
+      return messages.join(" · ");
+    }
+
+    function renderTimingHistory(overview) {
+      return Array.from({ length: timingHistoryDays }, (_, index) => {
+        const dateKey = shiftDateKey(overview.todayKey, -index);
+        const day = timing.days[dateKey] || {};
+        const unique = dayUniqueCount(day);
+        const averageMs = dayAverageMs(day);
+        const classes = [
+          "leetcode-history-day",
+          dateKey === overview.todayKey ? "is-today" : "",
+          unique && unique === overview.bestDay.unique ? "is-best" : "",
+          unique ? "" : "is-empty",
+        ].filter(Boolean).join(" ");
+        const label = dateKey === overview.todayKey
+          ? (isChinesePage ? "今天" : "Today")
+          : shortDateLabel(dateKey);
+        const avgLabel = averageMs ? formatDuration(averageMs) : "--";
+        const countLabel = isChinesePage ? `${unique}题` : `${unique}`;
+        return `
+          <span class="${classes}" title="${escapeHtml(dateKey)}">
+            <b>${escapeHtml(label)}</b>
+            <em>${escapeHtml(countLabel)}</em>
+            <small>${escapeHtml(avgLabel)}</small>
+          </span>
+        `;
+      }).join("");
     }
 
     function problemTiming(slug) {
@@ -625,7 +889,8 @@ const shortcutRows = [
         ? sessionTiming.acceptedDurations.reduce((sum, item) => sum + item, 0) /
           sessionAcceptedCount
         : 0;
-      const today = dayTiming();
+      const overview = timingOverview();
+      const todayBest = overview.bestDay.unique || "--";
 
       setTextAll("[data-timing-active]", formatDuration(elapsed));
       setTextAll("[data-timing-session]", formatDuration(sessionElapsed));
@@ -637,11 +902,23 @@ const shortcutRows = [
         "[data-timing-session-avg]",
         sessionAverage ? formatDuration(sessionAverage) : "--",
       );
-      setTextAll("[data-timing-today]", formatProblemCount(today.acceptedSlugs.length));
+      setTextAll("[data-timing-today]", `${overview.todayUnique} / ${todayBest}`);
+      setTextAll("[data-timing-streak]", formatStreak(overview.streak));
+      setTextAll("[data-timing-week]", formatProblemCount(overview.recent.unique));
       setTextAll(
         "[data-timing-current-best]",
         activeRecord.bestMs ? formatDuration(activeRecord.bestMs) : "--",
       );
+      setTextAll("[data-timing-timezone]", isChinesePage ? "北京时间" : "Beijing time");
+      setTextAll(
+        "[data-timing-milestone]",
+        timingMilestone || defaultTimingMilestone(overview),
+      );
+      document.querySelectorAll("[data-timing-history-list]").forEach((node) => {
+        if (node instanceof HTMLElement) {
+          node.innerHTML = renderTimingHistory(overview);
+        }
+      });
 
       document.querySelectorAll("[data-problem-active]").forEach((node) => {
         const slug = node instanceof HTMLElement ? node.dataset.problemActive : "";
@@ -688,6 +965,7 @@ const shortcutRows = [
       sessionTiming.acceptedDurations = [];
       sessionTiming.acceptedSlugs = new Set();
       sessionTiming.startedAt = Date.now();
+      timingMilestone = "";
       if (activePracticeTimer.slug) {
         activePracticeTimer.startedAt = Date.now();
       }
@@ -709,18 +987,25 @@ const shortcutRows = [
       const elapsed = Math.max(0, activePracticeTimer.slug === slug
         ? Date.now() - activePracticeTimer.startedAt
         : 0);
+      const todayKey = localDateKey();
+      const beforeOverview = timingOverview();
+      const beforeTodayUnique = beforeOverview.todayUnique;
       const record = problemTiming(slug);
       const previousBest = record.bestMs || null;
       const isPersonalBest = !previousBest || elapsed < previousBest;
+      const nowIso = new Date().toISOString();
       record.acceptedCount += 1;
       record.totalAcceptedMs += elapsed;
-      record.lastAcceptedAt = new Date().toISOString();
+      record.lastAcceptedAt = nowIso;
       record.lastMs = elapsed;
       record.bestMs = isPersonalBest ? elapsed : previousBest;
 
-      const today = dayTiming();
+      const today = dayTiming(todayKey);
       today.acceptedCount += 1;
       today.totalAcceptedMs += elapsed;
+      today.bestMs = !today.bestMs || elapsed < today.bestMs ? elapsed : today.bestMs;
+      today.firstAcceptedAt = today.firstAcceptedAt || nowIso;
+      today.lastAcceptedAt = nowIso;
       if (!today.acceptedSlugs.includes(slug)) today.acceptedSlugs.push(slug);
 
       sessionTiming.acceptedDurations.push(elapsed);
@@ -728,9 +1013,40 @@ const shortcutRows = [
       if (activePracticeTimer.slug === slug) {
         activePracticeTimer.startedAt = Date.now();
       }
+      const afterOverview = timingOverview();
+      const todayUnique = afterOverview.todayUnique;
+      const bestBefore = beforeOverview.bestDayBeforeToday;
+      const wasNewUnique = todayUnique > beforeTodayUnique;
+      const isNewDailyRecord = wasNewUnique &&
+        (!bestBefore.unique || todayUnique > bestBefore.unique);
+      const tiedDailyRecord = wasNewUnique &&
+        bestBefore.unique > 0 &&
+        todayUnique === bestBefore.unique;
+      const todayAverage = dayAverageMs(today);
+      const fastestBefore = beforeOverview.fastestDayBeforeToday;
+      const isFastestDayAverage = Boolean(
+        todayAverage &&
+          (!fastestBefore.averageMs || todayAverage < fastestBefore.averageMs),
+      );
+      timingMilestone = acceptedTimingMilestone({
+        isFastestDayAverage,
+        isNewDailyRecord,
+        isPersonalBest,
+        streakCount: afterOverview.streak.count,
+        streakPendingToday: afterOverview.streak.pendingToday,
+        tiedDailyRecord,
+        todayUnique,
+      });
       writeTiming();
       syncTimingUi();
-      return { elapsed, isPersonalBest, bestMs: record.bestMs };
+      return {
+        bestMs: record.bestMs,
+        elapsed,
+        isNewDailyRecord,
+        isPersonalBest,
+        milestone: timingMilestone,
+        tiedDailyRecord,
+      };
     }
 
     function escapeHtml(value) {
@@ -1993,12 +2309,19 @@ const shortcutRows = [
             (timingResult.isPersonalBest
               ? (isChinesePage ? "，新 PB" : ", new PB")
               : "");
+          const milestoneSummary = timingResult.milestone
+            ? ` · ${timingResult.milestone}`
+            : "";
           progress[problem.titleSlug] = {
             ...rowState(problem.titleSlug),
             done: true,
           };
           writeState();
-          setSubmitStatus(panel, `Accepted ${summary} · ${timingSummary}`, "success");
+          setSubmitStatus(
+            panel,
+            `Accepted ${summary} · ${timingSummary}${milestoneSummary}`,
+            "success",
+          );
           return;
         }
         setSubmitStatus(panel, summary, "error");
@@ -2637,7 +2960,7 @@ const shortcutRows = [
 
     .leetcode-session-board {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
+      grid-template-columns: repeat(8, minmax(0, 1fr)) auto;
       gap: 0.28rem;
       align-items: stretch;
       margin: 0 0 0.25rem;
@@ -2705,6 +3028,114 @@ const shortcutRows = [
     .leetcode-session-actions button:disabled {
       cursor: default;
       opacity: 0.45;
+    }
+
+    .leetcode-session-history {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.45rem;
+      align-items: center;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      line-height: 1.2;
+      padding: 0.2rem 0.1rem 0;
+    }
+
+    .leetcode-session-history > span {
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .leetcode-session-history strong {
+      overflow: hidden;
+      color: var(--color-charcoal);
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-session-history details {
+      position: relative;
+      justify-self: end;
+    }
+
+    .leetcode-session-history summary {
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .leetcode-session-history [data-timing-history-list] {
+      position: absolute;
+      right: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(4.1rem, 1fr));
+      gap: 0.28rem;
+      min-width: min(40rem, calc(100vw - 2rem));
+      margin-top: 0.35rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      background: rgb(251 250 246 / 98%);
+      box-shadow: 0 1rem 2.4rem rgb(20 20 19 / 12%);
+      padding: 0.45rem;
+    }
+
+    .leetcode-history-day {
+      display: grid;
+      gap: 0.08rem;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.38rem;
+      background: rgb(255 255 255 / 42%);
+      padding: 0.28rem 0.32rem;
+    }
+
+    .leetcode-history-day b,
+    .leetcode-history-day em,
+    .leetcode-history-day small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-history-day b {
+      color: var(--color-muted);
+      font-size: 0.56rem;
+      font-weight: 700;
+    }
+
+    .leetcode-history-day em {
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-style: normal;
+      font-weight: 800;
+    }
+
+    .leetcode-history-day small {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+    }
+
+    .leetcode-history-day.is-today {
+      border-color: rgb(217 119 87 / 58%);
+      background: rgb(217 119 87 / 9%);
+    }
+
+    .leetcode-history-day.is-best em {
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-history-day.is-empty {
+      opacity: 0.52;
     }
 
     .leetcode-toolbar {
@@ -3238,6 +3669,30 @@ const shortcutRows = [
       color: var(--color-cream);
     }
 
+    html.dark .leetcode-session-history {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-session-history strong,
+    html.dark .leetcode-history-day em {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-session-history [data-timing-history-list] {
+      border-color: #333;
+      background: rgb(22 22 20 / 98%);
+      box-shadow: 0 1rem 2.4rem rgb(0 0 0 / 28%);
+    }
+
+    html.dark .leetcode-history-day {
+      border-color: #333;
+      background: rgb(255 255 255 / 4%);
+    }
+
+    html.dark .leetcode-history-day.is-best em {
+      color: var(--color-terracotta);
+    }
+
     html.dark .leetcode-session-actions button,
     html.dark .leetcode-practice-meter b {
       border-color: #333;
@@ -3623,12 +4078,21 @@ const shortcutRows = [
       }
 
       .leetcode-session-board {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .leetcode-session-actions {
         grid-column: 1 / -1;
         justify-content: flex-start;
+      }
+
+      .leetcode-session-history {
+        grid-template-columns: 1fr;
+        gap: 0.18rem;
+      }
+
+      .leetcode-session-history details {
+        justify-self: start;
       }
 
       .leetcode-filter-panel {
@@ -3690,6 +4154,13 @@ const shortcutRows = [
 
       .leetcode-session-board {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .leetcode-session-history [data-timing-history-list] {
+        left: 0;
+        right: auto;
+        grid-template-columns: repeat(2, minmax(4.2rem, 1fr));
+        min-width: min(20rem, calc(100vw - 2rem));
       }
 
       .leetcode-page-size {
