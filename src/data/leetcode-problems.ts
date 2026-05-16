@@ -10,6 +10,11 @@ export interface LeetcodeProblem {
   acRate: string | null;
   frequency: string;
   bytedance: boolean;
+  bytedancePeriods: {
+    past3Months: number | null;
+    past6Months: number | null;
+    before6Months: number | null;
+  };
   hot100: boolean;
   paidOnly: boolean;
   tags: Array<{ slug: string; name: string }>;
@@ -21,7 +26,7 @@ export interface LeetcodeProblem {
 export const leetcodeDataUpdatedAt = "2026-05-16";
 
 export const leetcodeDataSource =
-  "LeetCode China problemset sorted by frequency; daily pinned row excluded.";
+  "LeetCode China problemset sorted by frequency; ByteDance buckets from problem detail companyTagStatsV2.";
 
 export const leetcodeProblems = [
   {
@@ -36,6 +41,11 @@ export const leetcodeProblems = [
     "acRate": "55.1%",
     "frequency": "100.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 33,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -66,6 +76,11 @@ export const leetcodeProblems = [
     "acRate": "42.4%",
     "frequency": "99.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 57,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -101,6 +116,11 @@ export const leetcodeProblems = [
     "acRate": "66.0%",
     "frequency": "98.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 39,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -142,7 +162,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "69.6%",
     "frequency": "97.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 22,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -180,7 +205,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "55.5%",
     "frequency": "96.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 32,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -220,6 +250,11 @@ export const leetcodeProblems = [
     "acRate": "40.8%",
     "frequency": "95.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 16,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -254,6 +289,11 @@ export const leetcodeProblems = [
     "acRate": "48.9%",
     "frequency": "94.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 19,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -287,7 +327,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "40.5%",
     "frequency": "94.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 23,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -322,6 +367,11 @@ export const leetcodeProblems = [
     "acRate": "55.7%",
     "frequency": "93.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 11,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -355,7 +405,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.5%",
     "frequency": "93.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 17,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -390,6 +445,11 @@ export const leetcodeProblems = [
     "acRate": "46.9%",
     "frequency": "92.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 10,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -424,6 +484,11 @@ export const leetcodeProblems = [
     "acRate": "61.8%",
     "frequency": "91.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 11,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -457,7 +522,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "64.0%",
     "frequency": "91.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 16,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -500,6 +570,11 @@ export const leetcodeProblems = [
     "acRate": "44.6%",
     "frequency": "90.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 16,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -533,7 +608,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "53.6%",
     "frequency": "90.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 17,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -564,6 +644,11 @@ export const leetcodeProblems = [
     "acRate": "60.2%",
     "frequency": "89.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 12,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -606,6 +691,11 @@ export const leetcodeProblems = [
     "acRate": "68.2%",
     "frequency": "88.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 11,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -635,7 +725,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "63.8%",
     "frequency": "87.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 9,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -665,7 +760,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "45.6%",
     "frequency": "87.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 8,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -695,7 +795,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "74.1%",
     "frequency": "87.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -721,7 +826,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "55.3%",
     "frequency": "86.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 11,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -756,6 +866,11 @@ export const leetcodeProblems = [
     "acRate": "76.4%",
     "frequency": "85.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 18,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -785,7 +900,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "55.0%",
     "frequency": "85.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -819,7 +939,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "45.2%",
     "frequency": "84.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -853,7 +978,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "60.0%",
     "frequency": "83.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 7,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -884,6 +1014,11 @@ export const leetcodeProblems = [
     "acRate": "50.2%",
     "frequency": "83.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 12,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -925,7 +1060,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "56.2%",
     "frequency": "83.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -952,6 +1092,11 @@ export const leetcodeProblems = [
     "acRate": "64.1%",
     "frequency": "82.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 12,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -982,6 +1127,11 @@ export const leetcodeProblems = [
     "acRate": "79.1%",
     "frequency": "82.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 12,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1015,7 +1165,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "56.7%",
     "frequency": "82.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 8,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1050,6 +1205,11 @@ export const leetcodeProblems = [
     "acRate": "56.2%",
     "frequency": "82.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1080,6 +1240,11 @@ export const leetcodeProblems = [
     "acRate": "69.9%",
     "frequency": "81.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 12,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1110,6 +1275,11 @@ export const leetcodeProblems = [
     "acRate": "54.6%",
     "frequency": "81.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 7,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1145,6 +1315,11 @@ export const leetcodeProblems = [
     "acRate": "60.2%",
     "frequency": "80.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 7,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1174,7 +1349,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "75.1%",
     "frequency": "79.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 11,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1209,6 +1389,11 @@ export const leetcodeProblems = [
     "acRate": "56.4%",
     "frequency": "79.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 9,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1239,6 +1424,11 @@ export const leetcodeProblems = [
     "acRate": "68.3%",
     "frequency": "79.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 8,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1273,6 +1463,11 @@ export const leetcodeProblems = [
     "acRate": "69.4%",
     "frequency": "79.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1306,7 +1501,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "45.4%",
     "frequency": "78.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1341,6 +1541,11 @@ export const leetcodeProblems = [
     "acRate": "80.3%",
     "frequency": "78.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 9,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1371,6 +1576,11 @@ export const leetcodeProblems = [
     "acRate": "42.1%",
     "frequency": "78.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1405,6 +1615,11 @@ export const leetcodeProblems = [
     "acRate": "69.7%",
     "frequency": "78.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 10,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1438,7 +1653,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "54.2%",
     "frequency": "77.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 10,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1469,6 +1689,11 @@ export const leetcodeProblems = [
     "acRate": "47.4%",
     "frequency": "77.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1508,6 +1733,11 @@ export const leetcodeProblems = [
     "acRate": "68.3%",
     "frequency": "77.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1543,6 +1773,11 @@ export const leetcodeProblems = [
     "acRate": "74.3%",
     "frequency": "76.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1569,6 +1804,11 @@ export const leetcodeProblems = [
     "acRate": "75.3%",
     "frequency": "76.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1599,6 +1839,11 @@ export const leetcodeProblems = [
     "acRate": "49.4%",
     "frequency": "76.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1629,6 +1874,11 @@ export const leetcodeProblems = [
     "acRate": "45.0%",
     "frequency": "75.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1663,6 +1913,11 @@ export const leetcodeProblems = [
     "acRate": "47.8%",
     "frequency": "75.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1717,6 +1972,11 @@ export const leetcodeProblems = [
     "acRate": "67.7%",
     "frequency": "75.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 10,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1747,6 +2007,11 @@ export const leetcodeProblems = [
     "acRate": "75.1%",
     "frequency": "75.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1781,6 +2046,11 @@ export const leetcodeProblems = [
     "acRate": "45.8%",
     "frequency": "75.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1815,6 +2085,11 @@ export const leetcodeProblems = [
     "acRate": "48.1%",
     "frequency": "75.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1853,7 +2128,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.1%",
     "frequency": "74.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 8,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1884,6 +2164,11 @@ export const leetcodeProblems = [
     "acRate": "49.5%",
     "frequency": "74.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -1914,6 +2199,11 @@ export const leetcodeProblems = [
     "acRate": "57.2%",
     "frequency": "74.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1952,6 +2242,11 @@ export const leetcodeProblems = [
     "acRate": "58.7%",
     "frequency": "74.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -1986,7 +2281,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "49.3%",
     "frequency": "73.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2022,6 +2322,11 @@ export const leetcodeProblems = [
     "acRate": "63.8%",
     "frequency": "73.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2059,7 +2364,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "58.3%",
     "frequency": "73.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2098,6 +2408,11 @@ export const leetcodeProblems = [
     "acRate": "75.0%",
     "frequency": "73.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 7,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2127,7 +2442,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "58.6%",
     "frequency": "73.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2157,7 +2477,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "70.4%",
     "frequency": "72.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2188,6 +2513,11 @@ export const leetcodeProblems = [
     "acRate": "73.3%",
     "frequency": "72.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2231,6 +2561,11 @@ export const leetcodeProblems = [
     "acRate": "67.7%",
     "frequency": "71.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 7,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2272,7 +2607,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "42.8%",
     "frequency": "71.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2302,7 +2642,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "76.9%",
     "frequency": "71.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2332,7 +2677,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "72.5%",
     "frequency": "71.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2366,7 +2716,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "63.6%",
     "frequency": "71.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 8,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2401,6 +2756,11 @@ export const leetcodeProblems = [
     "acRate": "67.9%",
     "frequency": "71.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2438,7 +2798,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "45.1%",
     "frequency": "70.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2472,7 +2837,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "72.6%",
     "frequency": "70.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2510,7 +2880,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "43.8%",
     "frequency": "70.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2549,6 +2924,11 @@ export const leetcodeProblems = [
     "acRate": "55.9%",
     "frequency": "70.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2587,7 +2967,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "55.6%",
     "frequency": "70.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2622,6 +3007,11 @@ export const leetcodeProblems = [
     "acRate": "52.0%",
     "frequency": "70.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2655,7 +3045,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "68.5%",
     "frequency": "70.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2689,7 +3084,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "44.3%",
     "frequency": "70.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2720,6 +3120,11 @@ export const leetcodeProblems = [
     "acRate": "48.7%",
     "frequency": "70.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2750,6 +3155,11 @@ export const leetcodeProblems = [
     "acRate": "69.0%",
     "frequency": "69.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2775,7 +3185,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "57.1%",
     "frequency": "69.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2814,6 +3229,11 @@ export const leetcodeProblems = [
     "acRate": "70.7%",
     "frequency": "69.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2848,6 +3268,11 @@ export const leetcodeProblems = [
     "acRate": "53.0%",
     "frequency": "69.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2881,7 +3306,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.7%",
     "frequency": "69.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2911,7 +3341,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "70.6%",
     "frequency": "69.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -2943,6 +3378,11 @@ export const leetcodeProblems = [
     "acRate": "78.3%",
     "frequency": "68.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -2980,7 +3420,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "64.2%",
     "frequency": "68.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3014,7 +3459,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "61.6%",
     "frequency": "68.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3048,7 +3498,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "60.3%",
     "frequency": "68.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3095,7 +3550,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "31.2%",
     "frequency": "67.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3129,7 +3589,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "35.7%",
     "frequency": "67.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3155,7 +3620,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "52.6%",
     "frequency": "67.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3190,6 +3660,11 @@ export const leetcodeProblems = [
     "acRate": "79.0%",
     "frequency": "67.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3227,7 +3702,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "68.2%",
     "frequency": "66.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3261,7 +3741,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "44.9%",
     "frequency": "66.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3296,6 +3781,11 @@ export const leetcodeProblems = [
     "acRate": "76.7%",
     "frequency": "66.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3326,6 +3816,11 @@ export const leetcodeProblems = [
     "acRate": "53.3%",
     "frequency": "66.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3355,7 +3850,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "79.4%",
     "frequency": "66.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3390,6 +3890,11 @@ export const leetcodeProblems = [
     "acRate": "82.5%",
     "frequency": "66.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3427,7 +3932,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "71.6%",
     "frequency": "66.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3461,7 +3971,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "41.0%",
     "frequency": "65.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 3,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3499,7 +4014,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "64.2%",
     "frequency": "65.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3534,6 +4054,11 @@ export const leetcodeProblems = [
     "acRate": "54.8%",
     "frequency": "65.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3568,7 +4093,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "49.5%",
     "frequency": "65.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3603,6 +4133,11 @@ export const leetcodeProblems = [
     "acRate": "42.0%",
     "frequency": "65.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3640,7 +4175,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "59.5%",
     "frequency": "65.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3671,6 +4211,11 @@ export const leetcodeProblems = [
     "acRate": "62.2%",
     "frequency": "65.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3701,6 +4246,11 @@ export const leetcodeProblems = [
     "acRate": "34.7%",
     "frequency": "64.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3730,7 +4280,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.7%",
     "frequency": "64.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3760,7 +4315,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "83.5%",
     "frequency": "64.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3787,6 +4347,11 @@ export const leetcodeProblems = [
     "acRate": "54.2%",
     "frequency": "64.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3813,6 +4378,11 @@ export const leetcodeProblems = [
     "acRate": "58.3%",
     "frequency": "64.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3839,6 +4409,11 @@ export const leetcodeProblems = [
     "acRate": "63.0%",
     "frequency": "64.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -3873,7 +4448,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "66.0%",
     "frequency": "64.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3907,7 +4487,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "54.4%",
     "frequency": "64.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3946,6 +4531,11 @@ export const leetcodeProblems = [
     "acRate": "38.9%",
     "frequency": "64.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -3975,7 +4565,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "81.9%",
     "frequency": "64.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4010,6 +4605,11 @@ export const leetcodeProblems = [
     "acRate": "66.8%",
     "frequency": "63.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4044,6 +4644,11 @@ export const leetcodeProblems = [
     "acRate": "55.1%",
     "frequency": "63.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4077,7 +4682,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "77.9%",
     "frequency": "63.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4107,7 +4717,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "65.8%",
     "frequency": "63.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4162,6 +4777,11 @@ export const leetcodeProblems = [
     "acRate": "75.7%",
     "frequency": "62.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4195,7 +4815,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "48.2%",
     "frequency": "62.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4229,7 +4854,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "48.0%",
     "frequency": "62.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4264,7 +4894,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.5%",
     "frequency": "61.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4302,7 +4937,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "62.7%",
     "frequency": "61.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4333,6 +4973,11 @@ export const leetcodeProblems = [
     "acRate": "65.4%",
     "frequency": "61.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4362,7 +5007,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "67.7%",
     "frequency": "61.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4400,7 +5050,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "67.3%",
     "frequency": "61.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4442,7 +5097,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "77.8%",
     "frequency": "61.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4472,7 +5132,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "68.1%",
     "frequency": "60.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4503,6 +5168,11 @@ export const leetcodeProblems = [
     "acRate": "62.4%",
     "frequency": "60.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4541,6 +5211,11 @@ export const leetcodeProblems = [
     "acRate": "49.0%",
     "frequency": "60.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4574,7 +5249,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "52.0%",
     "frequency": "60.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4600,7 +5280,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "36.9%",
     "frequency": "60.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4634,7 +5319,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "59.4%",
     "frequency": "60.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4677,6 +5367,11 @@ export const leetcodeProblems = [
     "acRate": "56.9%",
     "frequency": "59.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4718,7 +5413,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "80.6%",
     "frequency": "59.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4745,6 +5445,11 @@ export const leetcodeProblems = [
     "acRate": "62.8%",
     "frequency": "59.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4774,7 +5479,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "49.9%",
     "frequency": "59.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4805,6 +5515,11 @@ export const leetcodeProblems = [
     "acRate": "57.0%",
     "frequency": "59.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4852,6 +5567,11 @@ export const leetcodeProblems = [
     "acRate": "80.7%",
     "frequency": "59.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4893,7 +5613,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "75.1%",
     "frequency": "59.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -4936,7 +5661,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "70.3%",
     "frequency": "59.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -4971,6 +5701,11 @@ export const leetcodeProblems = [
     "acRate": "65.0%",
     "frequency": "59.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5001,6 +5736,11 @@ export const leetcodeProblems = [
     "acRate": "77.5%",
     "frequency": "58.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5026,7 +5766,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "74.1%",
     "frequency": "58.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -5056,7 +5801,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "53.8%",
     "frequency": "58.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5083,6 +5833,11 @@ export const leetcodeProblems = [
     "acRate": "67.6%",
     "frequency": "58.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5113,6 +5868,11 @@ export const leetcodeProblems = [
     "acRate": "46.4%",
     "frequency": "58.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 8,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5147,6 +5907,11 @@ export const leetcodeProblems = [
     "acRate": "63.6%",
     "frequency": "58.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -5184,7 +5949,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "51.0%",
     "frequency": "58.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 7,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -5227,6 +5997,11 @@ export const leetcodeProblems = [
     "acRate": "55.7%",
     "frequency": "57.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5256,7 +6031,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "38.0%",
     "frequency": "57.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5294,7 +6074,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "53.7%",
     "frequency": "57.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5348,7 +6133,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "35.0%",
     "frequency": "57.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5379,6 +6169,11 @@ export const leetcodeProblems = [
     "acRate": "71.9%",
     "frequency": "57.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5409,6 +6204,11 @@ export const leetcodeProblems = [
     "acRate": "63.5%",
     "frequency": "57.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5438,7 +6238,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "69.3%",
     "frequency": "57.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5472,7 +6277,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "42.6%",
     "frequency": "57.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5506,7 +6316,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "47.4%",
     "frequency": "56.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5537,6 +6352,11 @@ export const leetcodeProblems = [
     "acRate": "46.0%",
     "frequency": "56.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5562,7 +6382,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "62.0%",
     "frequency": "56.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5602,6 +6427,11 @@ export const leetcodeProblems = [
     "acRate": "42.6%",
     "frequency": "56.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5647,7 +6477,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.7%",
     "frequency": "56.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -5677,7 +6512,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "60.0%",
     "frequency": "56.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5713,6 +6553,11 @@ export const leetcodeProblems = [
     "acRate": "73.5%",
     "frequency": "55.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5751,6 +6596,11 @@ export const leetcodeProblems = [
     "acRate": "45.7%",
     "frequency": "55.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5777,6 +6627,11 @@ export const leetcodeProblems = [
     "acRate": "46.0%",
     "frequency": "55.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5814,7 +6669,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "68.3%",
     "frequency": "55.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5840,7 +6700,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "48.9%",
     "frequency": "54.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 11
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5870,7 +6735,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "60.0%",
     "frequency": "54.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5896,7 +6766,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "47.5%",
     "frequency": "54.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5927,6 +6802,11 @@ export const leetcodeProblems = [
     "acRate": "52.5%",
     "frequency": "54.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5957,6 +6837,11 @@ export const leetcodeProblems = [
     "acRate": "75.5%",
     "frequency": "54.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -5986,7 +6871,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "63.7%",
     "frequency": "54.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -6021,6 +6911,11 @@ export const leetcodeProblems = [
     "acRate": "61.0%",
     "frequency": "53.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6054,7 +6949,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "64.9%",
     "frequency": "53.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 3,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6088,7 +6988,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "54.4%",
     "frequency": "53.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6128,6 +7033,11 @@ export const leetcodeProblems = [
     "acRate": "46.2%",
     "frequency": "53.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6157,7 +7067,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "56.6%",
     "frequency": "52.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6211,7 +7126,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "33.0%",
     "frequency": "52.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 17
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6250,6 +7170,11 @@ export const leetcodeProblems = [
     "acRate": "55.5%",
     "frequency": "52.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6291,7 +7216,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "59.6%",
     "frequency": "52.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6322,6 +7252,11 @@ export const leetcodeProblems = [
     "acRate": "65.5%",
     "frequency": "52.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -6352,6 +7287,11 @@ export const leetcodeProblems = [
     "acRate": "38.3%",
     "frequency": "52.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6387,6 +7327,11 @@ export const leetcodeProblems = [
     "acRate": "54.2%",
     "frequency": "52.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 10
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6412,7 +7357,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "69.9%",
     "frequency": "52.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6439,6 +7389,11 @@ export const leetcodeProblems = [
     "acRate": "48.2%",
     "frequency": "52.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6474,6 +7429,11 @@ export const leetcodeProblems = [
     "acRate": "46.1%",
     "frequency": "52.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6508,6 +7468,11 @@ export const leetcodeProblems = [
     "acRate": "76.5%",
     "frequency": "52.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 3,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6538,6 +7503,11 @@ export const leetcodeProblems = [
     "acRate": "48.8%",
     "frequency": "52.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 6,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6581,6 +7551,11 @@ export const leetcodeProblems = [
     "acRate": "54.8%",
     "frequency": "51.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6606,7 +7581,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "65.8%",
     "frequency": "51.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6636,7 +7616,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "61.0%",
     "frequency": "51.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6671,6 +7656,11 @@ export const leetcodeProblems = [
     "acRate": "62.6%",
     "frequency": "51.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -6709,7 +7699,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "47.2%",
     "frequency": "50.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6751,7 +7746,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "47.2%",
     "frequency": "50.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6789,7 +7789,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "67.3%",
     "frequency": "50.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6824,6 +7829,11 @@ export const leetcodeProblems = [
     "acRate": "56.7%",
     "frequency": "50.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6865,7 +7875,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "37.3%",
     "frequency": "50.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6891,7 +7906,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "41.6%",
     "frequency": "49.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 5,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6921,7 +7941,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "43.1%",
     "frequency": "49.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6952,6 +7977,11 @@ export const leetcodeProblems = [
     "acRate": "43.3%",
     "frequency": "49.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -6978,6 +8008,11 @@ export const leetcodeProblems = [
     "acRate": "65.9%",
     "frequency": "49.8%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7007,7 +8042,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "22.6%",
     "frequency": "49.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7037,7 +8077,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "64.0%",
     "frequency": "49.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7072,6 +8117,11 @@ export const leetcodeProblems = [
     "acRate": "58.7%",
     "frequency": "49.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 3,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7110,6 +8160,11 @@ export const leetcodeProblems = [
     "acRate": "63.6%",
     "frequency": "49.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7135,7 +8190,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "50.3%",
     "frequency": "49.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7174,6 +8234,11 @@ export const leetcodeProblems = [
     "acRate": "71.4%",
     "frequency": "49.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7199,7 +8264,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.4%",
     "frequency": "49.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7226,6 +8296,11 @@ export const leetcodeProblems = [
     "acRate": "54.7%",
     "frequency": "49.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7255,7 +8330,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "76.2%",
     "frequency": "48.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -7299,6 +8379,11 @@ export const leetcodeProblems = [
     "acRate": "39.1%",
     "frequency": "48.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 10
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7324,7 +8409,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "64.9%",
     "frequency": "48.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 4,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7366,7 +8456,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "49.0%",
     "frequency": "48.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7400,7 +8495,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "79.7%",
     "frequency": "48.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7434,7 +8534,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "22.0%",
     "frequency": "48.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7460,7 +8565,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "53.1%",
     "frequency": "47.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7494,7 +8604,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "34.8%",
     "frequency": "47.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7532,7 +8647,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "69.1%",
     "frequency": "47.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7566,7 +8686,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "57.7%",
     "frequency": "47.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7604,7 +8729,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "56.3%",
     "frequency": "47.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7639,6 +8769,11 @@ export const leetcodeProblems = [
     "acRate": "46.1%",
     "frequency": "47.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7668,7 +8803,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "68.2%",
     "frequency": "47.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7702,7 +8842,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "60.1%",
     "frequency": "47.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 10
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7737,6 +8882,11 @@ export const leetcodeProblems = [
     "acRate": "71.6%",
     "frequency": "47.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 7
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7779,6 +8929,11 @@ export const leetcodeProblems = [
     "acRate": "41.6%",
     "frequency": "47.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7813,6 +8968,11 @@ export const leetcodeProblems = [
     "acRate": "66.9%",
     "frequency": "47.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7838,7 +8998,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.8%",
     "frequency": "47.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7872,7 +9037,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "70.2%",
     "frequency": "47.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7899,6 +9069,11 @@ export const leetcodeProblems = [
     "acRate": "73.4%",
     "frequency": "47.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7936,7 +9111,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "39.2%",
     "frequency": "46.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7966,7 +9146,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "62.0%",
     "frequency": "46.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -7992,7 +9177,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "74.6%",
     "frequency": "46.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8022,7 +9212,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "72.5%",
     "frequency": "46.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8052,7 +9247,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "80.9%",
     "frequency": "46.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8082,7 +9282,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "46.5%",
     "frequency": "46.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8108,7 +9313,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "52.9%",
     "frequency": "46.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8151,6 +9361,11 @@ export const leetcodeProblems = [
     "acRate": "82.5%",
     "frequency": "46.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8180,7 +9395,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "56.5%",
     "frequency": "45.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8216,6 +9436,11 @@ export const leetcodeProblems = [
     "acRate": "56.0%",
     "frequency": "45.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8254,6 +9479,11 @@ export const leetcodeProblems = [
     "acRate": "56.3%",
     "frequency": "45.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8288,6 +9518,11 @@ export const leetcodeProblems = [
     "acRate": "48.2%",
     "frequency": "45.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8322,6 +9557,11 @@ export const leetcodeProblems = [
     "acRate": "40.8%",
     "frequency": "45.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8355,7 +9595,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "40.9%",
     "frequency": "45.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8394,7 +9639,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "51.2%",
     "frequency": "45.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8432,7 +9682,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "51.0%",
     "frequency": "45.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8467,7 +9722,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "56.2%",
     "frequency": "44.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -8501,7 +9761,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "53.4%",
     "frequency": "44.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8540,6 +9805,11 @@ export const leetcodeProblems = [
     "acRate": "45.7%",
     "frequency": "44.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 4,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8577,7 +9847,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "42.0%",
     "frequency": "44.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8611,7 +9886,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "80.6%",
     "frequency": "44.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8638,6 +9918,11 @@ export const leetcodeProblems = [
     "acRate": "56.1%",
     "frequency": "44.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8668,6 +9953,11 @@ export const leetcodeProblems = [
     "acRate": "79.0%",
     "frequency": "44.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8706,6 +9996,11 @@ export const leetcodeProblems = [
     "acRate": "67.8%",
     "frequency": "44.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8740,6 +10035,11 @@ export const leetcodeProblems = [
     "acRate": "58.9%",
     "frequency": "44.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8766,6 +10066,11 @@ export const leetcodeProblems = [
     "acRate": "50.0%",
     "frequency": "44.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8816,6 +10121,11 @@ export const leetcodeProblems = [
     "acRate": "56.2%",
     "frequency": "44.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8849,7 +10159,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.6%",
     "frequency": "44.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8884,6 +10199,11 @@ export const leetcodeProblems = [
     "acRate": "43.3%",
     "frequency": "44.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8918,6 +10238,11 @@ export const leetcodeProblems = [
     "acRate": "55.4%",
     "frequency": "44.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -8947,7 +10272,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "48.8%",
     "frequency": "43.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -8981,7 +10311,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "67.2%",
     "frequency": "43.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9007,7 +10342,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "50.2%",
     "frequency": "43.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9033,7 +10373,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "64.5%",
     "frequency": "43.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9060,6 +10405,11 @@ export const leetcodeProblems = [
     "acRate": "65.6%",
     "frequency": "43.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9101,7 +10451,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "77.2%",
     "frequency": "43.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9135,7 +10490,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "85.7%",
     "frequency": "43.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9161,7 +10521,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "79.2%",
     "frequency": "43.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9191,7 +10556,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "48.5%",
     "frequency": "42.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9221,7 +10591,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "72.8%",
     "frequency": "42.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9252,6 +10627,11 @@ export const leetcodeProblems = [
     "acRate": "35.3%",
     "frequency": "42.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9298,7 +10678,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "64.0%",
     "frequency": "42.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 8
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9336,7 +10721,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "44.5%",
     "frequency": "41.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9386,7 +10776,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "45.5%",
     "frequency": "41.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9417,6 +10812,11 @@ export const leetcodeProblems = [
     "acRate": "59.0%",
     "frequency": "41.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9455,6 +10855,11 @@ export const leetcodeProblems = [
     "acRate": "66.9%",
     "frequency": "41.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9488,7 +10893,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "73.7%",
     "frequency": "41.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9519,6 +10929,11 @@ export const leetcodeProblems = [
     "acRate": "64.7%",
     "frequency": "41.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9548,7 +10963,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "60.1%",
     "frequency": "41.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -9594,7 +11014,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "56.4%",
     "frequency": "41.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9632,7 +11057,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "67.0%",
     "frequency": "41.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9674,7 +11104,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "67.2%",
     "frequency": "41.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9712,7 +11147,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "57.3%",
     "frequency": "41.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 9
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9746,7 +11186,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "47.4%",
     "frequency": "41.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9784,7 +11229,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "53.2%",
     "frequency": "41.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9818,7 +11268,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "48.1%",
     "frequency": "41.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9856,7 +11311,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "70.6%",
     "frequency": "41.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9887,6 +11347,11 @@ export const leetcodeProblems = [
     "acRate": "68.2%",
     "frequency": "41.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9928,7 +11393,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "62.5%",
     "frequency": "41.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -9974,7 +11444,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "68.8%",
     "frequency": "41.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10016,7 +11491,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "72.7%",
     "frequency": "40.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10042,7 +11522,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "53.9%",
     "frequency": "40.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10084,7 +11569,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "58.9%",
     "frequency": "40.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10118,7 +11608,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "65.5%",
     "frequency": "40.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10154,6 +11649,11 @@ export const leetcodeProblems = [
     "acRate": "39.2%",
     "frequency": "40.6%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10201,6 +11701,11 @@ export const leetcodeProblems = [
     "acRate": "53.3%",
     "frequency": "40.6%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10242,7 +11747,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "53.5%",
     "frequency": "40.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10272,7 +11782,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "72.6%",
     "frequency": "40.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10310,7 +11825,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "47.3%",
     "frequency": "40.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10348,7 +11868,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "81.5%",
     "frequency": "40.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10386,7 +11911,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "45.4%",
     "frequency": "40.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10421,7 +11951,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "51.1%",
     "frequency": "40.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10463,7 +11998,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "50.4%",
     "frequency": "40.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10497,7 +12037,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "66.9%",
     "frequency": "40.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10523,7 +12068,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "67.7%",
     "frequency": "40.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10554,6 +12104,11 @@ export const leetcodeProblems = [
     "acRate": "65.7%",
     "frequency": "40.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [],
@@ -10575,6 +12130,11 @@ export const leetcodeProblems = [
     "acRate": "54.7%",
     "frequency": "39.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10604,7 +12164,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "57.3%",
     "frequency": "39.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10638,7 +12203,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "56.0%",
     "frequency": "39.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 8
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10672,7 +12242,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "62.0%",
     "frequency": "39.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10706,7 +12281,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "32.3%",
     "frequency": "39.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10736,7 +12316,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "74.7%",
     "frequency": "39.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10780,6 +12365,11 @@ export const leetcodeProblems = [
     "acRate": "78.1%",
     "frequency": "39.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10805,7 +12395,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "68.1%",
     "frequency": "39.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10839,7 +12434,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "70.8%",
     "frequency": "39.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10866,6 +12466,11 @@ export const leetcodeProblems = [
     "acRate": "64.2%",
     "frequency": "39.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10904,6 +12509,11 @@ export const leetcodeProblems = [
     "acRate": "69.7%",
     "frequency": "39.2%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -10933,7 +12543,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "61.0%",
     "frequency": "39.2%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -10980,6 +12595,11 @@ export const leetcodeProblems = [
     "acRate": "50.7%",
     "frequency": "39.1%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11014,6 +12634,11 @@ export const leetcodeProblems = [
     "acRate": "71.9%",
     "frequency": "38.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11047,7 +12672,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "59.6%",
     "frequency": "38.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11086,6 +12716,11 @@ export const leetcodeProblems = [
     "acRate": "45.8%",
     "frequency": "38.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11115,7 +12750,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "62.1%",
     "frequency": "38.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11157,7 +12797,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "48.8%",
     "frequency": "38.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11183,7 +12828,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "65.6%",
     "frequency": "38.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11213,7 +12863,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "71.0%",
     "frequency": "37.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -11244,6 +12899,11 @@ export const leetcodeProblems = [
     "acRate": "59.4%",
     "frequency": "37.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11281,7 +12941,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "28.6%",
     "frequency": "37.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11307,7 +12972,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "58.0%",
     "frequency": "37.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11341,7 +13011,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "79.8%",
     "frequency": "37.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11379,7 +13054,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.3%",
     "frequency": "37.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11413,7 +13093,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "84.0%",
     "frequency": "37.5%",
-    "bytedance": true,
+    "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11448,6 +13133,11 @@ export const leetcodeProblems = [
     "acRate": "59.8%",
     "frequency": "37.2%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11477,7 +13167,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "37.2%",
     "frequency": "37.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11511,7 +13206,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "72.5%",
     "frequency": "37.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11546,6 +13246,11 @@ export const leetcodeProblems = [
     "acRate": "52.1%",
     "frequency": "37.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11583,7 +13288,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "50.0%",
     "frequency": "37.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11626,7 +13336,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "35.8%",
     "frequency": "37.1%",
-    "bytedance": true,
+    "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11670,6 +13385,11 @@ export const leetcodeProblems = [
     "acRate": "66.2%",
     "frequency": "37.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11705,6 +13425,11 @@ export const leetcodeProblems = [
     "acRate": "53.9%",
     "frequency": "37.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11742,7 +13467,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "55.6%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11790,6 +13520,11 @@ export const leetcodeProblems = [
     "acRate": "35.8%",
     "frequency": "36.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11815,7 +13550,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "53.3%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": true,
     "paidOnly": true,
     "tags": [
@@ -11862,6 +13602,11 @@ export const leetcodeProblems = [
     "acRate": "41.1%",
     "frequency": "36.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11887,7 +13632,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "60.8%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11930,7 +13680,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "75.6%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -11964,7 +13719,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "50.0%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 3,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12007,6 +13767,11 @@ export const leetcodeProblems = [
     "acRate": "37.0%",
     "frequency": "36.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12040,7 +13805,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "71.8%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12066,7 +13836,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "63.8%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12096,7 +13871,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "74.0%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12126,7 +13906,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "73.4%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12160,7 +13945,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "43.9%",
     "frequency": "36.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12198,7 +13988,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "28.3%",
     "frequency": "36.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12224,7 +14019,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "61.3%",
     "frequency": "36.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12275,7 +14075,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "72.8%",
     "frequency": "36.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12322,6 +14127,11 @@ export const leetcodeProblems = [
     "acRate": "72.1%",
     "frequency": "36.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12359,7 +14169,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "44.4%",
     "frequency": "36.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12390,6 +14205,11 @@ export const leetcodeProblems = [
     "acRate": "51.7%",
     "frequency": "36.4%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12415,7 +14235,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "50.4%",
     "frequency": "36.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12445,7 +14270,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "75.7%",
     "frequency": "36.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12479,7 +14309,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "79.6%",
     "frequency": "36.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12506,6 +14341,11 @@ export const leetcodeProblems = [
     "acRate": "35.5%",
     "frequency": "36.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12540,6 +14380,11 @@ export const leetcodeProblems = [
     "acRate": "64.6%",
     "frequency": "36.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12569,7 +14414,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "50.5%",
     "frequency": "36.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12599,7 +14449,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "35.1%",
     "frequency": "36.0%",
-    "bytedance": true,
+    "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12638,7 +14493,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "84.7%",
     "frequency": "36.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12664,7 +14524,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "74.9%",
     "frequency": "36.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12695,6 +14560,11 @@ export const leetcodeProblems = [
     "acRate": "50.7%",
     "frequency": "36.0%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12721,6 +14591,11 @@ export const leetcodeProblems = [
     "acRate": "47.1%",
     "frequency": "36.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12754,7 +14629,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "45.6%",
     "frequency": "35.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12785,6 +14665,11 @@ export const leetcodeProblems = [
     "acRate": "55.3%",
     "frequency": "35.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12818,7 +14703,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "64.1%",
     "frequency": "35.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12857,6 +14747,11 @@ export const leetcodeProblems = [
     "acRate": "66.3%",
     "frequency": "35.1%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12883,6 +14778,11 @@ export const leetcodeProblems = [
     "acRate": "75.4%",
     "frequency": "35.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12912,7 +14812,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "61.9%",
     "frequency": "35.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12942,7 +14847,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.8%",
     "frequency": "34.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -12973,6 +14883,11 @@ export const leetcodeProblems = [
     "acRate": "77.6%",
     "frequency": "34.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13007,6 +14922,11 @@ export const leetcodeProblems = [
     "acRate": "33.3%",
     "frequency": "33.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13041,7 +14961,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "59.3%",
     "frequency": "33.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 3,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13072,6 +14997,11 @@ export const leetcodeProblems = [
     "acRate": "66.7%",
     "frequency": "33.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13101,7 +15031,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "47.6%",
     "frequency": "32.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13144,6 +15079,11 @@ export const leetcodeProblems = [
     "acRate": "49.1%",
     "frequency": "32.5%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13185,7 +15125,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "42.7%",
     "frequency": "32.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13224,7 +15169,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "29.8%",
     "frequency": "32.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13262,7 +15212,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "49.4%",
     "frequency": "32.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13300,7 +15255,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "81.6%",
     "frequency": "32.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13339,6 +15299,11 @@ export const leetcodeProblems = [
     "acRate": "82.8%",
     "frequency": "32.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13368,7 +15333,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "55.9%",
     "frequency": "31.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13423,6 +15393,11 @@ export const leetcodeProblems = [
     "acRate": "57.5%",
     "frequency": "31.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13449,6 +15424,11 @@ export const leetcodeProblems = [
     "acRate": "59.1%",
     "frequency": "31.7%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13487,6 +15467,11 @@ export const leetcodeProblems = [
     "acRate": "78.1%",
     "frequency": "31.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13517,6 +15502,11 @@ export const leetcodeProblems = [
     "acRate": "72.1%",
     "frequency": "31.7%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13551,6 +15541,11 @@ export const leetcodeProblems = [
     "acRate": "43.4%",
     "frequency": "31.4%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13576,7 +15571,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "70.7%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13611,6 +15611,11 @@ export const leetcodeProblems = [
     "acRate": "37.0%",
     "frequency": "31.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13652,7 +15657,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "67.2%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13691,6 +15701,11 @@ export const leetcodeProblems = [
     "acRate": "49.3%",
     "frequency": "31.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13720,7 +15735,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "42.4%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": true,
     "tags": [
@@ -13762,7 +15782,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "47.3%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13796,7 +15821,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "43.5%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13834,7 +15864,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.6%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13869,6 +15904,11 @@ export const leetcodeProblems = [
     "acRate": "53.2%",
     "frequency": "31.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13902,7 +15942,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "35.0%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13941,6 +15986,11 @@ export const leetcodeProblems = [
     "acRate": "71.3%",
     "frequency": "31.4%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -13967,6 +16017,11 @@ export const leetcodeProblems = [
     "acRate": "75.1%",
     "frequency": "31.4%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14005,6 +16060,11 @@ export const leetcodeProblems = [
     "acRate": "40.1%",
     "frequency": "31.4%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": true,
     "tags": [
@@ -14034,7 +16094,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "84.2%",
     "frequency": "31.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14061,6 +16126,11 @@ export const leetcodeProblems = [
     "acRate": "50.1%",
     "frequency": "31.4%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": true,
     "tags": [
@@ -14103,6 +16173,11 @@ export const leetcodeProblems = [
     "acRate": "51.1%",
     "frequency": "31.4%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14138,6 +16213,11 @@ export const leetcodeProblems = [
     "acRate": "47.4%",
     "frequency": "31.0%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14167,7 +16247,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "41.1%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14206,6 +16291,11 @@ export const leetcodeProblems = [
     "acRate": "58.1%",
     "frequency": "31.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14244,7 +16334,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "59.0%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14287,7 +16382,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "49.3%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14326,7 +16426,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "60.5%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14356,7 +16461,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "62.9%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 6
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14395,6 +16505,11 @@ export const leetcodeProblems = [
     "acRate": "49.9%",
     "frequency": "31.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14420,7 +16535,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.1%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14446,7 +16566,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "75.7%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14472,7 +16597,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "70.8%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14518,7 +16648,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "43.2%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14560,7 +16695,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "70.3%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14594,7 +16734,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "70.1%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14637,7 +16782,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "72.5%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14672,6 +16822,11 @@ export const leetcodeProblems = [
     "acRate": "69.0%",
     "frequency": "31.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14713,7 +16868,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "57.6%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14751,7 +16911,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "48.8%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14789,7 +16954,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "47.0%",
     "frequency": "31.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14820,6 +16990,11 @@ export const leetcodeProblems = [
     "acRate": "38.5%",
     "frequency": "31.0%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14863,6 +17038,11 @@ export const leetcodeProblems = [
     "acRate": "58.1%",
     "frequency": "31.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14897,6 +17077,11 @@ export const leetcodeProblems = [
     "acRate": "53.1%",
     "frequency": "31.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14930,7 +17115,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "75.4%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -14972,7 +17162,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "63.8%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15011,6 +17206,11 @@ export const leetcodeProblems = [
     "acRate": "45.5%",
     "frequency": "30.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15044,7 +17244,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "42.3%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15083,6 +17288,11 @@ export const leetcodeProblems = [
     "acRate": "52.7%",
     "frequency": "30.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15120,7 +17330,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "70.9%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15146,7 +17361,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "80.4%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15176,7 +17396,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "40.5%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15214,7 +17439,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "64.9%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15245,6 +17475,11 @@ export const leetcodeProblems = [
     "acRate": "78.0%",
     "frequency": "30.6%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15278,7 +17513,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "50.6%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15312,7 +17552,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "81.9%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15351,6 +17596,11 @@ export const leetcodeProblems = [
     "acRate": "52.7%",
     "frequency": "30.6%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15376,7 +17626,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "66.4%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15402,7 +17657,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "44.7%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15445,7 +17705,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.1%",
     "frequency": "30.6%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15480,6 +17745,11 @@ export const leetcodeProblems = [
     "acRate": "63.3%",
     "frequency": "30.6%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15510,6 +17780,11 @@ export const leetcodeProblems = [
     "acRate": "71.4%",
     "frequency": "30.6%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15548,6 +17823,11 @@ export const leetcodeProblems = [
     "acRate": "75.6%",
     "frequency": "30.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15581,7 +17861,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "49.8%",
     "frequency": "30.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15615,7 +17900,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "56.9%",
     "frequency": "30.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15645,7 +17935,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "57.9%",
     "frequency": "30.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 9
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15676,6 +17971,11 @@ export const leetcodeProblems = [
     "acRate": "77.8%",
     "frequency": "30.3%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15701,7 +18001,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "67.8%",
     "frequency": "30.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15735,7 +18040,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "52.6%",
     "frequency": "30.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 2,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15765,7 +18075,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "73.3%",
     "frequency": "30.3%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15795,7 +18110,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "74.8%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15839,6 +18159,11 @@ export const leetcodeProblems = [
     "acRate": "70.6%",
     "frequency": "30.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15868,7 +18193,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "37.0%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15906,7 +18236,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "43.6%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15949,6 +18284,11 @@ export const leetcodeProblems = [
     "acRate": "55.8%",
     "frequency": "30.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -15986,7 +18326,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "66.7%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16024,7 +18369,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "82.3%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16070,7 +18420,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "46.7%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 11
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16112,7 +18467,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "54.1%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16138,7 +18498,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "40.4%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16181,7 +18546,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "62.9%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16207,7 +18577,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "47.3%",
     "frequency": "30.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16238,6 +18613,11 @@ export const leetcodeProblems = [
     "acRate": "60.6%",
     "frequency": "30.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16279,7 +18659,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "53.0%",
     "frequency": "29.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16318,7 +18703,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "59.6%",
     "frequency": "29.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -16369,6 +18759,11 @@ export const leetcodeProblems = [
     "acRate": "68.7%",
     "frequency": "29.7%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16398,7 +18793,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "65.8%",
     "frequency": "29.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16429,6 +18829,11 @@ export const leetcodeProblems = [
     "acRate": "43.4%",
     "frequency": "29.7%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16462,7 +18867,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "69.2%",
     "frequency": "29.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16496,7 +18906,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "58.0%",
     "frequency": "29.7%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16534,7 +18949,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "74.4%",
     "frequency": "29.4%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16564,7 +18984,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "59.4%",
     "frequency": "29.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16604,6 +19029,11 @@ export const leetcodeProblems = [
     "acRate": "56.9%",
     "frequency": "29.1%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 10
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16641,7 +19071,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "79.0%",
     "frequency": "29.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 2,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -16671,7 +19106,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "69.2%",
     "frequency": "29.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16705,7 +19145,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "71.4%",
     "frequency": "29.1%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16740,6 +19185,11 @@ export const leetcodeProblems = [
     "acRate": "60.1%",
     "frequency": "28.8%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 11
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16769,7 +19219,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "54.8%",
     "frequency": "28.8%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16795,7 +19250,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "43.0%",
     "frequency": "28.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 4
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16821,7 +19281,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "82.5%",
     "frequency": "28.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16860,7 +19325,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "50.8%",
     "frequency": "28.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16890,7 +19360,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "65.1%",
     "frequency": "28.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16934,6 +19409,11 @@ export const leetcodeProblems = [
     "acRate": "54.0%",
     "frequency": "28.5%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -16972,6 +19452,11 @@ export const leetcodeProblems = [
     "acRate": "37.4%",
     "frequency": "28.5%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -17010,6 +19495,11 @@ export const leetcodeProblems = [
     "acRate": "66.8%",
     "frequency": "28.5%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": true,
     "tags": [
@@ -17044,6 +19534,11 @@ export const leetcodeProblems = [
     "acRate": "61.4%",
     "frequency": "28.5%",
     "bytedance": false,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -17078,6 +19573,11 @@ export const leetcodeProblems = [
     "acRate": "71.4%",
     "frequency": "27.9%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": 1,
+      "past6Months": null,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -17120,7 +19620,12 @@ export const leetcodeProblems = [
     "difficulty": "困难",
     "acRate": "49.2%",
     "frequency": "27.9%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": false,
     "paidOnly": false,
     "tags": [
@@ -17167,6 +19672,11 @@ export const leetcodeProblems = [
     "acRate": "76.8%",
     "frequency": "21.3%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": 1,
+      "before6Months": null
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -17204,7 +19714,12 @@ export const leetcodeProblems = [
     "difficulty": "简单",
     "acRate": "82.1%",
     "frequency": "8.5%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 1
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -17230,7 +19745,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "78.7%",
     "frequency": "0.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 2
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -17268,7 +19788,12 @@ export const leetcodeProblems = [
     "difficulty": "中等",
     "acRate": "43.2%",
     "frequency": "0.0%",
-    "bytedance": false,
+    "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 3
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -17315,6 +19840,11 @@ export const leetcodeProblems = [
     "acRate": "79.7%",
     "frequency": "0.0%",
     "bytedance": true,
+    "bytedancePeriods": {
+      "past3Months": null,
+      "past6Months": null,
+      "before6Months": 5
+    },
     "hot100": true,
     "paidOnly": false,
     "tags": [
@@ -17344,9 +19874,12 @@ export const leetcodeProblems = [
 ] satisfies LeetcodeProblem[];
 
 export const leetcodeStats = {
-  total: 505,
-  top500: 500,
-  hot100: 100,
-  hot100OutsideTop500: 5,
-  bytedance: 184,
+  "total": 505,
+  "top500": 500,
+  "hot100": 100,
+  "hot100OutsideTop500": 5,
+  "bytedance": 476,
+  "bytedancePast3Months": 298,
+  "bytedancePast6Months": 82,
+  "bytedanceBefore6Months": 96
 } as const;

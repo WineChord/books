@@ -45,8 +45,8 @@ const description = isZh ? book.zhDescription : book.description;
         <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
         <p class="leetcode-copy">
           {isZh
-            ? "按力扣中国区出题频率整理的练习清单，合并 Hot100 标记、字节跳动标记、题面预览、思路速览和本地练习状态。"
-            : "A compact LeetCode China frequency workbook with Hot 100 flags, ByteDance flags, previews, and local practice state."}
+            ? "按力扣中国区出题频率整理的练习清单，合并 Hot100 标记、字节跳动时间段、题面预览、思路速览和本地练习状态。"
+            : "A compact LeetCode China frequency workbook with Hot 100 flags, ByteDance time buckets, previews, and local practice state."}
         </p>
         <div class="leetcode-actions">
           <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
@@ -84,7 +84,7 @@ const description = isZh ? book.zhDescription : book.description;
       </div>
       <div>
         <span>{leetcodeStats.bytedance}</span>
-        <p>{isZh ? "字节标记" : "ByteDance"}</p>
+        <p>{isZh ? "字节出现" : "ByteDance"}</p>
       </div>
     </section>
 
@@ -98,7 +98,10 @@ const description = isZh ? book.zhDescription : book.description;
         <div class="leetcode-filter-group" role="group" aria-label={isZh ? "筛选" : "Filters"}>
           <button type="button" class="is-active" data-filter="all">{isZh ? "全部" : "All"}</button>
           <button type="button" data-filter="hot100">Hot100</button>
-          <button type="button" data-filter="bytedance">{isZh ? "字节" : "ByteDance"}</button>
+          <button type="button" data-filter="bytedance">{isZh ? "字节全部" : "ByteDance"}</button>
+          <button type="button" data-filter="bytedancePast3Months">{isZh ? "字节近3月" : "BD 3m"}</button>
+          <button type="button" data-filter="bytedancePast6Months">{isZh ? "字节3-6月" : "BD 3-6m"}</button>
+          <button type="button" data-filter="bytedanceBefore6Months">{isZh ? "字节6月前" : "BD old"}</button>
           <button type="button" data-filter="unsolved">{isZh ? "未做" : "Unsolved"}</button>
           <button type="button" data-filter="review">{isZh ? "需思考" : "Review"}</button>
           <button type="button" data-filter="unmastered">{isZh ? "未熟练" : "Unmastered"}</button>
@@ -206,8 +209,12 @@ const description = isZh ? book.zhDescription : book.description;
 
     function matchesFilter(problem) {
       const status = rowState(problem.titleSlug);
+      const byteDance = problem.bytedancePeriods || {};
       if (state.filter === "hot100" && !problem.hot100) return false;
       if (state.filter === "bytedance" && !problem.bytedance) return false;
+      if (state.filter === "bytedancePast3Months" && !byteDance.past3Months) return false;
+      if (state.filter === "bytedancePast6Months" && !byteDance.past6Months) return false;
+      if (state.filter === "bytedanceBefore6Months" && !byteDance.before6Months) return false;
       if (state.filter === "unsolved" && status.done) return false;
       if (state.filter === "review" && !status.review) return false;
       if (state.filter === "unmastered" && status.mastered) return false;
@@ -217,6 +224,7 @@ const description = isZh ? book.zhDescription : book.description;
         problem.titleCn,
         problem.titleSlug,
         problem.difficulty,
+        problem.bytedance ? "字节跳动 bytedance" : "",
         ...problem.tags.map((tag) => tag.name),
       ].join(" ").toLowerCase();
       return haystack.includes(state.query.toLowerCase());
@@ -243,12 +251,25 @@ const description = isZh ? book.zhDescription : book.description;
         .join("");
     }
 
+    function renderByteDance(problem) {
+      const periods = problem.bytedancePeriods || {};
+      const chips = [
+        ["3月", periods.past3Months],
+        ["3-6月", periods.past6Months],
+        ["6月前", periods.before6Months],
+      ].filter(([, count]) => count);
+      if (!chips.length) return "";
+      return chips
+        .map(([label, count]) => `<span>${escapeHtml(label)} ${escapeHtml(count)}</span>`)
+        .join("");
+    }
+
     function renderProblem(problem) {
       const status = rowState(problem.titleSlug);
       const visitedClass = clicked[problem.titleSlug] ? " is-visited" : "";
       const topRank = problem.topRank ?? "";
       const hotRank = problem.hotRank ?? "";
-      const byteDance = problem.bytedance ? "是" : "";
+      const byteDance = renderByteDance(problem);
       const topLabel = problem.topRank === null ? `#${problem.frequencyRank}` : "";
       return `
         <article class="leetcode-row${visitedClass}" data-slug="${escapeHtml(problem.titleSlug)}">
@@ -519,9 +540,10 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-toolbar {
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: minmax(14rem, 20rem) minmax(0, 1fr) auto;
       gap: 0.85rem;
-      justify-content: space-between;
+      align-items: end;
       margin-bottom: 0.9rem;
     }
 
@@ -563,6 +585,7 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-filter-group {
       flex-wrap: wrap;
       gap: 0.35rem;
+      justify-content: center;
     }
 
     .leetcode-filter-group button,
@@ -609,8 +632,8 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 3.25rem 3.25rem minmax(17rem, 1fr) 4.4rem 4.8rem 3.6rem 11rem 7rem;
-      min-width: 58rem;
+      grid-template-columns: 3.25rem 3.25rem minmax(17rem, 1fr) 4.4rem 4.8rem 7.4rem 11rem 7rem;
+      min-width: 64rem;
       gap: 0.5rem;
       align-items: center;
     }
@@ -726,8 +749,20 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-byte {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.22rem;
+    }
+
+    .leetcode-byte span {
+      display: inline-flex;
+      border: 1px solid rgb(217 119 87 / 38%);
+      border-radius: 999px;
       color: var(--color-terracotta);
+      font-size: 0.72rem;
       font-weight: 700;
+      line-height: 1.2;
+      padding: 0.12rem 0.35rem;
     }
 
     .leetcode-status,
@@ -807,6 +842,14 @@ const description = isZh ? book.zhDescription : book.description;
 
       .leetcode-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .leetcode-toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .leetcode-filter-group {
+        justify-content: flex-start;
       }
     }
 

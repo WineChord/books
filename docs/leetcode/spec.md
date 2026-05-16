@@ -13,8 +13,10 @@ Hot 100 membership comes from the public Hot 100 study plan. If a Hot 100
 problem is outside the top 500, it is appended without a top-500 rank and keeps
 its frequency-order position for Hot 100 sorting.
 
-ByteDance is a boolean signal. It is true when the LeetCode problem metadata
-lists `bytedance` in the returned top company tags.
+ByteDance comes from each problem detail page's `companyTagStatsV2` data. The
+book records the three LeetCode company buckets: past three months, three to
+six months, and more than six months ago. The row-level ByteDance signal is
+true when any one of those buckets contains `bytedance`.
 
 ## Page Contract
 
@@ -27,8 +29,10 @@ Each row shows three identifiers:
 The page supports 10, 20, 50, 100, and custom page sizes. It defaults to 20
 items per page.
 
-Filters include all problems, Hot 100, ByteDance, unsolved, needs thought, and
-not mastered. Text search matches id, title, and tags.
+Filters include all problems, Hot 100, any ByteDance appearance, ByteDance in
+the past three months, ByteDance three to six months ago, ByteDance more than
+six months ago, unsolved, needs thought, and not mastered. Text search matches
+id, title, tags, and ByteDance.
 
 ## Practice State
 
