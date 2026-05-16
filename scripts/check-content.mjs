@@ -24,6 +24,11 @@ const publicBooks = [
     enDir: join(docsDir, "codex-context-management"),
     zhDir: join(docsDir, "zh", "codex-context-management"),
   },
+  {
+    slug: "leetcode",
+    enDir: join(docsDir, "leetcode"),
+    zhDir: join(docsDir, "zh", "leetcode"),
+  },
 ];
 
 function walk(dir) {

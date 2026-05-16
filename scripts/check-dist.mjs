@@ -93,6 +93,14 @@ assert(
   "English book landing page is missing",
 );
 assert(
+  existsSync(path.join(distDir, "leetcode", "index.html")),
+  "LeetCode book landing page is missing",
+);
+assert(
+  existsSync(path.join(distDir, "leetcode", "spec.html")),
+  "LeetCode spec page is missing",
+);
+assert(
   existsSync(path.join(distDir, "codex-from-source", "chapter-01.html")),
   "English chapter HTML compatibility path is missing",
 );

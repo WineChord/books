@@ -6,6 +6,7 @@ This repository hosts long-form online books for
 ## Books
 
 - [Codex From Source](https://www.wineandchord.com/books/codex-from-source/)
+- [LeetCode Frequency 500](https://www.wineandchord.com/books/leetcode/)
 
 ## Development
 

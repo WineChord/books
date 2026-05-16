@@ -11,13 +11,24 @@ function preserveHtmlUrls(item) {
     "/books",
     "/books/codex-from-source",
     "/books/zh/codex-from-source",
+    "/books/codex-context-management",
+    "/books/zh/codex-context-management",
+    "/books/leetcode",
+    "/books/zh/leetcode",
   ]);
+  const htmlPagePrefixes = [
+    "/books/codex-from-source/",
+    "/books/zh/codex-from-source/",
+    "/books/codex-context-management/",
+    "/books/zh/codex-context-management/",
+    "/books/leetcode/",
+    "/books/zh/leetcode/",
+  ];
 
   if (landingPaths.has(url.pathname)) {
     url.pathname = `${url.pathname}/`;
   } else if (
-    (url.pathname.startsWith("/books/codex-from-source/")
-      || url.pathname.startsWith("/books/zh/codex-from-source/"))
+    htmlPagePrefixes.some((prefix) => url.pathname.startsWith(prefix))
     && !url.pathname.endsWith("/")
     && !url.pathname.endsWith(".html")
   ) {

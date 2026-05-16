@@ -1,0 +1,809 @@
+---
+import Header from "./Header.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { leetcodeBook } from "../book.config";
+import {
+  leetcodeDataSource,
+  leetcodeDataUpdatedAt,
+  leetcodeProblems,
+  leetcodeStats,
+} from "../data/leetcode-problems";
+import { pageUrl } from "../urls";
+
+interface Props {
+  lang?: "en" | "zh";
+}
+
+const { lang = "zh" } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const book = leetcodeBook;
+const isZh = lang === "zh";
+const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
+const title = isZh ? book.zhTitle : book.title;
+const description = isZh ? book.zhDescription : book.description;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonicalPath={homePath}
+  lang={lang}
+  titleSuffix={title}
+>
+  <Header
+    lang={lang}
+    alternatePath={null}
+    homePath={homePath}
+    brandTitle={title}
+    brandShortTitle={isZh ? book.zhShortTitle : book.shortTitle}
+  />
+
+  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-12">
+    <section class="leetcode-hero">
+      <div>
+        <p class="leetcode-kicker">{book.coverKicker}</p>
+        <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
+        <p class="leetcode-copy">
+          {isZh
+            ? "按力扣中国区出题频率整理的练习清单，合并 Hot100 标记、字节跳动标记、题面预览、思路速览和本地练习状态。"
+            : "A compact LeetCode China frequency workbook with Hot 100 flags, ByteDance flags, previews, and local practice state."}
+        </p>
+        <div class="leetcode-actions">
+          <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
+            {isZh ? "查看规格" : "Read spec"}
+          </a>
+          <a
+            href="https://leetcode.cn/studyplan/top-100-liked/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="leetcode-secondary-link"
+          >
+            Hot 100
+          </a>
+        </div>
+      </div>
+      <div class="book-cover" aria-label={`${title} cover`}>
+        <div class="book-cover__kicker">{book.coverKicker}</div>
+        <div class="book-cover__title" set:html={book.coverTitle} />
+        <div class="book-cover__footer">{book.coverFooter}</div>
+      </div>
+    </section>
+
+    <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
+      <div>
+        <span>{leetcodeStats.top500}</span>
+        <p>Top 500</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100}</span>
+        <p>Hot 100</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100OutsideTop500}</span>
+        <p>{isZh ? "Hot100 补充" : "Hot supplements"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.bytedance}</span>
+        <p>{isZh ? "字节标记" : "ByteDance"}</p>
+      </div>
+    </section>
+
+    <section class="leetcode-workspace" aria-label={isZh ? "题目列表" : "Problem list"}>
+      <div class="leetcode-toolbar">
+        <div class="leetcode-search">
+          <label for="leetcode-search">{isZh ? "搜索" : "Search"}</label>
+          <input id="leetcode-search" type="search" placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"} />
+        </div>
+
+        <div class="leetcode-filter-group" role="group" aria-label={isZh ? "筛选" : "Filters"}>
+          <button type="button" class="is-active" data-filter="all">{isZh ? "全部" : "All"}</button>
+          <button type="button" data-filter="hot100">Hot100</button>
+          <button type="button" data-filter="bytedance">{isZh ? "字节" : "ByteDance"}</button>
+          <button type="button" data-filter="unsolved">{isZh ? "未做" : "Unsolved"}</button>
+          <button type="button" data-filter="review">{isZh ? "需思考" : "Review"}</button>
+          <button type="button" data-filter="unmastered">{isZh ? "未熟练" : "Unmastered"}</button>
+        </div>
+
+        <div class="leetcode-page-size">
+          <label for="leetcode-page-size">{isZh ? "每页" : "Page size"}</label>
+          <select id="leetcode-page-size">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="custom">{isZh ? "自定义" : "Custom"}</option>
+          </select>
+          <input id="leetcode-custom-size" type="number" min="1" max="505" inputmode="numeric" placeholder="32" hidden />
+        </div>
+      </div>
+
+      <div class="leetcode-summary">
+        <span id="leetcode-result-count"></span>
+        <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
+        <span>{leetcodeDataSource}</span>
+      </div>
+
+      <div class="leetcode-table-wrap">
+        <div class="leetcode-table-head" aria-hidden="true">
+          <span>Top</span>
+          <span>Hot</span>
+          <span>{isZh ? "题目" : "Problem"}</span>
+          <span>{isZh ? "难度" : "Level"}</span>
+          <span>{isZh ? "频率" : "Freq"}</span>
+          <span>{isZh ? "字节" : "BD"}</span>
+          <span>{isZh ? "状态" : "State"}</span>
+          <span>{isZh ? "预览" : "Preview"}</span>
+        </div>
+        <div id="leetcode-problem-list" class="leetcode-problem-list"></div>
+      </div>
+
+      <div class="leetcode-pagination">
+        <button type="button" id="leetcode-prev">{isZh ? "上一页" : "Prev"}</button>
+        <span id="leetcode-page-indicator"></span>
+        <button type="button" id="leetcode-next">{isZh ? "下一页" : "Next"}</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblems)}></script>
+
+  <script>
+    const progressKey = "leetcode-book-progress-v1";
+    const clickedKey = "leetcode-book-clicked-v1";
+    const dataNode = document.getElementById("leetcode-data");
+    const problems = JSON.parse(dataNode?.textContent || "[]");
+    const list = document.getElementById("leetcode-problem-list");
+    const searchInput = document.getElementById("leetcode-search");
+    const pageSizeSelect = document.getElementById("leetcode-page-size");
+    const customSizeInput = document.getElementById("leetcode-custom-size");
+    const resultCount = document.getElementById("leetcode-result-count");
+    const pageIndicator = document.getElementById("leetcode-page-indicator");
+    const prevButton = document.getElementById("leetcode-prev");
+    const nextButton = document.getElementById("leetcode-next");
+    const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const state = {
+      filter: "all",
+      page: 1,
+      pageSize: 20,
+      query: "",
+    };
+
+    function readJson(key, fallback) {
+      try {
+        return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+      } catch {
+        return fallback;
+      }
+    }
+
+    let progress = readJson(progressKey, {});
+    let clicked = readJson(clickedKey, {});
+
+    function writeState() {
+      localStorage.setItem(progressKey, JSON.stringify(progress));
+      localStorage.setItem(clickedKey, JSON.stringify(clicked));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function rowState(slug) {
+      return progress[slug] || { done: false, review: false, mastered: false };
+    }
+
+    function pageSize() {
+      if (pageSizeSelect?.value === "custom") {
+        const custom = Number(customSizeInput?.value || 20);
+        return Math.max(1, Math.min(505, Number.isFinite(custom) ? custom : 20));
+      }
+      return Number(pageSizeSelect?.value || 20);
+    }
+
+    function matchesFilter(problem) {
+      const status = rowState(problem.titleSlug);
+      if (state.filter === "hot100" && !problem.hot100) return false;
+      if (state.filter === "bytedance" && !problem.bytedance) return false;
+      if (state.filter === "unsolved" && status.done) return false;
+      if (state.filter === "review" && !status.review) return false;
+      if (state.filter === "unmastered" && status.mastered) return false;
+      if (!state.query) return true;
+      const haystack = [
+        problem.frontendId,
+        problem.titleCn,
+        problem.titleSlug,
+        problem.difficulty,
+        ...problem.tags.map((tag) => tag.name),
+      ].join(" ").toLowerCase();
+      return haystack.includes(state.query.toLowerCase());
+    }
+
+    function orderedProblems() {
+      const filtered = problems.filter(matchesFilter);
+      if (state.filter === "hot100") {
+        return filtered.sort((a, b) => (a.hotRank || 999) - (b.hotRank || 999));
+      }
+      return filtered;
+    }
+
+    function badgeClass(difficulty) {
+      if (difficulty === "简单") return "is-easy";
+      if (difficulty === "困难") return "is-hard";
+      return "is-medium";
+    }
+
+    function renderTags(problem) {
+      return problem.tags
+        .slice(0, 3)
+        .map((tag) => `<span>${escapeHtml(tag.name)}</span>`)
+        .join("");
+    }
+
+    function renderProblem(problem) {
+      const status = rowState(problem.titleSlug);
+      const visitedClass = clicked[problem.titleSlug] ? " is-visited" : "";
+      const topRank = problem.topRank ?? "";
+      const hotRank = problem.hotRank ?? "";
+      const byteDance = problem.bytedance ? "是" : "";
+      const topLabel = problem.topRank === null ? `#${problem.frequencyRank}` : "";
+      return `
+        <article class="leetcode-row${visitedClass}" data-slug="${escapeHtml(problem.titleSlug)}">
+          <div class="leetcode-rank">${topRank}</div>
+          <div class="leetcode-rank is-hot">${hotRank}</div>
+          <div class="leetcode-problem-main">
+            <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
+              ${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}
+            </a>
+            <div class="leetcode-row-meta">
+              ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
+              ${problem.hot100 ? "<span>Hot100</span>" : ""}
+              ${renderTags(problem)}
+            </div>
+          </div>
+          <div><span class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</span></div>
+          <div class="leetcode-frequency">${escapeHtml(problem.frequency)}</div>
+          <div class="leetcode-byte">${byteDance}</div>
+          <div class="leetcode-status">
+            <button type="button" data-action="done" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.done ? "is-on" : ""}">做过</button>
+            <button type="button" data-action="review" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.review ? "is-on" : ""}">思考</button>
+            <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}">熟练</button>
+          </div>
+          <div class="leetcode-preview">
+            <button type="button">
+              题意
+              <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
+            </button>
+            <button type="button">
+              思路
+              <span class="leetcode-popover">
+                ${escapeHtml(problem.approachPreview)}
+                ${problem.followUps.map((item) => `<em>${escapeHtml(item)}</em>`).join("")}
+              </span>
+            </button>
+          </div>
+        </article>
+      `;
+    }
+
+    function render() {
+      const items = orderedProblems();
+      state.pageSize = pageSize();
+      const totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      state.page = Math.min(state.page, totalPages);
+      const start = (state.page - 1) * state.pageSize;
+      const pageItems = items.slice(start, start + state.pageSize);
+      if (list) list.innerHTML = pageItems.map(renderProblem).join("");
+      if (resultCount) {
+        resultCount.textContent = `${items.length} 道题`;
+      }
+      if (pageIndicator) {
+        pageIndicator.textContent = `${state.page} / ${totalPages}`;
+      }
+      if (prevButton) prevButton.disabled = state.page <= 1;
+      if (nextButton) nextButton.disabled = state.page >= totalPages;
+    }
+
+    searchInput?.addEventListener("input", (event) => {
+      state.query = event.target.value.trim();
+      state.page = 1;
+      render();
+    });
+
+    pageSizeSelect?.addEventListener("change", () => {
+      customSizeInput.hidden = pageSizeSelect.value !== "custom";
+      state.page = 1;
+      render();
+    });
+
+    customSizeInput?.addEventListener("input", () => {
+      state.page = 1;
+      render();
+    });
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        filterButtons.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        state.filter = button.dataset.filter || "all";
+        state.page = 1;
+        render();
+      });
+    });
+
+    prevButton?.addEventListener("click", () => {
+      state.page = Math.max(1, state.page - 1);
+      render();
+    });
+
+    nextButton?.addEventListener("click", () => {
+      state.page += 1;
+      render();
+    });
+
+    list?.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const link = target.closest("[data-link-slug]");
+      if (link instanceof HTMLElement) {
+        clicked[link.dataset.linkSlug || ""] = true;
+        writeState();
+        return;
+      }
+      const button = target.closest("[data-action]");
+      if (!(button instanceof HTMLElement)) return;
+      const slug = button.dataset.slug || "";
+      const action = button.dataset.action || "";
+      const current = rowState(slug);
+      const next = { ...current };
+      if (action === "done") next.done = !next.done;
+      if (action === "review") {
+        next.review = !next.review;
+        if (next.review) next.mastered = false;
+      }
+      if (action === "mastered") {
+        next.mastered = !next.mastered;
+        if (next.mastered) {
+          next.done = true;
+          next.review = false;
+        }
+      }
+      progress[slug] = next;
+      writeState();
+      render();
+    });
+
+    render();
+  </script>
+
+  <style is:global>
+    .leetcode-shell {
+      color: var(--color-charcoal);
+    }
+
+    html.dark .leetcode-shell {
+      color: var(--color-cream);
+    }
+
+    .leetcode-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 18rem;
+      gap: 2.5rem;
+      align-items: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .leetcode-hero .book-cover__title {
+      font-size: 2.75rem;
+    }
+
+    .leetcode-kicker {
+      margin: 0 0 0.75rem;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .leetcode-title {
+      max-width: 12ch;
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 7vw, 4.6rem);
+      line-height: 0.98;
+    }
+
+    .leetcode-copy {
+      max-width: 42rem;
+      margin: 1.15rem 0 0;
+      color: var(--color-secondary);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    html.dark .leetcode-copy {
+      color: var(--color-muted);
+    }
+
+    .leetcode-actions,
+    .leetcode-toolbar,
+    .leetcode-filter-group,
+    .leetcode-page-size,
+    .leetcode-summary,
+    .leetcode-pagination,
+    .leetcode-status,
+    .leetcode-preview,
+    .leetcode-row-meta {
+      display: flex;
+      align-items: center;
+    }
+
+    .leetcode-actions {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .leetcode-primary-link,
+    .leetcode-secondary-link {
+      border-radius: 0.5rem;
+      padding: 0.7rem 1rem;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .leetcode-primary-link {
+      background: var(--color-terracotta);
+      color: white;
+    }
+
+    .leetcode-secondary-link {
+      border: 1px solid var(--color-border);
+      color: var(--color-charcoal);
+    }
+
+    html.dark .leetcode-secondary-link {
+      border-color: #333;
+      color: var(--color-cream);
+    }
+
+    .leetcode-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      padding: 1rem 0;
+    }
+
+    html.dark .leetcode-stats {
+      border-color: #333;
+    }
+
+    .leetcode-stats div {
+      min-width: 0;
+    }
+
+    .leetcode-stats span {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 1.45rem;
+      font-weight: 700;
+    }
+
+    .leetcode-stats p {
+      margin: 0.15rem 0 0;
+      color: var(--color-muted);
+      font-size: 0.82rem;
+    }
+
+    .leetcode-workspace {
+      min-width: 0;
+    }
+
+    .leetcode-toolbar {
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      justify-content: space-between;
+      margin-bottom: 0.9rem;
+    }
+
+    .leetcode-search,
+    .leetcode-page-size {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .leetcode-search label,
+    .leetcode-page-size label {
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .leetcode-search input,
+    .leetcode-page-size select,
+    .leetcode-page-size input {
+      min-height: 2.25rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.45rem;
+      background: rgb(255 255 255 / 48%);
+      color: inherit;
+      font: inherit;
+      padding: 0.4rem 0.65rem;
+    }
+
+    .leetcode-search input {
+      width: min(20rem, 72vw);
+    }
+
+    .leetcode-page-size {
+      grid-template-columns: auto auto auto;
+      align-items: end;
+    }
+
+    .leetcode-filter-group {
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .leetcode-filter-group button,
+    .leetcode-status button,
+    .leetcode-preview button,
+    .leetcode-pagination button {
+      border: 1px solid var(--color-border);
+      border-radius: 0.45rem;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.82rem;
+      padding: 0.4rem 0.58rem;
+    }
+
+    .leetcode-filter-group button.is-active,
+    .leetcode-status button.is-on {
+      border-color: var(--color-terracotta);
+      background: rgb(217 119 87 / 12%);
+      color: var(--color-terracotta);
+      font-weight: 650;
+    }
+
+    .leetcode-summary {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin: 0 0 0.75rem;
+      color: var(--color-muted);
+      font-size: 0.78rem;
+    }
+
+    .leetcode-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    html.dark .leetcode-table-wrap {
+      border-color: #333;
+    }
+
+    .leetcode-table-head,
+    .leetcode-row {
+      display: grid;
+      grid-template-columns: 3.25rem 3.25rem minmax(17rem, 1fr) 4.4rem 4.8rem 3.6rem 11rem 7rem;
+      min-width: 58rem;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .leetcode-table-head {
+      position: sticky;
+      top: 3.5rem;
+      z-index: 1;
+      background: var(--color-cream);
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.55rem 0.35rem;
+      text-transform: uppercase;
+    }
+
+    html.dark .leetcode-table-head {
+      background: var(--color-charcoal);
+    }
+
+    .leetcode-row {
+      min-height: 3.25rem;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      padding: 0.5rem 0.35rem;
+    }
+
+    html.dark .leetcode-row {
+      border-top-color: #333;
+    }
+
+    .leetcode-row:nth-child(even) {
+      background: rgb(255 255 255 / 28%);
+    }
+
+    html.dark .leetcode-row:nth-child(even) {
+      background: rgb(30 30 28 / 38%);
+    }
+
+    .leetcode-rank,
+    .leetcode-frequency,
+    .leetcode-byte {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .leetcode-rank {
+      color: var(--color-muted);
+      text-align: right;
+    }
+
+    .leetcode-rank.is-hot {
+      color: var(--color-terracotta);
+      font-weight: 700;
+    }
+
+    .leetcode-problem-link {
+      color: var(--color-charcoal);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .leetcode-problem-link:visited,
+    .leetcode-row.is-visited .leetcode-problem-link {
+      color: #7a5aa6;
+    }
+
+    .leetcode-problem-link:hover {
+      color: var(--color-terracotta);
+    }
+
+    html.dark .leetcode-problem-link {
+      color: var(--color-cream);
+    }
+
+    .leetcode-row-meta {
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.25rem;
+    }
+
+    .leetcode-row-meta span {
+      border-radius: 999px;
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      padding: 0.08rem 0.42rem;
+    }
+
+    .leetcode-difficulty {
+      display: inline-flex;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.16rem 0.5rem;
+    }
+
+    .leetcode-difficulty.is-easy {
+      color: #168a77;
+    }
+
+    .leetcode-difficulty.is-medium {
+      color: #b77b00;
+    }
+
+    .leetcode-difficulty.is-hard {
+      color: #d64242;
+    }
+
+    .leetcode-byte {
+      color: var(--color-terracotta);
+      font-weight: 700;
+    }
+
+    .leetcode-status,
+    .leetcode-preview {
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+
+    .leetcode-status button,
+    .leetcode-preview button {
+      padding: 0.3rem 0.42rem;
+    }
+
+    .leetcode-preview button {
+      position: relative;
+    }
+
+    .leetcode-popover {
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 0.5rem);
+      z-index: 5;
+      display: none;
+      width: min(22rem, 72vw);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      background: var(--color-cream);
+      box-shadow: 0 18px 45px rgb(20 20 19 / 18%);
+      color: var(--color-secondary);
+      font-size: 0.84rem;
+      line-height: 1.55;
+      padding: 0.8rem;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .leetcode-popover em {
+      display: block;
+      margin-top: 0.5rem;
+      color: var(--color-terracotta);
+      font-style: normal;
+      font-weight: 650;
+    }
+
+    .leetcode-preview button:hover .leetcode-popover,
+    .leetcode-preview button:focus-visible .leetcode-popover {
+      display: block;
+    }
+
+    html.dark .leetcode-popover {
+      border-color: #333;
+      background: var(--color-dark-surface);
+      color: var(--color-muted);
+    }
+
+    .leetcode-pagination {
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .leetcode-pagination button:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
+
+    @media (max-width: 900px) {
+      .leetcode-hero {
+        grid-template-columns: 1fr;
+      }
+
+    .leetcode-hero .book-cover {
+      max-width: 100%;
+    }
+
+      .leetcode-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .leetcode-title {
+        max-width: 9ch;
+      }
+
+      .leetcode-page-size {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .leetcode-page-size input {
+        grid-column: 1 / -1;
+      }
+    }
+  </style>
+</BaseLayout>

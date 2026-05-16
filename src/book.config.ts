@@ -209,6 +209,20 @@ const contextManagementPages: PageConfig[] = [
   reference("source-atlas", "Source Atlas", "源码索引", "Pinned source anchors for the context-management book.", "上下文管理书籍使用的固定源码锚点。", "codex-context-management"),
 ];
 
+const leetcodePages: PageConfig[] = [
+  {
+    book: "leetcode",
+    path: "leetcode/spec",
+    zhPath: "zh/leetcode/spec",
+    title: "Spec",
+    zhTitle: "规格说明",
+    description:
+      "The data, ranking, filtering, and progress contract for the LeetCode frequency book.",
+    zhDescription: "说明力扣高频题册的数据、排序、筛选和进度契约。",
+    kind: "front",
+  },
+];
+
 export const codexFromSourceBook = makeBook({
   slug: "codex-from-source",
   title: siteTitle,
@@ -245,7 +259,30 @@ export const codexContextManagementBook = makeBook({
   pages: contextManagementPages,
 });
 
-export const books = [codexFromSourceBook, codexContextManagementBook] as const;
+export const leetcodeBook = makeBook({
+  slug: "leetcode",
+  title: "LeetCode Frequency 500",
+  zhTitle: "力扣高频 500",
+  shortTitle: "LeetCode",
+  zhShortTitle: "力扣",
+  description:
+    "A compact, filterable LeetCode China frequency workbook with Hot 100 membership, ByteDance flags, previews, and local practice marks.",
+  zhDescription:
+    "一本紧凑可筛选的力扣中国区高频题册，包含 Hot100、字节跳动标记、题面预览和本地练习标记。",
+  coverKicker: "Frequency, Hot 100, Local Practice",
+  zhCoverKicker: "Frequency, Hot 100, Local Practice",
+  coverTitle: "LeetCode<br />Frequency<br />500",
+  coverFooter: "500 ranked + Hot 100 supplements",
+  zhCoverFooter: "500 高频 + Hot100 补充",
+  parts: [],
+  pages: leetcodePages,
+});
+
+export const books = [
+  codexFromSourceBook,
+  codexContextManagementBook,
+  leetcodeBook,
+] as const;
 export const allPages = books.flatMap((book) => book.pages);
 
 export const parts = codexFromSourceBook.parts;
