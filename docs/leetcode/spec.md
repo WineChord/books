@@ -83,8 +83,9 @@ implementation. Moving one more small step to Tags shows topic tags and
 supplemental badges. These preview targets stay compact and must not increase
 the normal row height.
 
-The duplicate audit appears above the table in a collapsed details section. It
-lists every removed duplicate, the kept row, and the original frequency ranks.
+The duplicate audit appears below the working list in a collapsed details
+section. It lists every removed duplicate, the kept row, and the original
+frequency ranks without taking space before the first visible rows.
 
 The page supports 10, 20, 50, 100, and custom page sizes. It defaults to 20
 items per page. Pagination controls appear both above and below the problem
@@ -93,9 +94,10 @@ jump input. Left and right arrow keys turn pages when the current focus is not
 inside search, filters, selectors, the practice editor, or another editable
 control.
 
-The top of the page is intentionally compact. The book title, stats, filters,
-summary, and top pagination should take as little vertical space as possible so
-the problem list is the visual center immediately after opening the page.
+The top of the page is intentionally compact. Search, filters, summary,
+pagination, and the problem rows should be the first meaningful page content.
+The larger book title, stats, and reading links may live near the page end so
+they do not push the working list out of the opening viewport.
 
 Filters are grouped by scope, ByteDance, and practice state. Scope includes all
 problems, Hot 100, and sourced company follow-ups. ByteDance includes all,
@@ -120,7 +122,11 @@ bracket, or parenthesis on an indentation-only line aligns it back one level.
 The editor shows a fixed line-number gutter synchronized with the textarea and
 highlight layer. Editor shortcuts match the primary LeetCode muscle memory:
 `Cmd+'` runs the official example testcases and `Cmd+Enter` performs a full
-LeetCode submit.
+LeetCode submit. Practice navigation is also keyboard-first: `Option+J` or
+`Option+Down` opens and focuses the next visible problem's editor, while
+`Option+K` or `Option+Up` opens and focuses the previous one. A compact
+shortcut affordance near pagination and a full shortcut block near the page
+end list every supported key.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and

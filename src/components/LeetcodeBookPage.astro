@@ -113,6 +113,38 @@ const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => (
     leetcodeImplementationReferences[problem.titleSlug] ?? [],
 }));
 const totalProblemCount = leetcodeProblemsWithReferences.length;
+const shortcutRows = [
+  {
+    keys: "Option+J / Option+↓",
+    zh: "下一题答题区",
+    en: "Next problem editor",
+  },
+  {
+    keys: "Option+K / Option+↑",
+    zh: "上一题答题区",
+    en: "Previous problem editor",
+  },
+  {
+    keys: "Cmd+'",
+    zh: "运行官方示例",
+    en: "Run official examples",
+  },
+  {
+    keys: "Cmd+Enter",
+    zh: "完整提交到力扣",
+    en: "Submit to LeetCode",
+  },
+  {
+    keys: "← / →",
+    zh: "翻页（未聚焦输入区时）",
+    en: "Change page when not editing",
+  },
+  {
+    keys: "?",
+    zh: "打开快捷键帮助",
+    en: "Open shortcut help",
+  },
+];
 ---
 
 <BaseLayout
@@ -130,64 +162,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     brandShortTitle={isZh ? book.zhShortTitle : book.shortTitle}
   />
 
-  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-1 md:px-8 md:py-2">
-    <section class="leetcode-hero">
-      <div>
-        <p class="leetcode-kicker">{book.coverKicker}</p>
-        <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
-        <p class="leetcode-copy">
-          {isZh
-            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、题意/思路/实现预览、本地状态和扩展提交。"
-            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance company lists, previews, local state, and extension submit."}
-        </p>
-        <div class="leetcode-actions">
-          <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
-            {isZh ? "查看规格" : "Read spec"}
-          </a>
-          <a
-            href="https://leetcode.cn/studyplan/top-100-liked/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="leetcode-secondary-link"
-          >
-            Hot 100
-          </a>
-        </div>
-      </div>
-      <div class="book-cover" aria-label={`${title} cover`}>
-        <div class="book-cover__kicker">{book.coverKicker}</div>
-        <div class="book-cover__title" set:html={book.coverTitle} />
-        <div class="book-cover__footer">{book.coverFooter}</div>
-      </div>
-    </section>
-
-    <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
-      <div>
-        <span>{leetcodeTargetLimit}</span>
-        <p>{isZh ? "Top888 目标" : "Top 888 target"}</p>
-      </div>
-      <div>
-        <span>{syncedDedupedLimit}</span>
-        <p>{isZh ? "去重后" : "Deduped"}</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.hot100}</span>
-        <p>Hot 100</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.hot100OutsideTop888}</span>
-        <p>{isZh ? "Hot100 补充" : "Hot 100 extras"}</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.duplicatesRemoved}</span>
-        <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
-      </div>
-      <div>
-        <span>{leetcodeByteDanceStats.syncedAll}/{leetcodeByteDanceStats.targetAll}</span>
-        <p>{isZh ? "字节题库" : "ByteDance"}</p>
-      </div>
-    </section>
-
+  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-1 md:px-8 md:py-1">
     <section class="leetcode-workspace" aria-label={isZh ? "题目列表" : "Problem list"}>
       <div class="leetcode-toolbar">
         <div class="leetcode-search">
@@ -280,9 +255,50 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
           </label>
           <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
           <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
-          <span class="leetcode-page-shortcut">{isZh ? "←/→ 翻页" : "←/→ pages"}</span>
+          <span class="leetcode-shortcut-tip" tabindex="0">
+            {isZh ? "快捷键" : "Keys"}
+            <span class="leetcode-shortcut-popover" role="tooltip">
+              {shortcutRows.map((item) => (
+                <span>
+                  <kbd>{item.keys}</kbd>
+                  <span>{isZh ? item.zh : item.en}</span>
+                </span>
+              ))}
+            </span>
+          </span>
         </nav>
       </div>
+
+      <div class="leetcode-table-wrap">
+        <div class="leetcode-table-head" aria-hidden="true">
+          <span>Top</span>
+          <span>Hot</span>
+          <span>BD</span>
+          <span>{isZh ? "题目" : "Problem"}</span>
+          <span>{isZh ? "难度" : "Level"}</span>
+          <span>{isZh ? "频率" : "Freq"}</span>
+          <span>{isZh ? "字节" : "BD"}</span>
+          <span>{isZh ? "状态" : "State"}</span>
+        </div>
+        <div id="leetcode-problem-list" class="leetcode-problem-list"></div>
+      </div>
+
+      <nav
+        class="leetcode-pagination leetcode-pagination-bottom"
+        data-pagination
+        aria-label={isZh ? "底部分页" : "Bottom pagination"}
+      >
+        <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
+        <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
+        <label class="leetcode-page-jump">
+          <span>{isZh ? "第" : "Page"}</span>
+          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
+          <span data-page-indicator></span>
+        </label>
+        <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
+        <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
+        <a class="leetcode-page-shortcut" href="#leetcode-shortcuts">{isZh ? "快捷键" : "Keys"}</a>
+      </nav>
 
       {
         leetcodeDuplicateAudit.length > 0 && (
@@ -317,37 +333,75 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
           </details>
         )
       }
+    </section>
 
-      <div class="leetcode-table-wrap">
-        <div class="leetcode-table-head" aria-hidden="true">
-          <span>Top</span>
-          <span>Hot</span>
-          <span>BD</span>
-          <span>{isZh ? "题目" : "Problem"}</span>
-          <span>{isZh ? "难度" : "Level"}</span>
-          <span>{isZh ? "频率" : "Freq"}</span>
-          <span>{isZh ? "字节" : "BD"}</span>
-          <span>{isZh ? "状态" : "State"}</span>
-        </div>
-        <div id="leetcode-problem-list" class="leetcode-problem-list"></div>
+    <details class="leetcode-shortcuts" id="leetcode-shortcuts">
+      <summary>{isZh ? "快捷键" : "Keyboard shortcuts"}</summary>
+      <div class="leetcode-shortcut-grid">
+        {shortcutRows.map((item) => (
+          <div>
+            <kbd>{item.keys}</kbd>
+            <span>{isZh ? item.zh : item.en}</span>
+          </div>
+        ))}
       </div>
+    </details>
 
-      <nav
-        class="leetcode-pagination leetcode-pagination-bottom"
-        data-pagination
-        aria-label={isZh ? "底部分页" : "Bottom pagination"}
-      >
-        <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
-        <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
-        <label class="leetcode-page-jump">
-          <span>{isZh ? "第" : "Page"}</span>
-          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
-          <span data-page-indicator></span>
-        </label>
-        <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
-        <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
-        <span class="leetcode-page-shortcut">{isZh ? "←/→ 翻页" : "←/→ pages"}</span>
-      </nav>
+    <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
+      <div>
+        <span>{leetcodeTargetLimit}</span>
+        <p>{isZh ? "Top888 目标" : "Top 888 target"}</p>
+      </div>
+      <div>
+        <span>{syncedDedupedLimit}</span>
+        <p>{isZh ? "去重后" : "Deduped"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100}</span>
+        <p>Hot 100</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100OutsideTop888}</span>
+        <p>{isZh ? "Hot100 补充" : "Hot 100 extras"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.duplicatesRemoved}</span>
+        <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
+      </div>
+      <div>
+        <span>{leetcodeByteDanceStats.syncedAll}/{leetcodeByteDanceStats.targetAll}</span>
+        <p>{isZh ? "字节题库" : "ByteDance"}</p>
+      </div>
+    </section>
+
+    <section class="leetcode-hero">
+      <div>
+        <p class="leetcode-kicker">{book.coverKicker}</p>
+        <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
+        <p class="leetcode-copy">
+          {isZh
+            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、题意/思路/实现预览、本地状态和扩展提交。"
+            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance company lists, previews, local state, and extension submit."}
+        </p>
+        <div class="leetcode-actions">
+          <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
+            {isZh ? "查看规格" : "Read spec"}
+          </a>
+          <a
+            href="https://leetcode.cn/studyplan/top-100-liked/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="leetcode-secondary-link"
+          >
+            Hot 100
+          </a>
+        </div>
+      </div>
+      <div class="book-cover" aria-label={`${title} cover`}>
+        <div class="book-cover__kicker">{book.coverKicker}</div>
+        <div class="book-cover__title" set:html={book.coverTitle} />
+        <div class="book-cover__footer">{book.coverFooter}</div>
+      </div>
     </section>
   </main>
 
@@ -369,6 +423,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
     const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const shortcutHelp = document.getElementById("leetcode-shortcuts");
     const fallbackLanguages = [
       ["cpp", "C++"],
       ["python3", "Python3"],
@@ -760,6 +815,12 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       );
     }
 
+    function isTextEntryTarget(element) {
+      if (!(element instanceof HTMLElement)) return false;
+      if (element.isContentEditable) return true;
+      return element.matches("input, textarea, select, [contenteditable='true']");
+    }
+
     function matchesFilter(problem) {
       const status = rowState(problem.titleSlug);
       const byteDance = byteDanceBuckets(problem);
@@ -815,6 +876,52 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
         });
       }
       return filtered;
+    }
+
+    function focusEditorForSlug(slug) {
+      window.requestAnimationFrame(() => {
+        const panel = Array.from(list?.querySelectorAll("[data-editor-panel]") || [])
+          .find((item) => item instanceof HTMLElement && item.dataset.editorPanel === slug);
+        const row = Array.from(list?.querySelectorAll(".leetcode-row") || [])
+          .find((item) => item instanceof HTMLElement && item.dataset.slug === slug);
+        const textarea = panel?.querySelector("[data-editor-code]");
+        const target = panel || row;
+        if (target instanceof HTMLElement) {
+          target.scrollIntoView({ block: "center", behavior: "smooth" });
+        }
+        if (textarea instanceof HTMLTextAreaElement) {
+          textarea.focus({ preventScroll: true });
+        }
+      });
+    }
+
+    function currentPracticeSlug(fallbackSlug = "") {
+      const active = document.activeElement;
+      if (active instanceof HTMLTextAreaElement && active.dataset.editorCode) {
+        return active.dataset.editorCode;
+      }
+      return fallbackSlug || state.expandedSlug || "";
+    }
+
+    function openPracticeAtIndex(items, index) {
+      const target = items[index];
+      if (!target) return;
+      state.pageSize = pageSize();
+      state.totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      state.page = Math.floor(index / state.pageSize) + 1;
+      state.expandedSlug = target.titleSlug;
+      render();
+      focusEditorForSlug(target.titleSlug);
+    }
+
+    function navigatePractice(direction, fallbackSlug = "") {
+      const items = orderedProblems();
+      if (!items.length) return;
+      const slug = currentPracticeSlug(fallbackSlug);
+      const currentIndex = items.findIndex((item) => item.titleSlug === slug);
+      const startIndex = currentIndex === -1 ? (direction > 0 ? -1 : items.length) : currentIndex;
+      const nextIndex = Math.max(0, Math.min(items.length - 1, startIndex + direction));
+      openPracticeAtIndex(items, nextIndex);
     }
 
     function badgeClass(difficulty) {
@@ -1303,6 +1410,13 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       );
     }
 
+    function practiceNavigationDirection(event) {
+      if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return 0;
+      if (event.code === "KeyJ" || event.key === "ArrowDown") return 1;
+      if (event.code === "KeyK" || event.key === "ArrowUp") return -1;
+      return 0;
+    }
+
     function editorActionButton(panel, action) {
       return panel?.querySelector(`[data-editor-action="${action}"]`);
     }
@@ -1310,6 +1424,12 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     function handleEditorKeydown(event, textarea) {
       const context = editorContextFor(textarea);
       if (!context) return false;
+      const practiceDirection = practiceNavigationDirection(event);
+      if (practiceDirection) {
+        event.preventDefault();
+        navigatePractice(practiceDirection, context.slug);
+        return true;
+      }
       if (isEditorRunShortcut(event)) {
         event.preventDefault();
         runLeetcode(
@@ -1344,6 +1464,16 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
         return true;
       }
       return handleEditorClosingToken(event, textarea);
+    }
+
+    function openShortcutHelp() {
+      if (!(shortcutHelp instanceof HTMLDetailsElement)) return;
+      shortcutHelp.open = true;
+      shortcutHelp.scrollIntoView({ block: "center", behavior: "smooth" });
+      const summary = shortcutHelp.querySelector("summary");
+      if (summary instanceof HTMLElement) {
+        summary.focus({ preventScroll: true });
+      }
     }
 
     async function ensureLeetcodeReady(panel) {
@@ -1846,7 +1976,19 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.defaultPrevented) return;
+      if (!isTextEntryTarget(document.activeElement) && event.key === "?") {
+        event.preventDefault();
+        openShortcutHelp();
+        return;
+      }
+      const practiceDirection = practiceNavigationDirection(event);
+      if (practiceDirection && !isTextEntryTarget(document.activeElement)) {
+        event.preventDefault();
+        navigatePractice(practiceDirection);
+        return;
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
       if (isEditableTarget(document.activeElement)) return;
       if (event.key === "ArrowLeft" && state.page > 1) {
         event.preventDefault();
@@ -1875,7 +2017,9 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       grid-template-columns: 1fr;
       gap: 0;
       align-items: center;
-      margin-bottom: 0.25rem;
+      margin: 0.65rem 0 0;
+      border-top: 1px solid var(--color-border);
+      padding-top: 0.55rem;
     }
 
     .leetcode-hero > div:first-child {
@@ -1980,7 +2124,7 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 0.25rem;
-      margin-bottom: 0.3rem;
+      margin: 0.7rem 0 0;
       border-top: 1px solid var(--color-border);
       border-bottom: 1px solid var(--color-border);
       padding: 0.2rem 0;
@@ -2009,6 +2153,87 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
 
     .leetcode-workspace {
       min-width: 0;
+    }
+
+    .leetcode-shortcut-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgb(194 192 182 / 70%);
+      border-radius: 0.42rem;
+      color: var(--color-muted);
+      cursor: help;
+      font-size: 0.64rem;
+      line-height: 1.2;
+      padding: 0.22rem 0.36rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-shortcut-popover {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.36rem);
+      z-index: 10;
+      display: none;
+      width: min(26rem, 82vw);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      background: var(--color-cream);
+      box-shadow: 0 18px 42px rgb(20 20 19 / 16%);
+      color: var(--color-secondary);
+      padding: 0.55rem;
+    }
+
+    .leetcode-shortcut-tip:hover .leetcode-shortcut-popover,
+    .leetcode-shortcut-tip:focus .leetcode-shortcut-popover,
+    .leetcode-shortcut-tip:focus-within .leetcode-shortcut-popover {
+      display: grid;
+      gap: 0.28rem;
+    }
+
+    .leetcode-shortcut-popover > span,
+    .leetcode-shortcut-grid > div {
+      display: grid;
+      grid-template-columns: minmax(8.8rem, auto) minmax(0, 1fr);
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .leetcode-shortcuts {
+      margin-top: 0.6rem;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.5rem;
+      background: rgb(255 255 255 / 24%);
+      color: var(--color-secondary);
+      font-size: 0.76rem;
+    }
+
+    .leetcode-shortcuts summary {
+      cursor: pointer;
+      font-weight: 700;
+      padding: 0.38rem 0.55rem;
+    }
+
+    .leetcode-shortcut-grid {
+      display: grid;
+      gap: 0.32rem;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      padding: 0.55rem;
+    }
+
+    .leetcode-shortcut-tip kbd,
+    .leetcode-shortcuts kbd {
+      display: inline-flex;
+      justify-content: center;
+      border: 1px solid rgb(194 192 182 / 72%);
+      border-radius: 0.32rem;
+      background: rgb(20 20 19 / 5%);
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.12rem 0.3rem;
+      white-space: nowrap;
     }
 
     .leetcode-toolbar {
@@ -2796,7 +3021,12 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
       color: var(--color-muted);
       font-family: var(--font-mono);
       font-size: 0.62rem;
+      text-decoration: none;
       white-space: nowrap;
+    }
+
+    .leetcode-page-shortcut:hover {
+      color: var(--color-terracotta);
     }
 
     .leetcode-pagination button:disabled {
@@ -2807,6 +3037,28 @@ const totalProblemCount = leetcodeProblemsWithReferences.length;
     html.dark .leetcode-page-jump input {
       border-color: #333;
       background: rgb(30 30 28 / 38%);
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-hero,
+    html.dark .leetcode-shortcuts {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-shortcut-tip {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-shortcut-popover,
+    html.dark .leetcode-shortcuts {
+      background: var(--color-charcoal);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-shortcut-tip kbd,
+    html.dark .leetcode-shortcuts kbd {
+      border-color: #333;
+      background: rgb(255 255 255 / 6%);
       color: var(--color-cream);
     }
 
