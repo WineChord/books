@@ -39,7 +39,7 @@ const description = isZh ? book.zhDescription : book.description;
     brandShortTitle={isZh ? book.zhShortTitle : book.shortTitle}
   />
 
-  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-12">
+  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-5 md:px-8 md:py-7">
     <section class="leetcode-hero">
       <div>
         <p class="leetcode-kicker">{book.coverKicker}</p>
@@ -104,17 +104,32 @@ const description = isZh ? book.zhDescription : book.description;
           <input id="leetcode-search" type="search" placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"} />
         </div>
 
-        <div class="leetcode-filter-group" role="group" aria-label={isZh ? "筛选" : "Filters"}>
-          <button type="button" class="is-active" data-filter="all">{isZh ? "全部" : "All"}</button>
-          <button type="button" data-filter="hot100">Hot100</button>
-          <button type="button" data-filter="companyFollowUps">{isZh ? "公司追问" : "Follow-ups"}</button>
-          <button type="button" data-filter="bytedance">{isZh ? "字节全部" : "ByteDance"}</button>
-          <button type="button" data-filter="bytedancePast3Months">{isZh ? "字节近3月" : "BD 3m"}</button>
-          <button type="button" data-filter="bytedancePast6Months">{isZh ? "字节3-6月" : "BD 3-6m"}</button>
-          <button type="button" data-filter="bytedanceBefore6Months">{isZh ? "字节6月前" : "BD old"}</button>
-          <button type="button" data-filter="unsolved">{isZh ? "未做" : "Unsolved"}</button>
-          <button type="button" data-filter="review">{isZh ? "需思考" : "Review"}</button>
-          <button type="button" data-filter="unmastered">{isZh ? "未熟练" : "Unmastered"}</button>
+        <div class="leetcode-filter-panel" aria-label={isZh ? "筛选" : "Filters"}>
+          <div class="leetcode-filter-cluster">
+            <span>{isZh ? "范围" : "Scope"}</span>
+            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
+              <button type="button" class="is-active" data-filter="all">{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="hot100">Hot100</button>
+              <button type="button" data-filter="companyFollowUps">{isZh ? "公司追问" : "Follow-ups"}</button>
+            </div>
+          </div>
+          <div class="leetcode-filter-cluster">
+            <span>{isZh ? "字节" : "ByteDance"}</span>
+            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
+              <button type="button" data-filter="bytedance">{isZh ? "全部" : "Any"}</button>
+              <button type="button" data-filter="bytedancePast3Months">{isZh ? "近3月" : "3m"}</button>
+              <button type="button" data-filter="bytedancePast6Months">{isZh ? "3-6月" : "3-6m"}</button>
+              <button type="button" data-filter="bytedanceBefore6Months">{isZh ? "6月前" : "Old"}</button>
+            </div>
+          </div>
+          <div class="leetcode-filter-cluster">
+            <span>{isZh ? "状态" : "State"}</span>
+            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
+              <button type="button" data-filter="unsolved">{isZh ? "未做" : "Unsolved"}</button>
+              <button type="button" data-filter="review">{isZh ? "需思考" : "Review"}</button>
+              <button type="button" data-filter="unmastered">{isZh ? "未熟练" : "Unmastered"}</button>
+            </div>
+          </div>
         </div>
 
         <div class="leetcode-page-size">
@@ -570,21 +585,34 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-hero {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 18rem;
-      gap: 2.5rem;
+      grid-template-columns: minmax(0, 1fr) 11.5rem;
+      gap: 1.25rem;
       align-items: center;
-      margin-bottom: 2.5rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .leetcode-hero .book-cover {
+      justify-self: end;
+      min-height: 15rem;
+      max-width: 11.5rem;
+      box-shadow: 0 18px 42px rgb(20 20 19 / 18%);
+      padding: 1rem;
     }
 
     .leetcode-hero .book-cover__title {
-      font-size: 2.75rem;
+      font-size: 1.65rem;
+    }
+
+    .leetcode-hero .book-cover__kicker,
+    .leetcode-hero .book-cover__footer {
+      font-size: 0.58rem;
     }
 
     .leetcode-kicker {
-      margin: 0 0 0.75rem;
+      margin: 0 0 0.45rem;
       color: var(--color-terracotta);
       font-family: var(--font-mono);
-      font-size: 0.78rem;
+      font-size: 0.68rem;
       font-weight: 650;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -594,16 +622,16 @@ const description = isZh ? book.zhDescription : book.description;
       max-width: 12ch;
       margin: 0;
       font-family: var(--font-serif);
-      font-size: clamp(2.5rem, 7vw, 4.6rem);
+      font-size: clamp(2.05rem, 4.8vw, 3rem);
       line-height: 0.98;
     }
 
     .leetcode-copy {
-      max-width: 42rem;
-      margin: 1.15rem 0 0;
+      max-width: 40rem;
+      margin: 0.65rem 0 0;
       color: var(--color-secondary);
-      font-size: 1rem;
-      line-height: 1.7;
+      font-size: 0.92rem;
+      line-height: 1.55;
     }
 
     html.dark .leetcode-copy {
@@ -611,7 +639,8 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-actions,
-    .leetcode-toolbar,
+    .leetcode-filter-panel,
+    .leetcode-filter-cluster,
     .leetcode-filter-group,
     .leetcode-page-size,
     .leetcode-summary,
@@ -625,14 +654,15 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-actions {
       flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
+      gap: 0.5rem;
+      margin-top: 0.95rem;
     }
 
     .leetcode-primary-link,
     .leetcode-secondary-link {
-      border-radius: 0.5rem;
-      padding: 0.7rem 1rem;
+      border-radius: 0.42rem;
+      font-size: 0.88rem;
+      padding: 0.52rem 0.72rem;
       font-weight: 650;
       text-decoration: none;
     }
@@ -655,11 +685,11 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-stats {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 0.75rem;
-      margin-bottom: 2rem;
+      gap: 0.5rem;
+      margin-bottom: 0.95rem;
       border-top: 1px solid var(--color-border);
       border-bottom: 1px solid var(--color-border);
-      padding: 1rem 0;
+      padding: 0.7rem 0;
     }
 
     html.dark .leetcode-stats {
@@ -673,14 +703,14 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-stats span {
       display: block;
       font-family: var(--font-mono);
-      font-size: 1.45rem;
+      font-size: 1.2rem;
       font-weight: 700;
     }
 
     .leetcode-stats p {
-      margin: 0.15rem 0 0;
+      margin: 0.1rem 0 0;
       color: var(--color-muted);
-      font-size: 0.82rem;
+      font-size: 0.76rem;
     }
 
     .leetcode-workspace {
@@ -689,10 +719,10 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-toolbar {
       display: grid;
-      grid-template-columns: minmax(14rem, 20rem) minmax(0, 1fr) auto;
-      gap: 0.85rem;
-      align-items: end;
-      margin-bottom: 0.9rem;
+      grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      align-items: start;
+      margin-bottom: 0.6rem;
     }
 
     .leetcode-search,
@@ -722,7 +752,7 @@ const description = isZh ? book.zhDescription : book.description;
     }
 
     .leetcode-search input {
-      width: min(20rem, 72vw);
+      width: 100%;
     }
 
     .leetcode-page-size {
@@ -730,10 +760,32 @@ const description = isZh ? book.zhDescription : book.description;
       align-items: end;
     }
 
+    .leetcode-filter-panel {
+      flex-wrap: wrap;
+      gap: 0.4rem 0.75rem;
+      justify-content: center;
+      padding-top: 0.9rem;
+    }
+
+    .leetcode-filter-cluster {
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+
+    .leetcode-filter-cluster > span {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
     .leetcode-filter-group {
       flex-wrap: wrap;
-      gap: 0.35rem;
-      justify-content: center;
+      gap: 0.25rem;
+      justify-content: flex-start;
     }
 
     .leetcode-filter-group button,
@@ -746,8 +798,8 @@ const description = isZh ? book.zhDescription : book.description;
       color: inherit;
       cursor: pointer;
       font: inherit;
-      font-size: 0.82rem;
-      padding: 0.4rem 0.58rem;
+      font-size: 0.8rem;
+      padding: 0.34rem 0.5rem;
     }
 
     .leetcode-filter-group button.is-active,
@@ -760,14 +812,14 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-summary {
       flex-wrap: wrap;
-      gap: 0.75rem;
-      margin: 0 0 0.75rem;
+      gap: 0.65rem;
+      margin: 0 0 0.55rem;
       color: var(--color-muted);
-      font-size: 0.78rem;
+      font-size: 0.74rem;
     }
 
     .leetcode-duplicate-audit {
-      margin: 0 0 0.85rem;
+      margin: 0 0 0.65rem;
       border: 1px solid rgb(194 192 182 / 58%);
       border-radius: 0.5rem;
       background: rgb(255 255 255 / 28%);
@@ -827,7 +879,7 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-table-wrap {
       width: 100%;
-      overflow-x: auto;
+      overflow-x: visible;
       border-top: 1px solid var(--color-border);
       border-bottom: 1px solid var(--color-border);
     }
@@ -839,9 +891,9 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 3.25rem 3.25rem minmax(18rem, 1fr) 4.4rem 5rem 4.2rem 11rem 7rem;
-      min-width: 62rem;
-      gap: 0.5rem;
+      grid-template-columns: 2.75rem 2.75rem minmax(13rem, 1fr) 3.65rem 4.35rem 3.45rem 9.1rem 5.9rem;
+      min-width: 0;
+      gap: 0.35rem;
       align-items: center;
     }
 
@@ -850,9 +902,9 @@ const description = isZh ? book.zhDescription : book.description;
       border-bottom: 1px solid rgb(194 192 182 / 48%);
       color: var(--color-muted);
       font-family: var(--font-mono);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 700;
-      padding: 0.55rem 0.35rem;
+      padding: 0.5rem 0.25rem;
       text-transform: uppercase;
     }
 
@@ -868,9 +920,13 @@ const description = isZh ? book.zhDescription : book.description;
 
     .leetcode-row {
       position: relative;
-      min-height: 2.8rem;
+      min-height: 2.55rem;
       border-top: 1px solid rgb(194 192 182 / 48%);
-      padding: 0.4rem 0.35rem;
+      padding: 0.32rem 0.25rem;
+    }
+
+    .leetcode-row > div {
+      min-width: 0;
     }
 
     html.dark .leetcode-row {
@@ -889,7 +945,7 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-frequency,
     .leetcode-byte {
       font-family: var(--font-mono);
-      font-size: 0.82rem;
+      font-size: 0.8rem;
     }
 
     .leetcode-rank {
@@ -905,6 +961,8 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-problem-link {
       color: var(--color-charcoal);
       font-weight: 700;
+      font-size: 0.93rem;
+      overflow-wrap: anywhere;
       text-decoration: none;
     }
 
@@ -970,9 +1028,9 @@ const description = isZh ? book.zhDescription : book.description;
     .leetcode-difficulty {
       display: inline-flex;
       border-radius: 999px;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 700;
-      padding: 0.16rem 0.5rem;
+      padding: 0.14rem 0.42rem;
     }
 
     .leetcode-difficulty.is-easy {
@@ -998,21 +1056,22 @@ const description = isZh ? book.zhDescription : book.description;
       border: 1px solid rgb(217 119 87 / 38%);
       border-radius: 999px;
       color: var(--color-terracotta);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 700;
       line-height: 1.2;
-      padding: 0.12rem 0.35rem;
+      padding: 0.1rem 0.3rem;
     }
 
     .leetcode-status,
     .leetcode-preview {
       flex-wrap: wrap;
-      gap: 0.25rem;
+      gap: 0.2rem;
     }
 
     .leetcode-status button,
     .leetcode-preview-control {
-      padding: 0.3rem 0.42rem;
+      font-size: 0.78rem;
+      padding: 0.26rem 0.35rem;
     }
 
     .leetcode-preview-control {
@@ -1146,11 +1205,13 @@ const description = isZh ? book.zhDescription : book.description;
     @media (max-width: 900px) {
       .leetcode-hero {
         grid-template-columns: 1fr;
+        gap: 0.9rem;
       }
 
-    .leetcode-hero .book-cover {
-      max-width: 100%;
-    }
+      .leetcode-hero .book-cover {
+        justify-self: start;
+        max-width: 11.5rem;
+      }
 
       .leetcode-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1160,8 +1221,50 @@ const description = isZh ? book.zhDescription : book.description;
         grid-template-columns: 1fr;
       }
 
+      .leetcode-filter-panel {
+        justify-content: flex-start;
+        padding-top: 0;
+      }
+
+      .leetcode-filter-cluster,
       .leetcode-filter-group {
         justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .leetcode-table-head {
+        display: none;
+      }
+
+      .leetcode-row {
+        grid-template-columns: 2.1rem 2.1rem minmax(0, 1fr);
+        row-gap: 0.25rem;
+      }
+
+      .leetcode-row > div:nth-child(4) {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      .leetcode-row > .leetcode-frequency {
+        grid-column: 2;
+        grid-row: 2;
+      }
+
+      .leetcode-row > .leetcode-byte {
+        grid-column: 3;
+        grid-row: 2;
+      }
+
+      .leetcode-row > .leetcode-status {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+
+      .leetcode-row > .leetcode-preview {
+        grid-column: 1 / -1;
+        grid-row: 4;
       }
     }
 

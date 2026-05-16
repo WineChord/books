@@ -41,6 +41,11 @@ rather than assigning a company by inference.
 
 ## Page Contract
 
+The title, cover, and stats area stays compact so it does not dominate the
+first viewport. The problem list is the primary workspace, and the desktop
+table is sized to fit the content column without an internal horizontal
+scrollbar.
+
 Each row shows three identifiers:
 
 1. the Top 888 frequency rank;
@@ -57,11 +62,12 @@ lists every removed duplicate, the kept row, and the original frequency ranks.
 The page supports 10, 20, 50, 100, and custom page sizes. It defaults to 20
 items per page.
 
-Filters include all problems, Hot 100, sourced company follow-ups, any
-ByteDance appearance, ByteDance in the past three months, ByteDance three to
-six months ago, ByteDance more than six months ago, unsolved, needs thought,
-and not mastered. Text search matches id, title, tags, ByteDance, study-check
-answers, company follow-up answers, companies, and source titles.
+Filters are grouped by scope, ByteDance, and practice state. Scope includes all
+problems, Hot 100, and sourced company follow-ups. ByteDance includes any
+ByteDance appearance, the past three months, three to six months ago, and more
+than six months ago. State includes unsolved, needs thought, and not mastered.
+Text search matches id, title, tags, ByteDance, study-check answers, company
+follow-up answers, companies, and source titles.
 
 ## Practice State
 
