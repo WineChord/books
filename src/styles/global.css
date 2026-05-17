@@ -139,36 +139,63 @@ html.dark .sidebar-link:hover {
   overflow: visible;
 }
 
-.site-brand-mark__cover {
+.site-brand-mark__tile {
   fill: var(--color-charcoal);
-  stroke: var(--color-charcoal);
-  stroke-width: 1.5;
+  stroke: rgb(217 119 87 / 42%);
+  stroke-width: 1.2;
 }
 
-.site-brand-mark__spine {
+.site-brand-mark__page-left {
+  fill: var(--color-cream);
+  opacity: 0.92;
+}
+
+.site-brand-mark__page-right {
+  fill: var(--color-beige);
+}
+
+.site-brand-mark__chord {
   stroke: var(--color-terracotta);
   stroke-linecap: round;
-  stroke-width: 2;
+  stroke-width: 2.45;
 }
 
-.site-brand-mark__line,
-.site-brand-mark__fold {
-  stroke: var(--color-cream);
+.site-brand-mark__shadow,
+.site-brand-mark__monogram {
+  fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.site-brand-mark__shadow {
+  stroke: var(--color-charcoal);
+  stroke-width: 2.55;
+}
+
+.site-brand-mark__monogram {
+  stroke: var(--color-cream);
   stroke-width: 1.6;
 }
 
-.site-brand-mark__fold {
-  stroke: var(--color-terracotta);
+html.dark .site-brand-mark__tile {
+  fill: var(--color-cream);
+  stroke: rgb(217 119 87 / 55%);
 }
 
-html.dark .site-brand-mark__cover {
-  fill: var(--color-cream);
+html.dark .site-brand-mark__page-left {
+  fill: var(--color-charcoal);
+  opacity: 0.96;
+}
+
+html.dark .site-brand-mark__page-right {
+  fill: var(--color-dark-surface);
+}
+
+html.dark .site-brand-mark__shadow {
   stroke: var(--color-cream);
 }
 
-html.dark .site-brand-mark__line {
+html.dark .site-brand-mark__monogram {
   stroke: var(--color-charcoal);
 }
 

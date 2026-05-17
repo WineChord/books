@@ -62,10 +62,27 @@ const brandMarkClass = compact
       <a href={homePath} class="site-title text-sm font-semibold tracking-tight text-charcoal transition-colors hover:text-terracotta dark:text-cream">
         <span class={brandMarkClass} aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
-            <path class="site-brand-mark__cover" d="M7 4.5h14.5c2.2 0 4 1.8 4 4v19H11c-2.2 0-4-1.8-4-4v-19Z" />
-            <path class="site-brand-mark__spine" d="M11 4.5v23" />
-            <path class="site-brand-mark__line" d="M15 11h6.5M15 16h4.5M15 21h6.5" />
-            <path class="site-brand-mark__fold" d="M25.5 8.5 29 11v16.5l-3.5-2.5" />
+            <rect class="site-brand-mark__tile" x="2" y="2" width="28" height="28" rx="8" />
+            <path
+              class="site-brand-mark__page-left"
+              d="M8.8 8.7c3.2-1.6 6.3-1.5 7.9.6v14.3c-1.6-2.1-4.7-2.3-7.9-.6V8.7Z"
+            />
+            <path
+              class="site-brand-mark__page-right"
+              d="M16.7 9.3c1.6-2.1 4.7-2.2 7.9-.6V23c-3.2-1.7-6.3-1.5-7.9.6V9.3Z"
+            />
+            <path
+              class="site-brand-mark__chord"
+              d="M8.7 21.6c3.9-5 9-8.8 16.6-11.6"
+            />
+            <path
+              class="site-brand-mark__shadow"
+              d="M8.9 9.2 11.6 21l4.6-8.4 4.8 8.4 2.7-11.8"
+            />
+            <path
+              class="site-brand-mark__monogram"
+              d="M9.2 9.2 11.6 19l4.6-7.9L21 19l2.4-9.8"
+            />
           </svg>
         </span>
         <span>

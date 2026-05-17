@@ -24,6 +24,10 @@ import {
   leetcodeProblems,
   leetcodeStats,
 } from "../data/leetcode-problems";
+import {
+  leetcodeRelatedQuestionStats,
+  leetcodeRelatedQuestions,
+} from "../data/leetcode-related";
 import { pageUrl } from "../urls";
 
 interface Props {
@@ -89,9 +93,46 @@ const filterShortcutTitles = {
 };
 const leetcodeTargetLimit = 888;
 const syncedDedupedLimit = leetcodeStats.dedupedTop888;
+const relatedTopicPeerLimit = 6;
 const byteDanceBySlug = new Map(
   leetcodeByteDanceProblems.map((problem) => [problem.titleSlug, problem]),
 );
+const seriesRomanTokenValues = new Map([
+  ["i", 1],
+  ["ii", 2],
+  ["iii", 3],
+  ["iv", 4],
+  ["v", 5],
+  ["vi", 6],
+  ["vii", 7],
+  ["viii", 8],
+  ["ix", 9],
+  ["x", 10],
+]);
+const strongRelatedTagSlugs = new Set([
+  "backtracking",
+  "binary-search",
+  "binary-tree",
+  "bit-manipulation",
+  "breadth-first-search",
+  "depth-first-search",
+  "dynamic-programming",
+  "graph",
+  "heap-priority-queue",
+  "linked-list",
+  "monotonic-queue",
+  "monotonic-stack",
+  "prefix-sum",
+  "shortest-path",
+  "sliding-window",
+  "stack",
+  "string-matching",
+  "topological-sort",
+  "tree",
+  "trie",
+  "two-pointers",
+  "union-find",
+]);
 
 function mergedByteDanceBuckets(problem) {
   const entry = byteDanceBySlug.get(problem.titleSlug);
@@ -121,6 +162,163 @@ function byteDanceSourceStatusLabel(status) {
   }
   if (status === "legacyTop888Fallback") return "旧 Top888 fallback";
   return status;
+}
+
+function seriesCandidateKeys(slug) {
+  const tokens = String(slug || "").toLowerCase().split("-").filter(Boolean);
+  const keys = new Set();
+  for (let index = 1; index < tokens.length; index += 1) {
+    if (!seriesRomanTokenValues.has(tokens[index])) continue;
+    const prefix = tokens.slice(0, index);
+    if (prefix.length < 2) continue;
+    keys.add(prefix.join("-"));
+  }
+  return [...keys];
+}
+
+function seriesOrderValue(slug, seriesKey) {
+  if (slug === seriesKey) return 0;
+  const suffix = slug.startsWith(`${seriesKey}-`)
+    ? slug.slice(seriesKey.length + 1).split("-")[0]
+    : "";
+  return seriesRomanTokenValues.get(suffix) ?? Number.MAX_SAFE_INTEGER;
+}
+
+function buildSeriesGroups(catalogProblems) {
+  const bySlug = new Map(catalogProblems.map((problem) => [
+    problem.titleSlug,
+    problem,
+  ]));
+  const membersByKey = new Map();
+  for (const problem of catalogProblems) {
+    for (const key of seriesCandidateKeys(problem.titleSlug)) {
+      if (!membersByKey.has(key)) membersByKey.set(key, new Map());
+      membersByKey.get(key).set(problem.titleSlug, problem);
+    }
+  }
+  for (const [key, members] of membersByKey) {
+    const baseProblem = bySlug.get(key);
+    if (baseProblem) members.set(baseProblem.titleSlug, baseProblem);
+  }
+  const groupsBySlug = new Map();
+  for (const [key, memberMap] of membersByKey) {
+    const members = [...memberMap.values()];
+    if (members.length < 2) continue;
+    members.sort((left, right) => {
+      const leftOrder = seriesOrderValue(left.titleSlug, key);
+      const rightOrder = seriesOrderValue(right.titleSlug, key);
+      return (
+        leftOrder - rightOrder ||
+        (left.topRank ?? left.frequencyRank ?? 999999) -
+          (right.topRank ?? right.frequencyRank ?? 999999)
+      );
+    });
+    for (const member of members) {
+      const existing = groupsBySlug.get(member.titleSlug);
+      if (!existing || members.length > existing.length) {
+        groupsBySlug.set(member.titleSlug, members);
+      }
+    }
+  }
+  return groupsBySlug;
+}
+
+function relatedQuestionUrl(slug) {
+  return `https://leetcode.cn/problems/${slug}/description/`;
+}
+
+function relatedSummary(question, catalogBySlug, currentSlug) {
+  const bookProblem = catalogBySlug.get(question.titleSlug);
+  const difficulty = bookProblem?.difficulty ?? question.difficulty ?? "";
+  return {
+    current: question.titleSlug === currentSlug,
+    difficulty,
+    frontendId: bookProblem?.frontendId ?? "",
+    frequencyRank: bookProblem?.frequencyRank ?? null,
+    hot100: Boolean(bookProblem?.hot100),
+    hotRank: bookProblem?.hotRank ?? null,
+    inBook: Boolean(bookProblem),
+    paidOnly: Boolean(question.isPaidOnly || bookProblem?.paidOnly),
+    sharedTags: question.sharedTags ?? [],
+    title: question.title ?? "",
+    titleCn:
+      bookProblem?.titleCn ??
+      question.translatedTitle ??
+      question.title ??
+      question.titleSlug,
+    titleSlug: question.titleSlug,
+    topRank: bookProblem?.topRank ?? null,
+    url: bookProblem?.url ?? relatedQuestionUrl(question.titleSlug),
+  };
+}
+
+function bookRelatedQuestion(problem) {
+  return {
+    difficulty: problem.difficulty,
+    isPaidOnly: problem.paidOnly,
+    title: problem.titleSlug,
+    titleSlug: problem.titleSlug,
+    translatedTitle: problem.titleCn,
+  };
+}
+
+function sharedTags(problem, other) {
+  const problemTags = new Map(problem.tags.map((tag) => [tag.slug, tag.name]));
+  return other.tags
+    .filter((tag) => problemTags.has(tag.slug))
+    .map((tag) => ({
+      name: problemTags.get(tag.slug) ?? tag.name,
+      slug: tag.slug,
+    }));
+}
+
+function topicPeerScore(problem, candidate, shared) {
+  const strongShared = shared.filter((tag) => strongRelatedTagSlugs.has(tag.slug));
+  if (shared.length < 2 && strongShared.length === 0) return 0;
+  const rank = candidate.topRank ?? candidate.frequencyRank ?? 999999;
+  const rankScore = Math.max(0, 2000 - rank);
+  return (
+    shared.length * 10000 +
+    strongShared.length * 6000 +
+    (candidate.hot100 ? 3000 : 0) +
+    (candidate.bytedance ? 1800 : 0) +
+    rankScore
+  );
+}
+
+function buildTopicPeers(problem, catalogProblems, catalogBySlug, excludedSlugs) {
+  return catalogProblems
+    .filter((candidate) => (
+      candidate.titleSlug !== problem.titleSlug &&
+      !excludedSlugs.has(candidate.titleSlug)
+    ))
+    .map((candidate) => {
+      const shared = sharedTags(problem, candidate);
+      return {
+        problem: candidate,
+        score: topicPeerScore(problem, candidate, shared),
+        shared,
+      };
+    })
+    .filter((item) => item.score > 0)
+    .sort((left, right) => {
+      return (
+        right.score - left.score ||
+        (left.problem.topRank ?? left.problem.frequencyRank ?? 999999) -
+          (right.problem.topRank ?? right.problem.frequencyRank ?? 999999)
+      );
+    })
+    .slice(0, relatedTopicPeerLimit)
+    .map((item) =>
+      relatedSummary(
+        {
+          ...bookRelatedQuestion(item.problem),
+          sharedTags: item.shared.slice(0, 3),
+        },
+        catalogBySlug,
+        problem.titleSlug,
+      ),
+    );
 }
 
 const byteDanceStatusLabel = byteDanceSourceStatusLabel(
@@ -181,6 +379,43 @@ const mergedLeetcodeProblems = [
   ...leetcodeProblemsWithByteDance,
   ...leetcodeByteDanceSupplements,
 ];
+const leetcodeProblemCatalogBySlug = new Map(
+  mergedLeetcodeProblems.map((problem) => [problem.titleSlug, problem]),
+);
+const leetcodeSeriesGroupsBySlug = buildSeriesGroups(mergedLeetcodeProblems);
+function buildRelatedQuestions(problem) {
+  const series = (leetcodeSeriesGroupsBySlug.get(problem.titleSlug) ?? [])
+    .map((item) =>
+      relatedSummary(
+        bookRelatedQuestion(item),
+        leetcodeProblemCatalogBySlug,
+        problem.titleSlug,
+      ),
+    );
+  const seriesSlugs = new Set(series.map((item) => item.titleSlug));
+  const official = (leetcodeRelatedQuestions[problem.titleSlug] ?? [])
+    .filter((item) => !seriesSlugs.has(item.titleSlug))
+    .map((item) =>
+      relatedSummary(item, leetcodeProblemCatalogBySlug, problem.titleSlug),
+    );
+  const excludedSlugs = new Set([
+    problem.titleSlug,
+    ...seriesSlugs,
+    ...official.map((item) => item.titleSlug),
+  ]);
+  const topicPeers = buildTopicPeers(
+    problem,
+    mergedLeetcodeProblems,
+    leetcodeProblemCatalogBySlug,
+    excludedSlugs,
+  );
+  return {
+    official,
+    series,
+    topicPeers,
+    total: official.length + series.length + topicPeers.length,
+  };
+}
 const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => ({
   ...problem,
   codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
@@ -189,6 +424,7 @@ const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => (
       ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
       ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
     ],
+  relatedQuestions: buildRelatedQuestions(problem),
 }));
 const leetcodeReferenceCount =
   leetcodeImplementationStats.references +
@@ -327,8 +563,8 @@ const shortcutRows = [
         <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
         <p class="leetcode-copy">
           {isZh
-            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、题意/思路/实现预览、本地状态和扩展提交。"
-            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance company lists, previews, local state, and extension submit."}
+            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、相关题、题意/思路/实现预览、本地状态和扩展提交。"
+            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance lists, related problems, previews, local state, and extension submit."}
         </p>
         <div class="leetcode-actions">
           <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
@@ -615,6 +851,11 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeCodeTemplateStats.problems} 道题官方代码模板已同步`
           : `${leetcodeCodeTemplateStats.problems} problems with official code templates synced`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeRelatedQuestionStats.questions} 条官方相关题已同步`
+          : `${leetcodeRelatedQuestionStats.questions} official related problems synced`}
       </span>
     </div>
 
@@ -1978,6 +2219,25 @@ const shortcutRows = [
           item.license,
           item.sourceTitle,
         ]),
+        ...(problem.relatedQuestions?.series || []).flatMap((item) => [
+          item.frontendId,
+          item.titleCn,
+          item.title,
+          item.titleSlug,
+        ]),
+        ...(problem.relatedQuestions?.official || []).flatMap((item) => [
+          item.frontendId,
+          item.titleCn,
+          item.title,
+          item.titleSlug,
+        ]),
+        ...(problem.relatedQuestions?.topicPeers || []).flatMap((item) => [
+          item.frontendId,
+          item.titleCn,
+          item.title,
+          item.titleSlug,
+          ...(item.sharedTags || []).map((tag) => tag.name),
+        ]),
       ].join(" ").toLowerCase();
       return haystack.includes(state.query.toLowerCase());
     }
@@ -2049,6 +2309,22 @@ const shortcutRows = [
       const startIndex = currentIndex === -1 ? (direction > 0 ? -1 : items.length) : currentIndex;
       const nextIndex = Math.max(0, Math.min(items.length - 1, startIndex + direction));
       openPracticeAtIndex(items, nextIndex);
+    }
+
+    function openRelatedProblem(slug) {
+      let items = orderedProblems();
+      let index = items.findIndex((item) => item.titleSlug === slug);
+      if (index === -1) {
+        if (!problems.some((item) => item.titleSlug === slug)) return false;
+        if (searchInput instanceof HTMLInputElement) searchInput.value = "";
+        state.query = "";
+        applyFilter("all");
+        items = orderedProblems();
+        index = items.findIndex((item) => item.titleSlug === slug);
+      }
+      if (index === -1) return false;
+      openPracticeAtIndex(items, index);
+      return true;
     }
 
     function badgeClass(difficulty) {
@@ -2178,6 +2454,97 @@ const shortcutRows = [
           ${renderByteDanceMeta(problem)}
           ${renderTags(problem)}
         </span>
+      `;
+    }
+
+    function relatedRankLabel(item) {
+      if (item.current) return isChinesePage ? "当前" : "Current";
+      if (item.topRank !== null && item.topRank !== undefined) {
+        return `Top ${item.topRank}`;
+      }
+      if (item.hotRank) return `Hot ${item.hotRank}`;
+      if (item.frequencyRank) return `#${item.frequencyRank}`;
+      return item.inBook
+        ? (isChinesePage ? "书内" : "In book")
+        : (isChinesePage ? "力扣" : "LeetCode");
+    }
+
+    function renderRelatedMeta(item) {
+      const chips = [
+        relatedRankLabel(item),
+        item.difficulty,
+        item.hot100 ? "Hot100" : "",
+        item.paidOnly ? (isChinesePage ? "付费" : "Paid") : "",
+        ...(item.sharedTags || []).map((tag) => tag.name),
+      ].filter(Boolean);
+      return chips
+        .map((chip) => `<span>${escapeHtml(chip)}</span>`)
+        .join("");
+    }
+
+    function renderRelatedItem(item) {
+      const title = `${item.frontendId ? `${item.frontendId}. ` : ""}${item.titleCn}`;
+      const classes = [
+        "leetcode-related-item",
+        item.current ? "is-current" : "",
+        item.inBook ? "is-in-book" : "",
+      ].filter(Boolean).join(" ");
+      const content = `
+        <span class="leetcode-related-title">${escapeHtml(title)}</span>
+        <span class="leetcode-related-meta">${renderRelatedMeta(item)}</span>
+      `;
+      if (item.current) {
+        return `<span class="${classes}">${content}</span>`;
+      }
+      if (item.inBook) {
+        return `
+          <button
+            type="button"
+            class="${classes}"
+            data-open-related="${escapeHtml(item.titleSlug)}"
+          >
+            ${content}
+          </button>
+        `;
+      }
+      return `
+        <a
+          class="${classes}"
+          href="${escapeHtml(item.url)}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          ${content}
+        </a>
+      `;
+    }
+
+    function renderRelatedSection(title, items) {
+      if (!items?.length) return "";
+      return `
+        <span class="leetcode-popover-section">
+          <strong>${escapeHtml(title)}</strong>
+          <span class="leetcode-related-list">
+            ${items.map(renderRelatedItem).join("")}
+          </span>
+        </span>
+      `;
+    }
+
+    function renderRelatedQuestions(problem) {
+      const related = problem.relatedQuestions || {};
+      if (!related.total) {
+        return '<span class="leetcode-popover-muted">暂无已同步的相关题。</span>';
+      }
+      return `
+        <span class="leetcode-popover-lead">
+          ${isChinesePage
+            ? "优先看同系列题，再看力扣官方相关题，最后用同路线高频题补齐模式。"
+            : "Start with the same series, then official related problems, then high-frequency peers on the same track."}
+        </span>
+        ${renderRelatedSection(isChinesePage ? "系列题目" : "Series", related.series)}
+        ${renderRelatedSection(isChinesePage ? "力扣相关" : "LeetCode related", related.official)}
+        ${renderRelatedSection(isChinesePage ? "同路线高频" : "Same-track high frequency", related.topicPeers)}
       `;
     }
 
@@ -3153,11 +3520,13 @@ const shortcutRows = [
       list?.querySelectorAll("[data-preview].is-open").forEach((item) => {
         if (item === except) return;
         item.classList.remove("is-open");
+        item.classList.remove("is-popover-above");
         item.setAttribute("aria-expanded", "false");
       });
       list?.querySelectorAll("[data-preview].is-hover-open").forEach((item) => {
         if (item === except) return;
         item.classList.remove("is-hover-open");
+        item.classList.remove("is-popover-above");
       });
       const active = document.activeElement;
       if (active instanceof HTMLElement) {
@@ -3168,18 +3537,45 @@ const shortcutRows = [
       }
     }
 
+    function placePreviewPopover(previewButton) {
+      const popover = previewButton.querySelector(".leetcode-popover");
+      if (!(popover instanceof HTMLElement)) return;
+      previewButton.classList.remove("is-popover-above");
+      const buttonRect = previewButton.getBoundingClientRect();
+      const bottomGuard = 16;
+      const topGuard = 16;
+      const minPopoverHeight = 180;
+      const maxPopoverHeight = 480;
+      const belowSpace = window.innerHeight - buttonRect.bottom - bottomGuard;
+      const aboveSpace = buttonRect.top - topGuard;
+      const shouldOpenAbove = belowSpace < minPopoverHeight && aboveSpace > belowSpace;
+      const availableSpace = shouldOpenAbove ? aboveSpace : belowSpace;
+      const nextMaxHeight = Math.max(
+        minPopoverHeight,
+        Math.min(maxPopoverHeight, availableSpace),
+      );
+      popover.style.maxHeight = `${nextMaxHeight}px`;
+      if (shouldOpenAbove) {
+        previewButton.classList.add("is-popover-above");
+      }
+    }
+
     function keepPreviewHoverOpen(previewButton) {
       clearPreviewHoverCloseTimer();
       list?.querySelectorAll("[data-preview].is-hover-open").forEach((item) => {
-        if (item !== previewButton) item.classList.remove("is-hover-open");
+        if (item === previewButton) return;
+        item.classList.remove("is-hover-open");
+        item.classList.remove("is-popover-above");
       });
       previewButton.classList.add("is-hover-open");
+      placePreviewPopover(previewButton);
     }
 
     function schedulePreviewHoverClose(previewButton) {
       clearPreviewHoverCloseTimer();
       previewHoverCloseTimer = window.setTimeout(() => {
         previewButton.classList.remove("is-hover-open");
+        previewButton.classList.remove("is-popover-above");
         previewHoverCloseTimer = 0;
       }, previewHoverCloseDelayMs);
     }
@@ -3516,6 +3912,12 @@ const shortcutRows = [
                   ${renderTagReference(problem, topLabel)}
                 </span>
               </span>
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看相关题；点击或 Enter/Space 固定展开" : "Hover for related problems; click or Enter/Space to pin"}">
+                相关
+                <span class="leetcode-popover">
+                  ${renderRelatedQuestions(problem)}
+                </span>
+              </span>
             </span>
           </div>
           <div><span class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</span></div>
@@ -3718,6 +4120,12 @@ const shortcutRows = [
         return;
       }
       if (target.closest(".leetcode-source-link")) return;
+      const relatedButton = target.closest("[data-open-related]");
+      if (relatedButton instanceof HTMLElement) {
+        openRelatedProblem(relatedButton.dataset.openRelated || "");
+        return;
+      }
+      if (target.closest(".leetcode-related-item")) return;
       if (target.closest(".leetcode-practice-panel")) {
         const actionButton = target.closest("[data-editor-action]");
         if (actionButton instanceof HTMLElement) {
@@ -3760,7 +4168,12 @@ const shortcutRows = [
         closePreviewPopovers(previewButton);
         previewButton.classList.toggle("is-open", !isOpen);
         previewButton.setAttribute("aria-expanded", String(!isOpen));
-        if (isOpen) previewButton.blur();
+        if (isOpen) {
+          previewButton.classList.remove("is-popover-above");
+          previewButton.blur();
+        } else {
+          placePreviewPopover(previewButton);
+        }
         return;
       }
       const button = target.closest("[data-action]");
@@ -3868,6 +4281,7 @@ const shortcutRows = [
         return;
       }
       if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".leetcode-related-item")) return;
       const previewButton = target.closest("[data-preview]");
       if (!(previewButton instanceof HTMLElement)) return;
       if (event.key !== "Enter" && event.key !== " ") return;
@@ -5558,6 +5972,11 @@ const shortcutRows = [
       height: 0.42rem;
     }
 
+    .leetcode-preview-control.is-popover-above::after {
+      top: auto;
+      bottom: 100%;
+    }
+
     .leetcode-popover {
       position: absolute;
       left: 0;
@@ -5579,6 +5998,11 @@ const shortcutRows = [
       white-space: normal;
     }
 
+    .leetcode-preview-control.is-popover-above .leetcode-popover {
+      top: auto;
+      bottom: calc(100% + 0.34rem);
+    }
+
     .leetcode-tag-popover {
       display: flex;
       flex-wrap: wrap;
@@ -5593,6 +6017,63 @@ const shortcutRows = [
       font-size: 0.72rem;
       line-height: 1.25;
       padding: 0.08rem 0.42rem;
+    }
+
+    .leetcode-related-list {
+      display: grid;
+      gap: 0.36rem;
+    }
+
+    .leetcode-related-item {
+      appearance: none;
+      display: grid;
+      width: 100%;
+      min-width: 0;
+      gap: 0.2rem;
+      border: 1px solid rgb(194 192 182 / 55%);
+      border-radius: 0.45rem;
+      background: rgb(255 255 255 / 38%);
+      color: var(--color-secondary);
+      font: inherit;
+      padding: 0.42rem 0.5rem;
+      text-align: left;
+      text-decoration: none;
+    }
+
+    button.leetcode-related-item {
+      cursor: pointer;
+    }
+
+    .leetcode-related-item:hover {
+      border-color: rgb(217 119 87 / 45%);
+      color: var(--color-charcoal);
+    }
+
+    .leetcode-related-item.is-current {
+      background: rgb(217 119 87 / 10%);
+    }
+
+    .leetcode-related-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-related-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.24rem;
+    }
+
+    .leetcode-related-meta span {
+      display: inline-flex;
+      border-radius: 999px;
+      background: rgb(217 119 87 / 9%);
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      line-height: 1.2;
+      padding: 0.08rem 0.34rem;
     }
 
     .leetcode-implementation-card,
@@ -5775,6 +6256,17 @@ const shortcutRows = [
 
     html.dark .leetcode-popover-section > strong,
     html.dark .leetcode-followup-source b {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-related-item {
+      border-color: #333;
+      background: rgb(30 30 28 / 58%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-related-item:hover {
+      border-color: rgb(217 119 87 / 50%);
       color: var(--color-cream);
     }
 

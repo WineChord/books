@@ -1,7 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">
-  <rect width="64" height="64" rx="14" fill="#0f172a"/>
-  <path d="M18 17h20a8 8 0 0 1 0 16H26v14h-8V17Z" fill="#5eead4"/>
-  <path d="M30 31h12a8 8 0 0 1 0 16H30V31Z" fill="#f8fafc"/>
-  <path d="M26 24h11a2 2 0 0 1 0 4H26v-4Zm12 14h3a2 2 0 0 1 0 4h-3v-4Z" fill="#0f172a"/>
+  <title>WineChord Books</title>
+  <rect width="64" height="64" rx="16" fill="#f5f4ed"/>
+  <rect x="7" y="7" width="50" height="50" rx="15" fill="#141413"/>
+  <path
+    d="M17 18.5c6-3 12-3 15 1.2v29c-3-4-9-4.2-15-1.1v-29Z"
+    fill="#f5f4ed"
+    opacity=".92"
+  />
+  <path
+    d="M32 19.7c3-4.2 9-4.2 15-1.2v29c-6-3.1-12-2.9-15 1.1v-29Z"
+    fill="#e8e6dc"
+  />
+  <path
+    d="M16.5 44.5c7.5-9.7 17.4-16.8 31-22"
+    fill="none"
+    stroke="#d97757"
+    stroke-linecap="round"
+    stroke-width="4.8"
+  />
+  <path
+    d="M17.5 19.5 23 43l8.8-16.6L41 43l5.5-23.5"
+    fill="none"
+    stroke="#141413"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="5"
+  />
+  <path
+    d="M18.3 19.5 23 39l8.8-15.8L41 39l4.7-19.5"
+    fill="none"
+    stroke="#f5f4ed"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="3.1"
+  />
 </svg>
-
