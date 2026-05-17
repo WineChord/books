@@ -67,11 +67,12 @@ rather than assigning a company by inference.
 
 ## Page Contract
 
-The page does not show the global site header. The title and stats area uses a
-compact workspace layout, and the large cover is not shown in the first
-viewport. The problem list is the primary workspace; on desktop, the first
-problem rows should be visible without scrolling. The table is sized to fit the
-content column without an internal horizontal scrollbar.
+The page does not show the global site header. The title area uses a compact
+workspace layout, and the large cover is not shown in the first viewport.
+Stats and secondary metadata live below the working list. The problem list is
+the primary workspace; on desktop, the first problem rows should be visible
+without scrolling. The table is sized to fit the content column without an
+internal horizontal scrollbar.
 
 Each row shows the identifiers that matter for practice:
 
@@ -99,11 +100,10 @@ jump input. Left and right arrow keys turn pages when the current focus is not
 inside search, filters, selectors, the practice editor, or another editable
 control.
 
-The top of the page is intentionally compact. A small stats strip and a
-single-line title/action row stay at the page opening for orientation, but
-their combined height must remain smaller than the working controls. Search,
-filters, summary, pagination, and the problem rows remain the first visual
-priority and should appear without excessive scrolling.
+The top of the page is intentionally compact. A single-line title/action row
+stays at the page opening for orientation, while summary and stats move below
+the working list. Search, filters, pagination, and the problem rows remain the
+first visual priority and should appear without excessive scrolling.
 
 Filters are grouped by scope, ByteDance, and practice state. Scope includes all
 problems, Hot 100, and sourced company follow-ups. ByteDance includes all,
@@ -119,8 +119,9 @@ optional extension submit. Code drafts roll on Beijing calendar days: the first
 page load in a browser only stamps the current day, and later day changes clear
 all code drafts so each day starts from official templates or local fallbacks
 again. This rollover affects only code drafts; it does not clear solved status,
-visited links, per-problem PBs, or daily timing history. The language selector
-comes from the official
+visited links, per-problem PBs, or daily timing history. The footer exposes an
+auto-reset switch for this Beijing-midnight rollover; it is on by default and
+can be turned off per browser. The language selector comes from the official
 `codeSnippets` synced into the repository. If a problem is still missing an
 official template, the page uses a local fallback template and says so. The
 practice editor uses a native textarea over a local syntax-highlight layer
@@ -131,22 +132,48 @@ opening braces, brackets, parentheses, or Python colons; `Tab` and `Shift+Tab`
 indent and outdent the current line or selected lines; typing a closing brace,
 bracket, or parenthesis on an indentation-only line aligns it back one level.
 The editor shows a fixed line-number gutter synchronized with the textarea and
-highlight layer. The editor defaults to an auto-growing height, starting at
-18 visible lines and growing with the code up to a bounded maximum, so normal
-practice code keeps surrounding context visible without constant internal
-scrolling. A compact toolbar toggle can switch the editor to a smaller
-14-visible-line fixed-height mode when the user wants a smaller panel;
+highlight layer. The editor defaults to an auto-growing height equal to the
+current code line count plus one spare line, growing with the code up to a
+bounded maximum so short templates do not leave a large blank editor area. A
+compact toolbar toggle can switch the editor to a 14-visible-line fixed-height
+mode when the user wants a stable panel size;
 fixed-height mode remains resizable and scrollable. While the auto-growing
 editor is being typed near the bottom of the viewport, the page reveals the
 current caret line and keeps it in a comfortable writing zone instead of making
-the user manually chase the page. Editor shortcuts match the
-primary LeetCode muscle memory: `Cmd+'`
+the user manually chase the page. When a default template is first opened,
+reset, or selected by language change, focus lands inside the function body
+where the user is expected to start writing. Page appearance controls live in
+the footer. The default page font is a Kai-style Chinese font; users can switch
+back to the original serif face or a system sans face. This page-font setting
+affects the practice-page UI but does not change the code editor font. Editor
+appearance controls also live in the footer: theme, font, font size, and line
+spacing. The default light theme uses the same background as the page while
+keeping Cursor Light+ token colors, and the default editor font mirrors the
+current Cursor font stack (`Monaco, 'Cascadia Code', Consolas, 'Courier New',
+monospace`). The default size and line spacing use a tighter practice density
+to reduce vertical space for short templates. Alternate editor themes,
+monospace stacks, font sizes, and line spacings remain selectable per browser.
+Editor shortcuts match the primary LeetCode muscle memory: `Cmd+'`
 runs the official example testcases and `Cmd+Enter` performs a full LeetCode
 submit. Practice navigation is also keyboard-first: `Option+J` or `Option+Down`
 opens and focuses the next visible problem's editor, while `Option+K` or
-`Option+Up` opens and focuses the previous one. A compact shortcut affordance
-near pagination and a full shortcut block near the page end list every
-supported key.
+`Option+Up` opens and focuses the previous one. Common page actions must also
+be keyboard reachable: `/` focuses search, `Option+1` through `Option+3`
+switch scope filters, `Option+4` through `Option+8` switch ByteDance filters,
+`Option+9`, `Option+0`, and `Option+-` switch state filters, `Option+P`
+focuses page jump, and `Option+Left` / `Option+Right` jump to first / last page.
+The current problem toolbar supports `Cmd+Option+L` for language focus,
+`Cmd+Option+C` for copy, `Cmd+Option+H` for editor height, `Cmd+Option+R` for
+current draft reset, and `Cmd+Option+D`/`S`/`M` for done/review/mastered state.
+Timing shortcuts include
+`Cmd+Option+T` for current-problem restart, `Cmd+Option+Shift+S` for session
+restart, and `Cmd+Option+Shift+T` for clearing the current problem PB and last
+Accepted record. Compact shortcut affordances near pagination list every
+supported key without adding another tall block at the page end. Visible
+controls with matching shortcuts expose the action and shortcut in their hover
+tooltip. All hover popovers must remain open while the pointer moves naturally
+from the trigger into the floating content, and close only after the pointer
+leaves that content.
 
 Practice timing is automatic. Daily history stays collapsed into a hover/focus
 popover so it does not push the first problem rows down. Opening or
@@ -169,8 +196,10 @@ date. The compact board surfaces comparison cues such as new daily record,
 tied daily record, best per-problem solve, fastest daily average, seven-day
 activity, and streak status. A collapsed daily-history view shows the last
 14 Beijing calendar days for quick comparison. Manual reset controls may
-restart the current session timer or clear the active problem's timing record,
-but the normal flow remains automatic.
+restart the current session timer or restart only the current active problem
+timer. A less prominent, confirmed control clears the active problem's stored
+PB and last Accepted record without rolling back daily summaries. The normal
+flow remains automatic.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and
@@ -185,10 +214,19 @@ avoids keeping a Manifest V3 message channel open while LeetCode is still
 running the job. Cookie values are never sent to page JavaScript or stored in
 the repo. If the extension is not installed or the user is not logged in, the
 page shows that as status and keeps the local editor usable.
+The page footer also keeps always-visible links to the GitHub repository,
+extension directory, feedback issues, and page spec. It also includes a
+collapsed, beginner-oriented installation guide for loading this unpacked
+Chrome extension from the repository.
 
-Preview controls include statement, approach, and implementation. The
-implementation preview is the home for reference implementation ordering,
-final reference code, provenance state, and follow-ups. Reference
+Preview controls include statement, approach, and implementation. Approach,
+implementation, and tag previews can be inspected temporarily by hover or
+pinned open by click. Hover previews should stay open while the pointer moves
+from the trigger into the floating content, then close after the pointer leaves
+that content; pinned previews close when the user clicks outside the preview or
+presses `Escape`. The implementation preview is the home for reference
+implementation ordering, final reference code, provenance state, and
+follow-ups. Reference
 implementation code may be committed to this repository and published through
 GitHub Pages. The current page starts with harvested recent accepted
 submissions for the highest-frequency rows, then fills the rest of the target

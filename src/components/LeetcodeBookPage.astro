@@ -37,6 +37,56 @@ const isZh = lang === "zh";
 const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
 const title = isZh ? book.zhTitle : book.title;
 const description = isZh ? book.zhDescription : book.description;
+const repositoryUrl = "https://github.com/WineChord/books";
+const extensionDirectoryUrl = `${repositoryUrl}/tree/main/extensions/leetcode-submit`;
+const issuesUrl = `${repositoryUrl}/issues`;
+const leetcodeSpecUrl = `${repositoryUrl}/blob/main/docs/${
+  isZh ? "zh/leetcode/spec.md" : "leetcode/spec.md"
+}`;
+const searchShortcutTitle = isZh ? "聚焦搜索（/）" : "Focus search (/)";
+const previousPageShortcutTitle = isZh ? "上一页（←）" : "Previous page (←)";
+const nextPageShortcutTitle = isZh ? "下一页（→）" : "Next page (→)";
+const firstPageShortcutTitle = isZh ? "首页（Option+←）" : "First page (Option+←)";
+const lastPageShortcutTitle = isZh ? "末页（Option+→）" : "Last page (Option+→)";
+const pageJumpShortcutTitle = isZh ? "聚焦页码跳转（Option+P）" : "Focus page jump (Option+P)";
+const shortcutHelpTitle = isZh ? "查看快捷键（?）" : "Show keyboard shortcuts (?)";
+const resetSessionTitle = isZh
+  ? "重开本次计时（Cmd+Option+Shift+S）"
+  : "Restart this session timer (Cmd+Option+Shift+S)";
+const restartProblemTimerTitle = isZh
+  ? "重开本题计时（Cmd+Option+T）"
+  : "Restart current problem timer (Cmd+Option+T)";
+const clearProblemRecordTitle = isZh
+  ? "清除当前题 PB 和上次 AC（Cmd+Option+Shift+T）"
+  : "Clear current problem PB and last AC (Cmd+Option+Shift+T)";
+const resetAllDraftsTitle = isZh
+  ? "重置全部题目草稿（Cmd+Option+Shift+R）"
+  : "Reset all problem drafts (Cmd+Option+Shift+R)";
+const filterShortcutTitles = {
+  all: isZh ? "范围：全部（Option+1）" : "Scope: all (Option+1)",
+  hot100: isZh ? "范围：Hot100（Option+2）" : "Scope: Hot100 (Option+2)",
+  companyFollowUps: isZh
+    ? "范围：公司追问（Option+3）"
+    : "Scope: follow-ups (Option+3)",
+  bytedanceAll: isZh ? "字节：全部（Option+4）" : "ByteDance: all (Option+4)",
+  bytedanceThirtyDays: isZh
+    ? "字节：近 30 天（Option+5）"
+    : "ByteDance: 30 days (Option+5)",
+  bytedanceThreeMonths: isZh
+    ? "字节：近 3 月（Option+6）"
+    : "ByteDance: 3 months (Option+6)",
+  bytedanceSixMonths: isZh
+    ? "字节：近 6 月（Option+7）"
+    : "ByteDance: 6 months (Option+7)",
+  bytedanceMoreThanSixMonths: isZh
+    ? "字节：6 月前（Option+8）"
+    : "ByteDance: older than 6 months (Option+8)",
+  unsolved: isZh ? "状态：未做（Option+9）" : "State: unsolved (Option+9)",
+  review: isZh ? "状态：需思考（Option+0）" : "State: review (Option+0)",
+  unmastered: isZh
+    ? "状态：未熟练（Option+-）"
+    : "State: unmastered (Option+-)",
+};
 const leetcodeTargetLimit = 888;
 const syncedDedupedLimit = leetcodeStats.dedupedTop888;
 const byteDanceBySlug = new Map(
@@ -146,6 +196,26 @@ const leetcodeReferenceCount =
 const totalProblemCount = leetcodeProblemsWithReferences.length;
 const shortcutRows = [
   {
+    keys: "/",
+    zh: "聚焦搜索",
+    en: "Focus search",
+  },
+  {
+    keys: "Option+1 / 2 / 3",
+    zh: "范围筛选：全部 / Hot100 / 公司追问",
+    en: "Scope filters: all / Hot100 / follow-ups",
+  },
+  {
+    keys: "Option+4-8",
+    zh: "字节筛选：全部 / 30天 / 3月 / 6月 / 6月前",
+    en: "ByteDance filters: all / 30d / 3m / 6m / old",
+  },
+  {
+    keys: "Option+9 / 0 / -",
+    zh: "状态筛选：未做 / 需思考 / 未熟练",
+    en: "State filters: unsolved / review / unmastered",
+  },
+  {
     keys: "Option+J / Option+↓",
     zh: "下一题答题区",
     en: "Next problem editor",
@@ -166,9 +236,74 @@ const shortcutRows = [
     en: "Submit to LeetCode",
   },
   {
+    keys: "Cmd+Shift+L",
+    zh: "打开当前题力扣页",
+    en: "Open current LeetCode problem",
+  },
+  {
+    keys: "Cmd+Option+R",
+    zh: "重置当前题草稿",
+    en: "Reset current problem draft",
+  },
+  {
+    keys: "Cmd+Option+L",
+    zh: "聚焦当前题语言选择",
+    en: "Focus current language selector",
+  },
+  {
+    keys: "Cmd+Option+C",
+    zh: "复制当前题代码",
+    en: "Copy current problem code",
+  },
+  {
+    keys: "Cmd+Option+H",
+    zh: "切换当前编辑器高度",
+    en: "Toggle current editor height",
+  },
+  {
+    keys: "Cmd+Option+Shift+R",
+    zh: "重置全部题目草稿",
+    en: "Reset all problem drafts",
+  },
+  {
+    keys: "Cmd+Option+T",
+    zh: "重开当前题计时",
+    en: "Restart current problem timer",
+  },
+  {
+    keys: "Cmd+Option+Shift+S",
+    zh: "重开本次计时",
+    en: "Restart this session timer",
+  },
+  {
+    keys: "Cmd+Option+Shift+T",
+    zh: "清当前题 PB 和上次 AC",
+    en: "Clear current problem PB and last AC",
+  },
+  {
+    keys: "Cmd+Option+D / S / M",
+    zh: "切换当前题状态：做过 / 思考 / 熟练",
+    en: "Toggle current state: done / review / mastered",
+  },
+  {
     keys: "← / →",
     zh: "翻页（未聚焦输入区时）",
     en: "Change page when not editing",
+  },
+  {
+    keys: "Option+← / Option+→",
+    zh: "首页 / 末页",
+    en: "First / last page",
+  },
+  {
+    keys: "Option+P",
+    zh: "聚焦页码跳转",
+    en: "Focus page jump",
+  },
+  {
+    keys: "Esc",
+    zh: "关闭固定预览或快捷键帮助",
+    en: "Close pinned previews or shortcut help",
   },
   {
     keys: "?",
@@ -186,33 +321,6 @@ const shortcutRows = [
   titleSuffix={title}
 >
   <main class="leetcode-shell mx-auto max-w-6xl px-4 py-0 md:px-8">
-    <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
-      <div>
-        <span>{leetcodeTargetLimit}</span>
-        <p>{isZh ? "Top888 目标" : "Top 888 target"}</p>
-      </div>
-      <div>
-        <span>{syncedDedupedLimit}</span>
-        <p>{isZh ? "去重后" : "Deduped"}</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.hot100}</span>
-        <p>Hot 100</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.hot100OutsideTop888}</span>
-        <p>{isZh ? "Hot100 补充" : "Hot 100 extras"}</p>
-      </div>
-      <div>
-        <span>{leetcodeStats.duplicatesRemoved}</span>
-        <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
-      </div>
-      <div>
-        <span>{leetcodeByteDanceStats.syncedAll}/{leetcodeByteDanceStats.targetAll}</span>
-        <p>{isZh ? "字节题库" : "ByteDance"}</p>
-      </div>
-    </section>
-
     <section class="leetcode-hero">
       <div>
         <p class="leetcode-kicker">{book.coverKicker}</p>
@@ -247,34 +355,39 @@ const shortcutRows = [
       <div class="leetcode-toolbar">
         <div class="leetcode-search">
           <label for="leetcode-search">{isZh ? "搜索" : "Search"}</label>
-          <input id="leetcode-search" type="search" placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"} />
+          <input
+            id="leetcode-search"
+            type="search"
+            placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"}
+            title={searchShortcutTitle}
+          />
         </div>
 
         <div class="leetcode-filter-panel" aria-label={isZh ? "筛选" : "Filters"}>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "范围" : "Scope"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
-              <button type="button" class="is-active" data-filter="all">{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="hot100">Hot100</button>
-              <button type="button" data-filter="companyFollowUps">{isZh ? "公司追问" : "Follow-ups"}</button>
+              <button type="button" class="is-active" data-filter="all" title={filterShortcutTitles.all}>{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="hot100" title={filterShortcutTitles.hot100}>Hot100</button>
+              <button type="button" data-filter="companyFollowUps" title={filterShortcutTitles.companyFollowUps}>{isZh ? "公司追问" : "Follow-ups"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "字节" : "ByteDance"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
-              <button type="button" data-filter="bytedanceAll">{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="bytedanceThirtyDays">{isZh ? "近30天" : "30d"}</button>
-              <button type="button" data-filter="bytedanceThreeMonths">{isZh ? "近3月" : "3m"}</button>
-              <button type="button" data-filter="bytedanceSixMonths">{isZh ? "近6月" : "6m"}</button>
-              <button type="button" data-filter="bytedanceMoreThanSixMonths">{isZh ? "6月前" : "Old"}</button>
+              <button type="button" data-filter="bytedanceAll" title={filterShortcutTitles.bytedanceAll}>{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="bytedanceThirtyDays" title={filterShortcutTitles.bytedanceThirtyDays}>{isZh ? "近30天" : "30d"}</button>
+              <button type="button" data-filter="bytedanceThreeMonths" title={filterShortcutTitles.bytedanceThreeMonths}>{isZh ? "近3月" : "3m"}</button>
+              <button type="button" data-filter="bytedanceSixMonths" title={filterShortcutTitles.bytedanceSixMonths}>{isZh ? "近6月" : "6m"}</button>
+              <button type="button" data-filter="bytedanceMoreThanSixMonths" title={filterShortcutTitles.bytedanceMoreThanSixMonths}>{isZh ? "6月前" : "Old"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "状态" : "State"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
-              <button type="button" data-filter="unsolved">{isZh ? "未做" : "Unsolved"}</button>
-              <button type="button" data-filter="review">{isZh ? "需思考" : "Review"}</button>
-              <button type="button" data-filter="unmastered">{isZh ? "未熟练" : "Unmastered"}</button>
+              <button type="button" data-filter="unsolved" title={filterShortcutTitles.unsolved}>{isZh ? "未做" : "Unsolved"}</button>
+              <button type="button" data-filter="review" title={filterShortcutTitles.review}>{isZh ? "需思考" : "Review"}</button>
+              <button type="button" data-filter="unmastered" title={filterShortcutTitles.unmastered}>{isZh ? "未熟练" : "Unmastered"}</button>
             </div>
           </div>
         </div>
@@ -334,8 +447,9 @@ const shortcutRows = [
           <p>{isZh ? "本题 PB" : "Problem PB"}</p>
         </div>
         <div class="leetcode-session-actions">
-          <button type="button" data-timing-action="reset-session">{isZh ? "重开本次" : "Reset session"}</button>
-          <button type="button" data-timing-action="reset-problem">{isZh ? "清本题" : "Clear problem"}</button>
+          <button type="button" data-timing-action="reset-session" title={resetSessionTitle}>{isZh ? "重开本次" : "Reset session"}</button>
+          <button type="button" data-timing-action="restart-problem" title={restartProblemTimerTitle}>{isZh ? "重开本题" : "Restart problem"}</button>
+          <button type="button" class="is-subtle" data-timing-action="clear-problem-record" title={clearProblemRecordTitle}>{isZh ? "清本题记录" : "Clear record"}</button>
         </div>
         <div class="leetcode-session-history">
           <span data-timing-timezone>{isZh ? "北京时间" : "Beijing time"}</span>
@@ -348,41 +462,26 @@ const shortcutRows = [
       </section>
 
       <div class="leetcode-list-meta">
-        <div class="leetcode-summary">
-          <span id="leetcode-result-count"></span>
-          <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
-          <span>
-            {isZh
-              ? `力扣中国区按出题频率排序；字节题库当前状态：${byteDanceStatusLabel}。`
-              : leetcodeDataSource}
-          </span>
-          <span>
-            {isZh
-              ? `${leetcodeReferenceCount} 份公开 reference implementation 已同步`
-              : `${leetcodeReferenceCount} public reference implementations synced`}
-          </span>
-          <span>
-            {isZh
-              ? `${leetcodeCodeTemplateStats.problems} 道题官方代码模板已同步`
-              : `${leetcodeCodeTemplateStats.problems} problems with official code templates synced`}
-          </span>
-        </div>
-
         <nav
           class="leetcode-pagination leetcode-pagination-top"
           data-pagination
           aria-label={isZh ? "顶部分页" : "Top pagination"}
         >
-          <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
-          <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
+          <button type="button" data-page-action="first" title={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
+          <button type="button" data-page-action="prev" title={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
           <label class="leetcode-page-jump">
             <span>{isZh ? "第" : "Page"}</span>
-            <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
+            <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} title={pageJumpShortcutTitle} />
             <span data-page-indicator></span>
           </label>
-          <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
-          <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
-          <span class="leetcode-shortcut-tip" tabindex="0">
+          <button type="button" data-page-action="next" title={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
+          <button type="button" data-page-action="last" title={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
+          <span
+            class="leetcode-shortcut-tip"
+            tabindex="0"
+            title={shortcutHelpTitle}
+            data-shortcut-help
+          >
             {isZh ? "快捷键" : "Keys"}
             <span class="leetcode-shortcut-popover" role="tooltip">
               {shortcutRows.map((item) => (
@@ -415,16 +514,26 @@ const shortcutRows = [
         data-pagination
         aria-label={isZh ? "底部分页" : "Bottom pagination"}
       >
-        <button type="button" data-page-action="first">{isZh ? "首页" : "First"}</button>
-        <button type="button" data-page-action="prev">{isZh ? "上一页" : "Prev"}</button>
+        <button type="button" data-page-action="first" title={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
+        <button type="button" data-page-action="prev" title={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
         <label class="leetcode-page-jump">
           <span>{isZh ? "第" : "Page"}</span>
-          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} />
+          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} title={pageJumpShortcutTitle} />
           <span data-page-indicator></span>
         </label>
-        <button type="button" data-page-action="next">{isZh ? "下一页" : "Next"}</button>
-        <button type="button" data-page-action="last">{isZh ? "末页" : "Last"}</button>
-        <a class="leetcode-page-shortcut" href="#leetcode-shortcuts">{isZh ? "快捷键" : "Keys"}</a>
+        <button type="button" data-page-action="next" title={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
+        <button type="button" data-page-action="last" title={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
+        <span class="leetcode-shortcut-tip" tabindex="0" title={shortcutHelpTitle}>
+          {isZh ? "快捷键" : "Keys"}
+          <span class="leetcode-shortcut-popover" role="tooltip">
+            {shortcutRows.map((item) => (
+              <span>
+                <kbd>{item.keys}</kbd>
+                <span>{isZh ? item.zh : item.en}</span>
+              </span>
+            ))}
+          </span>
+        </span>
       </nav>
 
       {
@@ -462,17 +571,184 @@ const shortcutRows = [
       }
     </section>
 
-    <details class="leetcode-shortcuts" id="leetcode-shortcuts">
-      <summary>{isZh ? "快捷键" : "Keyboard shortcuts"}</summary>
-      <div class="leetcode-shortcut-grid">
-        {shortcutRows.map((item) => (
-          <div>
-            <kbd>{item.keys}</kbd>
-            <span>{isZh ? item.zh : item.en}</span>
-          </div>
-        ))}
+    <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
+      <div>
+        <span>{leetcodeTargetLimit}</span>
+        <p>{isZh ? "Top888 目标" : "Top 888 target"}</p>
+      </div>
+      <div>
+        <span>{syncedDedupedLimit}</span>
+        <p>{isZh ? "去重后" : "Deduped"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100}</span>
+        <p>Hot 100</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.hot100OutsideTop888}</span>
+        <p>{isZh ? "Hot100 补充" : "Hot 100 extras"}</p>
+      </div>
+      <div>
+        <span>{leetcodeStats.duplicatesRemoved}</span>
+        <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
+      </div>
+      <div>
+        <span>{leetcodeByteDanceStats.syncedAll}/{leetcodeByteDanceStats.targetAll}</span>
+        <p>{isZh ? "字节题库" : "ByteDance"}</p>
+      </div>
+    </section>
+
+    <div class="leetcode-summary leetcode-footer-meta">
+      <span id="leetcode-result-count"></span>
+      <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
+      <span>
+        {isZh
+          ? `力扣中国区按出题频率排序；字节题库当前状态：${byteDanceStatusLabel}。`
+          : leetcodeDataSource}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeReferenceCount} 份公开 reference implementation 已同步`
+          : `${leetcodeReferenceCount} public reference implementations synced`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeCodeTemplateStats.problems} 道题官方代码模板已同步`
+          : `${leetcodeCodeTemplateStats.problems} problems with official code templates synced`}
+      </span>
+    </div>
+
+    <section class="leetcode-footer-settings" aria-label={isZh ? "页面设置" : "Page settings"}>
+      <label class="leetcode-switch">
+        <input id="leetcode-daily-reset" type="checkbox" />
+        <span>{isZh ? "每天 0 点（北京时间）自动重置代码草稿" : "Auto-reset code drafts at 00:00 Beijing time"}</span>
+        <em data-daily-reset-status></em>
+      </label>
+      <div class="leetcode-editor-preferences" aria-label={isZh ? "编辑器设置" : "Editor settings"}>
+        <label for="leetcode-page-font">
+          <span>{isZh ? "页面字体" : "Page font"}</span>
+          <select id="leetcode-page-font">
+            <option value="kai">{isZh ? "楷体" : "Kai"}</option>
+            <option value="serif">{isZh ? "原本衬线" : "Original serif"}</option>
+            <option value="system">{isZh ? "系统黑体" : "System sans"}</option>
+          </select>
+        </label>
+        <label for="leetcode-editor-theme">
+          <span>{isZh ? "编辑器主题" : "Editor theme"}</span>
+          <select id="leetcode-editor-theme">
+            <option value="cursor-light">{isZh ? "页面背景 Light+" : "Page Light+"}</option>
+            <option value="cursor-dark">{isZh ? "Cursor Default Dark+" : "Cursor Default Dark+"}</option>
+            <option value="books-warm">{isZh ? "本页暖色" : "Books warm"}</option>
+          </select>
+        </label>
+        <label for="leetcode-editor-font">
+          <span>{isZh ? "编辑器字体" : "Editor font"}</span>
+          <select id="leetcode-editor-font">
+            <option value="cursor">Monaco / Cascadia Code</option>
+            <option value="jetbrains">JetBrains Mono</option>
+            <option value="system">{isZh ? "系统等宽" : "System mono"}</option>
+          </select>
+        </label>
+        <label for="leetcode-editor-size">
+          <span>{isZh ? "字号" : "Font size"}</span>
+          <select id="leetcode-editor-size">
+            <option value="compact">{isZh ? "紧凑 14px" : "Compact 14px"}</option>
+            <option value="standard">{isZh ? "标准 15px" : "Standard 15px"}</option>
+            <option value="large">{isZh ? "大号 16px" : "Large 16px"}</option>
+          </select>
+        </label>
+        <label for="leetcode-editor-leading">
+          <span>{isZh ? "行距" : "Line gap"}</span>
+          <select id="leetcode-editor-leading">
+            <option value="tight">{isZh ? "紧密" : "Tight"}</option>
+            <option value="balanced">{isZh ? "平衡" : "Balanced"}</option>
+            <option value="relaxed">{isZh ? "舒展" : "Relaxed"}</option>
+          </select>
+        </label>
+        <button type="button" data-editor-action-global="reset-all-drafts" title={resetAllDraftsTitle}>
+          {isZh ? "重置全部草稿" : "Reset drafts"}
+        </button>
+      </div>
+    </section>
+
+    <details class="leetcode-extension-guide">
+      <summary>{isZh ? "安装 Chrome 扩展后直接提交到力扣" : "Install the Chrome extension to submit to LeetCode"}</summary>
+      <div>
+        {
+          isZh ? (
+            <>
+              <p>
+                这个扩展是一个本仓库里的本地 Chrome 小工具。页面只把题目 slug、
+                语言和当前代码发给扩展；登录 cookie 留在 Chrome 扩展侧，页面
+                JavaScript 不会读取它。
+              </p>
+              <ol>
+                <li>在 Chrome 地址栏打开 <code>chrome://extensions</code>。</li>
+                <li>打开右上角的 <strong>开发者模式</strong>。</li>
+                <li>
+                  打开 <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，
+                  clone 或下载到本地；扩展源码在
+                  <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
+                    extensions/leetcode-submit
+                  </a>。
+                </li>
+                <li>点击 <strong>加载已解压的扩展程序</strong>。</li>
+                <li>选择本地仓库里的 <code>extensions/leetcode-submit</code> 文件夹。</li>
+                <li>在同一个 Chrome 用户里登录 <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a>。</li>
+                <li>回到本页展开一道题，点击“运行样例”或“提交力扣”。</li>
+              </ol>
+              <p>
+                拉到扩展代码更新后，需要回到 <code>chrome://extensions</code>，
+                对这个已解压扩展点一次“重新加载”。
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                This repository includes a local Chrome extension. The page sends only
+                the problem slug, language, and editor code to the extension; LeetCode
+                cookies stay inside Chrome extension APIs.
+              </p>
+              <ol>
+                <li>Open <code>chrome://extensions</code> in Chrome.</li>
+                <li>Enable <strong>Developer mode</strong>.</li>
+                <li>
+                  Open the <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub repository</a>,
+                  then clone or download it locally. The extension source is in
+                  <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
+                    extensions/leetcode-submit
+                  </a>.
+                </li>
+                <li>Click <strong>Load unpacked</strong>.</li>
+                <li>Select the local <code>extensions/leetcode-submit</code> folder.</li>
+                <li>Sign in to <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a> in the same Chrome profile.</li>
+                <li>Return to this page, open a problem, then run or submit.</li>
+              </ol>
+              <p>
+                After extension code changes, reload this unpacked extension in
+                <code>chrome://extensions</code>.
+              </p>
+            </>
+          )
+        }
       </div>
     </details>
+
+    <nav class="leetcode-footer-links" aria-label={isZh ? "相关链接" : "Related links"}>
+      <span>{isZh ? "相关链接" : "Links"}</span>
+      <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">
+        {isZh ? "GitHub 仓库" : "GitHub repository"}
+      </a>
+      <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
+        {isZh ? "Chrome 扩展源码" : "Chrome extension"}
+      </a>
+      <a href={issuesUrl} target="_blank" rel="noopener noreferrer">
+        {isZh ? "反馈 Issue" : "Feedback issues"}
+      </a>
+      <a href={leetcodeSpecUrl} target="_blank" rel="noopener noreferrer">
+        {isZh ? "页面规格" : "Page spec"}
+      </a>
+    </nav>
 
   </main>
 
@@ -482,7 +758,9 @@ const shortcutRows = [
     const progressKey = "leetcode-book-progress-v1";
     const clickedKey = "leetcode-book-clicked-v1";
     const editorKey = "leetcode-book-editor-v1";
+    const editorAppearanceKey = "leetcode-book-editor-appearance-v1";
     const editorDraftDayKey = "leetcode-book-editor-day-v1";
+    const editorDailyResetKey = "leetcode-book-editor-daily-reset-v1";
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
     const timingKey = "leetcode-book-timing-v1";
     const dataNode = document.getElementById("leetcode-data");
@@ -497,7 +775,15 @@ const shortcutRows = [
     const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
     const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
-    const shortcutHelp = document.getElementById("leetcode-shortcuts");
+    const shortcutHelp = document.querySelector("[data-shortcut-help]");
+    const dailyResetToggle = document.getElementById("leetcode-daily-reset");
+    const dailyResetStatus = document.querySelector("[data-daily-reset-status]");
+    const pageFontSelect = document.getElementById("leetcode-page-font");
+    const editorThemeSelect = document.getElementById("leetcode-editor-theme");
+    const editorFontSelect = document.getElementById("leetcode-editor-font");
+    const editorSizeSelect = document.getElementById("leetcode-editor-size");
+    const editorLeadingSelect = document.getElementById("leetcode-editor-leading");
+    const leetcodeShell = document.querySelector(".leetcode-shell");
     const fallbackLanguages = [
       ["cpp", "C++"],
       ["python3", "Python3"],
@@ -532,7 +818,7 @@ const shortcutRows = [
     const submissionPollIntervalMs = 1500;
     const runPollAttempts = 24;
     const submitPollAttempts = 80;
-    const editorMinVisibleLines = 18;
+    const editorExtraVisibleLines = 1;
     const editorFixedVisibleLines = 14;
     const editorMaxAutoVisibleLines = 56;
     const editorIndentUnit = "    ";
@@ -542,6 +828,25 @@ const shortcutRows = [
     const editorCaretBottomGuardMax = 220;
     const editorCaretTopGuard = 88;
     const editorDraftDayCheckIntervalMs = 60 * 1000;
+    const previewHoverCloseDelayMs = 180;
+    const filterShortcutByCode = {
+      Digit1: "all",
+      Digit2: "hot100",
+      Digit3: "companyFollowUps",
+      Digit4: "bytedanceAll",
+      Digit5: "bytedanceThirtyDays",
+      Digit6: "bytedanceThreeMonths",
+      Digit7: "bytedanceSixMonths",
+      Digit8: "bytedanceMoreThanSixMonths",
+      Digit9: "unsolved",
+      Digit0: "review",
+      Minus: "unmastered",
+    };
+    const editorDefaultPageFont = "kai";
+    const editorDefaultTheme = "cursor-light";
+    const editorDefaultFont = "cursor";
+    const editorDefaultSize = "compact";
+    const editorDefaultLeading = "balanced";
     const timingTimeZone = "Asia/Shanghai";
     const timingDayMs = 24 * 60 * 60 * 1000;
     const timingHistoryDays = 14;
@@ -554,6 +859,7 @@ const shortcutRows = [
     const pendingExtensionRequests = new Map();
     const isChinesePage = document.documentElement.lang.startsWith("zh");
     let extensionRequestSequence = 0;
+    let previewHoverCloseTimer = 0;
 
     function readJson(key, fallback) {
       try {
@@ -566,6 +872,10 @@ const shortcutRows = [
     let progress = readJson(progressKey, {});
     let clicked = readJson(clickedKey, {});
     let editorDrafts = readJson(editorKey, {});
+    let editorAppearance = readJson(editorAppearanceKey, {});
+    if (!editorAppearance || typeof editorAppearance !== "object") {
+      editorAppearance = {};
+    }
     let editorAutoGrow = localStorage.getItem(editorHeightModeKey) !== "fixed";
     let timing = readJson(timingKey, {});
     if (!timing || typeof timing !== "object") timing = {};
@@ -582,6 +892,83 @@ const shortcutRows = [
     };
     let activePracticeTimer = { slug: "", startedAt: 0 };
     let timingMilestone = "";
+
+    function dailyEditorResetEnabled() {
+      return localStorage.getItem(editorDailyResetKey) !== "off";
+    }
+
+    function writeEditorAppearance() {
+      localStorage.setItem(editorAppearanceKey, JSON.stringify(editorAppearance));
+    }
+
+    function selectedAppearanceValue(select, value, fallback) {
+      if (!(select instanceof HTMLSelectElement)) return value || fallback;
+      return Array.from(select.options).some((option) => option.value === value)
+        ? value
+        : fallback;
+    }
+
+    function syncDailyResetUi() {
+      const enabled = dailyEditorResetEnabled();
+      if (dailyResetToggle instanceof HTMLInputElement) {
+        dailyResetToggle.checked = enabled;
+      }
+      if (dailyResetStatus instanceof HTMLElement) {
+        dailyResetStatus.textContent = enabled
+          ? (isChinesePage ? "已开启" : "On")
+          : (isChinesePage ? "已关闭" : "Off");
+      }
+    }
+
+    function applyEditorAppearance() {
+      const pageFont = selectedAppearanceValue(
+        pageFontSelect,
+        editorAppearance.pageFont,
+        editorDefaultPageFont,
+      );
+      const theme = selectedAppearanceValue(
+        editorThemeSelect,
+        editorAppearance.theme,
+        editorDefaultTheme,
+      );
+      const font = selectedAppearanceValue(
+        editorFontSelect,
+        editorAppearance.font,
+        editorDefaultFont,
+      );
+      const size = selectedAppearanceValue(
+        editorSizeSelect,
+        editorAppearance.size,
+        editorDefaultSize,
+      );
+      const leading = selectedAppearanceValue(
+        editorLeadingSelect,
+        editorAppearance.leading,
+        editorDefaultLeading,
+      );
+      if (leetcodeShell instanceof HTMLElement) {
+        leetcodeShell.dataset.pageFont = pageFont;
+        leetcodeShell.dataset.editorTheme = theme;
+        leetcodeShell.dataset.editorFont = font;
+        leetcodeShell.dataset.editorSize = size;
+        leetcodeShell.dataset.editorLeading = leading;
+      }
+      if (pageFontSelect instanceof HTMLSelectElement) {
+        pageFontSelect.value = pageFont;
+      }
+      if (editorThemeSelect instanceof HTMLSelectElement) {
+        editorThemeSelect.value = theme;
+      }
+      if (editorFontSelect instanceof HTMLSelectElement) {
+        editorFontSelect.value = font;
+      }
+      if (editorSizeSelect instanceof HTMLSelectElement) {
+        editorSizeSelect.value = size;
+      }
+      if (editorLeadingSelect instanceof HTMLSelectElement) {
+        editorLeadingSelect.value = leading;
+      }
+    }
 
     function writeState() {
       rollEditorDraftsForToday();
@@ -613,6 +1000,7 @@ const shortcutRows = [
       if (storedKey === todayKey) return false;
       localStorage.setItem(editorDraftDayKey, todayKey);
       if (!storedKey) return false;
+      if (!dailyEditorResetEnabled()) return false;
       editorDrafts = {};
       localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
       return true;
@@ -624,6 +1012,8 @@ const shortcutRows = [
       render();
     }
 
+    syncDailyResetUi();
+    applyEditorAppearance();
     rollEditorDraftsForToday();
 
     function dateKeyParts(dateKey) {
@@ -916,6 +1306,11 @@ const shortcutRows = [
       return record && typeof record === "object" ? record : {};
     }
 
+    function hasProblemTimingRecord(slug) {
+      const record = storedProblemTiming(slug);
+      return Boolean(record.bestMs || record.lastMs || record.acceptedCount);
+    }
+
     function activePracticeElapsed() {
       if (!activePracticeTimer.slug || !activePracticeTimer.startedAt) return 0;
       return Date.now() - activePracticeTimer.startedAt;
@@ -983,9 +1378,14 @@ const shortcutRows = [
         const record = slug ? storedProblemTiming(slug) : {};
         node.textContent = record.lastMs ? formatDuration(record.lastMs) : "--";
       });
-      document.querySelectorAll("[data-timing-action='reset-problem']").forEach((button) => {
+      document.querySelectorAll("[data-timing-action='restart-problem']").forEach((button) => {
         if (button instanceof HTMLButtonElement) {
-          button.disabled = !activeSlug || !timing.problems[activeSlug];
+          button.disabled = !activePracticeTimer.slug;
+        }
+      });
+      document.querySelectorAll("[data-timing-action='clear-problem-record']").forEach((button) => {
+        if (button instanceof HTMLButtonElement) {
+          button.disabled = !hasProblemTimingRecord(activePracticeTimer.slug);
         }
       });
     }
@@ -1020,13 +1420,26 @@ const shortcutRows = [
       syncTimingUi();
     }
 
-    function resetActiveProblemTiming() {
-      const slug = activePracticeTimer.slug;
-      if (!slug) return;
+    function restartActiveProblemTimer() {
+      if (!activePracticeTimer.slug) return;
+      activePracticeTimer.startedAt = Date.now();
+      timingMilestone = isChinesePage
+        ? "已重开本题计时"
+        : "Current problem timer restarted";
+      syncTimingUi();
+    }
+
+    function clearActiveProblemTimingRecord(slugOverride = "") {
+      const slug = slugOverride || activePracticeTimer.slug;
+      if (!slug || !hasProblemTimingRecord(slug)) return;
+      const message = isChinesePage
+        ? "确认清空当前题的 PB 和上次 AC 记录？今日统计不会被回滚。"
+        : "Clear this problem's PB and last Accepted record? Daily stats stay unchanged.";
+      if (!window.confirm(message)) return;
       delete timing.problems[slug];
-      if (activePracticeTimer.startedAt) {
-        activePracticeTimer.startedAt = Date.now();
-      }
+      timingMilestone = isChinesePage
+        ? "已清本题 PB / 上次 AC 记录"
+        : "Problem PB / last Accepted cleared";
       writeTiming();
       syncTimingUi();
     }
@@ -1293,6 +1706,41 @@ const shortcutRows = [
       return end;
     }
 
+    const lightPlusControlKeywords = new Set([
+      "after",
+      "await",
+      "break",
+      "case",
+      "catch",
+      "continue",
+      "default",
+      "defer",
+      "do",
+      "elif",
+      "else",
+      "except",
+      "finally",
+      "for",
+      "foreach",
+      "guard",
+      "if",
+      "loop",
+      "match",
+      "receive",
+      "rescue",
+      "return",
+      "select",
+      "switch",
+      "throw",
+      "throws",
+      "try",
+      "unless",
+      "when",
+      "while",
+      "with",
+      "yield",
+    ]);
+
     function highlightCode(code, lang) {
       const grammar =
         highlightGrammarByLanguage[languageKey(lang)] || {
@@ -1336,9 +1784,15 @@ const shortcutRows = [
           let end = index + 1;
           while (end < code.length && isIdentifierPart(code[end])) end += 1;
           const word = code.slice(index, end);
-          if (grammar.keywords.has(word) || grammar.keywords.has(word.toLowerCase())) {
-            html += highlightedSpan("leetcode-token-keyword", word);
-          } else if (grammar.types.has(word) || grammar.types.has(word.toLowerCase())) {
+          const lowerWord = word.toLowerCase();
+          if (grammar.keywords.has(word) || grammar.keywords.has(lowerWord)) {
+            html += highlightedSpan(
+              lightPlusControlKeywords.has(lowerWord)
+                ? "leetcode-token-control"
+                : "leetcode-token-keyword",
+              word,
+            );
+          } else if (grammar.types.has(word) || grammar.types.has(lowerWord)) {
             html += highlightedSpan("leetcode-token-type", word);
           } else {
             html += escapeToken(word);
@@ -1436,6 +1890,21 @@ const shortcutRows = [
       setPage(input.value);
     }
 
+    function focusSearchInput() {
+      if (!(searchInput instanceof HTMLInputElement)) return false;
+      searchInput.focus({ preventScroll: true });
+      searchInput.select();
+      return true;
+    }
+
+    function focusPageJumpInput() {
+      const input = pageJumpInputs.find((item) => item instanceof HTMLInputElement);
+      if (!(input instanceof HTMLInputElement)) return false;
+      input.focus({ preventScroll: true });
+      input.select();
+      return true;
+    }
+
     function isEditableTarget(element) {
       if (!(element instanceof HTMLElement)) return false;
       if (element.isContentEditable) return true;
@@ -1450,6 +1919,19 @@ const shortcutRows = [
       if (!(element instanceof HTMLElement)) return false;
       if (element.isContentEditable) return true;
       return element.matches("input, textarea, select, [contenteditable='true']");
+    }
+
+    function applyFilter(filter) {
+      const button = filterButtons.find(
+        (item) => item instanceof HTMLElement && item.dataset.filter === filter,
+      );
+      if (!(button instanceof HTMLElement)) return false;
+      filterButtons.forEach((item) => item.classList.remove("is-active"));
+      button.classList.add("is-active");
+      state.filter = filter || "all";
+      state.page = 1;
+      render();
+      return true;
     }
 
     function matchesFilter(problem) {
@@ -1515,10 +1997,15 @@ const shortcutRows = [
       return filtered;
     }
 
+    function editorPanelForSlug(slug) {
+      return Array.from(list?.querySelectorAll("[data-editor-panel]") || []).find(
+        (item) => item instanceof HTMLElement && item.dataset.editorPanel === slug,
+      );
+    }
+
     function focusEditorForSlug(slug) {
       window.requestAnimationFrame(() => {
-        const panel = Array.from(list?.querySelectorAll("[data-editor-panel]") || [])
-          .find((item) => item instanceof HTMLElement && item.dataset.editorPanel === slug);
+        const panel = editorPanelForSlug(slug);
         const row = Array.from(list?.querySelectorAll(".leetcode-row") || [])
           .find((item) => item instanceof HTMLElement && item.dataset.slug === slug);
         const textarea = panel?.querySelector("[data-editor-code]");
@@ -1527,7 +2014,9 @@ const shortcutRows = [
           target.scrollIntoView({ block: "center", behavior: "smooth" });
         }
         if (textarea instanceof HTMLTextAreaElement) {
+          const context = editorContextFor(textarea);
           textarea.focus({ preventScroll: true });
+          placeEditorCaretAtImplementation(textarea, context);
           scheduleEditorCaretReveal(textarea, "smooth");
         }
       });
@@ -1860,6 +2349,84 @@ const shortcutRows = [
       return officialTemplate(problem, lang) || fallbackTemplate(problem, lang);
     }
 
+    function lineIndexAtPosition(code, position) {
+      return String(code).slice(0, Math.max(0, position)).split("\n").length - 1;
+    }
+
+    function leadingWhitespace(value) {
+      return String(value).match(/^[\t ]*/)?.[0] || "";
+    }
+
+    function implementationBlankLinePosition(code) {
+      const lines = String(code).split("\n");
+      let offset = 0;
+      let best = null;
+      lines.forEach((line) => {
+        if (/^[\t ]+$/.test(line)) {
+          const indent = leadingWhitespace(line).length;
+          if (!best || indent > best.indent) {
+            best = { indent, position: offset + indent };
+          }
+        }
+        offset += line.length + 1;
+      });
+      return best?.position ?? -1;
+    }
+
+    function closingBodyLinePosition(code) {
+      const lines = String(code).split("\n");
+      let offset = 0;
+      const starts = [];
+      lines.forEach((line) => {
+        starts.push(offset);
+        offset += line.length + 1;
+      });
+      for (let index = 1; index < lines.length; index += 1) {
+        const previous = lines[index - 1];
+        const current = lines[index].trimStart();
+        const isClosing =
+          current.startsWith("}") ||
+          current.startsWith("]") ||
+          current.startsWith(")") ||
+          current.startsWith(".") ||
+          current === "end";
+        if (previous.trim() === "" && isClosing) {
+          const indent = leadingWhitespace(lines[index]).length;
+          return starts[index - 1] + Math.min(indent, previous.length);
+        }
+      }
+      return -1;
+    }
+
+    function implementationCaretPosition(code, lang) {
+      const blankLine = implementationBlankLinePosition(code);
+      if (blankLine !== -1) return blankLine;
+      const closingLine = closingBodyLinePosition(code);
+      if (closingLine !== -1) return closingLine;
+      const key = languageKey(lang);
+      if (key === "python") {
+        const colon = String(code).indexOf(":\n");
+        return colon === -1 ? String(code).length : colon + 2 + editorIndentUnit.length;
+      }
+      const brace = String(code).indexOf("{\n");
+      return brace === -1 ? String(code).length : brace + 2 + editorIndentUnit.length;
+    }
+
+    function placeEditorCaretAtImplementation(textarea, context) {
+      if (!(textarea instanceof HTMLTextAreaElement) || !context) return;
+      const defaultCode = defaultTemplate(context.problem, context.lang);
+      if (textarea.value !== defaultCode) return;
+      const position = Math.min(
+        textarea.value.length,
+        implementationCaretPosition(textarea.value, context.lang),
+      );
+      textarea.setSelectionRange(position, position);
+      const lineIndex = lineIndexAtPosition(textarea.value, position);
+      const lineHeight = editorLineHeight(textarea);
+      textarea.scrollTop = Math.max(0, (lineIndex - 2) * lineHeight);
+      syncEditorHighlight(context.panel, textarea, context.lang);
+    }
+
     function editorHighlightHtml(code, lang) {
       return highlightCode(code, lang);
     }
@@ -1938,7 +2505,7 @@ const shortcutRows = [
       const visibleLines = editorAutoGrow
         ? Math.min(
             editorMaxAutoVisibleLines,
-            Math.max(editorMinVisibleLines, editorLineCount(textarea) + 1),
+            editorLineCount(textarea) + editorExtraVisibleLines,
           )
         : editorFixedVisibleLines;
       const height = Math.ceil(
@@ -2167,6 +2734,168 @@ const shortcutRows = [
       );
     }
 
+    function isEditorOpenLeetcodeShortcut(event) {
+      return (
+        event.metaKey &&
+        event.shiftKey &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        event.code === "KeyL"
+      );
+    }
+
+    function isEditorResetCurrentShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyR"
+      );
+    }
+
+    function isEditorResetAllShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        event.shiftKey &&
+        !event.ctrlKey &&
+        event.code === "KeyR"
+      );
+    }
+
+    function isRestartProblemTimerShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyT"
+      );
+    }
+
+    function isResetSessionShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        event.shiftKey &&
+        !event.ctrlKey &&
+        event.code === "KeyS"
+      );
+    }
+
+    function isClearProblemRecordShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        event.shiftKey &&
+        !event.ctrlKey &&
+        event.code === "KeyT"
+      );
+    }
+
+    function isCopyCurrentEditorShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyC"
+      );
+    }
+
+    function isToggleEditorHeightShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyH"
+      );
+    }
+
+    function isFocusEditorLanguageShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyL"
+      );
+    }
+
+    function progressShortcutAction(event) {
+      if (!event.metaKey || !event.altKey || event.ctrlKey || event.shiftKey) return "";
+      if (event.code === "KeyD") return "done";
+      if (event.code === "KeyS") return "review";
+      if (event.code === "KeyM") return "mastered";
+      return "";
+    }
+
+    function filterShortcut(event) {
+      if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return "";
+      return filterShortcutByCode[event.code] || "";
+    }
+
+    function pageEdgeShortcut(event) {
+      if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return "";
+      if (event.key === "ArrowLeft") return "first";
+      if (event.key === "ArrowRight") return "last";
+      return "";
+    }
+
+    function isSearchFocusShortcut(event) {
+      return (
+        !event.metaKey &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.key === "/"
+      );
+    }
+
+    function isPageJumpFocusShortcut(event) {
+      return (
+        event.altKey &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyP"
+      );
+    }
+
+    function openLeetcodeProblem(problem) {
+      if (!problem?.url) return;
+      clicked[problem.titleSlug] = true;
+      writeState();
+      window.open(problem.url, "_blank", "noopener,noreferrer");
+    }
+
+    function resetEditorDraft(problem, lang, options = {}) {
+      if (!problem) return false;
+      const slug = problem.titleSlug;
+      const nextLang = preferredLang(problem, lang || editorDrafts[slug]?.lang);
+      editorDrafts[slug] = { lang: nextLang, code: defaultTemplate(problem, nextLang) };
+      writeState();
+      render();
+      if (options.focus) focusEditorForSlug(slug);
+      return true;
+    }
+
+    function resetAllEditorDrafts(options = {}) {
+      const needsConfirm = options.confirm !== false;
+      const message = isChinesePage
+        ? "确认重置所有题目的本地代码草稿？做过/思考/熟练和计时不会被清空。"
+        : "Reset local code drafts for all problems? Progress and timing stay unchanged.";
+      if (needsConfirm && !window.confirm(message)) return false;
+      const focusSlug = options.focusSlug || currentPracticeSlug();
+      editorDrafts = {};
+      writeState();
+      render();
+      if (focusSlug) focusEditorForSlug(focusSlug);
+      return true;
+    }
+
     function practiceNavigationDirection(event) {
       if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return 0;
       if (event.code === "KeyJ" || event.key === "ArrowDown") return 1;
@@ -2176,6 +2905,129 @@ const shortcutRows = [
 
     function editorActionButton(panel, action) {
       return panel?.querySelector(`[data-editor-action="${action}"]`);
+    }
+
+    function currentEditorContext(fallbackSlug = "") {
+      const active = document.activeElement;
+      if (active instanceof HTMLTextAreaElement && active.dataset.editorCode) {
+        return editorContextFor(active);
+      }
+      const slug = currentPracticeSlug(fallbackSlug);
+      const panel = editorPanelForSlug(slug);
+      const textarea = panel?.querySelector("[data-editor-code]");
+      if (!(textarea instanceof HTMLTextAreaElement)) return null;
+      return editorContextFor(textarea);
+    }
+
+    function editorFocusSnapshot(slug) {
+      const active = document.activeElement;
+      if (!(active instanceof HTMLTextAreaElement) || active.dataset.editorCode !== slug) {
+        return null;
+      }
+      return {
+        end: active.selectionEnd,
+        scrollLeft: active.scrollLeft,
+        scrollTop: active.scrollTop,
+        slug,
+        start: active.selectionStart,
+      };
+    }
+
+    function restoreEditorFocus(snapshot) {
+      if (!snapshot) return;
+      window.requestAnimationFrame(() => {
+        const panel = editorPanelForSlug(snapshot.slug);
+        const textarea = panel?.querySelector("[data-editor-code]");
+        if (!(textarea instanceof HTMLTextAreaElement)) return;
+        textarea.focus({ preventScroll: true });
+        textarea.setSelectionRange(snapshot.start, snapshot.end);
+        textarea.scrollTop = snapshot.scrollTop;
+        textarea.scrollLeft = snapshot.scrollLeft;
+      });
+    }
+
+    function toggleProblemProgress(slug, action, options = {}) {
+      if (!slug || !action) return false;
+      const current = rowState(slug);
+      const next = { ...current };
+      if (action === "done") {
+        next.done = !next.done;
+      } else if (action === "review") {
+        next.review = !next.review;
+        if (next.review) next.mastered = false;
+      } else if (action === "mastered") {
+        next.mastered = !next.mastered;
+        if (next.mastered) {
+          next.done = true;
+          next.review = false;
+        }
+      } else {
+        return false;
+      }
+      const focusSnapshot = options.preserveEditorFocus
+        ? editorFocusSnapshot(slug)
+        : null;
+      progress[slug] = next;
+      writeState();
+      render();
+      restoreEditorFocus(focusSnapshot);
+      return true;
+    }
+
+    function flashCopyButton(actionButton) {
+      if (!(actionButton instanceof HTMLElement)) return;
+      const originalLabel =
+        actionButton.dataset.copyLabel ||
+        actionButton.textContent ||
+        (isChinesePage ? "复制" : "Copy");
+      actionButton.dataset.copyLabel = originalLabel;
+      actionButton.textContent = isChinesePage ? "已复制" : "Copied";
+      window.setTimeout(() => {
+        actionButton.textContent = actionButton.dataset.copyLabel || originalLabel;
+      }, 1200);
+    }
+
+    function copyEditorCode(textarea, actionButton = null) {
+      if (!(textarea instanceof HTMLTextAreaElement)) return false;
+      navigator.clipboard?.writeText(textarea.value);
+      flashCopyButton(actionButton);
+      return true;
+    }
+
+    function copyCurrentEditorCode() {
+      const context = currentEditorContext(state.expandedSlug || activePracticeTimer.slug);
+      if (!context) return false;
+      const textarea = context.panel?.querySelector("[data-editor-code]");
+      const actionButton = editorActionButton(context.panel, "copy");
+      return copyEditorCode(textarea, actionButton);
+    }
+
+    function focusCurrentEditorLanguage() {
+      const context = currentEditorContext(state.expandedSlug || activePracticeTimer.slug);
+      const select = context?.panel?.querySelector("[data-editor-lang]");
+      if (!(select instanceof HTMLSelectElement)) return false;
+      select.focus({ preventScroll: true });
+      return true;
+    }
+
+    function syncEditorHeightButtons() {
+      list
+        ?.querySelectorAll('[data-editor-action="height-mode"]')
+        .forEach((button) => {
+          button.textContent = `${isChinesePage ? "高度" : "Height"}：${
+            editorAutoGrow
+              ? (isChinesePage ? "自适应" : "Auto")
+              : (isChinesePage ? "固定" : "Fixed")
+          }`;
+        });
+    }
+
+    function toggleEditorHeightMode() {
+      editorAutoGrow = !editorAutoGrow;
+      localStorage.setItem(editorHeightModeKey, editorAutoGrow ? "auto" : "fixed");
+      syncEditorHeightButtons();
+      syncRenderedEditors();
+      return true;
     }
 
     function handleEditorKeydown(event, textarea) {
@@ -2207,6 +3059,59 @@ const shortcutRows = [
         );
         return true;
       }
+      if (isEditorOpenLeetcodeShortcut(event)) {
+        event.preventDefault();
+        openLeetcodeProblem(context.problem);
+        return true;
+      }
+      if (isEditorResetAllShortcut(event)) {
+        event.preventDefault();
+        resetAllEditorDrafts({ focusSlug: context.slug });
+        return true;
+      }
+      if (isEditorResetCurrentShortcut(event)) {
+        event.preventDefault();
+        resetEditorDraft(context.problem, context.lang, { focus: true });
+        return true;
+      }
+      if (isRestartProblemTimerShortcut(event)) {
+        event.preventDefault();
+        restartActiveProblemTimer();
+        return true;
+      }
+      if (isResetSessionShortcut(event)) {
+        event.preventDefault();
+        resetSessionTiming();
+        return true;
+      }
+      if (isClearProblemRecordShortcut(event)) {
+        event.preventDefault();
+        clearActiveProblemTimingRecord(context.slug);
+        return true;
+      }
+      if (isCopyCurrentEditorShortcut(event)) {
+        event.preventDefault();
+        copyEditorCode(textarea, editorActionButton(context.panel, "copy"));
+        return true;
+      }
+      if (isFocusEditorLanguageShortcut(event)) {
+        event.preventDefault();
+        focusCurrentEditorLanguage();
+        return true;
+      }
+      if (isToggleEditorHeightShortcut(event)) {
+        event.preventDefault();
+        toggleEditorHeightMode();
+        return true;
+      }
+      const progressAction = progressShortcutAction(event);
+      if (progressAction) {
+        event.preventDefault();
+        toggleProblemProgress(context.slug, progressAction, {
+          preserveEditorFocus: true,
+        });
+        return true;
+      }
       if (event.key === "Enter") {
         handleEditorEnter(event, textarea, context);
         return true;
@@ -2224,13 +3129,59 @@ const shortcutRows = [
     }
 
     function openShortcutHelp() {
-      if (!(shortcutHelp instanceof HTMLDetailsElement)) return;
-      shortcutHelp.open = true;
+      if (!(shortcutHelp instanceof HTMLElement)) return;
       shortcutHelp.scrollIntoView({ block: "center", behavior: "smooth" });
-      const summary = shortcutHelp.querySelector("summary");
-      if (summary instanceof HTMLElement) {
-        summary.focus({ preventScroll: true });
+      shortcutHelp.focus({ preventScroll: true });
+    }
+
+    function closeShortcutHelp() {
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement)) return;
+      document.querySelectorAll(".leetcode-shortcut-tip").forEach((tip) => {
+        if (tip instanceof HTMLElement && tip.contains(active)) active.blur();
+      });
+    }
+
+    function clearPreviewHoverCloseTimer() {
+      if (!previewHoverCloseTimer) return;
+      window.clearTimeout(previewHoverCloseTimer);
+      previewHoverCloseTimer = 0;
+    }
+
+    function closePreviewPopovers(except = null) {
+      clearPreviewHoverCloseTimer();
+      list?.querySelectorAll("[data-preview].is-open").forEach((item) => {
+        if (item === except) return;
+        item.classList.remove("is-open");
+        item.setAttribute("aria-expanded", "false");
+      });
+      list?.querySelectorAll("[data-preview].is-hover-open").forEach((item) => {
+        if (item === except) return;
+        item.classList.remove("is-hover-open");
+      });
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        const activePreview = active.closest("[data-preview]");
+        if (activePreview instanceof HTMLElement && activePreview !== except) {
+          active.blur();
+        }
       }
+    }
+
+    function keepPreviewHoverOpen(previewButton) {
+      clearPreviewHoverCloseTimer();
+      list?.querySelectorAll("[data-preview].is-hover-open").forEach((item) => {
+        if (item !== previewButton) item.classList.remove("is-hover-open");
+      });
+      previewButton.classList.add("is-hover-open");
+    }
+
+    function schedulePreviewHoverClose(previewButton) {
+      clearPreviewHoverCloseTimer();
+      previewHoverCloseTimer = window.setTimeout(() => {
+        previewButton.classList.remove("is-hover-open");
+        previewHoverCloseTimer = 0;
+      }, previewHoverCloseDelayMs);
     }
 
     async function ensureLeetcodeReady(panel) {
@@ -2474,6 +3425,16 @@ const shortcutRows = [
       const languages = editorLanguages(problem);
       return `
         <section class="leetcode-practice-panel" data-editor-panel="${escapeHtml(problem.titleSlug)}">
+          <div class="leetcode-editor-shell">
+            <pre class="leetcode-editor-lines" aria-hidden="true">${editorLineNumbersText(code)}</pre>
+            <pre class="leetcode-editor-highlight" aria-hidden="true"><code>${editorHighlightHtml(code, lang)}</code></pre>
+            <textarea
+              spellcheck="false"
+              wrap="off"
+              data-editor-code="${escapeHtml(problem.titleSlug)}"
+              aria-label="Local code editor for ${escapeHtml(problem.titleCn)}"
+            >${escapeHtml(code)}</textarea>
+          </div>
           <div class="leetcode-practice-head">
             <div>
               <strong>${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</strong>
@@ -2489,33 +3450,25 @@ const shortcutRows = [
               </span>
             </div>
             <div class="leetcode-practice-actions">
-              <select data-editor-lang="${escapeHtml(problem.titleSlug)}" aria-label="Language">
-                ${languages
-                  .map(
-                    ([value, label]) =>
-                      `<option value="${escapeHtml(value)}" ${
-                        lang === value ? "selected" : ""
-                      }>${escapeHtml(label)}</option>`,
-                  )
-                  .join("")}
-              </select>
-              <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}">复制</button>
-              <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}">重置</button>
-              <button type="button" data-editor-action="height-mode" data-slug="${escapeHtml(problem.titleSlug)}">高度：${editorAutoGrow ? "自适应" : "固定"}</button>
-              <button type="button" data-editor-action="run-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="Cmd+'">运行样例</button>
-              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="Cmd+Enter">提交力扣</button>
-              <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer">打开力扣</a>
+              <span class="leetcode-practice-control" data-shortcut-label="${isChinesePage ? "选择语言 · Cmd+Option+L" : "Language · Cmd+Option+L"}">
+                <select data-editor-lang="${escapeHtml(problem.titleSlug)}" aria-label="Language" title="${isChinesePage ? "选择当前题语言（Cmd+Option+L）" : "Choose current language (Cmd+Option+L)"}">
+                  ${languages
+                    .map(
+                      ([value, label]) =>
+                        `<option value="${escapeHtml(value)}" ${
+                          lang === value ? "selected" : ""
+                        }>${escapeHtml(label)}</option>`,
+                    )
+                    .join("")}
+                </select>
+              </span>
+              <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "复制当前题代码（Cmd+Option+C）" : "Copy current problem code (Cmd+Option+C)"}" data-shortcut-label="${isChinesePage ? "复制代码 · Cmd+Option+C" : "Copy code · Cmd+Option+C"}">复制</button>
+              <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "重置当前题草稿（Cmd+Option+R）" : "Reset current problem draft (Cmd+Option+R)"}" data-shortcut-label="${isChinesePage ? "重置草稿 · Cmd+Option+R" : "Reset draft · Cmd+Option+R"}">重置</button>
+              <button type="button" data-editor-action="height-mode" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "切换编辑器高度（Cmd+Option+H）" : "Toggle editor height (Cmd+Option+H)"}" data-shortcut-label="${isChinesePage ? "切换高度 · Cmd+Option+H" : "Toggle height · Cmd+Option+H"}">高度：${editorAutoGrow ? "自适应" : "固定"}</button>
+              <button type="button" data-editor-action="run-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "运行官方样例（Cmd+'）" : "Run official examples (Cmd+')"}" data-shortcut-label="${isChinesePage ? "运行样例 · Cmd+'" : "Run examples · Cmd+'"}">运行样例</button>
+              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "提交到力扣（Cmd+Enter）" : "Submit to LeetCode (Cmd+Enter)"}" data-shortcut-label="${isChinesePage ? "提交力扣 · Cmd+Enter" : "Submit · Cmd+Enter"}">提交力扣</button>
+              <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" title="${isChinesePage ? "打开当前题力扣页（Cmd+Shift+L）" : "Open current LeetCode problem (Cmd+Shift+L)"}" data-shortcut-label="${isChinesePage ? "打开力扣 · Cmd+Shift+L" : "Open LeetCode · Cmd+Shift+L"}" data-link-slug="${escapeHtml(problem.titleSlug)}">打开力扣</a>
             </div>
-          </div>
-          <div class="leetcode-editor-shell">
-            <pre class="leetcode-editor-lines" aria-hidden="true">${editorLineNumbersText(code)}</pre>
-            <pre class="leetcode-editor-highlight" aria-hidden="true"><code>${editorHighlightHtml(code, lang)}</code></pre>
-            <textarea
-              spellcheck="false"
-              wrap="off"
-              data-editor-code="${escapeHtml(problem.titleSlug)}"
-              aria-label="Local code editor for ${escapeHtml(problem.titleCn)}"
-            >${escapeHtml(code)}</textarea>
           </div>
           <p class="leetcode-submit-note">
             <span data-submit-status="${escapeHtml(problem.titleSlug)}">安装本仓库 Chrome 扩展后可直接提交到力扣；页面不会读取你的登录 cookie。</span>
@@ -2543,7 +3496,7 @@ const shortcutRows = [
               <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
             </a>
             <span class="leetcode-title-tools">
-              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看思路；点击或 Enter/Space 固定展开" : "Hover for approach; click or Enter/Space to pin"}">
                 思路
                 <span class="leetcode-popover">
                   <span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>
@@ -2551,13 +3504,13 @@ const shortcutRows = [
                   ${renderCompanyFollowUps(problem)}
                 </span>
               </span>
-              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看实现；点击或 Enter/Space 固定展开" : "Hover for implementation; click or Enter/Space to pin"}">
                 实现
                 <span class="leetcode-popover">
                   ${renderImplementationReference(problem)}
                 </span>
               </span>
-              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看标签；点击或 Enter/Space 固定展开" : "Hover for tags; click or Enter/Space to pin"}">
                 标签
                 <span class="leetcode-popover">
                   ${renderTagReference(problem, topLabel)}
@@ -2569,9 +3522,9 @@ const shortcutRows = [
           <div class="leetcode-frequency">${escapeHtml(problem.frequency)}</div>
           <div class="leetcode-byte">${byteDance}</div>
           <div class="leetcode-status">
-            <button type="button" data-action="done" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.done ? "is-on" : ""}">做过</button>
-            <button type="button" data-action="review" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.review ? "is-on" : ""}">思考</button>
-            <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}">熟练</button>
+            <button type="button" data-action="done" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.done ? "is-on" : ""}" aria-label="${isChinesePage ? "切换做过状态（Cmd+Option+D）" : "Toggle done (Cmd+Option+D)"}" data-shortcut-label="${isChinesePage ? "切换做过状态 · Cmd+Option+D" : "Toggle done · Cmd+Option+D"}">做过</button>
+            <button type="button" data-action="review" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.review ? "is-on" : ""}" aria-label="${isChinesePage ? "切换需思考状态（Cmd+Option+S）" : "Toggle review (Cmd+Option+S)"}" data-shortcut-label="${isChinesePage ? "切换需思考状态 · Cmd+Option+S" : "Toggle review · Cmd+Option+S"}">思考</button>
+            <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}" aria-label="${isChinesePage ? "切换熟练状态（Cmd+Option+M）" : "Toggle mastered (Cmd+Option+M)"}" data-shortcut-label="${isChinesePage ? "切换熟练状态 · Cmd+Option+M" : "Toggle mastered · Cmd+Option+M"}">熟练</button>
           </div>
         </article>
       `;
@@ -2617,11 +3570,7 @@ const shortcutRows = [
 
     filterButtons.forEach((button) => {
       button.addEventListener("click", () => {
-        filterButtons.forEach((item) => item.classList.remove("is-active"));
-        button.classList.add("is-active");
-        state.filter = button.dataset.filter || "all";
-        state.page = 1;
-        render();
+        applyFilter(button.dataset.filter || "all");
       });
     });
 
@@ -2645,17 +3594,95 @@ const shortcutRows = [
       });
     });
 
+    dailyResetToggle?.addEventListener("change", () => {
+      if (!(dailyResetToggle instanceof HTMLInputElement)) return;
+      localStorage.setItem(
+        editorDailyResetKey,
+        dailyResetToggle.checked ? "on" : "off",
+      );
+      localStorage.setItem(editorDraftDayKey, localDateKey());
+      syncDailyResetUi();
+    });
+
+    pageFontSelect?.addEventListener("change", () => {
+      if (!(pageFontSelect instanceof HTMLSelectElement)) return;
+      editorAppearance = {
+        ...editorAppearance,
+        pageFont: pageFontSelect.value,
+      };
+      writeEditorAppearance();
+      applyEditorAppearance();
+    });
+
+    editorThemeSelect?.addEventListener("change", () => {
+      if (!(editorThemeSelect instanceof HTMLSelectElement)) return;
+      editorAppearance = {
+        ...editorAppearance,
+        theme: editorThemeSelect.value,
+      };
+      writeEditorAppearance();
+      applyEditorAppearance();
+      syncRenderedEditors();
+    });
+
+    editorFontSelect?.addEventListener("change", () => {
+      if (!(editorFontSelect instanceof HTMLSelectElement)) return;
+      editorAppearance = {
+        ...editorAppearance,
+        font: editorFontSelect.value,
+      };
+      writeEditorAppearance();
+      applyEditorAppearance();
+      syncRenderedEditors();
+    });
+
+    editorSizeSelect?.addEventListener("change", () => {
+      if (!(editorSizeSelect instanceof HTMLSelectElement)) return;
+      editorAppearance = {
+        ...editorAppearance,
+        size: editorSizeSelect.value,
+      };
+      writeEditorAppearance();
+      applyEditorAppearance();
+      syncRenderedEditors();
+    });
+
+    editorLeadingSelect?.addEventListener("change", () => {
+      if (!(editorLeadingSelect instanceof HTMLSelectElement)) return;
+      editorAppearance = {
+        ...editorAppearance,
+        leading: editorLeadingSelect.value,
+      };
+      writeEditorAppearance();
+      applyEditorAppearance();
+      syncRenderedEditors();
+    });
+
     document.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+      if (!target.closest("[data-preview]")) {
+        closePreviewPopovers();
+      }
+      const globalEditorAction = target.closest("[data-editor-action-global]");
+      if (globalEditorAction instanceof HTMLElement) {
+        const action = globalEditorAction.dataset.editorActionGlobal || "";
+        if (action === "reset-all-drafts") {
+          resetAllEditorDrafts({ focusSlug: state.expandedSlug });
+        }
+        return;
+      }
       const actionButton = target.closest("[data-timing-action]");
       if (!(actionButton instanceof HTMLElement)) return;
       const action = actionButton.dataset.timingAction || "";
       if (action === "reset-session") {
         resetSessionTiming();
       }
-      if (action === "reset-problem") {
-        resetActiveProblemTiming();
+      if (action === "restart-problem") {
+        restartActiveProblemTimer();
+      }
+      if (action === "clear-problem-record") {
+        clearActiveProblemTimingRecord();
       }
     });
 
@@ -2699,29 +3726,20 @@ const shortcutRows = [
           const textarea = panel?.querySelector("[data-editor-code]");
           if (!(textarea instanceof HTMLTextAreaElement)) return;
           if (actionButton.dataset.editorAction === "copy") {
-            navigator.clipboard?.writeText(textarea.value);
-            actionButton.textContent = "已复制";
-            setTimeout(() => {
-              actionButton.textContent = "复制";
-            }, 1200);
+            copyEditorCode(textarea, actionButton);
           }
           if (actionButton.dataset.editorAction === "reset") {
             const problem = problems.find((item) => item.titleSlug === slug);
             if (!problem) return;
-            const lang = preferredLang(problem, editorDrafts[slug]?.lang);
-            editorDrafts[slug] = { lang, code: defaultTemplate(problem, lang) };
-            writeState();
-            render();
+            const select = panel?.querySelector("[data-editor-lang]");
+            const lang =
+              select instanceof HTMLSelectElement
+                ? preferredLang(problem, select.value)
+                : preferredLang(problem, editorDrafts[slug]?.lang);
+            resetEditorDraft(problem, lang, { focus: true });
           }
           if (actionButton.dataset.editorAction === "height-mode") {
-            editorAutoGrow = !editorAutoGrow;
-            localStorage.setItem(editorHeightModeKey, editorAutoGrow ? "auto" : "fixed");
-            list
-              ?.querySelectorAll('[data-editor-action="height-mode"]')
-              .forEach((button) => {
-                button.textContent = `高度：${editorAutoGrow ? "自适应" : "固定"}`;
-              });
-            syncRenderedEditors();
+            toggleEditorHeightMode();
           }
           if (actionButton.dataset.editorAction === "run-leetcode") {
             const problem = problems.find((item) => item.titleSlug === slug);
@@ -2739,43 +3757,49 @@ const shortcutRows = [
       const previewButton = target.closest("[data-preview]");
       if (previewButton instanceof HTMLElement) {
         const isOpen = previewButton.classList.contains("is-open");
-        list.querySelectorAll("[data-preview].is-open").forEach((item) => {
-          item.classList.remove("is-open");
-          item.setAttribute("aria-expanded", "false");
-        });
+        closePreviewPopovers(previewButton);
         previewButton.classList.toggle("is-open", !isOpen);
         previewButton.setAttribute("aria-expanded", String(!isOpen));
+        if (isOpen) previewButton.blur();
         return;
       }
       const button = target.closest("[data-action]");
       if (button instanceof HTMLElement) {
         const slug = button.dataset.slug || "";
         const action = button.dataset.action || "";
-        const current = rowState(slug);
-        const next = { ...current };
-        if (action === "done") next.done = !next.done;
-        if (action === "review") {
-          next.review = !next.review;
-          if (next.review) next.mastered = false;
-        }
-        if (action === "mastered") {
-          next.mastered = !next.mastered;
-          if (next.mastered) {
-            next.done = true;
-            next.review = false;
-          }
-        }
-        progress[slug] = next;
-        writeState();
-        render();
+        toggleProblemProgress(slug, action);
         return;
       }
 
       const row = target.closest(".leetcode-row");
       if (!(row instanceof HTMLElement)) return;
       const slug = row.dataset.slug || "";
-      state.expandedSlug = state.expandedSlug === slug ? "" : slug;
+      const shouldOpen = state.expandedSlug !== slug;
+      state.expandedSlug = shouldOpen ? slug : "";
       render();
+      if (shouldOpen) focusEditorForSlug(slug);
+    });
+
+    list?.addEventListener("pointerover", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const previewButton = target.closest("[data-preview]");
+      if (!(previewButton instanceof HTMLElement)) return;
+      keepPreviewHoverOpen(previewButton);
+    });
+
+    list?.addEventListener("pointerout", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const previewButton = target.closest("[data-preview]");
+      if (!(previewButton instanceof HTMLElement)) return;
+      if (
+        event.relatedTarget instanceof Node &&
+        previewButton.contains(event.relatedTarget)
+      ) {
+        return;
+      }
+      schedulePreviewHoverClose(previewButton);
     });
 
     list?.addEventListener("change", (event) => {
@@ -2792,6 +3816,7 @@ const shortcutRows = [
       };
       writeState();
       render();
+      focusEditorForSlug(slug);
     });
 
     list?.addEventListener("input", (event) => {
@@ -2852,13 +3877,107 @@ const shortcutRows = [
 
     document.addEventListener("keydown", (event) => {
       if (event.defaultPrevented) return;
-      if (!isTextEntryTarget(document.activeElement) && event.key === "?") {
+      if (event.key === "Escape") {
+        closePreviewPopovers();
+        closeShortcutHelp();
+        return;
+      }
+      const textEntryActive = isTextEntryTarget(document.activeElement);
+      if (!textEntryActive && isSearchFocusShortcut(event)) {
+        event.preventDefault();
+        focusSearchInput();
+        return;
+      }
+      if (!textEntryActive && isPageJumpFocusShortcut(event)) {
+        event.preventDefault();
+        focusPageJumpInput();
+        return;
+      }
+      const nextFilter = textEntryActive ? "" : filterShortcut(event);
+      if (nextFilter) {
+        event.preventDefault();
+        applyFilter(nextFilter);
+        return;
+      }
+      const edgePage = textEntryActive ? "" : pageEdgeShortcut(event);
+      if (edgePage === "first") {
+        event.preventDefault();
+        setPage(1);
+        return;
+      }
+      if (edgePage === "last") {
+        event.preventDefault();
+        setPage(state.totalPages);
+        return;
+      }
+      if (!textEntryActive && event.key === "?") {
         event.preventDefault();
         openShortcutHelp();
         return;
       }
+      if (!textEntryActive && isCopyCurrentEditorShortcut(event)) {
+        event.preventDefault();
+        copyCurrentEditorCode();
+        return;
+      }
+      if (!textEntryActive && isFocusEditorLanguageShortcut(event)) {
+        event.preventDefault();
+        focusCurrentEditorLanguage();
+        return;
+      }
+      if (!textEntryActive && isToggleEditorHeightShortcut(event)) {
+        event.preventDefault();
+        toggleEditorHeightMode();
+        return;
+      }
+      if (!textEntryActive && isResetSessionShortcut(event)) {
+        event.preventDefault();
+        resetSessionTiming();
+        return;
+      }
+      if (!textEntryActive && isClearProblemRecordShortcut(event)) {
+        event.preventDefault();
+        const slug = currentPracticeSlug(state.expandedSlug || activePracticeTimer.slug);
+        clearActiveProblemTimingRecord(slug);
+        return;
+      }
+      const currentProgressAction = textEntryActive ? "" : progressShortcutAction(event);
+      if (currentProgressAction) {
+        event.preventDefault();
+        const slug = currentPracticeSlug(state.expandedSlug || activePracticeTimer.slug);
+        toggleProblemProgress(slug, currentProgressAction);
+        return;
+      }
+      if (isEditorOpenLeetcodeShortcut(event)) {
+        const slug = state.expandedSlug || activePracticeTimer.slug;
+        const problem = problems.find((item) => item.titleSlug === slug);
+        if (problem) {
+          event.preventDefault();
+          openLeetcodeProblem(problem);
+        }
+        return;
+      }
+      if (isEditorResetAllShortcut(event)) {
+        event.preventDefault();
+        resetAllEditorDrafts({ focusSlug: state.expandedSlug || activePracticeTimer.slug });
+        return;
+      }
+      if (isEditorResetCurrentShortcut(event)) {
+        const slug = currentPracticeSlug(state.expandedSlug || activePracticeTimer.slug);
+        const problem = problems.find((item) => item.titleSlug === slug);
+        if (problem) {
+          event.preventDefault();
+          resetEditorDraft(problem, editorDrafts[slug]?.lang, { focus: true });
+        }
+        return;
+      }
+      if (isRestartProblemTimerShortcut(event)) {
+        event.preventDefault();
+        restartActiveProblemTimer();
+        return;
+      }
       const practiceDirection = practiceNavigationDirection(event);
-      if (practiceDirection && !isTextEntryTarget(document.activeElement)) {
+      if (practiceDirection && !textEntryActive) {
         event.preventDefault();
         navigatePractice(practiceDirection);
         return;
@@ -2886,7 +4005,120 @@ const shortcutRows = [
 
   <style is:global>
     .leetcode-shell {
+      --leetcode-kai-font: "Kaiti SC", "STKaiti", "KaiTi", "KaiTi SC",
+        "楷体", serif;
+      --leetcode-page-font: var(--leetcode-kai-font);
+      --leetcode-display-font: var(--leetcode-kai-font);
+      --leetcode-system-font: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --leetcode-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
+        monospace;
+      --leetcode-editor-background: var(--color-cream);
+      --leetcode-editor-border: #d4d4d4;
+      --leetcode-editor-caret: #000000;
+      --leetcode-editor-font-size: 0.875rem;
+      --leetcode-editor-foreground: #000000;
+      --leetcode-editor-focus: #007acc;
+      --leetcode-editor-gutter: 3.05rem;
+      --leetcode-editor-gutter-background: var(--color-cream);
+      --leetcode-editor-gutter-border: #e5e5e5;
+      --leetcode-editor-line-height: 1.38;
+      --leetcode-editor-line-number: #237893;
+      --leetcode-editor-padding-block: 0.56rem;
+      --leetcode-editor-padding-inline: 0.62rem;
+      --leetcode-editor-selection: #add6ff;
+      --leetcode-editor-selection-highlight: #add6ff80;
+      --leetcode-token-comment: #008000;
+      --leetcode-token-control: #af00db;
+      --leetcode-token-directive: #0000ff;
+      --leetcode-token-keyword: #0000ff;
+      --leetcode-token-number: #098658;
+      --leetcode-token-string: #a31515;
+      --leetcode-token-type: #267f99;
+      --leetcode-stack-gap: 0.48rem;
       color: var(--color-charcoal);
+      font-family: var(--leetcode-page-font);
+    }
+
+    .leetcode-shell[data-page-font="serif"] {
+      --leetcode-page-font: var(--font-serif);
+      --leetcode-display-font: var(--font-serif);
+    }
+
+    .leetcode-shell[data-page-font="system"] {
+      --leetcode-page-font: var(--leetcode-system-font);
+      --leetcode-display-font: var(--leetcode-system-font);
+    }
+
+    .leetcode-shell[data-editor-size="standard"] {
+      --leetcode-editor-font-size: 0.9375rem;
+      --leetcode-editor-gutter: 3.34rem;
+      --leetcode-editor-padding-block: 0.64rem;
+      --leetcode-editor-padding-inline: 0.68rem;
+    }
+
+    .leetcode-shell[data-editor-size="large"] {
+      --leetcode-editor-font-size: 1rem;
+      --leetcode-editor-gutter: 3.62rem;
+      --leetcode-editor-padding-block: 0.72rem;
+      --leetcode-editor-padding-inline: 0.74rem;
+    }
+
+    .leetcode-shell[data-editor-leading="tight"] {
+      --leetcode-editor-line-height: 1.3;
+    }
+
+    .leetcode-shell[data-editor-leading="relaxed"] {
+      --leetcode-editor-line-height: 1.52;
+    }
+
+    .leetcode-shell[data-editor-font="jetbrains"] {
+      --leetcode-code-font: var(--font-mono);
+    }
+
+    .leetcode-shell[data-editor-font="system"] {
+      --leetcode-code-font: ui-monospace, SFMono-Regular, Menlo, Consolas,
+        "Liberation Mono", monospace;
+    }
+
+    .leetcode-shell[data-editor-theme="cursor-dark"] {
+      --leetcode-editor-background: #1e1e1e;
+      --leetcode-editor-border: #3c3c3c;
+      --leetcode-editor-caret: #aeafad;
+      --leetcode-editor-foreground: #d4d4d4;
+      --leetcode-editor-focus: #007acc;
+      --leetcode-editor-gutter-background: #1e1e1e;
+      --leetcode-editor-gutter-border: #333333;
+      --leetcode-editor-line-number: #858585;
+      --leetcode-editor-selection: #264f78;
+      --leetcode-editor-selection-highlight: #264f7880;
+      --leetcode-token-comment: #6a9955;
+      --leetcode-token-control: #c586c0;
+      --leetcode-token-directive: #c586c0;
+      --leetcode-token-keyword: #569cd6;
+      --leetcode-token-number: #b5cea8;
+      --leetcode-token-string: #ce9178;
+      --leetcode-token-type: #4ec9b0;
+    }
+
+    .leetcode-shell[data-editor-theme="books-warm"] {
+      --leetcode-editor-background: rgb(20 20 19 / 92%);
+      --leetcode-editor-border: rgb(194 192 182 / 70%);
+      --leetcode-editor-caret: var(--color-cream);
+      --leetcode-editor-foreground: #f6efe2;
+      --leetcode-editor-focus: rgb(217 119 87 / 72%);
+      --leetcode-editor-gutter-background: rgb(255 255 255 / 3%);
+      --leetcode-editor-gutter-border: rgb(255 255 255 / 9%);
+      --leetcode-editor-line-number: rgb(245 241 232 / 36%);
+      --leetcode-editor-selection: rgb(217 119 87 / 42%);
+      --leetcode-editor-selection-highlight: rgb(217 119 87 / 20%);
+      --leetcode-token-comment: #8d9187;
+      --leetcode-token-control: #f4a261;
+      --leetcode-token-directive: #ffd166;
+      --leetcode-token-keyword: #f4a261;
+      --leetcode-token-number: #c792ea;
+      --leetcode-token-string: #b8e986;
+      --leetcode-token-type: #8bd3dd;
     }
 
     html.dark .leetcode-shell {
@@ -2905,8 +4137,8 @@ const shortcutRows = [
 
     .leetcode-hero > div:first-child {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 0.16rem 0.55rem;
+      grid-template-columns: auto minmax(13rem, 1fr) auto;
+      gap: 0.18rem 0.88rem;
       align-items: center;
     }
 
@@ -2935,9 +4167,9 @@ const shortcutRows = [
     }
 
     .leetcode-title {
-      max-width: 11ch;
+      max-width: 12ch;
       margin: 0;
-      font-family: var(--font-serif);
+      font-family: var(--leetcode-display-font);
       font-size: clamp(1.08rem, 1.55vw, 1.34rem);
       line-height: 1;
       white-space: nowrap;
@@ -2946,12 +4178,15 @@ const shortcutRows = [
     .leetcode-copy {
       max-width: none;
       margin: 0;
+      border-left: 1px solid rgb(194 192 182 / 62%);
       color: var(--color-secondary);
       font-size: 0.68rem;
       line-height: 1.22;
+      padding-left: 0.78rem;
     }
 
     html.dark .leetcode-copy {
+      border-left-color: #333;
       color: var(--color-muted);
     }
 
@@ -3004,11 +4239,11 @@ const shortcutRows = [
     .leetcode-stats {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 0.18rem;
-      margin: 0.06rem 0 0;
+      gap: 0.28rem;
+      margin: 0;
       border-top: 1px solid var(--color-border);
       border-bottom: 1px solid var(--color-border);
-      padding: 0.06rem 0;
+      padding: 0.34rem 0;
     }
 
     html.dark .leetcode-stats {
@@ -3017,18 +4252,18 @@ const shortcutRows = [
 
     .leetcode-stats div {
       display: flex;
-      min-height: 1.05rem;
+      min-height: 1.2rem;
       min-width: 0;
-      align-items: baseline;
+      align-items: center;
       justify-content: center;
-      gap: 0.24rem;
+      gap: 0.32rem;
       white-space: nowrap;
     }
 
     .leetcode-stats span {
       display: block;
       font-family: var(--font-mono);
-      font-size: 0.74rem;
+      font-size: 0.86rem;
       font-weight: 700;
       line-height: 1;
     }
@@ -3036,8 +4271,8 @@ const shortcutRows = [
     .leetcode-stats p {
       margin: 0;
       color: var(--color-muted);
-      font-size: 0.48rem;
-      line-height: 1;
+      font-size: 0.58rem;
+      line-height: 1.15;
     }
 
     .leetcode-workspace {
@@ -3048,14 +4283,28 @@ const shortcutRows = [
       position: relative;
       display: inline-flex;
       align-items: center;
-      border: 1px solid rgb(194 192 182 / 70%);
+      justify-content: center;
+      box-sizing: border-box;
+      min-height: var(--leetcode-page-control-height);
+      border: 1px solid var(--color-border);
       border-radius: 0.42rem;
       color: var(--color-muted);
       cursor: help;
-      font-size: 0.64rem;
-      line-height: 1.2;
-      padding: 0.22rem 0.36rem;
+      font-size: 0.66rem;
+      line-height: 1;
+      padding: 0 0.38rem;
       white-space: nowrap;
+    }
+
+    .leetcode-shortcut-tip::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 100%;
+      z-index: 9;
+      display: none;
+      width: min(32rem, 86vw);
+      height: 0.42rem;
     }
 
     .leetcode-shortcut-popover {
@@ -3064,7 +4313,9 @@ const shortcutRows = [
       top: calc(100% + 0.36rem);
       z-index: 10;
       display: none;
-      width: min(26rem, 82vw);
+      width: min(32rem, 86vw);
+      max-height: min(28rem, 72vh);
+      overflow: auto;
       border: 1px solid var(--color-border);
       border-radius: 0.5rem;
       background: var(--color-cream);
@@ -3080,38 +4331,20 @@ const shortcutRows = [
       gap: 0.28rem;
     }
 
-    .leetcode-shortcut-popover > span,
-    .leetcode-shortcut-grid > div {
+    .leetcode-shortcut-tip:hover::after,
+    .leetcode-shortcut-tip:focus::after,
+    .leetcode-shortcut-tip:focus-within::after {
+      display: block;
+    }
+
+    .leetcode-shortcut-popover > span {
       display: grid;
-      grid-template-columns: minmax(8.8rem, auto) minmax(0, 1fr);
+      grid-template-columns: minmax(9.6rem, auto) minmax(0, 1fr);
       gap: 0.6rem;
       align-items: center;
     }
 
-    .leetcode-shortcuts {
-      margin-top: 0.6rem;
-      border: 1px solid rgb(194 192 182 / 58%);
-      border-radius: 0.5rem;
-      background: rgb(255 255 255 / 24%);
-      color: var(--color-secondary);
-      font-size: 0.76rem;
-    }
-
-    .leetcode-shortcuts summary {
-      cursor: pointer;
-      font-weight: 700;
-      padding: 0.38rem 0.55rem;
-    }
-
-    .leetcode-shortcut-grid {
-      display: grid;
-      gap: 0.32rem;
-      border-top: 1px solid rgb(194 192 182 / 48%);
-      padding: 0.55rem;
-    }
-
-    .leetcode-shortcut-tip kbd,
-    .leetcode-shortcuts kbd {
+    .leetcode-shortcut-tip kbd {
       display: inline-flex;
       justify-content: center;
       border: 1px solid rgb(194 192 182 / 72%);
@@ -3127,14 +4360,14 @@ const shortcutRows = [
 
     .leetcode-session-board {
       display: grid;
-      grid-template-columns: repeat(8, minmax(0, 1fr)) auto;
-      gap: 0.28rem;
+      grid-template-columns: repeat(8, minmax(0, 1fr)) minmax(15rem, 1.6fr) auto;
+      gap: 0.24rem;
       align-items: stretch;
-      margin: 0 0 0.25rem;
+      margin: 0 0 0.2rem;
       border: 1px solid rgb(194 192 182 / 58%);
       border-radius: 0.5rem;
       background: rgb(255 255 255 / 22%);
-      padding: 0.25rem;
+      padding: 0.22rem;
     }
 
     .leetcode-session-metric {
@@ -3169,6 +4402,8 @@ const shortcutRows = [
     }
 
     .leetcode-session-actions {
+      grid-column: 10;
+      grid-row: 1;
       display: flex;
       align-items: center;
       gap: 0.22rem;
@@ -3192,25 +4427,38 @@ const shortcutRows = [
       color: var(--color-terracotta);
     }
 
+    .leetcode-session-actions button.is-subtle {
+      border-color: rgb(194 192 182 / 42%);
+      color: var(--color-muted);
+      opacity: 0.72;
+    }
+
+    .leetcode-session-actions button.is-subtle:hover {
+      opacity: 1;
+    }
+
     .leetcode-session-actions button:disabled {
       cursor: default;
       opacity: 0.45;
     }
 
     .leetcode-session-history {
-      grid-column: 1 / -1;
+      grid-column: 9;
+      grid-row: 1;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 0.45rem;
+      gap: 0.28rem;
       align-items: center;
-      border-top: 1px solid rgb(194 192 182 / 48%);
+      min-width: 0;
+      border-radius: 0.36rem;
+      background: rgb(20 20 19 / 2.6%);
       color: var(--color-muted);
       font-size: 0.62rem;
       line-height: 1.2;
-      padding: 0.2rem 0.1rem 0;
+      padding: 0.18rem 0.32rem;
     }
 
-    .leetcode-session-history > span {
+    .leetcode-session-history > span:not(.leetcode-history-tip) {
       color: var(--color-terracotta);
       font-family: var(--font-mono);
       font-size: 0.56rem;
@@ -3239,6 +4487,17 @@ const shortcutRows = [
       white-space: nowrap;
     }
 
+    .leetcode-history-tip::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 100%;
+      z-index: 19;
+      display: none;
+      width: min(40rem, calc(100vw - 2rem));
+      height: 0.4rem;
+    }
+
     .leetcode-session-history [data-timing-history-list] {
       position: absolute;
       right: 0;
@@ -3259,6 +4518,12 @@ const shortcutRows = [
     .leetcode-history-tip:focus [data-timing-history-list],
     .leetcode-history-tip:focus-within [data-timing-history-list] {
       display: grid;
+    }
+
+    .leetcode-history-tip:hover::after,
+    .leetcode-history-tip:focus::after,
+    .leetcode-history-tip:focus-within::after {
+      display: block;
     }
 
     .leetcode-history-day {
@@ -3427,8 +4692,163 @@ const shortcutRows = [
       font-size: 0.62rem;
     }
 
+    .leetcode-footer-meta {
+      flex: 0 1 auto;
+      justify-content: center;
+      gap: 0.52rem;
+      margin: var(--leetcode-stack-gap) auto 0;
+      color: var(--color-muted);
+      font-size: 0.76rem;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .leetcode-footer-settings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 0.8rem;
+      align-items: center;
+      justify-content: center;
+      margin: var(--leetcode-stack-gap) 0 0;
+      border-top: 1px solid var(--color-border);
+      padding-top: 0.48rem;
+    }
+
+    .leetcode-switch,
+    .leetcode-editor-preferences,
+    .leetcode-editor-preferences label {
+      display: flex;
+      align-items: center;
+      gap: 0.38rem;
+    }
+
+    .leetcode-switch {
+      color: var(--color-secondary);
+      font-size: 0.74rem;
+    }
+
+    .leetcode-switch input {
+      width: 1.95rem;
+      height: 1rem;
+      accent-color: var(--color-terracotta);
+    }
+
+    .leetcode-switch em {
+      color: var(--color-muted);
+      font-style: normal;
+      font-size: 0.66rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-editor-preferences {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .leetcode-editor-preferences label > span {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .leetcode-editor-preferences select,
+    .leetcode-editor-preferences button {
+      min-height: 1.58rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 42%);
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.7rem;
+      padding: 0.16rem 0.42rem;
+    }
+
+    .leetcode-extension-guide {
+      margin: var(--leetcode-stack-gap) 0 0;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.5rem;
+      background: rgb(255 255 255 / 24%);
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+    }
+
+    .leetcode-extension-guide summary {
+      cursor: pointer;
+      font-weight: 700;
+      padding: 0.42rem 0.6rem;
+    }
+
+    .leetcode-extension-guide > div {
+      display: grid;
+      gap: 0.52rem;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      padding: 0.6rem 0.78rem 0.75rem;
+    }
+
+    .leetcode-extension-guide p,
+    .leetcode-extension-guide ol {
+      margin: 0;
+    }
+
+    .leetcode-extension-guide ol {
+      padding-left: 1.2rem;
+    }
+
+    .leetcode-extension-guide li + li {
+      margin-top: 0.24rem;
+    }
+
+    .leetcode-extension-guide code {
+      border-radius: 0.28rem;
+      background: rgb(20 20 19 / 6%);
+      font-size: 0.72rem;
+      padding: 0.05rem 0.22rem;
+    }
+
+    .leetcode-extension-guide a {
+      color: var(--color-terracotta);
+      text-decoration: none;
+    }
+
+    .leetcode-footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.32rem 0.58rem;
+      align-items: center;
+      justify-content: center;
+      margin: 0.55rem auto 0;
+      padding: 0.42rem 0 0.05rem;
+      border-top: 1px solid rgb(194 192 182 / 48%);
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .leetcode-footer-links span {
+      color: var(--color-secondary);
+      font-size: 0.58rem;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .leetcode-footer-links a {
+      color: var(--color-terracotta);
+      text-decoration: none;
+    }
+
+    .leetcode-footer-links a:hover,
+    .leetcode-footer-links a:focus-visible,
+    .leetcode-extension-guide a:hover,
+    .leetcode-extension-guide a:focus-visible {
+      text-decoration: underline;
+    }
+
     .leetcode-duplicate-audit {
-      margin: 0 0 0.25rem;
+      margin: 0 0 var(--leetcode-stack-gap);
       border: 1px solid rgb(194 192 182 / 58%);
       border-radius: 0.5rem;
       background: rgb(255 255 255 / 28%);
@@ -3500,7 +4920,7 @@ const shortcutRows = [
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 2.45rem 2.45rem 2.45rem minmax(18rem, 1fr) 3.5rem 4.15rem 4rem 7.35rem;
+      grid-template-columns: 2.45rem 2.45rem 2.45rem minmax(17rem, 1fr) 3.5rem 4.15rem 5rem 7.35rem;
       min-width: 0;
       gap: 0.3rem;
       align-items: center;
@@ -3595,6 +5015,17 @@ const shortcutRows = [
       text-decoration: none;
     }
 
+    .leetcode-problem-link::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 4;
+      display: none;
+      width: min(31rem, 78vw);
+      height: 0.42rem;
+    }
+
     .leetcode-title-text {
       min-width: 0;
       overflow: hidden;
@@ -3631,21 +5062,31 @@ const shortcutRows = [
 
     .leetcode-practice-panel {
       display: grid;
-      gap: 0.55rem;
+      gap: 0.36rem;
       border-top: 1px solid rgb(217 119 87 / 30%);
       background: rgb(255 255 255 / 34%);
-      padding: 0.7rem 0.85rem 0.8rem;
+      padding: 0.56rem 0.72rem 0.62rem;
     }
 
     .leetcode-practice-head,
     .leetcode-practice-actions {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.34rem;
     }
 
     .leetcode-practice-head {
+      flex-wrap: wrap;
       justify-content: space-between;
+    }
+
+    .leetcode-practice-head > div:first-child {
+      display: flex;
+      min-width: min(100%, 22rem);
+      flex: 1 1 24rem;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.26rem 0.45rem;
     }
 
     .leetcode-practice-head strong,
@@ -3657,7 +5098,7 @@ const shortcutRows = [
       display: flex !important;
       flex-wrap: wrap;
       gap: 0.25rem;
-      margin-top: 0.22rem;
+      margin-top: 0;
     }
 
     .leetcode-practice-meter b {
@@ -3688,6 +5129,12 @@ const shortcutRows = [
     .leetcode-practice-actions {
       flex-wrap: wrap;
       justify-content: flex-end;
+      gap: 0.24rem;
+    }
+
+    .leetcode-practice-control {
+      position: relative;
+      display: inline-flex;
     }
 
     .leetcode-practice-actions select,
@@ -3698,8 +5145,8 @@ const shortcutRows = [
       background: transparent;
       color: inherit;
       font: inherit;
-      font-size: 0.76rem;
-      padding: 0.28rem 0.45rem;
+      font-size: 0.72rem;
+      padding: 0.18rem 0.34rem;
       text-decoration: none;
     }
 
@@ -3712,6 +5159,57 @@ const shortcutRows = [
       opacity: 0.62;
     }
 
+    .leetcode-practice-actions [data-shortcut-label] {
+      position: relative;
+    }
+
+    .leetcode-practice-actions [data-shortcut-label]::after {
+      content: attr(data-shortcut-label);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 0.4rem);
+      z-index: 30;
+      display: none;
+      transform: translateX(-50%);
+      border: 1px solid rgb(194 192 182 / 68%);
+      border-radius: 0.38rem;
+      background: var(--color-cream);
+      box-shadow: 0 10px 24px rgb(20 20 19 / 14%);
+      color: var(--color-secondary);
+      font-size: 0.64rem;
+      line-height: 1;
+      padding: 0.34rem 0.42rem;
+      pointer-events: auto;
+      white-space: nowrap;
+    }
+
+    .leetcode-practice-actions [data-shortcut-label]::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 0.18rem);
+      z-index: 31;
+      display: none;
+      width: 0.42rem;
+      height: 0.42rem;
+      transform: translateX(-50%) rotate(45deg);
+      border-right: 1px solid rgb(194 192 182 / 68%);
+      border-bottom: 1px solid rgb(194 192 182 / 68%);
+      background: var(--color-cream);
+      pointer-events: auto;
+    }
+
+    .leetcode-practice-actions [data-shortcut-label]:hover::after,
+    .leetcode-practice-actions [data-shortcut-label]:hover::before,
+    .leetcode-practice-actions [data-shortcut-label]:focus-visible::after,
+    .leetcode-practice-actions [data-shortcut-label]:focus-visible::before,
+    .leetcode-practice-actions [data-shortcut-label]:focus-within::after,
+    .leetcode-practice-actions [data-shortcut-label]:focus-within::before {
+      display: block;
+    }
+
+    .leetcode-practice-actions select:hover,
+    .leetcode-practice-actions select:focus-visible,
     .leetcode-practice-actions a:hover,
     .leetcode-practice-actions button:hover {
       border-color: var(--color-terracotta);
@@ -3719,16 +5217,15 @@ const shortcutRows = [
     }
 
     .leetcode-editor-shell {
-      --leetcode-editor-font: Monaco, "Cascadia Code", Consolas, "Courier New", monospace;
-      --leetcode-editor-gutter: 3.65rem;
+      --leetcode-editor-font: var(--leetcode-code-font);
       --leetcode-editor-height: 18rem;
       position: relative;
       height: var(--leetcode-editor-height);
       min-height: var(--leetcode-editor-height);
       width: 100%;
-      border: 1px solid rgb(194 192 182 / 70%);
+      border: 1px solid var(--leetcode-editor-border);
       border-radius: 0.45rem;
-      background: rgb(20 20 19 / 92%);
+      background: var(--leetcode-editor-background);
       overflow: hidden;
       resize: none;
     }
@@ -3740,8 +5237,9 @@ const shortcutRows = [
       height: 100%;
       min-height: 100%;
       font-family: var(--leetcode-editor-font);
-      font-size: 1rem;
-      line-height: 1.48;
+      font-size: var(--leetcode-editor-font-size);
+      font-variant-ligatures: none;
+      line-height: var(--leetcode-editor-line-height);
       tab-size: 4;
       white-space: pre;
     }
@@ -3753,10 +5251,12 @@ const shortcutRows = [
       width: var(--leetcode-editor-gutter);
       margin: 0;
       overflow: hidden;
-      border-right: 1px solid rgb(255 255 255 / 9%);
-      background: rgb(255 255 255 / 3%);
-      color: rgb(245 241 232 / 36%);
-      padding: 0.7rem 0.55rem 0.7rem 0.35rem;
+      border-right: 1px solid var(--leetcode-editor-gutter-border);
+      background: var(--leetcode-editor-gutter-background);
+      color: var(--leetcode-editor-line-number);
+      padding:
+        var(--leetcode-editor-padding-block) 0.46rem
+        var(--leetcode-editor-padding-block) 0.28rem;
       text-align: right;
       user-select: none;
     }
@@ -3766,12 +5266,14 @@ const shortcutRows = [
       inset: 0 0 0 var(--leetcode-editor-gutter);
       margin: 0;
       overflow: hidden;
-      padding: 0.7rem;
+      padding:
+        var(--leetcode-editor-padding-block)
+        var(--leetcode-editor-padding-inline);
       pointer-events: none;
     }
 
     .leetcode-editor-highlight code {
-      color: var(--color-cream);
+      color: var(--leetcode-editor-foreground);
     }
 
     .leetcode-practice-panel textarea {
@@ -3779,12 +5281,14 @@ const shortcutRows = [
       display: block;
       border: 0;
       background: transparent;
-      caret-color: var(--color-cream);
+      caret-color: var(--leetcode-editor-caret);
       font-family: var(--leetcode-editor-font);
       color: transparent;
       margin-left: var(--leetcode-editor-gutter);
       outline: 0;
-      padding: 0.7rem;
+      padding:
+        var(--leetcode-editor-padding-block)
+        var(--leetcode-editor-padding-inline);
       resize: none;
       width: calc(100% - var(--leetcode-editor-gutter));
       z-index: 2;
@@ -3795,13 +5299,13 @@ const shortcutRows = [
     }
 
     .leetcode-practice-panel textarea::selection {
-      background: rgb(217 119 87 / 42%);
+      background: var(--leetcode-editor-selection);
       color: transparent;
     }
 
     .leetcode-editor-shell:focus-within {
-      border-color: rgb(217 119 87 / 72%);
-      box-shadow: 0 0 0 2px rgb(217 119 87 / 14%);
+      border-color: var(--leetcode-editor-focus);
+      box-shadow: 0 0 0 1px var(--leetcode-editor-focus);
     }
 
     .leetcode-practice-panel p {
@@ -3882,9 +5386,62 @@ const shortcutRows = [
       border-color: #333;
     }
 
-    html.dark .leetcode-editor-shell {
+    html.dark .leetcode-practice-actions [data-shortcut-label]::after {
       border-color: #333;
-      background: rgb(8 8 7 / 92%);
+      background: var(--color-charcoal);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-practice-actions [data-shortcut-label]::before {
+      border-color: #333;
+      background: var(--color-charcoal);
+    }
+
+    html.dark .leetcode-status [data-shortcut-label]::after {
+      border-color: #333;
+      background: var(--color-charcoal);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-status [data-shortcut-label]::before {
+      border-color: #333;
+      background: var(--color-charcoal);
+    }
+
+    html.dark .leetcode-footer-settings,
+    html.dark .leetcode-extension-guide,
+    html.dark .leetcode-footer-links {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-switch {
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-editor-preferences select,
+    html.dark .leetcode-editor-preferences button {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-extension-guide {
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-extension-guide > div {
+      border-top-color: #333;
+    }
+
+    html.dark .leetcode-extension-guide code {
+      background: rgb(255 255 255 / 7%);
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-editor-shell {
+      border-color: var(--leetcode-editor-border);
+      background: var(--leetcode-editor-background);
     }
 
     .leetcode-difficulty {
@@ -3922,11 +5479,59 @@ const shortcutRows = [
       font-weight: 700;
       line-height: 1.2;
       padding: 0.1rem 0.3rem;
+      white-space: nowrap;
     }
 
     .leetcode-status {
       flex-wrap: wrap;
       gap: 0.15rem;
+    }
+
+    .leetcode-status [data-shortcut-label] {
+      position: relative;
+    }
+
+    .leetcode-status [data-shortcut-label]::after {
+      content: attr(data-shortcut-label);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 0.4rem);
+      z-index: 30;
+      display: none;
+      transform: translateX(-50%);
+      border: 1px solid rgb(194 192 182 / 68%);
+      border-radius: 0.38rem;
+      background: var(--color-cream);
+      box-shadow: 0 10px 24px rgb(20 20 19 / 14%);
+      color: var(--color-secondary);
+      font-size: 0.64rem;
+      line-height: 1;
+      padding: 0.34rem 0.42rem;
+      pointer-events: auto;
+      white-space: nowrap;
+    }
+
+    .leetcode-status [data-shortcut-label]::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 0.18rem);
+      z-index: 31;
+      display: none;
+      width: 0.42rem;
+      height: 0.42rem;
+      transform: translateX(-50%) rotate(45deg);
+      border-right: 1px solid rgb(194 192 182 / 68%);
+      border-bottom: 1px solid rgb(194 192 182 / 68%);
+      background: var(--color-cream);
+      pointer-events: auto;
+    }
+
+    .leetcode-status [data-shortcut-label]:hover::after,
+    .leetcode-status [data-shortcut-label]:hover::before,
+    .leetcode-status [data-shortcut-label]:focus-visible::after,
+    .leetcode-status [data-shortcut-label]:focus-visible::before {
+      display: block;
     }
 
     .leetcode-status button,
@@ -3940,6 +5545,17 @@ const shortcutRows = [
       align-items: center;
       position: relative;
       line-height: 1.15;
+    }
+
+    .leetcode-preview-control::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 4;
+      display: none;
+      width: min(31rem, 78vw);
+      height: 0.42rem;
     }
 
     .leetcode-popover {
@@ -4006,12 +5622,13 @@ const shortcutRows = [
     .leetcode-code-block {
       max-height: 18rem;
       overflow: auto;
-      border: 1px solid rgb(194 192 182 / 58%);
+      border: 1px solid var(--leetcode-editor-border);
       border-radius: 0.45rem;
-      background: rgb(20 20 19 / 92%);
-      color: var(--color-cream);
-      font-family: var(--font-mono);
+      background: var(--leetcode-editor-background);
+      color: var(--leetcode-editor-foreground);
+      font-family: var(--leetcode-code-font);
       font-size: 0.72rem;
+      font-variant-ligatures: none;
       line-height: 1.5;
       margin: 0;
       padding: 0.65rem;
@@ -4019,33 +5636,35 @@ const shortcutRows = [
     }
 
     .leetcode-code-block code {
-      color: #f6efe2;
+      color: var(--leetcode-editor-foreground);
     }
 
     .leetcode-token-keyword {
-      color: #f4a261;
-      font-weight: 650;
+      color: var(--leetcode-token-keyword);
+    }
+
+    .leetcode-token-control {
+      color: var(--leetcode-token-control);
     }
 
     .leetcode-token-type {
-      color: #8bd3dd;
+      color: var(--leetcode-token-type);
     }
 
     .leetcode-token-string {
-      color: #b8e986;
+      color: var(--leetcode-token-string);
     }
 
     .leetcode-token-number {
-      color: #c792ea;
+      color: var(--leetcode-token-number);
     }
 
     .leetcode-token-comment {
-      color: #8d9187;
-      font-style: italic;
+      color: var(--leetcode-token-comment);
     }
 
     .leetcode-token-directive {
-      color: #ffd166;
+      color: var(--leetcode-token-directive);
     }
 
     .leetcode-popover-lead,
@@ -4116,10 +5735,26 @@ const shortcutRows = [
     .leetcode-problem-link:focus .leetcode-popover,
     .leetcode-problem-link:focus-visible .leetcode-popover,
     .leetcode-preview-control:hover .leetcode-popover,
+    .leetcode-preview-control.is-hover-open .leetcode-popover,
     .leetcode-preview-control.is-open .leetcode-popover,
     .leetcode-preview-control:focus .leetcode-popover,
     .leetcode-preview-control:focus-visible .leetcode-popover,
     .leetcode-preview-control:focus-within .leetcode-popover {
+      display: block;
+    }
+
+    .leetcode-problem-link:hover::after,
+    .leetcode-problem-link:focus::after,
+    .leetcode-problem-link:focus-visible::after {
+      display: block;
+    }
+
+    .leetcode-preview-control:hover::after,
+    .leetcode-preview-control.is-hover-open::after,
+    .leetcode-preview-control.is-open::after,
+    .leetcode-preview-control:focus::after,
+    .leetcode-preview-control:focus-visible::after,
+    .leetcode-preview-control:focus-within::after {
       display: block;
     }
 
@@ -4144,56 +5779,74 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-code-block {
-      border-color: #333;
-      background: rgb(8 8 7 / 92%);
+      border-color: var(--leetcode-editor-border);
+      background: var(--leetcode-editor-background);
     }
 
     .leetcode-pagination {
+      --leetcode-page-control-height: 1.52rem;
       flex: 0 0 auto;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 0.28rem;
+      gap: 0.24rem;
       color: var(--color-secondary);
       font-size: 0.7rem;
+      line-height: 1;
     }
 
     .leetcode-pagination-top {
-      justify-content: flex-end;
+      flex-basis: 100%;
+      justify-content: center;
     }
 
     .leetcode-pagination-bottom {
-      margin-top: 0.45rem;
+      margin: var(--leetcode-stack-gap) 0 var(--leetcode-stack-gap);
+    }
+
+    .leetcode-pagination-bottom .leetcode-shortcut-popover {
+      top: auto;
+      bottom: calc(100% + 0.36rem);
+    }
+
+    .leetcode-pagination-bottom .leetcode-shortcut-tip::after {
+      top: auto;
+      bottom: 100%;
     }
 
     .leetcode-page-jump {
-      gap: 0.25rem;
+      gap: 0.22rem;
       color: var(--color-muted);
       white-space: nowrap;
     }
 
+    .leetcode-pagination button {
+      box-sizing: border-box;
+      min-height: var(--leetcode-page-control-height);
+      padding: 0 0.38rem;
+      line-height: 1;
+    }
+
     .leetcode-page-jump input {
-      width: 3.3rem;
-      min-height: 1.72rem;
+      box-sizing: border-box;
+      width: 2.72rem;
+      height: var(--leetcode-page-control-height);
+      min-height: var(--leetcode-page-control-height);
       border: 1px solid var(--color-border);
       border-radius: 0.42rem;
       background: rgb(255 255 255 / 48%);
       color: var(--color-charcoal);
+      appearance: textfield;
       font: inherit;
       font-family: var(--font-mono);
-      padding: 0.16rem 0.28rem;
+      line-height: 1;
+      padding: 0 0.2rem;
       text-align: center;
     }
 
-    .leetcode-page-shortcut {
-      color: var(--color-muted);
-      font-family: var(--font-mono);
-      font-size: 0.62rem;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .leetcode-page-shortcut:hover {
-      color: var(--color-terracotta);
+    .leetcode-page-jump input::-webkit-inner-spin-button,
+    .leetcode-page-jump input::-webkit-outer-spin-button {
+      margin: 0;
+      appearance: none;
     }
 
     .leetcode-pagination button:disabled {
@@ -4207,8 +5860,7 @@ const shortcutRows = [
       color: var(--color-cream);
     }
 
-    html.dark .leetcode-hero,
-    html.dark .leetcode-shortcuts {
+    html.dark .leetcode-hero {
       border-color: #333;
     }
 
@@ -4216,14 +5868,12 @@ const shortcutRows = [
       border-color: #333;
     }
 
-    html.dark .leetcode-shortcut-popover,
-    html.dark .leetcode-shortcuts {
+    html.dark .leetcode-shortcut-popover {
       background: var(--color-charcoal);
       color: var(--color-muted);
     }
 
-    html.dark .leetcode-shortcut-tip kbd,
-    html.dark .leetcode-shortcuts kbd {
+    html.dark .leetcode-shortcut-tip kbd {
       border-color: #333;
       background: rgb(255 255 255 / 6%);
       color: var(--color-cream);
@@ -4240,7 +5890,9 @@ const shortcutRows = [
       }
 
       .leetcode-copy {
+        border-left: 0;
         font-size: 0.8rem;
+        padding-left: 0;
       }
 
       .leetcode-actions {
@@ -4261,10 +5913,13 @@ const shortcutRows = [
 
       .leetcode-session-actions {
         grid-column: 1 / -1;
+        grid-row: auto;
         justify-content: flex-start;
       }
 
       .leetcode-session-history {
+        grid-column: 1 / -1;
+        grid-row: auto;
         grid-template-columns: 1fr;
         gap: 0.18rem;
       }
@@ -4278,8 +5933,7 @@ const shortcutRows = [
         padding-top: 0;
       }
 
-      .leetcode-list-meta,
-      .leetcode-pagination-top {
+      .leetcode-list-meta {
         justify-content: flex-start;
       }
 
