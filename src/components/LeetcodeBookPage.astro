@@ -1,5 +1,4 @@
 ---
-import Header from "./Header.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { leetcodeBook } from "../book.config";
 import {
@@ -62,15 +61,36 @@ function frequencyLabel(value) {
   return `${Number(value).toFixed(1)}%`;
 }
 
+function byteDanceSourceStatusLabel(status) {
+  if (status === "companyFavorite") return "GraphQL 全量同步";
+  if (status === "companyFavoriteWithChromeRenderedBuckets") {
+    return "GraphQL 全量 + 官方页 Top100 校准";
+  }
+  if (status === "chromeRenderedTop100MergedWithLegacyTop888Fallback") {
+    return "官方页 Top100 + 旧 Top888 fallback";
+  }
+  if (status === "legacyTop888Fallback") return "旧 Top888 fallback";
+  return status;
+}
+
+const byteDanceStatusLabel = byteDanceSourceStatusLabel(
+  leetcodeByteDanceStats.sourceStatus,
+);
+
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
+  const bucketSourceValues = Object.values(entry?.bucketSources || {});
+  const hasVerifiedByteDanceBucket = bucketSourceValues.some(
+    (source) => source === "companyFavorite" || source === "companyRendered",
+  );
   return {
     ...problem,
     bytedance: Boolean(entry || problem.bytedance),
     bytedanceBuckets: mergedByteDanceBuckets(problem),
+    bytedanceBucketSources: entry?.bucketSources ?? {},
     bytedanceRank: entry?.bytedanceRank ?? null,
     bytedanceSource: entry?.source ?? (problem.bytedance ? "legacyTop888" : null),
-    bytedanceVerified: Boolean(entry) || problem.bytedanceVerified,
+    bytedanceVerified: hasVerifiedByteDanceBucket || problem.bytedanceVerified,
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -88,13 +108,14 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     acRate: problem.acRate,
     frequency: frequencyLabel(problem.frequency),
     bytedance: true,
-    bytedanceVerified: problem.source === "companyFavorite",
+    bytedanceVerified: problem.source !== "legacyTop888",
     bytedancePeriods: {
       past3Months: null,
       past6Months: null,
       before6Months: null,
     },
     bytedanceBuckets: problem.buckets,
+    bytedanceBucketSources: problem.bucketSources ?? {},
     bytedanceRank: problem.bytedanceRank,
     bytedanceSource: problem.source,
     hot100: false,
@@ -164,15 +185,6 @@ const shortcutRows = [
   lang={lang}
   titleSuffix={title}
 >
-  <Header
-    lang={lang}
-    alternatePath={null}
-    homePath={homePath}
-    brandTitle={title}
-    brandShortTitle={isZh ? book.zhShortTitle : book.shortTitle}
-    compact
-  />
-
   <main class="leetcode-shell mx-auto max-w-6xl px-4 py-0 md:px-8">
     <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
       <div>
@@ -328,10 +340,10 @@ const shortcutRows = [
         <div class="leetcode-session-history">
           <span data-timing-timezone>{isZh ? "北京时间" : "Beijing time"}</span>
           <strong data-timing-milestone>{isZh ? "今天 AC 后自动进入日统计" : "Daily stats start after today's first Accepted"}</strong>
-          <details>
-            <summary>{isZh ? "日统计" : "Daily history"}</summary>
-            <div data-timing-history-list></div>
-          </details>
+          <span class="leetcode-history-tip" tabindex="0">
+            {isZh ? "日统计" : "Daily"}
+            <span data-timing-history-list role="tooltip"></span>
+          </span>
         </div>
       </section>
 
@@ -341,7 +353,7 @@ const shortcutRows = [
           <span>{isZh ? "数据日期" : "Data date"}: {leetcodeDataUpdatedAt}</span>
           <span>
             {isZh
-              ? `力扣中国区按出题频率排序；字节题库来自 company favorite 同步，当前状态：${leetcodeByteDanceStats.sourceStatus}。`
+              ? `力扣中国区按出题频率排序；字节题库当前状态：${byteDanceStatusLabel}。`
               : leetcodeDataSource}
           </span>
           <span>
@@ -470,6 +482,7 @@ const shortcutRows = [
     const progressKey = "leetcode-book-progress-v1";
     const clickedKey = "leetcode-book-clicked-v1";
     const editorKey = "leetcode-book-editor-v1";
+    const editorDraftDayKey = "leetcode-book-editor-day-v1";
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
     const timingKey = "leetcode-book-timing-v1";
     const dataNode = document.getElementById("leetcode-data");
@@ -524,6 +537,11 @@ const shortcutRows = [
     const editorMaxAutoVisibleLines = 56;
     const editorIndentUnit = "    ";
     const editorClosingTokens = new Set(["}", "]", ")"]);
+    const editorCaretBottomGuardRatio = 0.28;
+    const editorCaretBottomGuardMin = 96;
+    const editorCaretBottomGuardMax = 220;
+    const editorCaretTopGuard = 88;
+    const editorDraftDayCheckIntervalMs = 60 * 1000;
     const timingTimeZone = "Asia/Shanghai";
     const timingDayMs = 24 * 60 * 60 * 1000;
     const timingHistoryDays = 14;
@@ -566,6 +584,7 @@ const shortcutRows = [
     let timingMilestone = "";
 
     function writeState() {
+      rollEditorDraftsForToday();
       localStorage.setItem(progressKey, JSON.stringify(progress));
       localStorage.setItem(clickedKey, JSON.stringify(clicked));
       localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
@@ -587,6 +606,25 @@ const shortcutRows = [
       );
       return [parts.year, parts.month, parts.day].join("-");
     }
+
+    function rollEditorDraftsForToday() {
+      const todayKey = localDateKey();
+      const storedKey = localStorage.getItem(editorDraftDayKey);
+      if (storedKey === todayKey) return false;
+      localStorage.setItem(editorDraftDayKey, todayKey);
+      if (!storedKey) return false;
+      editorDrafts = {};
+      localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
+      return true;
+    }
+
+    function syncEditorDraftDay() {
+      if (!rollEditorDraftsForToday()) return;
+      state.expandedSlug = "";
+      render();
+    }
+
+    rollEditorDraftsForToday();
 
     function dateKeyParts(dateKey) {
       const [year, month, day] = String(dateKey || "")
@@ -1331,6 +1369,17 @@ const shortcutRows = [
       };
     }
 
+    function byteDanceBucketSources(problem) {
+      return problem.bytedanceBucketSources || {};
+    }
+
+    function byteDanceSourceLabel(source) {
+      if (source === "companyFavorite") return "GraphQL 全量";
+      if (source === "companyRendered") return "官方页 Top100";
+      if (source === "legacyTop888") return "旧数据";
+      return "";
+    }
+
     function byteDanceRankFor(problem, filter = "bytedanceAll") {
       const buckets = byteDanceBuckets(problem);
       if (filter === "bytedanceThirtyDays") return buckets.thirtyDays;
@@ -1428,6 +1477,9 @@ const shortcutRows = [
         byteDance.threeMonths ? `字节近3月 ${byteDance.threeMonths}` : "",
         byteDance.sixMonths ? `字节近6月 ${byteDance.sixMonths}` : "",
         byteDance.moreThanSixMonths ? `字节6月前 ${byteDance.moreThanSixMonths}` : "",
+        ...Object.entries(byteDanceBucketSources(problem)).map(
+          ([key, source]) => `字节${key} ${byteDanceSourceLabel(source)}`,
+        ),
         ...problem.tags.map((tag) => tag.name),
         ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
         ...(problem.companyFollowUps || []).flatMap((item) => [
@@ -1476,6 +1528,7 @@ const shortcutRows = [
         }
         if (textarea instanceof HTMLTextAreaElement) {
           textarea.focus({ preventScroll: true });
+          scheduleEditorCaretReveal(textarea, "smooth");
         }
       });
     }
@@ -1525,15 +1578,19 @@ const shortcutRows = [
     function renderByteDance(problem) {
       if (!problem.bytedance) return "";
       const buckets = byteDanceBuckets(problem);
+      const sources = byteDanceBucketSources(problem);
       const labels = [
-        ["全量", buckets.all],
-        ["近30天", buckets.thirtyDays],
-        ["近3月", buckets.threeMonths],
-        ["近6月", buckets.sixMonths],
-        ["6月前", buckets.moreThanSixMonths],
+        ["全量", "all", buckets.all],
+        ["近30天", "thirtyDays", buckets.thirtyDays],
+        ["近3月", "threeMonths", buckets.threeMonths],
+        ["近6月", "sixMonths", buckets.sixMonths],
+        ["6月前", "moreThanSixMonths", buckets.moreThanSixMonths],
       ]
-        .filter(([, count]) => count)
-        .map(([label, count]) => `${label} #${count}`)
+        .filter(([, , count]) => count)
+        .map(([label, key, count]) => {
+          const source = byteDanceSourceLabel(sources[key]);
+          return `${label} #${count}${source ? ` · ${source}` : ""}`;
+        })
         .join(" / ");
       const shortLabels = [
         ["30", buckets.thirtyDays],
@@ -1549,16 +1606,21 @@ const shortcutRows = [
 
     function renderByteDanceMeta(problem) {
       const buckets = byteDanceBuckets(problem);
+      const sources = byteDanceBucketSources(problem);
       const chips = [
-        ["字节全量", buckets.all],
-        ["近30天", buckets.thirtyDays],
-        ["近3月", buckets.threeMonths],
-        ["近6月", buckets.sixMonths],
-        ["6月前", buckets.moreThanSixMonths],
-      ].filter(([, count]) => count);
+        ["字节全量", "all", buckets.all],
+        ["近30天", "thirtyDays", buckets.thirtyDays],
+        ["近3月", "threeMonths", buckets.threeMonths],
+        ["近6月", "sixMonths", buckets.sixMonths],
+        ["6月前", "moreThanSixMonths", buckets.moreThanSixMonths],
+      ].filter(([, , count]) => count);
       if (!chips.length) return "";
       return chips
-        .map(([label, count]) => `<span>${escapeHtml(label)} #${escapeHtml(count)}</span>`)
+        .map(([label, key, count]) => {
+          const source = byteDanceSourceLabel(sources[key]);
+          const suffix = source ? ` · ${source}` : "";
+          return `<span>${escapeHtml(label)} #${escapeHtml(count)}${escapeHtml(suffix)}</span>`;
+        })
         .join("");
     }
 
@@ -1826,6 +1888,50 @@ const shortcutRows = [
       return (Number.isFinite(top) ? top : 0) + (Number.isFinite(bottom) ? bottom : 0);
     }
 
+    function editorPaddingTop(textarea) {
+      const value = Number.parseFloat(window.getComputedStyle(textarea).paddingTop);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function editorCaretLineIndex(textarea) {
+      const position = Math.max(0, textarea.selectionStart || 0);
+      return textarea.value.slice(0, position).split("\n").length - 1;
+    }
+
+    function editorBottomGuard() {
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      return Math.min(
+        editorCaretBottomGuardMax,
+        Math.max(editorCaretBottomGuardMin, viewportHeight * editorCaretBottomGuardRatio),
+      );
+    }
+
+    function revealEditorCaret(textarea, behavior = "auto") {
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+      const rect = textarea.getBoundingClientRect();
+      const lineHeight = editorLineHeight(textarea);
+      const caretTop =
+        rect.top +
+        editorPaddingTop(textarea) +
+        editorCaretLineIndex(textarea) * lineHeight -
+        textarea.scrollTop;
+      const caretBottom = caretTop + lineHeight;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const bottomLimit = viewportHeight - editorBottomGuard();
+      let delta = 0;
+      if (caretBottom > bottomLimit) {
+        delta = caretBottom - bottomLimit;
+      } else if (caretTop < editorCaretTopGuard) {
+        delta = caretTop - editorCaretTopGuard;
+      }
+      if (Math.abs(delta) < 1) return;
+      window.scrollBy({ top: delta, behavior });
+    }
+
+    function scheduleEditorCaretReveal(textarea, behavior = "auto") {
+      window.requestAnimationFrame(() => revealEditorCaret(textarea, behavior));
+    }
+
     function syncEditorHeight(panel, textarea) {
       const shell = panel?.querySelector(".leetcode-editor-shell");
       if (!(shell instanceof HTMLElement)) return;
@@ -1888,11 +1994,17 @@ const shortcutRows = [
     }
 
     function persistEditorTextarea(textarea) {
+      if (rollEditorDraftsForToday()) {
+        state.expandedSlug = "";
+        render();
+        return;
+      }
       const context = editorContextFor(textarea);
       if (!context) return;
       editorDrafts[context.slug] = { lang: context.lang, code: textarea.value };
       syncEditorHighlight(context.panel, textarea, context.lang);
       writeState();
+      scheduleEditorCaretReveal(textarea);
     }
 
     function replaceTextareaRange(textarea, start, end, value, nextStart, nextEnd = nextStart) {
@@ -2470,6 +2582,7 @@ const shortcutRows = [
     }
 
     function render() {
+      rollEditorDraftsForToday();
       const items = orderedProblems();
       state.pageSize = pageSize();
       state.totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
@@ -2687,6 +2800,24 @@ const shortcutRows = [
       persistEditorTextarea(target);
     });
 
+    list?.addEventListener("keyup", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) return;
+      scheduleEditorCaretReveal(target);
+    });
+
+    list?.addEventListener("focusin", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) return;
+      scheduleEditorCaretReveal(target, "smooth");
+    });
+
+    list?.addEventListener("mouseup", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLTextAreaElement)) return;
+      scheduleEditorCaretReveal(target);
+    });
+
     list?.addEventListener(
       "scroll",
       (event) => {
@@ -2746,6 +2877,11 @@ const shortcutRows = [
 
     render();
     window.setInterval(syncTimingUi, 1000);
+    window.setInterval(syncEditorDraftDay, editorDraftDayCheckIntervalMs);
+    window.addEventListener("focus", syncEditorDraftDay);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncEditorDraftDay();
+    });
   </script>
 
   <style is:global>
@@ -2868,11 +3004,11 @@ const shortcutRows = [
     .leetcode-stats {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 0.25rem;
-      margin: 0.12rem 0 0;
+      gap: 0.18rem;
+      margin: 0.06rem 0 0;
       border-top: 1px solid var(--color-border);
       border-bottom: 1px solid var(--color-border);
-      padding: 0.12rem 0;
+      padding: 0.06rem 0;
     }
 
     html.dark .leetcode-stats {
@@ -2880,20 +3016,28 @@ const shortcutRows = [
     }
 
     .leetcode-stats div {
+      display: flex;
+      min-height: 1.05rem;
       min-width: 0;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.24rem;
+      white-space: nowrap;
     }
 
     .leetcode-stats span {
       display: block;
       font-family: var(--font-mono);
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       font-weight: 700;
+      line-height: 1;
     }
 
     .leetcode-stats p {
-      margin: 0.02rem 0 0;
+      margin: 0;
       color: var(--color-muted);
-      font-size: 0.52rem;
+      font-size: 0.48rem;
+      line-height: 1;
     }
 
     .leetcode-workspace {
@@ -3084,31 +3228,37 @@ const shortcutRows = [
       white-space: nowrap;
     }
 
-    .leetcode-session-history details {
+    .leetcode-history-tip {
       position: relative;
       justify-self: end;
-    }
-
-    .leetcode-session-history summary {
+      border: 1px solid rgb(194 192 182 / 70%);
+      border-radius: 0.42rem;
       cursor: pointer;
       font-weight: 700;
+      padding: 0.16rem 0.34rem;
       white-space: nowrap;
     }
 
     .leetcode-session-history [data-timing-history-list] {
       position: absolute;
       right: 0;
+      top: calc(100% + 0.34rem);
       z-index: 20;
-      display: grid;
+      display: none;
       grid-template-columns: repeat(7, minmax(4.1rem, 1fr));
       gap: 0.28rem;
       min-width: min(40rem, calc(100vw - 2rem));
-      margin-top: 0.35rem;
       border: 1px solid var(--color-border);
       border-radius: 0.5rem;
       background: rgb(251 250 246 / 98%);
       box-shadow: 0 1rem 2.4rem rgb(20 20 19 / 12%);
       padding: 0.45rem;
+    }
+
+    .leetcode-history-tip:hover [data-timing-history-list],
+    .leetcode-history-tip:focus [data-timing-history-list],
+    .leetcode-history-tip:focus-within [data-timing-history-list] {
+      display: grid;
     }
 
     .leetcode-history-day {
@@ -3569,7 +3719,8 @@ const shortcutRows = [
     }
 
     .leetcode-editor-shell {
-      --leetcode-editor-gutter: 3.25rem;
+      --leetcode-editor-font: Monaco, "Cascadia Code", Consolas, "Courier New", monospace;
+      --leetcode-editor-gutter: 3.65rem;
       --leetcode-editor-height: 18rem;
       position: relative;
       height: var(--leetcode-editor-height);
@@ -3588,9 +3739,9 @@ const shortcutRows = [
       box-sizing: border-box;
       height: 100%;
       min-height: 100%;
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-      line-height: 1.55;
+      font-family: var(--leetcode-editor-font);
+      font-size: 1rem;
+      line-height: 1.48;
       tab-size: 4;
       white-space: pre;
     }
@@ -3629,7 +3780,7 @@ const shortcutRows = [
       border: 0;
       background: transparent;
       caret-color: var(--color-cream);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-editor-font);
       color: transparent;
       margin-left: var(--leetcode-editor-gutter);
       outline: 0;
@@ -3693,6 +3844,10 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-session-history {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-history-tip {
       border-color: #333;
     }
 
@@ -4114,7 +4269,7 @@ const shortcutRows = [
         gap: 0.18rem;
       }
 
-      .leetcode-session-history details {
+      .leetcode-history-tip {
         justify-self: start;
       }
 

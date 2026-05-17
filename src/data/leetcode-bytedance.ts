@@ -6,6 +6,11 @@ export interface LeetcodeByteDanceBucketRanks {
   moreThanSixMonths: number | null;
 }
 
+export type LeetcodeByteDanceBucketSource =
+  | "companyFavorite"
+  | "companyRendered"
+  | "legacyTop888";
+
 export interface LeetcodeByteDanceProblem {
   bytedanceRank: number | null;
   frontendId: string;
@@ -16,9 +21,10 @@ export interface LeetcodeByteDanceProblem {
   acRate: string | null;
   frequency: number | null;
   paidOnly: boolean;
-  source: "companyFavorite" | "legacyTop888";
+  source: "companyFavorite" | "companyRendered" | "legacyTop888";
   tags: Array<{ slug: string; name: string }>;
   buckets: LeetcodeByteDanceBucketRanks;
+  bucketSources?: Partial<Record<keyof LeetcodeByteDanceBucketRanks, LeetcodeByteDanceBucketSource>>;
 }
 
 export const leetcodeByteDanceProblems = ([
@@ -26,17 +32,24 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "55.1%",
     "buckets": {
       "all": 1,
-      "thirtyDays": null,
+      "thirtyDays": 1,
       "threeMonths": 1,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "sixMonths": 1,
+      "moreThanSixMonths": 1
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 1,
     "difficulty": "简单",
     "frontendId": "1",
     "frequency": 100,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -52,20 +65,67 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/two-sum/description/"
   },
   {
-    "acRate": "42.4%",
+    "acRate": "46.9%",
     "buckets": {
       "all": 2,
-      "thirtyDays": null,
+      "thirtyDays": 2,
       "threeMonths": 2,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "sixMonths": 7,
+      "moreThanSixMonths": 2
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 2,
+    "difficulty": "中等",
+    "frontendId": "2",
+    "frequency": 92,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "recursion",
+        "name": "递归"
+      },
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      }
+    ],
+    "titleCn": "两数相加",
+    "titleSlug": "add-two-numbers",
+    "url": "https://leetcode.cn/problems/add-two-numbers/description/"
+  },
+  {
+    "acRate": "42.4%",
+    "buckets": {
+      "all": 3,
+      "thirtyDays": 3,
+      "threeMonths": 3,
+      "sixMonths": 2,
+      "moreThanSixMonths": 3
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 3,
     "difficulty": "中等",
     "frontendId": "3",
     "frequency": 99,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "hash-table",
@@ -85,98 +145,66 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-substring-without-repeating-characters/description/"
   },
   {
-    "acRate": "66.0%",
-    "buckets": {
-      "all": 3,
-      "thirtyDays": null,
-      "threeMonths": 3,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 3,
-    "difficulty": "困难",
-    "frontendId": "42",
-    "frequency": 98,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "stack",
-        "name": "栈"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      },
-      {
-        "slug": "monotonic-stack",
-        "name": "单调栈"
-      }
-    ],
-    "titleCn": "接雨水",
-    "titleSlug": "trapping-rain-water",
-    "url": "https://leetcode.cn/problems/trapping-rain-water/description/"
-  },
-  {
-    "acRate": "69.6%",
+    "acRate": "44.6%",
     "buckets": {
       "all": 4,
-      "thirtyDays": null,
+      "thirtyDays": 27,
       "threeMonths": 4,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "sixMonths": 18,
+      "moreThanSixMonths": 4
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 4,
-    "difficulty": "中等",
-    "frontendId": "49",
-    "frequency": 97.5,
+    "difficulty": "困难",
+    "frontendId": "4",
+    "frequency": 90.3,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "hash-table",
-        "name": "哈希表"
+        "slug": "binary-search",
+        "name": "二分查找"
       },
       {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "sorting",
-        "name": "排序"
+        "slug": "divide-and-conquer",
+        "name": "分治"
       }
     ],
-    "titleCn": "字母异位词分组",
-    "titleSlug": "group-anagrams",
-    "url": "https://leetcode.cn/problems/group-anagrams/description/"
+    "titleCn": "寻找两个正序数组的中位数",
+    "titleSlug": "median-of-two-sorted-arrays",
+    "url": "https://leetcode.cn/problems/median-of-two-sorted-arrays/description/"
   },
   {
     "acRate": "55.5%",
     "buckets": {
       "all": 5,
-      "thirtyDays": null,
-      "threeMonths": 5,
-      "sixMonths": null,
+      "thirtyDays": 8,
+      "threeMonths": 43,
+      "sixMonths": 74,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 5,
     "difficulty": "中等",
     "frontendId": "146",
     "frequency": 96.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "design",
@@ -202,18 +230,25 @@ export const leetcodeByteDanceProblems = ([
   {
     "acRate": "40.8%",
     "buckets": {
-      "all": 6,
-      "thirtyDays": null,
-      "threeMonths": 6,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "all": 5,
+      "thirtyDays": 4,
+      "threeMonths": 5,
+      "sixMonths": 23,
+      "moreThanSixMonths": 5
     },
-    "bytedanceRank": 6,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 5,
     "difficulty": "中等",
     "frontendId": "5",
     "frequency": 95.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "two-pointers",
@@ -233,20 +268,56 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-palindromic-substring/description/"
   },
   {
+    "acRate": "54.2%",
+    "buckets": {
+      "all": 6,
+      "thirtyDays": null,
+      "threeMonths": 62,
+      "sixMonths": null,
+      "moreThanSixMonths": 6
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 6,
+    "difficulty": "中等",
+    "frontendId": "6",
+    "frequency": 64.8,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "string",
+        "name": "字符串"
+      }
+    ],
+    "titleCn": "Z 字形变换",
+    "titleSlug": "zigzag-conversion",
+    "url": "https://leetcode.cn/problems/zigzag-conversion/description/"
+  },
+  {
     "acRate": "48.9%",
     "buckets": {
       "all": 7,
-      "thirtyDays": null,
-      "threeMonths": 7,
-      "sixMonths": null,
+      "thirtyDays": 9,
+      "threeMonths": 38,
+      "sixMonths": 66,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 7,
     "difficulty": "中等",
     "frontendId": "128",
     "frequency": 94.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "union-find",
@@ -266,86 +337,120 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-consecutive-sequence/description/"
   },
   {
-    "acRate": "40.5%",
+    "acRate": "35.7%",
     "buckets": {
-      "all": 8,
-      "thirtyDays": null,
-      "threeMonths": 8,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "all": 7,
+      "thirtyDays": 82,
+      "threeMonths": 97,
+      "sixMonths": 3,
+      "moreThanSixMonths": 7
     },
-    "bytedanceRank": 8,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 7,
     "difficulty": "中等",
-    "frontendId": "15",
-    "frequency": 94.3,
+    "frontendId": "7",
+    "frequency": 67.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      },
-      {
-        "slug": "sorting",
-        "name": "排序"
-      }
-    ],
-    "titleCn": "三数之和",
-    "titleSlug": "3sum",
-    "url": "https://leetcode.cn/problems/3sum/description/"
-  },
-  {
-    "acRate": "55.7%",
-    "buckets": {
-      "all": 9,
-      "thirtyDays": null,
-      "threeMonths": 9,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 9,
-    "difficulty": "简单",
-    "frontendId": "70",
-    "frequency": 93.3,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "memoization",
-        "name": "记忆化"
-      },
       {
         "slug": "math",
         "name": "数学"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
       }
     ],
-    "titleCn": "爬楼梯",
-    "titleSlug": "climbing-stairs",
-    "url": "https://leetcode.cn/problems/climbing-stairs/description/"
+    "titleCn": "整数反转",
+    "titleSlug": "reverse-integer",
+    "url": "https://leetcode.cn/problems/reverse-integer/description/"
+  },
+  {
+    "acRate": "22.0%",
+    "buckets": {
+      "all": 8,
+      "thirtyDays": null,
+      "threeMonths": 187,
+      "sixMonths": 4,
+      "moreThanSixMonths": 8
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 8,
+    "difficulty": "中等",
+    "frontendId": "8",
+    "frequency": 48,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "string",
+        "name": "字符串"
+      }
+    ],
+    "titleCn": "字符串转换整数 (atoi)",
+    "titleSlug": "string-to-integer-atoi",
+    "url": "https://leetcode.cn/problems/string-to-integer-atoi/description/"
+  },
+  {
+    "acRate": "56.2%",
+    "buckets": {
+      "all": 9,
+      "thirtyDays": 72,
+      "threeMonths": 71,
+      "sixMonths": 5,
+      "moreThanSixMonths": 9
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 9,
+    "difficulty": "简单",
+    "frontendId": "9",
+    "frequency": 83.3,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "math",
+        "name": "数学"
+      }
+    ],
+    "titleCn": "回文数",
+    "titleSlug": "palindrome-number",
+    "url": "https://leetcode.cn/problems/palindrome-number/description/"
   },
   {
     "acRate": "46.5%",
     "buckets": {
       "all": 10,
-      "thirtyDays": null,
-      "threeMonths": 10,
+      "thirtyDays": 12,
+      "threeMonths": 57,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 10,
     "difficulty": "中等",
     "frontendId": "560",
     "frequency": 93,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -365,53 +470,66 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/subarray-sum-equals-k/description/"
   },
   {
-    "acRate": "46.9%",
+    "acRate": "31.2%",
     "buckets": {
-      "all": 11,
+      "all": 10,
       "thirtyDays": null,
-      "threeMonths": 11,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 90,
+      "sixMonths": 43,
+      "moreThanSixMonths": 10
     },
-    "bytedanceRank": 11,
-    "difficulty": "中等",
-    "frontendId": "2",
-    "frequency": 92,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 10,
+    "difficulty": "困难",
+    "frontendId": "10",
+    "frequency": 67.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "recursion",
         "name": "递归"
       },
       {
-        "slug": "linked-list",
-        "name": "链表"
+        "slug": "string",
+        "name": "字符串"
       },
       {
-        "slug": "math",
-        "name": "数学"
+        "slug": "dynamic-programming",
+        "name": "动态规划"
       }
     ],
-    "titleCn": "两数相加",
-    "titleSlug": "add-two-numbers",
-    "url": "https://leetcode.cn/problems/add-two-numbers/description/"
+    "titleCn": "正则表达式匹配",
+    "titleSlug": "regular-expression-matching",
+    "url": "https://leetcode.cn/problems/regular-expression-matching/description/"
   },
   {
     "acRate": "61.8%",
     "buckets": {
-      "all": 12,
-      "thirtyDays": null,
-      "threeMonths": 12,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "all": 11,
+      "thirtyDays": 5,
+      "threeMonths": 6,
+      "sixMonths": 6,
+      "moreThanSixMonths": 11
     },
-    "bytedanceRank": 12,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 11,
     "difficulty": "中等",
     "frontendId": "11",
     "frequency": 91.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "greedy",
@@ -431,20 +549,64 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/container-with-most-water/description/"
   },
   {
+    "acRate": "69.3%",
+    "buckets": {
+      "all": 12,
+      "thirtyDays": null,
+      "threeMonths": 152,
+      "sixMonths": null,
+      "moreThanSixMonths": 12
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 12,
+    "difficulty": "中等",
+    "frontendId": "12",
+    "frequency": 57,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      }
+    ],
+    "titleCn": "整数转罗马数字",
+    "titleSlug": "integer-to-roman",
+    "url": "https://leetcode.cn/problems/integer-to-roman/description/"
+  },
+  {
     "acRate": "64.0%",
     "buckets": {
       "all": 13,
-      "thirtyDays": null,
-      "threeMonths": 13,
-      "sixMonths": null,
+      "thirtyDays": 13,
+      "threeMonths": 46,
+      "sixMonths": 85,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 13,
     "difficulty": "中等",
     "frontendId": "200",
     "frequency": 91,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "depth-first-search",
@@ -472,82 +634,144 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/number-of-islands/description/"
   },
   {
-    "acRate": "44.6%",
+    "acRate": "64.2%",
+    "buckets": {
+      "all": 13,
+      "thirtyDays": null,
+      "threeMonths": 87,
+      "sixMonths": null,
+      "moreThanSixMonths": 13
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 13,
+    "difficulty": "简单",
+    "frontendId": "13",
+    "frequency": 68.6,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      }
+    ],
+    "titleCn": "罗马数字转整数",
+    "titleSlug": "roman-to-integer",
+    "url": "https://leetcode.cn/problems/roman-to-integer/description/"
+  },
+  {
+    "acRate": "45.2%",
     "buckets": {
       "all": 14,
-      "thirtyDays": null,
-      "threeMonths": 14,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "thirtyDays": 97,
+      "threeMonths": 7,
+      "sixMonths": 47,
+      "moreThanSixMonths": 14
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 14,
-    "difficulty": "困难",
-    "frontendId": "4",
-    "frequency": 90.3,
+    "difficulty": "简单",
+    "frontendId": "14",
+    "frequency": 84.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
+      {
+        "slug": "trie",
+        "name": "字典树"
+      },
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "binary-search",
-        "name": "二分查找"
-      },
-      {
-        "slug": "divide-and-conquer",
-        "name": "分治"
+        "slug": "string",
+        "name": "字符串"
       }
     ],
-    "titleCn": "寻找两个正序数组的中位数",
-    "titleSlug": "median-of-two-sorted-arrays",
-    "url": "https://leetcode.cn/problems/median-of-two-sorted-arrays/description/"
+    "titleCn": "最长公共前缀",
+    "titleSlug": "longest-common-prefix",
+    "url": "https://leetcode.cn/problems/longest-common-prefix/description/"
   },
   {
-    "acRate": "53.6%",
+    "acRate": "40.5%",
     "buckets": {
       "all": 15,
-      "thirtyDays": null,
-      "threeMonths": 15,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "thirtyDays": 6,
+      "threeMonths": 8,
+      "sixMonths": 8,
+      "moreThanSixMonths": 15
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 15,
     "difficulty": "中等",
-    "frontendId": "56",
-    "frequency": 90.1,
+    "frontendId": "15",
+    "frequency": 94.3,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
       },
       {
         "slug": "sorting",
         "name": "排序"
       }
     ],
-    "titleCn": "合并区间",
-    "titleSlug": "merge-intervals",
-    "url": "https://leetcode.cn/problems/merge-intervals/description/"
+    "titleCn": "三数之和",
+    "titleSlug": "3sum",
+    "url": "https://leetcode.cn/problems/3sum/description/"
   },
   {
     "acRate": "60.2%",
     "buckets": {
       "all": 16,
-      "thirtyDays": null,
-      "threeMonths": 16,
-      "sixMonths": null,
+      "thirtyDays": 18,
+      "threeMonths": 48,
+      "sixMonths": 89,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 16,
     "difficulty": "中等",
     "frontendId": "215",
     "frequency": 89.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -575,49 +799,105 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/kth-largest-element-in-an-array/description/"
   },
   {
-    "acRate": "68.2%",
+    "acRate": "44.9%",
     "buckets": {
-      "all": 17,
-      "thirtyDays": null,
-      "threeMonths": 17,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "all": 16,
+      "thirtyDays": 57,
+      "threeMonths": 95,
+      "sixMonths": 9,
+      "moreThanSixMonths": 16
     },
-    "bytedanceRank": 17,
-    "difficulty": "简单",
-    "frontendId": "21",
-    "frequency": 88.5,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 16,
+    "difficulty": "中等",
+    "frontendId": "16",
+    "frequency": 66.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "recursion",
-        "name": "递归"
+        "slug": "array",
+        "name": "数组"
       },
       {
-        "slug": "linked-list",
-        "name": "链表"
+        "slug": "two-pointers",
+        "name": "双指针"
+      },
+      {
+        "slug": "sorting",
+        "name": "排序"
       }
     ],
-    "titleCn": "合并两个有序链表",
-    "titleSlug": "merge-two-sorted-lists",
-    "url": "https://leetcode.cn/problems/merge-two-sorted-lists/description/"
+    "titleCn": "最接近的三数之和",
+    "titleSlug": "3sum-closest",
+    "url": "https://leetcode.cn/problems/3sum-closest/description/"
+  },
+  {
+    "acRate": "63.6%",
+    "buckets": {
+      "all": 17,
+      "thirtyDays": 56,
+      "threeMonths": 9,
+      "sixMonths": 10,
+      "moreThanSixMonths": 17
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 17,
+    "difficulty": "中等",
+    "frontendId": "17",
+    "frequency": 71.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "电话号码的字母组合",
+    "titleSlug": "letter-combinations-of-a-phone-number",
+    "url": "https://leetcode.cn/problems/letter-combinations-of-a-phone-number/description/"
   },
   {
     "acRate": "63.8%",
     "buckets": {
       "all": 18,
       "thirtyDays": null,
-      "threeMonths": 18,
-      "sixMonths": null,
+      "threeMonths": 53,
+      "sixMonths": 99,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 18,
     "difficulty": "简单",
     "frontendId": "283",
     "frequency": 87.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -633,20 +913,101 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/move-zeroes/description/"
   },
   {
-    "acRate": "45.6%",
+    "acRate": "36.9%",
+    "buckets": {
+      "all": 18,
+      "thirtyDays": null,
+      "threeMonths": 130,
+      "sixMonths": 11,
+      "moreThanSixMonths": 18
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 18,
+    "difficulty": "中等",
+    "frontendId": "18",
+    "frequency": 60.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      },
+      {
+        "slug": "sorting",
+        "name": "排序"
+      }
+    ],
+    "titleCn": "四数之和",
+    "titleSlug": "4sum",
+    "url": "https://leetcode.cn/problems/4sum/description/"
+  },
+  {
+    "acRate": "53.3%",
     "buckets": {
       "all": 19,
       "thirtyDays": null,
-      "threeMonths": 19,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 97,
+      "sixMonths": 12,
+      "moreThanSixMonths": 19
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 19,
+    "difficulty": "中等",
+    "frontendId": "19",
+    "frequency": 66.7,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      }
+    ],
+    "titleCn": "删除链表的倒数第 N 个结点",
+    "titleSlug": "remove-nth-node-from-end-of-list",
+    "url": "https://leetcode.cn/problems/remove-nth-node-from-end-of-list/description/"
+  },
+  {
+    "acRate": "45.6%",
+    "buckets": {
+      "all": 20,
+      "thirtyDays": 24,
+      "threeMonths": 10,
+      "sixMonths": 13,
+      "moreThanSixMonths": 20
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 20,
     "difficulty": "简单",
     "frontendId": "20",
     "frequency": 87.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "stack",
@@ -666,16 +1027,20 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 20,
       "thirtyDays": null,
-      "threeMonths": 20,
+      "threeMonths": 76,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 20,
     "difficulty": "简单",
     "frontendId": "2235",
     "frequency": 87,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "math",
@@ -687,53 +1052,62 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/add-two-integers/description/"
   },
   {
-    "acRate": "55.3%",
+    "acRate": "68.2%",
     "buckets": {
       "all": 21,
-      "thirtyDays": null,
-      "threeMonths": 21,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "thirtyDays": 16,
+      "threeMonths": 11,
+      "sixMonths": 14,
+      "moreThanSixMonths": 21
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 21,
-    "difficulty": "中等",
-    "frontendId": "54",
-    "frequency": 86.4,
+    "difficulty": "简单",
+    "frontendId": "21",
+    "frequency": 88.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "array",
-        "name": "数组"
+        "slug": "recursion",
+        "name": "递归"
       },
       {
-        "slug": "matrix",
-        "name": "矩阵"
-      },
-      {
-        "slug": "simulation",
-        "name": "模拟"
+        "slug": "linked-list",
+        "name": "链表"
       }
     ],
-    "titleCn": "螺旋矩阵",
-    "titleSlug": "spiral-matrix",
-    "url": "https://leetcode.cn/problems/spiral-matrix/description/"
+    "titleCn": "合并两个有序链表",
+    "titleSlug": "merge-two-sorted-lists",
+    "url": "https://leetcode.cn/problems/merge-two-sorted-lists/description/"
   },
   {
     "acRate": "76.4%",
     "buckets": {
       "all": 22,
-      "thirtyDays": null,
-      "threeMonths": 22,
-      "sixMonths": null,
+      "thirtyDays": 21,
+      "threeMonths": 47,
+      "sixMonths": 87,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 22,
     "difficulty": "简单",
     "frontendId": "206",
     "frequency": 85.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "recursion",
@@ -749,86 +1123,146 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/reverse-linked-list/description/"
   },
   {
-    "acRate": "55.0%",
+    "acRate": "79.1%",
     "buckets": {
-      "all": 23,
-      "thirtyDays": null,
-      "threeMonths": 23,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "all": 22,
+      "thirtyDays": 11,
+      "threeMonths": 12,
+      "sixMonths": 15,
+      "moreThanSixMonths": 22
     },
-    "bytedanceRank": 23,
-    "difficulty": "简单",
-    "frontendId": "88",
-    "frequency": 85.4,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      },
-      {
-        "slug": "sorting",
-        "name": "排序"
-      }
-    ],
-    "titleCn": "合并两个有序数组",
-    "titleSlug": "merge-sorted-array",
-    "url": "https://leetcode.cn/problems/merge-sorted-array/description/"
-  },
-  {
-    "acRate": "45.2%",
-    "buckets": {
-      "all": 24,
-      "thirtyDays": null,
-      "threeMonths": 24,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
-    "bytedanceRank": 24,
-    "difficulty": "简单",
-    "frontendId": "14",
-    "frequency": 84.5,
+    "bytedanceRank": 22,
+    "difficulty": "中等",
+    "frontendId": "22",
+    "frequency": 82.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
-      {
-        "slug": "trie",
-        "name": "字典树"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
       {
         "slug": "string",
         "name": "字符串"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
       }
     ],
-    "titleCn": "最长公共前缀",
-    "titleSlug": "longest-common-prefix",
-    "url": "https://leetcode.cn/problems/longest-common-prefix/description/"
+    "titleCn": "括号生成",
+    "titleSlug": "generate-parentheses",
+    "url": "https://leetcode.cn/problems/generate-parentheses/description/"
+  },
+  {
+    "acRate": "63.8%",
+    "buckets": {
+      "all": 23,
+      "thirtyDays": 42,
+      "threeMonths": 88,
+      "sixMonths": 16,
+      "moreThanSixMonths": 23
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 23,
+    "difficulty": "困难",
+    "frontendId": "23",
+    "frequency": 73.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      },
+      {
+        "slug": "divide-and-conquer",
+        "name": "分治"
+      },
+      {
+        "slug": "heap-priority-queue",
+        "name": "堆（优先队列）"
+      },
+      {
+        "slug": "merge-sort",
+        "name": "归并排序"
+      }
+    ],
+    "titleCn": "合并 K 个升序链表",
+    "titleSlug": "merge-k-sorted-lists",
+    "url": "https://leetcode.cn/problems/merge-k-sorted-lists/description/"
+  },
+  {
+    "acRate": "75.0%",
+    "buckets": {
+      "all": 24,
+      "thirtyDays": 19,
+      "threeMonths": 13,
+      "sixMonths": 17,
+      "moreThanSixMonths": 24
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 24,
+    "difficulty": "中等",
+    "frontendId": "24",
+    "frequency": 73.3,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "recursion",
+        "name": "递归"
+      },
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      }
+    ],
+    "titleCn": "两两交换链表中的节点",
+    "titleSlug": "swap-nodes-in-pairs",
+    "url": "https://leetcode.cn/problems/swap-nodes-in-pairs/description/"
   },
   {
     "acRate": "60.0%",
     "buckets": {
       "all": 25,
-      "thirtyDays": null,
-      "threeMonths": 25,
-      "sixMonths": null,
+      "thirtyDays": 55,
+      "threeMonths": 37,
+      "sixMonths": 64,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 25,
     "difficulty": "简单",
     "frontendId": "121",
     "frequency": 83.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -844,20 +1278,61 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/best-time-to-buy-and-sell-stock/description/"
   },
   {
+    "acRate": "69.9%",
+    "buckets": {
+      "all": 25,
+      "thirtyDays": 40,
+      "threeMonths": 14,
+      "sixMonths": 22,
+      "moreThanSixMonths": 25
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 25,
+    "difficulty": "困难",
+    "frontendId": "25",
+    "frequency": 81.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "recursion",
+        "name": "递归"
+      },
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      }
+    ],
+    "titleCn": "K 个一组翻转链表",
+    "titleSlug": "reverse-nodes-in-k-group",
+    "url": "https://leetcode.cn/problems/reverse-nodes-in-k-group/description/"
+  },
+  {
     "acRate": "50.2%",
     "buckets": {
       "all": 26,
       "thirtyDays": null,
-      "threeMonths": 26,
-      "sixMonths": null,
+      "threeMonths": 52,
+      "sixMonths": 94,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 26,
     "difficulty": "困难",
     "frontendId": "239",
     "frequency": 83.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "queue",
@@ -885,231 +1360,61 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/sliding-window-maximum/description/"
   },
   {
-    "acRate": "56.2%",
+    "acRate": "58.6%",
     "buckets": {
-      "all": 27,
+      "all": 26,
       "thirtyDays": null,
-      "threeMonths": 27,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 15,
+      "sixMonths": 19,
+      "moreThanSixMonths": 26
     },
-    "bytedanceRank": 27,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 26,
     "difficulty": "简单",
-    "frontendId": "9",
-    "frequency": 83.3,
+    "frontendId": "26",
+    "frequency": 73.2,
     "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "math",
-        "name": "数学"
-      }
-    ],
-    "titleCn": "回文数",
-    "titleSlug": "palindrome-number",
-    "url": "https://leetcode.cn/problems/palindrome-number/description/"
-  },
-  {
-    "acRate": "64.1%",
-    "buckets": {
-      "all": 28,
-      "thirtyDays": null,
-      "threeMonths": 28,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 28,
-    "difficulty": "中等",
-    "frontendId": "72",
-    "frequency": 82.9,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      }
-    ],
-    "titleCn": "编辑距离",
-    "titleSlug": "edit-distance",
-    "url": "https://leetcode.cn/problems/edit-distance/description/"
-  },
-  {
-    "acRate": "79.1%",
-    "buckets": {
-      "all": 29,
-      "thirtyDays": null,
-      "threeMonths": 29,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 29,
-    "difficulty": "中等",
-    "frontendId": "22",
-    "frequency": 82.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      }
-    ],
-    "titleCn": "括号生成",
-    "titleSlug": "generate-parentheses",
-    "url": "https://leetcode.cn/problems/generate-parentheses/description/"
-  },
-  {
-    "acRate": "56.7%",
-    "buckets": {
-      "all": 30,
-      "thirtyDays": null,
-      "threeMonths": 30,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 30,
-    "difficulty": "中等",
-    "frontendId": "53",
-    "frequency": 82.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "divide-and-conquer",
-        "name": "分治"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
+        "slug": "two-pointers",
+        "name": "双指针"
       }
     ],
-    "titleCn": "最大子数组和",
-    "titleSlug": "maximum-subarray",
-    "url": "https://leetcode.cn/problems/maximum-subarray/description/"
-  },
-  {
-    "acRate": "56.2%",
-    "buckets": {
-      "all": 31,
-      "thirtyDays": null,
-      "threeMonths": 31,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 31,
-    "difficulty": "简单",
-    "frontendId": "704",
-    "frequency": 82.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "binary-search",
-        "name": "二分查找"
-      }
-    ],
-    "titleCn": "二分查找",
-    "titleSlug": "binary-search",
-    "url": "https://leetcode.cn/problems/binary-search/description/"
-  },
-  {
-    "acRate": "69.9%",
-    "buckets": {
-      "all": 32,
-      "thirtyDays": null,
-      "threeMonths": 32,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 32,
-    "difficulty": "困难",
-    "frontendId": "25",
-    "frequency": 81.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "recursion",
-        "name": "递归"
-      },
-      {
-        "slug": "linked-list",
-        "name": "链表"
-      }
-    ],
-    "titleCn": "K 个一组翻转链表",
-    "titleSlug": "reverse-nodes-in-k-group",
-    "url": "https://leetcode.cn/problems/reverse-nodes-in-k-group/description/"
-  },
-  {
-    "acRate": "54.6%",
-    "buckets": {
-      "all": 33,
-      "thirtyDays": null,
-      "threeMonths": 33,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 33,
-    "difficulty": "中等",
-    "frontendId": "438",
-    "frequency": 81.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "sliding-window",
-        "name": "滑动窗口"
-      }
-    ],
-    "titleCn": "找到字符串中所有字母异位词",
-    "titleSlug": "find-all-anagrams-in-a-string",
-    "url": "https://leetcode.cn/problems/find-all-anagrams-in-a-string/description/"
+    "titleCn": "删除有序数组中的重复项",
+    "titleSlug": "remove-duplicates-from-sorted-array",
+    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-array/description/"
   },
   {
     "acRate": "60.2%",
     "buckets": {
-      "all": 34,
+      "all": 27,
       "thirtyDays": null,
-      "threeMonths": 34,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 16,
+      "sixMonths": 20,
+      "moreThanSixMonths": 27
     },
-    "bytedanceRank": 34,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 27,
     "difficulty": "简单",
     "frontendId": "27",
     "frequency": 80.9,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -1125,148 +1430,26 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/remove-element/description/"
   },
   {
-    "acRate": "75.1%",
-    "buckets": {
-      "all": 35,
-      "thirtyDays": null,
-      "threeMonths": 35,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 35,
-    "difficulty": "中等",
-    "frontendId": "236",
-    "frequency": 79.9,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
-      {
-        "slug": "depth-first-search",
-        "name": "深度优先搜索"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
-      }
-    ],
-    "titleCn": "二叉树的最近公共祖先",
-    "titleSlug": "lowest-common-ancestor-of-a-binary-tree",
-    "url": "https://leetcode.cn/problems/lowest-common-ancestor-of-a-binary-tree/description/"
-  },
-  {
-    "acRate": "56.4%",
-    "buckets": {
-      "all": 36,
-      "thirtyDays": null,
-      "threeMonths": 36,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 36,
-    "difficulty": "中等",
-    "frontendId": "198",
-    "frequency": 79.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      }
-    ],
-    "titleCn": "打家劫舍",
-    "titleSlug": "house-robber",
-    "url": "https://leetcode.cn/problems/house-robber/description/"
-  },
-  {
-    "acRate": "68.3%",
-    "buckets": {
-      "all": 37,
-      "thirtyDays": null,
-      "threeMonths": 37,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 37,
-    "difficulty": "中等",
-    "frontendId": "279",
-    "frequency": 79.6,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "breadth-first-search",
-        "name": "广度优先搜索"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      }
-    ],
-    "titleCn": "完全平方数",
-    "titleSlug": "perfect-squares",
-    "url": "https://leetcode.cn/problems/perfect-squares/description/"
-  },
-  {
-    "acRate": "69.4%",
-    "buckets": {
-      "all": 38,
-      "thirtyDays": null,
-      "threeMonths": 38,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 38,
-    "difficulty": "中等",
-    "frontendId": "59",
-    "frequency": 79.6,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "matrix",
-        "name": "矩阵"
-      },
-      {
-        "slug": "simulation",
-        "name": "模拟"
-      }
-    ],
-    "titleCn": "螺旋矩阵 II",
-    "titleSlug": "spiral-matrix-ii",
-    "url": "https://leetcode.cn/problems/spiral-matrix-ii/description/"
-  },
-  {
     "acRate": "45.4%",
     "buckets": {
-      "all": 39,
+      "all": 28,
       "thirtyDays": null,
-      "threeMonths": 39,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 17,
+      "sixMonths": 21,
+      "moreThanSixMonths": 28
     },
-    "bytedanceRank": 39,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 28,
     "difficulty": "简单",
     "frontendId": "28",
     "frequency": 78.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "two-pointers",
@@ -1286,49 +1469,167 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/find-the-index-of-the-first-occurrence-in-a-string/description/"
   },
   {
-    "acRate": "80.3%",
+    "acRate": "22.6%",
     "buckets": {
-      "all": 40,
+      "all": 29,
       "thirtyDays": null,
-      "threeMonths": 40,
+      "threeMonths": null,
+      "sixMonths": 16,
+      "moreThanSixMonths": 29
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 29,
+    "difficulty": "中等",
+    "frontendId": "29",
+    "frequency": 49.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "bit-manipulation",
+        "name": "位运算"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      }
+    ],
+    "titleCn": "两数相除",
+    "titleSlug": "divide-two-integers",
+    "url": "https://leetcode.cn/problems/divide-two-integers/description/"
+  },
+  {
+    "acRate": "38.3%",
+    "buckets": {
+      "all": 30,
+      "thirtyDays": null,
+      "threeMonths": 171,
+      "sixMonths": null,
+      "moreThanSixMonths": 30
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 30,
+    "difficulty": "困难",
+    "frontendId": "30",
+    "frequency": 52.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "sliding-window",
+        "name": "滑动窗口"
+      }
+    ],
+    "titleCn": "串联所有单词的子串",
+    "titleSlug": "substring-with-concatenation-of-all-words",
+    "url": "https://leetcode.cn/problems/substring-with-concatenation-of-all-words/description/"
+  },
+  {
+    "acRate": "56.2%",
+    "buckets": {
+      "all": 31,
+      "thirtyDays": 85,
+      "threeMonths": 31,
       "sixMonths": null,
       "moreThanSixMonths": null
     },
-    "bytedanceRank": 40,
-    "difficulty": "中等",
-    "frontendId": "46",
-    "frequency": 78.4,
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": 31,
+    "difficulty": "简单",
+    "frontendId": "704",
+    "frequency": 82.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "backtracking",
-        "name": "回溯"
+        "slug": "binary-search",
+        "name": "二分查找"
       }
     ],
-    "titleCn": "全排列",
-    "titleSlug": "permutations",
-    "url": "https://leetcode.cn/problems/permutations/description/"
+    "titleCn": "二分查找",
+    "titleSlug": "binary-search",
+    "url": "https://leetcode.cn/problems/binary-search/description/"
+  },
+  {
+    "acRate": "42.8%",
+    "buckets": {
+      "all": 31,
+      "thirtyDays": 25,
+      "threeMonths": 18,
+      "sixMonths": 24,
+      "moreThanSixMonths": 31
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 31,
+    "difficulty": "中等",
+    "frontendId": "31",
+    "frequency": 71.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      }
+    ],
+    "titleCn": "下一个排列",
+    "titleSlug": "next-permutation",
+    "url": "https://leetcode.cn/problems/next-permutation/description/"
   },
   {
     "acRate": "42.1%",
     "buckets": {
-      "all": 41,
+      "all": 32,
       "thirtyDays": null,
-      "threeMonths": 41,
+      "threeMonths": 63,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 32
     },
-    "bytedanceRank": 41,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 32,
     "difficulty": "困难",
     "frontendId": "32",
     "frequency": 78.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "stack",
@@ -1348,20 +1649,512 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-valid-parentheses/description/"
   },
   {
+    "acRate": "54.6%",
+    "buckets": {
+      "all": 33,
+      "thirtyDays": 33,
+      "threeMonths": 56,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": 33,
+    "difficulty": "中等",
+    "frontendId": "438",
+    "frequency": 81.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "sliding-window",
+        "name": "滑动窗口"
+      }
+    ],
+    "titleCn": "找到字符串中所有字母异位词",
+    "titleSlug": "find-all-anagrams-in-a-string",
+    "url": "https://leetcode.cn/problems/find-all-anagrams-in-a-string/description/"
+  },
+  {
+    "acRate": "46.1%",
+    "buckets": {
+      "all": 33,
+      "thirtyDays": 17,
+      "threeMonths": 19,
+      "sixMonths": 25,
+      "moreThanSixMonths": 33
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 33,
+    "difficulty": "中等",
+    "frontendId": "33",
+    "frequency": 74.6,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "binary-search",
+        "name": "二分查找"
+      }
+    ],
+    "titleCn": "搜索旋转排序数组",
+    "titleSlug": "search-in-rotated-sorted-array",
+    "url": "https://leetcode.cn/problems/search-in-rotated-sorted-array/description/"
+  },
+  {
+    "acRate": "46.7%",
+    "buckets": {
+      "all": 34,
+      "thirtyDays": null,
+      "threeMonths": 84,
+      "sixMonths": 26,
+      "moreThanSixMonths": 34
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 34,
+    "difficulty": "中等",
+    "frontendId": "34",
+    "frequency": 69.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "binary-search",
+        "name": "二分查找"
+      }
+    ],
+    "titleCn": "在排序数组中查找元素的第一个和最后一个位置",
+    "titleSlug": "find-first-and-last-position-of-element-in-sorted-array",
+    "url": "https://leetcode.cn/problems/find-first-and-last-position-of-element-in-sorted-array/description/"
+  },
+  {
+    "acRate": "75.1%",
+    "buckets": {
+      "all": 35,
+      "thirtyDays": null,
+      "threeMonths": 51,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
+    },
+    "bytedanceRank": 35,
+    "difficulty": "中等",
+    "frontendId": "236",
+    "frequency": 79.9,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
+      }
+    ],
+    "titleCn": "二叉树的最近公共祖先",
+    "titleSlug": "lowest-common-ancestor-of-a-binary-tree",
+    "url": "https://leetcode.cn/problems/lowest-common-ancestor-of-a-binary-tree/description/"
+  },
+  {
+    "acRate": "49.5%",
+    "buckets": {
+      "all": 35,
+      "thirtyDays": 95,
+      "threeMonths": 56,
+      "sixMonths": 27,
+      "moreThanSixMonths": 35
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 35,
+    "difficulty": "简单",
+    "frontendId": "35",
+    "frequency": 74.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "binary-search",
+        "name": "二分查找"
+      }
+    ],
+    "titleCn": "搜索插入位置",
+    "titleSlug": "search-insert-position",
+    "url": "https://leetcode.cn/problems/search-insert-position/description/"
+  },
+  {
+    "acRate": "56.4%",
+    "buckets": {
+      "all": 36,
+      "thirtyDays": null,
+      "threeMonths": 36,
+      "sixMonths": 83,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
+    },
+    "bytedanceRank": 36,
+    "difficulty": "中等",
+    "frontendId": "198",
+    "frequency": 79.8,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      }
+    ],
+    "titleCn": "打家劫舍",
+    "titleSlug": "house-robber",
+    "url": "https://leetcode.cn/problems/house-robber/description/"
+  },
+  {
+    "acRate": "64.9%",
+    "buckets": {
+      "all": 36,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": 11,
+      "moreThanSixMonths": 36
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 36,
+    "difficulty": "中等",
+    "frontendId": "36",
+    "frequency": 53.7,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
+      }
+    ],
+    "titleCn": "有效的数独",
+    "titleSlug": "valid-sudoku",
+    "url": "https://leetcode.cn/problems/valid-sudoku/description/"
+  },
+  {
+    "acRate": "68.3%",
+    "buckets": {
+      "all": 37,
+      "thirtyDays": 59,
+      "threeMonths": 69,
+      "sixMonths": 98,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
+    },
+    "bytedanceRank": 37,
+    "difficulty": "中等",
+    "frontendId": "279",
+    "frequency": 79.6,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      }
+    ],
+    "titleCn": "完全平方数",
+    "titleSlug": "perfect-squares",
+    "url": "https://leetcode.cn/problems/perfect-squares/description/"
+  },
+  {
+    "acRate": "67.2%",
+    "buckets": {
+      "all": 37,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": 28,
+      "moreThanSixMonths": 37
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 37,
+    "difficulty": "困难",
+    "frontendId": "37",
+    "frequency": 41.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
+      }
+    ],
+    "titleCn": "解数独",
+    "titleSlug": "sudoku-solver",
+    "url": "https://leetcode.cn/problems/sudoku-solver/description/"
+  },
+  {
+    "acRate": "74.1%",
+    "buckets": {
+      "all": 38,
+      "thirtyDays": null,
+      "threeMonths": 140,
+      "sixMonths": 31,
+      "moreThanSixMonths": 38
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 38,
+    "difficulty": "中等",
+    "frontendId": "39",
+    "frequency": 58.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "组合总和",
+    "titleSlug": "combination-sum",
+    "url": "https://leetcode.cn/problems/combination-sum/description/"
+  },
+  {
+    "acRate": "60.1%",
+    "buckets": {
+      "all": 39,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": 39
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 39,
+    "difficulty": "中等",
+    "frontendId": "40",
+    "frequency": 28.8,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "组合总和 II",
+    "titleSlug": "combination-sum-ii",
+    "url": "https://leetcode.cn/problems/combination-sum-ii/description/"
+  },
+  {
+    "acRate": "49.4%",
+    "buckets": {
+      "all": 40,
+      "thirtyDays": 29,
+      "threeMonths": 20,
+      "sixMonths": 29,
+      "moreThanSixMonths": 40
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 40,
+    "difficulty": "困难",
+    "frontendId": "41",
+    "frequency": 76.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      }
+    ],
+    "titleCn": "缺失的第一个正数",
+    "titleSlug": "first-missing-positive",
+    "url": "https://leetcode.cn/problems/first-missing-positive/description/"
+  },
+  {
+    "acRate": "66.0%",
+    "buckets": {
+      "all": 41,
+      "thirtyDays": 7,
+      "threeMonths": 21,
+      "sixMonths": 33,
+      "moreThanSixMonths": 41
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 41,
+    "difficulty": "困难",
+    "frontendId": "42",
+    "frequency": 98,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "stack",
+        "name": "栈"
+      },
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "monotonic-stack",
+        "name": "单调栈"
+      }
+    ],
+    "titleCn": "接雨水",
+    "titleSlug": "trapping-rain-water",
+    "url": "https://leetcode.cn/problems/trapping-rain-water/description/"
+  },
+  {
     "acRate": "69.7%",
     "buckets": {
       "all": 42,
-      "thirtyDays": null,
-      "threeMonths": 42,
+      "thirtyDays": 23,
+      "threeMonths": 84,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 42,
     "difficulty": "中等",
     "frontendId": "739",
     "frequency": 78,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "stack",
@@ -1381,20 +2174,64 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/daily-temperatures/description/"
   },
   {
+    "acRate": "45.1%",
+    "buckets": {
+      "all": 42,
+      "thirtyDays": null,
+      "threeMonths": 72,
+      "sixMonths": 30,
+      "moreThanSixMonths": 42
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 42,
+    "difficulty": "中等",
+    "frontendId": "43",
+    "frequency": 70.7,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "simulation",
+        "name": "模拟"
+      }
+    ],
+    "titleCn": "字符串相乘",
+    "titleSlug": "multiply-strings",
+    "url": "https://leetcode.cn/problems/multiply-strings/description/"
+  },
+  {
     "acRate": "54.2%",
     "buckets": {
       "all": 43,
-      "thirtyDays": null,
-      "threeMonths": 43,
+      "thirtyDays": 41,
+      "threeMonths": 55,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 43,
     "difficulty": "中等",
     "frontendId": "416",
     "frequency": 77.9,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -1410,20 +2247,101 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/partition-equal-subset-sum/description/"
   },
   {
+    "acRate": "45.8%",
+    "buckets": {
+      "all": 43,
+      "thirtyDays": 62,
+      "threeMonths": 22,
+      "sixMonths": 32,
+      "moreThanSixMonths": 43
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 43,
+    "difficulty": "中等",
+    "frontendId": "45",
+    "frequency": 75.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "greedy",
+        "name": "贪心"
+      },
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      }
+    ],
+    "titleCn": "跳跃游戏 II",
+    "titleSlug": "jump-game-ii",
+    "url": "https://leetcode.cn/problems/jump-game-ii/description/"
+  },
+  {
+    "acRate": "80.3%",
+    "buckets": {
+      "all": 44,
+      "thirtyDays": 32,
+      "threeMonths": 64,
+      "sixMonths": 34,
+      "moreThanSixMonths": 44
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 44,
+    "difficulty": "中等",
+    "frontendId": "46",
+    "frequency": 78.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "全排列",
+    "titleSlug": "permutations",
+    "url": "https://leetcode.cn/problems/permutations/description/"
+  },
+  {
     "acRate": "47.4%",
     "buckets": {
       "all": 44,
       "thirtyDays": null,
-      "threeMonths": 44,
-      "sixMonths": null,
+      "threeMonths": 61,
+      "sixMonths": 88,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 44,
     "difficulty": "中等",
     "frontendId": "209",
     "frequency": 77.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -1450,17 +2368,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "68.3%",
     "buckets": {
       "all": 45,
-      "thirtyDays": null,
+      "thirtyDays": 54,
       "threeMonths": 45,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 45,
     "difficulty": "简单",
     "frontendId": "160",
     "frequency": 77.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "hash-table",
@@ -1480,6 +2403,45 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/intersection-of-two-linked-lists/description/"
   },
   {
+    "acRate": "66.8%",
+    "buckets": {
+      "all": 45,
+      "thirtyDays": 39,
+      "threeMonths": 80,
+      "sixMonths": null,
+      "moreThanSixMonths": 45
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 45,
+    "difficulty": "中等",
+    "frontendId": "47",
+    "frequency": 63.7,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      },
+      {
+        "slug": "sorting",
+        "name": "排序"
+      }
+    ],
+    "titleCn": "全排列 II",
+    "titleSlug": "permutations-ii",
+    "url": "https://leetcode.cn/problems/permutations-ii/description/"
+  },
+  {
     "acRate": "74.3%",
     "buckets": {
       "all": 46,
@@ -1487,6 +2449,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 46,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 46,
     "difficulty": "简单",
@@ -1505,20 +2471,144 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/combine-two-tables/description/"
   },
   {
-    "acRate": "75.3%",
+    "acRate": "79.4%",
+    "buckets": {
+      "all": 46,
+      "thirtyDays": null,
+      "threeMonths": 23,
+      "sixMonths": 35,
+      "moreThanSixMonths": 46
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 46,
+    "difficulty": "中等",
+    "frontendId": "48",
+    "frequency": 66.3,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
+      }
+    ],
+    "titleCn": "旋转图像",
+    "titleSlug": "rotate-image",
+    "url": "https://leetcode.cn/problems/rotate-image/description/"
+  },
+  {
+    "acRate": "69.6%",
     "buckets": {
       "all": 47,
-      "thirtyDays": null,
-      "threeMonths": 47,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "thirtyDays": 10,
+      "threeMonths": 24,
+      "sixMonths": 36,
+      "moreThanSixMonths": 47
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 47,
+    "difficulty": "中等",
+    "frontendId": "49",
+    "frequency": 97.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "sorting",
+        "name": "排序"
+      }
+    ],
+    "titleCn": "字母异位词分组",
+    "titleSlug": "group-anagrams",
+    "url": "https://leetcode.cn/problems/group-anagrams/description/"
+  },
+  {
+    "acRate": "39.2%",
+    "buckets": {
+      "all": 48,
+      "thirtyDays": null,
+      "threeMonths": 195,
+      "sixMonths": 37,
+      "moreThanSixMonths": 48
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 48,
+    "difficulty": "中等",
+    "frontendId": "50",
+    "frequency": 46.9,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "recursion",
+        "name": "递归"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      }
+    ],
+    "titleCn": "Pow(x, n)",
+    "titleSlug": "powx-n",
+    "url": "https://leetcode.cn/problems/powx-n/description/"
+  },
+  {
+    "acRate": "75.3%",
+    "buckets": {
+      "all": 49,
+      "thirtyDays": null,
+      "threeMonths": 65,
+      "sixMonths": 38,
+      "moreThanSixMonths": 49
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 49,
     "difficulty": "困难",
     "frontendId": "51",
     "frequency": 76.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -1534,82 +2624,24 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/n-queens/description/"
   },
   {
-    "acRate": "49.4%",
-    "buckets": {
-      "all": 48,
-      "thirtyDays": null,
-      "threeMonths": 48,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 48,
-    "difficulty": "困难",
-    "frontendId": "41",
-    "frequency": 76.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      }
-    ],
-    "titleCn": "缺失的第一个正数",
-    "titleSlug": "first-missing-positive",
-    "url": "https://leetcode.cn/problems/first-missing-positive/description/"
-  },
-  {
-    "acRate": "45.0%",
-    "buckets": {
-      "all": 49,
-      "thirtyDays": null,
-      "threeMonths": 49,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 49,
-    "difficulty": "中等",
-    "frontendId": "55",
-    "frequency": 75.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "greedy",
-        "name": "贪心"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      }
-    ],
-    "titleCn": "跳跃游戏",
-    "titleSlug": "jump-game",
-    "url": "https://leetcode.cn/problems/jump-game/description/"
-  },
-  {
     "acRate": "47.8%",
     "buckets": {
       "all": 50,
       "thirtyDays": null,
-      "threeMonths": 50,
+      "threeMonths": 90,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 50,
     "difficulty": "中等",
     "frontendId": "912",
     "frequency": 75.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -1649,20 +2681,90 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/sort-an-array/description/"
   },
   {
+    "acRate": "82.9%",
+    "buckets": {
+      "all": 50,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": 50
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 50,
+    "difficulty": "困难",
+    "frontendId": "52",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "N 皇后 II",
+    "titleSlug": "n-queens-ii",
+    "url": "https://leetcode.cn/problems/n-queens-ii/description/"
+  },
+  {
+    "acRate": "56.7%",
+    "buckets": {
+      "all": 51,
+      "thirtyDays": 30,
+      "threeMonths": 25,
+      "sixMonths": 39,
+      "moreThanSixMonths": 51
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 51,
+    "difficulty": "中等",
+    "frontendId": "53",
+    "frequency": 82.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "divide-and-conquer",
+        "name": "分治"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      }
+    ],
+    "titleCn": "最大子数组和",
+    "titleSlug": "maximum-subarray",
+    "url": "https://leetcode.cn/problems/maximum-subarray/description/"
+  },
+  {
     "acRate": "67.7%",
     "buckets": {
       "all": 51,
-      "thirtyDays": null,
-      "threeMonths": 51,
-      "sixMonths": null,
+      "thirtyDays": 52,
+      "threeMonths": 50,
+      "sixMonths": 91,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 51,
     "difficulty": "中等",
     "frontendId": "1143",
     "frequency": 75.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "string",
@@ -1678,20 +2780,65 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-common-subsequence/description/"
   },
   {
+    "acRate": "55.3%",
+    "buckets": {
+      "all": 52,
+      "thirtyDays": 20,
+      "threeMonths": 26,
+      "sixMonths": 40,
+      "moreThanSixMonths": 52
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 52,
+    "difficulty": "中等",
+    "frontendId": "54",
+    "frequency": 86.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
+      },
+      {
+        "slug": "simulation",
+        "name": "模拟"
+      }
+    ],
+    "titleCn": "螺旋矩阵",
+    "titleSlug": "spiral-matrix",
+    "url": "https://leetcode.cn/problems/spiral-matrix/description/"
+  },
+  {
     "acRate": "75.1%",
     "buckets": {
       "all": 52,
       "thirtyDays": null,
-      "threeMonths": 52,
-      "sixMonths": null,
+      "threeMonths": 39,
+      "sixMonths": 67,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 52,
     "difficulty": "中等",
     "frontendId": "131",
     "frequency": 75.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "string",
@@ -1711,20 +2858,26 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/palindrome-partitioning/description/"
   },
   {
-    "acRate": "45.8%",
+    "acRate": "45.0%",
     "buckets": {
       "all": 53,
       "thirtyDays": null,
-      "threeMonths": 53,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 27,
+      "sixMonths": 41,
+      "moreThanSixMonths": 53
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 53,
     "difficulty": "中等",
-    "frontendId": "45",
-    "frequency": 75.1,
+    "frontendId": "55",
+    "frequency": 75.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "greedy",
@@ -1739,25 +2892,66 @@ export const leetcodeByteDanceProblems = ([
         "name": "动态规划"
       }
     ],
-    "titleCn": "跳跃游戏 II",
-    "titleSlug": "jump-game-ii",
-    "url": "https://leetcode.cn/problems/jump-game-ii/description/"
+    "titleCn": "跳跃游戏",
+    "titleSlug": "jump-game",
+    "url": "https://leetcode.cn/problems/jump-game/description/"
+  },
+  {
+    "acRate": "53.6%",
+    "buckets": {
+      "all": 54,
+      "thirtyDays": 15,
+      "threeMonths": 28,
+      "sixMonths": 42,
+      "moreThanSixMonths": 54
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 54,
+    "difficulty": "中等",
+    "frontendId": "56",
+    "frequency": 90.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "sorting",
+        "name": "排序"
+      }
+    ],
+    "titleCn": "合并区间",
+    "titleSlug": "merge-intervals",
+    "url": "https://leetcode.cn/problems/merge-intervals/description/"
   },
   {
     "acRate": "48.1%",
     "buckets": {
       "all": 54,
-      "thirtyDays": null,
-      "threeMonths": 54,
+      "thirtyDays": 70,
+      "threeMonths": 58,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 54,
     "difficulty": "困难",
     "frontendId": "124",
     "frequency": 75,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -1781,62 +2975,102 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/binary-tree-maximum-path-sum/description/"
   },
   {
-    "acRate": "46.1%",
+    "acRate": "43.0%",
     "buckets": {
       "all": 55,
       "thirtyDays": null,
-      "threeMonths": 55,
+      "threeMonths": null,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 86
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 55,
     "difficulty": "中等",
-    "frontendId": "33",
-    "frequency": 74.6,
+    "frontendId": "57",
+    "frequency": 28.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
-      },
-      {
-        "slug": "binary-search",
-        "name": "二分查找"
       }
     ],
-    "titleCn": "搜索旋转排序数组",
-    "titleSlug": "search-in-rotated-sorted-array",
-    "url": "https://leetcode.cn/problems/search-in-rotated-sorted-array/description/"
+    "titleCn": "插入区间",
+    "titleSlug": "insert-interval",
+    "url": "https://leetcode.cn/problems/insert-interval/description/"
   },
   {
-    "acRate": "49.5%",
+    "acRate": "48.8%",
     "buckets": {
       "all": 56,
       "thirtyDays": null,
-      "threeMonths": 56,
+      "threeMonths": 235,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 55
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 56,
     "difficulty": "简单",
-    "frontendId": "35",
-    "frequency": 74.2,
+    "frontendId": "58",
+    "frequency": 38.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "string",
+        "name": "字符串"
+      }
+    ],
+    "titleCn": "最后一个单词的长度",
+    "titleSlug": "length-of-last-word",
+    "url": "https://leetcode.cn/problems/length-of-last-word/description/"
+  },
+  {
+    "acRate": "69.4%",
+    "buckets": {
+      "all": 57,
+      "thirtyDays": null,
+      "threeMonths": 60,
+      "sixMonths": 44,
+      "moreThanSixMonths": 56
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 57,
+    "difficulty": "中等",
+    "frontendId": "59",
+    "frequency": 79.6,
+    "paidOnly": false,
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "binary-search",
-        "name": "二分查找"
+        "slug": "matrix",
+        "name": "矩阵"
+      },
+      {
+        "slug": "simulation",
+        "name": "模拟"
       }
     ],
-    "titleCn": "搜索插入位置",
-    "titleSlug": "search-insert-position",
-    "url": "https://leetcode.cn/problems/search-insert-position/description/"
+    "titleCn": "螺旋矩阵 II",
+    "titleSlug": "spiral-matrix-ii",
+    "url": "https://leetcode.cn/problems/spiral-matrix-ii/description/"
   },
   {
     "acRate": "57.2%",
@@ -1844,15 +3078,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 57,
       "thirtyDays": null,
       "threeMonths": 57,
-      "sixMonths": null,
+      "sixMonths": 95,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 57,
     "difficulty": "中等",
     "frontendId": "240",
     "frequency": 74.2,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -1880,16 +3119,20 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 58,
       "thirtyDays": null,
-      "threeMonths": 58,
+      "threeMonths": 54,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 58,
     "difficulty": "中等",
     "frontendId": "300",
     "frequency": 74,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -1909,74 +3152,117 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-increasing-subsequence/description/"
   },
   {
-    "acRate": "49.3%",
+    "acRate": "41.6%",
     "buckets": {
-      "all": 59,
-      "thirtyDays": null,
-      "threeMonths": 59,
+      "all": 58,
+      "thirtyDays": 31,
+      "threeMonths": 180,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 57
     },
-    "bytedanceRank": 59,
-    "difficulty": "困难",
-    "frontendId": "76",
-    "frequency": 73.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "sliding-window",
-        "name": "滑动窗口"
-      }
-    ],
-    "titleCn": "最小覆盖子串",
-    "titleSlug": "minimum-window-substring",
-    "url": "https://leetcode.cn/problems/minimum-window-substring/description/"
-  },
-  {
-    "acRate": "63.8%",
-    "buckets": {
-      "all": 60,
-      "thirtyDays": null,
-      "threeMonths": 60,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
-    "bytedanceRank": 60,
-    "difficulty": "困难",
-    "frontendId": "23",
-    "frequency": 73.5,
+    "bytedanceRank": 58,
+    "difficulty": "中等",
+    "frontendId": "61",
+    "frequency": 49.9,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "linked-list",
         "name": "链表"
       },
       {
-        "slug": "divide-and-conquer",
-        "name": "分治"
-      },
-      {
-        "slug": "heap-priority-queue",
-        "name": "堆（优先队列）"
-      },
-      {
-        "slug": "merge-sort",
-        "name": "归并排序"
+        "slug": "two-pointers",
+        "name": "双指针"
       }
     ],
-    "titleCn": "合并 K 个升序链表",
-    "titleSlug": "merge-k-sorted-lists",
-    "url": "https://leetcode.cn/problems/merge-k-sorted-lists/description/"
+    "titleCn": "旋转链表",
+    "titleSlug": "rotate-list",
+    "url": "https://leetcode.cn/problems/rotate-list/description/"
+  },
+  {
+    "acRate": "70.3%",
+    "buckets": {
+      "all": 59,
+      "thirtyDays": 49,
+      "threeMonths": 137,
+      "sixMonths": 45,
+      "moreThanSixMonths": 58
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 59,
+    "difficulty": "中等",
+    "frontendId": "62",
+    "frequency": 59.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "combinatorics",
+        "name": "组合数学"
+      }
+    ],
+    "titleCn": "不同路径",
+    "titleSlug": "unique-paths",
+    "url": "https://leetcode.cn/problems/unique-paths/description/"
+  },
+  {
+    "acRate": "42.6%",
+    "buckets": {
+      "all": 60,
+      "thirtyDays": null,
+      "threeMonths": 153,
+      "sixMonths": null,
+      "moreThanSixMonths": 59
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 60,
+    "difficulty": "中等",
+    "frontendId": "63",
+    "frequency": 57,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
+      }
+    ],
+    "titleCn": "不同路径 II",
+    "titleSlug": "unique-paths-ii",
+    "url": "https://leetcode.cn/problems/unique-paths-ii/description/"
   },
   {
     "acRate": "58.3%",
@@ -1986,6 +3272,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 61,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 61,
     "difficulty": "简单",
@@ -2016,78 +3306,139 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/palindrome-linked-list/description/"
   },
   {
-    "acRate": "75.0%",
+    "acRate": "72.5%",
     "buckets": {
-      "all": 62,
-      "thirtyDays": null,
-      "threeMonths": 62,
+      "all": 61,
+      "thirtyDays": 48,
+      "threeMonths": 87,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 60
     },
-    "bytedanceRank": 62,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 61,
     "difficulty": "中等",
-    "frontendId": "24",
-    "frequency": 73.3,
+    "frontendId": "64",
+    "frequency": 71.3,
     "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "recursion",
-        "name": "递归"
-      },
-      {
-        "slug": "linked-list",
-        "name": "链表"
-      }
-    ],
-    "titleCn": "两两交换链表中的节点",
-    "titleSlug": "swap-nodes-in-pairs",
-    "url": "https://leetcode.cn/problems/swap-nodes-in-pairs/description/"
-  },
-  {
-    "acRate": "58.6%",
-    "buckets": {
-      "all": 63,
-      "thirtyDays": null,
-      "threeMonths": 63,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 63,
-    "difficulty": "简单",
-    "frontendId": "26",
-    "frequency": 73.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "two-pointers",
-        "name": "双指针"
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
       }
     ],
-    "titleCn": "删除有序数组中的重复项",
-    "titleSlug": "remove-duplicates-from-sorted-array",
-    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-array/description/"
+    "titleCn": "最小路径和",
+    "titleSlug": "minimum-path-sum",
+    "url": "https://leetcode.cn/problems/minimum-path-sum/description/"
+  },
+  {
+    "acRate": "47.5%",
+    "buckets": {
+      "all": 62,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": 10,
+      "moreThanSixMonths": 61
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 62,
+    "difficulty": "简单",
+    "frontendId": "66",
+    "frequency": 54.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      }
+    ],
+    "titleCn": "加一",
+    "titleSlug": "plus-one",
+    "url": "https://leetcode.cn/problems/plus-one/description/"
+  },
+  {
+    "acRate": "54.4%",
+    "buckets": {
+      "all": 63,
+      "thirtyDays": null,
+      "threeMonths": 94,
+      "sixMonths": null,
+      "moreThanSixMonths": 62
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 63,
+    "difficulty": "简单",
+    "frontendId": "67",
+    "frequency": 64.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "bit-manipulation",
+        "name": "位运算"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "simulation",
+        "name": "模拟"
+      }
+    ],
+    "titleCn": "二进制求和",
+    "titleSlug": "add-binary",
+    "url": "https://leetcode.cn/problems/add-binary/description/"
   },
   {
     "acRate": "70.4%",
     "buckets": {
       "all": 64,
       "thirtyDays": null,
-      "threeMonths": 64,
+      "threeMonths": 96,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 64,
     "difficulty": "简单",
     "frontendId": "1768",
     "frequency": 72.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "two-pointers",
@@ -2103,61 +3454,137 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/merge-strings-alternately/description/"
   },
   {
-    "acRate": "73.3%",
+    "acRate": "57.3%",
     "buckets": {
-      "all": 65,
+      "all": 64,
       "thirtyDays": null,
-      "threeMonths": 65,
+      "threeMonths": null,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 63
     },
-    "bytedanceRank": 65,
-    "difficulty": "中等",
-    "frontendId": "105",
-    "frequency": 72.4,
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 64,
+    "difficulty": "困难",
+    "frontendId": "68",
+    "frequency": 39.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "hash-table",
-        "name": "哈希表"
+        "slug": "string",
+        "name": "字符串"
       },
       {
-        "slug": "divide-and-conquer",
-        "name": "分治"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
+        "slug": "simulation",
+        "name": "模拟"
       }
     ],
-    "titleCn": "从前序与中序遍历序列构造二叉树",
-    "titleSlug": "construct-binary-tree-from-preorder-and-inorder-traversal",
-    "url": "https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/description/"
+    "titleCn": "文本左右对齐",
+    "titleSlug": "text-justification",
+    "url": "https://leetcode.cn/problems/text-justification/description/"
+  },
+  {
+    "acRate": "38.9%",
+    "buckets": {
+      "all": 65,
+      "thirtyDays": null,
+      "threeMonths": 29,
+      "sixMonths": null,
+      "moreThanSixMonths": 64
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 65,
+    "difficulty": "简单",
+    "frontendId": "69",
+    "frequency": 64.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "binary-search",
+        "name": "二分查找"
+      }
+    ],
+    "titleCn": "x 的平方根",
+    "titleSlug": "sqrtx",
+    "url": "https://leetcode.cn/problems/sqrtx/description/"
+  },
+  {
+    "acRate": "55.7%",
+    "buckets": {
+      "all": 66,
+      "thirtyDays": 14,
+      "threeMonths": 30,
+      "sixMonths": 46,
+      "moreThanSixMonths": 65
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 66,
+    "difficulty": "简单",
+    "frontendId": "70",
+    "frequency": 93.3,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "memoization",
+        "name": "记忆化"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      }
+    ],
+    "titleCn": "爬楼梯",
+    "titleSlug": "climbing-stairs",
+    "url": "https://leetcode.cn/problems/climbing-stairs/description/"
   },
   {
     "acRate": "67.7%",
     "buckets": {
       "all": 66,
-      "thirtyDays": null,
-      "threeMonths": 66,
-      "sixMonths": null,
+      "thirtyDays": 35,
+      "threeMonths": 44,
+      "sixMonths": 75,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 66,
     "difficulty": "中等",
     "frontendId": "148",
     "frequency": 71.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "linked-list",
@@ -2185,33 +3612,74 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/sort-list/description/"
   },
   {
-    "acRate": "42.8%",
+    "acRate": "48.5%",
     "buckets": {
       "all": 67,
       "thirtyDays": null,
-      "threeMonths": 67,
+      "threeMonths": 95,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 66
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 67,
     "difficulty": "中等",
-    "frontendId": "31",
-    "frequency": 71.4,
+    "frontendId": "71",
+    "frequency": 42.9,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "array",
-        "name": "数组"
+        "slug": "stack",
+        "name": "栈"
       },
       {
-        "slug": "two-pointers",
-        "name": "双指针"
+        "slug": "string",
+        "name": "字符串"
       }
     ],
-    "titleCn": "下一个排列",
-    "titleSlug": "next-permutation",
-    "url": "https://leetcode.cn/problems/next-permutation/description/"
+    "titleCn": "简化路径",
+    "titleSlug": "simplify-path",
+    "url": "https://leetcode.cn/problems/simplify-path/description/"
+  },
+  {
+    "acRate": "64.1%",
+    "buckets": {
+      "all": 68,
+      "thirtyDays": 37,
+      "threeMonths": 31,
+      "sixMonths": 48,
+      "moreThanSixMonths": 67
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 68,
+    "difficulty": "中等",
+    "frontendId": "72",
+    "frequency": 82.9,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      }
+    ],
+    "titleCn": "编辑距离",
+    "titleSlug": "edit-distance",
+    "url": "https://leetcode.cn/problems/edit-distance/description/"
   },
   {
     "acRate": "76.9%",
@@ -2221,6 +3689,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 68,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 68,
     "difficulty": "简单",
@@ -2243,70 +3715,81 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/concatenation-of-array/description/"
   },
   {
-    "acRate": "72.5%",
+    "acRate": "71.6%",
     "buckets": {
       "all": 69,
       "thirtyDays": null,
-      "threeMonths": 69,
-      "sixMonths": null,
+      "threeMonths": 72,
+      "sixMonths": 49,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 69,
     "difficulty": "中等",
-    "frontendId": "64",
-    "frequency": 71.3,
+    "frontendId": "73",
+    "frequency": 66,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
         "name": "数组"
       },
       {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
+        "slug": "hash-table",
+        "name": "哈希表"
       },
       {
         "slug": "matrix",
         "name": "矩阵"
       }
     ],
-    "titleCn": "最小路径和",
-    "titleSlug": "minimum-path-sum",
-    "url": "https://leetcode.cn/problems/minimum-path-sum/description/"
+    "titleCn": "矩阵置零",
+    "titleSlug": "set-matrix-zeroes",
+    "url": "https://leetcode.cn/problems/set-matrix-zeroes/description/"
   },
   {
-    "acRate": "63.6%",
+    "acRate": "52.6%",
     "buckets": {
       "all": 70,
       "thirtyDays": null,
-      "threeMonths": 70,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 32,
+      "sixMonths": 50,
+      "moreThanSixMonths": 68
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 70,
     "difficulty": "中等",
-    "frontendId": "17",
-    "frequency": 71.1,
+    "frontendId": "74",
+    "frequency": 67.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "hash-table",
-        "name": "哈希表"
+        "slug": "array",
+        "name": "数组"
       },
       {
-        "slug": "string",
-        "name": "字符串"
+        "slug": "binary-search",
+        "name": "二分查找"
       },
       {
-        "slug": "backtracking",
-        "name": "回溯"
+        "slug": "matrix",
+        "name": "矩阵"
       }
     ],
-    "titleCn": "电话号码的字母组合",
-    "titleSlug": "letter-combinations-of-a-phone-number",
-    "url": "https://leetcode.cn/problems/letter-combinations-of-a-phone-number/description/"
+    "titleCn": "搜索二维矩阵",
+    "titleSlug": "search-a-2d-matrix",
+    "url": "https://leetcode.cn/problems/search-a-2d-matrix/description/"
   },
   {
     "acRate": "67.9%",
@@ -2316,6 +3799,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 71,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 71,
     "difficulty": "中等",
@@ -2346,37 +3833,81 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/reorder-list/description/"
   },
   {
-    "acRate": "45.1%",
+    "acRate": "63.7%",
+    "buckets": {
+      "all": 71,
+      "thirtyDays": null,
+      "threeMonths": 164,
+      "sixMonths": null,
+      "moreThanSixMonths": 69
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 71,
+    "difficulty": "中等",
+    "frontendId": "75",
+    "frequency": 54.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      },
+      {
+        "slug": "sorting",
+        "name": "排序"
+      }
+    ],
+    "titleCn": "颜色分类",
+    "titleSlug": "sort-colors",
+    "url": "https://leetcode.cn/problems/sort-colors/description/"
+  },
+  {
+    "acRate": "49.3%",
     "buckets": {
       "all": 72,
       "thirtyDays": null,
-      "threeMonths": 72,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 33,
+      "sixMonths": 51,
+      "moreThanSixMonths": 70
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 72,
-    "difficulty": "中等",
-    "frontendId": "43",
-    "frequency": 70.7,
+    "difficulty": "困难",
+    "frontendId": "76",
+    "frequency": 73.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "math",
-        "name": "数学"
+        "slug": "hash-table",
+        "name": "哈希表"
       },
       {
         "slug": "string",
         "name": "字符串"
       },
       {
-        "slug": "simulation",
-        "name": "模拟"
+        "slug": "sliding-window",
+        "name": "滑动窗口"
       }
     ],
-    "titleCn": "字符串相乘",
-    "titleSlug": "multiply-strings",
-    "url": "https://leetcode.cn/problems/multiply-strings/description/"
+    "titleCn": "最小覆盖子串",
+    "titleSlug": "minimum-window-substring",
+    "url": "https://leetcode.cn/problems/minimum-window-substring/description/"
   },
   {
     "acRate": "72.6%",
@@ -2386,6 +3917,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 73,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 73,
     "difficulty": "中等",
@@ -2416,20 +3951,54 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/implement-trie-prefix-tree/description/"
   },
   {
+    "acRate": "77.5%",
+    "buckets": {
+      "all": 73,
+      "thirtyDays": null,
+      "threeMonths": 139,
+      "sixMonths": null,
+      "moreThanSixMonths": 71
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 73,
+    "difficulty": "中等",
+    "frontendId": "77",
+    "frequency": 58.7,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "组合",
+    "titleSlug": "combinations",
+    "url": "https://leetcode.cn/problems/combinations/description/"
+  },
+  {
     "acRate": "43.8%",
     "buckets": {
       "all": 74,
       "thirtyDays": null,
-      "threeMonths": 74,
+      "threeMonths": 85,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 74,
     "difficulty": "困难",
     "frontendId": "224",
     "frequency": 70.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "stack",
@@ -2453,20 +4022,63 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/basic-calculator/description/"
   },
   {
+    "acRate": "81.9%",
+    "buckets": {
+      "all": 74,
+      "thirtyDays": null,
+      "threeMonths": 114,
+      "sixMonths": 52,
+      "moreThanSixMonths": 72
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 74,
+    "difficulty": "中等",
+    "frontendId": "78",
+    "frequency": 64,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "bit-manipulation",
+        "name": "位运算"
+      },
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "子集",
+    "titleSlug": "subsets",
+    "url": "https://leetcode.cn/problems/subsets/description/"
+  },
+  {
     "acRate": "55.6%",
     "buckets": {
       "all": 75,
       "thirtyDays": null,
-      "threeMonths": 75,
+      "threeMonths": 83,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 75,
     "difficulty": "中等",
     "frontendId": "994",
     "frequency": 70.3,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "breadth-first-search",
@@ -2486,20 +4098,72 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/rotting-oranges/description/"
   },
   {
+    "acRate": "51.0%",
+    "buckets": {
+      "all": 75,
+      "thirtyDays": null,
+      "threeMonths": 145,
+      "sixMonths": null,
+      "moreThanSixMonths": 73
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 75,
+    "difficulty": "中等",
+    "frontendId": "79",
+    "frequency": 58,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
+      }
+    ],
+    "titleCn": "单词搜索",
+    "titleSlug": "word-search",
+    "url": "https://leetcode.cn/problems/word-search/description/"
+  },
+  {
     "acRate": "52.0%",
     "buckets": {
       "all": 76,
-      "thirtyDays": null,
-      "threeMonths": 76,
-      "sixMonths": null,
+      "thirtyDays": 43,
+      "threeMonths": 49,
+      "sixMonths": 90,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 76,
     "difficulty": "中等",
     "frontendId": "221",
     "frequency": 70.2,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -2519,20 +4183,60 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/maximal-square/description/"
   },
   {
+    "acRate": "63.5%",
+    "buckets": {
+      "all": 76,
+      "thirtyDays": null,
+      "threeMonths": 151,
+      "sixMonths": 53,
+      "moreThanSixMonths": 74
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 76,
+    "difficulty": "中等",
+    "frontendId": "80",
+    "frequency": 57.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      }
+    ],
+    "titleCn": "删除有序数组中的重复项 II",
+    "titleSlug": "remove-duplicates-from-sorted-array-ii",
+    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-array-ii/description/"
+  },
+  {
     "acRate": "68.5%",
     "buckets": {
       "all": 77,
-      "thirtyDays": null,
+      "thirtyDays": 58,
       "threeMonths": 77,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 77,
     "difficulty": "简单",
     "frontendId": "977",
     "frequency": 70,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -2552,20 +4256,49 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/squares-of-a-sorted-array/description/"
   },
   {
+    "acRate": "41.5%",
+    "buckets": {
+      "all": 77,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": 75
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 77,
+    "difficulty": "中等",
+    "frontendId": "81",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "搜索旋转排序数组 II",
+    "titleSlug": "search-in-rotated-sorted-array-ii",
+    "url": "https://leetcode.cn/problems/search-in-rotated-sorted-array-ii/description/"
+  },
+  {
     "acRate": "44.3%",
     "buckets": {
       "all": 78,
       "thirtyDays": null,
-      "threeMonths": 78,
-      "sixMonths": null,
+      "threeMonths": 67,
+      "sixMonths": 78,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 78,
     "difficulty": "中等",
     "frontendId": "152",
     "frequency": 70,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -2581,20 +4314,61 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/maximum-product-subarray/description/"
   },
   {
+    "acRate": "55.4%",
+    "buckets": {
+      "all": 78,
+      "thirtyDays": 68,
+      "threeMonths": 34,
+      "sixMonths": 54,
+      "moreThanSixMonths": 76
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 78,
+    "difficulty": "中等",
+    "frontendId": "82",
+    "frequency": 44.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      }
+    ],
+    "titleCn": "删除排序链表中的重复元素 II",
+    "titleSlug": "remove-duplicates-from-sorted-list-ii",
+    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-list-ii/description/"
+  },
+  {
     "acRate": "48.7%",
     "buckets": {
       "all": 79,
       "thirtyDays": null,
-      "threeMonths": 79,
-      "sixMonths": null,
+      "threeMonths": 40,
+      "sixMonths": 69,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 79,
     "difficulty": "困难",
     "frontendId": "135",
     "frequency": 70,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "greedy",
@@ -2610,6 +4384,36 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/candy/description/"
   },
   {
+    "acRate": "54.8%",
+    "buckets": {
+      "all": 79,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": 14,
+      "moreThanSixMonths": 77
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 79,
+    "difficulty": "简单",
+    "frontendId": "83",
+    "frequency": 51.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      }
+    ],
+    "titleCn": "删除排序链表中的重复元素",
+    "titleSlug": "remove-duplicates-from-sorted-list",
+    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-list/description/"
+  },
+  {
     "acRate": "69.0%",
     "buckets": {
       "all": 80,
@@ -2617,6 +4421,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 80,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 80,
     "difficulty": "简单",
@@ -2635,20 +4443,63 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/employees-earning-more-than-their-managers/description/"
   },
   {
+    "acRate": "49.5%",
+    "buckets": {
+      "all": 80,
+      "thirtyDays": null,
+      "threeMonths": 99,
+      "sixMonths": null,
+      "moreThanSixMonths": 78
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 80,
+    "difficulty": "困难",
+    "frontendId": "84",
+    "frequency": 65.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "stack",
+        "name": "栈"
+      },
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "monotonic-stack",
+        "name": "单调栈"
+      }
+    ],
+    "titleCn": "柱状图中最大的矩形",
+    "titleSlug": "largest-rectangle-in-histogram",
+    "url": "https://leetcode.cn/problems/largest-rectangle-in-histogram/description/"
+  },
+  {
     "acRate": "57.1%",
     "buckets": {
       "all": 81,
-      "thirtyDays": null,
-      "threeMonths": 81,
+      "thirtyDays": 22,
+      "threeMonths": 92,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 81,
     "difficulty": "中等",
     "frontendId": "207",
     "frequency": 69.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "depth-first-search",
@@ -2672,53 +4523,143 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/course-schedule/description/"
   },
   {
-    "acRate": "70.7%",
+    "acRate": "56.9%",
+    "buckets": {
+      "all": 81,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": 55,
+      "moreThanSixMonths": 79
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 81,
+    "difficulty": "困难",
+    "frontendId": "85",
+    "frequency": 59.9,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "stack",
+        "name": "栈"
+      },
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "matrix",
+        "name": "矩阵"
+      },
+      {
+        "slug": "monotonic-stack",
+        "name": "单调栈"
+      }
+    ],
+    "titleCn": "最大矩形",
+    "titleSlug": "maximal-rectangle",
+    "url": "https://leetcode.cn/problems/maximal-rectangle/description/"
+  },
+  {
+    "acRate": "65.8%",
     "buckets": {
       "all": 82,
       "thirtyDays": null,
-      "threeMonths": 82,
+      "threeMonths": null,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 5
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 82,
     "difficulty": "中等",
-    "frontendId": "102",
-    "frequency": 69.6,
+    "frontendId": "86",
+    "frequency": 51.2,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "tree",
-        "name": "树"
+        "slug": "linked-list",
+        "name": "链表"
       },
       {
-        "slug": "breadth-first-search",
-        "name": "广度优先搜索"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
+        "slug": "two-pointers",
+        "name": "双指针"
       }
     ],
-    "titleCn": "二叉树的层序遍历",
-    "titleSlug": "binary-tree-level-order-traversal",
-    "url": "https://leetcode.cn/problems/binary-tree-level-order-traversal/description/"
+    "titleCn": "分隔链表",
+    "titleSlug": "partition-list",
+    "url": "https://leetcode.cn/problems/partition-list/description/"
+  },
+  {
+    "acRate": "55.0%",
+    "buckets": {
+      "all": 83,
+      "thirtyDays": null,
+      "threeMonths": 35,
+      "sixMonths": 56,
+      "moreThanSixMonths": 80
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 83,
+    "difficulty": "简单",
+    "frontendId": "88",
+    "frequency": 85.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      },
+      {
+        "slug": "sorting",
+        "name": "排序"
+      }
+    ],
+    "titleCn": "合并两个有序数组",
+    "titleSlug": "merge-sorted-array",
+    "url": "https://leetcode.cn/problems/merge-sorted-array/description/"
   },
   {
     "acRate": "53.0%",
     "buckets": {
       "all": 83,
-      "thirtyDays": null,
-      "threeMonths": 83,
+      "thirtyDays": 26,
+      "threeMonths": 70,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 83,
     "difficulty": "中等",
     "frontendId": "322",
     "frequency": 69.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "breadth-first-search",
@@ -2738,33 +4679,27 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/coin-change/description/"
   },
   {
-    "acRate": "46.7%",
+    "acRate": "75.2%",
     "buckets": {
       "all": 84,
       "thirtyDays": null,
-      "threeMonths": 84,
+      "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "companyRendered"
+    },
     "bytedanceRank": 84,
     "difficulty": "中等",
-    "frontendId": "34",
-    "frequency": 69.2,
+    "frontendId": "89",
+    "frequency": null,
     "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "binary-search",
-        "name": "二分查找"
-      }
-    ],
-    "titleCn": "在排序数组中查找元素的第一个和最后一个位置",
-    "titleSlug": "find-first-and-last-position-of-element-in-sorted-array",
-    "url": "https://leetcode.cn/problems/find-first-and-last-position-of-element-in-sorted-array/description/"
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "格雷编码",
+    "titleSlug": "gray-code",
+    "url": "https://leetcode.cn/problems/gray-code/description/"
   },
   {
     "acRate": "70.6%",
@@ -2772,15 +4707,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 85,
       "thirtyDays": null,
       "threeMonths": 85,
-      "sixMonths": null,
+      "sixMonths": 70,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 85,
     "difficulty": "中等",
     "frontendId": "138",
     "frequency": 69,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "hash-table",
@@ -2796,20 +4736,202 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/copy-list-with-random-pointer/description/"
   },
   {
-    "acRate": "78.3%",
+    "acRate": "64.0%",
+    "buckets": {
+      "all": 85,
+      "thirtyDays": null,
+      "threeMonths": 183,
+      "sixMonths": null,
+      "moreThanSixMonths": 81
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 85,
+    "difficulty": "中等",
+    "frontendId": "90",
+    "frequency": 49.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "bit-manipulation",
+        "name": "位运算"
+      },
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "子集 II",
+    "titleSlug": "subsets-ii",
+    "url": "https://leetcode.cn/problems/subsets-ii/description/"
+  },
+  {
+    "acRate": "35.0%",
     "buckets": {
       "all": 86,
       "thirtyDays": null,
-      "threeMonths": 86,
+      "threeMonths": 149,
+      "sixMonths": null,
+      "moreThanSixMonths": 82
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 86,
+    "difficulty": "中等",
+    "frontendId": "91",
+    "frequency": 57.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      }
+    ],
+    "titleCn": "解码方法",
+    "titleSlug": "decode-ways",
+    "url": "https://leetcode.cn/problems/decode-ways/description/"
+  },
+  {
+    "acRate": "58.3%",
+    "buckets": {
+      "all": 87,
+      "thirtyDays": 88,
+      "threeMonths": 109,
+      "sixMonths": 57,
+      "moreThanSixMonths": 83
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 87,
+    "difficulty": "中等",
+    "frontendId": "92",
+    "frequency": 64.7,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      }
+    ],
+    "titleCn": "反转链表 II",
+    "titleSlug": "reverse-linked-list-ii",
+    "url": "https://leetcode.cn/problems/reverse-linked-list-ii/description/"
+  },
+  {
+    "acRate": "61.6%",
+    "buckets": {
+      "all": 88,
+      "thirtyDays": 38,
+      "threeMonths": 59,
       "sixMonths": null,
       "moreThanSixMonths": null
     },
-    "bytedanceRank": 86,
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": 88,
+    "difficulty": "中等",
+    "frontendId": "394",
+    "frequency": 68.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "stack",
+        "name": "栈"
+      },
+      {
+        "slug": "recursion",
+        "name": "递归"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      }
+    ],
+    "titleCn": "字符串解码",
+    "titleSlug": "decode-string",
+    "url": "https://leetcode.cn/problems/decode-string/description/"
+  },
+  {
+    "acRate": "62.2%",
+    "buckets": {
+      "all": 88,
+      "thirtyDays": null,
+      "threeMonths": 105,
+      "sixMonths": null,
+      "moreThanSixMonths": 84
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 88,
+    "difficulty": "中等",
+    "frontendId": "93",
+    "frequency": 65.2,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
+    "titleCn": "复原 IP 地址",
+    "titleSlug": "restore-ip-addresses",
+    "url": "https://leetcode.cn/problems/restore-ip-addresses/description/"
+  },
+  {
+    "acRate": "78.3%",
+    "buckets": {
+      "all": 89,
+      "thirtyDays": 44,
+      "threeMonths": 86,
+      "sixMonths": null,
+      "moreThanSixMonths": 85
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 89,
     "difficulty": "简单",
     "frontendId": "94",
     "frequency": 68.9,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "stack",
@@ -2833,86 +4955,26 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/binary-tree-inorder-traversal/description/"
   },
   {
-    "acRate": "64.2%",
-    "buckets": {
-      "all": 87,
-      "thirtyDays": null,
-      "threeMonths": 87,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 87,
-    "difficulty": "简单",
-    "frontendId": "13",
-    "frequency": 68.6,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      }
-    ],
-    "titleCn": "罗马数字转整数",
-    "titleSlug": "roman-to-integer",
-    "url": "https://leetcode.cn/problems/roman-to-integer/description/"
-  },
-  {
-    "acRate": "61.6%",
-    "buckets": {
-      "all": 88,
-      "thirtyDays": null,
-      "threeMonths": 88,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 88,
-    "difficulty": "中等",
-    "frontendId": "394",
-    "frequency": 68.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "stack",
-        "name": "栈"
-      },
-      {
-        "slug": "recursion",
-        "name": "递归"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      }
-    ],
-    "titleCn": "字符串解码",
-    "titleSlug": "decode-string",
-    "url": "https://leetcode.cn/problems/decode-string/description/"
-  },
-  {
     "acRate": "60.3%",
     "buckets": {
       "all": 89,
-      "thirtyDays": null,
-      "threeMonths": 89,
-      "sixMonths": null,
+      "thirtyDays": 45,
+      "threeMonths": 74,
+      "sixMonths": 71,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 89,
     "difficulty": "中等",
     "frontendId": "139",
     "frequency": 68,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "trie",
@@ -2944,25 +5006,117 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/word-break/description/"
   },
   {
-    "acRate": "31.2%",
+    "acRate": "74.7%",
     "buckets": {
       "all": 90,
       "thirtyDays": null,
-      "threeMonths": 90,
+      "threeMonths": null,
+      "sixMonths": 47,
+      "moreThanSixMonths": 86
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 90,
+    "difficulty": "中等",
+    "frontendId": "95",
+    "frequency": 39.5,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
+      {
+        "slug": "binary-search-tree",
+        "name": "二叉搜索树"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
+      }
+    ],
+    "titleCn": "不同的二叉搜索树 II",
+    "titleSlug": "unique-binary-search-trees-ii",
+    "url": "https://leetcode.cn/problems/unique-binary-search-trees-ii/description/"
+  },
+  {
+    "acRate": "71.4%",
+    "buckets": {
+      "all": 91,
+      "thirtyDays": null,
+      "threeMonths": 292,
+      "sixMonths": null,
+      "moreThanSixMonths": 87
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 91,
+    "difficulty": "中等",
+    "frontendId": "96",
+    "frequency": 27.9,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
+      {
+        "slug": "binary-search-tree",
+        "name": "二叉搜索树"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
+      }
+    ],
+    "titleCn": "不同的二叉搜索树",
+    "titleSlug": "unique-binary-search-trees",
+    "url": "https://leetcode.cn/problems/unique-binary-search-trees/description/"
+  },
+  {
+    "acRate": "46.8%",
+    "buckets": {
+      "all": 92,
+      "thirtyDays": null,
+      "threeMonths": 257,
       "sixMonths": null,
       "moreThanSixMonths": null
     },
-    "bytedanceRank": 90,
-    "difficulty": "困难",
-    "frontendId": "10",
-    "frequency": 67.8,
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888"
+    },
+    "bytedanceRank": 92,
+    "difficulty": "中等",
+    "frontendId": "97",
+    "frequency": 34.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
-      {
-        "slug": "recursion",
-        "name": "递归"
-      },
       {
         "slug": "string",
         "name": "字符串"
@@ -2972,83 +5126,30 @@ export const leetcodeByteDanceProblems = ([
         "name": "动态规划"
       }
     ],
-    "titleCn": "正则表达式匹配",
-    "titleSlug": "regular-expression-matching",
-    "url": "https://leetcode.cn/problems/regular-expression-matching/description/"
+    "titleCn": "交错字符串",
+    "titleSlug": "interleaving-string",
+    "url": "https://leetcode.cn/problems/interleaving-string/description/"
   },
   {
-    "acRate": "35.7%",
-    "buckets": {
-      "all": 91,
-      "thirtyDays": null,
-      "threeMonths": 91,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 91,
-    "difficulty": "中等",
-    "frontendId": "7",
-    "frequency": 67.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "math",
-        "name": "数学"
-      }
-    ],
-    "titleCn": "整数反转",
-    "titleSlug": "reverse-integer",
-    "url": "https://leetcode.cn/problems/reverse-integer/description/"
-  },
-  {
-    "acRate": "52.6%",
-    "buckets": {
-      "all": 92,
-      "thirtyDays": null,
-      "threeMonths": 92,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 92,
-    "difficulty": "中等",
-    "frontendId": "74",
-    "frequency": 67.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "binary-search",
-        "name": "二分查找"
-      },
-      {
-        "slug": "matrix",
-        "name": "矩阵"
-      }
-    ],
-    "titleCn": "搜索二维矩阵",
-    "titleSlug": "search-a-2d-matrix",
-    "url": "https://leetcode.cn/problems/search-a-2d-matrix/description/"
-  },
-  {
-    "acRate": "79.0%",
+    "acRate": "41.0%",
     "buckets": {
       "all": 93,
       "thirtyDays": null,
-      "threeMonths": 93,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": null,
+      "sixMonths": 1,
+      "moreThanSixMonths": 88
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "sixMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 93,
-    "difficulty": "简单",
-    "frontendId": "104",
-    "frequency": 67.4,
+    "difficulty": "中等",
+    "frontendId": "98",
+    "frequency": 65.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -3059,17 +5160,17 @@ export const leetcodeByteDanceProblems = ([
         "name": "深度优先搜索"
       },
       {
-        "slug": "breadth-first-search",
-        "name": "广度优先搜索"
+        "slug": "binary-search-tree",
+        "name": "二叉搜索树"
       },
       {
         "slug": "binary-tree",
         "name": "二叉树"
       }
     ],
-    "titleCn": "二叉树的最大深度",
-    "titleSlug": "maximum-depth-of-binary-tree",
-    "url": "https://leetcode.cn/problems/maximum-depth-of-binary-tree/description/"
+    "titleCn": "验证二叉搜索树",
+    "titleSlug": "validate-binary-search-tree",
+    "url": "https://leetcode.cn/problems/validate-binary-search-tree/description/"
   },
   {
     "acRate": "68.2%",
@@ -3079,6 +5180,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 94,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 94,
     "difficulty": "中等",
@@ -3105,53 +5210,89 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/palindromic-substrings/description/"
   },
   {
-    "acRate": "44.9%",
+    "acRate": "61.7%",
+    "buckets": {
+      "all": 94,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": 89
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 94,
+    "difficulty": "中等",
+    "frontendId": "99",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "恢复二叉搜索树",
+    "titleSlug": "recover-binary-search-tree",
+    "url": "https://leetcode.cn/problems/recover-binary-search-tree/description/"
+  },
+  {
+    "acRate": "64.0%",
     "buckets": {
       "all": 95,
       "thirtyDays": null,
-      "threeMonths": 95,
+      "threeMonths": null,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 90
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 95,
-    "difficulty": "中等",
-    "frontendId": "16",
-    "frequency": 66.7,
+    "difficulty": "简单",
+    "frontendId": "100",
+    "frequency": 42,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "array",
-        "name": "数组"
+        "slug": "tree",
+        "name": "树"
       },
       {
-        "slug": "two-pointers",
-        "name": "双指针"
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
       },
       {
-        "slug": "sorting",
-        "name": "排序"
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
       }
     ],
-    "titleCn": "最接近的三数之和",
-    "titleSlug": "3sum-closest",
-    "url": "https://leetcode.cn/problems/3sum-closest/description/"
+    "titleCn": "相同的树",
+    "titleSlug": "same-tree",
+    "url": "https://leetcode.cn/problems/same-tree/description/"
   },
   {
     "acRate": "76.7%",
     "buckets": {
       "all": 96,
       "thirtyDays": null,
-      "threeMonths": 96,
+      "threeMonths": 41,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 96,
     "difficulty": "简单",
     "frontendId": "136",
     "frequency": 66.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "bit-manipulation",
@@ -3167,66 +5308,169 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/single-number/description/"
   },
   {
-    "acRate": "53.3%",
+    "acRate": "63.6%",
+    "buckets": {
+      "all": 96,
+      "thirtyDays": null,
+      "threeMonths": 93,
+      "sixMonths": 58,
+      "moreThanSixMonths": 91
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 96,
+    "difficulty": "简单",
+    "frontendId": "101",
+    "frequency": 58.1,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
+      }
+    ],
+    "titleCn": "对称二叉树",
+    "titleSlug": "symmetric-tree",
+    "url": "https://leetcode.cn/problems/symmetric-tree/description/"
+  },
+  {
+    "acRate": "70.7%",
     "buckets": {
       "all": 97,
       "thirtyDays": null,
-      "threeMonths": 97,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 36,
+      "sixMonths": 59,
+      "moreThanSixMonths": 92
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 97,
     "difficulty": "中等",
-    "frontendId": "19",
-    "frequency": 66.7,
+    "frontendId": "102",
+    "frequency": 69.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "linked-list",
-        "name": "链表"
+        "slug": "tree",
+        "name": "树"
       },
       {
-        "slug": "two-pointers",
-        "name": "双指针"
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
       }
     ],
-    "titleCn": "删除链表的倒数第 N 个结点",
-    "titleSlug": "remove-nth-node-from-end-of-list",
-    "url": "https://leetcode.cn/problems/remove-nth-node-from-end-of-list/description/"
+    "titleCn": "二叉树的层序遍历",
+    "titleSlug": "binary-tree-level-order-traversal",
+    "url": "https://leetcode.cn/problems/binary-tree-level-order-traversal/description/"
   },
   {
-    "acRate": "79.4%",
+    "acRate": "61.0%",
     "buckets": {
       "all": 98,
       "thirtyDays": null,
-      "threeMonths": 98,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 81,
+      "sixMonths": 60,
+      "moreThanSixMonths": 93
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 98,
     "difficulty": "中等",
-    "frontendId": "48",
-    "frequency": 66.3,
+    "frontendId": "103",
+    "frequency": 53.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
-        "slug": "array",
-        "name": "数组"
+        "slug": "tree",
+        "name": "树"
       },
       {
-        "slug": "math",
-        "name": "数学"
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
       },
       {
-        "slug": "matrix",
-        "name": "矩阵"
+        "slug": "binary-tree",
+        "name": "二叉树"
       }
     ],
-    "titleCn": "旋转图像",
-    "titleSlug": "rotate-image",
-    "url": "https://leetcode.cn/problems/rotate-image/description/"
+    "titleCn": "二叉树的锯齿形层序遍历",
+    "titleSlug": "binary-tree-zigzag-level-order-traversal",
+    "url": "https://leetcode.cn/problems/binary-tree-zigzag-level-order-traversal/description/"
+  },
+  {
+    "acRate": "79.0%",
+    "buckets": {
+      "all": 99,
+      "thirtyDays": 28,
+      "threeMonths": 73,
+      "sixMonths": 61,
+      "moreThanSixMonths": 94
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": 99,
+    "difficulty": "简单",
+    "frontendId": "104",
+    "frequency": 67.4,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
+      }
+    ],
+    "titleCn": "二叉树的最大深度",
+    "titleSlug": "maximum-depth-of-binary-tree",
+    "url": "https://leetcode.cn/problems/maximum-depth-of-binary-tree/description/"
   },
   {
     "acRate": "82.5%",
@@ -3234,15 +5478,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 99,
       "thirtyDays": null,
       "threeMonths": 99,
-      "sixMonths": null,
+      "sixMonths": 92,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 99,
     "difficulty": "简单",
     "frontendId": "226",
     "frequency": 66.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -3266,21 +5515,31 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/invert-binary-tree/description/"
   },
   {
-    "acRate": "71.6%",
+    "acRate": "73.3%",
     "buckets": {
       "all": 100,
       "thirtyDays": null,
-      "threeMonths": 100,
-      "sixMonths": null,
-      "moreThanSixMonths": null
+      "threeMonths": 65,
+      "sixMonths": 62,
+      "moreThanSixMonths": 95
+    },
+    "bucketSources": {
+      "all": "companyRendered",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 100,
     "difficulty": "中等",
-    "frontendId": "73",
-    "frequency": 66,
+    "frontendId": "105",
+    "frequency": 72.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
       {
         "slug": "array",
         "name": "数组"
@@ -3290,66 +5549,38 @@ export const leetcodeByteDanceProblems = ([
         "name": "哈希表"
       },
       {
-        "slug": "matrix",
-        "name": "矩阵"
-      }
-    ],
-    "titleCn": "矩阵置零",
-    "titleSlug": "set-matrix-zeroes",
-    "url": "https://leetcode.cn/problems/set-matrix-zeroes/description/"
-  },
-  {
-    "acRate": "41.0%",
-    "buckets": {
-      "all": 101,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 1,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 101,
-    "difficulty": "中等",
-    "frontendId": "98",
-    "frequency": 65.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
-      {
-        "slug": "depth-first-search",
-        "name": "深度优先搜索"
-      },
-      {
-        "slug": "binary-search-tree",
-        "name": "二叉搜索树"
+        "slug": "divide-and-conquer",
+        "name": "分治"
       },
       {
         "slug": "binary-tree",
         "name": "二叉树"
       }
     ],
-    "titleCn": "验证二叉搜索树",
-    "titleSlug": "validate-binary-search-tree",
-    "url": "https://leetcode.cn/problems/validate-binary-search-tree/description/"
+    "titleCn": "从前序与中序遍历序列构造二叉树",
+    "titleSlug": "construct-binary-tree-from-preorder-and-inorder-traversal",
+    "url": "https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/description/"
   },
   {
     "acRate": "64.2%",
     "buckets": {
       "all": 102,
-      "thirtyDays": null,
+      "thirtyDays": 73,
       "threeMonths": 101,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 102,
     "difficulty": "简单",
     "frontendId": "543",
     "frequency": 65.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -3372,17 +5603,23 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "54.8%",
     "buckets": {
       "all": 103,
-      "thirtyDays": null,
-      "threeMonths": 102,
-      "sixMonths": null,
+      "thirtyDays": 96,
+      "threeMonths": 42,
+      "sixMonths": 72,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 103,
     "difficulty": "简单",
     "frontendId": "141",
     "frequency": 65.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "hash-table",
@@ -3402,53 +5639,25 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/linked-list-cycle/description/"
   },
   {
-    "acRate": "49.5%",
-    "buckets": {
-      "all": 104,
-      "thirtyDays": null,
-      "threeMonths": 103,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 104,
-    "difficulty": "困难",
-    "frontendId": "84",
-    "frequency": 65.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "stack",
-        "name": "栈"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "monotonic-stack",
-        "name": "单调栈"
-      }
-    ],
-    "titleCn": "柱状图中最大的矩形",
-    "titleSlug": "largest-rectangle-in-histogram",
-    "url": "https://leetcode.cn/problems/largest-rectangle-in-histogram/description/"
-  },
-  {
     "acRate": "42.0%",
     "buckets": {
       "all": 105,
       "thirtyDays": null,
       "threeMonths": 104,
-      "sixMonths": null,
+      "sixMonths": 81,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 105,
     "difficulty": "中等",
     "frontendId": "179",
     "frequency": 65.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "greedy",
@@ -3477,15 +5686,19 @@ export const leetcodeByteDanceProblems = ([
       "all": 106,
       "thirtyDays": null,
       "threeMonths": null,
-      "sixMonths": 2,
+      "sixMonths": 86,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 106,
     "difficulty": "简单",
     "frontendId": "203",
     "frequency": 65.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "recursion",
@@ -3501,35 +5714,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/remove-linked-list-elements/description/"
   },
   {
-    "acRate": "62.2%",
-    "buckets": {
-      "all": 107,
-      "thirtyDays": null,
-      "threeMonths": 105,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 107,
-    "difficulty": "中等",
-    "frontendId": "93",
-    "frequency": 65.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      }
-    ],
-    "titleCn": "复原 IP 地址",
-    "titleSlug": "restore-ip-addresses",
-    "url": "https://leetcode.cn/problems/restore-ip-addresses/description/"
-  },
-  {
     "acRate": "34.7%",
     "buckets": {
       "all": 108,
@@ -3537,6 +5721,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 106,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 108,
     "difficulty": "中等",
@@ -3567,6 +5755,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 109,
     "difficulty": "简单",
     "frontendId": "1502",
@@ -3596,6 +5788,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 3,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 110,
     "difficulty": "简单",
     "frontendId": "1757",
@@ -3613,70 +5809,25 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/recyclable-and-low-fat-products/description/"
   },
   {
-    "acRate": "54.2%",
-    "buckets": {
-      "all": 111,
-      "thirtyDays": null,
-      "threeMonths": 108,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 111,
-    "difficulty": "中等",
-    "frontendId": "6",
-    "frequency": 64.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      }
-    ],
-    "titleCn": "Z 字形变换",
-    "titleSlug": "zigzag-conversion",
-    "url": "https://leetcode.cn/problems/zigzag-conversion/description/"
-  },
-  {
-    "acRate": "58.3%",
-    "buckets": {
-      "all": 112,
-      "thirtyDays": null,
-      "threeMonths": 109,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 112,
-    "difficulty": "中等",
-    "frontendId": "92",
-    "frequency": 64.7,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "linked-list",
-        "name": "链表"
-      }
-    ],
-    "titleCn": "反转链表 II",
-    "titleSlug": "reverse-linked-list-ii",
-    "url": "https://leetcode.cn/problems/reverse-linked-list-ii/description/"
-  },
-  {
     "acRate": "63.0%",
     "buckets": {
       "all": 113,
       "thirtyDays": null,
-      "threeMonths": 110,
-      "sixMonths": null,
+      "threeMonths": 66,
+      "sixMonths": 73,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 113,
     "difficulty": "中等",
     "frontendId": "142",
     "frequency": 64.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "hash-table",
@@ -3704,6 +5855,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 114,
     "difficulty": "简单",
     "frontendId": "202",
@@ -3729,138 +5884,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/happy-number/description/"
   },
   {
-    "acRate": "54.4%",
-    "buckets": {
-      "all": 115,
-      "thirtyDays": null,
-      "threeMonths": 112,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 115,
-    "difficulty": "简单",
-    "frontendId": "67",
-    "frequency": 64.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "bit-manipulation",
-        "name": "位运算"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "simulation",
-        "name": "模拟"
-      }
-    ],
-    "titleCn": "二进制求和",
-    "titleSlug": "add-binary",
-    "url": "https://leetcode.cn/problems/add-binary/description/"
-  },
-  {
-    "acRate": "38.9%",
-    "buckets": {
-      "all": 116,
-      "thirtyDays": null,
-      "threeMonths": 113,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 116,
-    "difficulty": "简单",
-    "frontendId": "69",
-    "frequency": 64.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "math",
-        "name": "数学"
-      },
-      {
-        "slug": "binary-search",
-        "name": "二分查找"
-      }
-    ],
-    "titleCn": "x 的平方根 ",
-    "titleSlug": "sqrtx",
-    "url": "https://leetcode.cn/problems/sqrtx/description/"
-  },
-  {
-    "acRate": "81.9%",
-    "buckets": {
-      "all": 117,
-      "thirtyDays": null,
-      "threeMonths": 114,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 117,
-    "difficulty": "中等",
-    "frontendId": "78",
-    "frequency": 64,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "bit-manipulation",
-        "name": "位运算"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      }
-    ],
-    "titleCn": "子集",
-    "titleSlug": "subsets",
-    "url": "https://leetcode.cn/problems/subsets/description/"
-  },
-  {
-    "acRate": "66.8%",
-    "buckets": {
-      "all": 118,
-      "thirtyDays": null,
-      "threeMonths": 115,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 118,
-    "difficulty": "中等",
-    "frontendId": "47",
-    "frequency": 63.7,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      },
-      {
-        "slug": "sorting",
-        "name": "排序"
-      }
-    ],
-    "titleCn": "全排列 II",
-    "titleSlug": "permutations-ii",
-    "url": "https://leetcode.cn/problems/permutations-ii/description/"
-  },
-  {
     "acRate": "55.1%",
     "buckets": {
       "all": 119,
@@ -3868,6 +5891,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 116,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 119,
     "difficulty": "简单",
@@ -3902,6 +5929,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 120,
     "difficulty": "简单",
     "frontendId": "118",
@@ -3930,6 +5961,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 118,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 121,
     "difficulty": "中等",
@@ -3981,15 +6016,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 122,
       "thirtyDays": null,
       "threeMonths": 119,
-      "sixMonths": null,
+      "sixMonths": 65,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 122,
     "difficulty": "中等",
     "frontendId": "122",
     "frequency": 62.9,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "greedy",
@@ -4014,15 +6054,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 123,
       "thirtyDays": null,
       "threeMonths": 120,
-      "sixMonths": null,
+      "sixMonths": 82,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 123,
     "difficulty": "中等",
     "frontendId": "189",
     "frequency": 62.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -4049,6 +6094,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 121,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 124,
     "difficulty": "中等",
@@ -4082,6 +6131,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 4,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 125,
     "difficulty": "简单",
@@ -4120,6 +6173,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 126,
     "difficulty": "中等",
     "frontendId": "155",
@@ -4149,6 +6206,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 5,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 127,
     "difficulty": "中等",
     "frontendId": "454",
@@ -4173,17 +6234,23 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "67.7%",
     "buckets": {
       "all": 128,
-      "thirtyDays": null,
+      "thirtyDays": 99,
       "threeMonths": 123,
-      "sixMonths": null,
+      "sixMonths": 100,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 128,
     "difficulty": "中等",
     "frontendId": "287",
     "frequency": 61.3,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "bit-manipulation",
@@ -4211,16 +6278,21 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 129,
       "thirtyDays": null,
-      "threeMonths": 124,
-      "sixMonths": null,
+      "threeMonths": 75,
+      "sixMonths": 80,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 129,
     "difficulty": "简单",
     "frontendId": "169",
     "frequency": 61.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -4253,15 +6325,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 130,
       "thirtyDays": null,
       "threeMonths": 125,
-      "sixMonths": null,
+      "sixMonths": 93,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 130,
     "difficulty": "中等",
     "frontendId": "238",
     "frequency": 61,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -4284,6 +6361,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 126,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 131,
     "difficulty": "简单",
@@ -4310,16 +6391,20 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 132,
       "thirtyDays": null,
-      "threeMonths": 127,
+      "threeMonths": 77,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 132,
     "difficulty": "简单",
     "frontendId": "389",
     "frequency": 60.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "bit-manipulation",
@@ -4347,16 +6432,20 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 133,
       "thirtyDays": null,
-      "threeMonths": 128,
+      "threeMonths": 79,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 133,
     "difficulty": "中等",
     "frontendId": "437",
     "frequency": 60.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -4384,6 +6473,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 134,
     "difficulty": "中等",
     "frontendId": "570",
@@ -4401,39 +6494,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/managers-with-at-least-5-direct-reports/description/"
   },
   {
-    "acRate": "36.9%",
-    "buckets": {
-      "all": 135,
-      "thirtyDays": null,
-      "threeMonths": 130,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 135,
-    "difficulty": "中等",
-    "frontendId": "18",
-    "frequency": 60.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      },
-      {
-        "slug": "sorting",
-        "name": "排序"
-      }
-    ],
-    "titleCn": "四数之和",
-    "titleSlug": "4sum",
-    "url": "https://leetcode.cn/problems/4sum/description/"
-  },
-  {
     "acRate": "59.4%",
     "buckets": {
       "all": 136,
@@ -4441,6 +6501,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 131,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 136,
     "difficulty": "困难",
@@ -4475,47 +6539,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/find-median-from-data-stream/description/"
   },
   {
-    "acRate": "56.9%",
-    "buckets": {
-      "all": 137,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 6,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 137,
-    "difficulty": "困难",
-    "frontendId": "85",
-    "frequency": 59.9,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "stack",
-        "name": "栈"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      },
-      {
-        "slug": "matrix",
-        "name": "矩阵"
-      },
-      {
-        "slug": "monotonic-stack",
-        "name": "单调栈"
-      }
-    ],
-    "titleCn": "最大矩形",
-    "titleSlug": "maximal-rectangle",
-    "url": "https://leetcode.cn/problems/maximal-rectangle/description/"
-  },
-  {
     "acRate": "80.6%",
     "buckets": {
       "all": 138,
@@ -4523,6 +6546,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 132,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 138,
     "difficulty": "简单",
@@ -4545,16 +6572,20 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 139,
       "thirtyDays": null,
-      "threeMonths": 133,
+      "threeMonths": 89,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 139,
     "difficulty": "困难",
     "frontendId": "123",
     "frequency": 59.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -4573,17 +6604,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "49.9%",
     "buckets": {
       "all": 140,
-      "thirtyDays": null,
+      "thirtyDays": 47,
       "threeMonths": 134,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 140,
     "difficulty": "中等",
     "frontendId": "162",
     "frequency": 59.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -4606,6 +6642,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 135,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 141,
     "difficulty": "中等",
@@ -4649,15 +6689,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 142,
       "thirtyDays": null,
       "threeMonths": 136,
-      "sixMonths": null,
+      "sixMonths": 63,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 142,
     "difficulty": "简单",
     "frontendId": "108",
     "frequency": 59.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -4693,6 +6738,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 7,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 143,
     "difficulty": "简单",
     "frontendId": "349",
@@ -4726,39 +6775,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/intersection-of-two-arrays/description/"
   },
   {
-    "acRate": "70.3%",
-    "buckets": {
-      "all": 144,
-      "thirtyDays": null,
-      "threeMonths": 137,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 144,
-    "difficulty": "中等",
-    "frontendId": "62",
-    "frequency": 59.4,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "math",
-        "name": "数学"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      },
-      {
-        "slug": "combinatorics",
-        "name": "组合数学"
-      }
-    ],
-    "titleCn": "不同路径",
-    "titleSlug": "unique-paths",
-    "url": "https://leetcode.cn/problems/unique-paths/description/"
-  },
-  {
     "acRate": "65.0%",
     "buckets": {
       "all": 145,
@@ -4766,6 +6782,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 138,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 145,
     "difficulty": "中等",
@@ -4788,60 +6808,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/integer-break/description/"
   },
   {
-    "acRate": "77.5%",
-    "buckets": {
-      "all": 146,
-      "thirtyDays": null,
-      "threeMonths": 139,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 146,
-    "difficulty": "中等",
-    "frontendId": "77",
-    "frequency": 58.7,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      }
-    ],
-    "titleCn": "组合",
-    "titleSlug": "combinations",
-    "url": "https://leetcode.cn/problems/combinations/description/"
-  },
-  {
-    "acRate": "74.1%",
-    "buckets": {
-      "all": 147,
-      "thirtyDays": null,
-      "threeMonths": 140,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 147,
-    "difficulty": "中等",
-    "frontendId": "39",
-    "frequency": 58.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      }
-    ],
-    "titleCn": "组合总和",
-    "titleSlug": "combination-sum",
-    "url": "https://leetcode.cn/problems/combination-sum/description/"
-  },
-  {
     "acRate": "53.8%",
     "buckets": {
       "all": 148,
@@ -4849,6 +6815,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 141,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 148,
     "difficulty": "简单",
@@ -4870,17 +6840,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "67.6%",
     "buckets": {
       "all": 149,
-      "thirtyDays": null,
+      "thirtyDays": 81,
       "threeMonths": 142,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 149,
     "difficulty": "中等",
     "frontendId": "516",
     "frequency": 58.3,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "string",
@@ -4903,6 +6878,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 143,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 150,
     "difficulty": "中等",
@@ -4929,98 +6908,25 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/shu-de-zi-jie-gou-lcof/description/"
   },
   {
-    "acRate": "63.6%",
-    "buckets": {
-      "all": 151,
-      "thirtyDays": null,
-      "threeMonths": 144,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 151,
-    "difficulty": "简单",
-    "frontendId": "101",
-    "frequency": 58.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
-      {
-        "slug": "depth-first-search",
-        "name": "深度优先搜索"
-      },
-      {
-        "slug": "breadth-first-search",
-        "name": "广度优先搜索"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
-      }
-    ],
-    "titleCn": "对称二叉树",
-    "titleSlug": "symmetric-tree",
-    "url": "https://leetcode.cn/problems/symmetric-tree/description/"
-  },
-  {
-    "acRate": "51.0%",
-    "buckets": {
-      "all": 152,
-      "thirtyDays": null,
-      "threeMonths": 145,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 152,
-    "difficulty": "中等",
-    "frontendId": "79",
-    "frequency": 58,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "depth-first-search",
-        "name": "深度优先搜索"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      },
-      {
-        "slug": "matrix",
-        "name": "矩阵"
-      }
-    ],
-    "titleCn": "单词搜索",
-    "titleSlug": "word-search",
-    "url": "https://leetcode.cn/problems/word-search/description/"
-  },
-  {
     "acRate": "55.7%",
     "buckets": {
       "all": 153,
       "thirtyDays": null,
-      "threeMonths": 146,
-      "sixMonths": null,
+      "threeMonths": 68,
+      "sixMonths": 79,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 153,
     "difficulty": "中等",
     "frontendId": "165",
     "frequency": 57.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "two-pointers",
@@ -5043,6 +6949,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 147,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 154,
     "difficulty": "简单",
@@ -5076,17 +6986,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "53.7%",
     "buckets": {
       "all": 155,
-      "thirtyDays": null,
+      "thirtyDays": 46,
       "threeMonths": 148,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 155,
     "difficulty": "困难",
     "frontendId": "329",
     "frequency": 57.3,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "depth-first-search",
@@ -5126,35 +7041,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-increasing-path-in-a-matrix/description/"
   },
   {
-    "acRate": "35.0%",
-    "buckets": {
-      "all": 156,
-      "thirtyDays": null,
-      "threeMonths": 149,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 156,
-    "difficulty": "中等",
-    "frontendId": "91",
-    "frequency": 57.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      }
-    ],
-    "titleCn": "解码方法",
-    "titleSlug": "decode-ways",
-    "url": "https://leetcode.cn/problems/decode-ways/description/"
-  },
-  {
     "acRate": "71.9%",
     "buckets": {
       "all": 157,
@@ -5162,6 +7048,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 150,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 157,
     "difficulty": "中等",
@@ -5184,115 +7074,25 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/last-stone-weight-ii/description/"
   },
   {
-    "acRate": "63.5%",
-    "buckets": {
-      "all": 158,
-      "thirtyDays": null,
-      "threeMonths": 151,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 158,
-    "difficulty": "中等",
-    "frontendId": "80",
-    "frequency": 57.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      }
-    ],
-    "titleCn": "删除有序数组中的重复项 II",
-    "titleSlug": "remove-duplicates-from-sorted-array-ii",
-    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-array-ii/description/"
-  },
-  {
-    "acRate": "69.3%",
-    "buckets": {
-      "all": 159,
-      "thirtyDays": null,
-      "threeMonths": 152,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 159,
-    "difficulty": "中等",
-    "frontendId": "12",
-    "frequency": 57,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      }
-    ],
-    "titleCn": "整数转罗马数字",
-    "titleSlug": "integer-to-roman",
-    "url": "https://leetcode.cn/problems/integer-to-roman/description/"
-  },
-  {
-    "acRate": "42.6%",
-    "buckets": {
-      "all": 160,
-      "thirtyDays": null,
-      "threeMonths": 153,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 160,
-    "difficulty": "中等",
-    "frontendId": "63",
-    "frequency": 57,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      },
-      {
-        "slug": "matrix",
-        "name": "矩阵"
-      }
-    ],
-    "titleCn": "不同路径 II",
-    "titleSlug": "unique-paths-ii",
-    "url": "https://leetcode.cn/problems/unique-paths-ii/description/"
-  },
-  {
     "acRate": "47.4%",
     "buckets": {
       "all": 161,
       "thirtyDays": null,
       "threeMonths": 154,
-      "sixMonths": null,
+      "sixMonths": 68,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 161,
     "difficulty": "中等",
     "frontendId": "134",
     "frequency": 56.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "greedy",
@@ -5315,6 +7115,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 155,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 162,
     "difficulty": "中等",
@@ -5340,6 +7144,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 8,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 163,
     "difficulty": "中等",
@@ -5377,6 +7185,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 156,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 164,
     "difficulty": "中等",
@@ -5423,6 +7235,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 165,
     "difficulty": "简单",
     "frontendId": "448",
@@ -5447,17 +7263,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "60.0%",
     "buckets": {
       "all": 166,
-      "thirtyDays": null,
+      "thirtyDays": 63,
       "threeMonths": 158,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 166,
     "difficulty": "中等",
     "frontendId": "740",
     "frequency": 56.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -5482,15 +7303,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 167,
       "thirtyDays": null,
       "threeMonths": 159,
-      "sixMonths": null,
+      "sixMonths": 84,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 167,
     "difficulty": "中等",
     "frontendId": "199",
     "frequency": 55.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -5522,6 +7348,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 168,
     "difficulty": "中等",
     "frontendId": "177",
@@ -5546,6 +7376,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 161,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 169,
     "difficulty": "中等",
@@ -5584,6 +7418,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 170,
     "difficulty": "简单",
     "frontendId": "584",
@@ -5608,6 +7446,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 1
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 171,
     "difficulty": "简单",
@@ -5638,6 +7480,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 9,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 172,
     "difficulty": "中等",
     "frontendId": "1193",
@@ -5655,35 +7501,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/monthly-transactions-i/description/"
   },
   {
-    "acRate": "47.5%",
-    "buckets": {
-      "all": 173,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 10,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 173,
-    "difficulty": "简单",
-    "frontendId": "66",
-    "frequency": 54.4,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      }
-    ],
-    "titleCn": "加一",
-    "titleSlug": "plus-one",
-    "url": "https://leetcode.cn/problems/plus-one/description/"
-  },
-  {
     "acRate": "52.5%",
     "buckets": {
       "all": 174,
@@ -5691,6 +7508,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 163,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 174,
     "difficulty": "简单",
@@ -5713,105 +7534,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/repeated-substring-pattern/description/"
   },
   {
-    "acRate": "63.7%",
-    "buckets": {
-      "all": 175,
-      "thirtyDays": null,
-      "threeMonths": 164,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 175,
-    "difficulty": "中等",
-    "frontendId": "75",
-    "frequency": 54.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      },
-      {
-        "slug": "sorting",
-        "name": "排序"
-      }
-    ],
-    "titleCn": "颜色分类",
-    "titleSlug": "sort-colors",
-    "url": "https://leetcode.cn/problems/sort-colors/description/"
-  },
-  {
-    "acRate": "61.0%",
-    "buckets": {
-      "all": 176,
-      "thirtyDays": null,
-      "threeMonths": 165,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 176,
-    "difficulty": "中等",
-    "frontendId": "103",
-    "frequency": 53.7,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
-      {
-        "slug": "breadth-first-search",
-        "name": "广度优先搜索"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
-      }
-    ],
-    "titleCn": "二叉树的锯齿形层序遍历",
-    "titleSlug": "binary-tree-zigzag-level-order-traversal",
-    "url": "https://leetcode.cn/problems/binary-tree-zigzag-level-order-traversal/description/"
-  },
-  {
-    "acRate": "64.9%",
-    "buckets": {
-      "all": 177,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 11,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 177,
-    "difficulty": "中等",
-    "frontendId": "36",
-    "frequency": 53.7,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      },
-      {
-        "slug": "matrix",
-        "name": "矩阵"
-      }
-    ],
-    "titleCn": "有效的数独",
-    "titleSlug": "valid-sudoku",
-    "url": "https://leetcode.cn/problems/valid-sudoku/description/"
-  },
-  {
     "acRate": "54.4%",
     "buckets": {
       "all": 178,
@@ -5819,6 +7541,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 12,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 178,
     "difficulty": "中等",
@@ -5857,6 +7583,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 179,
     "difficulty": "中等",
     "frontendId": "213",
@@ -5885,6 +7615,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 167,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 180,
     "difficulty": "中等",
@@ -5939,6 +7673,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 2
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 181,
     "difficulty": "中等",
     "frontendId": "402",
@@ -5971,17 +7709,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "55.5%",
     "buckets": {
       "all": 182,
-      "thirtyDays": null,
-      "threeMonths": 168,
+      "thirtyDays": 87,
+      "threeMonths": 98,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 182,
     "difficulty": "中等",
     "frontendId": "611",
     "frequency": 52.9,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "greedy",
@@ -6012,17 +7755,23 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "59.6%",
     "buckets": {
       "all": 183,
-      "thirtyDays": null,
+      "thirtyDays": 36,
       "threeMonths": 169,
-      "sixMonths": null,
+      "sixMonths": 76,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 183,
     "difficulty": "中等",
     "frontendId": "151",
     "frequency": 52.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "two-pointers",
@@ -6046,6 +7795,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 184,
     "difficulty": "中等",
     "frontendId": "309",
@@ -6067,39 +7820,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-cooldown/description/"
   },
   {
-    "acRate": "38.3%",
-    "buckets": {
-      "all": 185,
-      "thirtyDays": null,
-      "threeMonths": 171,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 185,
-    "difficulty": "困难",
-    "frontendId": "30",
-    "frequency": 52.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "sliding-window",
-        "name": "滑动窗口"
-      }
-    ],
-    "titleCn": "串联所有单词的子串",
-    "titleSlug": "substring-with-concatenation-of-all-words",
-    "url": "https://leetcode.cn/problems/substring-with-concatenation-of-all-words/description/"
-  },
-  {
     "acRate": "54.2%",
     "buckets": {
       "all": 186,
@@ -6107,6 +7827,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 3
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 186,
     "difficulty": "中等",
@@ -6133,6 +7857,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 4
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 187,
     "difficulty": "简单",
     "frontendId": "1661",
@@ -6157,6 +7885,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 172,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 188,
     "difficulty": "中等",
@@ -6191,6 +7923,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 13,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 189,
     "difficulty": "简单",
     "frontendId": "面试题 02.02",
@@ -6215,17 +7951,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "48.8%",
     "buckets": {
       "all": 190,
-      "thirtyDays": null,
-      "threeMonths": 173,
+      "thirtyDays": 34,
+      "threeMonths": 78,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 190,
     "difficulty": "困难",
     "frontendId": "902",
     "frequency": 52.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -6253,60 +7994,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/numbers-at-most-n-given-digit-set/description/"
   },
   {
-    "acRate": "54.8%",
-    "buckets": {
-      "all": 191,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 14,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 191,
-    "difficulty": "简单",
-    "frontendId": "83",
-    "frequency": 51.4,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "linked-list",
-        "name": "链表"
-      }
-    ],
-    "titleCn": "删除排序链表中的重复元素",
-    "titleSlug": "remove-duplicates-from-sorted-list",
-    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-list/description/"
-  },
-  {
-    "acRate": "65.8%",
-    "buckets": {
-      "all": 192,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": null,
-      "moreThanSixMonths": 5
-    },
-    "bytedanceRank": 192,
-    "difficulty": "中等",
-    "frontendId": "86",
-    "frequency": 51.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "linked-list",
-        "name": "链表"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      }
-    ],
-    "titleCn": "分隔链表",
-    "titleSlug": "partition-list",
-    "url": "https://leetcode.cn/problems/partition-list/description/"
-  },
-  {
     "acRate": "61.0%",
     "buckets": {
       "all": 193,
@@ -6314,6 +8001,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 174,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 193,
     "difficulty": "中等",
@@ -6347,6 +8038,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 15,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 194,
     "difficulty": "中等",
@@ -6384,6 +8079,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 175,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 195,
     "difficulty": "中等",
@@ -6426,6 +8125,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 196,
     "difficulty": "中等",
     "frontendId": "622",
@@ -6458,17 +8161,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "67.3%",
     "buckets": {
       "all": 197,
-      "thirtyDays": null,
-      "threeMonths": 177,
+      "thirtyDays": 69,
+      "threeMonths": 100,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 197,
     "difficulty": "简单",
     "frontendId": "242",
     "frequency": 50.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "hash-table",
@@ -6495,6 +8203,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 178,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 198,
     "difficulty": "中等",
@@ -6537,6 +8249,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 199,
     "difficulty": "简单",
     "frontendId": "1251",
@@ -6554,35 +8270,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/average-selling-price/description/"
   },
   {
-    "acRate": "41.6%",
-    "buckets": {
-      "all": 200,
-      "thirtyDays": null,
-      "threeMonths": 180,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 200,
-    "difficulty": "中等",
-    "frontendId": "61",
-    "frequency": 49.9,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "linked-list",
-        "name": "链表"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      }
-    ],
-    "titleCn": "旋转链表",
-    "titleSlug": "rotate-list",
-    "url": "https://leetcode.cn/problems/rotate-list/description/"
-  },
-  {
     "acRate": "43.1%",
     "buckets": {
       "all": 201,
@@ -6590,6 +8277,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 181,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 201,
     "difficulty": "中等",
@@ -6620,6 +8311,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 202,
     "difficulty": "中等",
     "frontendId": "550",
@@ -6637,68 +8332,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/game-play-analysis-iv/description/"
   },
   {
-    "acRate": "22.6%",
-    "buckets": {
-      "all": 203,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 16,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 203,
-    "difficulty": "中等",
-    "frontendId": "29",
-    "frequency": 49.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "bit-manipulation",
-        "name": "位运算"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      }
-    ],
-    "titleCn": "两数相除",
-    "titleSlug": "divide-two-integers",
-    "url": "https://leetcode.cn/problems/divide-two-integers/description/"
-  },
-  {
-    "acRate": "64.0%",
-    "buckets": {
-      "all": 204,
-      "thirtyDays": null,
-      "threeMonths": 183,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 204,
-    "difficulty": "中等",
-    "frontendId": "90",
-    "frequency": 49.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "bit-manipulation",
-        "name": "位运算"
-      },
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      }
-    ],
-    "titleCn": "子集 II",
-    "titleSlug": "subsets-ii",
-    "url": "https://leetcode.cn/problems/subsets-ii/description/"
-  },
-  {
     "acRate": "58.7%",
     "buckets": {
       "all": 205,
@@ -6706,6 +8339,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 17,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 205,
     "difficulty": "中等",
@@ -6744,6 +8381,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 18,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 206,
     "difficulty": "中等",
     "frontendId": "178",
@@ -6768,6 +8409,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 6
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 207,
     "difficulty": "中等",
@@ -6806,6 +8451,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 7
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 208,
     "difficulty": "简单",
     "frontendId": "511",
@@ -6831,6 +8480,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 209,
     "difficulty": "简单",
     "frontendId": "1581",
@@ -6855,6 +8508,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 19,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 210,
     "difficulty": "困难",
@@ -6884,6 +8541,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 185,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 211,
     "difficulty": "中等",
@@ -6926,6 +8587,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 8
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 212,
     "difficulty": "中等",
     "frontendId": "176",
@@ -6950,6 +8615,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 20,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 213,
     "difficulty": "中等",
@@ -6992,6 +8661,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 21,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 214,
     "difficulty": "困难",
     "frontendId": "174",
@@ -7025,6 +8698,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 215,
     "difficulty": "简单",
     "frontendId": "303",
@@ -7050,31 +8727,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/range-sum-query-immutable/description/"
   },
   {
-    "acRate": "22.0%",
-    "buckets": {
-      "all": 216,
-      "thirtyDays": null,
-      "threeMonths": 187,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 216,
-    "difficulty": "中等",
-    "frontendId": "8",
-    "frequency": 48,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      }
-    ],
-    "titleCn": "字符串转换整数 (atoi)",
-    "titleSlug": "string-to-integer-atoi",
-    "url": "https://leetcode.cn/problems/string-to-integer-atoi/description/"
-  },
-  {
     "acRate": "53.1%",
     "buckets": {
       "all": 217,
@@ -7082,6 +8734,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 22,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 217,
     "difficulty": "简单",
@@ -7115,6 +8771,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 188,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 218,
     "difficulty": "困难",
@@ -7153,6 +8813,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 219,
     "difficulty": "简单",
     "frontendId": "258",
@@ -7185,6 +8849,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 23,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 220,
     "difficulty": "简单",
@@ -7223,6 +8891,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 24,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 221,
     "difficulty": "中等",
     "frontendId": "525",
@@ -7256,6 +8928,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 9
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 222,
     "difficulty": "简单",
     "frontendId": "面试题 01.06",
@@ -7284,6 +8960,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 190,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 223,
     "difficulty": "简单",
@@ -7318,6 +8998,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 10
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 224,
     "difficulty": "简单",
     "frontendId": "110",
@@ -7350,6 +9034,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 11
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 225,
     "difficulty": "简单",
@@ -7392,6 +9080,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 226,
     "difficulty": "简单",
     "frontendId": "LCR 146",
@@ -7425,6 +9117,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 227,
     "difficulty": "简单",
     "frontendId": "1114",
@@ -7447,15 +9143,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 228,
       "thirtyDays": null,
       "threeMonths": 193,
-      "sixMonths": null,
+      "sixMonths": 97,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 228,
     "difficulty": "中等",
     "frontendId": "274",
     "frequency": 47.2,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -7483,6 +9184,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 25,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 229,
     "difficulty": "简单",
     "frontendId": "577",
@@ -7507,6 +9212,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 194,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 230,
     "difficulty": "简单",
@@ -7537,35 +9246,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/binary-tree-preorder-traversal/description/"
   },
   {
-    "acRate": "39.2%",
-    "buckets": {
-      "all": 231,
-      "thirtyDays": null,
-      "threeMonths": 195,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 231,
-    "difficulty": "中等",
-    "frontendId": "50",
-    "frequency": 46.9,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "recursion",
-        "name": "递归"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      }
-    ],
-    "titleCn": "Pow(x, n)",
-    "titleSlug": "powx-n",
-    "url": "https://leetcode.cn/problems/powx-n/description/"
-  },
-  {
     "acRate": "62.0%",
     "buckets": {
       "all": 232,
@@ -7573,6 +9253,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 196,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 232,
     "difficulty": "简单",
@@ -7598,6 +9282,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 26,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 233,
     "difficulty": "中等",
@@ -7628,6 +9316,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 12
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 234,
     "difficulty": "中等",
     "frontendId": "137",
@@ -7656,6 +9348,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 27,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 235,
     "difficulty": "简单",
@@ -7686,6 +9382,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 28,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 236,
     "difficulty": "简单",
     "frontendId": "1141",
@@ -7710,6 +9410,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 197,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 237,
     "difficulty": "中等",
@@ -7752,6 +9456,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 29,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 238,
     "difficulty": "简单",
     "frontendId": "2413",
@@ -7780,6 +9488,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 198,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 239,
     "difficulty": "中等",
@@ -7812,14 +9524,19 @@ export const leetcodeByteDanceProblems = ([
       "thirtyDays": null,
       "threeMonths": 199,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 98
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 240,
     "difficulty": "简单",
     "frontendId": "112",
     "frequency": 45.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -7850,6 +9567,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 200,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 241,
     "difficulty": "困难",
@@ -7884,6 +9605,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 242,
     "difficulty": "中等",
     "frontendId": "面试题 16.26",
@@ -7916,6 +9641,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 202,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 243,
     "difficulty": "困难",
@@ -7954,6 +9683,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 244,
     "difficulty": "困难",
     "frontendId": "2141",
@@ -7991,6 +9724,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 13
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 245,
     "difficulty": "简单",
     "frontendId": "219",
@@ -8023,6 +9760,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 204,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 246,
     "difficulty": "困难",
@@ -8057,6 +9798,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 247,
     "difficulty": "中等",
     "frontendId": "435",
@@ -8089,17 +9834,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "45.7%",
     "buckets": {
       "all": 248,
-      "thirtyDays": null,
+      "thirtyDays": 50,
       "threeMonths": 206,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 248,
     "difficulty": "中等",
     "frontendId": "662",
     "frequency": 44.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -8131,6 +9881,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 14
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 249,
     "difficulty": "中等",
     "frontendId": "1091",
@@ -8159,17 +9913,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "80.6%",
     "buckets": {
       "all": 250,
-      "thirtyDays": null,
+      "thirtyDays": 80,
       "threeMonths": 207,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 250,
     "difficulty": "简单",
     "frontendId": "1281",
     "frequency": 44.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "math",
@@ -8188,6 +9947,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 208,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 251,
     "difficulty": "中等",
@@ -8226,6 +9989,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 252,
     "difficulty": "中等",
     "frontendId": "474",
@@ -8259,6 +10026,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 253,
     "difficulty": "简单",
     "frontendId": "LCR 136",
@@ -8283,6 +10054,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 211,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 254,
     "difficulty": "困难",
@@ -8333,6 +10108,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 255,
     "difficulty": "简单",
     "frontendId": "面试题 10.01",
@@ -8366,6 +10145,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 30,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 256,
     "difficulty": "简单",
     "frontendId": "225",
@@ -8391,35 +10174,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/implement-stack-using-queues/description/"
   },
   {
-    "acRate": "55.4%",
-    "buckets": {
-      "all": 257,
-      "thirtyDays": null,
-      "threeMonths": 213,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 257,
-    "difficulty": "中等",
-    "frontendId": "82",
-    "frequency": 44.1,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "linked-list",
-        "name": "链表"
-      },
-      {
-        "slug": "two-pointers",
-        "name": "双指针"
-      }
-    ],
-    "titleCn": "删除排序链表中的重复元素 II",
-    "titleSlug": "remove-duplicates-from-sorted-list-ii",
-    "url": "https://leetcode.cn/problems/remove-duplicates-from-sorted-list-ii/description/"
-  },
-  {
     "acRate": "48.8%",
     "buckets": {
       "all": 258,
@@ -8427,6 +10181,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 31,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 258,
     "difficulty": "中等",
@@ -8461,6 +10219,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 15
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 259,
     "difficulty": "简单",
     "frontendId": "196",
@@ -8485,6 +10247,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 32,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 260,
     "difficulty": "简单",
@@ -8511,6 +10277,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 261,
     "difficulty": "中等",
     "frontendId": "328",
@@ -8535,6 +10305,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 16
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 262,
     "difficulty": "中等",
@@ -8569,6 +10343,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 17
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 263,
     "difficulty": "简单",
     "frontendId": "1068",
@@ -8594,6 +10372,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 33,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 264,
     "difficulty": "简单",
     "frontendId": "2236",
@@ -8615,35 +10397,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/root-equals-sum-of-children/description/"
   },
   {
-    "acRate": "48.5%",
-    "buckets": {
-      "all": 265,
-      "thirtyDays": null,
-      "threeMonths": 215,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 265,
-    "difficulty": "中等",
-    "frontendId": "71",
-    "frequency": 42.9,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "stack",
-        "name": "栈"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      }
-    ],
-    "titleCn": "简化路径",
-    "titleSlug": "simplify-path",
-    "url": "https://leetcode.cn/problems/simplify-path/description/"
-  },
-  {
     "acRate": "72.8%",
     "buckets": {
       "all": 266,
@@ -8651,6 +10404,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 216,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 266,
     "difficulty": "简单",
@@ -8676,17 +10433,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "35.3%",
     "buckets": {
       "all": 267,
-      "thirtyDays": null,
+      "thirtyDays": 94,
       "threeMonths": 217,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 267,
     "difficulty": "困难",
     "frontendId": "1044",
     "frequency": 42.3,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "string",
@@ -8718,43 +10480,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/longest-duplicate-substring/description/"
   },
   {
-    "acRate": "64.0%",
-    "buckets": {
-      "all": 268,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": null,
-      "moreThanSixMonths": 18
-    },
-    "bytedanceRank": 268,
-    "difficulty": "简单",
-    "frontendId": "100",
-    "frequency": 42,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
-      {
-        "slug": "depth-first-search",
-        "name": "深度优先搜索"
-      },
-      {
-        "slug": "breadth-first-search",
-        "name": "广度优先搜索"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
-      }
-    ],
-    "titleCn": "相同的树",
-    "titleSlug": "same-tree",
-    "url": "https://leetcode.cn/problems/same-tree/description/"
-  },
-  {
     "acRate": "44.5%",
     "buckets": {
       "all": 269,
@@ -8762,6 +10487,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 19
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 269,
     "difficulty": "困难",
@@ -8812,6 +10541,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 20
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 270,
     "difficulty": "简单",
     "frontendId": "367",
@@ -8840,6 +10573,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 21
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 271,
     "difficulty": "中等",
@@ -8878,6 +10615,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 22
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 272,
     "difficulty": "中等",
     "frontendId": "946",
@@ -8911,6 +10652,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 273,
     "difficulty": "简单",
     "frontendId": "1047",
@@ -8939,6 +10684,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 34,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 274,
     "difficulty": "困难",
@@ -8985,6 +10734,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 35,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 275,
     "difficulty": "中等",
     "frontendId": "641",
@@ -9022,6 +10775,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 36,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 276,
     "difficulty": "困难",
     "frontendId": "765",
@@ -9055,43 +10812,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/couples-holding-hands/description/"
   },
   {
-    "acRate": "67.2%",
-    "buckets": {
-      "all": 277,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 37,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 277,
-    "difficulty": "困难",
-    "frontendId": "37",
-    "frequency": 41.2,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "hash-table",
-        "name": "哈希表"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      },
-      {
-        "slug": "matrix",
-        "name": "矩阵"
-      }
-    ],
-    "titleCn": "解数独",
-    "titleSlug": "sudoku-solver",
-    "url": "https://leetcode.cn/problems/sudoku-solver/description/"
-  },
-  {
     "acRate": "57.3%",
     "buckets": {
       "all": 278,
@@ -9099,6 +10819,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 23
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 278,
     "difficulty": "中等",
@@ -9132,6 +10856,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 38,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 279,
     "difficulty": "中等",
@@ -9170,6 +10898,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 280,
     "difficulty": "中等",
     "frontendId": "450",
@@ -9202,6 +10934,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 24
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 281,
     "difficulty": "简单",
@@ -9239,6 +10975,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 220,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 282,
     "difficulty": "中等",
@@ -9280,6 +11020,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 221,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 283,
     "difficulty": "中等",
@@ -9326,6 +11070,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 284,
     "difficulty": "简单",
     "frontendId": "610",
@@ -9350,6 +11098,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 39,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 285,
     "difficulty": "中等",
@@ -9392,6 +11144,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 286,
     "difficulty": "中等",
     "frontendId": "1423",
@@ -9425,6 +11181,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 40,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 287,
     "difficulty": "中等",
     "frontendId": "1695",
@@ -9456,14 +11216,19 @@ export const leetcodeByteDanceProblems = ([
       "thirtyDays": null,
       "threeMonths": null,
       "sixMonths": 41,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 100
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 288,
     "difficulty": "困难",
     "frontendId": "115",
     "frequency": 40.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "string",
@@ -9486,6 +11251,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 42,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 289,
     "difficulty": "中等",
@@ -9524,6 +11293,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 290,
     "difficulty": "困难",
     "frontendId": "502",
@@ -9560,6 +11333,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 225,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 291,
     "difficulty": "简单",
@@ -9598,6 +11375,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 292,
     "difficulty": "中等",
     "frontendId": "2841",
@@ -9630,6 +11411,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 43,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 293,
     "difficulty": "中等",
@@ -9672,6 +11457,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 294,
     "difficulty": "困难",
     "frontendId": "127",
@@ -9705,6 +11494,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 44,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 295,
     "difficulty": "简单",
     "frontendId": "183",
@@ -9729,6 +11522,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 228,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 296,
     "difficulty": "中等",
@@ -9759,6 +11556,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 297,
     "difficulty": "中等",
     "frontendId": "2694",
@@ -9774,17 +11575,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "54.7%",
     "buckets": {
       "all": 298,
-      "thirtyDays": null,
+      "thirtyDays": 79,
       "threeMonths": 230,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 298,
     "difficulty": "困难",
     "frontendId": "60",
     "frequency": 39.8,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "recursion",
@@ -9800,39 +11606,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/permutation-sequence/description/"
   },
   {
-    "acRate": "57.3%",
-    "buckets": {
-      "all": 299,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": null,
-      "moreThanSixMonths": 25
-    },
-    "bytedanceRank": 299,
-    "difficulty": "困难",
-    "frontendId": "68",
-    "frequency": 39.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "simulation",
-        "name": "模拟"
-      }
-    ],
-    "titleCn": "文本左右对齐",
-    "titleSlug": "text-justification",
-    "url": "https://leetcode.cn/problems/text-justification/description/"
-  },
-  {
     "acRate": "56.0%",
     "buckets": {
       "all": 300,
@@ -9840,6 +11613,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 26
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 300,
     "difficulty": "简单",
@@ -9874,6 +11651,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 45,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 301,
     "difficulty": "中等",
     "frontendId": "445",
@@ -9907,6 +11688,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 46,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 302,
     "difficulty": "简单",
     "frontendId": "605",
@@ -9928,47 +11713,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/can-place-flowers/description/"
   },
   {
-    "acRate": "74.7%",
-    "buckets": {
-      "all": 303,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": 47,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 303,
-    "difficulty": "中等",
-    "frontendId": "95",
-    "frequency": 39.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
-      {
-        "slug": "binary-search-tree",
-        "name": "二叉搜索树"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
-      }
-    ],
-    "titleCn": "不同的二叉搜索树 II",
-    "titleSlug": "unique-binary-search-trees-ii",
-    "url": "https://leetcode.cn/problems/unique-binary-search-trees-ii/description/"
-  },
-  {
     "acRate": "78.1%",
     "buckets": {
       "all": 304,
@@ -9976,6 +11720,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 231,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 304,
     "difficulty": "简单",
@@ -10001,6 +11749,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 48,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 305,
     "difficulty": "简单",
@@ -10035,6 +11787,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 306,
     "difficulty": "简单",
     "frontendId": "1148",
@@ -10055,17 +11811,23 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "64.2%",
     "buckets": {
       "all": 307,
-      "thirtyDays": null,
+      "thirtyDays": 84,
       "threeMonths": 233,
       "sixMonths": null,
-      "moreThanSixMonths": null
+      "moreThanSixMonths": 99
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 307,
     "difficulty": "中等",
     "frontendId": "113",
     "frequency": 39.2,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -10097,6 +11859,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 27
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 308,
     "difficulty": "中等",
     "frontendId": "120",
@@ -10125,6 +11891,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 28
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 309,
     "difficulty": "中等",
@@ -10171,6 +11941,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 29
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 310,
     "difficulty": "中等",
     "frontendId": "129",
@@ -10203,6 +11977,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 30
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 311,
     "difficulty": "中等",
@@ -10237,16 +12015,20 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 312,
       "thirtyDays": null,
-      "threeMonths": 234,
+      "threeMonths": 91,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 312,
     "difficulty": "中等",
     "frontendId": "400",
     "frequency": 38.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "math",
@@ -10269,6 +12051,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 31
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 313,
     "difficulty": "困难",
@@ -10303,31 +12089,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/maximize-spanning-tree-stability-with-upgrades/description/"
   },
   {
-    "acRate": "48.8%",
-    "buckets": {
-      "all": 314,
-      "thirtyDays": null,
-      "threeMonths": 235,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 314,
-    "difficulty": "简单",
-    "frontendId": "58",
-    "frequency": 38.4,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      }
-    ],
-    "titleCn": "最后一个单词的长度",
-    "titleSlug": "length-of-last-word",
-    "url": "https://leetcode.cn/problems/length-of-last-word/description/"
-  },
-  {
     "acRate": "65.6%",
     "buckets": {
       "all": 315,
@@ -10335,6 +12096,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 236,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 315,
     "difficulty": "中等",
@@ -10365,6 +12130,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 316,
     "difficulty": "困难",
     "frontendId": "312",
@@ -10393,6 +12162,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 238,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 317,
     "difficulty": "困难",
@@ -10431,6 +12204,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 49,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 318,
     "difficulty": "中等",
     "frontendId": "468",
@@ -10455,6 +12232,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 32
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 319,
     "difficulty": "中等",
@@ -10485,16 +12266,20 @@ export const leetcodeByteDanceProblems = ([
     "buckets": {
       "all": 320,
       "thirtyDays": null,
-      "threeMonths": 239,
+      "threeMonths": 86,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "companyRendered"
     },
     "bytedanceRank": 320,
     "difficulty": "中等",
     "frontendId": "230",
     "frequency": 37.7,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -10521,17 +12306,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "46.3%",
     "buckets": {
       "all": 321,
-      "thirtyDays": null,
+      "thirtyDays": 51,
       "threeMonths": 240,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 321,
     "difficulty": "中等",
     "frontendId": "227",
     "frequency": 37.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "stack",
@@ -10558,6 +12348,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 241,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 322,
     "difficulty": "困难",
@@ -10592,6 +12386,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 323,
     "difficulty": "简单",
     "frontendId": "682",
@@ -10625,6 +12423,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 33
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 324,
     "difficulty": "中等",
     "frontendId": "870",
@@ -10657,17 +12459,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "50.0%",
     "buckets": {
       "all": 325,
-      "thirtyDays": null,
+      "thirtyDays": 53,
       "threeMonths": 243,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 325,
     "difficulty": "困难",
     "frontendId": "1373",
     "frequency": 37.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -10695,20 +12502,25 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/maximum-sum-bst-in-binary-tree/description/"
   },
   {
-    "acRate": "53.9%",
+    "acRate": "54.0%",
     "buckets": {
       "all": 326,
-      "thirtyDays": null,
+      "thirtyDays": 67,
       "threeMonths": 244,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 326,
     "difficulty": "困难",
     "frontendId": "面试题 17.24",
     "frequency": 37.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -10739,6 +12551,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 245,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 327,
     "difficulty": "中等",
@@ -10785,6 +12601,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 50,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 328,
     "difficulty": "中等",
     "frontendId": "192",
@@ -10809,6 +12629,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 34
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 329,
     "difficulty": "中等",
@@ -10855,6 +12679,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 51,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 330,
     "difficulty": "困难",
     "frontendId": "262",
@@ -10879,6 +12707,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 35
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 331,
     "difficulty": "困难",
@@ -10921,6 +12753,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 36
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 332,
     "difficulty": "中等",
     "frontendId": "442",
@@ -10953,6 +12789,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 52,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 333,
     "difficulty": "中等",
@@ -10995,6 +12835,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 53,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 334,
     "difficulty": "中等",
     "frontendId": "556",
@@ -11028,6 +12872,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 37
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 335,
     "difficulty": "简单",
     "frontendId": "868",
@@ -11052,6 +12900,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 246,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 336,
     "difficulty": "中等",
@@ -11082,6 +12934,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 54,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 337,
     "difficulty": "简单",
     "frontendId": "1200",
@@ -11110,6 +12966,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 55,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 338,
     "difficulty": "中等",
@@ -11143,6 +13003,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 56,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 339,
     "difficulty": "中等",
@@ -11181,6 +13045,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 340,
     "difficulty": "困难",
     "frontendId": "65",
@@ -11205,6 +13073,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 248,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 341,
     "difficulty": "困难",
@@ -11255,6 +13127,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 342,
     "difficulty": "中等",
     "frontendId": "341",
@@ -11300,6 +13176,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 343,
     "difficulty": "简单",
     "frontendId": "637",
@@ -11337,6 +13217,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 344,
     "difficulty": "简单",
     "frontendId": "643",
@@ -11366,6 +13250,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 38
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 345,
     "difficulty": "中等",
     "frontendId": "875",
@@ -11394,6 +13282,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 39
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 346,
     "difficulty": "简单",
@@ -11428,6 +13320,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 347,
     "difficulty": "简单",
     "frontendId": "1378",
@@ -11452,6 +13348,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 57,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 348,
     "difficulty": "简单",
@@ -11482,6 +13382,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 349,
     "difficulty": "简单",
     "frontendId": "205",
@@ -11511,6 +13415,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 350,
     "difficulty": "简单",
     "frontendId": "1431",
@@ -11535,6 +13443,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 255,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 351,
     "difficulty": "简单",
@@ -11564,6 +13476,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 256,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 352,
     "difficulty": "中等",
@@ -11598,6 +13514,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 40
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 353,
     "difficulty": "简单",
     "frontendId": "290",
@@ -11626,6 +13546,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 58,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 354,
     "difficulty": "简单",
@@ -11659,6 +13583,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 59,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 355,
     "difficulty": "简单",
@@ -11697,6 +13625,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 41
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 356,
     "difficulty": "中等",
     "frontendId": "1035",
@@ -11726,6 +13658,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 42
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 357,
     "difficulty": "中等",
     "frontendId": "1456",
@@ -11747,35 +13683,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/maximum-number-of-vowels-in-a-substring-of-given-length/description/"
   },
   {
-    "acRate": "46.8%",
-    "buckets": {
-      "all": 358,
-      "thirtyDays": null,
-      "threeMonths": 257,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 358,
-    "difficulty": "中等",
-    "frontendId": "97",
-    "frequency": 34.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "string",
-        "name": "字符串"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      }
-    ],
-    "titleCn": "交错字符串",
-    "titleSlug": "interleaving-string",
-    "url": "https://leetcode.cn/problems/interleaving-string/description/"
-  },
-  {
     "acRate": "77.6%",
     "buckets": {
       "all": 359,
@@ -11783,6 +13690,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 43
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 359,
     "difficulty": "中等",
@@ -11817,6 +13728,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 360,
     "difficulty": "困难",
     "frontendId": "887",
@@ -11847,15 +13762,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 361,
       "thirtyDays": null,
       "threeMonths": 259,
-      "sixMonths": null,
+      "sixMonths": 77,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 361,
     "difficulty": "中等",
     "frontendId": "153",
     "frequency": 33.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -11878,6 +13798,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 260,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 362,
     "difficulty": "中等",
@@ -11907,6 +13831,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 261,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 363,
     "difficulty": "中等",
@@ -11944,17 +13872,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "42.7%",
     "buckets": {
       "all": 364,
-      "thirtyDays": null,
+      "thirtyDays": 98,
       "threeMonths": 262,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 364,
     "difficulty": "中等",
     "frontendId": "837",
     "frequency": 32.5,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "math",
@@ -11985,6 +13918,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 44
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 365,
     "difficulty": "中等",
@@ -12023,6 +13960,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 366,
     "difficulty": "困难",
     "frontendId": "719",
@@ -12060,6 +14001,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 45
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 367,
     "difficulty": "中等",
     "frontendId": "1877",
@@ -12096,6 +14041,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 46
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 368,
     "difficulty": "困难",
@@ -12150,6 +14099,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 369,
     "difficulty": "中等",
     "frontendId": "1164",
@@ -12174,6 +14127,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 265,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 370,
     "difficulty": "中等",
@@ -12203,6 +14160,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 266,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 371,
     "difficulty": "简单",
@@ -12236,6 +14197,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 47
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 372,
     "difficulty": "中等",
@@ -12278,6 +14243,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 60,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 373,
     "difficulty": "中等",
     "frontendId": "669",
@@ -12315,6 +14284,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 48
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 374,
     "difficulty": "中等",
     "frontendId": "670",
@@ -12343,6 +14316,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 267,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 375,
     "difficulty": "困难",
@@ -12380,17 +14357,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "47.3%",
     "buckets": {
       "all": 376,
-      "thirtyDays": null,
+      "thirtyDays": 71,
       "threeMonths": 268,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 376,
     "difficulty": "困难",
     "frontendId": "815",
     "frequency": 31.4,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "breadth-first-search",
@@ -12417,6 +14399,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 49
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 377,
     "difficulty": "中等",
@@ -12455,6 +14441,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 50
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 378,
     "difficulty": "简单",
     "frontendId": "872",
@@ -12488,6 +14478,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 61,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 379,
     "difficulty": "中等",
     "frontendId": "1024",
@@ -12520,6 +14514,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 51
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 380,
     "difficulty": "中等",
@@ -12558,6 +14556,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 52
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 381,
     "difficulty": "简单",
     "frontendId": "2356",
@@ -12582,6 +14584,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 269,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 382,
     "difficulty": "困难",
@@ -12617,15 +14623,20 @@ export const leetcodeByteDanceProblems = ([
       "all": 383,
       "thirtyDays": null,
       "threeMonths": 270,
-      "sixMonths": null,
+      "sixMonths": 96,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "sixMonths": "companyRendered"
     },
     "bytedanceRank": 383,
     "difficulty": "中等",
     "frontendId": "264",
     "frequency": 31,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "hash-table",
@@ -12656,6 +14667,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 53
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 384,
     "difficulty": "简单",
@@ -12698,6 +14713,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 54
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 385,
     "difficulty": "困难",
     "frontendId": "460",
@@ -12735,6 +14754,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 55
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 386,
     "difficulty": "中等",
     "frontendId": "540",
@@ -12763,6 +14786,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 56
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 387,
     "difficulty": "中等",
@@ -12801,6 +14828,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 388,
     "difficulty": "困难",
     "frontendId": "601",
@@ -12825,6 +14856,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 57
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 389,
     "difficulty": "简单",
@@ -12851,6 +14886,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 58
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 390,
     "difficulty": "简单",
     "frontendId": "709",
@@ -12875,6 +14914,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 272,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 391,
     "difficulty": "困难",
@@ -12921,6 +14964,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 62,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 392,
     "difficulty": "中等",
     "frontendId": "923",
@@ -12962,6 +15009,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 59
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 393,
     "difficulty": "简单",
     "frontendId": "1002",
@@ -12994,6 +15045,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 273,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 394,
     "difficulty": "中等",
@@ -13036,6 +15091,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 395,
     "difficulty": "中等",
     "frontendId": "1381",
@@ -13068,6 +15127,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 63,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 396,
     "difficulty": "中等",
@@ -13110,6 +15173,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 60
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 397,
     "difficulty": "中等",
     "frontendId": "2192",
@@ -13146,6 +15213,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 61
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 398,
     "difficulty": "中等",
@@ -13184,6 +15255,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 62
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 399,
     "difficulty": "中等",
     "frontendId": "3584",
@@ -13212,6 +15287,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 275,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 400,
     "difficulty": "中等",
@@ -13246,6 +15325,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 401,
     "difficulty": "简单",
     "frontendId": "面试题 01.04",
@@ -13278,6 +15361,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 64,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 402,
     "difficulty": "中等",
@@ -13320,6 +15407,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 65,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 403,
     "difficulty": "中等",
     "frontendId": "304",
@@ -13357,6 +15448,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 63
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 404,
     "difficulty": "中等",
     "frontendId": "365",
@@ -13389,6 +15484,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 64
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 405,
     "difficulty": "中等",
@@ -13427,6 +15526,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 406,
     "difficulty": "中等",
     "frontendId": "491",
@@ -13464,6 +15567,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 65
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 407,
     "difficulty": "中等",
     "frontendId": "626",
@@ -13488,6 +15595,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 66
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 408,
     "difficulty": "简单",
@@ -13517,6 +15628,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 66,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 409,
     "difficulty": "中等",
@@ -13555,6 +15670,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 410,
     "difficulty": "简单",
     "frontendId": "696",
@@ -13584,6 +15703,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 411,
     "difficulty": "中等",
     "frontendId": "974",
@@ -13612,17 +15735,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "81.9%",
     "buckets": {
       "all": 412,
-      "thirtyDays": null,
+      "thirtyDays": 77,
       "threeMonths": 280,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 412,
     "difficulty": "简单",
     "frontendId": "1365",
     "frequency": 30.6,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "array",
@@ -13654,6 +15782,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 67,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 413,
     "difficulty": "中等",
     "frontendId": "1907",
@@ -13678,6 +15810,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 281,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 414,
     "difficulty": "中等",
@@ -13720,6 +15856,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 68,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 415,
     "difficulty": "中等",
     "frontendId": "3381",
@@ -13752,6 +15892,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 282,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 416,
     "difficulty": "简单",
@@ -13790,6 +15934,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 67
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 417,
     "difficulty": "中等",
     "frontendId": "107",
@@ -13822,6 +15970,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 283,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 418,
     "difficulty": "困难",
@@ -13856,6 +16008,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 419,
     "difficulty": "简单",
     "frontendId": "345",
@@ -13885,6 +16041,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 68
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 420,
     "difficulty": "简单",
     "frontendId": "541",
@@ -13913,6 +16073,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 69,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 421,
     "difficulty": "中等",
@@ -13947,6 +16111,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 422,
     "difficulty": "困难",
     "frontendId": "940",
@@ -13976,6 +16144,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 69
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 423,
     "difficulty": "中等",
     "frontendId": "1343",
@@ -14004,6 +16176,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 70
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 424,
     "difficulty": "中等",
@@ -14046,6 +16222,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 71
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 425,
     "difficulty": "中等",
     "frontendId": "147",
@@ -14074,6 +16254,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 72
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 426,
     "difficulty": "中等",
@@ -14111,6 +16295,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 286,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 427,
     "difficulty": "困难",
@@ -14153,6 +16341,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 428,
     "difficulty": "中等",
     "frontendId": "470",
@@ -14190,6 +16382,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
+    },
     "bytedanceRank": 429,
     "difficulty": "中等",
     "frontendId": "515",
@@ -14226,6 +16422,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 289,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 430,
     "difficulty": "中等",
@@ -14272,6 +16472,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 73
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 431,
     "difficulty": "中等",
     "frontendId": "918",
@@ -14313,6 +16517,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 70,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 432,
     "difficulty": "中等",
     "frontendId": "1174",
@@ -14337,6 +16545,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 74
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 433,
     "difficulty": "中等",
@@ -14379,6 +16591,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 75
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 434,
     "difficulty": "中等",
     "frontendId": "1934",
@@ -14403,6 +16619,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 76
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 435,
     "difficulty": "中等",
@@ -14432,6 +16652,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 71,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 436,
     "difficulty": "困难",
@@ -14469,6 +16693,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 77
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 437,
     "difficulty": "中等",
@@ -14519,6 +16747,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 78
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 438,
     "difficulty": "中等",
     "frontendId": "583",
@@ -14548,6 +16780,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 72,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 439,
     "difficulty": "中等",
     "frontendId": "636",
@@ -14576,6 +16812,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 79
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 440,
     "difficulty": "简单",
@@ -14609,6 +16849,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": 290,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888"
     },
     "bytedanceRank": 441,
     "difficulty": "中等",
@@ -14647,6 +16891,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 80
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 442,
     "difficulty": "中等",
     "frontendId": "429",
@@ -14675,6 +16923,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 81
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 443,
     "difficulty": "困难",
@@ -14711,14 +16963,18 @@ export const leetcodeByteDanceProblems = ([
       "thirtyDays": null,
       "threeMonths": null,
       "sixMonths": null,
-      "moreThanSixMonths": 82
+      "moreThanSixMonths": 97
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "companyRendered"
     },
     "bytedanceRank": 444,
     "difficulty": "简单",
     "frontendId": "111",
     "frequency": 29.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "tree",
@@ -14750,6 +17006,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 73,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 445,
     "difficulty": "简单",
     "frontendId": "338",
@@ -14774,17 +17034,22 @@ export const leetcodeByteDanceProblems = ([
     "acRate": "69.2%",
     "buckets": {
       "all": 446,
-      "thirtyDays": null,
+      "thirtyDays": 93,
       "threeMonths": 291,
       "sixMonths": null,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "threeMonths": "legacyTop888",
+      "thirtyDays": "companyRendered"
     },
     "bytedanceRank": 446,
     "difficulty": "中等",
     "frontendId": "503",
     "frequency": 29.1,
     "paidOnly": false,
-    "source": "legacyTop888",
+    "source": "companyRendered",
     "tags": [
       {
         "slug": "stack",
@@ -14812,6 +17077,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 83
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 447,
     "difficulty": "中等",
     "frontendId": "841",
@@ -14837,35 +17106,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/keys-and-rooms/description/"
   },
   {
-    "acRate": "60.1%",
-    "buckets": {
-      "all": 448,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": null,
-      "moreThanSixMonths": 84
-    },
-    "bytedanceRank": 448,
-    "difficulty": "中等",
-    "frontendId": "40",
-    "frequency": 28.8,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      },
-      {
-        "slug": "backtracking",
-        "name": "回溯"
-      }
-    ],
-    "titleCn": "组合总和 II",
-    "titleSlug": "combination-sum-ii",
-    "url": "https://leetcode.cn/problems/combination-sum-ii/description/"
-  },
-  {
     "acRate": "54.8%",
     "buckets": {
       "all": 449,
@@ -14873,6 +17113,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 85
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 449,
     "difficulty": "简单",
@@ -14891,31 +17135,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/summary-ranges/description/"
   },
   {
-    "acRate": "43.0%",
-    "buckets": {
-      "all": 450,
-      "thirtyDays": null,
-      "threeMonths": null,
-      "sixMonths": null,
-      "moreThanSixMonths": 86
-    },
-    "bytedanceRank": 450,
-    "difficulty": "中等",
-    "frontendId": "57",
-    "frequency": 28.5,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "array",
-        "name": "数组"
-      }
-    ],
-    "titleCn": "插入区间",
-    "titleSlug": "insert-interval",
-    "url": "https://leetcode.cn/problems/insert-interval/description/"
-  },
-  {
     "acRate": "82.5%",
     "buckets": {
       "all": 451,
@@ -14923,6 +17142,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 74,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 451,
     "difficulty": "简单",
@@ -14961,6 +17184,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 75,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 452,
     "difficulty": "中等",
     "frontendId": "443",
@@ -14989,6 +17216,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 76,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 453,
     "difficulty": "简单",
@@ -15031,6 +17262,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 87
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 454,
     "difficulty": "困难",
     "frontendId": "1263",
@@ -15060,47 +17295,6 @@ export const leetcodeByteDanceProblems = ([
     "url": "https://leetcode.cn/problems/minimum-moves-to-move-a-box-to-their-target-location/description/"
   },
   {
-    "acRate": "71.4%",
-    "buckets": {
-      "all": 455,
-      "thirtyDays": null,
-      "threeMonths": 292,
-      "sixMonths": null,
-      "moreThanSixMonths": null
-    },
-    "bytedanceRank": 455,
-    "difficulty": "中等",
-    "frontendId": "96",
-    "frequency": 27.9,
-    "paidOnly": false,
-    "source": "legacyTop888",
-    "tags": [
-      {
-        "slug": "tree",
-        "name": "树"
-      },
-      {
-        "slug": "binary-search-tree",
-        "name": "二叉搜索树"
-      },
-      {
-        "slug": "math",
-        "name": "数学"
-      },
-      {
-        "slug": "dynamic-programming",
-        "name": "动态规划"
-      },
-      {
-        "slug": "binary-tree",
-        "name": "二叉树"
-      }
-    ],
-    "titleCn": "不同的二叉搜索树",
-    "titleSlug": "unique-binary-search-trees",
-    "url": "https://leetcode.cn/problems/unique-binary-search-trees/description/"
-  },
-  {
     "acRate": "49.2%",
     "buckets": {
       "all": 456,
@@ -15108,6 +17302,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": 77,
       "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
     },
     "bytedanceRank": 456,
     "difficulty": "困难",
@@ -15154,6 +17352,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": 78,
       "moreThanSixMonths": null
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "sixMonths": "legacyTop888"
+    },
     "bytedanceRank": 457,
     "difficulty": "中等",
     "frontendId": "406",
@@ -15191,6 +17393,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 88
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 458,
     "difficulty": "简单",
     "frontendId": "461",
@@ -15215,6 +17421,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 89
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 459,
     "difficulty": "中等",
@@ -15252,6 +17462,10 @@ export const leetcodeByteDanceProblems = ([
       "threeMonths": null,
       "sixMonths": null,
       "moreThanSixMonths": 90
+    },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
     },
     "bytedanceRank": 460,
     "difficulty": "中等",
@@ -15298,6 +17512,10 @@ export const leetcodeByteDanceProblems = ([
       "sixMonths": null,
       "moreThanSixMonths": 91
     },
+    "bucketSources": {
+      "all": "legacyTop888",
+      "moreThanSixMonths": "legacyTop888"
+    },
     "bytedanceRank": 461,
     "difficulty": "简单",
     "frontendId": "617",
@@ -15325,21 +17543,443 @@ export const leetcodeByteDanceProblems = ([
     "titleCn": "合并二叉树",
     "titleSlug": "merge-two-binary-trees",
     "url": "https://leetcode.cn/problems/merge-two-binary-trees/description/"
+  },
+  {
+    "acRate": "72.8%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 60,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "1441",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "用栈操作构建数组",
+    "titleSlug": "build-an-array-with-stack-operations",
+    "url": "https://leetcode.cn/problems/build-an-array-with-stack-operations/description/"
+  },
+  {
+    "acRate": "60.3%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 61,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "困难",
+    "frontendId": "2435",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "矩阵中和能被 K 整除的路径",
+    "titleSlug": "paths-in-matrix-whose-sum-is-divisible-by-k",
+    "url": "https://leetcode.cn/problems/paths-in-matrix-whose-sum-is-divisible-by-k/description/"
+  },
+  {
+    "acRate": "64.1%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 64,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "面试题 04.10",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "检查子树",
+    "titleSlug": "check-subtree-lcci",
+    "url": "https://leetcode.cn/problems/check-subtree-lcci/description/"
+  },
+  {
+    "acRate": "82.2%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 65,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "面试题 08.04",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "幂集",
+    "titleSlug": "power-set-lcci",
+    "url": "https://leetcode.cn/problems/power-set-lcci/description/"
+  },
+  {
+    "acRate": "68.8%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 66,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "684",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "冗余连接",
+    "titleSlug": "redundant-connection",
+    "url": "https://leetcode.cn/problems/redundant-connection/description/"
+  },
+  {
+    "acRate": "63.7%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 74,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "1319",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "连通网络的操作次数",
+    "titleSlug": "number-of-operations-to-make-network-connected",
+    "url": "https://leetcode.cn/problems/number-of-operations-to-make-network-connected/description/"
+  },
+  {
+    "acRate": "64.7%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 75,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "LCR 026",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "重排链表",
+    "titleSlug": "LGjMqU",
+    "url": "https://leetcode.cn/problems/LGjMqU/description/"
+  },
+  {
+    "acRate": "77.3%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 76,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "简单",
+    "frontendId": "1323",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "6 和 9 组成的最大数字",
+    "titleSlug": "maximum-69-number",
+    "url": "https://leetcode.cn/problems/maximum-69-number/description/"
+  },
+  {
+    "acRate": "44.0%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 78,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "LCR 010",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "和为 K 的子数组",
+    "titleSlug": "QTMn0o",
+    "url": "https://leetcode.cn/problems/QTMn0o/description/"
+  },
+  {
+    "acRate": "64.0%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 83,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "LCR 168",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "丑数",
+    "titleSlug": "chou-shu-lcof",
+    "url": "https://leetcode.cn/problems/chou-shu-lcof/description/"
+  },
+  {
+    "acRate": "62.8%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 86,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "面试题 01.08",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "零矩阵",
+    "titleSlug": "zero-matrix-lcci",
+    "url": "https://leetcode.cn/problems/zero-matrix-lcci/description/"
+  },
+  {
+    "acRate": "70.9%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 89,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "2637",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "有时间限制的 Promise 对象",
+    "titleSlug": "promise-time-limit",
+    "url": "https://leetcode.cn/problems/promise-time-limit/description/"
+  },
+  {
+    "acRate": "83.3%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 90,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "简单",
+    "frontendId": "2833",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "距离原点最远的点",
+    "titleSlug": "furthest-point-from-origin",
+    "url": "https://leetcode.cn/problems/furthest-point-from-origin/description/"
+  },
+  {
+    "acRate": "51.2%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 91,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "困难",
+    "frontendId": "132",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "分割回文串 II",
+    "titleSlug": "palindrome-partitioning-ii",
+    "url": "https://leetcode.cn/problems/palindrome-partitioning-ii/description/"
+  },
+  {
+    "acRate": "43.1%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 92,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "困难",
+    "frontendId": "440",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "字典序的第K小数字",
+    "titleSlug": "k-th-smallest-in-lexicographical-order",
+    "url": "https://leetcode.cn/problems/k-th-smallest-in-lexicographical-order/description/"
+  },
+  {
+    "acRate": "57.5%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": 100,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "thirtyDays": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "846",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "一手顺子",
+    "titleSlug": "hand-of-straights",
+    "url": "https://leetcode.cn/problems/hand-of-straights/description/"
+  },
+  {
+    "acRate": "48.2%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": null,
+      "threeMonths": 82,
+      "sixMonths": null,
+      "moreThanSixMonths": null
+    },
+    "bucketSources": {
+      "threeMonths": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "LCR 016",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "无重复字符的最长子串",
+    "titleSlug": "wtcaE1",
+    "url": "https://leetcode.cn/problems/wtcaE1/description/"
+  },
+  {
+    "acRate": "73.1%",
+    "buckets": {
+      "all": null,
+      "thirtyDays": null,
+      "threeMonths": null,
+      "sixMonths": null,
+      "moreThanSixMonths": 96
+    },
+    "bucketSources": {
+      "moreThanSixMonths": "companyRendered"
+    },
+    "bytedanceRank": null,
+    "difficulty": "中等",
+    "frontendId": "106",
+    "frequency": null,
+    "paidOnly": false,
+    "source": "companyRendered",
+    "tags": [],
+    "titleCn": "从中序与后序遍历序列构造二叉树",
+    "titleSlug": "construct-binary-tree-from-inorder-and-postorder-traversal",
+    "url": "https://leetcode.cn/problems/construct-binary-tree-from-inorder-and-postorder-traversal/description/"
   }
 ]) satisfies LeetcodeByteDanceProblem[];
 
 export const leetcodeByteDanceStats = {
   "source": "LeetCode China company favorite favoriteQuestionList sorted by FREQUENCY descending.",
-  "sourceStatus": "legacyTop888Fallback",
-  "sourceUpdatedAt": "2026-05-16",
+  "sourceStatus": "chromeRenderedTop100MergedWithLegacyTop888Fallback",
+  "sourceUpdatedAt": "2026-05-17",
   "targetAll": 1503,
-  "syncedAll": 461,
+  "syncedAll": 465,
   "syncComplete": false,
   "bucketTotals": {
-    "all": 461,
-    "thirtyDays": 0,
-    "threeMonths": 292,
-    "sixMonths": 78,
-    "moreThanSixMonths": 91
-  }
+    "all": 465,
+    "thirtyDays": 100,
+    "threeMonths": 293,
+    "sixMonths": 175,
+    "moreThanSixMonths": 187
+  },
+  "renderedBucketCounts": {
+    "all": 100,
+    "thirtyDays": 100,
+    "threeMonths": 100,
+    "sixMonths": 100,
+    "moreThanSixMonths": 100
+  },
+  "renderedSource": "Chrome-rendered LeetCode company pages, visible Top100 per favoriteSlug."
 } as const;

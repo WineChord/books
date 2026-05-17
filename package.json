@@ -9,6 +9,7 @@
     "check:content": "node scripts/check-content.mjs",
     "check:visual-spec": "node scripts/check-visual-spec.mjs",
     "check:leetcode-implementations": "node scripts/check-leetcode-implementations.mjs",
+    "check:leetcode-study-coverage": "node scripts/check-leetcode-study-coverage.mjs",
     "check:dist": "bash scripts/check-dist.sh",
     "sync:leetcode-templates": "node scripts/sync-leetcode-templates.mjs",
     "sync:leetcode-bytedance": "node scripts/sync-leetcode-bytedance.mjs",

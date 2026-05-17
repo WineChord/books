@@ -225,12 +225,22 @@ function emptyBuckets() {
   };
 }
 
+function emptyBucketSources() {
+  return {};
+}
+
+function setBucketSource(entry, bucketKey, source) {
+  entry.bucketSources = entry.bucketSources || emptyBucketSources();
+  entry.bucketSources[bucketKey] = source;
+}
+
 function normalizeQuestion(question, rank, bucketKey) {
   const buckets = emptyBuckets();
   buckets[bucketKey] = rank;
-  return {
+  const entry = {
     acRate: percentLabel(question.acRate),
     buckets,
+    bucketSources: emptyBucketSources(),
     bytedanceRank: bucketKey === "all" ? rank : null,
     difficulty: difficultyLabel(question.difficulty),
     frontendId: question.questionFrontendId || question.id || "",
@@ -248,11 +258,18 @@ function normalizeQuestion(question, rank, bucketKey) {
     titleSlug: question.titleSlug || "",
     url: `https://leetcode.cn/problems/${question.titleSlug}/description/`,
   };
+  setBucketSource(entry, bucketKey, "companyFavorite");
+  return entry;
 }
 
 function mergeBucketEntry(target, source) {
   for (const [key, value] of Object.entries(source.buckets)) {
-    if (value !== null) target.buckets[key] = value;
+    if (value !== null) {
+      target.buckets[key] = value;
+      if (source.bucketSources?.[key]) {
+        setBucketSource(target, key, source.bucketSources[key]);
+      }
+    }
   }
   if (source.bytedanceRank !== null) target.bytedanceRank = source.bytedanceRank;
 }
@@ -305,9 +322,10 @@ function legacyFallbackEntries(problems) {
         entryBuckets.moreThanSixMonths = buckets.moreThanSixMonths;
       }
 
-      return {
+      const entry = {
         acRate: problem.acRate,
         buckets: entryBuckets,
+        bucketSources: emptyBucketSources(),
         bytedanceRank: buckets.all,
         difficulty: problem.difficulty,
         frontendId: problem.frontendId,
@@ -319,6 +337,10 @@ function legacyFallbackEntries(problems) {
         titleSlug: problem.titleSlug,
         url: problem.url,
       };
+      for (const [key, value] of Object.entries(entryBuckets)) {
+        if (value !== null) setBucketSource(entry, key, "legacyTop888");
+      }
+      return entry;
     });
 }
 
@@ -326,15 +348,91 @@ function bucketCount(entries, key) {
   return entries.filter((entry) => entry.buckets[key] !== null).length;
 }
 
-function renderOutput(entries, bucketTotals, sourceStatus) {
+function parseRenderedQuestionText(text) {
+  const match = String(text || "").match(
+    /^(.+?)\s+(\d+(?:\.\d+)?)%\s+(简单|中等|困难)$/,
+  );
+  if (!match) {
+    return {
+      acRate: null,
+      difficulty: "",
+      frontendId: "",
+      titleCn: String(text || ""),
+    };
+  }
+  const [, head, acRate, difficulty] = match;
+  const splitAt = head.indexOf(". ");
+  return {
+    acRate: `${Number(acRate).toFixed(1)}%`,
+    difficulty,
+    frontendId: splitAt === -1 ? "" : head.slice(0, splitAt),
+    titleCn: splitAt === -1 ? head : head.slice(splitAt + 2),
+  };
+}
+
+function mergeRenderedBuckets(entries, renderedBuckets) {
+  const bySlug = new Map(entries.map((entry) => [entry.titleSlug, entry]));
+  const renderedBucketCounts = {};
+
+  for (const [bucketKey, rows] of Object.entries(renderedBuckets || {})) {
+    renderedBucketCounts[bucketKey] = Array.isArray(rows) ? rows.length : 0;
+    if (!Array.isArray(rows)) continue;
+
+    rows.forEach((row, index) => {
+      if (!row?.titleSlug) return;
+      const parsed = parseRenderedQuestionText(row.text);
+      const rank = index + 1;
+      const existing = bySlug.get(row.titleSlug);
+      const entry =
+        existing ||
+        {
+          acRate: parsed.acRate,
+          buckets: emptyBuckets(),
+          bucketSources: emptyBucketSources(),
+          bytedanceRank: null,
+          difficulty: parsed.difficulty,
+          frontendId: parsed.frontendId,
+          frequency: null,
+          paidOnly: false,
+          source: "companyRendered",
+          tags: [],
+          titleCn: parsed.titleCn,
+          titleSlug: row.titleSlug,
+          url: `https://leetcode.cn/problems/${row.titleSlug}/description/`,
+        };
+
+      entry.buckets[bucketKey] = rank;
+      setBucketSource(entry, bucketKey, "companyRendered");
+      if (bucketKey === "all") entry.bytedanceRank = rank;
+      if (parsed.acRate) entry.acRate = parsed.acRate;
+      if (parsed.difficulty) entry.difficulty = parsed.difficulty;
+      if (parsed.frontendId) entry.frontendId = parsed.frontendId;
+      if (parsed.titleCn) entry.titleCn = parsed.titleCn;
+      if (entry.source === "legacyTop888") entry.source = "companyRendered";
+      bySlug.set(row.titleSlug, entry);
+    });
+  }
+
+  return {
+    entries: Array.from(bySlug.values()).sort(
+      (left, right) =>
+        (left.bytedanceRank || Number.MAX_SAFE_INTEGER) -
+        (right.bytedanceRank || Number.MAX_SAFE_INTEGER),
+    ),
+    renderedBucketCounts,
+  };
+}
+
+function renderOutput(entries, bucketTotals, sourceStatus, extraStats = {}) {
   const stats = {
     source: "LeetCode China company favorite favoriteQuestionList sorted by FREQUENCY descending.",
     sourceStatus,
-    sourceUpdatedAt: "2026-05-16",
+    sourceUpdatedAt: "2026-05-17",
     targetAll: bytedanceTargetAll,
     syncedAll: bucketCount(entries, "all"),
     syncComplete: bucketCount(entries, "all") >= bytedanceTargetAll,
     bucketTotals,
+    ...extraStats,
   };
 
   return `export interface LeetcodeByteDanceBucketRanks {
@@ -344,6 +442,11 @@ function renderOutput(entries, bucketTotals, sourceStatus) {
   sixMonths: number | null;
   moreThanSixMonths: number | null;
 }
+
+export type LeetcodeByteDanceBucketSource =
+  | "companyFavorite"
+  | "companyRendered"
+  | "legacyTop888";
 
 export interface LeetcodeByteDanceProblem {
   bytedanceRank: number | null;
@@ -355,9 +458,10 @@ export interface LeetcodeByteDanceProblem {
   acRate: string | null;
   frequency: number | null;
   paidOnly: boolean;
-  source: "companyFavorite" | "legacyTop888";
+  source: "companyFavorite" | "companyRendered" | "legacyTop888";
   tags: Array<{ slug: string; name: string }>;
   buckets: LeetcodeByteDanceBucketRanks;
+  bucketSources?: Partial<Record<keyof LeetcodeByteDanceBucketRanks, LeetcodeByteDanceBucketSource>>;
 }
 
 export const leetcodeByteDanceProblems = (${JSON.stringify(
@@ -377,10 +481,12 @@ async function main() {
     limit: numberOption("limit", defaultLimit),
     retries: numberOption("retries", defaultRetryCount),
   };
+  const renderedJsonPath = optionValue("rendered-json", "");
   const source = await readFile(problemsPath, "utf8");
   const problems = extractProblems(source);
   const bucketRows = {};
   const bucketTotals = {};
+  const extraStats = {};
 
   if (leetcodeCookie || !hasFlag("require-cookie")) {
     for (const [bucketKey, favoriteSlug] of bucketConfigs) {
@@ -416,7 +522,23 @@ async function main() {
     bucketTotals.moreThanSixMonths = bucketCount(entries, "moreThanSixMonths");
   }
 
-  await writeFile(outputPath, renderOutput(entries, bucketTotals, sourceStatus));
+  if (renderedJsonPath) {
+    const renderedBuckets = JSON.parse(await readFile(renderedJsonPath, "utf8"));
+    const merged = mergeRenderedBuckets(entries, renderedBuckets);
+    entries = merged.entries;
+    extraStats.renderedBucketCounts = merged.renderedBucketCounts;
+    extraStats.renderedSource =
+      "Chrome-rendered LeetCode company pages, visible Top100 per favoriteSlug.";
+    sourceStatus =
+      sourceStatus === "companyFavorite"
+        ? "companyFavoriteWithChromeRenderedBuckets"
+        : "chromeRenderedTop100MergedWithLegacyTop888Fallback";
+    for (const [key, count] of Object.entries(merged.renderedBucketCounts)) {
+      bucketTotals[key] = Math.max(bucketCount(entries, key), count);
+    }
+  }
+
+  await writeFile(outputPath, renderOutput(entries, bucketTotals, sourceStatus, extraStats));
   console.log(`wrote ${entries.length} ByteDance rows to ${outputPath.pathname}`);
 }
 

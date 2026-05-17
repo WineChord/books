@@ -19543,15 +19543,249 @@ export const leetcodeGeneratedImplementationReferences = ({
       "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/0600-0699/0617.Merge%20Two%20Binary%20Trees/README.md",
       "code": "/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode() : val(0), left(nullptr), right(nullptr) {}\n *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}\n * };\n */\nclass Solution {\npublic:\n    TreeNode* mergeTrees(TreeNode* root1, TreeNode* root2) {\n        if (!root1) return root2;\n        if (!root2) return root1;\n        TreeNode* node = new TreeNode(root1->val + root2->val);\n        node->left = mergeTrees(root1->left, root2->left);\n        node->right = mergeTrees(root1->right, root2->right);\n        return node;\n    }\n};"
     }
+  ],
+  "n-queens-ii": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n!)$，空间复杂度 $O(n)$ / Space $O(n)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 0052.N-Queens II Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/0000-0099/0052.N-Queens%20II/README.md",
+      "code": "class Solution {\npublic:\n    int totalNQueens(int n) {\n        bitset<10> cols;\n        bitset<20> dg;\n        bitset<20> udg;\n        int ans = 0;\n        function<void(int)> dfs = [&](int i) {\n            if (i == n) {\n                ++ans;\n                return;\n            }\n            for (int j = 0; j < n; ++j) {\n                int a = i + j, b = i - j + n;\n                if (cols[j] || dg[a] || udg[b]) continue;\n                cols[j] = dg[a] = udg[b] = 1;\n                dfs(i + 1);\n                cols[j] = dg[a] = udg[b] = 0;\n            }\n        };\n        dfs(0);\n        return ans;\n    }\n};"
+    }
+  ],
+  "search-in-rotated-sorted-array-ii": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time 吗？会有怎样的影响，为什么？ / Space $O(1)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 0081.Search in Rotated Sorted Array II Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/0000-0099/0081.Search%20in%20Rotated%20Sorted%20Array%20II/README.md",
+      "code": "class Solution {\npublic:\n    bool search(vector<int>& nums, int target) {\n        int l = 0, r = nums.size() - 1;\n        while (l < r) {\n            int mid = (l + r) >> 1;\n            if (nums[mid] > nums[r]) {\n                if (nums[l] <= target && target <= nums[mid]) {\n                    r = mid;\n                } else {\n                    l = mid + 1;\n                }\n            } else if (nums[mid] < nums[r]) {\n                if (nums[mid] < target && target <= nums[r]) {\n                    l = mid + 1;\n                } else {\n                    r = mid;\n                }\n            } else {\n                --r;\n            }\n        }\n        return nums[l] == target;\n    }\n};"
+    }
+  ],
+  "recover-binary-search-tree": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n)$，空间复杂度 $O(n)$ / Space 的解法很容易实现",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 0099.Recover Binary Search Tree Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/0000-0099/0099.Recover%20Binary%20Search%20Tree/README.md",
+      "code": "/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode() : val(0), left(nullptr), right(nullptr) {}\n *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}\n * };\n */\nclass Solution {\npublic:\n    void recoverTree(TreeNode* root) {\n        TreeNode* prev = nullptr;\n        TreeNode* first = nullptr;\n        TreeNode* second = nullptr;\n        function<void(TreeNode * root)> dfs = [&](TreeNode* root) {\n            if (!root) return;\n            dfs(root->left);\n            if (prev && prev->val > root->val) {\n                if (!first) first = prev;\n                second = root;\n            }\n            prev = root;\n            dfs(root->right);\n        };\n        dfs(root);\n        swap(first->val, second->val);\n    }\n};"
+    }
+  ],
+  "check-subtree-lcci": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n^2)$，空间复杂度 $O(n)$ / Space $O(n)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 04.10.Check SubTree Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/lcci/04.10.Check%20SubTree/README.md",
+      "code": "/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode(int x) : val(x), left(NULL), right(NULL) {}\n * };\n */\nclass Solution {\npublic:\n    bool checkSubTree(TreeNode* t1, TreeNode* t2) {\n        if (!t2) {\n            return true;\n        }\n        if (!t1) {\n            return false;\n        }\n        if (dfs(t1, t2)) {\n            return true;\n        }\n        return checkSubTree(t1->left, t2) || checkSubTree(t1->right, t2);\n    }\n\n    bool dfs(TreeNode* t1, TreeNode* t2) {\n        if (!t2) {\n            return !t1;\n        }\n        if (!t1 || t1->val != t2->val) {\n            return false;\n        }\n        return dfs(t1->left, t2->left) && dfs(t1->right, t2->right);\n    }\n};"
+    }
+  ],
+  "redundant-connection": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n \\log n)$，空间复杂度 $O(n)$ / Space $O(n)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 0684.Redundant Connection Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/0600-0699/0684.Redundant%20Connection/README.md",
+      "code": "class Solution {\npublic:\n    vector<int> findRedundantConnection(vector<vector<int>>& edges) {\n        int n = edges.size();\n        vector<int> p(n);\n        iota(p.begin(), p.end(), 0);\n        function<int(int)> find = [&](int x) {\n            return x == p[x] ? x : p[x] = find(p[x]);\n        };\n        for (int i = 0;; ++i) {\n            int pa = find(edges[i][0] - 1);\n            int pb = find(edges[i][1] - 1);\n            if (pa == pb) {\n                return edges[i];\n            }\n            p[pa] = pb;\n        }\n    }\n};"
+    },
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Solution 2: Union-Find (Template Approach)",
+      "complexity": "Time is $O(n \\alpha(n))$, and the space complexity is $O(n)$ / Space is $O(n)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 0684.Redundant Connection Solution 2: Union-Find (Template Approach)",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/0600-0699/0684.Redundant%20Connection/README_EN.md",
+      "code": "class UnionFind {\npublic:\n    UnionFind(int n) {\n        p = vector<int>(n);\n        size = vector<int>(n, 1);\n        iota(p.begin(), p.end(), 0);\n    }\n\n    bool unite(int a, int b) {\n        int pa = find(a), pb = find(b);\n        if (pa == pb) {\n            return false;\n        }\n        if (size[pa] > size[pb]) {\n            p[pb] = pa;\n            size[pa] += size[pb];\n        } else {\n            p[pa] = pb;\n            size[pb] += size[pa];\n        }\n        return true;\n    }\n\n    int find(int x) {\n        if (p[x] != x) {\n            p[x] = find(p[x]);\n        }\n        return p[x];\n    }\n\nprivate:\n    vector<int> p, size;\n};\n\nclass Solution {\npublic:\n    vector<int> findRedundantConnection(vector<vector<int>>& edges) {\n        UnionFind uf(edges.size());\n        for (int i = 0;; ++i) {\n            if (!uf.unite(edges[i][0] - 1, edges[i][1] - 1)) {\n                return edges[i];\n            }\n        }\n    }\n};"
+    },
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": null,
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 剑指 Offer II 118. 多余的边 Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/lcof2/%E5%89%91%E6%8C%87%20Offer%20II%20118.%20%E5%A4%9A%E4%BD%99%E7%9A%84%E8%BE%B9/README.md",
+      "code": "class Solution {\npublic:\n    vector<int> p;\n\n    vector<int> findRedundantConnection(vector<vector<int>>& edges) {\n        p.resize(1010);\n        for (int i = 0; i < p.size(); ++i) p[i] = i;\n        for (auto& e : edges) {\n            int a = e[0], b = e[1];\n            if (find(a) == find(b)) return e;\n            p[find(a)] = find(b);\n        }\n        return {};\n    }\n\n    int find(int x) {\n        if (p[x] != x) p[x] = find(p[x]);\n        return p[x];\n    }\n};"
+    }
+  ],
+  "number-of-operations-to-make-network-connected": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(m \\times \\log n)$，空间复杂度 $O(n)$ / Space $O(n)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 1319.Number of Operations to Make Network Connected Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/1300-1399/1319.Number%20of%20Operations%20to%20Make%20Network%20Connected/README.md",
+      "code": "class Solution {\npublic:\n    int makeConnected(int n, vector<vector<int>>& connections) {\n        vector<int> p(n);\n        iota(p.begin(), p.end(), 0);\n        int cnt = 0;\n        function<int(int)> find = [&](int x) -> int {\n            if (p[x] != x) {\n                p[x] = find(p[x]);\n            }\n            return p[x];\n        };\n        for (const auto& c : connections) {\n            int pa = find(c[0]), pb = find(c[1]);\n            if (pa == pb) {\n                ++cnt;\n            } else {\n                p[pa] = pb;\n                --n;\n            }\n        }\n        return cnt >= n - 1 ? n - 1 : -1;\n    }\n};"
+    }
+  ],
+  "LGjMqU": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": null,
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 剑指 Offer II 026. 重排链表 Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/lcof2/%E5%89%91%E6%8C%87%20Offer%20II%20026.%20%E9%87%8D%E6%8E%92%E9%93%BE%E8%A1%A8/README.md",
+      "code": "/**\n * Definition for singly-linked list.\n * struct ListNode {\n *     int val;\n *     ListNode *next;\n *     ListNode() : val(0), next(nullptr) {}\n *     ListNode(int x) : val(x), next(nullptr) {}\n *     ListNode(int x, ListNode *next) : val(x), next(next) {}\n * };\n */\nclass Solution {\npublic:\n    void reorderList(ListNode* head) {\n        ListNode* mid = middleNode(head);\n        ListNode* tmp = mid->next;\n        mid->next = nullptr;\n        tmp = reverseList(tmp);\n        head = mergeTwoLists(head, tmp);\n    }\n\n    ListNode* middleNode(ListNode* head) {\n        ListNode* slow = head;\n        ListNode* fast = head;\n        while (fast && fast->next) {\n            slow = slow->next;\n            fast = fast->next->next;\n        }\n        return slow;\n    }\n\n    ListNode* reverseList(ListNode* head) {\n        ListNode* pre = nullptr;\n        ListNode* cur = head;\n        while (cur) {\n            ListNode* tmp = cur->next;\n            cur->next = pre;\n            pre = cur;\n            cur = tmp;\n        }\n        return pre;\n    }\n\n    ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {\n        ListNode* dummy = new ListNode();\n        ListNode* cur = dummy;\n        while (l1 && l2) {\n            cur->next = l1;\n            l1 = l1->next;\n            cur = cur->next;\n            cur->next = l2;\n            l2 = l2->next;\n            cur = cur->next;\n        }\n        cur->next = l1 ? l1 : l2;\n        return dummy->next;\n    }\n};"
+    }
+  ],
+  "maximum-69-number": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(\\log \\textit{num})$，空间复杂度 $O(\\log \\textit{num})$ / Space $O(\\log \\textit{num})$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 1323.Maximum 69 Number Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/1300-1399/1323.Maximum%2069%20Number/README.md",
+      "code": "class Solution {\npublic:\n    int maximum69Number(int num) {\n        string s = to_string(num);\n        for (char& ch : s) {\n            if (ch == '6') {\n                ch = '9';\n                break;\n            }\n        }\n        return stoi(s);\n    }\n};"
+    }
+  ],
+  "QTMn0o": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n)$，空间复杂度 $O(n)$ / Space $O(n)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 剑指 Offer II 010. 和为 k 的子数组 Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/lcof2/%E5%89%91%E6%8C%87%20Offer%20II%20010.%20%E5%92%8C%E4%B8%BA%20k%20%E7%9A%84%E5%AD%90%E6%95%B0%E7%BB%84/README.md",
+      "code": "class Solution {\npublic:\n    int subarraySum(vector<int>& nums, int k) {\n        unordered_map<int, int> cnt;\n        cnt[0] = 1;\n        int ans = 0, s = 0;\n        for (int x : nums) {\n            s += x;\n            ans += cnt[s - k];\n            cnt[s]++;\n        }\n        return ans;\n    }\n};"
+    }
+  ],
+  "chou-shu-lcof": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n \\times \\log n)$，空间复杂度 $O(n)$ / Space $O(n)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 面试题49. 丑数 Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/lcof/%E9%9D%A2%E8%AF%95%E9%A2%9849.%20%E4%B8%91%E6%95%B0/README.md",
+      "code": "class Solution {\npublic:\n    int nthUglyNumber(int n) {\n        priority_queue<long, vector<long>, greater<long>> q;\n        q.push(1l);\n        unordered_set<long> vis{{1l}};\n        long ans = 1;\n        vector<int> f = {2, 3, 5};\n        while (n--) {\n            ans = q.top();\n            q.pop();\n            for (int& v : f) {\n                long nxt = ans * v;\n                if (!vis.count(nxt)) {\n                    vis.insert(nxt);\n                    q.push(nxt);\n                }\n            }\n        }\n        return (int) ans;\n    }\n};"
+    }
+  ],
+  "furthest-point-from-origin": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n)$，其中 $n$ 为字符串的长度 / Space $O(1)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 2833.Furthest Point From Origin Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/solution/2800-2899/2833.Furthest%20Point%20From%20Origin/README.md",
+      "code": "class Solution {\npublic:\n    int furthestDistanceFromOrigin(string moves) {\n        auto cnt = [&](char c) {\n            return count(moves.begin(), moves.end(), c);\n        };\n        return abs(cnt('L') - cnt('R')) + cnt('_');\n    }\n};"
+    }
+  ],
+  "wtcaE1": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "external-reference",
+      "approachTitle": "Reference",
+      "complexity": "Time $O(n)$，空间复杂度 $O(|\\Sigma|)$，其中 $n$ 为字符串 $s$ 的长度，而 $\\Sigma$ 表示字符集，本题中字符集为所有 ASCII / Space $O(|\\Sigma|)$，其中 $n$ 为字符串 $s$ 的长度，而 $\\Sigma$ 表示字符集，本题中字符集为所有 ASCII 码在 $[0, 128)$",
+      "license": "CC-BY-SA-4.0",
+      "modified": false,
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "Doocs 剑指 Offer II 016. 不含重复字符的最长子字符串 Reference",
+      "sourceUrl": "https://github.com/doocs/leetcode/blob/main/lcof2/%E5%89%91%E6%8C%87%20Offer%20II%20016.%20%E4%B8%8D%E5%90%AB%E9%87%8D%E5%A4%8D%E5%AD%97%E7%AC%A6%E7%9A%84%E6%9C%80%E9%95%BF%E5%AD%90%E5%AD%97%E7%AC%A6%E4%B8%B2/README.md",
+      "code": "class Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        bool ss[128] = {false};\n        int n = s.size();\n        int ans = 0;\n        for (int i = 0, j = 0; i < n; ++i) {\n            while (ss[s[i]]) {\n                ss[s[j++]] = false;\n            }\n            ss[s[i]] = true;\n            ans = max(ans, i - j + 1);\n        }\n        return ans;\n    }\n};"
+    }
   ]
 }) satisfies Record<string, LeetcodeImplementationReference[]>;
 
 export const leetcodeGeneratedImplementationStats = {
   "generatedAt": "2026-05-16",
-  "targetProblems": 860,
-  "problems": 860,
-  "references": 1188,
-  "cppProblems": 797,
+  "targetProblems": 872,
+  "problems": 872,
+  "references": 1202,
+  "cppProblems": 809,
   "nonCppOnlyProblems": 63,
   "missing": [],
   "sources": [
