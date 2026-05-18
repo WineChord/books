@@ -25,6 +25,10 @@ import {
   leetcodeStats,
 } from "../data/leetcode-problems";
 import {
+  leetcodeProblemConstraintStats,
+  leetcodeProblemConstraints,
+} from "../data/leetcode-problem-constraints";
+import {
   leetcodeRelatedQuestionStats,
   leetcodeRelatedQuestions,
 } from "../data/leetcode-related";
@@ -350,6 +354,7 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     bytedanceRank: entry?.bytedanceRank ?? null,
     bytedanceSource: entry?.source ?? (problem.bytedance ? "legacyTop888" : null),
     bytedanceVerified: hasVerifiedByteDanceBucket || problem.bytedanceVerified,
+    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -384,6 +389,7 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
       "字节跳动企业题库补充题。题面预览需要后续同步，当前可点击题目链接打开力扣原题。",
     approachPreview:
       "按字节企业题库频率补充展示；先用官方模板练习，后续再同步题面、思路和 reference implementation。",
+    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
     followUps: [],
   }));
 const mergedLeetcodeProblems = [
@@ -908,6 +914,11 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeRelatedQuestionStats.questions} 条官方相关题已同步`
           : `${leetcodeRelatedQuestionStats.questions} official related problems synced`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeProblemConstraintStats.problems} 道题数据范围已同步`
+          : `${leetcodeProblemConstraintStats.problems} problems with data ranges synced`}
       </span>
     </div>
 
@@ -3872,6 +3883,7 @@ const shortcutRows = [
           ([key, source]) => `字节${key} ${byteDanceSourceLabel(source)}`,
         ),
         ...problem.tags.map((tag) => tag.name),
+        ...(problem.constraints || []),
         ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
         ...(problem.companyFollowUps || []).flatMap((item) => [
           item.question,
@@ -6803,6 +6815,23 @@ const shortcutRows = [
       return paragraphs;
     }
 
+    function renderProblemConstraints(problem) {
+      const constraints = Array.isArray(problem.constraints)
+        ? problem.constraints.filter(Boolean)
+        : [];
+      if (!constraints.length) return "";
+      return `
+        <section class="leetcode-constraints">
+          <strong>${isChinesePage ? "数据范围" : "Data ranges"}</strong>
+          <ul>
+            ${constraints
+              .map((item) => `<li>${escapeHtml(item)}</li>`)
+              .join("")}
+          </ul>
+        </section>
+      `;
+    }
+
     function renderProblemStatementPanel(problem) {
       const slug = escapeHtml(problem.titleSlug);
       const hiddenClass = editorStatementPanelVisible ? "" : " is-hidden";
@@ -6816,6 +6845,7 @@ const shortcutRows = [
               ? "本地题面待同步，可先打开力扣原题查看。"
               : "Local statement pending; open LeetCode for the full problem."
           }</p>`;
+      const constraints = renderProblemConstraints(problem);
       return `
         <div class="leetcode-statement-panel${hiddenClass}" data-statement-panel="${slug}">
           <div class="leetcode-statement-collapsed">
@@ -6837,6 +6867,7 @@ const shortcutRows = [
             </div>
             <div class="leetcode-statement-body">
               ${body}
+              ${constraints}
             </div>
           </div>
         </div>
@@ -8978,6 +9009,34 @@ const shortcutRows = [
       font-size: inherit;
       line-height: inherit;
       margin: 0;
+    }
+
+    .leetcode-constraints {
+      display: grid;
+      gap: 0.34rem;
+      border-top: 1px solid rgb(194 192 182 / 42%);
+      margin-top: 0.08rem;
+      padding-top: 0.52rem;
+    }
+
+    .leetcode-constraints strong {
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+      line-height: 1.2;
+    }
+
+    .leetcode-constraints ul {
+      display: grid;
+      gap: 0.18rem;
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    .leetcode-constraints li {
+      color: var(--color-muted);
+      font-size: 0.8rem;
+      line-height: 1.55;
+      word-break: break-word;
     }
 
     @media (max-width: 46rem) {

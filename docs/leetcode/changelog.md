@@ -17,6 +17,9 @@ its Chrome extension workflow.
 - A suggested-flow action in the "Suggested practice" popover, also available
   with `Cmd+Option+Shift+F`. It opens the top recommendation first, then
   recomputes recommendations and advances after each full Accepted submit.
+- Data ranges for every problem shown in the local statement panel, synced
+  from LeetCode problem statements with public Doocs fallbacks for paid-only
+  statements.
 - A browser-local "Suggested practice" recommendation button that ranks
   problems with a practice-scheduling score. The score combines review due-ness,
   weakness, problem value, current fit, and fatigue penalty, and it supports

@@ -3,6 +3,10 @@ import { readFile } from "node:fs/promises";
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const constraintsPath = new URL(
+  "src/data/leetcode-problem-constraints.ts",
+  repoRoot,
+);
 const codeTemplatesPath = new URL("src/data/leetcode-code-templates.ts", repoRoot);
 const personalReferencesPath = new URL(
   "src/data/leetcode-implementation-references.ts",
@@ -179,6 +183,20 @@ function checkStudyContent(problem, issues) {
   }
 }
 
+function checkProblemConstraints(problem, constraintsBySlug, issues) {
+  const constraints = constraintsBySlug[problem.titleSlug];
+  if (!Array.isArray(constraints) || constraints.length === 0) {
+    addIssue(issues, "error", "missing data ranges", problem, "empty");
+    return;
+  }
+  for (const constraint of constraints) {
+    if (isBlank(constraint)) {
+      addIssue(issues, "error", "invalid data range", problem, "blank item");
+      return;
+    }
+  }
+}
+
 function checkCompanyFollowUps(problem, issues) {
   for (const followUp of problem.companyFollowUps ?? []) {
     if (
@@ -295,12 +313,14 @@ function printIssueSection(title, issues, limit) {
 const [
   problemsSource,
   bytedanceSource,
+  constraintsSource,
   codeTemplatesSource,
   personalReferencesSource,
   generatedReferencesSource,
 ] = await Promise.all([
   readFile(problemsPath, "utf8"),
   readFile(bytedancePath, "utf8"),
+  readFile(constraintsPath, "utf8"),
   readFile(codeTemplatesPath, "utf8"),
   readFile(personalReferencesPath, "utf8"),
   readFile(generatedReferencesPath, "utf8"),
@@ -315,6 +335,10 @@ const leetcodeByteDanceProblems = extractJsonArray(
   bytedanceSource,
   "leetcodeByteDanceProblems",
   "satisfies LeetcodeByteDanceProblem\\[\\];",
+);
+const leetcodeProblemConstraints = extractJsonObject(
+  constraintsSource,
+  "leetcodeProblemConstraints",
 );
 const leetcodeCodeTemplates = extractJsonObject(
   codeTemplatesSource,
@@ -344,6 +368,7 @@ for (const problem of candidates) {
   implementationReferenceCount += references.length;
   if (references.some(isCppReference)) cppReferenceProblemCount += 1;
   checkStudyContent(problem, issues);
+  checkProblemConstraints(problem, leetcodeProblemConstraints, issues);
   checkCompanyFollowUps(problem, issues);
   checkImplementations(problem, references, templates, issues);
   checkWarningCoverage(problem, references, issues);
@@ -358,6 +383,7 @@ const sampleLimit = maxSamples();
 
 console.log("LeetCode study coverage summary:");
 console.log(`- page candidates: ${candidates.length}`);
+console.log(`- data range rows: ${Object.keys(leetcodeProblemConstraints).length}`);
 console.log(`- Top888 data rows: ${leetcodeProblems.length}`);
 console.log(`- ByteDance supplements: ${supplementCount}`);
 console.log(`- implementation references: ${implementationReferenceCount}`);
