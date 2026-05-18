@@ -7531,6 +7531,14 @@ const shortcutRows = [
       display: none;
     }
 
+    .leetcode-statement-content {
+      display: grid;
+      grid-template-areas: "body actions";
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      column-gap: 0.68rem;
+    }
+
     .leetcode-statement-collapsed,
     .leetcode-statement-head,
     .leetcode-statement-actions {
@@ -7545,6 +7553,7 @@ const shortcutRows = [
     }
 
     .leetcode-statement-head {
+      grid-area: actions;
       justify-content: flex-end;
     }
 
@@ -7556,6 +7565,7 @@ const shortcutRows = [
     }
 
     .leetcode-statement-actions {
+      flex-wrap: nowrap;
       justify-content: flex-end;
     }
 
@@ -7580,6 +7590,7 @@ const shortcutRows = [
     }
 
     .leetcode-statement-body {
+      grid-area: body;
       display: grid;
       gap: 0.44rem;
       max-height: min(22rem, 42vh);
@@ -7587,7 +7598,7 @@ const shortcutRows = [
       color: var(--color-secondary);
       font-size: 0.88rem;
       line-height: 1.72;
-      padding-right: 0.18rem;
+      padding-right: 0;
     }
 
     .leetcode-practice-panel .leetcode-statement-body p {
@@ -7595,6 +7606,25 @@ const shortcutRows = [
       font-size: inherit;
       line-height: inherit;
       margin: 0;
+    }
+
+    @media (max-width: 46rem) {
+      .leetcode-statement-content {
+        grid-template-areas:
+          "actions"
+          "body";
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 0.36rem;
+      }
+
+      .leetcode-statement-head,
+      .leetcode-statement-actions {
+        justify-content: flex-start;
+      }
+
+      .leetcode-statement-actions {
+        flex-wrap: wrap;
+      }
     }
 
     .leetcode-practice-head,
