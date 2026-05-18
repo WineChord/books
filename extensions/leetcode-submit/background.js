@@ -1,7 +1,7 @@
 const pageMessageSource = "books-leetcode-page";
 const extensionMessageSource = "books-leetcode-extension";
 const protocolVersion = 1;
-const featureVersion = 2;
+const featureVersion = 3;
 const leetcodeOrigin = "https://leetcode.cn";
 const leetcodeUrlFilter = "||leetcode.cn/";
 const leetcodeHeaderRuleId = 1;
@@ -20,12 +20,18 @@ const runRequestType = "run";
 const submitRequestType = "submit";
 const loginStatusRequestType = "login-status";
 const extraRunTestcasesCapability = "extra-run-testcases";
+const groupedRunTestcasesCapability = "grouped-run-testcases";
+const officialTestcaseSource = "official";
+const extraTestcaseSource = "extra";
+const defaultTestcaseParameterName = "input";
+const testcaseParameterPrefix = "arg";
 const extensionCapabilities = [
   checkRequestType,
   runRequestType,
   submitRequestType,
   loginStatusRequestType,
   extraRunTestcasesCapability,
+  groupedRunTestcasesCapability,
 ];
 const pendingState = "PENDING";
 const startedState = "STARTED";
@@ -38,6 +44,7 @@ query questionEditorData($titleSlug: String!) {
     title
     titleSlug
     exampleTestcases
+    metaData
     codeSnippets {
       lang
       langSlug
@@ -314,6 +321,64 @@ function normalizedCheckInput(request) {
   return { submissionId };
 }
 
+function parsedQuestionMetaData(question) {
+  const raw = String(question?.metaData || "").trim();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function testcaseParameterNames(question) {
+  const metadata = parsedQuestionMetaData(question);
+  if (!Array.isArray(metadata.params)) return [];
+  const names = metadata.params
+    .map((param) => String(param?.name || "").trim())
+    .filter(Boolean);
+  return names.length ? names : [defaultTestcaseParameterName];
+}
+
+function testcaseInputLines(testcases) {
+  return String(testcases || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function testcaseGroupsFrom(testcases, names, source) {
+  const lines = testcaseInputLines(testcases);
+  if (!lines.length) return [];
+  const arity = Math.max(1, names.length);
+  const groups = [];
+  for (let offset = 0; offset < lines.length; offset += arity) {
+    const values = lines.slice(offset, offset + arity);
+    const fields = values.map((value, index) => ({
+      name: names[index] || `${testcaseParameterPrefix}${index + 1}`,
+      value,
+    }));
+    groups.push({ fields, source });
+  }
+  return groups;
+}
+
+function runTestcaseGroups(question, input) {
+  const names = testcaseParameterNames(question);
+  return [
+    ...testcaseGroupsFrom(
+      question.exampleTestcases,
+      names,
+      officialTestcaseSource,
+    ),
+    ...testcaseGroupsFrom(
+      input.extraTestcases,
+      names,
+      extraTestcaseSource,
+    ),
+  ];
+}
+
 function submitUrl(slug) {
   return `${leetcodeOrigin}/problems/${encodeURIComponent(slug)}/` +
     submitPathSuffix;
@@ -366,6 +431,7 @@ async function createRun(input, question, csrfToken) {
   return {
     payload,
     submissionId: interpretId,
+    testcaseGroups: runTestcaseGroups(question, input),
     testcases: dataInput,
   };
 }
@@ -472,6 +538,7 @@ async function handleRun(request) {
       },
       run: run.payload,
       submissionId: run.submissionId,
+      testcaseGroups: run.testcaseGroups,
       testcases: run.testcases,
     },
   });

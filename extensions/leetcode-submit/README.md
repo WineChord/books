@@ -69,6 +69,22 @@ The extension responds back to the page with the same `requestId`.
       interpret_id: 123456789,
     },
     submissionId: 123456789,
+    testcaseGroups: [
+      {
+        source: "official",
+        fields: [
+          { name: "nums", value: "[2,7,11,15]" },
+          { name: "target", value: "9" }
+        ]
+      },
+      {
+        source: "extra",
+        fields: [
+          { name: "nums", value: "[0,4,3,0]" },
+          { name: "target", value: "0" }
+        ]
+      }
+    ],
     testcases: "[2,7,11,15]\n9\n[0,4,3,0]\n0"
   }
 }
@@ -175,10 +191,11 @@ extension is current before running or submitting.
       "run",
       "submit",
       "login-status",
-      "extra-run-testcases"
+      "extra-run-testcases",
+      "grouped-run-testcases"
     ],
-    extensionVersion: "0.2.0",
-    featureVersion: 2,
+    extensionVersion: "0.3.0",
+    featureVersion: 3,
     isLoggedIn: true,
     hasCsrfToken: true
   }
@@ -200,6 +217,10 @@ For a run or submit request, the background service worker:
 7. For later `check` requests, reads
    `https://leetcode.cn/submissions/detail/{submissionId}/check/` once and
    returns a structured result or structured error to the page.
+
+For run requests, the extension also parses `questionEditorData.metaData` and
+returns `testcaseGroups` so the page can display each LeetCode input case with
+its parameter names instead of one combined blob.
 
 Cookie values are not logged, hardcoded, sent to the page, or stored by this
 extension.

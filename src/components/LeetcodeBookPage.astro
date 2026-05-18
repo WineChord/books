@@ -1060,11 +1060,12 @@ const shortcutRows = [
     const extensionRunRequestType = "run";
     const extensionSubmitRequestType = "submit";
     const extensionExtraRunTestcasesCapability = "extra-run-testcases";
+    const extensionGroupedRunTestcasesCapability = "grouped-run-testcases";
     const leetcodeRequestTimeoutCode = "leetcode_request_timeout";
     const unsupportedRequestTypeCode = "unsupported_request_type";
     const extensionProbeFailedCode = "extension_probe_failed";
     const extensionProbeTimeoutCode = "extension_probe_timeout";
-    const extensionRequiredFeatureVersion = 2;
+    const extensionRequiredFeatureVersion = 3;
     const extensionPingTimeoutMs = 2500;
     const extensionProbeCacheMs = 15 * 1000;
     const extensionCheckTimeoutMs = 45000;
@@ -1472,10 +1473,22 @@ const shortcutRows = [
       return extraRunCaseList(problem.titleSlug).join("\n");
     }
 
+    function normalizedExtraRunCase(testcase) {
+      return String(testcase || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join("\n");
+    }
+
     function addExtraRunCase(slug, testcase) {
-      const normalized = String(testcase || "").trim();
+      const normalized = normalizedExtraRunCase(testcase);
       if (!slug || !normalized) return false;
-      const cases = extraRunCaseList(slug).filter((item) => item !== normalized);
+      const cases = extraRunCaseList(slug);
+      const exists = cases.some(
+        (item) => normalizedExtraRunCase(item) === normalized,
+      );
+      if (exists) return false;
       cases.push(normalized);
       extraRunCases[slug] = cases.slice(-maxExtraRunCasesPerProblem);
       writeExtraRunCases();
@@ -3947,7 +3960,8 @@ const shortcutRows = [
         capabilities.has(extensionCheckRequestType) &&
         capabilities.has(extensionRunRequestType) &&
         capabilities.has(extensionSubmitRequestType) &&
-        capabilities.has(extensionExtraRunTestcasesCapability)
+        capabilities.has(extensionExtraRunTestcasesCapability) &&
+        capabilities.has(extensionGroupedRunTestcasesCapability)
       );
     }
 
@@ -4209,13 +4223,35 @@ const shortcutRows = [
       );
     }
 
-    function runAccepted(result) {
+    function numericSubmissionCount(value) {
+      const text = meaningfulSubmissionValue(value);
+      if (!/^\d+$/.test(text)) return null;
+      const number = Number(text);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function allSubmittedTestcasesPassed(result) {
+      if (result?.runSuccess === false) return false;
+      const totalCorrect = numericSubmissionCount(result?.totalCorrect);
+      const totalTestcases = numericSubmissionCount(result?.totalTestcases);
       return (
-        submissionStatusAccepted(result) ||
-        (result?.runSuccess &&
-          result?.totalCorrect !== null &&
-          result?.totalCorrect === result?.totalTestcases)
+        totalCorrect !== null &&
+        totalTestcases !== null &&
+        totalTestcases > 0 &&
+        totalCorrect === totalTestcases
       );
+    }
+
+    function runAccepted(result) {
+      if (
+        result?.totalCorrect !== null &&
+        result?.totalCorrect !== undefined &&
+        result?.totalTestcases !== null &&
+        result?.totalTestcases !== undefined
+      ) {
+        return allSubmittedTestcasesPassed(result);
+      }
+      return Boolean(result?.runSuccess && submissionStatusAccepted(result));
     }
 
     function meaningfulSubmissionValue(value) {
@@ -4298,7 +4334,48 @@ const shortcutRows = [
       ].filter(([, value]) => value);
     }
 
-    function runTestcaseDetails(testcases) {
+    function testcaseSourceLabel(source) {
+      if (source === "extra") return isChinesePage ? "补充" : "Extra";
+      if (source === "official") return isChinesePage ? "官方" : "Official";
+      return "";
+    }
+
+    function normalizedRunTestcaseGroups(groups) {
+      if (!Array.isArray(groups)) return [];
+      return groups
+        .map((group, index) => {
+          const fields = Array.isArray(group?.fields) ? group.fields : [];
+          const normalizedFields = fields
+            .map((field, fieldIndex) => {
+              const value = submissionDetailValue(field?.value);
+              if (!value) return null;
+              return {
+                name: String(field?.name || `arg${fieldIndex + 1}`).trim(),
+                value,
+              };
+            })
+            .filter(Boolean);
+          if (!normalizedFields.length) return null;
+          return {
+            fields: normalizedFields,
+            label: isChinesePage ? `用例 ${index + 1}` : `Case ${index + 1}`,
+            source: testcaseSourceLabel(group?.source),
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function runTestcaseDetails(testcases, groups = []) {
+      const cases = normalizedRunTestcaseGroups(groups);
+      if (cases.length) {
+        return [
+          {
+            cases,
+            kind: "testcases",
+            label: isChinesePage ? "运行用例" : "Run testcases",
+          },
+        ];
+      }
       const value = submissionDetailValue(testcases);
       if (!value) return [];
       return [[isChinesePage ? "运行用例" : "Run testcases", value]];
@@ -4322,6 +4399,72 @@ const shortcutRows = [
       container.append(row);
     }
 
+    function appendTestcaseField(panel, field) {
+      const fieldElement = document.createElement("div");
+      const labelElement = document.createElement("span");
+      const valueElement = document.createElement("pre");
+      fieldElement.className = "leetcode-testcase-field";
+      labelElement.className = "leetcode-testcase-field-label";
+      labelElement.textContent = field.name ? `${field.name} =` : "input =";
+      valueElement.textContent = field.value;
+      fieldElement.append(labelElement, valueElement);
+      panel.append(fieldElement);
+    }
+
+    function appendTestcaseDetailRow(container, row) {
+      const wrapper = document.createElement("div");
+      const labelElement = document.createElement("span");
+      const card = document.createElement("div");
+      const tabs = document.createElement("div");
+      const body = document.createElement("div");
+      const tabId = `leetcode-case-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`;
+      wrapper.className = "leetcode-submit-detail-row leetcode-testcase-row";
+      labelElement.className = "leetcode-submit-detail-label";
+      labelElement.textContent = row.label;
+      card.className = "leetcode-testcase-card";
+      card.dataset.testcaseCard = "true";
+      tabs.className = "leetcode-testcase-tabs";
+      tabs.setAttribute("role", "tablist");
+      body.className = "leetcode-testcase-body";
+
+      row.cases.forEach((testcase, index) => {
+        const tab = document.createElement("button");
+        const panel = document.createElement("div");
+        const isActive = index === 0;
+        tab.type = "button";
+        tab.dataset.testcaseTab = String(index);
+        tab.className = isActive ? "is-active" : "";
+        tab.id = `${tabId}-tab-${index}`;
+        tab.setAttribute("aria-controls", `${tabId}-panel-${index}`);
+        tab.setAttribute("aria-selected", String(isActive));
+        tab.setAttribute("role", "tab");
+        tab.append(document.createTextNode(testcase.label));
+        if (testcase.source) {
+          const source = document.createElement("span");
+          source.className = "leetcode-testcase-source";
+          source.textContent = testcase.source;
+          tab.append(source);
+        }
+
+        panel.className = "leetcode-testcase-panel";
+        panel.dataset.testcasePanel = String(index);
+        panel.hidden = !isActive;
+        panel.id = `${tabId}-panel-${index}`;
+        panel.setAttribute("aria-labelledby", tab.id);
+        panel.setAttribute("role", "tabpanel");
+        testcase.fields.forEach((field) => appendTestcaseField(panel, field));
+
+        tabs.append(tab);
+        body.append(panel);
+      });
+
+      card.append(tabs, body);
+      wrapper.append(labelElement, card);
+      container.append(wrapper);
+    }
+
     function renderSubmitDetails(panel, rows) {
       const container = panel?.querySelector("[data-submit-detail]");
       if (!(container instanceof HTMLElement)) return;
@@ -4330,7 +4473,16 @@ const shortcutRows = [
         container.hidden = true;
         return;
       }
-      rows.forEach(([label, value]) => {
+      rows.forEach((detailRow) => {
+        if (
+          detailRow &&
+          typeof detailRow === "object" &&
+          detailRow.kind === "testcases"
+        ) {
+          appendTestcaseDetailRow(container, detailRow);
+          return;
+        }
+        const [label, value] = detailRow;
         appendSubmissionDetailRow(container, label, value);
       });
       container.hidden = false;
@@ -4474,6 +4626,7 @@ const shortcutRows = [
         }
         const testcaseRows = runTestcaseDetails(
           response.data?.testcases || extraTestcases,
+          response.data?.testcaseGroups,
         );
         if (testcaseRows.length) {
           setSubmitStatus(
@@ -4689,6 +4842,22 @@ const shortcutRows = [
       return renderProblem(problem) + (state.expandedSlug === problem.titleSlug ? renderPracticePanel(problem) : "");
     }
 
+    function switchTestcaseTab(tab) {
+      const card = tab.closest("[data-testcase-card]");
+      if (!(card instanceof HTMLElement)) return;
+      const activeIndex = tab.dataset.testcaseTab || "";
+      card.querySelectorAll("[data-testcase-tab]").forEach((item) => {
+        if (!(item instanceof HTMLElement)) return;
+        const isActive = item.dataset.testcaseTab === activeIndex;
+        item.classList.toggle("is-active", isActive);
+        item.setAttribute("aria-selected", String(isActive));
+      });
+      card.querySelectorAll("[data-testcase-panel]").forEach((item) => {
+        if (!(item instanceof HTMLElement)) return;
+        item.hidden = item.dataset.testcasePanel !== activeIndex;
+      });
+    }
+
     function render() {
       rollEditorDraftsForToday();
       const items = orderedProblems();
@@ -4891,6 +5060,11 @@ const shortcutRows = [
       }
       if (target.closest(".leetcode-related-item")) return;
       if (target.closest(".leetcode-practice-panel")) {
+        const testcaseTab = target.closest("[data-testcase-tab]");
+        if (testcaseTab instanceof HTMLElement) {
+          switchTestcaseTab(testcaseTab);
+          return;
+        }
         const actionButton = target.closest("[data-editor-action]");
         if (actionButton instanceof HTMLElement) {
           const slug = actionButton.dataset.slug || "";
@@ -6569,9 +6743,76 @@ const shortcutRows = [
       gap: 0.22rem;
     }
 
+    .leetcode-testcase-row {
+      gap: 0.38rem;
+    }
+
     .leetcode-submit-detail-label {
       color: #72563c;
       font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .leetcode-testcase-card {
+      display: grid;
+      gap: 0.48rem;
+    }
+
+    .leetcode-testcase-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.28rem;
+    }
+
+    .leetcode-testcase-tabs button {
+      display: inline-flex;
+      gap: 0.28rem;
+      align-items: center;
+      min-height: 1.76rem;
+      border: 1px solid var(--leetcode-editor-border);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 38%);
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.18rem 0.48rem;
+    }
+
+    .leetcode-testcase-tabs button.is-active {
+      border-color: var(--color-terracotta);
+      background: rgb(217 119 87 / 12%);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-testcase-source {
+      border-radius: 999px;
+      background: rgb(20 20 19 / 7%);
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      padding: 0.02rem 0.28rem;
+    }
+
+    .leetcode-testcase-body,
+    .leetcode-testcase-panel {
+      display: grid;
+      gap: 0.42rem;
+    }
+
+    .leetcode-testcase-panel[hidden] {
+      display: none;
+    }
+
+    .leetcode-testcase-field {
+      display: grid;
+      gap: 0.18rem;
+    }
+
+    .leetcode-testcase-field-label {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
       font-weight: 700;
     }
 
@@ -6597,6 +6838,14 @@ const shortcutRows = [
 
     html.dark .leetcode-submit-detail-label {
       color: #d6b48c;
+    }
+
+    html.dark .leetcode-testcase-tabs button {
+      background: rgb(21 21 20 / 58%);
+    }
+
+    html.dark .leetcode-testcase-source {
+      background: rgb(255 255 255 / 8%);
     }
 
     html.dark .leetcode-submit-detail pre {
