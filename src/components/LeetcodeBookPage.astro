@@ -705,19 +705,6 @@ const shortcutRows = [
         </div>
       </section>
 
-      <section class="leetcode-insight-board" aria-label={isZh ? "熟练度建议" : "Practice insights"}>
-        <div class="leetcode-insight-lead">
-          <span>{isZh ? "猜你想写" : "Suggested today"}</span>
-          <strong data-insight-pick>{isZh ? "提交几次后开始排序" : "Submit a few problems to rank them"}</strong>
-          <button type="button" data-insight-open disabled>
-            {isZh ? "开始" : "Start"}
-          </button>
-        </div>
-        <div class="leetcode-insight-list" data-insight-list>
-          <span>{isZh ? "暂无本站提交统计。" : "No local submission stats yet."}</span>
-        </div>
-      </section>
-
       <div class="leetcode-list-meta">
         <nav
           class="leetcode-pagination leetcode-pagination-top"
@@ -733,6 +720,20 @@ const shortcutRows = [
           </label>
           <button type="button" data-page-action="next" title={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
           <button type="button" data-page-action="last" title={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
+          <span
+            class="leetcode-insight-tip"
+            title={isZh ? "悬浮查看推荐题；点击打开第一题" : "Hover for recommended problems; click to open the first one"}
+          >
+            <button type="button" data-insight-open aria-disabled="true">
+              {isZh ? "猜你想写" : "Suggested"}
+            </button>
+            <span class="leetcode-insight-popover" role="tooltip">
+              <strong data-insight-pick>{isZh ? "提交几次后开始排序" : "Submit a few problems to rank them"}</strong>
+              <span class="leetcode-insight-list" data-insight-list>
+                <span>{isZh ? "暂无本站提交统计。" : "No local submission stats yet."}</span>
+              </span>
+            </span>
+          </span>
           <span
             class="leetcode-shortcut-tip"
             tabindex="0"
@@ -2440,7 +2441,7 @@ const shortcutRows = [
             : "Submit a few problems to rank them");
       }
       if (insightOpen instanceof HTMLButtonElement) {
-        insightOpen.disabled = !pick;
+        insightOpen.setAttribute("aria-disabled", String(!pick));
         if (pick) {
           insightOpen.dataset.openInsight = pick.problem.titleSlug;
         } else {
@@ -6797,72 +6798,78 @@ const shortcutRows = [
       white-space: nowrap;
     }
 
-    .leetcode-insight-board {
-      display: grid;
-      grid-template-columns: minmax(14rem, 0.72fr) minmax(0, 1fr);
-      gap: 0.28rem;
-      align-items: stretch;
-      margin: 0 0 0.25rem;
-      border: 1px solid rgb(194 192 182 / 54%);
-      border-radius: 0.5rem;
-      background: rgb(255 255 255 / 18%);
-      padding: 0.22rem;
-    }
-
-    .leetcode-insight-lead,
-    .leetcode-insight-item {
-      min-width: 0;
-      border: 1px solid rgb(194 192 182 / 46%);
+    .leetcode-history-tip {
+      position: relative;
+      justify-self: end;
+      border: 1px solid rgb(194 192 182 / 70%);
       border-radius: 0.42rem;
-      background: rgb(20 20 19 / 2.4%);
-    }
-
-    .leetcode-insight-lead {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 0.34rem;
-      align-items: center;
-      padding: 0.24rem 0.34rem;
-    }
-
-    .leetcode-insight-lead > span {
-      color: var(--color-terracotta);
-      font-family: var(--font-mono);
-      font-size: 0.56rem;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .leetcode-insight-lead strong {
-      overflow: hidden;
-      color: var(--color-charcoal);
-      font-size: 0.76rem;
-      line-height: 1.2;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .leetcode-insight-lead button,
-    .leetcode-insight-item {
       cursor: pointer;
-      font: inherit;
-    }
-
-    .leetcode-insight-lead button {
-      border: 1px solid var(--color-border);
-      border-radius: 0.38rem;
-      background: transparent;
-      color: var(--color-secondary);
-      font-size: 0.62rem;
+      font-weight: 700;
       padding: 0.16rem 0.34rem;
       white-space: nowrap;
     }
 
-    .leetcode-insight-lead button:disabled {
+    .leetcode-insight-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .leetcode-insight-tip > button {
+      box-sizing: border-box;
+      min-height: var(--leetcode-page-control-height);
+      border: 1px solid rgb(217 119 87 / 42%);
+      border-radius: 0.42rem;
+      background: rgb(217 119 87 / 9%);
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.68rem;
+      line-height: 1;
+      padding: 0 0.42rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-insight-tip > button[aria-disabled="true"] {
       cursor: default;
-      opacity: 0.48;
+      opacity: 0.58;
+    }
+
+    .leetcode-insight-tip::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 19;
+      display: none;
+      width: min(34rem, calc(100vw - 2rem));
+      height: 0.42rem;
+    }
+
+    .leetcode-insight-popover {
+      position: absolute;
+      top: calc(100% + 0.36rem);
+      right: 0;
+      z-index: 20;
+      display: none;
+      width: min(34rem, calc(100vw - 2rem));
+      border: 1px solid rgb(194 192 182 / 88%);
+      border-radius: 0.55rem;
+      background: rgb(255 252 242 / 98%);
+      box-shadow: 0 1rem 2.4rem rgb(58 44 30 / 16%);
+      color: var(--color-charcoal);
+      padding: 0.42rem;
+    }
+
+    .leetcode-insight-popover > strong {
+      display: block;
+      overflow: hidden;
+      margin: 0 0 0.34rem;
+      color: var(--color-charcoal);
+      font-size: 0.72rem;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .leetcode-insight-list {
@@ -6882,14 +6889,20 @@ const shortcutRows = [
     .leetcode-insight-item {
       display: grid;
       gap: 0.06rem;
+      min-width: 0;
+      border: 1px solid rgb(194 192 182 / 58%);
+      border-radius: 0.42rem;
+      background: rgb(20 20 19 / 2.4%);
       color: inherit;
+      cursor: pointer;
+      font: inherit;
       padding: 0.22rem 0.32rem;
       text-align: left;
     }
 
     .leetcode-insight-item:hover,
     .leetcode-insight-item:focus-visible,
-    .leetcode-insight-lead button:not(:disabled):hover {
+    .leetcode-insight-tip > button[aria-disabled="false"]:hover {
       border-color: var(--color-terracotta);
       color: var(--color-terracotta);
     }
@@ -6922,15 +6935,11 @@ const shortcutRows = [
       line-height: 1.2;
     }
 
-    .leetcode-history-tip {
-      position: relative;
-      justify-self: end;
-      border: 1px solid rgb(194 192 182 / 70%);
-      border-radius: 0.42rem;
-      cursor: pointer;
-      font-weight: 700;
-      padding: 0.16rem 0.34rem;
-      white-space: nowrap;
+    .leetcode-insight-tip:hover .leetcode-insight-popover,
+    .leetcode-insight-tip:focus-within .leetcode-insight-popover,
+    .leetcode-insight-tip:hover::after,
+    .leetcode-insight-tip:focus-within::after {
+      display: block;
     }
 
     .leetcode-history-tip::after {
@@ -8140,18 +8149,19 @@ const shortcutRows = [
       background: rgb(30 30 28 / 38%);
     }
 
-    html.dark .leetcode-insight-board {
+    html.dark .leetcode-insight-popover {
       border-color: #333;
-      background: rgb(30 30 28 / 32%);
+      background: rgb(22 22 20 / 98%);
+      box-shadow: 0 1rem 2.4rem rgb(0 0 0 / 28%);
     }
 
-    html.dark .leetcode-insight-lead,
+    html.dark .leetcode-insight-tip > button,
     html.dark .leetcode-insight-item {
       border-color: #333;
       background: rgb(255 255 255 / 4%);
     }
 
-    html.dark .leetcode-insight-lead strong,
+    html.dark .leetcode-insight-popover > strong,
     html.dark .leetcode-insight-item b {
       color: var(--color-cream);
     }
@@ -8803,10 +8813,6 @@ const shortcutRows = [
 
       .leetcode-session-board {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .leetcode-insight-board {
-        grid-template-columns: 1fr;
       }
 
       .leetcode-session-actions {

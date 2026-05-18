@@ -11,6 +11,6 @@ its Chrome extension workflow.
 - Per-problem counts for submit attempts, Accepted submissions, failed
   submissions, latest code size, Accepted time, average Accepted time, and
   time per 10 nonblank code lines.
-- A browser-local heuristic recommendation board that ranks attempted problems
-  by unfamiliarity and exposes a "Suggested today" problem.
+- A browser-local heuristic recommendation button that ranks attempted problems
+  by unfamiliarity in a hover popover and exposes a "Suggested today" problem.
 - Footer access to this changelog from the LeetCode page.

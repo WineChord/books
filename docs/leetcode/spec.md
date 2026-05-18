@@ -239,13 +239,14 @@ submission-stat store. The store does not import historical LeetCode records;
 it only records submissions initiated from the local editor after this feature
 exists. For each problem it tracks submit attempts, Accepted count, failed
 submit count, latest code size, Accepted time, average Accepted time, and time
-per 10 nonblank code lines. A compact recommendation board ranks locally
-attempted problems by a heuristic unfamiliarity score: failed submissions,
-failure rate, slow Accepted time normalized by code size, review state, and
-forgetting-curve age increase the score; repeated recent Accepted submissions
-and manual mastered state reduce it. The highest score becomes the daily
-"Suggested today" item, and the top ranked problems can be opened directly from
-the board. This ranking is intentionally heuristic and browser-local.
+per 10 nonblank code lines. A compact recommendation button opens a hover/focus
+popover that ranks locally attempted problems by a heuristic unfamiliarity
+score: failed submissions, failure rate, slow Accepted time normalized by code
+size, review state, and forgetting-curve age increase the score; repeated
+recent Accepted submissions and manual mastered state reduce it. The highest
+score becomes the daily "Suggested today" item, and the top ranked problems can
+be opened directly from the popover. This ranking is intentionally heuristic
+and browser-local.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and
