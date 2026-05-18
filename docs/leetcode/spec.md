@@ -186,7 +186,10 @@ again from the statement panel; that visibility choice is saved per browser.
 Editor shortcuts match the primary LeetCode muscle memory: `Cmd+'`
 runs the official example testcases and `Cmd+Enter` performs a full LeetCode
 submit. Inside the editor, `Cmd+/` toggles line comments for the current
-language while preserving the active selection or caret. Practice navigation is
+language while preserving the active selection or caret. `Cmd+Left` and
+`Cmd+Shift+Left` move or select to the first non-whitespace code character
+before falling back to the true line start, matching the LeetCode editor's
+indent-aware line-start behavior. Practice navigation is
 also keyboard-first: `Option+J` or `Option+Down` opens and focuses the next
 visible problem's editor, while `Option+K` or `Option+Up` opens and focuses the
 previous one. Common page actions must also be keyboard reachable: `/` focuses

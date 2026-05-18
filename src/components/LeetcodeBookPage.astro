@@ -4196,14 +4196,41 @@ const shortcutRows = [
       );
     }
 
+    function isEditorSmartLineStartShortcut(event) {
+      return (
+        event.metaKey &&
+        !event.shiftKey &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        event.key === "ArrowLeft"
+      );
+    }
+
+    function smartLineStartPosition(value, position) {
+      const bounds = lineBounds(value, position);
+      const codeStart = firstCodePositionInLine(value, bounds.start, bounds.end);
+      return position > codeStart ? codeStart : bounds.start;
+    }
+
+    function handleEditorSmartLineStart(event, textarea) {
+      if (!isEditorSmartLineStartShortcut(event)) return false;
+      const nextPosition = smartLineStartPosition(
+        textarea.value,
+        editorSelectionFocus(textarea),
+      );
+      event.preventDefault();
+      textarea.setSelectionRange(nextPosition, nextPosition);
+      scheduleViewStateWrite();
+      scheduleEditorCaretReveal(textarea);
+      return true;
+    }
+
     function handleEditorSmartLineSelect(event, textarea) {
       if (!isEditorSmartLineSelectShortcut(event)) return false;
       const value = textarea.value;
       const focus = editorSelectionFocus(textarea);
       const anchor = editorSelectionAnchor(textarea);
-      const bounds = lineBounds(value, focus);
-      const codeStart = firstCodePositionInLine(value, bounds.start, bounds.end);
-      const nextFocus = focus > codeStart ? codeStart : bounds.start;
+      const nextFocus = smartLineStartPosition(value, focus);
       const selectionStart = Math.min(anchor, nextFocus);
       const selectionEnd = Math.max(anchor, nextFocus);
       const direction = nextFocus < anchor ? "backward" : "forward";
@@ -4854,6 +4881,9 @@ const shortcutRows = [
         return true;
       }
       if (handleEditorSmartLineSelect(event, textarea)) {
+        return true;
+      }
+      if (handleEditorSmartLineStart(event, textarea)) {
         return true;
       }
       if (isEditorRunShortcut(event)) {
