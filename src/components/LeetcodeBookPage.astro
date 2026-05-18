@@ -912,7 +912,7 @@ const shortcutRows = [
       </div>
     </section>
 
-    <details class="leetcode-extension-guide">
+    <details id="leetcode-extension-guide" class="leetcode-extension-guide">
       <summary>{isZh ? "安装 Chrome 扩展后直接提交到力扣" : "Install the Chrome extension to submit to LeetCode"}</summary>
       <div>
         {
@@ -1059,9 +1059,14 @@ const shortcutRows = [
     const extensionLoginStatusRequestType = "login-status";
     const extensionRunRequestType = "run";
     const extensionSubmitRequestType = "submit";
+    const extensionExtraRunTestcasesCapability = "extra-run-testcases";
     const leetcodeRequestTimeoutCode = "leetcode_request_timeout";
     const unsupportedRequestTypeCode = "unsupported_request_type";
+    const extensionProbeFailedCode = "extension_probe_failed";
+    const extensionProbeTimeoutCode = "extension_probe_timeout";
+    const extensionRequiredFeatureVersion = 2;
     const extensionPingTimeoutMs = 2500;
+    const extensionProbeCacheMs = 15 * 1000;
     const extensionCheckTimeoutMs = 45000;
     const extensionRequestTimeoutMs = 30000;
     const extensionInitialResultTimeoutMs = 120000;
@@ -1112,6 +1117,9 @@ const shortcutRows = [
     const pendingExtensionRequests = new Map();
     const isChinesePage = document.documentElement.lang.startsWith("zh");
     let extensionRequestSequence = 0;
+    let extensionProbeCheckedAt = 0;
+    let extensionProbePromise = null;
+    let extensionProbeResponse = null;
     let previewHoverCloseTimer = 0;
     let viewStateWriteTimer = 0;
 
@@ -3883,22 +3891,197 @@ const shortcutRows = [
       }, previewHoverCloseDelayMs);
     }
 
-    async function ensureLeetcodeReady(panel) {
-      setSubmitStatus(panel, "正在检测 Chrome 扩展...", "pending");
-      const loginStatus = await extensionRequest(
+    function extensionDetectingMessage() {
+      return isChinesePage
+        ? "正在检测 Chrome 扩展状态..."
+        : "Checking Chrome extension status...";
+    }
+
+    function extensionProbeFailedMessage() {
+      return isChinesePage
+        ? "扩展检测失败。"
+        : "Extension check failed.";
+    }
+
+    function outdatedExtensionMessage() {
+      return isChinesePage
+        ? "Chrome 扩展已连接，但版本偏旧；请在 chrome://extensions 里重新加载 extensions/leetcode-submit，然后刷新本页。"
+        : "The Chrome extension is connected but outdated; reload extensions/leetcode-submit in chrome://extensions, then refresh this page.";
+    }
+
+    function extensionLoginRequiredMessage() {
+      return isChinesePage
+        ? "Chrome 扩展已连接且版本最新，但当前 Chrome 未登录 leetcode.cn。"
+        : "The Chrome extension is connected and current, but this Chrome profile is not signed in to leetcode.cn.";
+    }
+
+    function extensionCsrfMissingMessage() {
+      return isChinesePage
+        ? "Chrome 扩展已连接且版本最新，但缺少 leetcode.cn CSRF cookie。"
+        : "The Chrome extension is connected and current, but the leetcode.cn CSRF cookie is missing.";
+    }
+
+    function currentExtensionMessage(data) {
+      const version = String(data?.extensionVersion || "").trim();
+      const versionText = version ? ` ${version}` : "";
+      return isChinesePage
+        ? `Chrome 扩展已连接，已是最新版本${versionText}；可运行样例/提交力扣。`
+        : `Chrome extension connected and current${versionText}; ready to run examples or submit.`;
+    }
+
+    function extensionLoginData(response) {
+      const data = response?.data;
+      return data && typeof data === "object" ? data : {};
+    }
+
+    function extensionCapabilitySet(data) {
+      if (!Array.isArray(data?.capabilities)) return new Set();
+      return new Set(data.capabilities.map((capability) => String(capability)));
+    }
+
+    function currentExtensionSupportsPage(data) {
+      const version = Number(data?.featureVersion || 0);
+      const capabilities = extensionCapabilitySet(data);
+      return (
+        version >= extensionRequiredFeatureVersion &&
+        capabilities.has(extensionCheckRequestType) &&
+        capabilities.has(extensionRunRequestType) &&
+        capabilities.has(extensionSubmitRequestType) &&
+        capabilities.has(extensionExtraRunTestcasesCapability)
+      );
+    }
+
+    function extensionReadiness(response) {
+      if (!response?.ok) {
+        return {
+          message: extensionErrorMessage(response, extensionProbeFailedMessage()),
+          ready: false,
+          tone: "error",
+        };
+      }
+      const data = extensionLoginData(response);
+      if (!currentExtensionSupportsPage(data)) {
+        return {
+          message: outdatedExtensionMessage(),
+          ready: false,
+          tone: "error",
+        };
+      }
+      if (!data.isLoggedIn) {
+        return {
+          message: extensionLoginRequiredMessage(),
+          ready: false,
+          tone: "error",
+        };
+      }
+      if (!data.hasCsrfToken) {
+        return {
+          message: extensionCsrfMissingMessage(),
+          ready: false,
+          tone: "error",
+        };
+      }
+      return {
+        message: currentExtensionMessage(data),
+        ready: true,
+        tone: "success",
+      };
+    }
+
+    function extensionProbeErrorResponse(error) {
+      return {
+        error: {
+          code: error?.timedOut
+            ? extensionProbeTimeoutCode
+            : extensionProbeFailedCode,
+          message: error?.message || extensionProbeFailedMessage(),
+        },
+        ok: false,
+        type: "error",
+      };
+    }
+
+    function cacheExtensionProbeResponse(response) {
+      extensionProbeCheckedAt = Date.now();
+      extensionProbeResponse = response;
+      return response;
+    }
+
+    async function leetcodeLoginStatus(options = {}) {
+      const force = Boolean(options.force);
+      const isFresh =
+        extensionProbeResponse &&
+        Date.now() - extensionProbeCheckedAt < extensionProbeCacheMs;
+      if (!force && isFresh) return extensionProbeResponse;
+      if (!force && extensionProbePromise) return extensionProbePromise;
+
+      extensionProbePromise = extensionRequest(
         extensionLoginStatusRequestType,
         {},
         extensionPingTimeoutMs,
-      );
-      if (!loginStatus?.ok) {
-        throw new Error(extensionErrorMessage(loginStatus, "扩展检测失败。"));
+      )
+        .then(cacheExtensionProbeResponse)
+        .catch((error) => cacheExtensionProbeResponse(
+          extensionProbeErrorResponse(error),
+        ));
+
+      try {
+        return await extensionProbePromise;
+      } finally {
+        extensionProbePromise = null;
       }
-      if (!loginStatus.data?.isLoggedIn) {
-        throw new Error("Chrome 扩展已连接，但当前 Chrome 未登录 leetcode.cn。");
+    }
+
+    function panelHasActiveLeetcodeAction(panel) {
+      return panel instanceof HTMLElement &&
+        panel.dataset.leetcodeActionBusy === "true";
+    }
+
+    function setPanelLeetcodeActionBusy(panel, busy) {
+      if (!(panel instanceof HTMLElement)) return;
+      if (busy) {
+        panel.dataset.leetcodeActionBusy = "true";
+        return;
       }
-      if (!loginStatus.data?.hasCsrfToken) {
-        throw new Error("Chrome 扩展已连接，但缺少 leetcode.cn CSRF cookie。");
-      }
+      delete panel.dataset.leetcodeActionBusy;
+    }
+
+    function applyLeetcodeExtensionProbe(panel, response) {
+      if (!(panel instanceof HTMLElement) || !panel.isConnected) return;
+      if (panelHasActiveLeetcodeAction(panel)) return;
+      const readiness = extensionReadiness(response);
+      setSubmitStatus(panel, readiness.message, readiness.tone);
+    }
+
+    function syncRenderedExtensionStatus() {
+      list?.querySelectorAll(".leetcode-practice-panel").forEach((panel) => {
+        if (!(panel instanceof HTMLElement)) return;
+        if (panel.dataset.extensionProbeStarted === "true") return;
+        panel.dataset.extensionProbeStarted = "true";
+        if (
+          extensionProbeResponse &&
+          Date.now() - extensionProbeCheckedAt < extensionProbeCacheMs
+        ) {
+          applyLeetcodeExtensionProbe(panel, extensionProbeResponse);
+          return;
+        }
+        setSubmitStatus(panel, extensionDetectingMessage(), "pending");
+        leetcodeLoginStatus()
+          .then((response) => applyLeetcodeExtensionProbe(panel, response))
+          .catch((error) => {
+            applyLeetcodeExtensionProbe(
+              panel,
+              extensionProbeErrorResponse(error),
+            );
+          });
+      });
+    }
+
+    async function ensureLeetcodeReady(panel) {
+      setSubmitStatus(panel, extensionDetectingMessage(), "pending");
+      const loginStatus = await leetcodeLoginStatus({ force: true });
+      const readiness = extensionReadiness(loginStatus);
+      if (!readiness.ready) throw new Error(readiness.message);
     }
 
     function editorPayload(problem, textarea, options = {}) {
@@ -4276,6 +4459,7 @@ const shortcutRows = [
 
     async function runLeetcode(panel, actionButton, problem, textarea) {
       setActionBusy(actionButton, true);
+      setPanelLeetcodeActionBusy(panel, true);
       try {
         await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在运行官方示例...", "pending");
@@ -4317,12 +4501,14 @@ const shortcutRows = [
       } catch (error) {
         setSubmitStatus(panel, error.message || "运行失败。", "error");
       } finally {
+        setPanelLeetcodeActionBusy(panel, false);
         setActionBusy(actionButton, false);
       }
     }
 
     async function submitLeetcode(panel, actionButton, problem, textarea) {
       setActionBusy(actionButton, true);
+      setPanelLeetcodeActionBusy(panel, true);
       try {
         await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在提交到力扣...", "pending");
@@ -4372,6 +4558,7 @@ const shortcutRows = [
       } catch (error) {
         setSubmitStatus(panel, error.message || "提交失败。", "error");
       } finally {
+        setPanelLeetcodeActionBusy(panel, false);
         setActionBusy(actionButton, false);
       }
     }
@@ -4429,7 +4616,10 @@ const shortcutRows = [
             </div>
           </div>
           <div class="leetcode-submit-note" aria-live="polite">
-            <span data-submit-status="${escapeHtml(problem.titleSlug)}">安装本仓库 Chrome 扩展后可直接提交到力扣；页面不会读取你的登录 cookie。</span>
+            <div class="leetcode-submit-status-row">
+              <span data-submit-status="${escapeHtml(problem.titleSlug)}">${escapeHtml(extensionDetectingMessage())}</span>
+              <a href="#leetcode-extension-guide" data-extension-guide-link>${isChinesePage ? "安装/更新方法" : "Install/update"}</a>
+            </div>
             <div class="leetcode-submit-detail" data-submit-detail hidden></div>
           </div>
         </section>
@@ -4513,6 +4703,7 @@ const shortcutRows = [
       }
       syncPagination();
       syncRenderedEditors();
+      syncRenderedExtensionStatus();
       syncActivePracticeTimerAfterRender();
     }
 
@@ -4631,6 +4822,13 @@ const shortcutRows = [
       if (!(target instanceof HTMLElement)) return;
       if (!target.closest("[data-preview]")) {
         closePreviewPopovers();
+      }
+      const extensionGuideLink = target.closest("[data-extension-guide-link]");
+      if (extensionGuideLink instanceof HTMLElement) {
+        const guide = document.getElementById("leetcode-extension-guide");
+        if (guide instanceof HTMLElement && guide.tagName === "DETAILS") {
+          guide.open = true;
+        }
       }
       const globalEditorAction = target.closest("[data-editor-action-global]");
       if (globalEditorAction instanceof HTMLElement) {
@@ -5846,6 +6044,8 @@ const shortcutRows = [
 
     .leetcode-footer-links a:hover,
     .leetcode-footer-links a:focus-visible,
+    .leetcode-submit-note [data-extension-guide-link]:hover,
+    .leetcode-submit-note [data-extension-guide-link]:focus-visible,
     .leetcode-extension-guide a:hover,
     .leetcode-extension-guide a:focus-visible {
       text-decoration: underline;
@@ -6317,10 +6517,27 @@ const shortcutRows = [
       margin: 0;
     }
 
+    .leetcode-submit-status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.18rem 0.5rem;
+      align-items: baseline;
+    }
+
     .leetcode-submit-note [data-submit-status] {
-      display: block;
+      flex: 1 1 18rem;
       line-height: 1.55;
       overflow-wrap: anywhere;
+    }
+
+    .leetcode-submit-note [data-extension-guide-link] {
+      flex: 0 0 auto;
+      color: var(--color-terracotta);
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1.55;
+      text-decoration: none;
+      white-space: nowrap;
     }
 
     .leetcode-submit-note [data-tone="pending"] {

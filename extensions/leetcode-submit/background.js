@@ -1,6 +1,7 @@
 const pageMessageSource = "books-leetcode-page";
 const extensionMessageSource = "books-leetcode-extension";
 const protocolVersion = 1;
+const featureVersion = 2;
 const leetcodeOrigin = "https://leetcode.cn";
 const leetcodeUrlFilter = "||leetcode.cn/";
 const leetcodeHeaderRuleId = 1;
@@ -18,6 +19,14 @@ const checkRequestType = "check";
 const runRequestType = "run";
 const submitRequestType = "submit";
 const loginStatusRequestType = "login-status";
+const extraRunTestcasesCapability = "extra-run-testcases";
+const extensionCapabilities = [
+  checkRequestType,
+  runRequestType,
+  submitRequestType,
+  loginStatusRequestType,
+  extraRunTestcasesCapability,
+];
 const pendingState = "PENDING";
 const startedState = "STARTED";
 
@@ -427,12 +436,16 @@ async function checkSubmissionOnce(submissionId, csrfToken) {
 
 async function handleLoginStatus(request) {
   const loginState = await leetcodeLoginState();
+  const manifest = chrome.runtime.getManifest();
   return responseFor(request, {
     ok: true,
     type: loginStatusRequestType,
     data: {
-      isLoggedIn: loginState.isLoggedIn,
+      capabilities: extensionCapabilities,
+      extensionVersion: manifest.version || "",
+      featureVersion,
       hasCsrfToken: Boolean(loginState.csrfToken),
+      isLoggedIn: loginState.isLoggedIn,
     },
   });
 }

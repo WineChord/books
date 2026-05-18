@@ -240,19 +240,24 @@ the extension checks `/submissions/detail/{id}/check/` once per request. This
 avoids keeping a Manifest V3 message channel open while LeetCode is still
 running the job. For compatibility with already-loaded older unpacked
 extensions, the page also accepts a finished result returned by the initial
-`run` or `submit` response before sending `check`. Cookie values are never sent
-to page JavaScript or stored in the repo. If the extension is not installed or
-the user is not logged in, the page shows that as status and keeps the local
-editor usable. The run result panel shows the exact testcase input sent to
-LeetCode. When full submission returns a failed testcase, the page shows the
-failing testcase, actual output, expected output, and compile or runtime
-diagnostics below the status line, then stores that testcase as an extra run
-case for the same problem. Extra run cases reset on the next Beijing calendar
-day, so daily practice starts from the official examples again.
+`run` or `submit` response before sending `check`. The page also probes
+`login-status` when a practice editor opens. That response includes an
+extension feature version and capability list, so the page can tell whether the
+loaded unpacked extension is current and point stale or missing installs to the
+installation guide. Cookie values are never sent to page JavaScript or stored
+in the repo. If the extension is not installed, outdated, or the user is not
+logged in, the page shows that as status and keeps the local editor usable. The
+run result panel shows the exact testcase input sent to LeetCode. When full
+submission returns a failed testcase, the page shows the failing testcase,
+actual output, expected output, and compile or runtime diagnostics below the
+status line, then stores that testcase as an extra run case for the same
+problem. Extra run cases reset on the next Beijing calendar day, so daily
+practice starts from the official examples again.
 The page footer also keeps always-visible links to the GitHub repository,
 extension directory, feedback issues, and page spec. It also includes a
-collapsed, beginner-oriented installation guide for loading this unpacked
-Chrome extension from the repository.
+collapsed, beginner-oriented installation guide for loading or reloading this
+unpacked Chrome extension from the repository; the practice editor links
+directly to this guide.
 
 Preview controls include statement, approach, and implementation. Approach,
 implementation, and tag previews can be inspected temporarily by hover or

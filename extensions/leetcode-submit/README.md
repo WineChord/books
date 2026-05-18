@@ -158,7 +158,9 @@ window.postMessage(
 );
 ```
 
-The response contains only booleans.
+The response contains login booleans plus extension metadata. The page uses
+`featureVersion` and `capabilities` to detect whether the loaded unpacked
+extension is current before running or submitting.
 
 ```js
 {
@@ -168,6 +170,15 @@ The response contains only booleans.
   ok: true,
   type: "login-status",
   data: {
+    capabilities: [
+      "check",
+      "run",
+      "submit",
+      "login-status",
+      "extra-run-testcases"
+    ],
+    extensionVersion: "0.2.0",
+    featureVersion: 2,
     isLoggedIn: true,
     hasCsrfToken: true
   }
