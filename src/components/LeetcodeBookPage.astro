@@ -477,6 +477,11 @@ const shortcutRows = [
     en: "Open current LeetCode problem",
   },
   {
+    keys: "Cmd+Option+P",
+    zh: "查看当前题题意预览",
+    en: "Preview current problem statement",
+  },
+  {
     keys: "Cmd+Option+R",
     zh: "重置当前题草稿",
     en: "Reset current problem draft",
@@ -3432,6 +3437,16 @@ const shortcutRows = [
       );
     }
 
+    function isProblemPreviewShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyP"
+      );
+    }
+
     function isEditorResetCurrentShortcut(event) {
       return (
         event.metaKey &&
@@ -3557,6 +3572,46 @@ const shortcutRows = [
       clicked[problem.titleSlug] = true;
       writeState();
       window.open(problem.url, "_blank", "noopener,noreferrer");
+    }
+
+    function problemPreviewLinkForSlug(slug) {
+      if (!slug) return null;
+      return Array.from(list?.querySelectorAll("[data-problem-preview-link]") || [])
+        .find((item) => (
+          item instanceof HTMLElement &&
+          item.dataset.problemPreviewLink === slug
+        )) || null;
+    }
+
+    function currentProblemPreviewLink() {
+      const active = document.activeElement;
+      const activeRow = active instanceof HTMLElement
+        ? active.closest(".leetcode-row")
+        : null;
+      const activeSlug = activeRow instanceof HTMLElement
+        ? activeRow.dataset.slug || ""
+        : "";
+      const slug =
+        activeSlug ||
+        currentPracticeSlug(state.expandedSlug || activePracticeTimer.slug);
+      const exactLink = problemPreviewLinkForSlug(slug);
+      if (exactLink instanceof HTMLElement) return exactLink;
+      return list?.querySelector("[data-problem-preview-link]") || null;
+    }
+
+    function focusProblemStatementPreview() {
+      const link = currentProblemPreviewLink();
+      if (!(link instanceof HTMLElement)) return false;
+      closePreviewPopovers(link);
+      link.classList.add("is-keyboard-preview");
+      link.scrollIntoView({ block: "center", behavior: "smooth" });
+      link.focus({ preventScroll: true });
+      const slug = link.dataset.problemPreviewLink || "";
+      if (slug) {
+        clicked[slug] = true;
+        writeState();
+      }
+      return true;
     }
 
     function resetEditorDraft(problem, lang, options = {}) {
@@ -3853,10 +3908,22 @@ const shortcutRows = [
         item.classList.remove("is-hover-open");
         item.classList.remove("is-popover-above");
       });
+      list?.querySelectorAll(".leetcode-problem-link.is-keyboard-preview")
+        .forEach((item) => {
+          if (item === except) return;
+          item.classList.remove("is-keyboard-preview");
+        });
       const active = document.activeElement;
       if (active instanceof HTMLElement) {
         const activePreview = active.closest("[data-preview]");
         if (activePreview instanceof HTMLElement && activePreview !== except) {
+          active.blur();
+        }
+        const activeProblemPreview = active.closest(".leetcode-problem-link");
+        if (
+          activeProblemPreview instanceof HTMLElement &&
+          activeProblemPreview !== except
+        ) {
           active.blur();
         }
       }
@@ -4921,9 +4988,12 @@ const shortcutRows = [
           <div class="leetcode-rank is-hot">${hotRank}</div>
           <div class="leetcode-rank is-bytedance">${bytedanceRank}</div>
           <div class="leetcode-problem-main">
-            <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
+            <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" title="${isChinesePage ? "悬浮查看题意；Cmd+Option+P 聚焦预览；点击打开力扣" : "Hover for statement; Cmd+Option+P focuses preview; click to open LeetCode"}" data-link-slug="${escapeHtml(problem.titleSlug)}" data-problem-preview-link="${escapeHtml(problem.titleSlug)}">
               <span class="leetcode-title-text">${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</span>
-              <span class="leetcode-popover">${escapeHtml(problem.statementPreview)}</span>
+              <span class="leetcode-popover">
+                <span class="leetcode-popover-lead">${escapeHtml(problem.statementPreview)}</span>
+                <span class="leetcode-popover-shortcut"><kbd>Cmd+Option+P</kbd>${isChinesePage ? "查看当前题题意预览" : "Preview current problem statement"}</span>
+              </span>
             </a>
             <span class="leetcode-title-tools">
               <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看思路；点击或 Enter/Space 固定展开" : "Hover for approach; click or Enter/Space to pin"}">
@@ -5399,6 +5469,11 @@ const shortcutRows = [
       if (!textEntryActive && event.key === "?") {
         event.preventDefault();
         openShortcutHelp();
+        return;
+      }
+      if (isProblemPreviewShortcut(event)) {
+        event.preventDefault();
+        focusProblemStatementPreview();
         return;
       }
       if (!textEntryActive && isCopyCurrentEditorShortcut(event)) {
@@ -7448,7 +7523,31 @@ const shortcutRows = [
       color: var(--color-muted);
     }
 
+    .leetcode-popover-shortcut {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.28rem;
+      align-items: center;
+      margin-top: 0.65rem;
+      border-top: 1px solid rgb(194 192 182 / 52%);
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      padding-top: 0.5rem;
+    }
+
+    .leetcode-popover-shortcut kbd {
+      border: 1px solid rgb(194 192 182 / 70%);
+      border-radius: 0.28rem;
+      background: rgb(255 255 255 / 52%);
+      color: var(--color-secondary);
+      font: inherit;
+      font-size: 0.64rem;
+      padding: 0.04rem 0.28rem;
+    }
+
     .leetcode-problem-link:hover .leetcode-popover,
+    .leetcode-problem-link.is-keyboard-preview .leetcode-popover,
     .leetcode-problem-link:focus .leetcode-popover,
     .leetcode-problem-link:focus-visible .leetcode-popover,
     .leetcode-preview-control:hover .leetcode-popover,
@@ -7461,6 +7560,7 @@ const shortcutRows = [
     }
 
     .leetcode-problem-link:hover::after,
+    .leetcode-problem-link.is-keyboard-preview::after,
     .leetcode-problem-link:focus::after,
     .leetcode-problem-link:focus-visible::after {
       display: block;
@@ -7493,6 +7593,10 @@ const shortcutRows = [
     html.dark .leetcode-popover-section > strong,
     html.dark .leetcode-followup-source b {
       color: var(--color-cream);
+    }
+
+    html.dark .leetcode-popover-shortcut kbd {
+      background: rgb(21 21 20 / 72%);
     }
 
     html.dark .leetcode-related-item {
