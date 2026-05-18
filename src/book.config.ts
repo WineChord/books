@@ -223,6 +223,17 @@ const leetcodePages: PageConfig[] = [
   },
   {
     book: "leetcode",
+    path: "leetcode/changelog",
+    zhPath: "zh/leetcode/changelog",
+    title: "Changelog",
+    zhTitle: "更新日志",
+    description:
+      "User-facing changes to the LeetCode practice page and submit workflow.",
+    zhDescription: "记录力扣练习页面和提交流程的用户可见变化。",
+    kind: "reference",
+  },
+  {
+    book: "leetcode",
     path: "leetcode/reference-implementation-sources",
     zhPath: "zh/leetcode/reference-implementation-sources",
     title: "Reference Implementation Sources",

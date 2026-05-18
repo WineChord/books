@@ -47,6 +47,9 @@ const issuesUrl = `${repositoryUrl}/issues`;
 const leetcodeSpecUrl = `${repositoryUrl}/blob/main/docs/${
   isZh ? "zh/leetcode/spec.md" : "leetcode/spec.md"
 }`;
+const leetcodeChangelogUrl = `${repositoryUrl}/blob/main/docs/${
+  isZh ? "zh/leetcode/changelog.md" : "leetcode/changelog.md"
+}`;
 const searchShortcutTitle = isZh ? "聚焦搜索（/）" : "Focus search (/)";
 const previousPageShortcutTitle = isZh ? "上一页（←）" : "Previous page (←)";
 const nextPageShortcutTitle = isZh ? "下一页（→）" : "Next page (→)";
@@ -702,6 +705,19 @@ const shortcutRows = [
         </div>
       </section>
 
+      <section class="leetcode-insight-board" aria-label={isZh ? "熟练度建议" : "Practice insights"}>
+        <div class="leetcode-insight-lead">
+          <span>{isZh ? "猜你想写" : "Suggested today"}</span>
+          <strong data-insight-pick>{isZh ? "提交几次后开始排序" : "Submit a few problems to rank them"}</strong>
+          <button type="button" data-insight-open disabled>
+            {isZh ? "开始" : "Start"}
+          </button>
+        </div>
+        <div class="leetcode-insight-list" data-insight-list>
+          <span>{isZh ? "暂无本站提交统计。" : "No local submission stats yet."}</span>
+        </div>
+      </section>
+
       <div class="leetcode-list-meta">
         <nav
           class="leetcode-pagination leetcode-pagination-top"
@@ -994,6 +1010,9 @@ const shortcutRows = [
       <a href={leetcodeSpecUrl} target="_blank" rel="noopener noreferrer">
         {isZh ? "页面规格" : "Page spec"}
       </a>
+      <a href={leetcodeChangelogUrl} target="_blank" rel="noopener noreferrer">
+        {isZh ? "更新日志" : "Changelog"}
+      </a>
     </nav>
 
   </main>
@@ -1012,6 +1031,7 @@ const shortcutRows = [
     const extraRunCasesKey = "leetcode-book-extra-run-cases-v1";
     const extraRunCasesDayKey = "leetcode-book-extra-run-cases-day-v1";
     const timingKey = "leetcode-book-timing-v1";
+    const submissionStatsKey = "leetcode-book-submission-stats-v1";
     const viewStateKey = "leetcode-book-view-state-v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
@@ -1034,6 +1054,9 @@ const shortcutRows = [
     const editorSizeSelect = document.getElementById("leetcode-editor-size");
     const editorLeadingSelect = document.getElementById("leetcode-editor-leading");
     const leetcodeShell = document.querySelector(".leetcode-shell");
+    const insightPick = document.querySelector("[data-insight-pick]");
+    const insightOpen = document.querySelector("[data-insight-open]");
+    const insightList = document.querySelector("[data-insight-list]");
     const fallbackLanguages = [
       ["cpp", "C++"],
       ["python3", "Python3"],
@@ -1116,6 +1139,14 @@ const shortcutRows = [
     const timingTimeZone = "Asia/Shanghai";
     const timingDayMs = 24 * 60 * 60 * 1000;
     const timingHistoryDays = 14;
+    const insightDisplayLimit = 5;
+    const submissionHistoryLimit = 80;
+    const submissionScoreMax = 100;
+    const submissionTenLineUnit = 10;
+    const submissionSlowSecondsPerTenLines = 60;
+    const submissionVerySlowSecondsPerTenLines = 180;
+    const submissionStaleDayWeight = 2.2;
+    const submissionStaleDayCap = 30;
     const timingDateFormatter = new Intl.DateTimeFormat("en-CA", {
       day: "2-digit",
       month: "2-digit",
@@ -1165,6 +1196,14 @@ const shortcutRows = [
     timing.days = timing.days && typeof timing.days === "object"
       ? timing.days
       : {};
+    let submissionStats = readJson(submissionStatsKey, {});
+    if (!submissionStats || typeof submissionStats !== "object") {
+      submissionStats = {};
+    }
+    submissionStats.problems =
+      submissionStats.problems && typeof submissionStats.problems === "object"
+        ? submissionStats.problems
+        : {};
     const sessionTiming = {
       acceptedDurations: [],
       acceptedSlugs: new Set(),
@@ -1445,6 +1484,10 @@ const shortcutRows = [
 
     function writeTiming() {
       localStorage.setItem(timingKey, JSON.stringify(timing));
+    }
+
+    function writeSubmissionStats() {
+      localStorage.setItem(submissionStatsKey, JSON.stringify(submissionStats));
     }
 
     function pad2(value) {
@@ -2074,6 +2117,427 @@ const shortcutRows = [
         milestone: timingMilestone,
         tiedDailyRecord,
       };
+    }
+
+    function codeMetrics(code) {
+      const text = String(code || "").replace(/\r\n/g, "\n");
+      const lines = text ? text.split("\n") : [];
+      return {
+        chars: text.length,
+        lines: Math.max(1, lines.length),
+        nonBlankLines: Math.max(
+          1,
+          lines.filter((line) => line.trim()).length,
+        ),
+      };
+    }
+
+    function submissionEvents(record) {
+      return Array.isArray(record?.events) ? record.events : [];
+    }
+
+    function acceptedSubmissionEvents(record) {
+      return submissionEvents(record).filter((event) => event?.accepted);
+    }
+
+    function lastAcceptedSubmissionEvent(record) {
+      const events = acceptedSubmissionEvents(record);
+      return events[events.length - 1] || null;
+    }
+
+    function problemSubmissionStats(slug) {
+      if (!slug) return {};
+      if (
+        !submissionStats.problems[slug] ||
+        typeof submissionStats.problems[slug] !== "object"
+      ) {
+        submissionStats.problems[slug] = {
+          acceptedCount: 0,
+          attemptCount: 0,
+          bestMs: null,
+          errorCount: 0,
+          events: [],
+          firstSubmittedAt: null,
+          lastAcceptedAt: null,
+          lastCodeChars: 0,
+          lastCodeLines: 0,
+          lastCodeNonBlankLines: 0,
+          lastElapsedMs: null,
+          lastSubmittedAt: null,
+          totalAcceptedMs: 0,
+        };
+      }
+      const record = submissionStats.problems[slug];
+      record.acceptedCount = Number(record.acceptedCount || 0);
+      record.attemptCount = Number(record.attemptCount || 0);
+      record.errorCount = Number(record.errorCount || 0);
+      record.totalAcceptedMs = Number(record.totalAcceptedMs || 0);
+      record.events = submissionEvents(record).slice(-submissionHistoryLimit);
+      record.bestMs = record.bestMs === null ? null : Number(record.bestMs || 0);
+      record.lastElapsedMs =
+        record.lastElapsedMs === null ? null : Number(record.lastElapsedMs || 0);
+      record.lastCodeChars = Number(record.lastCodeChars || 0);
+      record.lastCodeLines = Number(record.lastCodeLines || 0);
+      record.lastCodeNonBlankLines = Number(record.lastCodeNonBlankLines || 0);
+      record.firstSubmittedAt = record.firstSubmittedAt || null;
+      record.lastAcceptedAt = record.lastAcceptedAt || null;
+      record.lastSubmittedAt = record.lastSubmittedAt || null;
+      return record;
+    }
+
+    function storedProblemSubmissionStats(slug) {
+      const record = slug ? submissionStats.problems[slug] : null;
+      return record && typeof record === "object" ? record : {};
+    }
+
+    function averageAcceptedMs(record) {
+      const accepted = Number(record?.acceptedCount || 0);
+      return accepted ? Number(record?.totalAcceptedMs || 0) / accepted : 0;
+    }
+
+    function elapsedPerTenLinesMs(elapsedMs, nonBlankLines) {
+      const elapsed = Number(elapsedMs || 0);
+      const lines = Number(nonBlankLines || 0);
+      if (!elapsed || !lines) return 0;
+      return elapsed / Math.max(1, lines / submissionTenLineUnit);
+    }
+
+    function lastAcceptedSpeedMs(record) {
+      const event = lastAcceptedSubmissionEvent(record);
+      if (!event) return 0;
+      return elapsedPerTenLinesMs(event.elapsedMs, event.codeNonBlankLines);
+    }
+
+    function bestAcceptedSpeedMs(record) {
+      return acceptedSubmissionEvents(record).reduce((best, event) => {
+        const current = elapsedPerTenLinesMs(
+          event.elapsedMs,
+          event.codeNonBlankLines,
+        );
+        if (!current) return best;
+        return !best || current < best ? current : best;
+      }, 0);
+    }
+
+    function daysSinceIso(value) {
+      const time = Date.parse(String(value || ""));
+      if (!Number.isFinite(time)) return 0;
+      return Math.max(0, (Date.now() - time) / timingDayMs);
+    }
+
+    function recentAcceptedStreak(record) {
+      let count = 0;
+      const events = submissionEvents(record);
+      for (let index = events.length - 1; index >= 0; index -= 1) {
+        if (!events[index]?.accepted) break;
+        count += 1;
+      }
+      return count;
+    }
+
+    function clampScore(value) {
+      return Math.max(0, Math.min(submissionScoreMax, Math.round(value)));
+    }
+
+    function slowSpeedPenalty(speedMs) {
+      if (!speedMs) return 0;
+      const seconds = speedMs / 1000;
+      if (seconds <= submissionSlowSecondsPerTenLines) return 0;
+      const range =
+        submissionVerySlowSecondsPerTenLines -
+        submissionSlowSecondsPerTenLines;
+      const ratio = Math.min(
+        1,
+        (seconds - submissionSlowSecondsPerTenLines) / range,
+      );
+      return ratio * 28;
+    }
+
+    function submissionInsightFor(problem) {
+      const record = storedProblemSubmissionStats(problem.titleSlug);
+      const attempts = Number(record.attemptCount || 0);
+      if (!attempts) return null;
+
+      const accepted = Number(record.acceptedCount || 0);
+      const errors = Number(record.errorCount || 0);
+      const errorRate = errors / attempts;
+      const bestSpeed = bestAcceptedSpeedMs(record);
+      const lastAccepted = lastAcceptedSubmissionEvent(record);
+      const staleDays = lastAccepted ? daysSinceIso(lastAccepted.at) : 0;
+      const noAcceptedPenalty = accepted ? 0 : 30;
+      const errorPenalty = Math.min(36, errorRate * 28 + errors * 5);
+      const stalePenalty = Math.min(
+        submissionStaleDayCap,
+        staleDays * submissionStaleDayWeight,
+      );
+      const repeatDiscount = Math.min(
+        28,
+        accepted * 4 + recentAcceptedStreak(record) * 8,
+      );
+      const status = rowState(problem.titleSlug);
+      const manualPenalty = status.review ? 8 : 0;
+      const manualDiscount = status.mastered ? 12 : 0;
+      const score = clampScore(
+        noAcceptedPenalty +
+          errorPenalty +
+          slowSpeedPenalty(bestSpeed) +
+          stalePenalty +
+          manualPenalty -
+          repeatDiscount -
+          manualDiscount,
+      );
+
+      return {
+        accepted,
+        attempts,
+        bestSpeed,
+        errors,
+        lastAccepted,
+        problem,
+        record,
+        score,
+        staleDays,
+      };
+    }
+
+    function submissionInsightItems() {
+      return problems
+        .map(submissionInsightFor)
+        .filter(Boolean)
+        .sort((left, right) => (
+          right.score - left.score ||
+          right.errors - left.errors ||
+          left.accepted - right.accepted ||
+          (left.problem.frequencyRank || 999999) -
+            (right.problem.frequencyRank || 999999)
+        ));
+    }
+
+    function submissionReason(item) {
+      const reasons = [];
+      if (!item.accepted) {
+        reasons.push(isChinesePage ? "还没通过" : "not accepted yet");
+      }
+      if (item.errors) {
+        reasons.push(
+          isChinesePage
+            ? `错 ${item.errors} 次`
+            : `${item.errors} failed`,
+        );
+      }
+      if (item.bestSpeed) {
+        const seconds = item.bestSpeed / 1000;
+        if (seconds > submissionSlowSecondsPerTenLines) {
+          reasons.push(
+            isChinesePage
+              ? `每 10 行 ${formatDuration(item.bestSpeed)}`
+              : `${formatDuration(item.bestSpeed)} per 10 lines`,
+          );
+        }
+      }
+      if (item.staleDays >= 1) {
+        reasons.push(
+          isChinesePage
+            ? `${Math.floor(item.staleDays)} 天未 AC`
+            : `${Math.floor(item.staleDays)} days stale`,
+        );
+      }
+      if (!reasons.length) {
+        reasons.push(isChinesePage ? "主要看遗忘曲线" : "mostly forgetting curve");
+      }
+      return reasons.slice(0, 3).join(" · ");
+    }
+
+    function submissionStatsLabel(slug) {
+      const record = storedProblemSubmissionStats(slug);
+      const attempts = Number(record.attemptCount || 0);
+      if (!attempts) return isChinesePage ? "暂无提交" : "No submits";
+      const lastSpeed = lastAcceptedSpeedMs(record);
+      return [
+        isChinesePage ? `写 ${attempts}` : `${attempts} submits`,
+        isChinesePage
+          ? `错 ${Number(record.errorCount || 0)}`
+          : `${Number(record.errorCount || 0)} failed`,
+        lastSpeed
+          ? `${isChinesePage ? "耗/10行" : "time/10 lines"} ${
+              formatDuration(lastSpeed)
+            }`
+          : "",
+      ].filter(Boolean).join(" · ");
+    }
+
+    function submissionCompactSignal(problem) {
+      const item = submissionInsightFor(problem);
+      if (!item) return "";
+      const record = item.record;
+      const speed = lastAcceptedSpeedMs(record);
+      const title = [
+        submissionStatsLabel(problem.titleSlug),
+        isChinesePage
+          ? `不熟练分 ${item.score}`
+          : `weakness score ${item.score}`,
+        submissionReason(item),
+      ].join(" · ");
+      const speedText = speed
+        ? (isChinesePage
+          ? ` · ${formatDuration(speed)}/10行`
+          : ` · ${formatDuration(speed)}/10 lines`)
+        : "";
+      const label = isChinesePage
+        ? `写${item.attempts} 错${item.errors}${speedText} · ${item.score}`
+        : `${item.attempts} submits ${item.errors} failed${speedText} · ${item.score}`;
+      return `
+        <span class="leetcode-practice-signal" title="${escapeHtml(title)}">
+          ${escapeHtml(label)}
+        </span>
+      `;
+    }
+
+    function syncProblemSignal(slug) {
+      const problem = problems.find((item) => item.titleSlug === slug);
+      const row = Array.from(list?.querySelectorAll(".leetcode-row") || [])
+        .find((item) => item instanceof HTMLElement && item.dataset.slug === slug);
+      const tools = row?.querySelector(".leetcode-title-tools");
+      if (!(tools instanceof HTMLElement) || !problem) return;
+      tools.querySelector(".leetcode-practice-signal")?.remove();
+      const signal = submissionCompactSignal(problem);
+      if (signal) tools.insertAdjacentHTML("beforeend", signal);
+    }
+
+    function renderSubmissionInsightItem(item, index) {
+      const problem = item.problem;
+      const meta = [
+        isChinesePage ? `写 ${item.attempts}` : `${item.attempts} submits`,
+        isChinesePage ? `错 ${item.errors}` : `${item.errors} failed`,
+        item.bestSpeed
+          ? `${isChinesePage ? "最快/10行" : "best/10 lines"} ${
+              formatDuration(item.bestSpeed)
+            }`
+          : "",
+      ].filter(Boolean).join(" · ");
+      return `
+        <button
+          type="button"
+          class="leetcode-insight-item"
+          data-open-insight="${escapeHtml(problem.titleSlug)}"
+          title="${escapeHtml(submissionReason(item))}"
+        >
+          <b>${index + 1}. ${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</b>
+          <span>${escapeHtml(meta)}</span>
+          <em>${escapeHtml(submissionReason(item))}</em>
+        </button>
+      `;
+    }
+
+    function syncSubmissionInsightUi() {
+      const items = submissionInsightItems();
+      const pick = items[0];
+      if (insightPick instanceof HTMLElement) {
+        insightPick.textContent = pick
+          ? `${pick.problem.frontendId}. ${pick.problem.titleCn} · ${pick.score}`
+          : (isChinesePage
+            ? "提交几次后开始排序"
+            : "Submit a few problems to rank them");
+      }
+      if (insightOpen instanceof HTMLButtonElement) {
+        insightOpen.disabled = !pick;
+        if (pick) {
+          insightOpen.dataset.openInsight = pick.problem.titleSlug;
+        } else {
+          delete insightOpen.dataset.openInsight;
+        }
+      }
+      if (insightList instanceof HTMLElement) {
+        insightList.innerHTML = items.length
+          ? items
+              .slice(0, insightDisplayLimit)
+              .map(renderSubmissionInsightItem)
+              .join("")
+          : `<span>${
+              isChinesePage
+                ? "暂无本站提交统计。"
+                : "No local submission stats yet."
+            }</span>`;
+      }
+    }
+
+    function syncSubmissionStatsUi(slug) {
+      const record = storedProblemSubmissionStats(slug);
+      const attempts = Number(record.attemptCount || 0);
+      const errors = Number(record.errorCount || 0);
+      const lastCodeLines = Number(record.lastCodeNonBlankLines || 0);
+      const avgMs = averageAcceptedMs(record);
+      const lastSpeed = lastAcceptedSpeedMs(record);
+      setTextAll(`[data-problem-submits="${slug}"]`, String(attempts));
+      setTextAll(`[data-problem-errors="${slug}"]`, String(errors));
+      setTextAll(
+        `[data-problem-code-lines="${slug}"]`,
+        lastCodeLines
+          ? (isChinesePage ? `${lastCodeLines} 行` : `${lastCodeLines} lines`)
+          : "--",
+      );
+      setTextAll(
+        `[data-problem-avg="${slug}"]`,
+        avgMs ? formatDuration(avgMs) : "--",
+      );
+      setTextAll(
+        `[data-problem-speed="${slug}"]`,
+        lastSpeed ? formatDuration(lastSpeed) : "--",
+      );
+    }
+
+    function recordSubmissionAttempt(
+      problem,
+      textarea,
+      result,
+      options = {},
+    ) {
+      const slug = problem?.titleSlug || "";
+      if (!slug || !(textarea instanceof HTMLTextAreaElement)) return null;
+      const record = problemSubmissionStats(slug);
+      const payload = editorPayload(problem, textarea);
+      const metrics = codeMetrics(payload.code);
+      const accepted = Boolean(options.accepted);
+      const elapsedMs = Math.max(0, Number(options.elapsedMs || 0));
+      const nowIso = new Date().toISOString();
+      const event = {
+        accepted,
+        at: nowIso,
+        codeChars: metrics.chars,
+        codeLines: metrics.lines,
+        codeNonBlankLines: metrics.nonBlankLines,
+        elapsedMs,
+        langSlug: payload.langSlug,
+        memory: normalizedSubmissionMemory(result?.memory),
+        runtime: normalizedSubmissionRuntime(result?.runtime),
+        statusMessage: meaningfulSubmissionValue(
+          result?.statusMessage || result?.status_msg || result?.state,
+        ),
+        submissionId: String(options.submissionId || result?.submissionId || ""),
+      };
+      record.attemptCount += 1;
+      record.firstSubmittedAt = record.firstSubmittedAt || nowIso;
+      record.lastSubmittedAt = nowIso;
+      record.lastCodeChars = metrics.chars;
+      record.lastCodeLines = metrics.lines;
+      record.lastCodeNonBlankLines = metrics.nonBlankLines;
+      record.events.push(event);
+      record.events = record.events.slice(-submissionHistoryLimit);
+      if (accepted) {
+        record.acceptedCount += 1;
+        record.totalAcceptedMs += elapsedMs;
+        record.lastAcceptedAt = nowIso;
+        record.lastElapsedMs = elapsedMs;
+        record.bestMs =
+          !record.bestMs || elapsedMs < record.bestMs ? elapsedMs : record.bestMs;
+      } else {
+        record.errorCount += 1;
+      }
+      writeSubmissionStats();
+      syncSubmissionStatsUi(slug);
+      syncProblemSignal(slug);
+      syncSubmissionInsightUi();
+      return record;
     }
 
     function escapeHtml(value) {
@@ -5002,6 +5466,10 @@ const shortcutRows = [
         if (!response?.ok) {
           throw new Error(extensionErrorMessage(response, "提交失败。"));
         }
+        const submissionId = submissionIdFrom(
+          response,
+          extensionSubmitRequestType,
+        );
         const result = await leetcodeResultFromResponse(
           panel,
           response,
@@ -5012,6 +5480,11 @@ const shortcutRows = [
         const summary = submissionSummary(result);
         if (submissionStatusAccepted(result)) {
           const timingResult = recordAcceptedTiming(problem.titleSlug);
+          recordSubmissionAttempt(problem, textarea, result, {
+            accepted: true,
+            elapsedMs: timingResult.elapsed,
+            submissionId,
+          });
           const timingSummary =
             `${isChinesePage ? "本题" : "Problem"} ${formatDuration(timingResult.elapsed)}` +
             (timingResult.isPersonalBest
@@ -5032,6 +5505,11 @@ const shortcutRows = [
           );
           return;
         }
+        recordSubmissionAttempt(problem, textarea, result, {
+          accepted: false,
+          elapsedMs: activePracticeElapsed(),
+          submissionId,
+        });
         const savedCase = saveFailedSubmissionCase(problem, result);
         const savedMessage = savedCase
           ? (isChinesePage ? " · 已加入下次运行样例" : " · Added to next run")
@@ -5174,6 +5652,11 @@ const shortcutRows = [
                 <b>${isChinesePage ? "当前" : "Now"} <em data-problem-active="${escapeHtml(problem.titleSlug)}">0:00</em></b>
                 <b>PB <em data-problem-best="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "上次 AC" : "Last AC"} <em data-problem-last="${escapeHtml(problem.titleSlug)}">--</em></b>
+                <b>${isChinesePage ? "提交" : "Submits"} <em data-problem-submits="${escapeHtml(problem.titleSlug)}">0</em></b>
+                <b>${isChinesePage ? "错" : "Failed"} <em data-problem-errors="${escapeHtml(problem.titleSlug)}">0</em></b>
+                <b>${isChinesePage ? "代码" : "Code"} <em data-problem-code-lines="${escapeHtml(problem.titleSlug)}">--</em></b>
+                <b>${isChinesePage ? "均耗" : "Avg"} <em data-problem-avg="${escapeHtml(problem.titleSlug)}">--</em></b>
+                <b>${isChinesePage ? "耗/10行" : "Time/10 lines"} <em data-problem-speed="${escapeHtml(problem.titleSlug)}">--</em></b>
               </span>
             </div>
             <div class="leetcode-practice-tips" aria-label="${isChinesePage ? "快捷键提示" : "Shortcut tips"}">
@@ -5263,6 +5746,7 @@ const shortcutRows = [
                   ${renderRelatedQuestions(problem)}
                 </span>
               </span>
+              ${submissionCompactSignal(problem)}
             </span>
           </div>
           <div><span class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</span></div>
@@ -5314,6 +5798,8 @@ const shortcutRows = [
       syncRenderedEditors();
       syncRenderedExtensionStatus();
       syncActivePracticeTimerAfterRender();
+      pageItems.forEach((problem) => syncSubmissionStatsUi(problem.titleSlug));
+      syncSubmissionInsightUi();
     }
 
     searchInput?.addEventListener("input", (event) => {
@@ -5431,6 +5917,11 @@ const shortcutRows = [
       if (!(target instanceof HTMLElement)) return;
       if (!target.closest("[data-preview]")) {
         closePreviewPopovers();
+      }
+      const insightTarget = target.closest("[data-open-insight]");
+      if (insightTarget instanceof HTMLElement) {
+        openRelatedProblem(insightTarget.dataset.openInsight || "");
+        return;
       }
       const extensionGuideLink = target.closest("[data-extension-guide-link]");
       if (extensionGuideLink instanceof HTMLElement) {
@@ -6296,6 +6787,131 @@ const shortcutRows = [
       white-space: nowrap;
     }
 
+    .leetcode-insight-board {
+      display: grid;
+      grid-template-columns: minmax(14rem, 0.72fr) minmax(0, 1fr);
+      gap: 0.28rem;
+      align-items: stretch;
+      margin: 0 0 0.25rem;
+      border: 1px solid rgb(194 192 182 / 54%);
+      border-radius: 0.5rem;
+      background: rgb(255 255 255 / 18%);
+      padding: 0.22rem;
+    }
+
+    .leetcode-insight-lead,
+    .leetcode-insight-item {
+      min-width: 0;
+      border: 1px solid rgb(194 192 182 / 46%);
+      border-radius: 0.42rem;
+      background: rgb(20 20 19 / 2.4%);
+    }
+
+    .leetcode-insight-lead {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.34rem;
+      align-items: center;
+      padding: 0.24rem 0.34rem;
+    }
+
+    .leetcode-insight-lead > span {
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .leetcode-insight-lead strong {
+      overflow: hidden;
+      color: var(--color-charcoal);
+      font-size: 0.76rem;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-insight-lead button,
+    .leetcode-insight-item {
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .leetcode-insight-lead button {
+      border: 1px solid var(--color-border);
+      border-radius: 0.38rem;
+      background: transparent;
+      color: var(--color-secondary);
+      font-size: 0.62rem;
+      padding: 0.16rem 0.34rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-insight-lead button:disabled {
+      cursor: default;
+      opacity: 0.48;
+    }
+
+    .leetcode-insight-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      gap: 0.22rem;
+      min-width: 0;
+    }
+
+    .leetcode-insight-list > span {
+      align-self: center;
+      color: var(--color-muted);
+      font-size: 0.66rem;
+      padding: 0.2rem 0.32rem;
+    }
+
+    .leetcode-insight-item {
+      display: grid;
+      gap: 0.06rem;
+      color: inherit;
+      padding: 0.22rem 0.32rem;
+      text-align: left;
+    }
+
+    .leetcode-insight-item:hover,
+    .leetcode-insight-item:focus-visible,
+    .leetcode-insight-lead button:not(:disabled):hover {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-insight-item b,
+    .leetcode-insight-item span,
+    .leetcode-insight-item em {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-insight-item b {
+      color: var(--color-charcoal);
+      font-size: 0.68rem;
+      line-height: 1.2;
+    }
+
+    .leetcode-insight-item span {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      line-height: 1.2;
+    }
+
+    .leetcode-insight-item em {
+      color: var(--color-secondary);
+      font-size: 0.58rem;
+      font-style: normal;
+      line-height: 1.2;
+    }
+
     .leetcode-history-tip {
       position: relative;
       justify-self: end;
@@ -6869,6 +7485,23 @@ const shortcutRows = [
     .leetcode-title-tools {
       flex: 0 0 auto;
       gap: 0.14rem;
+    }
+
+    .leetcode-practice-signal {
+      display: inline-flex;
+      align-items: center;
+      max-width: 10rem;
+      overflow: hidden;
+      border: 1px solid rgb(217 119 87 / 34%);
+      border-radius: 0.42rem;
+      color: var(--color-secondary);
+      font-family: var(--font-mono);
+      font-size: 0.55rem;
+      font-weight: 700;
+      line-height: 1;
+      padding: 0.18rem 0.3rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .leetcode-practice-panel {
@@ -7494,6 +8127,22 @@ const shortcutRows = [
       background: rgb(30 30 28 / 38%);
     }
 
+    html.dark .leetcode-insight-board {
+      border-color: #333;
+      background: rgb(30 30 28 / 32%);
+    }
+
+    html.dark .leetcode-insight-lead,
+    html.dark .leetcode-insight-item {
+      border-color: #333;
+      background: rgb(255 255 255 / 4%);
+    }
+
+    html.dark .leetcode-insight-lead strong,
+    html.dark .leetcode-insight-item b {
+      color: var(--color-cream);
+    }
+
     html.dark .leetcode-session-metric {
       background: rgb(255 255 255 / 4%);
     }
@@ -7535,7 +8184,8 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-session-actions button,
-    html.dark .leetcode-practice-meter b {
+    html.dark .leetcode-practice-meter b,
+    html.dark .leetcode-practice-signal {
       border-color: #333;
     }
 
@@ -8150,6 +8800,10 @@ const shortcutRows = [
 
       .leetcode-session-board {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .leetcode-insight-board {
+        grid-template-columns: 1fr;
       }
 
       .leetcode-session-actions {
