@@ -3981,6 +3981,30 @@ const shortcutRows = [
       return text.split("\n").map((line) => line.trim()).find(Boolean) || "";
     }
 
+    function normalizedSubmissionRuntime(value) {
+      const text = meaningfulSubmissionValue(value);
+      if (!text) return "";
+      return /^\d+$/.test(text) ? `${text} ms` : text;
+    }
+
+    function normalizedSubmissionMemory(value) {
+      const text = meaningfulSubmissionValue(value);
+      if (!text) return "";
+      if (!/^\d+(?:\.\d+)?$/.test(text)) return text;
+      const bytes = Number(text);
+      if (!Number.isFinite(bytes) || bytes <= 0) return text;
+      const megabytes = bytes / 1000 / 1000;
+      return `${megabytes.toFixed(1)} MB`;
+    }
+
+    function submissionTestSummary(result) {
+      const totalCorrect = meaningfulSubmissionValue(result?.totalCorrect);
+      const totalTestcases = meaningfulSubmissionValue(result?.totalTestcases);
+      return totalCorrect && totalTestcases
+        ? `${totalCorrect}/${totalTestcases}`
+        : "";
+    }
+
     function submissionDetailValue(value) {
       if (value === null || value === undefined) return "";
       if (Array.isArray(value)) {
@@ -4057,12 +4081,12 @@ const shortcutRows = [
       if (compileError) {
         return `${status}: ${compileError}`.slice(0, 220);
       }
-      const totalCorrect = meaningfulSubmissionValue(result?.totalCorrect);
-      const totalTestcases = meaningfulSubmissionValue(result?.totalTestcases);
-      const tests = totalCorrect && totalTestcases ? ` ${totalCorrect}/${totalTestcases}` : "";
-      const runtime = meaningfulSubmissionValue(result?.runtime);
-      const memory = meaningfulSubmissionValue(result?.memory);
-      return `${status}${tests}${runtime}${memory}`.trim();
+      return [
+        status,
+        submissionTestSummary(result),
+        normalizedSubmissionRuntime(result?.runtime),
+        normalizedSubmissionMemory(result?.memory),
+      ].filter(Boolean).join(" · ");
     }
 
     function resultFinished(result) {
@@ -4220,7 +4244,7 @@ const shortcutRows = [
           writeState();
           setSubmitStatus(
             panel,
-            `Accepted ${summary} · ${timingSummary}${milestoneSummary}`,
+            `${summary || "Accepted"} · ${timingSummary}${milestoneSummary}`,
             "success",
           );
           return;
@@ -6172,6 +6196,12 @@ const shortcutRows = [
     .leetcode-practice-panel p,
     .leetcode-submit-note {
       margin: 0;
+    }
+
+    .leetcode-submit-note [data-submit-status] {
+      display: block;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
     }
 
     .leetcode-submit-note [data-tone="pending"] {
