@@ -351,6 +351,11 @@ difficulty to prefer same-route transfer or reasonable progression. Fatigue
 penalty lowers problems already Accepted today, already Accepted in the current
 session, or heavily overlapping with tags practiced today.
 
+Before score sorting, the scheduler promotes any Hot 100 problem that has no
+full Accepted evidence above non-Hot 100 candidates. Those promoted Hot 100
+problems still use the same scheduling score and tie-breakers to choose their
+internal order.
+
 The scheduler also supports cold start. A problem can enter the recommendation
 queue without local submission stats when it is high frequency, in Hot 100,
 ByteDance-heavy, valuable for tag coverage, or manually marked for review. The

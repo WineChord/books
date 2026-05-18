@@ -899,6 +899,10 @@ const shortcutRows = [
                     不读取力扣历史提交。
                   </p>
                   <p>
+                    只要还有 Hot100 题没有完整 AC，这类题会先于其他候选进入推荐队列；
+                    在 Hot100 未 AC 候选内部，再继续按练习调度分排序。
+                  </p>
+                  <p>
                     公式可以理解为：
                     <code>到期复习 + 薄弱程度 + 题目价值 + 当前适配 - 疲劳惩罚</code>，
                     最后截断到 0 到 100。
@@ -950,6 +954,11 @@ const shortcutRows = [
                     Higher scores are better candidates to open now. The score uses
                     only local page state, run activity, and submission activity
                     from this browser, not historical LeetCode submissions.
+                  </p>
+                  <p>
+                    As long as any Hot100 problem is missing a full Accepted submit,
+                    those Hot100 candidates are recommended before other problems;
+                    within that group, the scheduling score still decides the order.
                   </p>
                   <p>
                     Read the formula as:
@@ -3300,10 +3309,16 @@ const shortcutRows = [
       };
     }
 
+    function isUnacceptedHot100Insight(item) {
+      return Boolean(item.problem?.hot100 && !item.accepted);
+    }
+
     function submissionInsightItems() {
       return problems
         .map(submissionInsightFor)
         .sort((left, right) => (
+          Number(isUnacceptedHot100Insight(right)) -
+            Number(isUnacceptedHot100Insight(left)) ||
           right.score - left.score ||
           right.dueScore - left.dueScore ||
           right.weaknessScore - left.weaknessScore ||
@@ -3332,7 +3347,9 @@ const shortcutRows = [
 
     function submissionReason(item) {
       const reasons = [];
-      if (!item.accepted) {
+      if (isUnacceptedHot100Insight(item)) {
+        reasons.push(isChinesePage ? "Hot100 未完整 AC" : "Hot100 not accepted");
+      } else if (!item.accepted) {
         reasons.push(isChinesePage ? "未完整 AC" : "not accepted yet");
       } else if (item.dueScore >= 50) {
         reasons.push(
