@@ -504,7 +504,7 @@ function normalizeLatex(raw) {
     .replace(/\.\./g, "\\ldots")
     .replace(/\.\s+\.\s+\./g, "\\ldots")
     .replace(/\bnlog\s*\(/gi, "n \\log(")
-    .replace(/\blog\b/g, "\\log")
+    .replace(/(?<!\\)\blog\b/g, "\\log")
     .replace(/\b(sum|average)\s*\(/g, (_match, name) => {
       return `${formatIdentifier(name)}(`;
     })

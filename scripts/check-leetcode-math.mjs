@@ -30,6 +30,16 @@ const badConstraintTextPatterns = [
   { label: "dangling exponent marker", regex: /\^\s*(?:之间|以内|内|$)/ },
   { label: "space before Chinese punctuation", regex: /\s+[。！？；：，、]/u },
 ];
+const badMathHtmlPatterns = [
+  {
+    label: "math newline",
+    regex: /linebreak="newline"|mspace newline/,
+  },
+  {
+    label: "doubled latex command",
+    regex: /<annotation\b[^>]*>[^<]*\\\\[A-Za-z]/,
+  },
+];
 const badStatementHtmlPatterns = [
   { label: "paragraph starts with closing paren", regex: /<\/p><p>[）)]/ },
   { label: "spaced ellipsis", regex: /\.\s+\.\s+\./ },
@@ -279,6 +289,11 @@ assertIncludes(
   "O(\\log n)",
   "Search Rotated Array statement",
 );
+assertIncludes(
+  statements["sort-an-array"],
+  "O(n \\log(n))",
+  "Sort An Array statement",
+);
 if (statements["4sum-ii"].includes("l &lt; n n")) {
   throw new Error("4Sum II statement should not split nums1 after n");
 }
@@ -293,6 +308,9 @@ Object.entries(statements).forEach(([slug, html]) => {
     if (regex.test(text)) failures.push(`${slug}: ${label}`);
   });
   badStatementHtmlPatterns.forEach(({ label, regex }) => {
+    if (regex.test(html)) failures.push(`${slug}: ${label}`);
+  });
+  badMathHtmlPatterns.forEach(({ label, regex }) => {
     if (regex.test(html)) failures.push(`${slug}: ${label}`);
   });
   if (statementExamplePattern.test(text)) {
@@ -311,6 +329,9 @@ Object.entries(constraints).forEach(([slug, items]) => {
     if (regex.test(text)) failures.push(`${slug} constraints: ${label}`);
   });
   badConstraintTextPatterns.forEach(({ label, regex }) => {
+    if (regex.test(html)) failures.push(`${slug} constraints: ${label}`);
+  });
+  badMathHtmlPatterns.forEach(({ label, regex }) => {
     if (regex.test(html)) failures.push(`${slug} constraints: ${label}`);
   });
   if (/[。；;]\s*;/.test(inlineText)) {
