@@ -307,12 +307,12 @@ computed in
 `Asia/Shanghai`
 (`北京时间`), not the browser's current local timezone. Session counters live
 only in memory for the current page load; per-problem PB/last Accepted and
-daily Accepted summaries persist in local storage. Daily summaries store the
-unique solved problems, total Accepted submissions, total Accepted time, fastest
-single problem, first Accepted time, and last Accepted time for each Beijing
-date. The compact board surfaces comparison cues such as new daily record,
-tied daily record, best per-problem solve, fastest daily average, seven-day
-activity, and streak status. A collapsed daily-history view shows the last
+daily Accepted summaries persist in the browser practice store. Daily summaries
+store the unique solved problems, total Accepted submissions, total Accepted
+time, fastest single problem, first Accepted time, and last Accepted time for
+each Beijing date. The compact board surfaces comparison cues such as new daily
+record, tied daily record, best per-problem solve, fastest daily average,
+seven-day activity, and streak status. A collapsed daily-history view shows the last
 14 Beijing calendar days for quick comparison. Manual reset controls may
 restart the current session timer or restart only the current active problem
 timer. A less prominent, confirmed control clears the active problem's stored
@@ -326,6 +326,26 @@ does not match the enabled skip category. This automatic transition uses the
 same problem-title, statement, and editor framing as a manual open, and editor
 focus must not immediately scroll that title or statement out of view. Passing
 sample runs never trigger this navigation.
+
+Durable practice facts are stored as an append-only IndexedDB event log, not as
+whole-object `localStorage` writes. The event log is scoped to the browser
+origin and records full submit attempts, sample-run attempts, Accepted timing,
+manual done/review/mastered state changes, and current-problem timing clears.
+Opening the page migrates the previous `localStorage` progress, timing, and
+submission-stat JSON into stable legacy snapshot events exactly once, then
+rebuilds the visible projection from the event log. `localStorage` remains only
+as a compatibility cache for those projections and as storage for inherently
+tab-local or last-write-wins state such as editor drafts, scroll position,
+current page view, route toggles, and visited-link styling.
+
+Multiple tabs must therefore append independent facts instead of rewriting the
+same JSON blob. After a tab appends an event it broadcasts a lightweight update
+with `BroadcastChannel` and also touches a storage pulse key as a fallback.
+Other open tabs reload the event log, rebuild progress, timing, and submission
+stats, refresh visible row signals, and refresh the "Suggested practice"
+popover. If IndexedDB is unavailable, the page falls back to the older
+single-tab `localStorage` projection behavior, but the normal supported path is
+event-log-backed and eventually consistent across tabs.
 
 "Suggested practice" can also hold an immersive flow, but it is not list-order
 navigation. The user can start suggested flow from the "Suggested practice"

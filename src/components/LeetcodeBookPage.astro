@@ -1274,6 +1274,26 @@ const shortcutRows = [
     const timingKey = "leetcode-book-timing-v1";
     const submissionStatsKey = "leetcode-book-submission-stats-v1";
     const viewStateKey = "leetcode-book-view-state-v1";
+    const practiceDbName = "leetcode-book-practice-v1";
+    const practiceDbVersion = 1;
+    const practiceEventStoreName = "events";
+    const practiceEventCreatedAtIndex = "createdAtMs";
+    const practiceBroadcastName = "leetcode-book-practice-events-v1";
+    const practiceEventPulseKey = "leetcode-book-practice-event-pulse-v1";
+    const practiceEventSchemaVersion = 1;
+    const practiceEventLegacyProgress = "legacy-progress-snapshot";
+    const practiceEventLegacyTiming = "legacy-timing-snapshot";
+    const practiceEventLegacySubmissionStats =
+      "legacy-submission-stats-snapshot";
+    const practiceEventProgressSet = "progress-set";
+    const practiceEventAcceptedTiming = "accepted-timing";
+    const practiceEventTimingCleared = "problem-timing-cleared";
+    const practiceEventSubmissionAttempt = "submission-attempt";
+    const practiceEventRunAttempt = "run-attempt";
+    const practiceLegacyProgressEventId = "legacy:progress:v1";
+    const practiceLegacyTimingEventId = "legacy:timing:v1";
+    const practiceLegacySubmissionStatsEventId =
+      "legacy:submission-stats:v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
     const maxPageSize = problems.length || 20;
@@ -1556,7 +1576,604 @@ const shortcutRows = [
       }
     }
 
-    let progress = readJson(progressKey, {});
+    function cloneJson(value, fallback) {
+      try {
+        return JSON.parse(JSON.stringify(value ?? fallback));
+      } catch {
+        return fallback;
+      }
+    }
+
+    function randomStorageId() {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+      return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    const practiceTabId = randomStorageId();
+    let practiceDbPromise = null;
+    let practiceEventReloadPromise = null;
+    let practiceEventReloadQueued = false;
+    let practiceBroadcastChannel = null;
+    let practiceEventTransportReady = false;
+
+    function normalizedRowStatus(value) {
+      return {
+        done: Boolean(value?.done),
+        mastered: Boolean(value?.mastered),
+        review: Boolean(value?.review),
+      };
+    }
+
+    function normalizedProgressSnapshot(value) {
+      const source = value && typeof value === "object" ? value : {};
+      return Object.fromEntries(
+        Object.entries(source)
+          .filter(([slug]) => Boolean(slug))
+          .map(([slug, status]) => [slug, normalizedRowStatus(status)]),
+      );
+    }
+
+    function normalizedTimingProblemRecord(record) {
+      return {
+        acceptedCount: Number(record?.acceptedCount || 0),
+        bestMs: record?.bestMs === null ? null : Number(record?.bestMs || 0),
+        lastAcceptedAt: record?.lastAcceptedAt || null,
+        lastMs: record?.lastMs === null ? null : Number(record?.lastMs || 0),
+        totalAcceptedMs: Number(record?.totalAcceptedMs || 0),
+      };
+    }
+
+    function normalizedDayTimingRecord(day) {
+      return {
+        acceptedCount: Number(day?.acceptedCount || 0),
+        acceptedSlugs: Array.from(new Set(
+          Array.isArray(day?.acceptedSlugs)
+            ? day.acceptedSlugs.filter(Boolean)
+            : [],
+        )),
+        bestMs: day?.bestMs === null ? null : Number(day?.bestMs || 0),
+        firstAcceptedAt: day?.firstAcceptedAt || null,
+        lastAcceptedAt: day?.lastAcceptedAt || null,
+        totalAcceptedMs: Number(day?.totalAcceptedMs || 0),
+      };
+    }
+
+    function normalizedTimingSnapshot(value) {
+      const source = value && typeof value === "object" ? value : {};
+      const problems = source.problems && typeof source.problems === "object"
+        ? source.problems
+        : {};
+      const days = source.days && typeof source.days === "object"
+        ? source.days
+        : {};
+      return {
+        days: Object.fromEntries(
+          Object.entries(days)
+            .filter(([dateKey]) => /^\d{4}-\d{2}-\d{2}$/.test(dateKey))
+            .map(([dateKey, day]) => [dateKey, normalizedDayTimingRecord(day)]),
+        ),
+        problems: Object.fromEntries(
+          Object.entries(problems)
+            .filter(([slug]) => Boolean(slug))
+            .map(([slug, record]) => [
+              slug,
+              normalizedTimingProblemRecord(record),
+            ]),
+        ),
+      };
+    }
+
+    function normalizedSubmissionEventRecord(event) {
+      return {
+        ...cloneJson(event, {}),
+        accepted: Boolean(event?.accepted),
+        at: event?.at || null,
+        codeChars: Number(event?.codeChars || 0),
+        codeLines: Number(event?.codeLines || 0),
+        codeNonBlankLines: Number(event?.codeNonBlankLines || 0),
+        elapsedMs: Number(event?.elapsedMs || 0),
+        langSlug: event?.langSlug || "",
+        memory: event?.memory ?? null,
+        runtime: event?.runtime ?? null,
+        statusMessage: event?.statusMessage || "",
+        submissionId: event?.submissionId || "",
+      };
+    }
+
+    function normalizedSubmissionStatsRecord(record) {
+      const events = Array.isArray(record?.events)
+        ? record.events.map(normalizedSubmissionEventRecord)
+        : [];
+      return {
+        acceptedCount: Number(record?.acceptedCount || 0),
+        attemptCount: Number(record?.attemptCount || 0),
+        bestMs: record?.bestMs === null ? null : Number(record?.bestMs || 0),
+        errorCount: Number(record?.errorCount || 0),
+        events: events.slice(-submissionHistoryLimit),
+        firstSubmittedAt: record?.firstSubmittedAt || null,
+        lastAcceptedAt: record?.lastAcceptedAt || null,
+        lastCodeChars: Number(record?.lastCodeChars || 0),
+        lastCodeLines: Number(record?.lastCodeLines || 0),
+        lastCodeNonBlankLines: Number(record?.lastCodeNonBlankLines || 0),
+        lastElapsedMs:
+          record?.lastElapsedMs === null
+            ? null
+            : Number(record?.lastElapsedMs || 0),
+        lastRunAt: record?.lastRunAt || null,
+        lastSubmittedAt: record?.lastSubmittedAt || null,
+        runAcceptedCount: Number(record?.runAcceptedCount || 0),
+        runAttemptCount: Number(record?.runAttemptCount || 0),
+        runErrorCount: Number(record?.runErrorCount || 0),
+        totalAcceptedMs: Number(record?.totalAcceptedMs || 0),
+      };
+    }
+
+    function normalizedSubmissionStatsSnapshot(value) {
+      const source = value && typeof value === "object" ? value : {};
+      const problems = source.problems && typeof source.problems === "object"
+        ? source.problems
+        : {};
+      return {
+        problems: Object.fromEntries(
+          Object.entries(problems)
+            .filter(([slug]) => Boolean(slug))
+            .map(([slug, record]) => [
+              slug,
+              normalizedSubmissionStatsRecord(record),
+            ]),
+        ),
+      };
+    }
+
+    function emptyPracticeProjection() {
+      return {
+        progress: {},
+        submissionStats: { problems: {} },
+        timing: { days: {}, problems: {} },
+      };
+    }
+
+    function ensureTimingProblemIn(timingStore, slug) {
+      if (!timingStore.problems[slug]) {
+        timingStore.problems[slug] = normalizedTimingProblemRecord({});
+      }
+      return timingStore.problems[slug];
+    }
+
+    function ensureDayTimingIn(timingStore, dateKey) {
+      if (!timingStore.days[dateKey]) {
+        timingStore.days[dateKey] = normalizedDayTimingRecord({});
+      }
+      return timingStore.days[dateKey];
+    }
+
+    function ensureSubmissionRecordIn(submissionStore, slug) {
+      if (!submissionStore.problems[slug]) {
+        submissionStore.problems[slug] = normalizedSubmissionStatsRecord({});
+      }
+      return submissionStore.problems[slug];
+    }
+
+    function eventDateKey(event) {
+      if (event.payload?.dateKey) return event.payload.dateKey;
+      const time = Date.parse(event.payload?.acceptedAt || event.createdAt || "");
+      return Number.isFinite(time) ? localDateKey(new Date(time)) : localDateKey();
+    }
+
+    function applyAcceptedTimingEvent(timingStore, event) {
+      const slug = event.payload?.slug || "";
+      if (!slug) return;
+      const elapsed = Math.max(0, Number(event.payload?.elapsedMs || 0));
+      const acceptedAt = event.payload?.acceptedAt || event.createdAt || null;
+      const dateKey = eventDateKey(event);
+      const record = ensureTimingProblemIn(timingStore, slug);
+      record.acceptedCount += 1;
+      record.totalAcceptedMs += elapsed;
+      record.lastAcceptedAt = acceptedAt;
+      record.lastMs = elapsed;
+      record.bestMs = !record.bestMs || elapsed < record.bestMs
+        ? elapsed
+        : record.bestMs;
+
+      const day = ensureDayTimingIn(timingStore, dateKey);
+      day.acceptedCount += 1;
+      day.totalAcceptedMs += elapsed;
+      day.bestMs = !day.bestMs || elapsed < day.bestMs ? elapsed : day.bestMs;
+      day.firstAcceptedAt = day.firstAcceptedAt || acceptedAt;
+      day.lastAcceptedAt = acceptedAt;
+      if (!day.acceptedSlugs.includes(slug)) day.acceptedSlugs.push(slug);
+    }
+
+    function applySubmissionAttemptEvent(submissionStore, event) {
+      const slug = event.payload?.slug || "";
+      if (!slug) return;
+      const attempt = normalizedSubmissionEventRecord(event.payload?.event || {});
+      attempt.at = attempt.at || event.createdAt || null;
+      const record = ensureSubmissionRecordIn(submissionStore, slug);
+      record.attemptCount += 1;
+      record.firstSubmittedAt = record.firstSubmittedAt || attempt.at;
+      record.lastSubmittedAt = attempt.at;
+      record.lastCodeChars = attempt.codeChars;
+      record.lastCodeLines = attempt.codeLines;
+      record.lastCodeNonBlankLines = attempt.codeNonBlankLines;
+      record.events.push(attempt);
+      record.events = record.events.slice(-submissionHistoryLimit);
+      if (attempt.accepted) {
+        record.acceptedCount += 1;
+        record.totalAcceptedMs += attempt.elapsedMs;
+        record.lastAcceptedAt = attempt.at;
+        record.lastElapsedMs = attempt.elapsedMs;
+        record.bestMs =
+          !record.bestMs || attempt.elapsedMs < record.bestMs
+            ? attempt.elapsedMs
+            : record.bestMs;
+        return;
+      }
+      record.errorCount += 1;
+    }
+
+    function applyRunAttemptEvent(submissionStore, event) {
+      const slug = event.payload?.slug || "";
+      if (!slug) return;
+      const record = ensureSubmissionRecordIn(submissionStore, slug);
+      record.runAttemptCount += 1;
+      record.lastRunAt = event.payload?.at || event.createdAt || null;
+      record.lastCodeChars = Number(event.payload?.codeChars || 0);
+      record.lastCodeLines = Number(event.payload?.codeLines || 0);
+      record.lastCodeNonBlankLines =
+        Number(event.payload?.codeNonBlankLines || 0);
+      if (event.payload?.accepted) {
+        record.runAcceptedCount += 1;
+        return;
+      }
+      record.runErrorCount += 1;
+    }
+
+    function practiceEventSort(left, right) {
+      return (
+        Number(left.createdAtMs || 0) - Number(right.createdAtMs || 0) ||
+        String(left.id || "").localeCompare(String(right.id || ""))
+      );
+    }
+
+    function reducePracticeEvents(events) {
+      const projection = emptyPracticeProjection();
+      events
+        .filter((event) => event && typeof event === "object")
+        .sort(practiceEventSort)
+        .forEach((event) => {
+          if (event.type === practiceEventLegacyProgress) {
+            projection.progress = normalizedProgressSnapshot(
+              event.payload?.progress,
+            );
+            return;
+          }
+          if (event.type === practiceEventLegacyTiming) {
+            projection.timing = normalizedTimingSnapshot(event.payload?.timing);
+            return;
+          }
+          if (event.type === practiceEventLegacySubmissionStats) {
+            projection.submissionStats = normalizedSubmissionStatsSnapshot(
+              event.payload?.submissionStats,
+            );
+            return;
+          }
+          if (event.type === practiceEventProgressSet) {
+            const slug = event.payload?.slug || "";
+            if (slug) {
+              projection.progress[slug] = normalizedRowStatus(
+                event.payload?.state,
+              );
+            }
+            return;
+          }
+          if (event.type === practiceEventAcceptedTiming) {
+            applyAcceptedTimingEvent(projection.timing, event);
+            return;
+          }
+          if (event.type === practiceEventTimingCleared) {
+            const slug = event.payload?.slug || "";
+            if (slug) delete projection.timing.problems[slug];
+            return;
+          }
+          if (event.type === practiceEventSubmissionAttempt) {
+            applySubmissionAttemptEvent(projection.submissionStats, event);
+            return;
+          }
+          if (event.type === practiceEventRunAttempt) {
+            applyRunAttemptEvent(projection.submissionStats, event);
+          }
+        });
+      return {
+        progress: normalizedProgressSnapshot(projection.progress),
+        submissionStats: normalizedSubmissionStatsSnapshot(
+          projection.submissionStats,
+        ),
+        timing: normalizedTimingSnapshot(projection.timing),
+      };
+    }
+
+    function idbRequestPromise(request) {
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function idbTransactionPromise(transaction) {
+      return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error);
+      });
+    }
+
+    function openPracticeDb() {
+      if (!window.indexedDB) return Promise.resolve(null);
+      if (practiceDbPromise) return practiceDbPromise;
+      practiceDbPromise = new Promise((resolve, reject) => {
+        const request = window.indexedDB.open(
+          practiceDbName,
+          practiceDbVersion,
+        );
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          const store = db.objectStoreNames.contains(practiceEventStoreName)
+            ? request.transaction.objectStore(practiceEventStoreName)
+            : db.createObjectStore(practiceEventStoreName, { keyPath: "id" });
+          if (!store.indexNames.contains(practiceEventCreatedAtIndex)) {
+            store.createIndex(
+              practiceEventCreatedAtIndex,
+              practiceEventCreatedAtIndex,
+              { unique: false },
+            );
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+        request.onblocked = () => reject(request.error);
+      }).catch((error) => {
+        console.warn("IndexedDB practice storage is unavailable", error);
+        return null;
+      });
+      return practiceDbPromise;
+    }
+
+    function legacyPracticeEvent(id, type, payload) {
+      return {
+        createdAt: "1970-01-01T00:00:00.000Z",
+        createdAtMs: 0,
+        id,
+        payload: cloneJson(payload, {}),
+        schemaVersion: practiceEventSchemaVersion,
+        sourceId: "legacy-local-storage",
+        type,
+      };
+    }
+
+    async function addPracticeEventIfMissing(db, event) {
+      try {
+        const transaction = db.transaction(practiceEventStoreName, "readwrite");
+        const done = idbTransactionPromise(transaction);
+        const store = transaction.objectStore(practiceEventStoreName);
+        await new Promise((resolve, reject) => {
+          const request = store.get(event.id);
+          request.onsuccess = () => {
+            if (!request.result) store.add(event);
+            resolve();
+          };
+          request.onerror = () => reject(request.error);
+        });
+        await done;
+      } catch (error) {
+        if (error?.name !== "ConstraintError") throw error;
+      }
+    }
+
+    async function migrateLegacyPracticeStorage(db) {
+      await addPracticeEventIfMissing(
+        db,
+        legacyPracticeEvent(
+          practiceLegacyProgressEventId,
+          practiceEventLegacyProgress,
+          { progress },
+        ),
+      );
+      await addPracticeEventIfMissing(
+        db,
+        legacyPracticeEvent(
+          practiceLegacyTimingEventId,
+          practiceEventLegacyTiming,
+          { timing },
+        ),
+      );
+      await addPracticeEventIfMissing(
+        db,
+        legacyPracticeEvent(
+          practiceLegacySubmissionStatsEventId,
+          practiceEventLegacySubmissionStats,
+          { submissionStats },
+        ),
+      );
+    }
+
+    async function readPracticeEvents() {
+      const db = await openPracticeDb();
+      if (!db) return [];
+      const transaction = db.transaction(practiceEventStoreName, "readonly");
+      const done = idbTransactionPromise(transaction);
+      const store = transaction.objectStore(practiceEventStoreName);
+      const events = await idbRequestPromise(store.getAll());
+      await done;
+      return Array.isArray(events) ? events.sort(practiceEventSort) : [];
+    }
+
+    function practiceEventId(type, createdAtMs) {
+      return [
+        String(createdAtMs || Date.now()).padStart(13, "0"),
+        type,
+        randomStorageId(),
+      ].join(":");
+    }
+
+    async function writePracticeEvent(event) {
+      const db = await openPracticeDb();
+      if (!db) return false;
+      const transaction = db.transaction(practiceEventStoreName, "readwrite");
+      const done = idbTransactionPromise(transaction);
+      transaction.objectStore(practiceEventStoreName).add(event);
+      await done;
+      return true;
+    }
+
+    function notifyPracticeEvent(event) {
+      practiceBroadcastChannel?.postMessage({
+        eventId: event.id,
+        sourceId: practiceTabId,
+        type: "practice-event",
+      });
+      try {
+        localStorage.setItem(
+          practiceEventPulseKey,
+          JSON.stringify({
+            eventId: event.id,
+            sourceId: practiceTabId,
+            updatedAt: event.createdAt,
+          }),
+        );
+      } catch {
+        // Storage events are only a fallback for BroadcastChannel.
+      }
+    }
+
+    function appendPracticeEvent(
+      type,
+      payload,
+      createdAt = new Date().toISOString(),
+    ) {
+      const parsedTime = Date.parse(createdAt);
+      const createdAtMs = Number.isFinite(parsedTime) ? parsedTime : Date.now();
+      const event = {
+        createdAt,
+        createdAtMs,
+        id: practiceEventId(type, createdAtMs),
+        payload: cloneJson(payload, {}),
+        schemaVersion: practiceEventSchemaVersion,
+        sourceId: practiceTabId,
+        type,
+      };
+      writePracticeEvent(event)
+        .then((written) => {
+          if (written) {
+            notifyPracticeEvent(event);
+            schedulePracticeEventReload();
+          }
+        })
+        .catch((error) => {
+          console.warn("Could not append practice event", error);
+        });
+    }
+
+    function writePracticeProjectionCache() {
+      localStorage.setItem(progressKey, JSON.stringify(progress));
+      localStorage.setItem(timingKey, JSON.stringify(timing));
+      localStorage.setItem(submissionStatsKey, JSON.stringify(submissionStats));
+    }
+
+    function syncVisibleProgressButtons(slug) {
+      const status = rowState(slug);
+      list?.querySelectorAll(".leetcode-row").forEach((row) => {
+        if (!(row instanceof HTMLElement)) return;
+        if (row.dataset.slug !== slug) return;
+        row.querySelectorAll("[data-action]").forEach((button) => {
+          if (!(button instanceof HTMLElement)) return;
+          const action = button.dataset.action || "";
+          button.classList.toggle("is-on", Boolean(status[action]));
+        });
+      });
+    }
+
+    function syncVisiblePracticeProjectionUi() {
+      const progressFilters = new Set(["unsolved", "review", "unmastered"]);
+      if (progressFilters.has(state.filter)) {
+        render();
+        return;
+      }
+      list?.querySelectorAll(".leetcode-row").forEach((row) => {
+        if (!(row instanceof HTMLElement)) return;
+        const slug = row.dataset.slug || "";
+        if (!slug) return;
+        syncVisibleProgressButtons(slug);
+        syncSubmissionStatsUi(slug);
+        syncProblemSignal(slug);
+      });
+      syncTimingUi();
+      syncSubmissionInsightUi();
+    }
+
+    function applyPracticeProjection(projection, options = {}) {
+      progress = normalizedProgressSnapshot(projection.progress);
+      timing = normalizedTimingSnapshot(projection.timing);
+      submissionStats = normalizedSubmissionStatsSnapshot(
+        projection.submissionStats,
+      );
+      writePracticeProjectionCache();
+      if (options.updateUi) syncVisiblePracticeProjectionUi();
+    }
+
+    async function reloadPracticeEvents(options = {}) {
+      const events = await readPracticeEvents();
+      applyPracticeProjection(reducePracticeEvents(events), options);
+    }
+
+    function schedulePracticeEventReload() {
+      if (practiceEventReloadPromise) {
+        practiceEventReloadQueued = true;
+        return practiceEventReloadPromise;
+      }
+      practiceEventReloadQueued = false;
+      practiceEventReloadPromise = reloadPracticeEvents({ updateUi: true })
+        .catch((error) => {
+          console.warn("Could not reload practice events", error);
+        })
+        .finally(() => {
+          practiceEventReloadPromise = null;
+          if (practiceEventReloadQueued) schedulePracticeEventReload();
+        });
+      return practiceEventReloadPromise;
+    }
+
+    function setupPracticeEventTransport() {
+      if (practiceEventTransportReady) return;
+      practiceEventTransportReady = true;
+      if (window.BroadcastChannel) {
+        practiceBroadcastChannel = new BroadcastChannel(practiceBroadcastName);
+        practiceBroadcastChannel.addEventListener("message", (event) => {
+          if (event.data?.sourceId === practiceTabId) return;
+          schedulePracticeEventReload();
+        });
+      }
+      window.addEventListener("storage", (event) => {
+        if (event.key !== practiceEventPulseKey || !event.newValue) return;
+        try {
+          const pulse = JSON.parse(event.newValue);
+          if (pulse?.sourceId === practiceTabId) return;
+        } catch {
+          // A malformed pulse is still enough to know something changed.
+        }
+        schedulePracticeEventReload();
+      });
+    }
+
+    async function hydratePracticeEventStore() {
+      setupPracticeEventTransport();
+      const db = await openPracticeDb();
+      if (!db) return;
+      await migrateLegacyPracticeStorage(db);
+      await reloadPracticeEvents({ updateUi: true });
+    }
+
+    let progress = normalizedProgressSnapshot(readJson(progressKey, {}));
     let clicked = readJson(clickedKey, {});
     let editorDrafts = readJson(editorKey, {});
     let editorAppearance = readJson(editorAppearanceKey, {});
@@ -1578,22 +2195,10 @@ const shortcutRows = [
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
     let flowSkipSql = savedFlowSkipEnabled(flowSkipSqlKey);
     let flowSkipFrontend = savedFlowSkipEnabled(flowSkipFrontendKey);
-    let timing = readJson(timingKey, {});
-    if (!timing || typeof timing !== "object") timing = {};
-    timing.problems = timing.problems && typeof timing.problems === "object"
-      ? timing.problems
-      : {};
-    timing.days = timing.days && typeof timing.days === "object"
-      ? timing.days
-      : {};
-    let submissionStats = readJson(submissionStatsKey, {});
-    if (!submissionStats || typeof submissionStats !== "object") {
-      submissionStats = {};
-    }
-    submissionStats.problems =
-      submissionStats.problems && typeof submissionStats.problems === "object"
-        ? submissionStats.problems
-        : {};
+    let timing = normalizedTimingSnapshot(readJson(timingKey, {}));
+    let submissionStats = normalizedSubmissionStatsSnapshot(
+      readJson(submissionStatsKey, {}),
+    );
     const sessionTiming = {
       acceptedDurations: [],
       acceptedSlugs: new Set(),
@@ -2723,6 +3328,7 @@ const shortcutRows = [
         ? "已清本题 PB / 上次 AC 记录"
         : "Problem PB / last Accepted cleared";
       writeTiming();
+      appendPracticeEvent(practiceEventTimingCleared, { slug });
       syncTimingUi();
       syncSubmissionInsightUi();
     }
@@ -2783,6 +3389,16 @@ const shortcutRows = [
         todayUnique,
       });
       writeTiming();
+      appendPracticeEvent(
+        practiceEventAcceptedTiming,
+        {
+          acceptedAt: nowIso,
+          dateKey: todayKey,
+          elapsedMs: elapsed,
+          slug,
+        },
+        nowIso,
+      );
       syncTimingUi();
       return {
         bestMs: record.bestMs,
@@ -3670,6 +4286,11 @@ const shortcutRows = [
         record.errorCount += 1;
       }
       writeSubmissionStats();
+      appendPracticeEvent(
+        practiceEventSubmissionAttempt,
+        { event, slug },
+        nowIso,
+      );
       syncSubmissionStatsUi(slug);
       syncProblemSignal(slug);
       syncSubmissionInsightUi();
@@ -3697,6 +4318,19 @@ const shortcutRows = [
         record.runErrorCount += 1;
       }
       writeSubmissionStats();
+      appendPracticeEvent(
+        practiceEventRunAttempt,
+        {
+          accepted: runAccepted,
+          at: nowIso,
+          codeChars: metrics.chars,
+          codeLines: metrics.lines,
+          codeNonBlankLines: metrics.nonBlankLines,
+          langSlug: payload.langSlug,
+          slug,
+        },
+        nowIso,
+      );
       syncSubmissionStatsUi(slug);
       syncProblemSignal(slug);
       syncSubmissionInsightUi();
@@ -5785,6 +6419,7 @@ const shortcutRows = [
         : null;
       progress[slug] = next;
       writeState();
+      appendPracticeEvent(practiceEventProgressSet, { slug, state: next });
       render();
       restoreEditorFocus(focusSnapshot);
       scheduleViewStateWrite();
@@ -7058,6 +7693,10 @@ const shortcutRows = [
             done: true,
           };
           writeState();
+          appendPracticeEvent(practiceEventProgressSet, {
+            slug: problem.titleSlug,
+            state: progress[problem.titleSlug],
+          });
           if (flowMode === flowModeInsight) {
             nextFlowProblem = suggestedFlowProblem(problem.titleSlug);
           }
@@ -8114,6 +8753,7 @@ const shortcutRows = [
 
     restoreViewStateControls();
     render();
+    hydratePracticeEventStore();
     restoreViewStateAfterRender();
     window.addEventListener("scroll", scheduleViewStateWrite, { passive: true });
     window.setInterval(syncTimingUi, 1000);
@@ -8121,6 +8761,7 @@ const shortcutRows = [
     window.addEventListener("blur", syncTimingUi);
     window.addEventListener("focus", () => {
       syncEditorDraftDay();
+      schedulePracticeEventReload();
       syncTimingUi();
     });
     window.addEventListener("beforeunload", flushViewStateWrite);
@@ -8130,11 +8771,15 @@ const shortcutRows = [
     });
     window.addEventListener("pageshow", () => {
       syncEditorDraftDay();
+      schedulePracticeEventReload();
       syncTimingUi();
     });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) flushViewStateWrite();
-      if (!document.hidden) syncEditorDraftDay();
+      if (!document.hidden) {
+        syncEditorDraftDay();
+        schedulePracticeEventReload();
+      }
       syncTimingUi();
     });
   </script>
@@ -8148,6 +8793,7 @@ const shortcutRows = [
       --leetcode-system-font: "PingFang SC", -apple-system,
         BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Sans GB",
         "Microsoft YaHei", sans-serif;
+      --leetcode-statement-font: var(--leetcode-system-font);
       --leetcode-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
         monospace;
       --leetcode-editor-background: var(--color-cream);
@@ -9546,7 +10192,7 @@ const shortcutRows = [
       max-height: min(22rem, 42vh);
       overflow: auto;
       color: var(--color-secondary);
-      font-family: var(--leetcode-kai-font);
+      font-family: var(--leetcode-statement-font);
       font-size: 1.02rem;
       font-weight: 400;
       line-height: 1.72;
@@ -10521,7 +11167,7 @@ const shortcutRows = [
 
     .leetcode-statement-preview-body {
       color: var(--color-charcoal);
-      font-family: var(--leetcode-kai-font);
+      font-family: var(--leetcode-statement-font);
       font-size: 1.02rem;
       font-weight: 400;
       line-height: 1.78;
