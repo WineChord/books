@@ -25,6 +25,10 @@ its Chrome extension workflow.
 - Data ranges for every problem shown in the local statement panel, synced
   from LeetCode problem statements with public Doocs fallbacks for paid-only
   statements.
+- KaTeX-rendered math for local statements and data ranges. Generated math
+  output fixes broken plain-text fragments such as `n 2`, `m x n`, `10 9`,
+  subscripted variables, Big-O notation, ranges, and comparisons before the
+  page renders them.
 - A browser-local "Suggested practice" recommendation button that ranks
   problems with a practice-scheduling score. The score combines review due-ness,
   weakness, problem value, current fit, and fatigue penalty, and it supports

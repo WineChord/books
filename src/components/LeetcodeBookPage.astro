@@ -29,6 +29,11 @@ import {
   leetcodeProblemConstraints,
 } from "../data/leetcode-problem-constraints";
 import {
+  leetcodeProblemConstraintHtml,
+  leetcodeProblemMathStats,
+  leetcodeProblemStatementHtml,
+} from "../data/leetcode-problem-math";
+import {
   leetcodeRelatedQuestionStats,
   leetcodeRelatedQuestions,
 } from "../data/leetcode-related";
@@ -361,6 +366,8 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     bytedanceSource: entry?.source ?? (problem.bytedance ? "legacyTop888" : null),
     bytedanceVerified: hasVerifiedByteDanceBucket || problem.bytedanceVerified,
     constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
+    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
+    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -396,6 +403,8 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     approachPreview:
       "按字节企业题库频率补充展示；先用官方模板练习，后续再同步题面、思路和 reference implementation。",
     constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
+    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
+    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
     followUps: [],
   }));
 const mergedLeetcodeProblems = [
@@ -927,6 +936,11 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeProblemConstraintStats.problems} 道题数据范围已同步`
           : `${leetcodeProblemConstraintStats.problems} problems with data ranges synced`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeProblemMathStats.mathFragments} 处数学片段已预渲染`
+          : `${leetcodeProblemMathStats.mathFragments} math fragments prerendered`}
       </span>
     </div>
 
@@ -7023,35 +7037,50 @@ const shortcutRows = [
     }
 
     function renderProblemConstraints(problem) {
+      const constraintHtml = Array.isArray(problem.constraintHtml)
+        ? problem.constraintHtml.filter(Boolean)
+        : [];
       const constraints = Array.isArray(problem.constraints)
         ? problem.constraints.filter(Boolean)
         : [];
-      if (!constraints.length) return "";
+      if (!constraintHtml.length && !constraints.length) return "";
+      const items = constraintHtml.length
+        ? constraintHtml
+        : constraints.map((item) => escapeHtml(item));
       return `
         <section class="leetcode-constraints">
           <strong>${isChinesePage ? "数据范围" : "Data ranges"}</strong>
           <ul>
-            ${constraints
-              .map((item) => `<li>${escapeHtml(item)}</li>`)
-              .join("")}
+            ${items.map((item) => `<li>${item}</li>`).join("")}
           </ul>
         </section>
       `;
     }
 
+    function renderProblemStatementBody(problem) {
+      if (
+        typeof problem.statementHtml === "string" &&
+        problem.statementHtml.trim()
+      ) {
+        return problem.statementHtml;
+      }
+      const paragraphs = problemStatementParagraphs(problem);
+      if (paragraphs.length) {
+        return paragraphs
+          .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+          .join("");
+      }
+      return `<p>${
+        isChinesePage
+          ? "本地题面待同步，可先打开力扣原题查看。"
+          : "Local statement pending; open LeetCode for the full problem."
+      }</p>`;
+    }
+
     function renderProblemStatementPanel(problem) {
       const slug = escapeHtml(problem.titleSlug);
       const hiddenClass = editorStatementPanelVisible ? "" : " is-hidden";
-      const paragraphs = problemStatementParagraphs(problem);
-      const body = paragraphs.length
-        ? paragraphs
-            .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-            .join("")
-        : `<p>${
-            isChinesePage
-              ? "本地题面待同步，可先打开力扣原题查看。"
-              : "Local statement pending; open LeetCode for the full problem."
-          }</p>`;
+      const body = renderProblemStatementBody(problem);
       const constraints = renderProblemConstraints(problem);
       return `
         <div class="leetcode-statement-panel${hiddenClass}" data-statement-panel="${slug}">
@@ -9227,6 +9256,19 @@ const shortcutRows = [
       font-size: inherit;
       line-height: inherit;
       margin: 0;
+    }
+
+    .leetcode-statement-body .katex,
+    .leetcode-constraints .katex {
+      color: inherit;
+      font-size: 1em;
+      line-height: 1;
+      text-rendering: auto;
+    }
+
+    .leetcode-statement-body .katex-html,
+    .leetcode-constraints .katex-html {
+      white-space: nowrap;
     }
 
     .leetcode-constraints {

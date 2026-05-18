@@ -52,6 +52,14 @@ public Doocs reference 对应的题面。同步结果写入
 数据范围列表；少数官方题面没有单独列出数据范围的题，例如部分数据库题，
 会明确提示以题面中的表结构或输入定义为准。
 
+题面和数据范围里的数学排版通过 `npm run sync:leetcode-math` 生成。脚本
+读取页面实际渲染的同一份合并题目列表，归一化常见力扣数学片段，并把
+KaTeX 预渲染后的静态 HTML 写入
+`src/data/leetcode-problem-math.ts`。上标、下标、矩阵或网格尺寸、Big-O、
+数值范围和比较链都必须渲染成数学，而不是 `n 2`、`m x n`、`10 9` 这类
+破碎纯文本。页面只读取这份已转义的生成 HTML，并全局引入 KaTeX CSS。
+发布题面或数学相关改动前，`npm run check:leetcode-math` 必须通过。
+
 官方相关题也通过本地同步脚本生成。脚本命令是
 `npm run sync:leetcode-related`，会对 Top888、Hot100 和字节补充题逐题
 读取力扣中国区公开 GraphQL 的 `question.similarQuestions` 字段，并把静态

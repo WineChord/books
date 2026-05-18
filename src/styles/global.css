@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@fontsource-variable/source-serif-4";
 @import "@fontsource-variable/jetbrains-mono";
+@import "katex/dist/katex.min.css";
 
 @plugin "@tailwindcss/typography";
 

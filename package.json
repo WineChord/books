@@ -9,15 +9,17 @@
     "check:content": "node scripts/check-content.mjs",
     "check:visual-spec": "node scripts/check-visual-spec.mjs",
     "check:leetcode-implementations": "node scripts/check-leetcode-implementations.mjs",
+    "check:leetcode-math": "node scripts/check-leetcode-math.mjs",
     "check:leetcode-study-coverage": "node scripts/check-leetcode-study-coverage.mjs",
     "check:dist": "bash scripts/check-dist.sh",
     "package:leetcode-extension": "node scripts/package-leetcode-extension.mjs",
     "sync:leetcode-related": "node scripts/sync-leetcode-related.mjs",
     "sync:leetcode-templates": "node scripts/sync-leetcode-templates.mjs",
     "sync:leetcode-constraints": "node scripts/sync-leetcode-constraints.mjs",
+    "sync:leetcode-math": "node scripts/sync-leetcode-math.mjs",
     "sync:leetcode-bytedance": "node scripts/sync-leetcode-bytedance.mjs",
     "sync:leetcode-implementations": "node scripts/sync-leetcode-implementations.mjs",
-    "verify": "npm run check:content && npm run check:visual-spec && npm run check:leetcode-implementations && npm run build && npm run check:dist"
+    "verify": "npm run check:content && npm run check:visual-spec && npm run check:leetcode-math && npm run check:leetcode-implementations && npm run build && npm run check:dist"
   },
   "devDependencies": {
     "@astrojs/mdx": "^4.3.14",
@@ -32,6 +34,7 @@
     "astro": "^5.7.0",
     "d3": "^7.9.0",
     "framer-motion": "^12.38.0",
+    "katex": "^0.16.45",
     "lucide-react": "^1.14.0",
     "mermaid": "^11.12.2",
     "react": "^19.0.0",
