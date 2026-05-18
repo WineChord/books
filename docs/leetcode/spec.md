@@ -114,17 +114,27 @@ Each row shows the identifiers that matter for practice:
 4. the original LeetCode frontend problem id inside the clickable title.
 
 Approach, implementation, tags, and related controls are attached to the title
-cell so the pointer does not need to cross the table. The linked title itself
-opens LeetCode directly and does not show a hover statement popover. The
-statement is shown inside the practice panel above the editor instead. Moving
-slightly right to Approach shows the approach. Moving slightly farther right to
-Implementation shows the reference implementation. Moving one more small step
-to Tags shows topic tags and supplemental badges. The Related preview shows
-same-series problems first, then official LeetCode related problems, then a
-compact same-track high frequency set. In-book related problems open directly
-in the local practice panel; related problems outside the book open on LeetCode
-China and keep their paid-only marker when LeetCode reports one. These preview
-targets stay compact and must not increase the normal row height.
+cell so the pointer does not need to cross the table. Clicking the linked title
+still opens LeetCode directly, but hover/focus on that title must show the same
+warm yellow block popover used by the other previews, containing the local
+statement and compact data ranges. The statement is also shown inside the
+practice panel above the editor. Moving slightly right to Approach shows the
+approach. Moving slightly farther right to Implementation shows the reference
+implementation. Moving one more small step to Tags shows topic tags and
+supplemental badges. The Related preview shows same-series problems first,
+then official LeetCode related problems, then a compact same-track high
+frequency set. In-book related problems open directly in the local practice
+panel; related problems outside the book open on LeetCode China and keep their
+paid-only marker when LeetCode reports one. These preview targets stay compact
+and must not increase the normal row height.
+
+Hover details for the title, approach, implementation, tags, related problems,
+suggested practice, shortcut help, and daily stats must use the page's own warm
+yellow block popovers. The page must not depend on browser-native `title`
+tooltips or custom gray strip pseudo-tooltips. Text that used to live in a gray
+strip, such as "hover to view; click or Enter/Space to pin", belongs at the top
+of the matching yellow popover. Plain controls without a yellow popover keep
+only accessible `aria-label` text and the central shortcut list.
 
 The duplicate audit appears below the working list in a collapsed details
 section. It lists every removed duplicate, the kept row, and the original
@@ -206,8 +216,8 @@ as normal page UI directly above the code editor. It is on by default, uses a
 moderate reading size rather than code comments, and can be collapsed or shown
 again from the statement panel; that visibility choice is saved per browser.
 Opening a problem or moving between problems with keyboard navigation frames
-the statement and editor together below the sticky header, so the editor keeps
-focus without hiding the local statement above it.
+the problem title row, statement, and editor together below the sticky header,
+so the editor keeps focus without hiding the title or local statement above it.
 Editor shortcuts match the primary LeetCode muscle memory: `Cmd+'`
 runs the official example testcases and `Cmd+Enter` performs a full LeetCode
 submit. Inside the editor, `Cmd+/` toggles line comments for the current
@@ -233,11 +243,10 @@ Timing shortcuts include
 `Cmd+Option+T` for current-problem restart, `Cmd+Option+Shift+S` for session
 restart, and `Cmd+Option+Shift+T` for clearing the current problem PB and last
 Accepted record. Compact shortcut affordances near pagination list every
-supported key without adding another tall block at the page end. Visible
-controls with matching shortcuts expose the action and shortcut in their hover
-tooltip. All hover popovers must remain open while the pointer moves naturally
-from the trigger into the floating content, and close only after the pointer
-leaves that content.
+supported key without adding another tall block at the page end. All hover
+popovers must remain open while the pointer moves naturally from the trigger
+into the floating content, and close only after the pointer leaves that
+content.
 
 Practice timing is automatic. Daily history stays collapsed into a hover/focus
 popover so it does not push the first problem rows down. Opening or

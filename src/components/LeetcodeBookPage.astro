@@ -645,7 +645,7 @@ const shortcutRows = [
             id="leetcode-search"
             type="search"
             placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"}
-            title={searchShortcutTitle}
+            aria-label={searchShortcutTitle}
           />
         </div>
 
@@ -653,27 +653,27 @@ const shortcutRows = [
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "范围" : "Scope"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
-              <button type="button" class="is-active" data-filter="all" title={filterShortcutTitles.all}>{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="hot100" title={filterShortcutTitles.hot100}>Hot100</button>
-              <button type="button" data-filter="companyFollowUps" title={filterShortcutTitles.companyFollowUps}>{isZh ? "公司追问" : "Follow-ups"}</button>
+              <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all}>{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100}>Hot100</button>
+              <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps}>{isZh ? "公司追问" : "Follow-ups"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "字节" : "ByteDance"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
-              <button type="button" data-filter="bytedanceAll" title={filterShortcutTitles.bytedanceAll}>{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="bytedanceThirtyDays" title={filterShortcutTitles.bytedanceThirtyDays}>{isZh ? "近30天" : "30d"}</button>
-              <button type="button" data-filter="bytedanceThreeMonths" title={filterShortcutTitles.bytedanceThreeMonths}>{isZh ? "近3月" : "3m"}</button>
-              <button type="button" data-filter="bytedanceSixMonths" title={filterShortcutTitles.bytedanceSixMonths}>{isZh ? "近6月" : "6m"}</button>
-              <button type="button" data-filter="bytedanceMoreThanSixMonths" title={filterShortcutTitles.bytedanceMoreThanSixMonths}>{isZh ? "6月前" : "Old"}</button>
+              <button type="button" data-filter="bytedanceAll" aria-label={filterShortcutTitles.bytedanceAll}>{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="bytedanceThirtyDays" aria-label={filterShortcutTitles.bytedanceThirtyDays}>{isZh ? "近30天" : "30d"}</button>
+              <button type="button" data-filter="bytedanceThreeMonths" aria-label={filterShortcutTitles.bytedanceThreeMonths}>{isZh ? "近3月" : "3m"}</button>
+              <button type="button" data-filter="bytedanceSixMonths" aria-label={filterShortcutTitles.bytedanceSixMonths}>{isZh ? "近6月" : "6m"}</button>
+              <button type="button" data-filter="bytedanceMoreThanSixMonths" aria-label={filterShortcutTitles.bytedanceMoreThanSixMonths}>{isZh ? "6月前" : "Old"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "状态" : "State"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
-              <button type="button" data-filter="unsolved" title={filterShortcutTitles.unsolved}>{isZh ? "未做" : "Unsolved"}</button>
-              <button type="button" data-filter="review" title={filterShortcutTitles.review}>{isZh ? "需思考" : "Review"}</button>
-              <button type="button" data-filter="unmastered" title={filterShortcutTitles.unmastered}>{isZh ? "未熟练" : "Unmastered"}</button>
+              <button type="button" data-filter="unsolved" aria-label={filterShortcutTitles.unsolved}>{isZh ? "未做" : "Unsolved"}</button>
+              <button type="button" data-filter="review" aria-label={filterShortcutTitles.review}>{isZh ? "需思考" : "Review"}</button>
+              <button type="button" data-filter="unmastered" aria-label={filterShortcutTitles.unmastered}>{isZh ? "未熟练" : "Unmastered"}</button>
             </div>
           </div>
         </div>
@@ -733,12 +733,12 @@ const shortcutRows = [
           <p>{isZh ? "本题 PB" : "Problem PB"}</p>
         </div>
         <div class="leetcode-session-actions">
-          <button type="button" data-flow-mode-toggle aria-pressed="false" title={flowModeTitle}>{isZh ? "沉浸流：关" : "Flow: off"}</button>
-          <button type="button" data-flow-skip-sql aria-pressed="true" title={skipSqlFlowTitle}>{isZh ? "跳过 SQL：开" : "Skip SQL: on"}</button>
-          <button type="button" data-flow-skip-frontend aria-pressed="true" title={skipFrontendFlowTitle}>{isZh ? "跳过前端：开" : "Skip FE: on"}</button>
-          <button type="button" data-timing-action="reset-session" title={resetSessionTitle}>{isZh ? "重开本次" : "Reset session"}</button>
-          <button type="button" data-timing-action="restart-problem" title={restartProblemTimerTitle}>{isZh ? "重开本题" : "Restart problem"}</button>
-          <button type="button" class="is-subtle" data-timing-action="clear-problem-record" title={clearProblemRecordTitle}>{isZh ? "清本题记录" : "Clear record"}</button>
+          <button type="button" data-flow-mode-toggle aria-pressed="false" aria-label={flowModeTitle}>{isZh ? "沉浸流：关" : "Flow: off"}</button>
+          <button type="button" data-flow-skip-sql aria-pressed="true" aria-label={skipSqlFlowTitle}>{isZh ? "跳过 SQL：开" : "Skip SQL: on"}</button>
+          <button type="button" data-flow-skip-frontend aria-pressed="true" aria-label={skipFrontendFlowTitle}>{isZh ? "跳过前端：开" : "Skip FE: on"}</button>
+          <button type="button" data-timing-action="reset-session" aria-label={resetSessionTitle}>{isZh ? "重开本次" : "Reset session"}</button>
+          <button type="button" data-timing-action="restart-problem" aria-label={restartProblemTimerTitle}>{isZh ? "重开本题" : "Restart problem"}</button>
+          <button type="button" class="is-subtle" data-timing-action="clear-problem-record" aria-label={clearProblemRecordTitle}>{isZh ? "清本题记录" : "Clear record"}</button>
         </div>
         <div class="leetcode-session-history">
           <span data-timing-timezone>{isZh ? "北京时间" : "Beijing time"}</span>
@@ -756,26 +756,31 @@ const shortcutRows = [
           data-pagination
           aria-label={isZh ? "顶部分页" : "Top pagination"}
         >
-          <button type="button" data-page-action="first" title={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
-          <button type="button" data-page-action="prev" title={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
+          <button type="button" data-page-action="first" aria-label={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
+          <button type="button" data-page-action="prev" aria-label={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
           <label class="leetcode-page-jump">
             <span>{isZh ? "第" : "Page"}</span>
-            <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} title={pageJumpShortcutTitle} />
+            <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={pageJumpShortcutTitle} />
             <span data-page-indicator></span>
           </label>
-          <button type="button" data-page-action="next" title={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
-          <button type="button" data-page-action="last" title={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
+          <button type="button" data-page-action="next" aria-label={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
+          <button type="button" data-page-action="last" aria-label={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
           <span
             class="leetcode-insight-tip"
-            title={isZh ? "悬浮查看推荐题；点击打开第一题，或启动推荐流" : "Hover for recommended problems; click to open the first one or start suggested flow"}
+            aria-label={isZh ? "查看推荐题" : "View recommended problems"}
           >
             <button type="button" data-insight-open aria-disabled="true">
               {isZh ? "猜你想练" : "Suggested practice"}
             </button>
             <span class="leetcode-insight-popover" role="tooltip">
               <strong data-insight-pick>{isZh ? "按本地状态和题目价值排序" : "Ranked by local state and problem value"}</strong>
+              <span class="leetcode-popover-hint">
+                {isZh
+                  ? "悬浮查看推荐题；点击打开第一题，或启动推荐流"
+                  : "Hover for recommended problems; click to open the first one or start the suggested flow"}
+              </span>
               <span class="leetcode-insight-actions">
-                <button type="button" data-insight-flow aria-pressed="false" title={suggestedFlowTitle}>
+                <button type="button" data-insight-flow aria-pressed="false" aria-label={suggestedFlowTitle}>
                   {isZh ? "开始推荐流" : "Start suggested flow"}
                 </button>
                 <small data-insight-flow-note>
@@ -790,7 +795,7 @@ const shortcutRows = [
           <span
             class="leetcode-shortcut-tip"
             tabindex="0"
-            title={shortcutHelpTitle}
+            aria-label={shortcutHelpTitle}
             data-shortcut-help
           >
             {isZh ? "快捷键" : "Keys"}
@@ -825,16 +830,16 @@ const shortcutRows = [
         data-pagination
         aria-label={isZh ? "底部分页" : "Bottom pagination"}
       >
-        <button type="button" data-page-action="first" title={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
-        <button type="button" data-page-action="prev" title={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
+        <button type="button" data-page-action="first" aria-label={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
+        <button type="button" data-page-action="prev" aria-label={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
         <label class="leetcode-page-jump">
           <span>{isZh ? "第" : "Page"}</span>
-          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={isZh ? "跳转页码" : "Jump to page"} title={pageJumpShortcutTitle} />
+          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={pageJumpShortcutTitle} />
           <span data-page-indicator></span>
         </label>
-        <button type="button" data-page-action="next" title={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
-        <button type="button" data-page-action="last" title={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
-        <span class="leetcode-shortcut-tip" tabindex="0" title={shortcutHelpTitle}>
+        <button type="button" data-page-action="next" aria-label={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
+        <button type="button" data-page-action="last" aria-label={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
+        <span class="leetcode-shortcut-tip" tabindex="0" aria-label={shortcutHelpTitle}>
           {isZh ? "快捷键" : "Keys"}
           <span class="leetcode-shortcut-popover" role="tooltip">
             {shortcutRows.map((item) => (
@@ -991,7 +996,7 @@ const shortcutRows = [
             <option value="relaxed">{isZh ? "舒展" : "Relaxed"}</option>
           </select>
         </label>
-        <button type="button" data-editor-action-global="reset-all-drafts" title={resetAllDraftsTitle}>
+        <button type="button" data-editor-action-global="reset-all-drafts" aria-label={resetAllDraftsTitle}>
           {isZh ? "重置全部草稿" : "Reset drafts"}
         </button>
       </div>
@@ -2440,7 +2445,7 @@ const shortcutRows = [
         const avgLabel = averageMs ? formatDuration(averageMs) : "--";
         const countLabel = isChinesePage ? `${unique}题` : `${unique}`;
         return `
-          <span class="${classes}" title="${escapeHtml(dateKey)}">
+          <span class="${classes}" aria-label="${escapeHtml(dateKey)}">
             <b>${escapeHtml(label)}</b>
             <em>${escapeHtml(countLabel)}</em>
             <small>${escapeHtml(avgLabel)}</small>
@@ -3425,7 +3430,7 @@ const shortcutRows = [
         ? `练${item.score} · 写${item.attempts}/跑${item.runAttempts}${speedText}`
         : `practice ${item.score} · ${item.attempts}/${item.runAttempts}${speedText}`;
       return `
-        <span class="leetcode-practice-signal" title="${escapeHtml(title)}">
+        <span class="leetcode-practice-signal" aria-label="${escapeHtml(title)}">
           ${escapeHtml(label)}
         </span>
       `;
@@ -3477,7 +3482,6 @@ const shortcutRows = [
           type="button"
           class="leetcode-insight-item"
           data-open-insight="${escapeHtml(problem.titleSlug)}"
-          title="${escapeHtml(submissionReason(item))}"
         >
           <b>${index + 1}. ${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</b>
           <span>${escapeHtml(meta)}</span>
@@ -4163,19 +4167,28 @@ const shortcutRows = [
       );
     }
 
-    function scrollEditorContextIntoView(panel, textarea, behavior = "smooth") {
+    function scrollEditorContextIntoView(panel, textarea, options = {}) {
       if (!(panel instanceof HTMLElement)) return;
+      const behavior = options.behavior || "smooth";
+      const contextElement =
+        options.contextElement instanceof HTMLElement
+          ? options.contextElement
+          : panel;
       const viewportHeight =
         window.innerHeight || document.documentElement.clientHeight || 0;
       const headerOffset = stickyHeaderOffset();
       const panelTop = panel.getBoundingClientRect().top + window.scrollY;
+      const contextTop = Math.min(
+        contextElement.getBoundingClientRect().top + window.scrollY,
+        panelTop,
+      );
       const editorTop =
         textarea instanceof HTMLTextAreaElement
           ? textarea.getBoundingClientRect().top + window.scrollY
           : panelTop;
-      const editorOffset = Math.max(0, editorTop - panelTop);
+      const editorOffset = Math.max(0, editorTop - contextTop);
       const editorLimit = viewportHeight - editorBottomGuard();
-      let nextTop = panelTop - headerOffset;
+      let nextTop = contextTop - headerOffset;
 
       if (editorOffset > editorLimit) {
         const contextReveal = Math.min(editorOffset, editorContextMaxReveal());
@@ -4199,7 +4212,7 @@ const shortcutRows = [
         const shouldFrameContext = options.frameContext === true;
         if (target instanceof HTMLElement) {
           if (shouldFrameContext && panel instanceof HTMLElement) {
-            scrollEditorContextIntoView(panel, textarea);
+            scrollEditorContextIntoView(panel, textarea, { contextElement: row });
           } else {
             target.scrollIntoView({ block: "center", behavior: "smooth" });
           }
@@ -4395,7 +4408,7 @@ const shortcutRows = [
         .filter(([, count]) => count)
         .map(([label]) => label)
         .join("/");
-      return `<span title="${escapeHtml(labels || "字节跳动")}">${escapeHtml(shortLabels || "全")}</span>`;
+      return `<span aria-label="${escapeHtml(labels || "字节跳动")}">${escapeHtml(shortLabels || "全")}</span>`;
     }
 
     function renderByteDanceMeta(problem) {
@@ -4455,7 +4468,7 @@ const shortcutRows = [
                     <a
                       class="leetcode-source-link"
                       href="${escapeHtml(item.sourceUrl)}"
-                      title="${escapeHtml(item.sourceTitle)}"
+                      aria-label="${escapeHtml(item.sourceTitle)}"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -7036,17 +7049,22 @@ const shortcutRows = [
       return paragraphs;
     }
 
-    function renderProblemConstraints(problem) {
+    function problemConstraintItems(problem) {
       const constraintHtml = Array.isArray(problem.constraintHtml)
         ? problem.constraintHtml.filter(Boolean)
         : [];
       const constraints = Array.isArray(problem.constraints)
         ? problem.constraints.filter(Boolean)
         : [];
-      if (!constraintHtml.length && !constraints.length) return "";
-      const items = constraintHtml.length
+      if (!constraintHtml.length && !constraints.length) return [];
+      return constraintHtml.length
         ? constraintHtml
         : constraints.map((item) => escapeHtml(item));
+    }
+
+    function renderProblemConstraints(problem) {
+      const items = problemConstraintItems(problem);
+      if (!items.length) return "";
       const separator = isChinesePage ? "；" : ";";
       return `
         <p class="leetcode-statement-constraints">
@@ -7060,6 +7078,69 @@ const shortcutRows = [
             })
             .join("")}
         </p>
+      `;
+    }
+
+    function renderProblemConstraintsPreview(problem) {
+      const items = problemConstraintItems(problem);
+      if (!items.length) return "";
+      const separator = isChinesePage ? "；" : ";";
+      return `
+        <span class="leetcode-statement-preview-constraints">
+          <strong>${isChinesePage ? "数据范围：" : "Constraints:"}</strong>
+          ${items
+            .map((item, index) => {
+              const prefix = index
+                ? `<span class="leetcode-statement-constraint-separator">${separator}</span>`
+                : "";
+              return `${prefix}<span class="leetcode-statement-constraint-item">${item}</span>`;
+            })
+            .join("")}
+        </span>
+      `;
+    }
+
+    function renderPopoverHint(text) {
+      return `<span class="leetcode-popover-hint">${escapeHtml(text)}</span>`;
+    }
+
+    function previewPinHint(name) {
+      return isChinesePage
+        ? `悬浮查看${name}；点击或 Enter/Space 固定展开`
+        : `Hover for ${name}; click or Enter/Space to pin`;
+    }
+
+    function renderProblemStatementPreview(problem) {
+      const paragraphs = problemStatementParagraphs(problem);
+      const body = paragraphs.length
+        ? paragraphs
+            .slice(0, 3)
+            .map(
+              (paragraph) => `
+                <span class="leetcode-statement-preview-paragraph">
+                  ${escapeHtml(paragraph)}
+                </span>
+              `,
+            )
+            .join("")
+        : `<span class="leetcode-statement-preview-paragraph">${
+            isChinesePage
+              ? "本地题面待同步，可先打开力扣原题查看。"
+              : "Local statement pending; open LeetCode for the full problem."
+          }</span>`;
+      return `
+        ${renderPopoverHint(
+          isChinesePage
+            ? "悬浮查看题面；点击标题打开力扣原题"
+            : "Hover for statement; click the title to open LeetCode",
+        )}
+        <span class="leetcode-popover-heading">
+          ${isChinesePage ? "题面" : "Statement"}
+        </span>
+        <span class="leetcode-statement-preview-body">
+          ${body}
+          ${renderProblemConstraintsPreview(problem)}
+        </span>
       `;
     }
 
@@ -7168,7 +7249,7 @@ const shortcutRows = [
                 <b>PB <em data-problem-best="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "上次 AC" : "Last AC"} <em data-problem-last="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "提交" : "Submits"} <em data-problem-submits="${escapeHtml(problem.titleSlug)}">0</em></b>
-                <b title="${isChinesePage ? "提交失败 + 运行样例失败" : "Submit failures + sample run failures"}">${isChinesePage ? "错" : "Failed"} <em data-problem-errors="${escapeHtml(problem.titleSlug)}">0</em></b>
+                <b aria-label="${isChinesePage ? "提交失败 + 运行样例失败" : "Submit failures + sample run failures"}">${isChinesePage ? "错" : "Failed"} <em data-problem-errors="${escapeHtml(problem.titleSlug)}">0</em></b>
                 <b>${isChinesePage ? "代码" : "Code"} <em data-problem-code-lines="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "均耗" : "Avg"} <em data-problem-avg="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "耗/10行" : "Time/10 lines"} <em data-problem-speed="${escapeHtml(problem.titleSlug)}">--</em></b>
@@ -7179,20 +7260,18 @@ const shortcutRows = [
                 type="button"
                 data-editor-action="practice-prev"
                 data-slug="${escapeHtml(problem.titleSlug)}"
-                title="${isChinesePage ? "上一题（Option+↑）" : "Previous problem (Option+↑)"}"
-                data-shortcut-label="${isChinesePage ? "上一题 · Option+↑" : "Previous · Option+↑"}"
+                aria-label="${isChinesePage ? "上一题（Option+↑）" : "Previous problem (Option+↑)"}"
               >${isChinesePage ? "上一题" : "Prev"}</button>
               <button
                 type="button"
                 data-editor-action="practice-next"
                 data-slug="${escapeHtml(problem.titleSlug)}"
-                title="${isChinesePage ? "下一题（Option+↓）" : "Next problem (Option+↓)"}"
-                data-shortcut-label="${isChinesePage ? "下一题 · Option+↓" : "Next · Option+↓"}"
+                aria-label="${isChinesePage ? "下一题（Option+↓）" : "Next problem (Option+↓)"}"
               >${isChinesePage ? "下一题" : "Next"}</button>
             </div>
             <div class="leetcode-practice-actions">
-              <span class="leetcode-practice-control" data-shortcut-label="${isChinesePage ? "选择语言 · Cmd+Option+L" : "Language · Cmd+Option+L"}">
-                <select data-editor-lang="${escapeHtml(problem.titleSlug)}" aria-label="Language" title="${isChinesePage ? "选择当前题语言（Cmd+Option+L）" : "Choose current language (Cmd+Option+L)"}">
+              <span class="leetcode-practice-control">
+                <select data-editor-lang="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "选择当前题语言（Cmd+Option+L）" : "Choose current language (Cmd+Option+L)"}">
                   ${languages
                     .map(
                       ([value, label]) =>
@@ -7203,12 +7282,12 @@ const shortcutRows = [
                     .join("")}
                 </select>
               </span>
-              <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "复制当前题代码（Cmd+Option+C）" : "Copy current problem code (Cmd+Option+C)"}" data-shortcut-label="${isChinesePage ? "复制代码 · Cmd+Option+C" : "Copy code · Cmd+Option+C"}">复制</button>
-              <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "重置当前题草稿（Cmd+Option+R）" : "Reset current problem draft (Cmd+Option+R)"}" data-shortcut-label="${isChinesePage ? "重置草稿 · Cmd+Option+R" : "Reset draft · Cmd+Option+R"}">重置</button>
-              <button type="button" data-editor-action="height-mode" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "切换编辑器高度（Cmd+Option+H）" : "Toggle editor height (Cmd+Option+H)"}" data-shortcut-label="${isChinesePage ? "切换高度 · Cmd+Option+H" : "Toggle height · Cmd+Option+H"}">高度：${editorAutoGrow ? "自适应" : "固定"}</button>
-              <button type="button" data-editor-action="run-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "运行官方样例（Cmd+'）" : "Run official examples (Cmd+')"}" data-shortcut-label="${isChinesePage ? "运行样例 · Cmd+'" : "Run examples · Cmd+'"}">运行样例</button>
-              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" title="${isChinesePage ? "提交到力扣（Cmd+Enter）" : "Submit to LeetCode (Cmd+Enter)"}" data-shortcut-label="${isChinesePage ? "提交力扣 · Cmd+Enter" : "Submit · Cmd+Enter"}">提交力扣</button>
-              <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" title="${isChinesePage ? "打开当前题力扣页（Cmd+Shift+L）" : "Open current LeetCode problem (Cmd+Shift+L)"}" data-shortcut-label="${isChinesePage ? "打开力扣 · Cmd+Shift+L" : "Open LeetCode · Cmd+Shift+L"}" data-link-slug="${escapeHtml(problem.titleSlug)}">打开力扣</a>
+              <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "复制当前题代码（Cmd+Option+C）" : "Copy current problem code (Cmd+Option+C)"}">复制</button>
+              <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "重置当前题草稿（Cmd+Option+R）" : "Reset current problem draft (Cmd+Option+R)"}">重置</button>
+              <button type="button" data-editor-action="height-mode" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "切换编辑器高度（Cmd+Option+H）" : "Toggle editor height (Cmd+Option+H)"}">高度：${editorAutoGrow ? "自适应" : "固定"}</button>
+              <button type="button" data-editor-action="run-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "运行官方样例（Cmd+'）" : "Run official examples (Cmd+')"}">运行样例</button>
+              <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "提交到力扣（Cmd+Enter）" : "Submit to LeetCode (Cmd+Enter)"}">提交力扣</button>
+              <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" aria-label="${isChinesePage ? "打开当前题力扣页（Cmd+Shift+L）" : "Open current LeetCode problem (Cmd+Shift+L)"}" data-link-slug="${escapeHtml(problem.titleSlug)}">打开力扣</a>
             </div>
           </div>
           <div class="leetcode-submit-note" aria-live="polite">
@@ -7238,33 +7317,42 @@ const shortcutRows = [
           <div class="leetcode-rank is-hot">${hotRank}</div>
           <div class="leetcode-rank is-bytedance">${bytedanceRank}</div>
           <div class="leetcode-problem-main">
-            <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
-              <span class="leetcode-title-text">${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</span>
-            </a>
+            <span class="leetcode-title-preview" data-preview aria-expanded="false">
+              <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
+                <span class="leetcode-title-text">${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</span>
+              </a>
+              <span class="leetcode-popover leetcode-statement-popover" role="tooltip">
+                ${renderProblemStatementPreview(problem)}
+              </span>
+            </span>
             <span class="leetcode-title-tools">
-              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看思路；点击或 Enter/Space 固定展开" : "Hover for approach; click or Enter/Space to pin"}">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" aria-label="${escapeHtml(previewPinHint(isChinesePage ? "思路" : "approach"))}">
                 思路
-                <span class="leetcode-popover">
+                <span class="leetcode-popover" role="tooltip">
+                  ${renderPopoverHint(previewPinHint(isChinesePage ? "思路" : "approach"))}
                   <span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>
                   ${renderStudyChecks(problem)}
                   ${renderCompanyFollowUps(problem)}
                 </span>
               </span>
-              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看实现；点击或 Enter/Space 固定展开" : "Hover for implementation; click or Enter/Space to pin"}">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" aria-label="${escapeHtml(previewPinHint(isChinesePage ? "实现" : "implementation"))}">
                 实现
-                <span class="leetcode-popover">
+                <span class="leetcode-popover" role="tooltip">
+                  ${renderPopoverHint(previewPinHint(isChinesePage ? "实现" : "implementation"))}
                   ${renderImplementationReference(problem)}
                 </span>
               </span>
-              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看标签；点击或 Enter/Space 固定展开" : "Hover for tags; click or Enter/Space to pin"}">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" aria-label="${escapeHtml(previewPinHint(isChinesePage ? "标签" : "tags"))}">
                 标签
-                <span class="leetcode-popover">
+                <span class="leetcode-popover" role="tooltip">
+                  ${renderPopoverHint(previewPinHint(isChinesePage ? "标签" : "tags"))}
                   ${renderTagReference(problem, topLabel)}
                 </span>
               </span>
-              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" title="${isChinesePage ? "悬浮查看相关题；点击或 Enter/Space 固定展开" : "Hover for related problems; click or Enter/Space to pin"}">
+              <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" aria-label="${escapeHtml(previewPinHint(isChinesePage ? "相关题" : "related problems"))}">
                 相关
-                <span class="leetcode-popover">
+                <span class="leetcode-popover" role="tooltip">
+                  ${renderPopoverHint(previewPinHint(isChinesePage ? "相关题" : "related problems"))}
                   ${renderRelatedQuestions(problem)}
                 </span>
               </span>
@@ -7275,9 +7363,9 @@ const shortcutRows = [
           <div class="leetcode-frequency">${escapeHtml(problem.frequency)}</div>
           <div class="leetcode-byte">${byteDance}</div>
           <div class="leetcode-status">
-            <button type="button" data-action="done" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.done ? "is-on" : ""}" aria-label="${isChinesePage ? "切换做过状态（Cmd+Option+D）" : "Toggle done (Cmd+Option+D)"}" data-shortcut-label="${isChinesePage ? "切换做过状态 · Cmd+Option+D" : "Toggle done · Cmd+Option+D"}">做过</button>
-            <button type="button" data-action="review" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.review ? "is-on" : ""}" aria-label="${isChinesePage ? "切换需思考状态（Cmd+Option+S）" : "Toggle review (Cmd+Option+S)"}" data-shortcut-label="${isChinesePage ? "切换需思考状态 · Cmd+Option+S" : "Toggle review · Cmd+Option+S"}">思考</button>
-            <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}" aria-label="${isChinesePage ? "切换熟练状态（Cmd+Option+M）" : "Toggle mastered (Cmd+Option+M)"}" data-shortcut-label="${isChinesePage ? "切换熟练状态 · Cmd+Option+M" : "Toggle mastered · Cmd+Option+M"}">熟练</button>
+            <button type="button" data-action="done" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.done ? "is-on" : ""}" aria-label="${isChinesePage ? "切换做过状态（Cmd+Option+D）" : "Toggle done (Cmd+Option+D)"}">做过</button>
+            <button type="button" data-action="review" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.review ? "is-on" : ""}" aria-label="${isChinesePage ? "切换需思考状态（Cmd+Option+S）" : "Toggle review (Cmd+Option+S)"}">思考</button>
+            <button type="button" data-action="mastered" data-slug="${escapeHtml(problem.titleSlug)}" class="${status.mastered ? "is-on" : ""}" aria-label="${isChinesePage ? "切换熟练状态（Cmd+Option+M）" : "Toggle mastered (Cmd+Option+M)"}">熟练</button>
           </div>
         </article>
       `;
@@ -7708,6 +7796,7 @@ const shortcutRows = [
       }
       if (!(target instanceof HTMLElement)) return;
       if (target.closest(".leetcode-related-item")) return;
+      if (target.closest(".leetcode-title-preview")) return;
       const previewButton = target.closest("[data-preview]");
       if (!(previewButton instanceof HTMLElement)) return;
       if (event.key !== "Enter" && event.key !== " ") return;
@@ -9109,6 +9198,19 @@ const shortcutRows = [
       text-decoration: none;
     }
 
+    .leetcode-title-preview {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .leetcode-title-preview .leetcode-problem-link {
+      flex: 1 1 auto;
+    }
+
     .leetcode-title-text {
       min-width: 0;
       overflow: hidden;
@@ -9425,62 +9527,6 @@ const shortcutRows = [
     .leetcode-practice-actions button:disabled {
       cursor: default;
       opacity: 0.62;
-    }
-
-    .leetcode-practice-nav [data-shortcut-label],
-    .leetcode-practice-actions [data-shortcut-label] {
-      position: relative;
-    }
-
-    .leetcode-practice-nav [data-shortcut-label]::after,
-    .leetcode-practice-actions [data-shortcut-label]::after {
-      content: attr(data-shortcut-label);
-      position: absolute;
-      left: 50%;
-      bottom: calc(100% + 0.4rem);
-      z-index: 30;
-      display: none;
-      transform: translateX(-50%);
-      border: 1px solid rgb(194 192 182 / 68%);
-      border-radius: 0.38rem;
-      background: var(--color-cream);
-      box-shadow: 0 10px 24px rgb(20 20 19 / 14%);
-      color: var(--color-secondary);
-      font-size: 0.64rem;
-      line-height: 1;
-      padding: 0.34rem 0.42rem;
-      pointer-events: auto;
-      white-space: nowrap;
-    }
-
-    .leetcode-practice-nav [data-shortcut-label]::before,
-    .leetcode-practice-actions [data-shortcut-label]::before {
-      content: "";
-      position: absolute;
-      left: 50%;
-      bottom: calc(100% + 0.18rem);
-      z-index: 31;
-      display: none;
-      width: 0.42rem;
-      height: 0.42rem;
-      transform: translateX(-50%) rotate(45deg);
-      border-right: 1px solid rgb(194 192 182 / 68%);
-      border-bottom: 1px solid rgb(194 192 182 / 68%);
-      background: var(--color-cream);
-      pointer-events: auto;
-    }
-
-    .leetcode-practice-nav [data-shortcut-label]:hover::after,
-    .leetcode-practice-nav [data-shortcut-label]:hover::before,
-    .leetcode-practice-nav [data-shortcut-label]:focus-visible::after,
-    .leetcode-practice-nav [data-shortcut-label]:focus-visible::before,
-    .leetcode-practice-actions [data-shortcut-label]:hover::after,
-    .leetcode-practice-actions [data-shortcut-label]:hover::before,
-    .leetcode-practice-actions [data-shortcut-label]:focus-visible::after,
-    .leetcode-practice-actions [data-shortcut-label]:focus-visible::before,
-    .leetcode-practice-actions [data-shortcut-label]:focus-within::after,
-    .leetcode-practice-actions [data-shortcut-label]:focus-within::before {
-      display: block;
     }
 
     .leetcode-practice-nav button:hover,
@@ -9930,30 +9976,6 @@ const shortcutRows = [
       border-color: #333;
     }
 
-    html.dark .leetcode-practice-nav [data-shortcut-label]::after,
-    html.dark .leetcode-practice-actions [data-shortcut-label]::after {
-      border-color: #333;
-      background: var(--color-charcoal);
-      color: var(--color-muted);
-    }
-
-    html.dark .leetcode-practice-nav [data-shortcut-label]::before,
-    html.dark .leetcode-practice-actions [data-shortcut-label]::before {
-      border-color: #333;
-      background: var(--color-charcoal);
-    }
-
-    html.dark .leetcode-status [data-shortcut-label]::after {
-      border-color: #333;
-      background: var(--color-charcoal);
-      color: var(--color-muted);
-    }
-
-    html.dark .leetcode-status [data-shortcut-label]::before {
-      border-color: #333;
-      background: var(--color-charcoal);
-    }
-
     html.dark .leetcode-footer-settings,
     html.dark .leetcode-extension-guide,
     html.dark .leetcode-insight-guide,
@@ -10043,53 +10065,6 @@ const shortcutRows = [
       gap: 0.15rem;
     }
 
-    .leetcode-status [data-shortcut-label] {
-      position: relative;
-    }
-
-    .leetcode-status [data-shortcut-label]::after {
-      content: attr(data-shortcut-label);
-      position: absolute;
-      left: 50%;
-      bottom: calc(100% + 0.4rem);
-      z-index: 30;
-      display: none;
-      transform: translateX(-50%);
-      border: 1px solid rgb(194 192 182 / 68%);
-      border-radius: 0.38rem;
-      background: var(--color-cream);
-      box-shadow: 0 10px 24px rgb(20 20 19 / 14%);
-      color: var(--color-secondary);
-      font-size: 0.64rem;
-      line-height: 1;
-      padding: 0.34rem 0.42rem;
-      pointer-events: auto;
-      white-space: nowrap;
-    }
-
-    .leetcode-status [data-shortcut-label]::before {
-      content: "";
-      position: absolute;
-      left: 50%;
-      bottom: calc(100% + 0.18rem);
-      z-index: 31;
-      display: none;
-      width: 0.42rem;
-      height: 0.42rem;
-      transform: translateX(-50%) rotate(45deg);
-      border-right: 1px solid rgb(194 192 182 / 68%);
-      border-bottom: 1px solid rgb(194 192 182 / 68%);
-      background: var(--color-cream);
-      pointer-events: auto;
-    }
-
-    .leetcode-status [data-shortcut-label]:hover::after,
-    .leetcode-status [data-shortcut-label]:hover::before,
-    .leetcode-status [data-shortcut-label]:focus-visible::after,
-    .leetcode-status [data-shortcut-label]:focus-visible::before {
-      display: block;
-    }
-
     .leetcode-status button,
     .leetcode-preview-control {
       font-size: 0.72rem;
@@ -10103,7 +10078,8 @@ const shortcutRows = [
       line-height: 1.15;
     }
 
-    .leetcode-preview-control::after {
+    .leetcode-preview-control::after,
+    .leetcode-title-preview::after {
       content: "";
       position: absolute;
       top: 100%;
@@ -10114,7 +10090,12 @@ const shortcutRows = [
       height: 0.42rem;
     }
 
-    .leetcode-preview-control.is-popover-above::after {
+    .leetcode-title-preview::after {
+      width: min(52rem, calc(100vw - 2rem));
+    }
+
+    .leetcode-preview-control.is-popover-above::after,
+    .leetcode-title-preview.is-popover-above::after {
       top: auto;
       bottom: 100%;
     }
@@ -10130,7 +10111,7 @@ const shortcutRows = [
       overflow: auto;
       border: 1px solid var(--color-border);
       border-radius: 0.5rem;
-      background: var(--color-cream);
+      background: rgb(255 252 242 / 98%);
       box-shadow: 0 18px 45px rgb(20 20 19 / 18%);
       color: var(--color-secondary);
       font-size: 0.84rem;
@@ -10140,7 +10121,13 @@ const shortcutRows = [
       white-space: normal;
     }
 
-    .leetcode-preview-control.is-popover-above .leetcode-popover {
+    .leetcode-statement-popover {
+      width: min(52rem, calc(100vw - 2rem));
+      padding: 0.95rem 1.05rem;
+    }
+
+    .leetcode-preview-control.is-popover-above .leetcode-popover,
+    .leetcode-title-preview.is-popover-above .leetcode-popover {
       top: auto;
       bottom: calc(100% + 0.34rem);
     }
@@ -10291,12 +10278,65 @@ const shortcutRows = [
     }
 
     .leetcode-popover-lead,
+    .leetcode-popover-hint,
+    .leetcode-popover-heading,
     .leetcode-popover-section,
+    .leetcode-statement-preview-body,
+    .leetcode-statement-preview-paragraph,
+    .leetcode-statement-preview-constraints,
     .leetcode-check,
     .leetcode-company-follow-up,
     .leetcode-followup-source,
     .leetcode-popover-muted {
       display: block;
+    }
+
+    .leetcode-popover-hint {
+      margin-bottom: 0.52rem;
+      border-bottom: 1px solid rgb(217 119 87 / 20%);
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1.35;
+      padding-bottom: 0.42rem;
+    }
+
+    .leetcode-popover-heading {
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+    }
+
+    .leetcode-statement-preview-body {
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-display-font);
+      font-size: 1.02rem;
+      line-height: 1.78;
+    }
+
+    .leetcode-statement-preview-paragraph + .leetcode-statement-preview-paragraph {
+      margin-top: 0.42rem;
+    }
+
+    .leetcode-statement-preview-constraints {
+      margin-top: 0.55rem;
+      color: var(--color-muted);
+      font-family: var(--leetcode-display-font);
+      font-size: 0.82rem;
+      line-height: 1.62;
+    }
+
+    .leetcode-statement-preview-constraints strong {
+      color: var(--color-secondary);
+      font-family: var(--font-sans);
+      font-weight: 700;
+      margin-right: 0.24rem;
     }
 
     .leetcode-popover-section {
@@ -10359,7 +10399,11 @@ const shortcutRows = [
     .leetcode-preview-control.is-open .leetcode-popover,
     .leetcode-preview-control:focus .leetcode-popover,
     .leetcode-preview-control:focus-visible .leetcode-popover,
-    .leetcode-preview-control:focus-within .leetcode-popover {
+    .leetcode-preview-control:focus-within .leetcode-popover,
+    .leetcode-title-preview:hover .leetcode-popover,
+    .leetcode-title-preview.is-hover-open .leetcode-popover,
+    .leetcode-title-preview.is-open .leetcode-popover,
+    .leetcode-title-preview:focus-within .leetcode-popover {
       display: block;
     }
 
@@ -10368,7 +10412,11 @@ const shortcutRows = [
     .leetcode-preview-control.is-open::after,
     .leetcode-preview-control:focus::after,
     .leetcode-preview-control:focus-visible::after,
-    .leetcode-preview-control:focus-within::after {
+    .leetcode-preview-control:focus-within::after,
+    .leetcode-title-preview:hover::after,
+    .leetcode-title-preview.is-hover-open::after,
+    .leetcode-title-preview.is-open::after,
+    .leetcode-title-preview:focus-within::after {
       display: block;
     }
 
@@ -10388,6 +10436,8 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-popover-section > strong,
+    html.dark .leetcode-popover-heading,
+    html.dark .leetcode-statement-preview-body,
     html.dark .leetcode-followup-source b {
       color: var(--color-cream);
     }
