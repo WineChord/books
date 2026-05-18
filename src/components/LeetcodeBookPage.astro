@@ -9751,6 +9751,7 @@ const shortcutRows = [
       margin: 0;
     }
 
+    .leetcode-duplicate-audit,
     .leetcode-extension-guide,
     .leetcode-insight-guide {
       margin: var(--leetcode-stack-gap) 0 0;
@@ -9761,10 +9762,19 @@ const shortcutRows = [
       font-size: 0.78rem;
     }
 
+    .leetcode-duplicate-audit {
+      margin: 0 0 var(--leetcode-stack-gap);
+      background: rgb(255 255 255 / 28%);
+    }
+
+    .leetcode-duplicate-audit summary,
     .leetcode-extension-guide summary,
     .leetcode-insight-guide summary {
       cursor: pointer;
+      font-family: var(--leetcode-system-font);
+      font-size: inherit;
       font-weight: 700;
+      line-height: 1.25;
       padding: 0.42rem 0.6rem;
     }
 
@@ -9864,21 +9874,6 @@ const shortcutRows = [
     .leetcode-extension-guide a:hover,
     .leetcode-extension-guide a:focus-visible {
       text-decoration: underline;
-    }
-
-    .leetcode-duplicate-audit {
-      margin: 0 0 var(--leetcode-stack-gap);
-      border: 1px solid rgb(194 192 182 / 58%);
-      border-radius: 0.5rem;
-      background: rgb(255 255 255 / 28%);
-      color: var(--color-secondary);
-      font-size: 0.72rem;
-    }
-
-    .leetcode-duplicate-audit summary {
-      cursor: pointer;
-      font-weight: 700;
-      padding: 0.34rem 0.5rem;
     }
 
     .leetcode-duplicate-list {
