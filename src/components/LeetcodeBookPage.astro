@@ -722,6 +722,14 @@ const shortcutRows = [
           <span data-timing-streak>0 天</span>
           <p>{isZh ? "连续" : "Streak"}</p>
         </div>
+        <div class="leetcode-session-metric is-combo">
+          <span data-one-shot-streak>0</span>
+          <p>{isZh ? "AC 连击" : "AC combo"}</p>
+        </div>
+        <div class="leetcode-session-metric is-record">
+          <span data-one-shot-best>0</span>
+          <p>{isZh ? "最高连击" : "Best combo"}</p>
+        </div>
         <div class="leetcode-session-metric">
           <span data-timing-week>0 题</span>
           <p>{isZh ? "近7日" : "7 days"}</p>
@@ -1273,6 +1281,7 @@ const shortcutRows = [
     const extraRunCasesDayKey = "leetcode-book-extra-run-cases-day-v1";
     const timingKey = "leetcode-book-timing-v1";
     const submissionStatsKey = "leetcode-book-submission-stats-v1";
+    const oneShotStreakKey = "leetcode-book-one-shot-streak-v1";
     const viewStateKey = "leetcode-book-view-state-v1";
     const practiceDbName = "leetcode-book-practice-v1";
     const practiceDbVersion = 1;
@@ -1290,6 +1299,10 @@ const shortcutRows = [
     const practiceEventTimingCleared = "problem-timing-cleared";
     const practiceEventSubmissionAttempt = "submission-attempt";
     const practiceEventRunAttempt = "run-attempt";
+    const practiceEventOneShotAttemptStarted = "one-shot-attempt-started";
+    const practiceEventOneShotRunFailed = "one-shot-run-failed";
+    const practiceEventOneShotSubmitFailed = "one-shot-submit-failed";
+    const practiceEventOneShotAccepted = "one-shot-accepted";
     const practiceLegacyProgressEventId = "legacy:progress:v1";
     const practiceLegacyTimingEventId = "legacy:timing:v1";
     const practiceLegacySubmissionStatsEventId =
@@ -1433,6 +1446,14 @@ const shortcutRows = [
     const timingTimeZone = "Asia/Shanghai";
     const timingDayMs = 24 * 60 * 60 * 1000;
     const timingHistoryDays = 14;
+    const oneShotAttemptHistoryLimit = 420;
+    const oneShotHashSeed = 2166136261;
+    const oneShotHashPrime = 16777619;
+    const oneShotRewardParticleMin = 90;
+    const oneShotRewardParticleMax = 520;
+    const oneShotRewardDurationMs = 4200;
+    const oneShotRewardReducedMotionMs = 2600;
+    const oneShotRecordPulseMs = 2600;
     const flowModeOff = "off";
     const flowModeList = "list";
     const flowModeInsight = "insight";
@@ -1723,8 +1744,72 @@ const shortcutRows = [
       };
     }
 
+    function normalizedOneShotAttemptRecord(record) {
+      return {
+        acceptedAt: record?.acceptedAt || null,
+        baseHash: String(record?.baseHash || ""),
+        baseSemanticHash: String(record?.baseSemanticHash || ""),
+        closed: Boolean(record?.closed),
+        counted: Boolean(record?.counted),
+        dateKey: record?.dateKey || localDateKey(),
+        disqualified: Boolean(record?.disqualified),
+        fresh: record?.fresh !== false,
+        id: String(record?.id || ""),
+        langSlug: String(record?.langSlug || ""),
+        lastStatus: String(record?.lastStatus || ""),
+        meaningfulEditSeen: Boolean(record?.meaningfulEditSeen),
+        reason: String(record?.reason || ""),
+        runFailed: Boolean(record?.runFailed),
+        slug: String(record?.slug || ""),
+        startedAt: record?.startedAt || null,
+        submitCount: Number(record?.submitCount || 0),
+        submitFailed: Boolean(record?.submitFailed),
+      };
+    }
+
+    function normalizedOneShotSnapshot(value) {
+      const source = value && typeof value === "object" ? value : {};
+      const attempts = source.attempts && typeof source.attempts === "object"
+        ? source.attempts
+        : {};
+      const dateCombos =
+        source.dateCombos && typeof source.dateCombos === "object"
+          ? source.dateCombos
+          : {};
+      const todayKey = localDateKey();
+      return {
+        attempts: Object.fromEntries(
+          Object.entries(attempts)
+            .filter(([attemptId]) => Boolean(attemptId))
+            .map(([attemptId, attempt]) => [
+              attemptId,
+              normalizedOneShotAttemptRecord({
+                ...attempt,
+                id: attempt?.id || attemptId,
+              }),
+            ])
+            .slice(-oneShotAttemptHistoryLimit),
+        ),
+        best: Number(source.best || 0),
+        bestAt: source.bestAt || null,
+        bestDateKey: source.bestDateKey || "",
+        current: source.dateKey === todayKey ? Number(source.current || 0) : 0,
+        dateCombos: Object.fromEntries(
+          Object.entries(dateCombos)
+            .filter(([dateKey]) => /^\d{4}-\d{2}-\d{2}$/.test(dateKey))
+            .map(([dateKey, count]) => [dateKey, Number(count || 0)]),
+        ),
+        dateKey: todayKey,
+        lastOutcome:
+          source.lastOutcome && typeof source.lastOutcome === "object"
+            ? cloneJson(source.lastOutcome, {})
+            : null,
+      };
+    }
+
     function emptyPracticeProjection() {
       return {
+        oneShot: normalizedOneShotSnapshot({}),
         progress: {},
         submissionStats: { problems: {} },
         timing: { days: {}, problems: {} },
@@ -1827,6 +1912,157 @@ const shortcutRows = [
       record.runErrorCount += 1;
     }
 
+    function ensureOneShotAttemptIn(store, payload) {
+      const attemptId = String(payload?.attemptId || payload?.id || "");
+      if (!attemptId) return null;
+      const existing = store.attempts[attemptId];
+      if (existing) return existing;
+      const attempt = normalizedOneShotAttemptRecord({
+        ...payload,
+        dateKey: payload?.dateKey || localDateKey(),
+        id: attemptId,
+      });
+      store.attempts[attemptId] = attempt;
+      return attempt;
+    }
+
+    function pruneOneShotAttemptsIn(store) {
+      const entries = Object.entries(store.attempts || {});
+      if (entries.length <= oneShotAttemptHistoryLimit) return;
+      entries
+        .sort((left, right) => {
+          const leftTime = Date.parse(left[1]?.startedAt || "") || 0;
+          const rightTime = Date.parse(right[1]?.startedAt || "") || 0;
+          return rightTime - leftTime;
+        })
+        .slice(oneShotAttemptHistoryLimit)
+        .forEach(([attemptId]) => {
+          delete store.attempts[attemptId];
+        });
+    }
+
+    function oneShotFailureBreaksCombo(attempt, dateKey) {
+      return (
+        attempt?.fresh &&
+        !attempt.counted &&
+        !attempt.closed &&
+        attempt.dateKey === dateKey
+      );
+    }
+
+    function oneShotFailureBreaksCurrent(store, attempt, dateKey) {
+      return (
+        oneShotFailureBreaksCombo(attempt, dateKey) &&
+        attempt.dateKey === store.dateKey
+      );
+    }
+
+    function applyOneShotAttemptStartedEvent(store, event) {
+      const attempt = ensureOneShotAttemptIn(store, event.payload);
+      if (!attempt) return;
+      attempt.lastStatus = "fresh";
+      pruneOneShotAttemptsIn(store);
+    }
+
+    function applyOneShotFailureEvent(store, event, kind) {
+      const attempt = ensureOneShotAttemptIn(store, event.payload);
+      if (!attempt) return;
+      if (attempt.counted || attempt.closed) {
+        attempt.lastStatus = "neutral";
+        return;
+      }
+      if (kind === "run") {
+        attempt.runFailed = true;
+      } else {
+        attempt.submitFailed = true;
+        attempt.submitCount += 1;
+      }
+      attempt.disqualified = true;
+      attempt.lastStatus = kind === "run" ? "run-failed" : "submit-failed";
+      const failureDateKey = eventDateKey(event);
+      const breaksCombo = oneShotFailureBreaksCombo(
+        attempt,
+        failureDateKey,
+      );
+      const breaksCurrent = oneShotFailureBreaksCurrent(
+        store,
+        attempt,
+        failureDateKey,
+      );
+      if (kind === "submit") attempt.closed = true;
+      if (breaksCombo) {
+        store.dateCombos[attempt.dateKey] = 0;
+      }
+      if (breaksCurrent) {
+        store.current = 0;
+        store.lastOutcome = {
+          attemptId: attempt.id,
+          dateKey: attempt.dateKey,
+          kind,
+          slug: attempt.slug,
+          type: "broken",
+        };
+      }
+    }
+
+    function oneShotAttemptCanCount(attempt, dateKey) {
+      return Boolean(
+        attempt?.fresh &&
+          attempt.dateKey === dateKey &&
+          attempt.meaningfulEditSeen &&
+          !attempt.runFailed &&
+          !attempt.submitFailed &&
+          !attempt.disqualified &&
+          !attempt.closed &&
+          !attempt.counted &&
+          !attempt.submitCount,
+      );
+    }
+
+    function applyOneShotAcceptedEvent(store, event) {
+      const attempt = ensureOneShotAttemptIn(store, event.payload);
+      if (!attempt) return;
+      attempt.meaningfulEditSeen = Boolean(
+        event.payload?.meaningfulEditSeen || attempt.meaningfulEditSeen,
+      );
+      const acceptedDateKey = eventDateKey(event);
+      const canCount = oneShotAttemptCanCount(
+        attempt,
+        acceptedDateKey,
+      );
+      attempt.acceptedAt = event.payload?.acceptedAt || event.createdAt || null;
+      attempt.closed = true;
+      attempt.counted = attempt.counted || canCount;
+      attempt.lastStatus = canCount ? "counted" : "neutral";
+      attempt.submitCount += 1;
+      if (!canCount) {
+        store.lastOutcome = {
+          attemptId: attempt.id,
+          dateKey: attempt.dateKey,
+          slug: attempt.slug,
+          type: "neutral",
+        };
+        return;
+      }
+      const dateCombo = Number(store.dateCombos[attempt.dateKey] || 0) + 1;
+      store.dateCombos[attempt.dateKey] = dateCombo;
+      if (attempt.dateKey === store.dateKey) store.current = dateCombo;
+      const isRecord = dateCombo > Number(store.best || 0);
+      if (isRecord) {
+        store.best = dateCombo;
+        store.bestAt = attempt.acceptedAt;
+        store.bestDateKey = attempt.dateKey;
+      }
+      store.lastOutcome = {
+        attemptId: attempt.id,
+        dateKey: attempt.dateKey,
+        isRecord,
+        slug: attempt.slug,
+        streak: dateCombo,
+        type: "accepted",
+      };
+    }
+
     function practiceEventSort(left, right) {
       return (
         Number(left.createdAtMs || 0) - Number(right.createdAtMs || 0) ||
@@ -1880,9 +2116,26 @@ const shortcutRows = [
           }
           if (event.type === practiceEventRunAttempt) {
             applyRunAttemptEvent(projection.submissionStats, event);
+            return;
+          }
+          if (event.type === practiceEventOneShotAttemptStarted) {
+            applyOneShotAttemptStartedEvent(projection.oneShot, event);
+            return;
+          }
+          if (event.type === practiceEventOneShotRunFailed) {
+            applyOneShotFailureEvent(projection.oneShot, event, "run");
+            return;
+          }
+          if (event.type === practiceEventOneShotSubmitFailed) {
+            applyOneShotFailureEvent(projection.oneShot, event, "submit");
+            return;
+          }
+          if (event.type === practiceEventOneShotAccepted) {
+            applyOneShotAcceptedEvent(projection.oneShot, event);
           }
         });
       return {
+        oneShot: normalizedOneShotSnapshot(projection.oneShot),
         progress: normalizedProgressSnapshot(projection.progress),
         submissionStats: normalizedSubmissionStatsSnapshot(
           projection.submissionStats,
@@ -2076,6 +2329,7 @@ const shortcutRows = [
       localStorage.setItem(progressKey, JSON.stringify(progress));
       localStorage.setItem(timingKey, JSON.stringify(timing));
       localStorage.setItem(submissionStatsKey, JSON.stringify(submissionStats));
+      localStorage.setItem(oneShotStreakKey, JSON.stringify(oneShotStreak));
     }
 
     function syncVisibleProgressButtons(slug) {
@@ -2107,6 +2361,7 @@ const shortcutRows = [
       });
       syncTimingUi();
       syncSubmissionInsightUi();
+      syncOneShotUi();
     }
 
     function applyPracticeProjection(projection, options = {}) {
@@ -2115,6 +2370,7 @@ const shortcutRows = [
       submissionStats = normalizedSubmissionStatsSnapshot(
         projection.submissionStats,
       );
+      oneShotStreak = normalizedOneShotSnapshot(projection.oneShot);
       writePracticeProjectionCache();
       if (options.updateUi) syncVisiblePracticeProjectionUi();
     }
@@ -2196,6 +2452,9 @@ const shortcutRows = [
     let timing = normalizedTimingSnapshot(readJson(timingKey, {}));
     let submissionStats = normalizedSubmissionStatsSnapshot(
       readJson(submissionStatsKey, {}),
+    );
+    let oneShotStreak = normalizedOneShotSnapshot(
+      readJson(oneShotStreakKey, {}),
     );
     const sessionTiming = {
       acceptedDurations: [],
@@ -2734,6 +2993,804 @@ const shortcutRows = [
       return [parts.year, parts.month, parts.day].join("-");
     }
 
+    function writeOneShotStreak() {
+      oneShotStreak = normalizedOneShotSnapshot(oneShotStreak);
+      localStorage.setItem(oneShotStreakKey, JSON.stringify(oneShotStreak));
+    }
+
+    function rollOneShotStreakForToday(options = {}) {
+      const todayKey = localDateKey();
+      if (oneShotStreak.dateKey === todayKey) return false;
+      oneShotStreak = {
+        ...oneShotStreak,
+        current: 0,
+        dateCombos: {
+          ...oneShotStreak.dateCombos,
+          [todayKey]: 0,
+        },
+        dateKey: todayKey,
+        lastOutcome: {
+          dateKey: todayKey,
+          type: "day-reset",
+        },
+      };
+      writeOneShotStreak();
+      if (options.sync !== false) syncOneShotUi();
+      return true;
+    }
+
+    function oneShotHash(value) {
+      let hash = oneShotHashSeed;
+      const text = String(value || "");
+      for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, oneShotHashPrime);
+      }
+      return (hash >>> 0).toString(36);
+    }
+
+    function normalizedCodeForHash(code) {
+      return String(code || "")
+        .replace(/\r\n/g, "\n")
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .join("\n")
+        .trim();
+    }
+
+    function semanticCodeForHash(code) {
+      return normalizedCodeForHash(code)
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/(^|\s)\/\/.*$/gm, "$1")
+        .replace(/(^|\s)#.*$/gm, "$1")
+        .replace(/(^|\s)--.*$/gm, "$1")
+        .replace(/\s+/g, "");
+    }
+
+    function codeSemanticHash(code) {
+      return oneShotHash(semanticCodeForHash(code));
+    }
+
+    function codeMeaningfullyDiffersFromTemplate(problem, lang, code) {
+      const template = defaultTemplate(problem, lang);
+      return semanticCodeForHash(code) !== semanticCodeForHash(template);
+    }
+
+    function draftStartedFromTemplate(problem, lang, draft, code) {
+      const template = defaultTemplate(problem, lang);
+      const draftCode = typeof draft?.code === "string" ? draft.code : "";
+      return (
+        !draftCode ||
+        semanticCodeForHash(draftCode) === semanticCodeForHash(template) ||
+        semanticCodeForHash(code) === semanticCodeForHash(template)
+      );
+    }
+
+    function oneShotAttemptById(attemptId) {
+      const attempt = oneShotStreak.attempts?.[attemptId];
+      return attempt && typeof attempt === "object" ? attempt : null;
+    }
+
+    function oneShotAttemptCanRestartFromTemplate(
+      attempt,
+      problem,
+      lang,
+      code,
+    ) {
+      if (!attempt) return false;
+      const restoredToTemplate =
+        semanticCodeForHash(code) ===
+        semanticCodeForHash(defaultTemplate(problem, lang));
+      return Boolean(
+        restoredToTemplate &&
+          (attempt.counted ||
+            attempt.closed ||
+            attempt.disqualified ||
+            attempt.runFailed ||
+            attempt.submitFailed ||
+            attempt.dateKey !== localDateKey()),
+      );
+    }
+
+    function createOneShotAttempt(problem, lang, reason, options = {}) {
+      rollOneShotStreakForToday({ sync: false });
+      const nowIso = new Date().toISOString();
+      const dateKey = localDateKey(new Date(nowIso));
+      const template = defaultTemplate(problem, lang);
+      const attemptId = [
+        "one-shot",
+        dateKey,
+        problem.titleSlug,
+        lang,
+        Date.now().toString(36),
+        randomStorageId(),
+      ].join(":");
+      const attempt = normalizedOneShotAttemptRecord({
+        baseHash: oneShotHash(normalizedCodeForHash(template)),
+        baseSemanticHash: codeSemanticHash(template),
+        dateKey,
+        fresh: options.fresh !== false,
+        id: attemptId,
+        langSlug: lang,
+        lastStatus: "fresh",
+        reason,
+        slug: problem.titleSlug,
+        startedAt: nowIso,
+      });
+      oneShotStreak.attempts[attemptId] = attempt;
+      pruneOneShotAttemptsIn(oneShotStreak);
+      writeOneShotStreak();
+      appendPracticeEvent(
+        practiceEventOneShotAttemptStarted,
+        { ...attempt, attemptId },
+        nowIso,
+      );
+      return attempt;
+    }
+
+    function ensureOneShotAttempt(problem, lang, code, reason) {
+      const slug = problem?.titleSlug || "";
+      if (!slug) return null;
+      rollOneShotStreakForToday({ sync: false });
+      const draft = editorDrafts[slug] || {};
+      const attemptId = draft.oneShotAttemptId || "";
+      const attempt = oneShotAttemptById(attemptId);
+      if (attempt) {
+        if (!oneShotAttemptCanRestartFromTemplate(
+          attempt,
+          problem,
+          lang,
+          code,
+        )) {
+          return attempt;
+        }
+        const nextAttempt = createOneShotAttempt(
+          problem,
+          lang,
+          `${reason}-template-restart`,
+        );
+        editorDrafts[slug] = {
+          ...draft,
+          code,
+          lang,
+          oneShotAttemptId: nextAttempt.id,
+        };
+        localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
+        return nextAttempt;
+      }
+      const fresh = draftStartedFromTemplate(problem, lang, draft, code);
+      const nextAttempt = createOneShotAttempt(problem, lang, reason, { fresh });
+      editorDrafts[slug] = {
+        ...draft,
+        code,
+        lang,
+        oneShotAttemptId: nextAttempt.id,
+      };
+      localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
+      return nextAttempt;
+    }
+
+    function oneShotAttemptForTextarea(problem, textarea, reason) {
+      if (!(textarea instanceof HTMLTextAreaElement)) return null;
+      const payload = editorPayload(problem, textarea);
+      return ensureOneShotAttempt(
+        problem,
+        payload.langSlug,
+        payload.code,
+        reason,
+      );
+    }
+
+    function oneShotAttemptPayload(attempt, extra = {}) {
+      return {
+        attemptId: attempt.id,
+        baseHash: attempt.baseHash,
+        baseSemanticHash: attempt.baseSemanticHash,
+        dateKey: attempt.dateKey,
+        fresh: attempt.fresh,
+        langSlug: attempt.langSlug,
+        reason: attempt.reason,
+        slug: attempt.slug,
+        startedAt: attempt.startedAt,
+        ...extra,
+      };
+    }
+
+    function markOneShotFailure(problem, textarea, kind) {
+      const attempt = oneShotAttemptForTextarea(
+        problem,
+        textarea,
+        `${kind}-failure`,
+      );
+      if (!attempt || attempt.counted || attempt.closed) {
+        syncOneShotUi();
+        return null;
+      }
+      const eventType = kind === "run"
+        ? practiceEventOneShotRunFailed
+        : practiceEventOneShotSubmitFailed;
+      const nowIso = new Date().toISOString();
+      applyOneShotFailureEvent(
+        oneShotStreak,
+        {
+          createdAt: nowIso,
+          payload: oneShotAttemptPayload(attempt, {
+            at: nowIso,
+            dateKey: localDateKey(new Date(nowIso)),
+          }),
+        },
+        kind,
+      );
+      writeOneShotStreak();
+      appendPracticeEvent(
+        eventType,
+        oneShotAttemptPayload(attempt, {
+          at: nowIso,
+          dateKey: localDateKey(new Date(nowIso)),
+        }),
+        nowIso,
+      );
+      syncOneShotUi();
+      return oneShotStreak.lastOutcome;
+    }
+
+    function recordOneShotAccepted(problem, textarea) {
+      const payload = editorPayload(problem, textarea);
+      const attempt = ensureOneShotAttempt(
+        problem,
+        payload.langSlug,
+        payload.code,
+        "accepted-submit",
+      );
+      if (!attempt) return { counted: false, neutral: true };
+      const nowIso = new Date().toISOString();
+      const meaningfulEditSeen = codeMeaningfullyDiffersFromTemplate(
+        problem,
+        payload.langSlug,
+        payload.code,
+      );
+      const beforeBest = Number(oneShotStreak.best || 0);
+      applyOneShotAcceptedEvent(oneShotStreak, {
+        createdAt: nowIso,
+        payload: oneShotAttemptPayload(attempt, {
+          acceptedAt: nowIso,
+          dateKey: localDateKey(new Date(nowIso)),
+          meaningfulEditSeen,
+        }),
+      });
+      writeOneShotStreak();
+      appendPracticeEvent(
+        practiceEventOneShotAccepted,
+        oneShotAttemptPayload(attempt, {
+          acceptedAt: nowIso,
+          dateKey: localDateKey(new Date(nowIso)),
+          meaningfulEditSeen,
+        }),
+        nowIso,
+      );
+      syncOneShotUi();
+      const outcome = oneShotStreak.lastOutcome || {};
+      return {
+        attempt,
+        best: Number(oneShotStreak.best || 0),
+        counted: outcome.type === "accepted" && outcome.attemptId === attempt.id,
+        isRecord: Number(oneShotStreak.best || 0) > beforeBest,
+        neutral: outcome.type !== "accepted",
+        streak: Number(oneShotStreak.current || 0),
+      };
+    }
+
+    function oneShotStatusFor(problem, code, lang) {
+      const draft = editorDrafts[problem.titleSlug] || {};
+      const attempt = oneShotAttemptById(draft.oneShotAttemptId || "");
+      const freshPreview = draftStartedFromTemplate(problem, lang, draft, code);
+      const meaningful = codeMeaningfullyDiffersFromTemplate(problem, lang, code);
+      if (!attempt) {
+        if (freshPreview && meaningful) {
+          return isChinesePage ? "一遍过候选" : "one-shot candidate";
+        }
+        if (freshPreview) {
+          return isChinesePage ? "模板起步" : "template start";
+        }
+        return isChinesePage ? "旧草稿不影响连击" : "old draft, combo neutral";
+      }
+      if (attempt.counted) {
+        return isChinesePage ? "本轮已计入连击" : "counted in combo";
+      }
+      if (attempt.runFailed) {
+        return isChinesePage ? "本轮样例已错" : "sample failed this round";
+      }
+      if (attempt.submitFailed) {
+        return isChinesePage ? "本轮提交已错" : "submit failed this round";
+      }
+      if (!attempt.fresh) {
+        return isChinesePage ? "重复提交不影响连击" : "repeat submit neutral";
+      }
+      return meaningful
+        ? (isChinesePage ? "一遍过候选" : "one-shot candidate")
+        : (isChinesePage ? "模板起步" : "template start");
+    }
+
+    function syncOneShotAttemptUi(slug) {
+      const problem = problems.find((item) => item.titleSlug === slug);
+      if (!problem) return;
+      document.querySelectorAll(`[data-one-shot-attempt="${slug}"]`).forEach(
+        (node) => {
+          if (!(node instanceof HTMLElement)) return;
+          const panel = node.closest(".leetcode-practice-panel");
+          const textarea = panel?.querySelector("[data-editor-code]");
+          const select = panel?.querySelector("[data-editor-lang]");
+          const lang =
+            select instanceof HTMLSelectElement
+              ? preferredLang(problem, select.value)
+              : preferredLang(problem, editorDrafts[slug]?.lang);
+          const code = textarea instanceof HTMLTextAreaElement
+            ? textarea.value
+            : (editorDrafts[slug]?.code || defaultTemplate(problem, lang));
+          node.textContent = oneShotStatusFor(problem, code, lang);
+        },
+      );
+    }
+
+    function syncOneShotUi() {
+      rollOneShotStreakForToday({ sync: false });
+      setTextAndLabelAll(
+        "[data-one-shot-streak]",
+        String(Number(oneShotStreak.current || 0)),
+        isChinesePage
+          ? `今日 AC 连击 ${Number(oneShotStreak.current || 0)}`
+          : `Today's AC combo ${Number(oneShotStreak.current || 0)}`,
+      );
+      setTextAndLabelAll(
+        "[data-one-shot-best]",
+        String(Number(oneShotStreak.best || 0)),
+        isChinesePage
+          ? `历史最高 AC 连击 ${Number(oneShotStreak.best || 0)}`
+          : `Best AC combo ${Number(oneShotStreak.best || 0)}`,
+      );
+      document
+        .querySelectorAll("[data-one-shot-attempt]")
+        .forEach((node) => {
+          if (node instanceof HTMLElement) {
+            syncOneShotAttemptUi(node.dataset.oneShotAttempt || "");
+          }
+        });
+    }
+
+    function oneShotNeutralReason(result) {
+      const attempt = result?.attempt;
+      if (attempt?.runFailed) {
+        return isChinesePage
+          ? "本轮样例已错，AC 不计连击"
+          : "sample failed this round, combo unchanged";
+      }
+      if (attempt?.submitFailed) {
+        return isChinesePage
+          ? "本轮提交已错，AC 不计连击"
+          : "submit failed this round, combo unchanged";
+      }
+      if (attempt?.counted) {
+        return isChinesePage
+          ? "本轮已计过，重复 AC 不影响连击"
+          : "already counted, repeat AC is neutral";
+      }
+      if (attempt?.fresh === false) {
+        return isChinesePage
+          ? "非默认模板起步，AC 不计连击"
+          : "not started from template, combo unchanged";
+      }
+      if (!attempt?.meaningfulEditSeen) {
+        return isChinesePage
+          ? "未检测到有效改动，AC 不计连击"
+          : "no meaningful edit detected, combo unchanged";
+      }
+      return isChinesePage
+        ? "重复提交不影响连击"
+        : "repeat submit leaves combo unchanged";
+    }
+
+    function oneShotSubmitSummary(result) {
+      if (!result) return "";
+      if (result.counted) {
+        const record = result.isRecord
+          ? (isChinesePage ? "，新纪录" : ", new record")
+          : "";
+        return isChinesePage
+          ? ` · AC 连击 x${result.streak}${record}`
+          : ` · AC combo x${result.streak}${record}`;
+      }
+      return ` · ${oneShotNeutralReason(result)}`;
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function randomInteger(min, max) {
+      return Math.floor(randomBetween(min, max + 1));
+    }
+
+    function randomItem(items) {
+      return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function rareOneShotLine(streak, isRecord) {
+      const rareZh = [
+        [7, "七连斩，节奏已经进后台常驻。"],
+        [8, "八题连过，今天的手感开始发烫。"],
+        [10, "十连 AC，这不是运气，是稳定输出。"],
+        [13, "十三连，连击表开始有传说感了。"],
+        [21, "二十一连，斐波那契都要让你先走。"],
+        [42, "四十二连，答案不是风，是你刚写出来的。"],
+        [64, "六十四连，缓存命中率拉满。"],
+        [88, "八十八连，纪录墙开始发光。"],
+        [100, "百连 AC，今天这页应该给你让路。"],
+      ];
+      const rareEn = [
+        [7, "Seven straight; the rhythm is resident now."],
+        [8, "Eight clean accepts; the keyboard is warming up."],
+        [10, "Ten-shot AC. That is not luck, that is control."],
+        [13, "Thirteen straight; the combo board feels legendary."],
+        [21, "Twenty-one straight; even Fibonacci yields the lane."],
+        [42, "Forty-two straight; the answer was in your editor."],
+        [64, "Sixty-four straight; cache hit rate maxed out."],
+        [88, "Eighty-eight straight; the record wall is glowing."],
+        [100, "One hundred straight; the page should make room."],
+      ];
+      const rare = isChinesePage ? rareZh : rareEn;
+      const exact = rare.find(([value]) => value === streak);
+      if (exact) return exact[1];
+      if (isRecord && streak > 1 && streak % 11 === 0) {
+        return isChinesePage
+          ? `${streak} 连击，新纪录还带隐藏刻度。`
+          : `${streak} combo, a hidden record marker unlocked.`;
+      }
+      return "";
+    }
+
+    function oneShotRewardTier(result) {
+      if (result.isRecord && result.streak > 1) return "record";
+      if (result.streak >= 20 || result.streak % 10 === 0) return "legend";
+      if ([3, 5, 8, 13].includes(result.streak)) return "milestone";
+      return "combo";
+    }
+
+    function oneShotRewardCopy(result, problem) {
+      const tier = oneShotRewardTier(result);
+      const title = `${problem.frontendId}. ${problem.titleCn}`;
+      const rare = rareOneShotLine(result.streak, result.isRecord);
+      const zh = {
+        combo: [
+          "一遍过，太稳了",
+          "这把干净利落",
+          "提交即通过，漂亮",
+          "AC 连击继续延长",
+          "手感在线，判断也在线",
+          "代码落地，答案开花",
+          "没有回头路，也不需要回头",
+          "样例安静，提交通过",
+          "这一题被你直接收下",
+          "稳准狠，连击加一",
+          "思路清楚，落笔有声",
+          "一发入魂，AC 入账",
+          "今天的连击条又亮了一格",
+          "你这把节奏很高级",
+          "直接命中，毫不拖泥带水",
+          "这题被你写成了顺手题",
+          "验算到位，提交到位",
+          "从模板到 AC，一气呵成",
+        ],
+        legend: [
+          "连击已经进入高能区",
+          "这一串 AC 开始有压迫感",
+          "状态拉满，继续推进",
+          "连击层数正在堆成高塔",
+          "今天这条记录很有存在感",
+          "越写越稳，越稳越快",
+          "这是连续命中的声音",
+          "高能连击，保持推进",
+        ],
+        milestone: [
+          "小里程碑达成",
+          "连击节点点亮",
+          "节奏升级，奖励加码",
+          "这一档连击值得放大庆祝",
+          "继续，记录正在变厚",
+          "连击阶梯又上一层",
+        ],
+        record: [
+          "新纪录，你太牛逼了",
+          "最高连击刷新，今天状态爆炸",
+          "纪录被你亲手抬高",
+          "新的天花板出现了",
+          "这一刻应该被记录",
+          "最高连击改写成功",
+          "你把自己的纪录打穿了",
+          "新纪录诞生，烟花全开",
+        ],
+      };
+      const en = {
+        combo: [
+          "One-shot accepted. Clean.",
+          "Submitted once, passed once.",
+          "The combo keeps climbing.",
+          "No detour needed.",
+          "Template to AC in one clean line.",
+          "Checked, committed, accepted.",
+          "That was precise.",
+          "First try locked in.",
+          "The streak bar lights up again.",
+          "Direct hit.",
+          "Clean reasoning, clean submit.",
+          "Accepted on arrival.",
+        ],
+        legend: [
+          "The combo is in high-energy territory.",
+          "This AC chain has weight now.",
+          "Momentum is compounding.",
+          "The streak is stacking into a tower.",
+          "This run is becoming hard to ignore.",
+          "Steadier, faster, sharper.",
+        ],
+        milestone: [
+          "Milestone lit.",
+          "Combo tier upgraded.",
+          "The streak staircase moved up.",
+          "This tier deserves a bigger burst.",
+          "The record line is getting thicker.",
+        ],
+        record: [
+          "New record. Brutally strong.",
+          "Best combo raised.",
+          "You moved the ceiling.",
+          "New high-water mark.",
+          "That one belongs on the wall.",
+          "Record rewritten.",
+          "Full fireworks for a new best.",
+        ],
+      };
+      const copy = isChinesePage ? zh : en;
+      const headline = rare || randomItem(copy[tier]);
+      const subtitlePool = isChinesePage
+        ? [
+            `${title} · AC 连击 x${result.streak}`,
+            `北京时间今日连击 x${result.streak}`,
+            result.isRecord
+              ? `历史最高改写为 x${result.best}`
+              : `历史最高 x${result.best}`,
+            "不用点确认，继续写下一题就行",
+            "这一轮从默认模板开始，首次提交命中",
+            "没有样例失误，没有提交返工",
+            "这次奖励不会打断你的节奏",
+            "继续推进，下一题已经在等你",
+          ]
+        : [
+            `${title} · AC combo x${result.streak}`,
+            `Beijing-day combo x${result.streak}`,
+            result.isRecord
+              ? `Best combo moved to x${result.best}`
+              : `Best combo x${result.best}`,
+            "No confirm button. Keep moving.",
+            "Fresh template, first submit, accepted.",
+            "No sample miss, no submit repair.",
+            "The reward will not interrupt your flow.",
+            "Keep going; the next problem is ready.",
+          ];
+      return {
+        headline,
+        subtitle: randomItem(subtitlePool),
+        tier,
+      };
+    }
+
+    let oneShotRewardAnimation = 0;
+    let oneShotRewardLayer = null;
+
+    function ensureOneShotRewardLayer() {
+      if (oneShotRewardLayer) return oneShotRewardLayer;
+      const layer = document.createElement("div");
+      const canvas = document.createElement("canvas");
+      const message = document.createElement("div");
+      const headline = document.createElement("strong");
+      const subtitle = document.createElement("span");
+      layer.className = "leetcode-one-shot-reward";
+      canvas.setAttribute("aria-hidden", "true");
+      message.className = "leetcode-one-shot-reward-message";
+      headline.dataset.oneShotRewardHeadline = "true";
+      subtitle.dataset.oneShotRewardSubtitle = "true";
+      message.append(headline, subtitle);
+      layer.append(canvas, message);
+      document.body.append(layer);
+      oneShotRewardLayer = { canvas, headline, layer, message, subtitle };
+      return oneShotRewardLayer;
+    }
+
+    function oneShotRewardPalette(tier) {
+      const palettes = {
+        combo: [
+          ["#ffcb5c", "#ff6f61", "#4cc9f0", "#2dd4bf"],
+          ["#f97316", "#facc15", "#22c55e", "#38bdf8"],
+          ["#fb7185", "#fbbf24", "#60a5fa", "#34d399"],
+          ["#f59e0b", "#ef4444", "#14b8a6", "#8b5cf6"],
+        ],
+        legend: [
+          ["#facc15", "#fb923c", "#ec4899", "#38bdf8", "#a78bfa"],
+          ["#fde047", "#f97316", "#22d3ee", "#84cc16", "#f472b6"],
+          ["#fbbf24", "#ef4444", "#06b6d4", "#10b981", "#c084fc"],
+        ],
+        milestone: [
+          ["#fde68a", "#f97316", "#38bdf8", "#22c55e"],
+          ["#f9a8d4", "#facc15", "#2dd4bf", "#60a5fa"],
+          ["#fed7aa", "#fb7185", "#a78bfa", "#34d399"],
+        ],
+        record: [
+          ["#fff7ad", "#ffd166", "#ff5c8a", "#7dd3fc", "#c084fc"],
+          ["#fef08a", "#fb923c", "#f43f5e", "#22d3ee", "#a3e635"],
+          ["#fde68a", "#f59e0b", "#ec4899", "#60a5fa", "#34d399"],
+        ],
+      };
+      return randomItem(palettes[tier] || palettes.combo);
+    }
+
+    function oneShotParticleCount(tier) {
+      const base = {
+        combo: [oneShotRewardParticleMin, 160],
+        legend: [260, 380],
+        milestone: [180, 270],
+        record: [390, oneShotRewardParticleMax],
+      }[tier] || [oneShotRewardParticleMin, 150];
+      return randomInteger(base[0], base[1]);
+    }
+
+    function createOneShotParticles(width, height, tier, palette) {
+      const particles = [];
+      const burstCount = tier === "record"
+        ? randomInteger(7, 11)
+        : tier === "legend"
+          ? randomInteger(5, 8)
+          : randomInteger(3, 6);
+      const centers = Array.from({ length: burstCount }, () => ({
+        x: randomBetween(width * 0.16, width * 0.84),
+        y: randomBetween(height * 0.16, height * 0.58),
+      }));
+      const count = oneShotParticleCount(tier);
+      for (let index = 0; index < count; index += 1) {
+        const center = centers[index % centers.length];
+        const angle = randomBetween(0, Math.PI * 2);
+        const speed = randomBetween(1.6, tier === "record" ? 9.2 : 6.4);
+        const drift = randomBetween(-0.012, 0.012);
+        particles.push({
+          alpha: randomBetween(0.78, 1),
+          color: randomItem(palette),
+          life: randomBetween(720, tier === "record" ? 1850 : 1450),
+          rotation: randomBetween(0, Math.PI),
+          shape: randomItem(["circle", "diamond", "spark", "ring"]),
+          size: randomBetween(1.4, tier === "record" ? 5.8 : 4.4),
+          spin: randomBetween(-0.18, 0.18),
+          vx: Math.cos(angle) * speed + drift * width,
+          vy: Math.sin(angle) * speed - randomBetween(0.4, 2.2),
+          x: center.x,
+          y: center.y,
+        });
+      }
+      return particles;
+    }
+
+    function drawOneShotParticle(context, particle) {
+      context.save();
+      context.globalAlpha = Math.max(0, particle.alpha);
+      context.translate(particle.x, particle.y);
+      context.rotate(particle.rotation);
+      context.fillStyle = particle.color;
+      context.strokeStyle = particle.color;
+      context.lineWidth = Math.max(1, particle.size * 0.32);
+      const size = particle.size;
+      if (particle.shape === "diamond") {
+        context.beginPath();
+        context.moveTo(0, -size);
+        context.lineTo(size, 0);
+        context.lineTo(0, size);
+        context.lineTo(-size, 0);
+        context.closePath();
+        context.fill();
+      } else if (particle.shape === "spark") {
+        context.beginPath();
+        context.moveTo(-size * 1.8, 0);
+        context.lineTo(size * 1.8, 0);
+        context.moveTo(0, -size * 1.8);
+        context.lineTo(0, size * 1.8);
+        context.stroke();
+      } else if (particle.shape === "ring") {
+        context.beginPath();
+        context.arc(0, 0, size, 0, Math.PI * 2);
+        context.stroke();
+      } else {
+        context.beginPath();
+        context.arc(0, 0, size, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.restore();
+    }
+
+    function animateOneShotReward(layer, tier, palette) {
+      window.cancelAnimationFrame(oneShotRewardAnimation);
+      const canvas = layer.canvas;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      const ratio = Math.max(1, window.devicePixelRatio || 1);
+      const width = window.innerWidth || document.documentElement.clientWidth;
+      const height = window.innerHeight || document.documentElement.clientHeight;
+      canvas.width = Math.ceil(width * ratio);
+      canvas.height = Math.ceil(height * ratio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const particles = createOneShotParticles(width, height, tier, palette);
+      const startedAt = performance.now();
+      const duration = oneShotRewardDurationMs + randomInteger(-360, 520);
+      const gravity = tier === "record" ? 0.055 : 0.042;
+
+      function frame(now) {
+        const elapsed = now - startedAt;
+        context.clearRect(0, 0, width, height);
+        particles.forEach((particle) => {
+          const progress = Math.min(1, elapsed / particle.life);
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.vy += gravity;
+          particle.vx *= 0.988;
+          particle.vy *= 0.992;
+          particle.rotation += particle.spin;
+          particle.alpha = (1 - progress) * 0.95;
+          if (particle.alpha > 0) drawOneShotParticle(context, particle);
+        });
+        if (elapsed < duration) {
+          oneShotRewardAnimation = window.requestAnimationFrame(frame);
+          return;
+        }
+        layer.layer.classList.remove("is-visible", "is-record");
+        context.clearRect(0, 0, width, height);
+      }
+
+      oneShotRewardAnimation = window.requestAnimationFrame(frame);
+    }
+
+    function celebrateOneShotAccepted(result, problem) {
+      if (!result?.counted || !problem) return;
+      const layer = ensureOneShotRewardLayer();
+      const copy = oneShotRewardCopy(result, problem);
+      const palette = oneShotRewardPalette(copy.tier);
+      const reducedMotion = window.matchMedia?.(
+        "(prefers-reduced-motion: reduce)",
+      )?.matches;
+      layer.headline.textContent = copy.headline;
+      layer.subtitle.textContent = copy.subtitle;
+      layer.layer.dataset.rewardTier = copy.tier;
+      layer.layer.style.setProperty("--one-shot-accent", palette[0]);
+      layer.layer.style.setProperty("--one-shot-accent-2", palette[1]);
+      layer.layer.classList.add("is-visible");
+      layer.layer.classList.toggle("is-record", copy.tier === "record");
+      if (reducedMotion) {
+        window.clearTimeout(layer.hideTimer);
+        layer.hideTimer = window.setTimeout(() => {
+          layer.layer.classList.remove("is-visible", "is-record");
+        }, oneShotRewardReducedMotionMs);
+        return;
+      }
+      animateOneShotReward(layer, copy.tier, palette);
+      if (result.isRecord) {
+        document
+          .querySelectorAll(".leetcode-session-metric.is-record")
+          .forEach((node) => {
+            if (!(node instanceof HTMLElement)) return;
+            node.classList.add("is-record-pulse");
+            window.setTimeout(() => {
+              node.classList.remove("is-record-pulse");
+            }, oneShotRecordPulseMs);
+          });
+      }
+    }
+
     let insightFatigueDateKey = localDateKey();
 
     function syncInsightDateBoundary() {
@@ -2788,6 +3845,7 @@ const shortcutRows = [
     }
 
     function rollEditorDraftsForToday() {
+      rollOneShotStreakForToday({ sync: false });
       const todayKey = localDateKey();
       const storedKey = localStorage.getItem(editorDraftDayKey);
       if (storedKey === todayKey) return false;
@@ -2800,9 +3858,13 @@ const shortcutRows = [
     }
 
     function syncEditorDraftDay() {
+      const oneShotReset = rollOneShotStreakForToday({ sync: false });
       const extraCasesReset = rollExtraRunCasesForToday();
       if (!rollEditorDraftsForToday()) {
-        if (extraCasesReset) scheduleViewStateWrite();
+        if (extraCasesReset || oneShotReset) {
+          syncOneShotUi();
+          scheduleViewStateWrite();
+        }
         return;
       }
       state.expandedSlug = "";
@@ -3264,6 +4326,7 @@ const shortcutRows = [
           button.disabled = !hasProblemTimingRecord(activePracticeTimer.slug);
         }
       });
+      syncOneShotUi();
       syncInsightDateBoundary();
     }
 
@@ -5682,11 +6745,23 @@ const shortcutRows = [
       }
       const context = editorContextFor(textarea);
       if (!context) return;
-      editorDrafts[context.slug] = { lang: context.lang, code: textarea.value };
+      const attempt = ensureOneShotAttempt(
+        context.problem,
+        context.lang,
+        textarea.value,
+        "editor-input",
+      );
+      editorDrafts[context.slug] = {
+        ...editorDrafts[context.slug],
+        lang: context.lang,
+        code: textarea.value,
+        oneShotAttemptId: attempt?.id || editorDrafts[context.slug]?.oneShotAttemptId,
+      };
       syncEditorHighlight(context.panel, textarea, context.lang);
       writeState();
       scheduleViewStateWrite();
       scheduleEditorCaretReveal(textarea);
+      syncOneShotAttemptUi(context.slug);
     }
 
     function replaceTextareaRange(textarea, start, end, value, nextStart, nextEnd = nextStart) {
@@ -6316,7 +7391,13 @@ const shortcutRows = [
       if (!problem) return false;
       const slug = problem.titleSlug;
       const nextLang = preferredLang(problem, lang || editorDrafts[slug]?.lang);
-      editorDrafts[slug] = { lang: nextLang, code: defaultTemplate(problem, nextLang) };
+      const code = defaultTemplate(problem, nextLang);
+      const attempt = createOneShotAttempt(problem, nextLang, "manual-reset");
+      editorDrafts[slug] = {
+        lang: nextLang,
+        code,
+        oneShotAttemptId: attempt.id,
+      };
       writeState();
       render();
       scheduleViewStateWrite();
@@ -7630,6 +8711,7 @@ const shortcutRows = [
           setSubmitStatus(panel, `样例通过 ${summary}`, "success", null, completedRows);
           return;
         }
+        markOneShotFailure(problem, textarea, "run");
         setSubmitStatus(panel, `样例未通过 ${summary}`, "error", null, completedRows);
       } catch (error) {
         setSubmitStatus(panel, error.message || "运行失败。", "error");
@@ -7673,6 +8755,7 @@ const shortcutRows = [
             elapsedMs: timingResult.elapsed,
             submissionId,
           });
+          const oneShotResult = recordOneShotAccepted(problem, textarea);
           const timingSummary =
             `${isChinesePage ? "本题" : "Problem"} ${formatDuration(timingResult.elapsed)}` +
             (timingResult.isPersonalBest
@@ -7681,6 +8764,7 @@ const shortcutRows = [
           const milestoneSummary = timingResult.milestone
             ? ` · ${timingResult.milestone}`
             : "";
+          const oneShotSummary = oneShotSubmitSummary(oneShotResult);
           progress[problem.titleSlug] = {
             ...rowState(problem.titleSlug),
             done: true,
@@ -7695,9 +8779,10 @@ const shortcutRows = [
           }
           setSubmitStatus(
             panel,
-            `${summary || "Accepted"} · ${timingSummary}${milestoneSummary}`,
+            `${summary || "Accepted"} · ${timingSummary}${milestoneSummary}${oneShotSummary}`,
             "success",
           );
+          celebrateOneShotAccepted(oneShotResult, problem);
           advanceFlowAfterAcceptedSubmit(nextFlowProblem, timingResult);
           return;
         }
@@ -7706,6 +8791,7 @@ const shortcutRows = [
           elapsedMs: activePracticeElapsed(),
           submissionId,
         });
+        markOneShotFailure(problem, textarea, "submit");
         const savedCase = saveFailedSubmissionCase(problem, result);
         const savedMessage = savedCase
           ? (isChinesePage ? " · 已加入下次运行样例" : " · Added to next run")
@@ -8059,6 +9145,7 @@ const shortcutRows = [
                 <b>${isChinesePage ? "代码" : "Code"} <em data-problem-code-lines="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "均耗" : "Avg"} <em data-problem-avg="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "耗/10行" : "Time/10 lines"} <em data-problem-speed="${escapeHtml(problem.titleSlug)}">--</em></b>
+                <b class="leetcode-one-shot-meter">${isChinesePage ? "一遍过" : "One-shot"} <em data-one-shot-attempt="${escapeHtml(problem.titleSlug)}">${escapeHtml(oneShotStatusFor(problem, code, lang))}</em></b>
               </span>
             </div>
             <div class="leetcode-practice-nav" aria-label="${isChinesePage ? "题目切换" : "Problem navigation"}">
@@ -8216,6 +9303,7 @@ const shortcutRows = [
       syncActivePracticeTimerAfterRender();
       pageItems.forEach((problem) => syncSubmissionStatsUi(problem.titleSlug));
       syncSubmissionInsightUi();
+      syncOneShotUi();
     }
 
     searchInput?.addEventListener("input", (event) => {
@@ -8538,9 +9626,12 @@ const shortcutRows = [
       const problem = problems.find((item) => item.titleSlug === slug);
       if (!problem) return;
       const lang = preferredLang(problem, target.value);
+      const code = defaultTemplate(problem, lang);
+      const attempt = createOneShotAttempt(problem, lang, "language-change");
       editorDrafts[slug] = {
         lang,
-        code: defaultTemplate(problem, lang),
+        code,
+        oneShotAttemptId: attempt.id,
       };
       writeState();
       render();
@@ -8863,6 +9954,103 @@ const shortcutRows = [
         "Liberation Mono", monospace;
     }
 
+    .leetcode-one-shot-reward {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 240ms ease;
+    }
+
+    .leetcode-one-shot-reward.is-visible {
+      opacity: 1;
+    }
+
+    .leetcode-one-shot-reward canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .leetcode-one-shot-reward-message {
+      position: relative;
+      display: grid;
+      gap: 0.28rem;
+      max-width: min(36rem, calc(100vw - 2rem));
+      border: 1px solid color-mix(
+        in srgb,
+        var(--one-shot-accent, #facc15) 54%,
+        transparent
+      );
+      border-radius: 0.72rem;
+      background:
+        radial-gradient(
+          circle at top left,
+          color-mix(
+            in srgb,
+            var(--one-shot-accent, #facc15) 22%,
+            transparent
+          ),
+          transparent 42%
+        ),
+        linear-gradient(135deg, rgb(20 20 19 / 82%), rgb(58 44 30 / 74%));
+      box-shadow:
+        0 1.2rem 3rem rgb(0 0 0 / 28%),
+        0 0 2.6rem color-mix(
+          in srgb,
+          var(--one-shot-accent-2, #fb7185) 34%,
+          transparent
+        );
+      color: white;
+      padding: 0.78rem 1rem;
+      text-align: center;
+      transform: translateY(0.25rem) scale(0.98);
+      transition: transform 280ms ease;
+    }
+
+    .leetcode-one-shot-reward.is-visible .leetcode-one-shot-reward-message {
+      transform: translateY(0) scale(1);
+    }
+
+    .leetcode-one-shot-reward.is-record .leetcode-one-shot-reward-message {
+      border-color: color-mix(
+        in srgb,
+        var(--one-shot-accent, #facc15) 86%,
+        white 14%
+      );
+      box-shadow:
+        0 1.4rem 3.6rem rgb(0 0 0 / 34%),
+        0 0 4.2rem color-mix(
+          in srgb,
+          var(--one-shot-accent, #facc15) 58%,
+          transparent
+        );
+    }
+
+    .leetcode-one-shot-reward-message strong {
+      display: block;
+      font-family: var(--leetcode-display-font);
+      font-size: clamp(1.15rem, 3.6vw, 2.75rem);
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1.06;
+      text-shadow: 0 0.18rem 1.1rem rgb(0 0 0 / 34%);
+    }
+
+    .leetcode-one-shot-reward-message span {
+      display: block;
+      color: rgb(255 255 255 / 82%);
+      font-family: var(--leetcode-system-font);
+      font-size: clamp(0.74rem, 1.4vw, 0.98rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1.28;
+    }
+
     .leetcode-shell[data-editor-theme="cursor-dark"] {
       --leetcode-editor-background: #1e1e1e;
       --leetcode-editor-border: #3c3c3c;
@@ -9142,7 +10330,8 @@ const shortcutRows = [
 
     .leetcode-session-board {
       display: grid;
-      grid-template-columns: repeat(8, minmax(0, 1fr)) minmax(15rem, 1.6fr) auto;
+      grid-template-columns:
+        repeat(10, minmax(0, 1fr)) minmax(15rem, 1.6fr) auto;
       gap: 0.24rem;
       align-items: stretch;
       margin: 0 0 0.2rem;
@@ -9161,6 +10350,26 @@ const shortcutRows = [
 
     .leetcode-session-metric.is-live {
       background: rgb(217 119 87 / 10%);
+    }
+
+    .leetcode-session-metric.is-combo {
+      background: linear-gradient(
+        135deg,
+        rgb(255 214 102 / 18%),
+        rgb(76 201 240 / 12%)
+      );
+    }
+
+    .leetcode-session-metric.is-record {
+      background: linear-gradient(
+        135deg,
+        rgb(255 247 173 / 26%),
+        rgb(217 119 87 / 12%)
+      );
+    }
+
+    .leetcode-session-metric.is-record-pulse {
+      animation: leetcode-record-pulse 0.86s ease-out 3;
     }
 
     .leetcode-session-metric span {
@@ -9183,8 +10392,25 @@ const shortcutRows = [
       white-space: nowrap;
     }
 
+    @keyframes leetcode-record-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgb(250 204 21 / 50%);
+        transform: translateY(0);
+      }
+
+      45% {
+        box-shadow: 0 0 0 0.34rem rgb(250 204 21 / 0%);
+        transform: translateY(-1px);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgb(250 204 21 / 0%);
+        transform: translateY(0);
+      }
+    }
+
     .leetcode-session-actions {
-      grid-column: 10;
+      grid-column: 12;
       grid-row: 1;
       display: flex;
       flex-wrap: wrap;
@@ -9232,7 +10458,7 @@ const shortcutRows = [
     }
 
     .leetcode-session-history {
-      grid-column: 9;
+      grid-column: 11;
       grid-row: 1;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
@@ -10316,6 +11542,15 @@ const shortcutRows = [
       font-style: normal;
     }
 
+    .leetcode-practice-meter .leetcode-one-shot-meter {
+      border-color: rgb(250 204 21 / 50%);
+      background: rgb(250 204 21 / 10%);
+    }
+
+    .leetcode-practice-meter .leetcode-one-shot-meter em {
+      color: #b45309;
+    }
+
     .leetcode-practice-head span,
     .leetcode-practice-panel p {
       color: var(--color-muted);
@@ -10809,6 +12044,22 @@ const shortcutRows = [
       background: rgb(217 119 87 / 14%);
     }
 
+    html.dark .leetcode-session-metric.is-combo {
+      background: linear-gradient(
+        135deg,
+        rgb(250 204 21 / 12%),
+        rgb(56 189 248 / 10%)
+      );
+    }
+
+    html.dark .leetcode-session-metric.is-record {
+      background: linear-gradient(
+        135deg,
+        rgb(250 204 21 / 16%),
+        rgb(236 72 153 / 10%)
+      );
+    }
+
     html.dark .leetcode-session-metric span {
       color: var(--color-cream);
     }
@@ -10845,6 +12096,15 @@ const shortcutRows = [
     html.dark .leetcode-practice-meter b,
     html.dark .leetcode-practice-signal {
       border-color: #333;
+    }
+
+    html.dark .leetcode-practice-meter .leetcode-one-shot-meter {
+      border-color: rgb(250 204 21 / 36%);
+      background: rgb(250 204 21 / 8%);
+    }
+
+    html.dark .leetcode-practice-meter .leetcode-one-shot-meter em {
+      color: #facc15;
     }
 
     html.dark .leetcode-session-actions button.is-on {

@@ -363,6 +363,43 @@ to itself. If no recommendable problem exists, the page stays on the current
 problem and shows a status cue. Non-Accepted submits and passed sample runs
 never advance suggested flow.
 
+The page also tracks a same-day one-shot Accepted combo. This combo is scoped
+to the Beijing calendar day and resets to zero at 00:00 Asia/Shanghai; the
+best historical combo is stored and shown separately. The unit is not a
+problem, but a fresh attempt that starts from the official default template or
+local fallback template. A fresh attempt starts when a problem is opened
+without a draft, when the current draft is reset, when the language switch
+recreates the default template, or when the Beijing-day draft rollover clears
+code back to defaults. An older problem that was already Accepted can
+therefore count again after its editor has returned to the default template and
+the user rewrites it.
+
+A fresh attempt increases the same-day one-shot combo only when the user has
+made a meaningful code change from the template, no official-example run in
+that attempt has failed, no full submit in that attempt has failed, and the
+first full submit for that attempt returns Accepted. Running examples is
+optional; a direct full submit can count as long as no sample run failed before
+it. A failed sample run or failed full submit during a fresh attempt
+immediately breaks the current same-day combo and disqualifies that attempt
+from later combo credit, even if the user fixes the code and later gets
+Accepted. Extension installation errors, login errors, network failures,
+request timeouts, or other cases that do not return a final LeetCode judge
+result do not change the combo. After an attempt has already been counted,
+repeated Accepted submits, no-op submits, small edits, or later failures on the
+same unrestarted code are neutral: they neither increase nor break the combo.
+A new combo-eligible round requires returning to the default template first.
+
+The one-shot combo UI belongs on the timing board beside the existing practice
+metrics and inside the active editor's compact meter. The active editor signal
+must distinguish a one-shot candidate, a sample-failed round, a submit-failed
+round, a counted round, and a neutral repeat submit. Accepted combo increments
+trigger non-blocking reward feedback: the page may draw fireworks, light
+trails, record pulses, and randomized encouragement copy in a fixed overlay,
+but it must never steal focus, require confirmation, block typing, or move
+layout. Reward intensity should scale from ordinary combo increments, to
+milestone counts, to very prominent new-record celebrations. Reduced-motion
+users should receive a quieter static cue instead of heavy particle animation.
+
 Full submissions and official-example runs made through this page also append
 to a separate local submission-stat store. The store does not import historical
 LeetCode records; it only records actions initiated from the local editor after
