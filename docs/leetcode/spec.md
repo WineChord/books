@@ -168,6 +168,12 @@ current Cursor font stack (`Monaco, 'Cascadia Code', Consolas, 'Courier New',
 monospace`). The default size and line spacing use a tighter practice density
 to reduce vertical space for short templates. Alternate editor themes,
 monospace stacks, font sizes, and line spacings remain selectable per browser.
+Reloading the page restores the previous practice view from local storage:
+current filters, search text, page size, page number, expanded problem, page
+scroll position, editor selection, and editor internal scroll position. If
+synced problem data changes and a saved problem is no longer visible under the
+saved filters, the page falls back to the matching filtered list without
+opening an editor.
 Editor shortcuts match the primary LeetCode muscle memory: `Cmd+'`
 runs the official example testcases and `Cmd+Enter` performs a full LeetCode
 submit. Practice navigation is also keyboard-first: `Option+J` or `Option+Down`

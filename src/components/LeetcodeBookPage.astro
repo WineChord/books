@@ -1004,6 +1004,7 @@ const shortcutRows = [
     const editorDailyResetKey = "leetcode-book-editor-daily-reset-v1";
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
     const timingKey = "leetcode-book-timing-v1";
+    const viewStateKey = "leetcode-book-view-state-v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
     const maxPageSize = problems.length || 20;
@@ -1077,6 +1078,7 @@ const shortcutRows = [
     const editorCaretTopGuard = 88;
     const editorDraftDayCheckIntervalMs = 60 * 1000;
     const previewHoverCloseDelayMs = 180;
+    const viewStateWriteDelayMs = 120;
     const filterShortcutByCode = {
       Digit1: "all",
       Digit2: "hot100",
@@ -1108,6 +1110,7 @@ const shortcutRows = [
     const isChinesePage = document.documentElement.lang.startsWith("zh");
     let extensionRequestSequence = 0;
     let previewHoverCloseTimer = 0;
+    let viewStateWriteTimer = 0;
 
     function readJson(key, fallback) {
       try {
@@ -1121,8 +1124,12 @@ const shortcutRows = [
     let clicked = readJson(clickedKey, {});
     let editorDrafts = readJson(editorKey, {});
     let editorAppearance = readJson(editorAppearanceKey, {});
+    let viewState = readJson(viewStateKey, {});
     if (!editorAppearance || typeof editorAppearance !== "object") {
       editorAppearance = {};
+    }
+    if (!viewState || typeof viewState !== "object") {
+      viewState = {};
     }
     let editorAutoGrow = localStorage.getItem(editorHeightModeKey) !== "fixed";
     let timing = readJson(timingKey, {});
@@ -1219,6 +1226,187 @@ const shortcutRows = [
       }
     }
 
+    function boundedInteger(value, fallback, min, max) {
+      const number = Number.parseInt(value, 10);
+      if (!Number.isFinite(number)) return fallback;
+      return Math.max(min, Math.min(max, number));
+    }
+
+    function knownProblemSlug(slug) {
+      return Boolean(slug && problems.some((item) => item.titleSlug === slug));
+    }
+
+    function knownFilter(filter) {
+      return filterButtons.some(
+        (button) => button instanceof HTMLElement && button.dataset.filter === filter,
+      );
+    }
+
+    function syncFilterButtons() {
+      filterButtons.forEach((button) => {
+        if (!(button instanceof HTMLElement)) return;
+        button.classList.toggle("is-active", button.dataset.filter === state.filter);
+      });
+    }
+
+    function savedEditorStateFor(slug) {
+      const saved = viewState.editor;
+      if (!saved || typeof saved !== "object") return {};
+      return saved.slug === slug ? saved : {};
+    }
+
+    function visibleEditorViewState() {
+      const active = document.activeElement;
+      if (active instanceof HTMLTextAreaElement && active.dataset.editorCode) {
+        return {
+          end: active.selectionEnd,
+          focused: true,
+          scrollLeft: active.scrollLeft,
+          scrollTop: active.scrollTop,
+          slug: active.dataset.editorCode,
+          start: active.selectionStart,
+        };
+      }
+
+      const slug = state.expandedSlug || viewState.editor?.slug || "";
+      if (!knownProblemSlug(slug)) return {};
+      const panel = editorPanelForSlug(slug);
+      const textarea = panel?.querySelector("[data-editor-code]");
+      const saved = savedEditorStateFor(slug);
+      if (!(textarea instanceof HTMLTextAreaElement)) return saved;
+      return {
+        end: boundedInteger(saved.end, textarea.selectionEnd, 0, textarea.value.length),
+        focused: false,
+        scrollLeft: textarea.scrollLeft,
+        scrollTop: textarea.scrollTop,
+        slug,
+        start: boundedInteger(saved.start, textarea.selectionStart, 0, textarea.value.length),
+      };
+    }
+
+    function currentViewState() {
+      return {
+        customPageSize: customSizeInput instanceof HTMLInputElement
+          ? customSizeInput.value
+          : "",
+        editor: visibleEditorViewState(),
+        expandedSlug: state.expandedSlug,
+        filter: state.filter,
+        page: state.page,
+        pageSizeValue: pageSizeSelect instanceof HTMLSelectElement
+          ? pageSizeSelect.value
+          : "",
+        query: state.query,
+        scrollY: Math.max(0, Math.round(window.scrollY || 0)),
+      };
+    }
+
+    function writeViewState() {
+      viewState = currentViewState();
+      localStorage.setItem(viewStateKey, JSON.stringify(viewState));
+    }
+
+    function scheduleViewStateWrite() {
+      if (viewStateWriteTimer) window.clearTimeout(viewStateWriteTimer);
+      viewStateWriteTimer = window.setTimeout(() => {
+        viewStateWriteTimer = 0;
+        writeViewState();
+      }, viewStateWriteDelayMs);
+    }
+
+    function flushViewStateWrite() {
+      if (viewStateWriteTimer) {
+        window.clearTimeout(viewStateWriteTimer);
+        viewStateWriteTimer = 0;
+      }
+      writeViewState();
+    }
+
+    function restoreViewStateControls() {
+      if (typeof viewState.query === "string") {
+        state.query = viewState.query;
+        if (searchInput instanceof HTMLInputElement) {
+          searchInput.value = viewState.query;
+        }
+      }
+      if (typeof viewState.filter === "string" && knownFilter(viewState.filter)) {
+        state.filter = viewState.filter;
+      }
+      syncFilterButtons();
+
+      if (pageSizeSelect instanceof HTMLSelectElement) {
+        const value = String(viewState.pageSizeValue || "");
+        const hasOption = Array.from(pageSizeSelect.options).some(
+          (option) => option.value === value,
+        );
+        if (hasOption) pageSizeSelect.value = value;
+      }
+      if (customSizeInput instanceof HTMLInputElement) {
+        const customSize = boundedInteger(viewState.customPageSize, 20, 1, maxPageSize);
+        customSizeInput.value = String(customSize);
+        customSizeInput.hidden = pageSizeSelect?.value !== "custom";
+      }
+
+      state.page = boundedInteger(viewState.page, state.page, 1, Number.MAX_SAFE_INTEGER);
+      state.expandedSlug = knownProblemSlug(viewState.expandedSlug)
+        ? viewState.expandedSlug
+        : "";
+      if (!state.expandedSlug) return;
+
+      const items = orderedProblems();
+      const index = items.findIndex((item) => item.titleSlug === state.expandedSlug);
+      if (index === -1) {
+        state.expandedSlug = "";
+        return;
+      }
+      state.page = Math.floor(index / pageSize()) + 1;
+    }
+
+    function restoreEditorViewState() {
+      const editorState = viewState.editor;
+      if (!editorState || typeof editorState !== "object") return;
+      const slug = knownProblemSlug(editorState.slug)
+        ? editorState.slug
+        : state.expandedSlug;
+      if (!slug || slug !== state.expandedSlug) return;
+      const panel = editorPanelForSlug(slug);
+      const textarea = panel?.querySelector("[data-editor-code]");
+      if (!(textarea instanceof HTMLTextAreaElement)) return;
+
+      const start = boundedInteger(editorState.start, 0, 0, textarea.value.length);
+      const end = boundedInteger(editorState.end, start, 0, textarea.value.length);
+      textarea.setSelectionRange(start, Math.max(start, end));
+      textarea.scrollTop = boundedInteger(
+        editorState.scrollTop,
+        0,
+        0,
+        Number.MAX_SAFE_INTEGER,
+      );
+      textarea.scrollLeft = boundedInteger(
+        editorState.scrollLeft,
+        0,
+        0,
+        Number.MAX_SAFE_INTEGER,
+      );
+      syncEditorHighlight(panel, textarea, editorContextFor(textarea)?.lang || "");
+      if (editorState.focused) {
+        textarea.focus({ preventScroll: true });
+      }
+    }
+
+    function restoreViewStateAfterRender() {
+      window.requestAnimationFrame(() => {
+        restoreEditorViewState();
+        const scrollY = boundedInteger(
+          viewState.scrollY,
+          0,
+          0,
+          Number.MAX_SAFE_INTEGER,
+        );
+        window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
+      });
+    }
+
     function writeState() {
       rollEditorDraftsForToday();
       localStorage.setItem(progressKey, JSON.stringify(progress));
@@ -1259,6 +1447,7 @@ const shortcutRows = [
       if (!rollEditorDraftsForToday()) return;
       state.expandedSlug = "";
       render();
+      scheduleViewStateWrite();
     }
 
     syncDailyResetUi();
@@ -2178,10 +2367,12 @@ const shortcutRows = [
       const nextPage = clampPage(page);
       if (nextPage === state.page) {
         syncPagination();
+        scheduleViewStateWrite();
         return;
       }
       state.page = nextPage;
       render();
+      scheduleViewStateWrite();
     }
 
     function jumpToInputPage(input) {
@@ -2225,11 +2416,11 @@ const shortcutRows = [
         (item) => item instanceof HTMLElement && item.dataset.filter === filter,
       );
       if (!(button instanceof HTMLElement)) return false;
-      filterButtons.forEach((item) => item.classList.remove("is-active"));
-      button.classList.add("is-active");
       state.filter = filter || "all";
+      syncFilterButtons();
       state.page = 1;
       render();
+      scheduleViewStateWrite();
       return true;
     }
 
@@ -2356,6 +2547,7 @@ const shortcutRows = [
       state.page = Math.floor(index / state.pageSize) + 1;
       state.expandedSlug = target.titleSlug;
       render();
+      scheduleViewStateWrite();
       focusEditorForSlug(target.titleSlug);
     }
 
@@ -2996,6 +3188,7 @@ const shortcutRows = [
       editorDrafts[context.slug] = { lang: context.lang, code: textarea.value };
       syncEditorHighlight(context.panel, textarea, context.lang);
       writeState();
+      scheduleViewStateWrite();
       scheduleEditorCaretReveal(textarea);
     }
 
@@ -3303,6 +3496,7 @@ const shortcutRows = [
       editorDrafts[slug] = { lang: nextLang, code: defaultTemplate(problem, nextLang) };
       writeState();
       render();
+      scheduleViewStateWrite();
       if (options.focus) focusEditorForSlug(slug);
       return true;
     }
@@ -3317,6 +3511,7 @@ const shortcutRows = [
       editorDrafts = {};
       writeState();
       render();
+      scheduleViewStateWrite();
       if (focusSlug) focusEditorForSlug(focusSlug);
       return true;
     }
@@ -3396,6 +3591,7 @@ const shortcutRows = [
       writeState();
       render();
       restoreEditorFocus(focusSnapshot);
+      scheduleViewStateWrite();
       return true;
     }
 
@@ -3452,6 +3648,7 @@ const shortcutRows = [
       localStorage.setItem(editorHeightModeKey, editorAutoGrow ? "auto" : "fixed");
       syncEditorHeightButtons();
       syncRenderedEditors();
+      scheduleViewStateWrite();
       return true;
     }
 
@@ -4180,17 +4377,20 @@ const shortcutRows = [
       state.query = event.target.value.trim();
       state.page = 1;
       render();
+      scheduleViewStateWrite();
     });
 
     pageSizeSelect?.addEventListener("change", () => {
       customSizeInput.hidden = pageSizeSelect.value !== "custom";
       state.page = 1;
       render();
+      scheduleViewStateWrite();
     });
 
     customSizeInput?.addEventListener("input", () => {
       state.page = 1;
       render();
+      scheduleViewStateWrite();
     });
 
     filterButtons.forEach((button) => {
@@ -4413,6 +4613,7 @@ const shortcutRows = [
       const shouldOpen = state.expandedSlug !== slug;
       state.expandedSlug = shouldOpen ? slug : "";
       render();
+      scheduleViewStateWrite();
       if (shouldOpen) focusEditorForSlug(slug);
     });
 
@@ -4452,6 +4653,7 @@ const shortcutRows = [
       };
       writeState();
       render();
+      scheduleViewStateWrite();
       focusEditorForSlug(slug);
     });
 
@@ -4464,18 +4666,21 @@ const shortcutRows = [
     list?.addEventListener("keyup", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLTextAreaElement)) return;
+      scheduleViewStateWrite();
       scheduleEditorCaretReveal(target);
     });
 
     list?.addEventListener("focusin", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLTextAreaElement)) return;
+      scheduleViewStateWrite();
       scheduleEditorCaretReveal(target, "smooth");
     });
 
     list?.addEventListener("mouseup", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLTextAreaElement)) return;
+      scheduleViewStateWrite();
       scheduleEditorCaretReveal(target);
     });
 
@@ -4494,6 +4699,7 @@ const shortcutRows = [
             ? preferredLang(problem, select.value)
             : preferredLang(problem, editorDrafts[slug]?.lang);
         syncEditorHighlight(panel, target, lang);
+        scheduleViewStateWrite();
       },
       true,
     );
@@ -4631,7 +4837,10 @@ const shortcutRows = [
       }
     });
 
+    restoreViewStateControls();
     render();
+    restoreViewStateAfterRender();
+    window.addEventListener("scroll", scheduleViewStateWrite, { passive: true });
     window.setInterval(syncTimingUi, 1000);
     window.setInterval(syncEditorDraftDay, editorDraftDayCheckIntervalMs);
     window.addEventListener("blur", syncTimingUi);
@@ -4639,12 +4848,17 @@ const shortcutRows = [
       syncEditorDraftDay();
       syncTimingUi();
     });
-    window.addEventListener("pagehide", syncTimingUi);
+    window.addEventListener("beforeunload", flushViewStateWrite);
+    window.addEventListener("pagehide", () => {
+      flushViewStateWrite();
+      syncTimingUi();
+    });
     window.addEventListener("pageshow", () => {
       syncEditorDraftDay();
       syncTimingUi();
     });
     document.addEventListener("visibilitychange", () => {
+      if (document.hidden) flushViewStateWrite();
       if (!document.hidden) syncEditorDraftDay();
       syncTimingUi();
     });
