@@ -7278,30 +7278,40 @@ const shortcutRows = [
       box-shadow: 0 0 0 1px var(--leetcode-editor-focus);
     }
 
-    .leetcode-practice-panel p,
+    .leetcode-practice-panel p {
+      margin: 0;
+    }
+
     .leetcode-submit-note {
       margin: 0;
+      border: 1px solid rgb(194 192 182 / 45%);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 30%);
+      color: var(--color-muted);
+      font-size: 0.76rem;
+      line-height: 1.45;
+      padding: 0.36rem 0.5rem;
     }
 
     .leetcode-submit-status-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.18rem 0.5rem;
+      gap: 0.16rem 0.44rem;
       align-items: baseline;
     }
 
     .leetcode-submit-note [data-submit-status] {
       flex: 1 1 18rem;
-      line-height: 1.55;
+      line-height: 1.45;
       overflow-wrap: anywhere;
     }
 
     .leetcode-submit-note [data-extension-guide-link] {
       flex: 0 0 auto;
       color: var(--color-terracotta);
-      font-size: 0.72rem;
-      font-weight: 700;
-      line-height: 1.55;
+      font-size: 0.68rem;
+      font-weight: 650;
+      line-height: 1.45;
       text-decoration: none;
       white-space: nowrap;
     }
@@ -7312,12 +7322,12 @@ const shortcutRows = [
 
     .leetcode-submit-note [data-tone="success"] {
       color: #168a77;
-      font-weight: 700;
+      font-weight: 650;
     }
 
     .leetcode-submit-note [data-tone="error"] {
       color: #d64242;
-      font-weight: 700;
+      font-weight: 650;
     }
 
     .leetcode-submit-detail {
@@ -7478,6 +7488,11 @@ const shortcutRows = [
     html.dark .leetcode-statement-panel button {
       border-color: #333;
       color: var(--color-muted);
+    }
+
+    html.dark .leetcode-submit-note {
+      border-color: #333;
+      background: rgb(21 21 20 / 38%);
     }
 
     html.dark .leetcode-submit-detail-label {
