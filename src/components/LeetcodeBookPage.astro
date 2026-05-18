@@ -6802,6 +6802,7 @@ const shortcutRows = [
       --leetcode-editor-padding-block: 0.56rem;
       --leetcode-editor-padding-inline: 0.62rem;
       --leetcode-editor-selection: #add6ff;
+      --leetcode-editor-selection-foreground: var(--leetcode-editor-foreground);
       --leetcode-editor-selection-highlight: #add6ff80;
       --leetcode-token-comment: #008000;
       --leetcode-token-control: #af00db;
@@ -8365,7 +8366,7 @@ const shortcutRows = [
 
     .leetcode-practice-panel textarea::selection {
       background: var(--leetcode-editor-selection);
-      color: transparent;
+      color: var(--leetcode-editor-selection-foreground);
     }
 
     .leetcode-editor-shell:focus-within {
