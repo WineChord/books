@@ -209,9 +209,10 @@ current caret line and keeps it in a comfortable writing zone instead of making
 the user manually chase the page. When a default template is first opened,
 reset, or selected by language change, focus lands inside the function body
 where the user is expected to start writing. Page appearance controls live in
-the footer. The default page font is a Kai-style Chinese font; users can switch
-back to the original serif face or a system sans face. This page-font setting
-affects the practice-page UI but does not change the code editor font. Editor
+the footer. The default page font uses the Apple system sans face on Apple
+devices and a Kai-style Chinese font elsewhere; users can switch back to the
+original serif face or a system sans face. This page-font setting affects the
+practice-page UI but does not change the code editor font. Editor
 appearance controls also live in the footer: theme, font, font size, and line
 spacing. The default light theme uses the same background as the page while
 keeping Cursor Light+ token colors, and the default editor font mirrors the
