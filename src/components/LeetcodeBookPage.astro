@@ -5101,14 +5101,13 @@ const shortcutRows = [
       return `
         <div class="leetcode-statement-panel${hiddenClass}" data-statement-panel="${slug}">
           <div class="leetcode-statement-collapsed">
-            <span>${isChinesePage ? "题面已收起" : "Statement hidden"}</span>
+            <span>${isChinesePage ? "已收起" : "Hidden"}</span>
             <button type="button" data-editor-action="statement-panel" data-statement-visible="true" aria-expanded="false">
-              ${isChinesePage ? "显示题面" : "Show statement"}
+              ${isChinesePage ? "显示" : "Show"}
             </button>
           </div>
           <div class="leetcode-statement-content">
             <div class="leetcode-statement-head">
-              <span class="leetcode-statement-label">${isChinesePage ? "题面" : "Statement"}</span>
               <div class="leetcode-statement-actions">
                 <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${slug}">
                   ${isChinesePage ? "力扣原题" : "LeetCode"}
@@ -6897,12 +6896,14 @@ const shortcutRows = [
       gap: 0.34rem;
     }
 
-    .leetcode-statement-collapsed,
-    .leetcode-statement-head {
+    .leetcode-statement-collapsed {
       justify-content: space-between;
     }
 
-    .leetcode-statement-label,
+    .leetcode-statement-head {
+      justify-content: flex-end;
+    }
+
     .leetcode-statement-collapsed span {
       color: #72563c;
       font-size: 0.74rem;
@@ -7388,7 +7389,6 @@ const shortcutRows = [
       background: rgb(21 21 20 / 46%);
     }
 
-    html.dark .leetcode-statement-label,
     html.dark .leetcode-statement-collapsed span {
       color: var(--color-cream);
     }
