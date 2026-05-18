@@ -31,6 +31,7 @@ const subscriptNames = [
   "mentions_string",
   "numPassengers",
   "bottomLeft",
+  "heightMap",
   "topRight",
   "timestamp",
   "position",
@@ -39,16 +40,43 @@ const subscriptNames = [
   "subtext",
   "source",
   "target",
+  "haystack",
+  "needle",
+  "matrix",
   "height",
   "weight",
   "speed",
   "start",
   "index",
   "upper",
+  "answer",
+  "headA",
+  "headB",
+  "nums1",
+  "nums2",
+  "nums3",
+  "nums4",
+  "word1",
+  "word2",
   "from",
+  "grid",
   "left",
+  "next",
+  "node",
+  "nums",
+  "root",
+  "rows",
+  "cols",
   "right",
+  "arr1",
+  "arr2",
+  "head",
+  "word",
   "end",
+  "arr",
+  "mat",
+  "strs",
+  "val",
   "to",
   "T",
   "F",
@@ -62,6 +90,109 @@ const subscriptNames = [
   "x",
   "y",
 ].sort((left, right) => right.length - left.length);
+const proseIdentifierNames = [
+  "mentions_string",
+  "numPassengers",
+  "joinedArray",
+  "bottomLeft",
+  "heightMap",
+  "topRight",
+  "queryIP",
+  "timestamp",
+  "position",
+  "quality",
+  "percent",
+  "subtext",
+  "source",
+  "target",
+  "haystack",
+  "needle",
+  "numbers",
+  "matrix",
+  "heights",
+  "height",
+  "weight",
+  "prices",
+  "points",
+  "queries",
+  "answer",
+  "result",
+  "output",
+  "speed",
+  "start",
+  "index",
+  "upper",
+  "lower",
+  "headA",
+  "headB",
+  "nums1",
+  "nums2",
+  "nums3",
+  "nums4",
+  "word1",
+  "word2",
+  "arr1",
+  "arr2",
+  "from",
+  "grid",
+  "left",
+  "node",
+  "root",
+  "rows",
+  "cols",
+  "text",
+  "list",
+  "nums",
+  "next",
+  "prev",
+  "data",
+  "cost",
+  "time",
+  "word",
+  "head",
+  "strs",
+  "arr",
+  "mat",
+  "key",
+  "map",
+  "val",
+  "end",
+  "to",
+  "N",
+  "M",
+  "T",
+  "F",
+  "u",
+  "v",
+  "w",
+  "a",
+  "b",
+  "c",
+  "i",
+  "j",
+  "k",
+  "l",
+  "m",
+  "n",
+  "p",
+  "q",
+  "r",
+  "s",
+  "t",
+  "x",
+  "y",
+  "z",
+].sort((left, right) => right.length - left.length);
+const proseIdentifierNameSet = new Set(proseIdentifierNames);
+const escapedProseIdentifierPattern = proseIdentifierNames
+  .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
+const proseIdentifierPattern = new RegExp(
+  `\\b(?:${escapedProseIdentifierPattern})(?:\\s*\\.\\s*(?:length|val|next|random)|\\s*\\[[^\\]\\u3400-\\u9fff]+\\])*`,
+  "g",
+);
+const singleLetterContextPattern =
+  /[\u3400-\u9fff()[\]（）,，.。:：;；+\-*/<>=]/u;
 const subscriptNamePattern = subscriptNames
   .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
   .join("|");
@@ -71,23 +202,39 @@ const subscriptTextPattern = new RegExp(
 );
 const existingSubscriptPattern =
   /\b([A-Za-z][A-Za-z0-9_.]*)_([ijkmn]|\d+|[ijkmn][+-]\d+)\b/g;
-const comparisonAtom = String.raw`(?:-?\d+(?:\s*(?:\^|\s)\s*\d+)?|[A-Za-z][A-Za-z0-9_.]+(?:\[[^\]\u3400-\u9fff]+\])?(?:\s+(?:[ijkmn]|\d+|[ijkmn][+-]\d+))?|[A-Za-z](?:\[[^\]\u3400-\u9fff]+\])?)`;
+const comparisonAtom = String.raw`(?:-?\d+(?:\s*(?:\^|\s)\s*\d+)?|[A-Za-z][A-Za-z0-9_.]*(?:\[[^\]\u3400-\u9fff]+\])?(?:\s+(?:[ijkmn]|\d+|[ijkmn][+-]\d+))?)`;
 const comparisonPattern = new RegExp(
   `${comparisonAtom}(?:\\s*(?:<=|>=|==|!\\s*=|!=|<|>|=)\\s*${comparisonAtom})+`,
+  "g",
+);
+const functionCallAtom =
+  String.raw`(?:[A-Za-z][A-Za-z0-9_]*\([^()\u3400-\u9fff]+\))`;
+const arithmeticAtom = String.raw`(?:${functionCallAtom}|[A-Za-z][A-Za-z0-9_.]*(?:\[[^\]\u3400-\u9fff]+\])?|-?\d+(?:\^\d+)?)`;
+const arithmeticOperator = String.raw`(?:\s*[+*/]\s*|\s+-\s+)`;
+const arithmeticExpressionPattern = new RegExp(
+  `${arithmeticAtom}(?:${arithmeticOperator}${arithmeticAtom})+`,
+  "g",
+);
+const arithmeticComparisonPattern = new RegExp(
+  `${arithmeticExpressionPattern.source}\\s*(?:<=|>=|==|!\\s*=|!=|<|>|=)\\s*(?:${arithmeticExpressionPattern.source}|${comparisonAtom})`,
   "g",
 );
 const tupleComparisonPattern =
   /\b\d+\s*(?:<=|>=|<|>)\s*[A-Za-z](?:\s*,\s*[A-Za-z])+\s*(?:<=|>=|<|>)\s*[A-Za-z]/g;
 const indexedNamePattern =
   /\b[A-Za-z][A-Za-z0-9_.]*(?:\[[A-Za-z0-9_.+\-*/\s]+\])+\b/g;
-const dimensionPattern =
-  /\b(?:\d+|[A-Za-z][A-Za-z0-9_]*|10(?:\^|\s+)\d+)\s+x\s+(?:\d+|[A-Za-z][A-Za-z0-9_]*|10(?:\^|\s+)\d+)\b/g;
+const dimensionJoinerPattern = String.raw`(?:x|×|&times;)`;
+const dimensionPattern = new RegExp(
+  `\\b(?:\\d+|[A-Za-z][A-Za-z0-9_]*|10(?:\\^|\\s+)\\d+)\\s*${dimensionJoinerPattern}\\s*(?:\\d+|[A-Za-z][A-Za-z0-9_]*|10(?:\\^|\\s+)\\d+)\\b`,
+  "g",
+);
 const powerPattern =
   /\b(?:10|2)\s+\d+\b|\b(?:10|2)\^\d+\b|\bn\s+[23]\b|\bx\s+n\b/g;
-const bigOPattern = /O\([^。！？；，,]*?\)/g;
+const bigOPattern = /O\((?:[^()。！？；，,]|\([^()]*\))*\)/g;
 const formulaPattern =
   /\b(?:[TF]\s+[A-Za-z0-9+\-]+)(?:\s*=\s*(?:[TF]\s+[A-Za-z0-9+\-]+)(?:\s*\+\s*(?:[TF]\s+[A-Za-z0-9+\-]+))*)?/g;
 const bracketExpressionPattern = /\[[A-Za-z0-9_,.\s+\-*/^<>=|]+\]/g;
+const parenthesizedMathPattern = /\([A-Za-z0-9_,.\[\]\s+\-*/^<>=|]+\)/g;
 const modularNumberPattern = /\b10(?:\s+|\^)\d+\s*\+\s*\d+\b/g;
 const scientificProductPattern = /\b\d+\s*\*\s*10(?:\s+|\^)\d+\b/g;
 const averagePattern =
@@ -167,6 +314,35 @@ function formatDimensionToken(token) {
   return formatIdentifier(token);
 }
 
+function isSimpleIdentifierExpression(value) {
+  return (
+    /^[A-Za-z][A-Za-z0-9_]*$/.test(value) ||
+    /^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(value)
+  );
+}
+
+function compactExpressionSpacing(value) {
+  return value
+    .replace(/&times;/g, "x")
+    .replace(/\b([A-Za-z][A-Za-z0-9_]*)\s*\.\s*([A-Za-z][A-Za-z0-9_]*)\b/g, "$1.$2")
+    .replace(/\b([A-Za-z][A-Za-z0-9_]*)\s+\[/g, "$1[")
+    .replace(/\]\s+\[/g, "][");
+}
+
+function isProseIdentifier(raw, context) {
+  const compact = compactExpressionSpacing(raw).replace(/\s+/g, "");
+  const name = compact.match(/^[A-Za-z][A-Za-z0-9_]*/)?.[0] ?? "";
+  if (!proseIdentifierNameSet.has(name)) return false;
+  if (compact.length > 1) return true;
+
+  const before = context.text.slice(Math.max(0, context.start - 3), context.start);
+  const after = context.text.slice(context.end, context.end + 3);
+  return (
+    singleLetterContextPattern.test(before) ||
+    singleLetterContextPattern.test(after)
+  );
+}
+
 function problemStatementText(problem) {
   return String(
     problem.statement ||
@@ -209,17 +385,24 @@ function normalizeLatex(raw) {
     .replace(/−/g, "-")
     .replace(/×/g, "x")
     .replace(/\s+/g, " ");
+  text = compactExpressionSpacing(text);
+  if (isSimpleIdentifierExpression(text)) return formatIdentifier(text);
 
   text = text
     .replace(/\.\.\./g, "\\ldots")
     .replace(/\.\./g, "\\ldots")
+    .replace(/\.\s+\.\s+\./g, "\\ldots")
+    .replace(/\bnlog\s*\(/gi, "n \\log(")
     .replace(/\blog\b/g, "\\log")
+    .replace(/\b(sum|average)\s*\(/g, (_match, name) => {
+      return `${formatIdentifier(name)}(`;
+    })
     .replace(/\b10\s+(\d+)\b/g, "10^{$1}")
     .replace(/\b2\s+31\b/g, "2^{31}")
     .replace(/\bn\s+([23])\b/g, "n^{$1}")
     .replace(/\b([A-Za-z0-9_.]+)\s*\^\s*(\d+)\b/g, "$1^{$2}")
     .replace(
-      /\b((?:10\^\{\d+\})|(?:\d+|[A-Za-z][A-Za-z0-9_]*)(?:\^\{\d+\})?)\s+x\s+((?:10\^\{\d+\})|(?:\d+|[A-Za-z][A-Za-z0-9_]*)(?:\^\{\d+\})?)\b/g,
+      /\b((?:10\^\{\d+\})|(?:\d+|[A-Za-z][A-Za-z0-9_]*)(?:\^\{\d+\})?)\s*x\s*((?:10\^\{\d+\})|(?:\d+|[A-Za-z][A-Za-z0-9_]*)(?:\^\{\d+\})?)\b/g,
       (_match, left, right) => {
         return `${formatDimensionToken(left)} \\times ${formatDimensionToken(
           right,
@@ -239,6 +422,10 @@ function normalizeLatex(raw) {
       (_match, name) => formatIdentifier(name),
     )
     .replace(/\b([A-Za-z][A-Za-z0-9_]*)(?=\[)/g, (_match, name) => {
+      return formatIdentifier(name);
+    })
+    .replace(/(?<![\\{A-Za-z])\b([A-Za-z][A-Za-z0-9_]*)\b/g, (match, name) => {
+      if (!proseIdentifierNameSet.has(name)) return match;
       return formatIdentifier(name);
     })
     .replace(/<=/g, "\\le ")
@@ -285,7 +472,7 @@ function addRange(
     if (!raw.trim() || cjkPattern.test(raw) || !/[A-Za-z0-9]/.test(raw)) {
       continue;
     }
-    if (!shouldUse(raw)) continue;
+    if (!shouldUse(raw, { text, start, end, before, after })) continue;
     ranges.push({ start, end, raw });
   }
 }
@@ -297,6 +484,7 @@ function mathRanges(text) {
   addRange(ranges, text, modularNumberPattern);
   addRange(ranges, text, scientificProductPattern);
   addRange(ranges, text, averagePattern);
+  addRange(ranges, text, arithmeticComparisonPattern);
   addRange(ranges, text, tupleComparisonPattern, () => true, {
     allowRightAdjacent: true,
   });
@@ -322,6 +510,13 @@ function mathRanges(text) {
       /[A-Za-z]\s*,\s*\d+/.test(raw)
     );
   });
+  addRange(ranges, text, parenthesizedMathPattern, (raw) => {
+    return /,|<=|>=|==|!=|[+*/=]|\s-\s/.test(raw);
+  });
+  addRange(ranges, text, arithmeticExpressionPattern, (raw) => {
+    return !/^\d+\s*-\s*\d+$/.test(raw);
+  });
+  addRange(ranges, text, proseIdentifierPattern, isProseIdentifier);
 
   return mergeRanges(ranges);
 }

@@ -852,39 +852,261 @@ const shortcutRows = [
         </span>
       </nav>
 
-      {
-        leetcodeDuplicateAudit.length > 0 && (
-          <details class="leetcode-duplicate-audit">
-            <summary>
-              {isZh
-                ? `去重核对：默认隐藏 ${leetcodeDuplicateAudit.length} 道明显重复题`
-                : `Duplicate audit: ${leetcodeDuplicateAudit.length} hidden by default`}
-            </summary>
-            <div class="leetcode-duplicate-list">
-              {leetcodeDuplicateAudit.map((item) => (
-                <div class="leetcode-duplicate-row">
-                  <span>#{item.duplicateRank}</span>
-                  <a
-                    href={`https://leetcode.cn/problems/${item.duplicateTitleSlug}/description/`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {item.duplicateFrontendId}. {item.duplicateTitleCn}
-                  </a>
-                  <span>{isZh ? "保留" : "kept"}</span>
-                  <a
-                    href={`https://leetcode.cn/problems/${item.keptTitleSlug}/description/`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    #{item.keptRank} {item.keptFrontendId}. {item.keptTitleCn}
-                  </a>
-                </div>
-              ))}
-            </div>
-          </details>
-        )
-      }
+      <div class="leetcode-collapse-stack">
+        {
+          leetcodeDuplicateAudit.length > 0 && (
+            <details class="leetcode-duplicate-audit">
+              <summary>
+                {isZh
+                  ? `去重核对：默认隐藏 ${leetcodeDuplicateAudit.length} 道明显重复题`
+                  : `Duplicate audit: ${leetcodeDuplicateAudit.length} hidden by default`}
+              </summary>
+              <div class="leetcode-duplicate-list">
+                {leetcodeDuplicateAudit.map((item) => (
+                  <div class="leetcode-duplicate-row">
+                    <span>#{item.duplicateRank}</span>
+                    <a
+                      href={`https://leetcode.cn/problems/${item.duplicateTitleSlug}/description/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {item.duplicateFrontendId}. {item.duplicateTitleCn}
+                    </a>
+                    <span>{isZh ? "保留" : "kept"}</span>
+                    <a
+                      href={`https://leetcode.cn/problems/${item.keptTitleSlug}/description/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      #{item.keptRank} {item.keptFrontendId}. {item.keptTitleCn}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )
+        }
+
+        <details class="leetcode-insight-guide">
+          <summary>{isZh ? "猜你想练的排序规则" : "How suggested practice is ranked"}</summary>
+          <div>
+            {
+              isZh ? (
+                <>
+                  <p>
+                    “猜你想练”按 0 到 100 的练习调度分排序。分数越高，越值得现在
+                    打开。它只使用当前浏览器记录到的本页状态、运行和提交行为，
+                    不读取力扣历史提交。
+                  </p>
+                  <p>
+                    公式可以理解为：
+                    <code>到期复习 + 薄弱程度 + 题目价值 + 当前适配 - 疲劳惩罚</code>，
+                    最后截断到 0 到 100。
+                  </p>
+                  <p>
+                    浮层里的“开始推荐流”会把“猜你想练”保持为沉浸流：先打开当前
+                    第一推荐；之后只有完整提交 AC 才会重新计算并跳到下一道推荐题。
+                    它不是页面下一题，运行样例通过不会跳。
+                  </p>
+                  <ol>
+                    <li>
+                      <strong>到期复习：</strong>页面会估计每题的本地稳定度和可回忆率。
+                      完整 AC、连续 AC、样例通过和“熟练”会提高稳定度；失败、耗时偏慢
+                      和“需思考”会降低稳定度。距离上次 AC 越久，可回忆率越低。
+                    </li>
+                    <li>
+                      <strong>薄弱程度：</strong>没有完整 AC、提交失败、样例失败、
+                      每 10 行耗时偏慢和“需思考”会提高分数；近期连续 AC、样例通过
+                      和“熟练”会降低分数。
+                    </li>
+                    <li>
+                      <strong>题目价值：</strong>Top888 频率、Hot100、字节企业题库、
+                      最近字节 bucket、核心标签覆盖和相关题网络会提高分数，避免
+                      低频冷门题只因为“不会”长期压过高频核心题。
+                    </li>
+                    <li>
+                      <strong>当前适配：</strong>如果当前打开了一题，共享标签、相关题
+                      和难度邻近会提高推荐分，让下一题更像同路线迁移或合理进阶。
+                    </li>
+                    <li>
+                      <strong>疲劳惩罚：</strong>今天已经 AC、当前 session 已经 AC、
+                      或与今天已练标签高度重复的题会降分，避免推荐流卡在同一类题里。
+                    </li>
+                    <li>
+                      <strong>冷启动：</strong>没有本地提交记录的题也可以被推荐，但主要
+                      依赖题目价值、人工状态和未建立稳定度的风险。
+                    </li>
+                  </ol>
+                  <p>
+                    分数相同时，优先看到期复习、薄弱程度、题目价值、提交失败、
+                    样例失败、计分速度和 AC 次数，最后再用力扣频率排序。这个排序是
+                    启发式建议，不是能力证明。
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>
+                    Suggested practice is ranked by a 0 to 100 scheduling score.
+                    Higher scores are better candidates to open now. The score uses
+                    only local page state, run activity, and submission activity
+                    from this browser, not historical LeetCode submissions.
+                  </p>
+                  <p>
+                    Read the formula as:
+                    <code>review due-ness + weakness + problem value + current fit - fatigue penalty</code>,
+                    clamped to 0 to 100.
+                  </p>
+                  <p>
+                    "Start suggested flow" holds Suggested practice as the
+                    immersive route: it opens the current top recommendation first,
+                    then only a full Accepted submit recomputes and opens the next
+                    recommendation. It is not the next visible row, and passing
+                    sample runs do not advance it.
+                  </p>
+                  <ol>
+                    <li>
+                      <strong>Review due-ness:</strong> the page estimates local
+                      stability and retrievability. Accepted submissions, Accepted
+                      streaks, passed samples, and mastered state raise stability;
+                      failures, slow normalized time, and review state lower it.
+                    </li>
+                    <li>
+                      <strong>Weakness:</strong> missing full Accepted evidence,
+                      submit failures, sample failures, slow time per 10 lines, and
+                      review state raise the score; recent Accepted streaks, passed
+                      samples, and mastered state lower it.
+                    </li>
+                    <li>
+                      <strong>Problem value:</strong> Top888 frequency, Hot100,
+                      ByteDance buckets, core tag coverage, and related-problem
+                      centrality raise the score.
+                    </li>
+                    <li>
+                      <strong>Current fit:</strong> when a problem is open, shared
+                      tags, related links, and nearby difficulty prefer same-route
+                      transfer or reasonable progression.
+                    </li>
+                    <li>
+                      <strong>Fatigue penalty:</strong> problems Accepted today,
+                      Accepted in the current session, or heavily overlapping with
+                      tags practiced today are lowered.
+                    </li>
+                    <li>
+                      <strong>Cold start:</strong> problems without local submission
+                      stats can still be recommended through value, manual state,
+                      and the risk of not having stable memory yet.
+                    </li>
+                  </ol>
+                  <p>
+                    Ties prefer review due-ness, weakness, value, submit failures,
+                    sample failures, scoring speed, Accepted count, and then
+                    LeetCode frequency. This ranking is a heuristic suggestion, not
+                    proof of ability.
+                  </p>
+                </>
+              )
+            }
+          </div>
+        </details>
+
+        <details id="leetcode-extension-guide" class="leetcode-extension-guide">
+          <summary>{isZh ? "安装 Chrome 扩展后直接提交到力扣" : "Install the Chrome extension to submit to LeetCode"}</summary>
+          <div>
+            {
+              isZh ? (
+                <>
+                  <p>
+                    这个扩展是一个本仓库里的本地 Chrome 小工具。页面只把题目 slug、
+                    语言和当前代码发给扩展；登录 cookie 留在 Chrome 扩展侧，页面
+                    JavaScript 不会读取它。
+                  </p>
+                  <p class="leetcode-extension-download">
+                    <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
+                      下载最新扩展 ZIP
+                    </a>
+                    <span>
+                      下载后先解压，再在 Chrome 里加载解压后的文件夹；非商店扩展不能直接点
+                      ZIP 完成安装。
+                    </span>
+                  </p>
+                  <ol>
+                    <li>
+                      从 <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Release</a>
+                      下载 <code>leetcode-submit.zip</code>，并解压到本地。
+                    </li>
+                    <li>在 Chrome 地址栏打开 <code>chrome://extensions</code>。</li>
+                    <li>打开右上角的 <strong>开发者模式</strong>。</li>
+                    <li>
+                      如果需要从源码安装，可以打开 <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，
+                      clone 到本地；扩展源码在
+                      <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
+                        extensions/leetcode-submit
+                      </a>。
+                    </li>
+                    <li>点击 <strong>加载已解压的扩展程序</strong>。</li>
+                    <li>
+                      优先选择刚解压出的 <code>leetcode-submit</code> 文件夹；源码安装时选择
+                      <code>extensions/leetcode-submit</code> 文件夹。
+                    </li>
+                    <li>在同一个 Chrome 用户里登录 <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a>。</li>
+                    <li>回到本页展开一道题，点击“运行样例”或“提交力扣”。</li>
+                  </ol>
+                  <p>
+                    扩展更新后，下载最新 ZIP、覆盖本地解压目录，然后回到
+                    <code>chrome://extensions</code> 对这个已解压扩展点一次“重新加载”。
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>
+                    This repository includes a local Chrome extension. The page sends only
+                    the problem slug, language, and editor code to the extension; LeetCode
+                    cookies stay inside Chrome extension APIs.
+                  </p>
+                  <p class="leetcode-extension-download">
+                    <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
+                      Download latest extension ZIP
+                    </a>
+                    <span>
+                      Unzip it first, then load the unzipped folder in Chrome. A
+                      non-store extension cannot be installed directly from the ZIP.
+                    </span>
+                  </p>
+                  <ol>
+                    <li>
+                      Download <code>leetcode-submit.zip</code> from
+                      <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Releases</a>
+                      and unzip it locally.
+                    </li>
+                    <li>Open <code>chrome://extensions</code> in Chrome.</li>
+                    <li>Enable <strong>Developer mode</strong>.</li>
+                    <li>
+                      To install from source instead, open the
+                      <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub repository</a>
+                      and clone it locally. The extension source is in
+                      <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
+                        extensions/leetcode-submit
+                      </a>.
+                    </li>
+                    <li>Click <strong>Load unpacked</strong>.</li>
+                    <li>
+                      Prefer the unzipped <code>leetcode-submit</code> folder. For source
+                      installs, select <code>extensions/leetcode-submit</code>.
+                    </li>
+                    <li>Sign in to <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a> in the same Chrome profile.</li>
+                    <li>Return to this page, open a problem, then run or submit.</li>
+                  </ol>
+                  <p>
+                    After extension updates, download the latest ZIP, replace the local
+                    unzipped folder, then reload this unpacked extension in
+                    <code>chrome://extensions</code>.
+                  </p>
+                </>
+              )
+            }
+          </div>
+        </details>
+      </div>
     </section>
 
     <section class="leetcode-stats" aria-label={isZh ? "统计" : "Stats"}>
@@ -1001,226 +1223,6 @@ const shortcutRows = [
         </button>
       </div>
     </section>
-
-    <details class="leetcode-insight-guide">
-      <summary>{isZh ? "猜你想练的排序规则" : "How suggested practice is ranked"}</summary>
-      <div>
-        {
-          isZh ? (
-            <>
-              <p>
-                “猜你想练”按 0 到 100 的练习调度分排序。分数越高，越值得现在
-                打开。它只使用当前浏览器记录到的本页状态、运行和提交行为，
-                不读取力扣历史提交。
-              </p>
-              <p>
-                公式可以理解为：
-                <code>到期复习 + 薄弱程度 + 题目价值 + 当前适配 - 疲劳惩罚</code>，
-                最后截断到 0 到 100。
-              </p>
-              <p>
-                浮层里的“开始推荐流”会把“猜你想练”保持为沉浸流：先打开当前
-                第一推荐；之后只有完整提交 AC 才会重新计算并跳到下一道推荐题。
-                它不是页面下一题，运行样例通过不会跳。
-              </p>
-              <ol>
-                <li>
-                  <strong>到期复习：</strong>页面会估计每题的本地稳定度和可回忆率。
-                  完整 AC、连续 AC、样例通过和“熟练”会提高稳定度；失败、耗时偏慢
-                  和“需思考”会降低稳定度。距离上次 AC 越久，可回忆率越低。
-                </li>
-                <li>
-                  <strong>薄弱程度：</strong>没有完整 AC、提交失败、样例失败、
-                  每 10 行耗时偏慢和“需思考”会提高分数；近期连续 AC、样例通过
-                  和“熟练”会降低分数。
-                </li>
-                <li>
-                  <strong>题目价值：</strong>Top888 频率、Hot100、字节企业题库、
-                  最近字节 bucket、核心标签覆盖和相关题网络会提高分数，避免
-                  低频冷门题只因为“不会”长期压过高频核心题。
-                </li>
-                <li>
-                  <strong>当前适配：</strong>如果当前打开了一题，共享标签、相关题
-                  和难度邻近会提高推荐分，让下一题更像同路线迁移或合理进阶。
-                </li>
-                <li>
-                  <strong>疲劳惩罚：</strong>今天已经 AC、当前 session 已经 AC、
-                  或与今天已练标签高度重复的题会降分，避免推荐流卡在同一类题里。
-                </li>
-                <li>
-                  <strong>冷启动：</strong>没有本地提交记录的题也可以被推荐，但主要
-                  依赖题目价值、人工状态和未建立稳定度的风险。
-                </li>
-              </ol>
-              <p>
-                分数相同时，优先看到期复习、薄弱程度、题目价值、提交失败、
-                样例失败、计分速度和 AC 次数，最后再用力扣频率排序。这个排序是
-                启发式建议，不是能力证明。
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                Suggested practice is ranked by a 0 to 100 scheduling score.
-                Higher scores are better candidates to open now. The score uses
-                only local page state, run activity, and submission activity
-                from this browser, not historical LeetCode submissions.
-              </p>
-              <p>
-                Read the formula as:
-                <code>review due-ness + weakness + problem value + current fit - fatigue penalty</code>,
-                clamped to 0 to 100.
-              </p>
-              <p>
-                "Start suggested flow" holds Suggested practice as the
-                immersive route: it opens the current top recommendation first,
-                then only a full Accepted submit recomputes and opens the next
-                recommendation. It is not the next visible row, and passing
-                sample runs do not advance it.
-              </p>
-              <ol>
-                <li>
-                  <strong>Review due-ness:</strong> the page estimates local
-                  stability and retrievability. Accepted submissions, Accepted
-                  streaks, passed samples, and mastered state raise stability;
-                  failures, slow normalized time, and review state lower it.
-                </li>
-                <li>
-                  <strong>Weakness:</strong> missing full Accepted evidence,
-                  submit failures, sample failures, slow time per 10 lines, and
-                  review state raise the score; recent Accepted streaks, passed
-                  samples, and mastered state lower it.
-                </li>
-                <li>
-                  <strong>Problem value:</strong> Top888 frequency, Hot100,
-                  ByteDance buckets, core tag coverage, and related-problem
-                  centrality raise the score.
-                </li>
-                <li>
-                  <strong>Current fit:</strong> when a problem is open, shared
-                  tags, related links, and nearby difficulty prefer same-route
-                  transfer or reasonable progression.
-                </li>
-                <li>
-                  <strong>Fatigue penalty:</strong> problems Accepted today,
-                  Accepted in the current session, or heavily overlapping with
-                  tags practiced today are lowered.
-                </li>
-                <li>
-                  <strong>Cold start:</strong> problems without local submission
-                  stats can still be recommended through value, manual state,
-                  and the risk of not having stable memory yet.
-                </li>
-              </ol>
-              <p>
-                Ties prefer review due-ness, weakness, value, submit failures,
-                sample failures, scoring speed, Accepted count, and then
-                LeetCode frequency. This ranking is a heuristic suggestion, not
-                proof of ability.
-              </p>
-            </>
-          )
-        }
-      </div>
-    </details>
-
-    <details id="leetcode-extension-guide" class="leetcode-extension-guide">
-      <summary>{isZh ? "安装 Chrome 扩展后直接提交到力扣" : "Install the Chrome extension to submit to LeetCode"}</summary>
-      <div>
-        {
-          isZh ? (
-            <>
-              <p>
-                这个扩展是一个本仓库里的本地 Chrome 小工具。页面只把题目 slug、
-                语言和当前代码发给扩展；登录 cookie 留在 Chrome 扩展侧，页面
-                JavaScript 不会读取它。
-              </p>
-              <p class="leetcode-extension-download">
-                <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
-                  下载最新扩展 ZIP
-                </a>
-                <span>
-                  下载后先解压，再在 Chrome 里加载解压后的文件夹；非商店扩展不能直接点
-                  ZIP 完成安装。
-                </span>
-              </p>
-              <ol>
-                <li>
-                  从 <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Release</a>
-                  下载 <code>leetcode-submit.zip</code>，并解压到本地。
-                </li>
-                <li>在 Chrome 地址栏打开 <code>chrome://extensions</code>。</li>
-                <li>打开右上角的 <strong>开发者模式</strong>。</li>
-                <li>
-                  如果需要从源码安装，可以打开 <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，
-                  clone 到本地；扩展源码在
-                  <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
-                    extensions/leetcode-submit
-                  </a>。
-                </li>
-                <li>点击 <strong>加载已解压的扩展程序</strong>。</li>
-                <li>
-                  优先选择刚解压出的 <code>leetcode-submit</code> 文件夹；源码安装时选择
-                  <code>extensions/leetcode-submit</code> 文件夹。
-                </li>
-                <li>在同一个 Chrome 用户里登录 <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a>。</li>
-                <li>回到本页展开一道题，点击“运行样例”或“提交力扣”。</li>
-              </ol>
-              <p>
-                扩展更新后，下载最新 ZIP、覆盖本地解压目录，然后回到
-                <code>chrome://extensions</code> 对这个已解压扩展点一次“重新加载”。
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                This repository includes a local Chrome extension. The page sends only
-                the problem slug, language, and editor code to the extension; LeetCode
-                cookies stay inside Chrome extension APIs.
-              </p>
-              <p class="leetcode-extension-download">
-                <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
-                  Download latest extension ZIP
-                </a>
-                <span>
-                  Unzip it first, then load the unzipped folder in Chrome. A
-                  non-store extension cannot be installed directly from the ZIP.
-                </span>
-              </p>
-              <ol>
-                <li>
-                  Download <code>leetcode-submit.zip</code> from
-                  <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Releases</a>
-                  and unzip it locally.
-                </li>
-                <li>Open <code>chrome://extensions</code> in Chrome.</li>
-                <li>Enable <strong>Developer mode</strong>.</li>
-                <li>
-                  To install from source instead, open the
-                  <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub repository</a>
-                  and clone it locally. The extension source is in
-                  <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
-                    extensions/leetcode-submit
-                  </a>.
-                </li>
-                <li>Click <strong>Load unpacked</strong>.</li>
-                <li>
-                  Prefer the unzipped <code>leetcode-submit</code> folder. For source
-                  installs, select <code>extensions/leetcode-submit</code>.
-                </li>
-                <li>Sign in to <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a> in the same Chrome profile.</li>
-                <li>Return to this page, open a problem, then run or submit.</li>
-              </ol>
-              <p>
-                After extension updates, download the latest ZIP, replace the local
-                unzipped folder, then reload this unpacked extension in
-                <code>chrome://extensions</code>.
-              </p>
-            </>
-          )
-        }
-      </div>
-    </details>
 
     <nav class="leetcode-footer-links" aria-label={isZh ? "相关链接" : "Related links"}>
       <span>{isZh ? "相关链接" : "Links"}</span>
@@ -7093,7 +7095,7 @@ const shortcutRows = [
     function renderProblemConstraints(problem) {
       const items = problemConstraintItems(problem);
       if (!items.length) return "";
-      const separator = isChinesePage ? "；" : ";";
+      const separator = ";";
       return `
         <p class="leetcode-statement-constraints">
           <strong>${isChinesePage ? "数据范围：" : "Constraints:"}</strong>
@@ -7112,7 +7114,7 @@ const shortcutRows = [
     function renderProblemConstraintsPreview(problem) {
       const items = problemConstraintItems(problem);
       if (!items.length) return "";
-      const separator = isChinesePage ? "；" : ";";
+      const separator = ";";
       return `
         <span class="leetcode-statement-preview-constraints">
           <strong>${isChinesePage ? "数据范围：" : "Constraints:"}</strong>
@@ -8941,6 +8943,18 @@ const shortcutRows = [
       font: inherit;
       font-size: 0.7rem;
       padding: 0.16rem 0.42rem;
+    }
+
+    .leetcode-collapse-stack {
+      display: grid;
+      gap: 0.48rem;
+      margin: 0 0 var(--leetcode-stack-gap);
+    }
+
+    .leetcode-collapse-stack > .leetcode-duplicate-audit,
+    .leetcode-collapse-stack > .leetcode-extension-guide,
+    .leetcode-collapse-stack > .leetcode-insight-guide {
+      margin: 0;
     }
 
     .leetcode-extension-guide,

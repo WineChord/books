@@ -185,6 +185,46 @@ assertIncludes(
   "10^{9} + 7",
   "Domino and Tromino Tiling statement",
 );
+assertIncludes(
+  statements["container-with-most-water"],
+  "\\mathrm{height}",
+  "Container With Most Water statement",
+);
+assertIncludes(
+  statements["find-the-index-of-the-first-occurrence-in-a-string"],
+  "\\mathrm{haystack}",
+  "Find First Occurrence statement",
+);
+assertIncludes(
+  statements["find-the-index-of-the-first-occurrence-in-a-string"],
+  "\\mathrm{needle}",
+  "Find First Occurrence statement",
+);
+assertIncludes(
+  statements["median-of-two-sorted-arrays"],
+  "\\log",
+  "Median of Two Sorted Arrays statement",
+);
+assertIncludes(
+  statements["random-pick-with-weight"],
+  "\\mathrm{w.length}",
+  "Random Pick With Weight statement",
+);
+assertIncludes(
+  statements["random-pick-with-weight"],
+  "\\mathrm{sum}(w)",
+  "Random Pick With Weight statement",
+);
+assertIncludes(
+  statements["valid-sudoku"],
+  "3 \\times 3",
+  "Valid Sudoku statement",
+);
+assertIncludes(
+  statements["minimum-size-subarray-sum"],
+  "\\ldots",
+  "Minimum Size Subarray Sum statement",
+);
 if (statements["4sum-ii"].includes("l &lt; n n")) {
   throw new Error("4Sum II statement should not split nums1 after n");
 }
