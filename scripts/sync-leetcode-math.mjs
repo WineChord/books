@@ -71,13 +71,13 @@ const subscriptTextPattern = new RegExp(
 );
 const existingSubscriptPattern =
   /\b([A-Za-z][A-Za-z0-9_.]*)_([ijkmn]|\d+|[ijkmn][+-]\d+)\b/g;
-const comparisonAtom = String.raw`(?:-?\d+(?:\s*(?:\^|\s)\s*\d+)?|[A-Za-z](?:\[[^\]\u3400-\u9fff]+\])?|[A-Za-z][A-Za-z0-9_.]+(?:\[[^\]\u3400-\u9fff]+\])?(?:\s+(?:[ijkmn]|\d+|[ijkmn][+-]\d+))?)`;
+const comparisonAtom = String.raw`(?:-?\d+(?:\s*(?:\^|\s)\s*\d+)?|[A-Za-z][A-Za-z0-9_.]+(?:\[[^\]\u3400-\u9fff]+\])?(?:\s+(?:[ijkmn]|\d+|[ijkmn][+-]\d+))?|[A-Za-z](?:\[[^\]\u3400-\u9fff]+\])?)`;
 const comparisonPattern = new RegExp(
   `${comparisonAtom}(?:\\s*(?:<=|>=|==|!\\s*=|!=|<|>|=)\\s*${comparisonAtom})+`,
   "g",
 );
 const tupleComparisonPattern =
-  /\b\d+\s*(?:<=|>=|<|>)\s*[A-Za-z](?:\s*,\s*[A-Za-z])+\s*(?:<=|>=|<|>)\s*[A-Za-z]\b/g;
+  /\b\d+\s*(?:<=|>=|<|>)\s*[A-Za-z](?:\s*,\s*[A-Za-z])+\s*(?:<=|>=|<|>)\s*[A-Za-z]/g;
 const indexedNamePattern =
   /\b[A-Za-z][A-Za-z0-9_.]*(?:\[[A-Za-z0-9_.+\-*/\s]+\])+\b/g;
 const dimensionPattern =
@@ -263,14 +263,23 @@ function renderMath(raw) {
   }
 }
 
-function addRange(ranges, text, regex, shouldUse = () => true) {
+function addRange(
+  ranges,
+  text,
+  regex,
+  shouldUse = () => true,
+  options = {},
+) {
   for (const match of text.matchAll(regex)) {
     const raw = match[0];
     const start = match.index ?? 0;
     const end = start + raw.length;
     const before = start > 0 ? text[start - 1] : "";
     const after = end < text.length ? text[end] : "";
-    if (/[A-Za-z0-9_]/.test(before) || /[A-Za-z0-9_]/.test(after)) {
+    if (
+      (!options.allowLeftAdjacent && /[A-Za-z0-9_]/.test(before)) ||
+      (!options.allowRightAdjacent && /[A-Za-z0-9_]/.test(after))
+    ) {
       continue;
     }
     if (!raw.trim() || cjkPattern.test(raw) || !/[A-Za-z0-9]/.test(raw)) {
@@ -288,7 +297,9 @@ function mathRanges(text) {
   addRange(ranges, text, modularNumberPattern);
   addRange(ranges, text, scientificProductPattern);
   addRange(ranges, text, averagePattern);
-  addRange(ranges, text, tupleComparisonPattern);
+  addRange(ranges, text, tupleComparisonPattern, () => true, {
+    allowRightAdjacent: true,
+  });
   addRange(ranges, text, comparisonPattern);
   addRange(ranges, text, indexedNamePattern);
   addRange(ranges, text, powerPattern);
