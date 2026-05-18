@@ -304,8 +304,10 @@ available from the timing board button or `Cmd+Option+F`; when it is enabled,
 only a full LeetCode submit that returns Accepted opens the next problem in the
 current filter and search order. If route skipping is enabled for SQL or pure
 frontend problems, list flow chooses the next problem in that same order that
-does not match the enabled skip category. Passing sample runs never trigger
-this navigation.
+does not match the enabled skip category. This automatic transition uses the
+same problem-title, statement, and editor framing as a manual open, and editor
+focus must not immediately scroll that title or statement out of view. Passing
+sample runs never trigger this navigation.
 
 "Suggested practice" can also hold an immersive flow, but it is not list-order
 navigation. The user can start suggested flow from the "Suggested practice"
@@ -314,6 +316,8 @@ recommendation and marks the flow state as suggested. After each full submit
 that returns Accepted, the page recomputes "Suggested practice" from the latest
 local submissions, timing, manual state, and current-session fatigue, then
 opens the new highest-ranked recommendation instead of the next visible row.
+That automatic recommendation jump follows the same title, statement, and
+editor framing rule as list flow.
 If route skipping is enabled for SQL or pure frontend problems, matching
 problems are removed from this candidate queue before selecting the top
 recommendation. The just-Accepted problem is not immediately recommended back

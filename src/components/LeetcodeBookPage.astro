@@ -1392,6 +1392,7 @@ const shortcutRows = [
     const editorContextMaxRevealMax = 280;
     const editorDraftDayCheckIntervalMs = 60 * 1000;
     const previewHoverCloseDelayMs = 180;
+    const focusRevealSuppressClearDelayMs = 0;
     const viewStateWriteDelayMs = 120;
     const filterShortcutByCode = {
       Digit1: "all",
@@ -1575,6 +1576,7 @@ const shortcutRows = [
     let editorAutoGrow = localStorage.getItem(editorHeightModeKey) !== "fixed";
     let editorStatementPanelVisible =
       localStorage.getItem(editorStatementPanelKey) !== "off";
+    let suppressNextEditorFocusRevealSlug = "";
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
     let flowSkipSql = savedFlowSkipEnabled(flowSkipSqlKey);
     let flowSkipFrontend = savedFlowSkipEnabled(flowSkipFrontendKey);
@@ -4277,6 +4279,14 @@ const shortcutRows = [
         }
         if (textarea instanceof HTMLTextAreaElement) {
           const context = editorContextFor(textarea);
+          if (shouldFrameContext) {
+            suppressNextEditorFocusRevealSlug = slug;
+            window.setTimeout(() => {
+              if (suppressNextEditorFocusRevealSlug === slug) {
+                suppressNextEditorFocusRevealSlug = "";
+              }
+            }, focusRevealSuppressClearDelayMs);
+          }
           textarea.focus({ preventScroll: true });
           placeEditorCaretAtImplementation(textarea, context);
           if (!shouldFrameContext) {
@@ -7817,6 +7827,11 @@ const shortcutRows = [
       const target = event.target;
       if (!(target instanceof HTMLTextAreaElement)) return;
       scheduleViewStateWrite();
+      const slug = target.dataset.editorCode || "";
+      if (slug && suppressNextEditorFocusRevealSlug === slug) {
+        suppressNextEditorFocusRevealSlug = "";
+        return;
+      }
       scheduleEditorCaretReveal(target, "smooth");
     });
 
