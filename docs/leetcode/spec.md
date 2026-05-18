@@ -249,14 +249,15 @@ in the repo. If the extension is not installed, outdated, or the user is not
 logged in, the page shows that as status and keeps the local editor usable. The
 run result panel shows the exact testcase input sent to LeetCode, split into
 individual case tabs with parameter names from `questionEditorData.metaData`.
-After the run result arrives, each case can also show the submitted code output,
-expected output, and stdout. If LeetCode returns those details as a single blob,
-the page keeps them as standalone debug rows instead of guessing the wrong
-case. The run status is considered accepted only when all returned testcase
-counts pass. When full submission returns a failed testcase, the page shows the
-failing testcase, actual output, expected output, and compile or runtime
-diagnostics below the status line, then stores that testcase as an extra run
-case for the same problem unless the same normalized testcase is already saved.
+After the run result arrives, each case shows its submitted code answer,
+expected output, and stdout when LeetCode exposes those arrays. The page keeps
+compile and runtime diagnostics outside the case tabs because those are not
+per-case facts. The run status is considered accepted only when all returned
+testcase counts pass. When full submission returns a failed testcase, the page
+shows the failing testcase, actual output, expected output, and compile or
+runtime diagnostics below the status line, then stores that testcase as an
+extra run case for the same problem unless the same normalized testcase is
+already saved.
 Extra run cases reset on the next Beijing calendar day, so daily practice
 starts from the official examples again.
 The page footer also keeps always-visible links to the GitHub repository,

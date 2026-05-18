@@ -1071,7 +1071,7 @@ const shortcutRows = [
     const unsupportedRequestTypeCode = "unsupported_request_type";
     const extensionProbeFailedCode = "extension_probe_failed";
     const extensionProbeTimeoutCode = "extension_probe_timeout";
-    const extensionRequiredFeatureVersion = 4;
+    const extensionRequiredFeatureVersion = 5;
     const extensionPingTimeoutMs = 2500;
     const extensionProbeCacheMs = 15 * 1000;
     const extensionCheckTimeoutMs = 45000;
@@ -4383,7 +4383,7 @@ const shortcutRows = [
             input: "失败用例",
             output: "实际输出",
             runtimeError: "运行错误",
-            standardOutput: "标准输出",
+            standardOutput: "stdout",
           }
         : {
             compileError: "Compile error",
@@ -4482,10 +4482,12 @@ const shortcutRows = [
       return isChinesePage
         ? {
             compileError: "编译错误",
-            expectedOutput: "预期输出",
+            expectedOutput: "期望输出",
             output: "实际输出",
             runtimeError: "运行错误",
-            standardOutput: "标准输出",
+            standardOutput: "stdout",
+            passed: "通过",
+            failed: "未通过",
           }
         : {
             compileError: "Compile error",
@@ -4493,13 +4495,33 @@ const shortcutRows = [
             output: "Actual output",
             runtimeError: "Runtime error",
             standardOutput: "Stdout",
+            passed: "Passed",
+            failed: "Failed",
           };
     }
 
-    function appendResultField(fields, name, value) {
+    function appendResultField(fields, name, value, kind = "") {
       if (!value) return false;
-      fields.push({ name, value });
+      fields.push({ kind, name, value });
       return true;
+    }
+
+    function comparableOutput(value) {
+      const text = String(value || "")
+        .replace(/\r\n/g, "\n")
+        .trim();
+      try {
+        return JSON.stringify(JSON.parse(text));
+      } catch {
+        return text;
+      }
+    }
+
+    function testcaseResultState(output, expectedOutput) {
+      if (!output || !expectedOutput) return "";
+      return comparableOutput(output) === comparableOutput(expectedOutput)
+        ? "success"
+        : "error";
     }
 
     function enrichRunTestcases(cases, result) {
@@ -4513,38 +4535,72 @@ const shortcutRows = [
         output: outputs.length === caseCount,
         standardOutput: standardOutputs.length === caseCount,
       };
+      const allCasesPassed = allSubmittedTestcasesPassed(result);
       return {
         cases: cases.map((testcase, index) => {
           const fields = [...testcase.fields];
-          if (consumed.output) appendResultField(fields, labels.output, outputs[index]);
+          const output = consumed.output ? outputs[index] : "";
+          const expectedOutput = consumed.expectedOutput
+            ? expectedOutputs[index]
+            : "";
+          const standardOutput = consumed.standardOutput
+            ? standardOutputs[index]
+            : "";
+          if (output) {
+            appendResultField(fields, labels.output, output, "output");
+          }
           if (consumed.expectedOutput) {
-            appendResultField(fields, labels.expectedOutput, expectedOutputs[index]);
+            appendResultField(
+              fields,
+              labels.expectedOutput,
+              expectedOutput,
+              "expected",
+            );
           }
-          if (consumed.standardOutput) {
-            appendResultField(fields, labels.standardOutput, standardOutputs[index]);
+          if (standardOutput) {
+            appendResultField(
+              fields,
+              labels.standardOutput,
+              standardOutput,
+              "stdout",
+            );
           }
-          return { ...testcase, fields };
+          const resultState = allCasesPassed
+            ? "success"
+            : testcaseResultState(output, expectedOutput);
+          const resultLabel =
+            resultState === "success"
+              ? labels.passed
+              : resultState === "error"
+                ? labels.failed
+                : "";
+          return { ...testcase, fields, resultLabel, resultState };
         }),
         consumed,
       };
     }
 
-    function standaloneRunResultDetails(result, consumed = {}) {
+    function standaloneRunResultDetails(
+      result,
+      consumed = {},
+      options = {},
+    ) {
       const labels = runResultLabels();
+      const includeCaseOutputs = options.includeCaseOutputs !== false;
       const details = [
         [labels.compileError, submissionDetailValue(result?.compileError)],
         [labels.runtimeError, submissionDetailValue(result?.runtimeError)],
       ];
-      if (!consumed.output) {
+      if (includeCaseOutputs && !consumed.output) {
         details.push([labels.output, submissionDetailValue(result?.output)]);
       }
-      if (!consumed.expectedOutput) {
+      if (includeCaseOutputs && !consumed.expectedOutput) {
         details.push([
           labels.expectedOutput,
           submissionDetailValue(result?.expectedOutput),
         ]);
       }
-      if (!consumed.standardOutput) {
+      if (includeCaseOutputs && !consumed.standardOutput) {
         details.push([
           labels.standardOutput,
           submissionDetailValue(result?.standardOutput),
@@ -4567,7 +4623,11 @@ const shortcutRows = [
       const enriched = enrichRunTestcases(testcaseRow.cases, result);
       return [
         { ...testcaseRow, cases: enriched.cases },
-        ...standaloneRunResultDetails(result, enriched.consumed),
+        ...standaloneRunResultDetails(
+          result,
+          enriched.consumed,
+          { includeCaseOutputs: false },
+        ),
       ];
     }
 
@@ -4594,6 +4654,7 @@ const shortcutRows = [
       const labelElement = document.createElement("span");
       const valueElement = document.createElement("pre");
       fieldElement.className = "leetcode-testcase-field";
+      if (field.kind) fieldElement.dataset.resultField = field.kind;
       labelElement.className = "leetcode-testcase-field-label";
       labelElement.textContent = field.name ? `${field.name} =` : "input =";
       valueElement.textContent = field.value;
@@ -4631,6 +4692,13 @@ const shortcutRows = [
         tab.setAttribute("aria-selected", String(isActive));
         tab.setAttribute("role", "tab");
         tab.append(document.createTextNode(testcase.label));
+        if (testcase.resultState) {
+          tab.dataset.resultState = testcase.resultState;
+          const result = document.createElement("span");
+          result.className = "leetcode-testcase-result";
+          result.textContent = testcase.resultLabel;
+          tab.append(result);
+        }
         if (testcase.source) {
           const source = document.createElement("span");
           source.className = "leetcode-testcase-source";
@@ -4678,14 +4746,18 @@ const shortcutRows = [
       container.hidden = false;
     }
 
-    function submissionSummary(result) {
+    function submissionSummary(result, options = {}) {
       const status = result?.statusMessage || result?.status_msg || result?.state || "已返回";
+      const statusPart =
+        options.suppressAcceptedStatus && submissionStatusAccepted(result)
+          ? ""
+          : status;
       const compileError = firstSubmissionLine(result?.compileError);
       if (compileError) {
         return `${status}: ${compileError}`.slice(0, 220);
       }
       return [
-        status,
+        statusPart,
         submissionTestSummary(result),
         normalizedSubmissionRuntime(result?.runtime),
         normalizedSubmissionMemory(result?.memory),
@@ -4840,8 +4912,11 @@ const shortcutRows = [
           response.data?.testcaseGroups,
           result,
         );
-        const summary = submissionSummary(result);
-        if (runAccepted(result)) {
+        const accepted = runAccepted(result);
+        const summary = submissionSummary(result, {
+          suppressAcceptedStatus: !accepted,
+        });
+        if (accepted) {
           setSubmitStatus(panel, `样例通过 ${summary}`, "success", null, completedRows);
           return;
         }
@@ -6989,12 +7064,34 @@ const shortcutRows = [
       color: var(--color-terracotta);
     }
 
+    .leetcode-testcase-tabs button[data-result-state="success"] {
+      border-color: rgb(22 138 119 / 50%);
+    }
+
+    .leetcode-testcase-tabs button[data-result-state="error"] {
+      border-color: rgb(214 66 66 / 55%);
+    }
+
     .leetcode-testcase-source {
       border-radius: 999px;
       background: rgb(20 20 19 / 7%);
       color: var(--color-muted);
       font-size: 0.58rem;
       padding: 0.02rem 0.28rem;
+    }
+
+    .leetcode-testcase-result {
+      border-radius: 999px;
+      background: rgb(22 138 119 / 11%);
+      color: #168a77;
+      font-size: 0.58rem;
+      padding: 0.02rem 0.28rem;
+    }
+
+    .leetcode-testcase-tabs button[data-result-state="error"]
+      .leetcode-testcase-result {
+      background: rgb(214 66 66 / 11%);
+      color: #d64242;
     }
 
     .leetcode-testcase-body,
@@ -7017,6 +7114,16 @@ const shortcutRows = [
       font-family: var(--font-mono);
       font-size: 0.66rem;
       font-weight: 700;
+    }
+
+    .leetcode-testcase-field[data-result-field="output"] pre,
+    .leetcode-testcase-field[data-result-field="expected"] pre {
+      border-color: rgb(22 138 119 / 35%);
+    }
+
+    .leetcode-testcase-field[data-result-field="stdout"] pre {
+      border-style: dashed;
+      color: var(--color-muted);
     }
 
     .leetcode-submit-detail pre {

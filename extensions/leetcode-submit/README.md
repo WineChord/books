@@ -140,9 +140,10 @@ window.postMessage(
 ```
 
 When LeetCode returns run or submit details, `output` contains the submitted
-code output, `expectedOutput` contains the judge expectation, and
-`standardOutput` contains stdout when LeetCode exposes it. Runtime and compile
-diagnostics are exposed through `runtimeError` and `compileError`.
+code answer from LeetCode's `code_answer`, `expectedOutput` contains the judge
+expectation from `expected_code_answer`, and `standardOutput` contains stdout
+from `std_output_list` or `std_output` when LeetCode exposes it. Runtime and
+compile diagnostics are exposed through `runtimeError` and `compileError`.
 
 Errors use the same envelope and set `ok` to `false`.
 
@@ -195,8 +196,8 @@ extension is current before running or submitting.
       "grouped-run-testcases",
       "run-output-details"
     ],
-    extensionVersion: "0.4.0",
-    featureVersion: 4,
+    extensionVersion: "0.5.0",
+    featureVersion: 5,
     isLoggedIn: true,
     hasCsrfToken: true
   }

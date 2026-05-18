@@ -1,7 +1,7 @@
 const pageMessageSource = "books-leetcode-page";
 const extensionMessageSource = "books-leetcode-extension";
 const protocolVersion = 1;
-const featureVersion = 4;
+const featureVersion = 5;
 const leetcodeOrigin = "https://leetcode.cn";
 const leetcodeUrlFilter = "||leetcode.cn/";
 const leetcodeHeaderRuleId = 1;
@@ -477,23 +477,26 @@ function firstPresent(...values) {
 }
 
 function normalizeSubmission(payload, submissionId) {
+  const codeAnswer = firstPresent(payload?.code_answer);
+  const codeOutput = firstPresent(payload?.code_output);
+  const stdout = firstPresent(payload?.std_output_list, payload?.std_output);
   return {
     compileError: payload?.compile_error || payload?.full_compile_error || "",
     expectedOutput: firstPresent(
-      payload?.expected_output,
       payload?.expected_code_answer,
+      payload?.expected_output,
       payload?.correct_answer,
     ),
     finished: isFinishedSubmission(payload),
     input: payload?.input || payload?.last_testcase || "",
     memory: payload?.memory || "",
-    output: firstPresent(payload?.code_output, payload?.code_answer),
+    output: firstPresent(codeAnswer, codeOutput),
     runSuccess: Boolean(payload?.run_success),
     runtimeError: payload?.runtime_error || payload?.full_runtime_error || "",
     state: payload?.state || "",
     statusCode: payload?.status_code ?? null,
     statusMessage: payload?.status_msg || "",
-    standardOutput: firstPresent(payload?.std_output, payload?.std_output_list),
+    standardOutput: firstPresent(stdout, codeAnswer ? codeOutput : ""),
     submissionId,
     totalCorrect: payload?.total_correct ?? null,
     totalTestcases: payload?.total_testcases ?? null,
