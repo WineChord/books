@@ -24,6 +24,21 @@ const badPlainTextPatterns = [
   { label: "plain timestamp i", regex: /\btimestamp i\b/ },
   { label: "spaced not-equals", regex: /\b[ijk]\s+!\s+=\s+[ijk]\b/ },
 ];
+const statementExamplePattern =
+  /示例|Example|例如|比如|举例/iu;
+const badConstraintTextPatterns = [
+  { label: "dangling exponent marker", regex: /\^\s*(?:之间|以内|内|$)/ },
+  { label: "space before Chinese punctuation", regex: /\s+[。！？；：，、]/u },
+];
+const badStatementHtmlPatterns = [
+  { label: "paragraph starts with closing paren", regex: /<\/p><p>[）)]/ },
+  { label: "spaced ellipsis", regex: /\.\s+\.\s+\./ },
+  { label: "space before Chinese punctuation", regex: /\s+[。！？；：，、]/u },
+  { label: "space after Chinese punctuation", regex: /[。！？；：，、]\s+/u },
+  { label: "truncated exact wording", regex: /你必须\s*恰[。；]/u },
+  { label: "truncated literal ellipsis", regex: /\.\.\.<\/p>$/u },
+  { label: "truncated gei-ni tail", regex: /给你。<\/p>$/u },
+];
 
 function extractJsonExport(source, exportName) {
   const marker = `export const ${exportName} = `;
@@ -78,6 +93,15 @@ function stripGeneratedMath(html) {
     .replace(/<math\b[^>]*>.*?<\/math>/gs, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ");
+}
+
+function normalizeConstraintDisplayItem(item) {
+  const text = String(item)
+    .replace(/\s+([。！？；：，、])/gu, "$1")
+    .replace(/(?:\s|&nbsp;)*[。；.](?:\s|&nbsp;)*$/u, "")
+    .trim();
+  if (/&(?:#[0-9]+|#x[0-9a-f]+|[a-z]+);$/iu.test(text)) return text;
+  return text.replace(/(?:\s|&nbsp;)*;(?:\s|&nbsp;)*$/u, "").trim();
 }
 
 function removeKatexSpans(html) {
@@ -211,6 +235,11 @@ assertIncludes(
   "Random Pick With Weight statement",
 );
 assertIncludes(
+  statements["search-in-rotated-sorted-array-ii"],
+  "\\mathrm{nums.length}",
+  "Search Rotated Array II statement",
+);
+assertIncludes(
   statements["random-pick-with-weight"],
   "\\mathrm{sum}(w)",
   "Random Pick With Weight statement",
@@ -225,6 +254,31 @@ assertIncludes(
   "\\ldots",
   "Minimum Size Subarray Sum statement",
 );
+assertIncludes(
+  statements["bulb-switcher-ii"],
+  "恰好按压开关",
+  "Bulb Switcher II statement",
+);
+assertIncludes(
+  statements["bulb-switcher-ii"],
+  "；开关 2",
+  "Bulb Switcher II statement",
+);
+assertIncludes(
+  statements["find-minimum-in-rotated-sorted-array-ii"],
+  "可能存在",
+  "Find Minimum Rotated Array II statement",
+);
+assertIncludes(
+  statements["find-minimum-in-rotated-sorted-array-ii"],
+  "最小元素",
+  "Find Minimum Rotated Array II statement",
+);
+assertIncludes(
+  statements["search-in-rotated-sorted-array"],
+  "O(\\log n)",
+  "Search Rotated Array statement",
+);
 if (statements["4sum-ii"].includes("l &lt; n n")) {
   throw new Error("4Sum II statement should not split nums1 after n");
 }
@@ -238,17 +292,35 @@ Object.entries(statements).forEach(([slug, html]) => {
   badPlainTextPatterns.forEach(({ label, regex }) => {
     if (regex.test(text)) failures.push(`${slug}: ${label}`);
   });
+  badStatementHtmlPatterns.forEach(({ label, regex }) => {
+    if (regex.test(html)) failures.push(`${slug}: ${label}`);
+  });
+  if (statementExamplePattern.test(text)) {
+    failures.push(`${slug}: statement example marker`);
+  }
 });
 Object.entries(constraints).forEach(([slug, items]) => {
+  const html = items.join(" ");
   const text = stripGeneratedMath(items.join(" "));
+  const inlineText = items
+    .map((item) => normalizeConstraintDisplayItem(stripGeneratedMath(item)))
+    .filter(Boolean)
+    .join(" ; ")
+    .replace(/&(?:#[0-9]+|#x[0-9a-f]+|[a-z]+);/giu, "");
   badPlainTextPatterns.forEach(({ label, regex }) => {
     if (regex.test(text)) failures.push(`${slug} constraints: ${label}`);
   });
+  badConstraintTextPatterns.forEach(({ label, regex }) => {
+    if (regex.test(html)) failures.push(`${slug} constraints: ${label}`);
+  });
+  if (/[。；;]\s*;/.test(inlineText)) {
+    failures.push(`${slug} constraints: punctuation before separator`);
+  }
 });
 
 if (failures.length) {
   throw new Error(
-    `Found unrendered math fragments:\n${failures.slice(0, 40).join("\n")}`,
+    `Found statement rendering issues:\n${failures.slice(0, 40).join("\n")}`,
   );
 }
 

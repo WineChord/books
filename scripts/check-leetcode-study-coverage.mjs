@@ -20,10 +20,8 @@ const generatedReferencesPath = new URL(
 const defaultMaxSamples = 12;
 const minImplementationChars = 120;
 const minImplementationLines = 5;
-const bytedanceSupplementStatement =
-  "字节跳动企业题库补充题。题面预览需要后续同步，当前可点击题目链接打开力扣原题。";
-const bytedanceSupplementApproach =
-  "按字节企业题库频率补充展示；先用官方模板练习，后续再同步题面、思路和 reference implementation。";
+const bytedanceSupplementStatement = "";
+const bytedanceSupplementApproach = "";
 const placeholderPattern =
   /\b(?:TODO|TBD|FIXME)\b|待补充|后续同步|placeholder|sync the official LeetCode signature/i;
 
@@ -86,9 +84,9 @@ function buildCandidates(problems, bytedanceProblems) {
       hot100: false,
       paidOnly: problem.paidOnly,
       tags: problem.tags,
-      statementPreview: bytedanceSupplementStatement,
-      approachPreview: bytedanceSupplementApproach,
-      followUps: [],
+      statementPreview: problem.statementPreview ?? bytedanceSupplementStatement,
+      approachPreview: problem.approachPreview ?? bytedanceSupplementApproach,
+      followUps: problem.followUps ?? [],
       sourceGroup: "bytedanceSupplement",
     }));
   return [...baseProblems, ...supplements];
@@ -155,7 +153,8 @@ function addIssue(issues, severity, category, problem, detail) {
 }
 
 function checkStudyContent(problem, issues) {
-  const severity = "warning";
+  const isByteDanceSupplement = problem.sourceGroup === "bytedanceSupplement";
+  const severity = isByteDanceSupplement ? "error" : "warning";
   if (isBlank(problem.statementPreview)) {
     addIssue(issues, severity, "missing statement", problem, "empty");
   } else if (hasPlaceholder(problem.statementPreview)) {
@@ -168,6 +167,11 @@ function checkStudyContent(problem, issues) {
   }
   if (!Array.isArray(problem.followUps) || problem.followUps.length === 0) {
     addIssue(issues, severity, "missing generic followups", problem, "empty");
+  }
+  if (isByteDanceSupplement && !problem.tags?.length) {
+    addIssue(issues, "error", "missing tags", problem, "empty");
+  }
+  if (!Array.isArray(problem.followUps) || problem.followUps.length === 0) {
     return;
   }
   for (const followUp of problem.followUps) {
@@ -180,6 +184,15 @@ function checkStudyContent(problem, issues) {
         "missing question or answer",
       );
     }
+  }
+}
+
+function checkCodeTemplates(problem, templates, issues) {
+  if (
+    problem.sourceGroup === "bytedanceSupplement" &&
+    (!Array.isArray(templates) || templates.length === 0)
+  ) {
+    addIssue(issues, "error", "missing code templates", problem, "empty");
   }
 }
 
@@ -368,6 +381,7 @@ for (const problem of candidates) {
   implementationReferenceCount += references.length;
   if (references.some(isCppReference)) cppReferenceProblemCount += 1;
   checkStudyContent(problem, issues);
+  checkCodeTemplates(problem, templates, issues);
   checkProblemConstraints(problem, leetcodeProblemConstraints, issues);
   checkCompanyFollowUps(problem, issues);
   checkImplementations(problem, references, templates, issues);

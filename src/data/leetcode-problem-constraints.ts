@@ -161,7 +161,7 @@ export const leetcodeProblemConstraints = ({
   "lowest-common-ancestor-of-a-binary-tree": [
     "树中节点数目在范围 [2, 10^5] 内。",
     "-10^9 <= Node.val <= 10^9",
-    "所有 Node.val 互不相同 。",
+    "所有 Node.val 互不相同。",
     "p != q",
     "p 和 q 均存在于给定的二叉树中。"
   ],
@@ -424,8 +424,8 @@ export const leetcodeProblemConstraints = ({
     "s 仅含字符 ('I', 'V', 'X', 'L', 'C', 'D', 'M')",
     "题目数据保证 s 是一个有效的罗马数字，且表示整数在范围 [1, 3999] 内",
     "题目所给测试用例皆符合罗马数字书写规则，不会出现跨位等情况。",
-    "IL 和 IM 这样的例子并不符合题目要求，49 应该写作 XLIX，999 应该写作 CMXCIX 。",
-    "关于罗马数字的详尽书写规则，可以参考 罗马数字 - 百度百科 。"
+    "IL 和 IM 这样的例子并不符合题目要求，49 应该写作 XLIX，999 应该写作 CMXCIX。",
+    "关于罗马数字的详尽书写规则，可以参考 罗马数字 - 百度百科。"
   ],
   "decode-string": [
     "1 <= s.length <= 30",
@@ -506,7 +506,7 @@ export const leetcodeProblemConstraints = ({
   "linked-list-cycle": [
     "链表中节点的数目范围是 [0, 10^4]",
     "-10^5 <= Node.val <= 10^5",
-    "pos 为 -1 或者链表中的一个 有效索引 。"
+    "pos 为 -1 或者链表中的一个 有效索引。"
   ],
   "largest-rectangle-in-histogram": [
     "1 <= heights.length <=10^5",
@@ -528,7 +528,7 @@ export const leetcodeProblemConstraints = ({
   "design-linked-list": [
     "0 <= index, val <= 1000",
     "请不要使用内置的 LinkedList 库。",
-    "调用 get、addAtHead、addAtTail、addAtIndex 和 deleteAtIndex 的次数不超过 2000 。"
+    "调用 get、addAtHead、addAtTail、addAtIndex 和 deleteAtIndex 的次数不超过 2000。"
   ],
   "can-make-arithmetic-progression-from-sequence": [
     "2 <= arr.length <= 1000",
@@ -559,7 +559,7 @@ export const leetcodeProblemConstraints = ({
   "add-binary": [
     "1 <= a.length, b.length <= 10^4",
     "a 和 b 仅由字符 '0' 或 '1' 组成",
-    "字符串如果不是 \"0\" ，就不含前导零"
+    "字符串如果不是 \"0\"，就不含前导零"
   ],
   "sqrtx": [
     "0 <= x <= 2^31 - 1"
@@ -620,7 +620,7 @@ export const leetcodeProblemConstraints = ({
     "1 <= n <= 10^5",
     "nums.length == n + 1",
     "1 <= nums[i] <= n",
-    "nums 中 只有一个整数 出现 两次或多次 ，其余整数均只出现 一次"
+    "nums 中 只有一个整数 出现 两次或多次，其余整数均只出现 一次"
   ],
   "majority-element": [
     "n == nums.length",
@@ -1082,7 +1082,7 @@ export const leetcodeProblemConstraints = ({
     "-100.0 < x < 100.0",
     "-2^31 <= n <= 2^31-1",
     "n 是一个整数",
-    "要么 x 不为零，要么 n > 0 。",
+    "要么 x 不为零，要么 n > 0。",
     "-10^4 <= x^n <= 10^4"
   ],
   "max-consecutive-ones": [
@@ -1398,7 +1398,7 @@ export const leetcodeProblemConstraints = ({
     "1 <= actions.length <= 10",
     "values.length === actions.length",
     "所有测试用例都是有效的。例如，你不需要处理取消一个不存在的订阅的情况。",
-    "只有 4 种不同的操作：EventEmitter、emit、subscribe 和 unsubscribe 。 EventEmitter 操作没有参数。",
+    "只有 4 种不同的操作：EventEmitter、emit、subscribe 和 unsubscribe。 EventEmitter 操作没有参数。",
     "emit 操作接收 1 或 2 个参数。第一个参数是要触发的事件名，第二个参数传递给回调函数。",
     "subscribe 操作接收 2 个参数，第一个是事件名，第二个是回调函数。",
     "unsubscribe 操作接收一个参数，即之前进行订阅的顺序（从 0 开始）。"
@@ -1523,7 +1523,7 @@ export const leetcodeProblemConstraints = ({
     "-10^5 <= mat[i][j] <= 10^5"
   ],
   "kth-smallest-element-in-a-bst": [
-    "树中的节点数为 n 。",
+    "树中的节点数为 n。",
     "1 <= k <= n <= 10^4",
     "0 <= Node.val <= 10^4"
   ],
@@ -1627,7 +1627,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "valid-number": [
     "1 <= s.length <= 20",
-    "s 仅含英文字母（大写和小写），数字（0-9），加号 '+' ，减号 '-' ，或者点 '.' 。"
+    "s 仅含英文字母（大写和小写），数字（0-9），加号 '+'，减号 '-'，或者点 '.'。"
   ],
   "word-break-ii": [
     "1 <= s.length <= 20",
@@ -1780,7 +1780,7 @@ export const leetcodeProblemConstraints = ({
   "minimize-maximum-pair-sum-in-array": [
     "n == nums.length",
     "2 <= n <= 10^5",
-    "n 是 偶数 。",
+    "n 是 偶数。",
     "1 <= nums[i] <= 10^5"
   ],
   "the-skyline-problem": [
@@ -1797,7 +1797,7 @@ export const leetcodeProblemConstraints = ({
     "n == mat[i].length",
     "1 <= m, n <= 300",
     "0 <= mat[i][j] <= 10^4",
-    "0 <= threshold <= 10^5^"
+    "0 <= threshold <= 10^5"
   ],
   "egg-drop-with-2-eggs-and-n-floors": [
     "1 <= n <= 1000"
@@ -1870,7 +1870,7 @@ export const leetcodeProblemConstraints = ({
     "2 <= n <= 10^6",
     "n 为偶数",
     "s[i] 为'[' 或 ']'",
-    "开括号 '[' 的数目为 n / 2 ，闭括号 ']' 的数目也是 n / 2"
+    "开括号 '[' 的数目为 n / 2，闭括号 ']' 的数目也是 n / 2"
   ],
   "maximum-alternating-subarray-sum": [
     "1 <= nums.length <= 10^5",
@@ -1958,7 +1958,7 @@ export const leetcodeProblemConstraints = ({
     "m == grid1.length == grid2.length",
     "n == grid1[i].length == grid2[i].length",
     "1 <= m, n <= 500",
-    "grid1[i][j] 和 grid2[i][j] 都要么是 0 要么是 1 。"
+    "grid1[i][j] 和 grid2[i][j] 都要么是 0 要么是 1。"
   ],
   "all-ancestors-of-a-node-in-a-directed-acyclic-graph": [
     "1 <= n <= 1000",
@@ -2219,7 +2219,7 @@ export const leetcodeProblemConstraints = ({
     "1 <= budget <= 160",
     "没有重复的边。",
     "员工 1 是所有员工的直接或间接上司。",
-    "输入的图 hierarchy 保证 无环 。"
+    "输入的图 hierarchy 保证 无环。"
   ],
   "minimum-depth-of-binary-tree": [
     "树中节点数的范围在 [0, 10^5] 内",
@@ -2320,7 +2320,7 @@ export const leetcodeProblemConstraints = ({
     "1 <= numberOfUsers <= 100",
     "1 <= events.length <= 100",
     "events[i].length == 3",
-    "events[i][0] 的值为 MESSAGE 或 OFFLINE 。",
+    "events[i][0] 的值为 MESSAGE 或 OFFLINE。",
     "1 <= int(events[i][1]) <= 10^5",
     "在任意 \"MESSAGE\" 事件中，以 id 形式提及的用户数目介于 1 和 100 之间。",
     "0 <= numberOfUsers - 1",
@@ -2353,11 +2353,11 @@ export const leetcodeProblemConstraints = ({
     "positive_feedback 和 negative_feedback 中不会有相同单词。",
     "n == report.length == student_id.length",
     "1 <= n <= 10^4",
-    "report[i] 只包含小写英文字母和空格 ' ' 。",
+    "report[i] 只包含小写英文字母和空格 ' '。",
     "report[i] 中连续单词之间有单个空格隔开。",
     "1 <= report[i].length <= 100",
     "1 <= student_id[i] <= 10^9",
-    "student_id[i] 的值 互不相同 。",
+    "student_id[i] 的值 互不相同。",
     "1 <= k <= n"
   ],
   "find-all-possible-stable-binary-arrays-i": [
@@ -2369,7 +2369,7 @@ export const leetcodeProblemConstraints = ({
   "make-array-elements-equal-to-zero": [
     "1 <= nums.length <= 100",
     "0 <= nums[i] <= 100",
-    "至少存在一个元素 i 满足 nums[i] == 0 。"
+    "至少存在一个元素 i 满足 nums[i] == 0。"
   ],
   "construct-binary-tree-from-inorder-and-postorder-traversal": [
     "1 <= inorder.length <= 3000",
@@ -2481,7 +2481,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "minimum-deletions-to-make-string-balanced": [
     "1 <= s.length <= 10^5",
-    "s[i] 要么是 'a' 要么是 'b'​ 。​"
+    "s[i] 要么是 'a' 要么是 'b'​。​"
   ],
   "find-the-most-competitive-subsequence": [
     "1 <= nums.length <= 10^5",
@@ -2492,7 +2492,7 @@ export const leetcodeProblemConstraints = ({
     "m == matrix.length",
     "n == matrix[i].length",
     "1 <= m * n <= 10^5",
-    "matrix[i][j] 要么是 0 ，要么是 1 。"
+    "matrix[i][j] 要么是 0，要么是 1。"
   ],
   "construct-the-minimum-bitwise-array-i": [
     "1 <= nums.length <= 100",
@@ -2525,7 +2525,7 @@ export const leetcodeProblemConstraints = ({
     "left 和 right 仅由数字（0 - 9）组成。",
     "left 和 right 不含前导零。",
     "left 和 right 表示的整数在区间 [1, 10^18 - 1] 内。",
-    "left 小于等于 right 。"
+    "left 小于等于 right。"
   ],
   "minimize-malware-spread-ii": [
     "n == graph.length",
@@ -2571,7 +2571,7 @@ export const leetcodeProblemConstraints = ({
     "链表中节点的数目范围是 [2, 1000]",
     "-1000 <= Node.val <= 1000",
     "链表中每个节点的值都是 唯一 的",
-    "需要删除的节点 node 是 链表中的节点 ，且 不是末尾节点"
+    "需要删除的节点 node 是 链表中的节点，且 不是末尾节点"
   ],
   "longest-absolute-file-path": [
     "1 <= input.length <= 10^4",
@@ -2604,7 +2604,7 @@ export const leetcodeProblemConstraints = ({
     "1 <= groupSize <= hand.length"
   ],
   "score-of-parentheses": [
-    "S 是平衡括号字符串，且只含有 ( 和 ) 。",
+    "S 是平衡括号字符串，且只含有 (和)。",
     "2 <= S.length <= 50"
   ],
   "spiral-matrix-iii": [
@@ -2618,7 +2618,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "snapshot-array": [
     "1 <= length <= 50000",
-    "题目最多进行50000 次set，snap，和 get的调用 。",
+    "题目最多进行50000 次set，snap，和 get的调用。",
     "0 <= index < length",
     "0 <= snap_id < 我们调用 snap() 的总次数",
     "0 <= val <= 10^9"
@@ -2641,7 +2641,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "jump-game-vii": [
     "2 <= s.length <= 10^5",
-    "s[i] 要么是 '0' ，要么是 '1'",
+    "s[i] 要么是 '0'，要么是 '1'",
     "s[0] == '0'",
     "1 <= minJump <= maxJump < s.length"
   ],
@@ -2685,7 +2685,7 @@ export const leetcodeProblemConstraints = ({
     "1 <= primes.length <= 100",
     "2 <= primes[i] <= 1000",
     "题目数据 保证 primes[i] 是一个质数",
-    "primes 中的所有值都 互不相同 ，且按 递增顺序 排列"
+    "primes 中的所有值都 互不相同，且按 递增顺序 排列"
   ],
   "design-twitter": [
     "1 <= userId, followerId, followeeId <= 500",
@@ -2945,7 +2945,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "count-number-of-texts": [
     "1 <= pressedKeys.length <= 10^5",
-    "pressedKeys 只包含数字 '2' 到 '9' 。"
+    "pressedKeys 只包含数字 '2' 到 '9'。"
   ],
   "successful-pairs-of-spells-and-potions": [
     "n == spells.length",
@@ -3035,8 +3035,8 @@ export const leetcodeProblemConstraints = ({
     "3 * n == water.length",
     "1 <= n <= 20",
     "water[i] == 'O' or 'H'",
-    "输入字符串 water 中的 'H' 总数将会是 2 * n 。",
-    "输入字符串 water 中的 'O' 总数将会是 n 。"
+    "输入字符串 water 中的 'H' 总数将会是 2 * n。",
+    "输入字符串 water 中的 'O' 总数将会是 n。"
   ],
   "k-concatenation-maximum-sum": [
     "1 <= arr.length <= 10^5",
@@ -3045,7 +3045,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "number-of-substrings-containing-all-three-characters": [
     "3 <= s.length <= 5 x 10^4",
-    "s 只包含字符 a，b 和 c 。"
+    "s 只包含字符 a，b 和 c。"
   ],
   "build-an-array-with-stack-operations": [
     "1 <= target.length <= 100",
@@ -3144,7 +3144,7 @@ export const leetcodeProblemConstraints = ({
     "0 <= nums[i] <= 1000"
   ],
   "binary-prefix-divisible-by-5": [
-    "1 <= nums.length <= 10^5^",
+    "1 <= nums.length <= 10^5",
     "nums[i] 仅为 0 或 1"
   ],
   "n-th-tribonacci-number": [
@@ -3353,7 +3353,7 @@ export const leetcodeProblemConstraints = ({
     "requirements[i] = [end_i, cnt_i]",
     "0 <= end_i <= n - 1",
     "0 <= cnt_i <= 400",
-    "输入保证至少有一个 i 满足 end_i == n - 1 。",
+    "输入保证至少有一个 i 满足 end_i == n - 1。",
     "输入保证所有的 end_i 互不相同。"
   ],
   "find-the-largest-palindrome-divisible-by-k": [
@@ -3387,7 +3387,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "longest-binary-subsequence-less-than-or-equal-to-k": [
     "1 <= s.length <= 1000",
-    "s[i] 要么是 '0' ，要么是 '1' 。",
+    "s[i] 要么是 '0'，要么是 '1'。",
     "1 <= k <= 10^9"
   ],
   "minimum-number-of-groups-to-create-a-valid-assignment": [
@@ -3478,7 +3478,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "query-kth-smallest-trimmed-number": [
     "裁剪到剩下最右边 x 个数位的意思是不断删除最左边的数位，直到剩下 x 个数位。",
-    "nums 中的字符串可能会有前导 0 。"
+    "nums 中的字符串可能会有前导 0。"
   ],
   "design-memory-allocator": [
     "1 <= n, size, mID <= 1000",
@@ -3497,7 +3497,7 @@ export const leetcodeProblemConstraints = ({
     "-2 * 10^9 <= nums[i] <= 2 * 10^9",
     "0 <= d <= 10^9",
     "nums.length == s.length",
-    "s 只包含 'L' 和 'R' 。",
+    "s 只包含 'L' 和 'R'。",
     "nums[i] 互不相同。"
   ],
   "kth-smallest-path-xor-sum": [
@@ -3519,7 +3519,7 @@ export const leetcodeProblemConstraints = ({
     "relations[i].length == 2",
     "1 <= x_i, y_i <= n",
     "x_i != y_i",
-    "所有先修关系都是不同的，也就是说 relations[i] != relations[j] 。",
+    "所有先修关系都是不同的，也就是说 relations[i] != relations[j]。",
     "题目输入的图是个有向无环图。"
   ],
   "partition-array-into-two-arrays-to-minimize-sum-difference": [
@@ -3537,7 +3537,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "shortest-string-that-contains-three-strings": [
     "1 <= a.length, b.length, c.length <= 100",
-    "a ，b ，c 只包含小写英文字母。"
+    "a，b，c 只包含小写英文字母。"
   ],
   "minimum-increment-operations-to-make-array-beautiful": [
     "3 <= n == nums.length <= 10^5",
@@ -3679,7 +3679,7 @@ export const leetcodeProblemConstraints = ({
     "0 <= taskId <= 10^5",
     "0 <= priority <= 10^9",
     "0 <= newPriority <= 10^9",
-    "add ，edit ，rmv 和 execTop 的总操作次数 加起来 不超过 2 * 10^5 次。",
+    "add，edit，rmv 和 execTop 的总操作次数 加起来 不超过 2 * 10^5 次。",
     "输入保证 taskId 是合法的。"
   ],
   "minimum-operations-to-equalize-binary-string": [
@@ -3796,8 +3796,8 @@ export const leetcodeProblemConstraints = ({
   "check-if-a-parentheses-string-can-be-valid": [
     "n == s.length == locked.length",
     "1 <= n <= 10^5",
-    "s[i] 要么是 '(' 要么是 ')' 。",
-    "locked[i] 要么是 '0' 要么是 '1' 。"
+    "s[i] 要么是 '(' 要么是 ')'。",
+    "locked[i] 要么是 '0' 要么是 '1'。"
   ],
   "maximum-sum-of-an-hourglass": [
     "m == grid.length",
@@ -3815,7 +3815,7 @@ export const leetcodeProblemConstraints = ({
   "count-increasing-quadruplets": [
     "4 <= nums.length <= 4000",
     "1 <= nums[i] <= nums.length",
-    "nums 中所有数字 互不相同 ，nums 是一个排列。"
+    "nums 中所有数字 互不相同，nums 是一个排列。"
   ],
   "join-two-arrays-by-id": [
     "arr1 和 arr2 都是有效的 JSON 数组",
@@ -4187,7 +4187,7 @@ export const leetcodeProblemConstraints = ({
     "n == mat[0].length",
     "1 <= m <= 3",
     "1 <= n <= 3",
-    "mat[i][j] 是 0 或 1 。"
+    "mat[i][j] 是 0 或 1。"
   ],
   "rank-transform-of-an-array": [
     "0 <= arr.length <= 10^5",
@@ -4228,9 +4228,9 @@ export const leetcodeProblemConstraints = ({
     "0 <= x, y <= 2^31 - 1"
   ],
   "convert-bst-to-greater-tree": [
-    "树中的节点数介于 0 和 10^4^ 之间。",
+    "树中的节点数介于 0 和 10^4 之间。",
     "每个节点的值介于 -10^4 和 10^4 之间。",
-    "树中的所有值 互不相同 。",
+    "树中的所有值 互不相同。",
     "给定的树为二叉搜索树。"
   ],
   "shortest-unsorted-continuous-subarray": [
@@ -4281,7 +4281,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "maximum-69-number": [
     "1 <= num <= 10^4",
-    "num 每一位上的数字都是 6 或者 9 。"
+    "num 每一位上的数字都是 6 或者 9。"
   ],
   "QTMn0o": [
     "1 <= nums.length <= 2 * 10^4",

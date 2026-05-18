@@ -16,10 +16,47 @@ const constraintDataPath = join(
 );
 const mathDataPath = join(rootDir, "src/data/leetcode-problem-math.ts");
 
-const supplementStatement =
-  "字节跳动企业题库补充题。题面预览需要后续同步，当前可点击题目链接打开力扣原题。";
+const supplementStatement = "";
 const cjkPattern = /[\u3400-\u9fff]/;
-const sentenceSplitPattern = /(?<=[。！？；;.!?])\s*/u;
+const sentenceSplitPattern = /(?<=[。！？；!?])\s*/u;
+const statementExampleSectionPattern =
+  /(?:示例\s*\d*\s*[：:]|Example\s*\d*\s*:)[\s\S]*$/iu;
+const statementExampleIntroSectionPattern =
+  /(^|[。！？；;]\s*)[^。！？；;]*(?:下图|在文本格式中)[^。！？；;]*(?:示例|如下所示)[^。！？；;]*[：:][\s\S]*$/iu;
+const statementExampleReferencePatterns = [
+  /[（(][^（）()\n。！？；;：:]*?(?:示例|Example)[^（）()\n。！？；;：:]*?[）)]/giu,
+  /[，,]\s*(?:如|参考|参见|请参考)[^。！？；;：:]*?(?:示例|Example)(?:图)?(?:所示)?/giu,
+];
+const statementInlineExampleTailPattern =
+  /([。！？；;：:，,]\s*)(?:例如|比如|举例)[^。！？；;]*(?:[。！？；;]|$)/giu;
+const statementExampleSentencePattern =
+  /(^|[。！？；;]\s*)[^。！？；;：:]*(?:示例|Example|例如|比如|举例)[^。！？；;：:]*(?:[。！？；;：:]|$)/giu;
+const statementResultFormatSentencePattern =
+  /(^|[。！？；;]\s*)[^。！？；;：:]*(?:(?:查询|返回)?结果(?:表)?(?:的)?格式如下|(?:查询|返回)结果(?:表)?如下例)[^。！？；;：:]*(?:[。！？；;：:]|$)/giu;
+const inlineEnumerationLabelPattern =
+  /\s+((?:开关|按钮|操作|值|条件|规则|方法|步骤)\s*(?:\d+|[一二三四五六七八九十]+)\s*[：:])/gu;
+const statementPreviewOverrides = {
+  "search-in-rotated-sorted-array":
+    "整数数组 nums 按升序排列，数组中的值互不相同。在传递给函数之前，nums 在预先未知的某个下标 k（0 <= k < nums.length）上进行了向左旋转，使数组变为 [nums[k], nums[k+1], ..., nums[n-1], nums[0], nums[1], ..., nums[k-1]]（下标从 0 开始计数）。给你旋转后的数组 nums 和一个整数 target，如果 nums 中存在这个目标值 target，则返回它的下标，否则返回 -1。你必须设计一个时间复杂度为 O(log n) 的算法解决此问题。",
+  "4sum":
+    "给你一个由 n 个整数组成的数组 nums，和一个目标值 target。请你找出并返回满足下述全部条件且不重复的四元组 [nums[a], nums[b], nums[c], nums[d]]（若两个四元组元素一一对应，则认为两个四元组重复）：0 <= a, b, c, d < n；a、b、c 和 d 互不相同；nums[a] + nums[b] + nums[c] + nums[d] == target。你可以按任意顺序返回答案。",
+  "range-sum-query-immutable":
+    "给定一个整数数组 nums，处理以下类型的多个查询：计算索引 left 和 right（包含 left 和 right）之间的 nums 元素的和，其中 left <= right。实现 NumArray 类：NumArray(int[] nums) 使用数组 nums 初始化对象；int sumRange(int left, int right) 返回数组 nums 中索引 left 和 right 之间的元素总和，包含 left 和 right 两点，也就是 nums[left] + nums[left + 1] + ... + nums[right]。",
+  "car-pooling":
+    "车上最初有 capacity 个空座位。车只能向一个方向行驶，也就是说不允许掉头或改变方向。给定整数 capacity 和一个数组 trips，trips[i] = [numPassengers_i, from_i, to_i] 表示第 i 次旅行有 numPassengers_i 乘客，接他们和放他们的位置分别是 from_i 和 to_i。这些位置是从汽车的初始位置向东的公里数。当且仅当你可以在所有给定的行程中接送所有乘客时，返回 true，否则返回 false。",
+  "implement-queue-using-stacks":
+    "请你仅使用两个栈实现先入先出队列。队列应当支持一般队列支持的所有操作（push、pop、peek、empty）。实现 MyQueue 类：void push(int x) 将元素 x 推到队列的末尾；int pop() 从队列的开头移除并返回元素；int peek() 返回队列开头的元素；boolean empty() 如果队列为空，返回 true，否则返回 false。说明：你只能使用标准的栈操作，也就是只有 push to top、peek/pop from top、size 和 is empty 操作是合法的；你所使用的语言也许不支持栈，可以使用 list 或 deque 来模拟一个栈，只要是标准的栈操作即可。",
+  "maximize-spanning-tree-stability-with-upgrades":
+    "给你一个整数 n，表示编号从 0 到 n - 1 的 n 个节点，以及一个 edges 列表，其中 edges[i] = [u_i, v_i, s_i, must_i]：u_i 和 v_i 表示节点 u_i 和 v_i 之间的一条无向边；s_i 是该边的强度；must_i 是一个整数（0 或 1）。如果 must_i == 1，则该边必须包含在生成树中，且不能升级。你还有一个整数 k，表示你可以执行的最多升级次数。每次升级会使边的强度翻倍，且每条可升级边（即 must_i == 0）最多只能升级一次。一个生成树的稳定性定义为其中所有边的最小强度。返回任何有效生成树可能达到的最大稳定性。如果无法连接所有节点，返回 -1。注意：图的一个生成树是该图中边的一个子集，它满足以下条件：将所有节点连接在一起；不形成任何环；包含恰好 n - 1 条边，其中 n 是图中节点的数量。",
+  "find-minimum-in-rotated-sorted-array":
+    "已知一个长度为 n 的数组，预先按照升序排列，经由 1 到 n 次旋转后，得到输入数组。注意，数组 [a[0], a[1], a[2], ..., a[n-1]] 旋转一次的结果为数组 [a[n-1], a[0], a[1], a[2], ..., a[n-2]]。给你一个元素值互不相同的数组 nums，它原来是一个升序排列的数组，并按上述情形进行了多次旋转。请你找出并返回数组中的最小元素。你必须设计一个时间复杂度为 O(log n) 的算法解决此问题。",
+  "beautiful-arrangement-ii":
+    "给你两个整数 n 和 k，请你构造一个答案列表 answer，该列表应当包含从 1 到 n 的 n 个不同正整数，并同时满足下述条件：假设该列表是 answer = [a_1, a_2, a_3, ..., a_n]，那么列表 [|a_1 - a_2|, |a_2 - a_3|, |a_3 - a_4|, ..., |a_n-1 - a_n|] 中应该有且仅有 k 个不同整数。返回列表 answer。如果存在多种答案，只需返回其中任意一种。",
+  "longest-mountain-in-array":
+    "把符合下列属性的数组 arr 称为山脉数组：arr.length >= 3；存在下标 i（0 < i < arr.length - 1），满足 arr[0] < arr[1] < ... < arr[i - 1] < arr[i] 且 arr[i] > arr[i + 1] > ... > arr[arr.length - 1]。给出一个整数数组 arr，返回最长山脉子数组的长度。如果不存在山脉子数组，返回 0。",
+  "find-minimum-in-rotated-sorted-array-ii":
+    "已知一个长度为 n 的数组，预先按照升序排列，经由 1 到 n 次旋转后，得到输入数组。注意，数组 [a[0], a[1], a[2], ..., a[n-1]] 旋转一次的结果为数组 [a[n-1], a[0], a[1], a[2], ..., a[n-2]]。给你一个可能存在重复元素值的数组 nums，它原来是一个升序排列的数组，并按上述情形进行了多次旋转。请你找出并返回数组中的最小元素。你必须尽可能减少整个过程的操作步骤。",
+};
 const mathHtmlOptions = {
   output: "htmlAndMathml",
   strict: "ignore",
@@ -202,14 +239,17 @@ const subscriptTextPattern = new RegExp(
 );
 const existingSubscriptPattern =
   /\b([A-Za-z][A-Za-z0-9_.]*)_([ijkmn]|\d+|[ijkmn][+-]\d+)\b/g;
-const comparisonAtom = String.raw`(?:-?\d+(?:\s*(?:\^|\s)\s*\d+)?|[A-Za-z][A-Za-z0-9_.]*(?:\[[^\]\u3400-\u9fff]+\])?(?:\s+(?:[ijkmn]|\d+|[ijkmn][+-]\d+))?)`;
+const identifierAtom =
+  String.raw`[A-Za-z][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z][A-Za-z0-9_]*|\[[^\]\u3400-\u9fff]+\])*`;
+const comparisonAtom = String.raw`(?:-?\d+(?:\s*(?:\^|\s)\s*\d+)?|${identifierAtom}(?:\s+(?:[ijkmn]|\d+|[ijkmn][+-]\d+))?)`;
 const comparisonPattern = new RegExp(
   `${comparisonAtom}(?:\\s*(?:<=|>=|==|!\\s*=|!=|<|>|=)\\s*${comparisonAtom})+`,
   "g",
 );
 const functionCallAtom =
   String.raw`(?:[A-Za-z][A-Za-z0-9_]*\([^()\u3400-\u9fff]+\))`;
-const arithmeticAtom = String.raw`(?:${functionCallAtom}|[A-Za-z][A-Za-z0-9_.]*(?:\[[^\]\u3400-\u9fff]+\])?|-?\d+(?:\^\d+)?)`;
+const arithmeticAtom =
+  String.raw`(?:${functionCallAtom}|${identifierAtom}|-?\d+(?:\^\d+)?)`;
 const arithmeticOperator = String.raw`(?:\s*[+*/]\s*|\s+-\s+)`;
 const arithmeticExpressionPattern = new RegExp(
   `${arithmeticAtom}(?:${arithmeticOperator}${arithmeticAtom})+`,
@@ -344,13 +384,78 @@ function isProseIdentifier(raw, context) {
 }
 
 function problemStatementText(problem) {
-  return String(
-    problem.statement ||
+  const rawStatement = String(
+    statementPreviewOverrides[problem.titleSlug] ||
+      problem.statement ||
       problem.statementText ||
       problem.contentText ||
       problem.statementPreview ||
       "",
-  ).trim();
+  );
+  return stripStatementExamples(rawStatement);
+}
+
+function normalizeInlineEnumerationLabels(text) {
+  return text.replace(
+    inlineEnumerationLabelPattern,
+    (match, label, offset, input) => {
+      const normalizedLabel = label.replace(/\s*([：:])\s*/u, "$1");
+      const previous = input.slice(0, offset).trimEnd().at(-1) || "";
+      if (!previous || /[。！？；：:;]/u.test(previous)) {
+        return ` ${normalizedLabel}`;
+      }
+      return `；${normalizedLabel}`;
+    },
+  );
+}
+
+function normalizeStatementText(text) {
+  return normalizeInlineEnumerationLabels(
+    String(text)
+      .replace(/\r\n/g, "\n")
+      .replace(/&nbsp;|&#160;/gi, " ")
+      .replace(/&ldquo;/gi, "“")
+      .replace(/&rdquo;/gi, "”")
+      .replace(/&lsquo;/gi, "‘")
+      .replace(/&rsquo;/gi, "’")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&amp;/gi, "&")
+      .replace(/\s+([。！？；：，、])/gu, "$1")
+      .replace(/([。！？；：，、])\s+/gu, "$1")
+      .replace(/([（(])\s+/gu, "$1")
+      .replace(/\s+([）)])/gu, "$1")
+      .replace(/([：:])。/gu, "$1")
+      .replace(/\.\s+\.\s+\./g, "...")
+      .replace(/\s{2,}/g, " ")
+      .trim(),
+  );
+}
+
+function stripStatementExamples(text) {
+  let cleaned = normalizeStatementText(text)
+    .replace(statementExampleSectionPattern, "")
+    .replace(statementExampleIntroSectionPattern, "$1")
+    .trim();
+  statementExampleReferencePatterns.forEach((pattern) => {
+    cleaned = cleaned.replace(pattern, "");
+  });
+  return normalizeStatementText(
+    cleaned
+    .replace(statementInlineExampleTailPattern, (_match, prefix) => {
+      if (/[。！？；;]/u.test(prefix)) return `${prefix.trim()} `;
+      return "。 ";
+    })
+    .replace(statementResultFormatSentencePattern, (_match, prefix) => {
+      return prefix || "";
+    })
+    .replace(statementExampleSentencePattern, (_match, prefix) => {
+      return prefix || "";
+    })
+      .trim(),
+  );
 }
 
 function statementParagraphs(problem) {
@@ -372,10 +477,16 @@ function statementParagraphs(problem) {
       current = sentence;
       return;
     }
-    current = current ? `${current} ${sentence}` : sentence;
+    current = joinStatementSentences(current, sentence);
   });
   if (current) paragraphs.push(current);
   return paragraphs;
+}
+
+function joinStatementSentences(left, right) {
+  if (!left) return right;
+  if (/[。！？；：，、]$/u.test(left)) return `${left}${right}`;
+  return `${left} ${right}`;
 }
 
 function normalizeLatex(raw) {
@@ -593,7 +704,7 @@ const supplements = byteDanceProblems
   .filter((problem) => !existingSlugs.has(problem.titleSlug))
   .map((problem) => ({
     ...problem,
-    statementPreview: supplementStatement,
+    statementPreview: problem.statementPreview || supplementStatement,
   }));
 const bookProblems = [...problems, ...supplements];
 

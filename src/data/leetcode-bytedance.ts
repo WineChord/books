@@ -25,6 +25,9 @@ export interface LeetcodeByteDanceProblem {
   tags: Array<{ slug: string; name: string }>;
   buckets: LeetcodeByteDanceBucketRanks;
   bucketSources?: Partial<Record<keyof LeetcodeByteDanceBucketRanks, LeetcodeByteDanceBucketSource>>;
+  statementPreview?: string;
+  approachPreview?: string;
+  followUps?: Array<{ question: string; answer: string }>;
 }
 
 export const leetcodeByteDanceProblems = ([
@@ -2699,10 +2702,27 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "backtracking",
+        "name": "回溯"
+      }
+    ],
     "titleCn": "N 皇后 II",
     "titleSlug": "n-queens-ii",
-    "url": "https://leetcode.cn/problems/n-queens-ii/description/"
+    "url": "https://leetcode.cn/problems/n-queens-ii/description/",
+    "statementPreview": "n 皇后问题 研究的是如何将 n 个皇后放置在 n × n 的棋盘上，并且使皇后彼此之间不能相互攻击。 给你一个整数 n，返回 n 皇后问题 不同的解决方案的数量。",
+    "approachPreview": "按行回溯放皇后，用列、主对角线和副对角线三个占用集合做 O(1) 冲突判断；每放完一行就进入下一行，放到第 n 行时累加一种方案。",
+    "followUps": [
+      {
+        "question": "为什么按行放置时不需要检查同一行冲突？",
+        "answer": "递归每一层只负责一行，并且这一行只放一个皇后，所以行冲突天然不存在；只需要检查列和两条对角线。"
+      },
+      {
+        "question": "如何把三个集合优化成位运算？",
+        "answer": "用三个 bitmask 表示列、主对角线和副对角线的占用，每层用可用位集合枚举位置，可以减少常数开销。"
+      }
+    ]
   },
   {
     "acRate": "56.7%",
@@ -4274,10 +4294,31 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "binary-search",
+        "name": "二分查找"
+      }
+    ],
     "titleCn": "搜索旋转排序数组 II",
     "titleSlug": "search-in-rotated-sorted-array-ii",
-    "url": "https://leetcode.cn/problems/search-in-rotated-sorted-array-ii/description/"
+    "url": "https://leetcode.cn/problems/search-in-rotated-sorted-array-ii/description/",
+    "statementPreview": "已知存在一个按非降序排列的整数数组 nums，数组中的值不必互不相同。 在传递给函数之前， nums 在预先未知的某个下标 k （0 <= k < nums.length）上进行了 旋转，使数组变为 [nums[k], nums[k+1], ..., nums[n-1], nums[0], nums[1], ..., nums[k-1]] （下标 从 0 开始 计数）。 给你 旋转后 的数组 nums 和一个整数 target，请你编写一个函数来判断给定的目标值是否存在于数组中。如果 nums 中存在这个目标值 target，则返回 true，否则返回 false。 你必须尽可能减少整个操作步骤。",
+    "approachPreview": "仍然用二分判断哪一半有序；当中点和右端相等时无法判断旋转位置，只能缩小右边界去掉一个重复值，再继续二分。",
+    "followUps": [
+      {
+        "question": "为什么有重复元素时最坏复杂度会退化到 O(n)？",
+        "answer": "当 nums[mid]、nums[right] 等值时无法判断哪边有序，只能每次丢掉一个端点，极端情况下会线性缩小区间。"
+      },
+      {
+        "question": "和没有重复元素的旋转数组搜索相比，核心差异是什么？",
+        "answer": "没有重复时总能判断一侧严格有序；有重复时要额外处理 nums[mid] == nums[right] 的不确定分支。"
+      }
+    ]
   },
   {
     "acRate": "44.3%",
@@ -5228,10 +5269,39 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "binary-search-tree",
+        "name": "二叉搜索树"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
+      }
+    ],
     "titleCn": "恢复二叉搜索树",
     "titleSlug": "recover-binary-search-tree",
-    "url": "https://leetcode.cn/problems/recover-binary-search-tree/description/"
+    "url": "https://leetcode.cn/problems/recover-binary-search-tree/description/",
+    "statementPreview": "给你二叉搜索树的根节点 root，该树中的 恰好 两个节点的值被错误地交换。 请在不改变其结构的情况下，恢复这棵树。",
+    "approachPreview": "二叉搜索树中序遍历应当递增；遍历时记录逆序对，第一次逆序的前一个节点和最后一次逆序的后一个节点就是被交换的两个节点。",
+    "followUps": [
+      {
+        "question": "为什么中序遍历能定位被交换的两个节点？",
+        "answer": "合法 BST 的中序序列递增；交换两个值只会制造一个或两个逆序位置，逆序边界对应需要交换回来的节点。"
+      },
+      {
+        "question": "如何做到 O(1) 额外空间？",
+        "answer": "可以使用 Morris 中序遍历，用临时线索指针代替递归栈，遍历过程中同样记录逆序节点。"
+      }
+    ]
   },
   {
     "acRate": "64.0%",
@@ -17608,10 +17678,43 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "tree",
+        "name": "树"
+      },
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "binary-tree",
+        "name": "二叉树"
+      },
+      {
+        "slug": "string-matching",
+        "name": "字符串匹配"
+      },
+      {
+        "slug": "hash-function",
+        "name": "哈希函数"
+      }
+    ],
     "titleCn": "检查子树",
     "titleSlug": "check-subtree-lcci",
-    "url": "https://leetcode.cn/problems/check-subtree-lcci/description/"
+    "url": "https://leetcode.cn/problems/check-subtree-lcci/description/",
+    "statementPreview": "检查子树。你有两棵非常大的二叉树：T1，有几万个节点；T2，有几万个节点。设计一个算法，判断 T2 是否为 T1 的子树。 如果 T1 有这么一个节点 n，其子树与 T2 一模一样，则 T2 为 T1 的子树，也就是说，从节点 n 处把树砍断，得到的树与 T2 完全相同。 注意： 此题相对书上原题略有改动。",
+    "approachPreview": "先在 T1 中寻找可能等于 T2 根节点的位置，再递归比较两棵子树是否完全相同；也可以把树序列化后做字符串匹配。",
+    "followUps": [
+      {
+        "question": "递归比较时空树边界如何处理？",
+        "answer": "两边同时为空说明这一段相同；只有一边为空则不同；都非空时先比节点值，再比左右子树。"
+      },
+      {
+        "question": "什么时候序列化方案更合适？",
+        "answer": "如果需要多次查询子树关系，可以把树带空节点标记地序列化，再用字符串匹配或哈希减少重复比较。"
+      }
+    ]
   },
   {
     "acRate": "82.2%",
@@ -17654,10 +17757,39 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
+      },
+      {
+        "slug": "union-find",
+        "name": "并查集"
+      },
+      {
+        "slug": "graph",
+        "name": "图"
+      }
+    ],
     "titleCn": "冗余连接",
     "titleSlug": "redundant-connection",
-    "url": "https://leetcode.cn/problems/redundant-connection/description/"
+    "url": "https://leetcode.cn/problems/redundant-connection/description/",
+    "statementPreview": "树可以看成是一个连通且 无环 的 无向 图。 给定一个图，该图从一棵 n 个节点 (节点值 1～n) 的树中添加一条边后获得。添加的边的两个不同顶点编号在 1 到 n 中间，且这条附加的边不属于树中已存在的边。图的信息记录于长度为 n 的二维数组 edges， edges[i] = [a_i, b_i] 表示图中在 ai 和 bi 之间存在一条边。 请找出一条可以删去的边，删除后可使得剩余部分是一个有着 n 个节点的树。如果有多个答案，则返回数组 edges 中最后出现的那个。",
+    "approachPreview": "从前到后用并查集连边；如果一条边的两个端点已经在同一个连通块中，它就是形成环的冗余边，并且按遍历顺序自然保留最后答案。",
+    "followUps": [
+      {
+        "question": "为什么并查集遇到的第一条成环边就是答案？",
+        "answer": "题目保证原图是树加一条边，只有一个环；按输入顺序扫描，第一次发现两端已连通的边就是环上最后出现的可删边。"
+      },
+      {
+        "question": "并查集需要维护哪些操作？",
+        "answer": "find 找到节点所在集合代表，union 合并两个集合；路径压缩和按大小合并能让操作接近常数时间。"
+      }
+    ]
   },
   {
     "acRate": "63.7%",
@@ -17677,10 +17809,39 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "depth-first-search",
+        "name": "深度优先搜索"
+      },
+      {
+        "slug": "breadth-first-search",
+        "name": "广度优先搜索"
+      },
+      {
+        "slug": "union-find",
+        "name": "并查集"
+      },
+      {
+        "slug": "graph",
+        "name": "图"
+      }
+    ],
     "titleCn": "连通网络的操作次数",
     "titleSlug": "number-of-operations-to-make-network-connected",
-    "url": "https://leetcode.cn/problems/number-of-operations-to-make-network-connected/description/"
+    "url": "https://leetcode.cn/problems/number-of-operations-to-make-network-connected/description/",
+    "statementPreview": "用以太网线缆将 n 台计算机连接成一个网络，计算机的编号从 0 到 n-1。线缆用 connections 表示，其中 connections[i] = [a, b] 连接了计算机 a 和 b。 网络中的任何一台计算机都可以通过网络直接或者间接访问同一个网络中其他任意一台计算机。 给你这个计算机网络的初始布线 connections，你可以拔开任意两台直连计算机之间的线缆，并用它连接一对未直连的计算机。请你计算并返回使所有计算机都连通所需的最少操作次数。如果不可能，则返回 -1。",
+    "approachPreview": "先判断线缆总数是否至少为 n - 1；再用 DFS、BFS 或并查集统计连通块数量，连接 k 个连通块最少需要 k - 1 次操作。",
+    "followUps": [
+      {
+        "question": "为什么线缆数量少于 n - 1 时一定不可能？",
+        "answer": "n 个节点连成一个连通网络至少需要 n - 1 条边，少于这个数量无论怎么重连都不够。"
+      },
+      {
+        "question": "为什么连通块数量为 k 时答案是 k - 1？",
+        "answer": "每次操作最多把两个连通块合成一个，因此至少需要 k - 1 次；有足够多余线缆时也总能做到 k - 1 次。"
+      }
+    ]
   },
   {
     "acRate": "64.7%",
@@ -17700,10 +17861,39 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "stack",
+        "name": "栈"
+      },
+      {
+        "slug": "recursion",
+        "name": "递归"
+      },
+      {
+        "slug": "linked-list",
+        "name": "链表"
+      },
+      {
+        "slug": "two-pointers",
+        "name": "双指针"
+      }
+    ],
     "titleCn": "重排链表",
     "titleSlug": "LGjMqU",
-    "url": "https://leetcode.cn/problems/LGjMqU/description/"
+    "url": "https://leetcode.cn/problems/LGjMqU/description/",
+    "statementPreview": "给定一个单链表 L 的头节点 head，单链表 L 表示为： L_0 -> L_1 -> ... -> L_n-1 -> L_n 请将其重新排列后变为： L_0 -> L_n -> L_1 -> L_n-1 -> L_2 -> L_n-2 -> ... 不能只是单纯的改变节点内部的值，而是需要实际的进行节点交换。",
+    "approachPreview": "用快慢指针找到链表中点，反转后半段，再把前半段和反转后的后半段交替合并；整个过程只改指针，不改节点值。",
+    "followUps": [
+      {
+        "question": "为什么要先断开前后两半链表？",
+        "answer": "断开后反转和交替合并不会把后半段继续连回旧节点，避免形成环或重复访问节点。"
+      },
+      {
+        "question": "奇数长度链表的中点怎么处理？",
+        "answer": "中点留在前半段，后半段从 mid.next 开始反转，最后交替合并时前半段可能多一个尾节点。"
+      }
+    ]
   },
   {
     "acRate": "77.3%",
@@ -17723,10 +17913,27 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "greedy",
+        "name": "贪心"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      }
+    ],
     "titleCn": "6 和 9 组成的最大数字",
     "titleSlug": "maximum-69-number",
-    "url": "https://leetcode.cn/problems/maximum-69-number/description/"
+    "url": "https://leetcode.cn/problems/maximum-69-number/description/",
+    "statementPreview": "给你一个仅由数字 6 和 9 组成的正整数 num。 你最多只能翻转一位数字，将 6 变成 9，或者把 9 变成 6。 请返回你可以得到的最大数字。",
+    "approachPreview": "最高位越大，数字越大；从左到右找到第一个 6 并改成 9 就得到最大值，如果没有 6 则原数已经最大。",
+    "followUps": [
+      {
+        "question": "为什么只改最左边的 6？",
+        "answer": "十进制高位权重更大，把更靠左的 6 改成 9 带来的增量一定不小于改右侧数字。"
+      }
+    ]
   },
   {
     "acRate": "44.0%",
@@ -17746,10 +17953,35 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "array",
+        "name": "数组"
+      },
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "prefix-sum",
+        "name": "前缀和"
+      }
+    ],
     "titleCn": "和为 K 的子数组",
     "titleSlug": "QTMn0o",
-    "url": "https://leetcode.cn/problems/QTMn0o/description/"
+    "url": "https://leetcode.cn/problems/QTMn0o/description/",
+    "statementPreview": "给定一个整数数组和一个整数 k， 请找到该数组中和为 k 的连续子数组的个数。",
+    "approachPreview": "维护前缀和出现次数；当前前缀和为 s 时，之前出现过的 s - k 都能和当前位置组成一个和为 k 的连续子数组。",
+    "followUps": [
+      {
+        "question": "为什么哈希表要先放入前缀和 0 一次？",
+        "answer": "这样从数组开头到当前位置的子数组也能被统计；当当前前缀和正好等于 k 时，需要匹配之前的 0。"
+      },
+      {
+        "question": "为什么不能只用滑动窗口？",
+        "answer": "数组中可能有负数，窗口和不再随右端扩张单调变化，所以需要前缀和计数。"
+      }
+    ]
   },
   {
     "acRate": "64.0%",
@@ -17769,10 +18001,39 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "math",
+        "name": "数学"
+      },
+      {
+        "slug": "dynamic-programming",
+        "name": "动态规划"
+      },
+      {
+        "slug": "heap-priority-queue",
+        "name": "堆（优先队列）"
+      }
+    ],
     "titleCn": "丑数",
     "titleSlug": "chou-shu-lcof",
-    "url": "https://leetcode.cn/problems/chou-shu-lcof/description/"
+    "url": "https://leetcode.cn/problems/chou-shu-lcof/description/",
+    "statementPreview": "给你一个整数 n，请你找出并返回第 n 个 丑数。 说明： 丑数是只包含质因数 2、3 和/或 5 的正整数；1 是丑数。",
+    "approachPreview": "动态规划维护三个指针，分别指向下一个乘 2、乘 3、乘 5 的候选丑数；每次取最小候选并移动所有命中的指针以去重。",
+    "followUps": [
+      {
+        "question": "为什么命中多个候选时要同时移动多个指针？",
+        "answer": "同一个丑数可能由不同因子生成，例如 6 = 2 * 3 = 3 * 2；同时移动能避免重复加入。"
+      },
+      {
+        "question": "堆解法和三指针解法有什么取舍？",
+        "answer": "堆解法直观但要去重且有对数开销；三指针利用有序生成关系，时间和空间都更稳定。"
+      }
+    ]
   },
   {
     "acRate": "62.8%",
@@ -17838,10 +18099,27 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "counting",
+        "name": "计数"
+      }
+    ],
     "titleCn": "距离原点最远的点",
     "titleSlug": "furthest-point-from-origin",
-    "url": "https://leetcode.cn/problems/furthest-point-from-origin/description/"
+    "url": "https://leetcode.cn/problems/furthest-point-from-origin/description/",
+    "statementPreview": "给你一个长度为 n 的字符串 moves，该字符串仅由字符 'L' 、 'R' 和 '_' 组成。字符串表示你在一条原点为 0 的数轴上的若干次移动。 你的初始位置就在原点（0），第 i 次移动过程中，你可以根据对应字符选择移动方向： 如果 moves[i] = 'L' 或 moves[i] = '_'，可以选择向左移动一个单位距离；如果 moves[i] = 'R' 或 moves[i] = '_'，可以选择向右移动一个单位距离 返回在移动 n 次之后，可以到达的距离原点 最远 的点 到原点的距离。",
+    "approachPreview": "统计 L、R 和下划线数量；下划线都选到当前更远的一侧，最终距离就是 |L - R| + blank。",
+    "followUps": [
+      {
+        "question": "下划线为什么全选同一方向最优？",
+        "answer": "目标是最大绝对距离，先看 L 和 R 的净偏移；所有自由步都朝净偏移更大的方向走，只会让绝对值继续增大。"
+      }
+    ]
   },
   {
     "acRate": "51.2%",
@@ -17930,10 +18208,35 @@ export const leetcodeByteDanceProblems = ([
     "frequency": null,
     "paidOnly": false,
     "source": "companyRendered",
-    "tags": [],
+    "tags": [
+      {
+        "slug": "hash-table",
+        "name": "哈希表"
+      },
+      {
+        "slug": "string",
+        "name": "字符串"
+      },
+      {
+        "slug": "sliding-window",
+        "name": "滑动窗口"
+      }
+    ],
     "titleCn": "无重复字符的最长子串",
     "titleSlug": "wtcaE1",
-    "url": "https://leetcode.cn/problems/wtcaE1/description/"
+    "url": "https://leetcode.cn/problems/wtcaE1/description/",
+    "statementPreview": "给定一个字符串 s，请你找出其中不含有重复字符的 最长连续子字符串 的长度。",
+    "approachPreview": "滑动窗口维护一个不含重复字符的区间；右端加入字符，若重复就移动左端直到窗口重新合法，同时更新最大长度。",
+    "followUps": [
+      {
+        "question": "窗口左端什么时候移动？",
+        "answer": "当右端字符已经在窗口内出现时，持续移出左端字符，直到这个重复字符被移出窗口。"
+      },
+      {
+        "question": "为什么滑动窗口整体是 O(n)？",
+        "answer": "每个字符最多被右端加入一次、被左端移出一次，所以两根指针总移动次数是线性的。"
+      }
+    ]
   },
   {
     "acRate": "73.1%",

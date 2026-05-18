@@ -173,14 +173,39 @@ function decodeEntities(value) {
 }
 
 function cleanConstraintText(html) {
-  return decodeEntities(html)
-    .replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi, "^$1")
-    .replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi, "_$1")
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/?(?:code|strong|em|span|b|p)[^>]*>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
+  return normalizeConstraintText(
+    decodeEntities(html)
+      .replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi, "^$1")
+      .replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi, "_$1")
+      .replace(/<br\s*\/?>/gi, " ")
+      .replace(/<\/?(?:code|strong|em|span|b|p)[^>]*>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
+}
+
+function normalizeConstraintText(value) {
+  return String(value)
+    .replace(/(\b(?:10|2)\^\d+)\^/g, "$1")
+    .replace(/\s+([。！？；：，、])/gu, "$1")
+    .replace(/([（(])\s+/gu, "$1")
+    .replace(/\s+([）)])/gu, "$1")
+    .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function normalizeConstraintItems(items) {
+  return (items || []).map(normalizeConstraintText).filter(Boolean);
+}
+
+function normalizeConstraintsBySlug(constraintsBySlug) {
+  return Object.fromEntries(
+    Object.entries(constraintsBySlug).map(([slug, items]) => [
+      slug,
+      normalizeConstraintItems(items),
+    ]),
+  );
 }
 
 function listItems(listHtml) {
@@ -385,6 +410,34 @@ const generatedReferences = extractJsonObject(
 );
 const doocsUrls = buildDoocsUrlBySlug([personalReferences, generatedReferences]);
 const bookProblems = buildBookProblems(leetcodeProblems, leetcodeByteDanceProblems);
+
+if (hasFlag("normalize-only")) {
+  const existing = await readExistingOutput();
+  const constraintsBySlug = normalizeConstraintsBySlug(existing.constraints);
+  const fallbackSlugs = bookProblems
+    .filter((problem) => {
+      const constraints = constraintsBySlug[problem.titleSlug] ?? [];
+      return constraints.length === 1 && constraints[0] === fallbackConstraint;
+    })
+    .map((problem) => problem.titleSlug);
+  const stats = {
+    ...(existing.stats ?? {}),
+    problems: bookProblems.length,
+    constraints: Object.values(constraintsBySlug).reduce(
+      (sum, constraints) => sum + constraints.length,
+      0,
+    ),
+    fallback: fallbackSlugs.length,
+    fallbackSlugs,
+  };
+  await writeFile(
+    outputPath,
+    renderOutput(orderConstraintsByProblem(bookProblems, constraintsBySlug), stats),
+  );
+  console.log(`Normalized ${bookProblems.length} problem constraint sets`);
+  process.exit(0);
+}
+
 const existingOutput = hasFlag("fallback-only")
   ? await readExistingOutput()
   : { constraints: {}, stats: null };
@@ -405,7 +458,9 @@ await runPool(
     const label = `${index + 1}/${targetProblems.length} ${problem.titleSlug}`;
     try {
       const result = await constraintsForProblem(problem, doocsUrls, options);
-      constraintsBySlug[problem.titleSlug] = result.constraints;
+      constraintsBySlug[problem.titleSlug] = normalizeConstraintItems(
+        result.constraints,
+      );
       if (!existingOutput.stats || result.source !== "fallback") {
         sourceCounts.set(
           result.source,

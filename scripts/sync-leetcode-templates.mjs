@@ -8,6 +8,7 @@ const defaultRequestDelayMs = 250;
 const defaultBackoffMs = 1200;
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
+const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
 const outputPath = new URL("src/data/leetcode-code-templates.ts", repoRoot);
 const leetcodeCookie = process.env.LEETCODE_CN_COOKIE || "";
 const leetcodeGlobalCookie = process.env.LEETCODE_COOKIE || "";
@@ -48,14 +49,15 @@ function sleep(ms) {
   });
 }
 
-function extractProblems(source) {
-  const match = source.match(
-    /export const leetcodeProblems = ([\s\S]*?)\n\] satisfies LeetcodeProblem\[];/,
+function extractJsonArray(source, exportName, suffix) {
+  const pattern = new RegExp(
+    `export const ${exportName} = \\(?(\\[[\\s\\S]*?\\n\\])\\)? ${suffix}`,
   );
+  const match = source.match(pattern);
   if (!match) {
-    throw new Error("Could not find leetcodeProblems array");
+    throw new Error(`Could not find ${exportName} array`);
   }
-  return JSON.parse(`${match[1]}\n]`);
+  return JSON.parse(match[1]);
 }
 
 function extractExistingTemplates(source) {
@@ -75,6 +77,17 @@ async function readExistingTemplates() {
     if (error.code === "ENOENT") return {};
     throw error;
   }
+}
+
+function buildBookProblems(problems, bytedanceProblems) {
+  const seen = new Set();
+  const result = [];
+  for (const problem of [...problems, ...bytedanceProblems]) {
+    if (seen.has(problem.titleSlug)) continue;
+    seen.add(problem.titleSlug);
+    result.push(problem);
+  }
+  return result;
 }
 
 function csrfToken(cookie) {
@@ -256,8 +269,22 @@ async function main() {
   }
   const mergeExisting = !hasFlag("fresh");
   const missingOnly = hasFlag("missing-only");
-  const source = await readFile(problemsPath, "utf8");
-  const problems = extractProblems(source).slice(0, limit);
+  const [source, bytedanceSource] = await Promise.all([
+    readFile(problemsPath, "utf8"),
+    readFile(bytedancePath, "utf8"),
+  ]);
+  const problems = buildBookProblems(
+    extractJsonArray(
+      source,
+      "leetcodeProblems",
+      "satisfies LeetcodeProblem\\[\\];",
+    ),
+    extractJsonArray(
+      bytedanceSource,
+      "leetcodeByteDanceProblems",
+      "satisfies LeetcodeByteDanceProblem\\[\\];",
+    ),
+  ).slice(0, limit);
   const templatesBySlug = mergeExisting ? await readExistingTemplates() : {};
   const fetchProblems = missingOnly
     ? problems.filter((problem) => !templatesBySlug[problem.titleSlug])

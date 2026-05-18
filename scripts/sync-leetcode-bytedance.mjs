@@ -97,6 +97,14 @@ function extractProblems(source) {
   return JSON.parse(`${match[1]}\n]`);
 }
 
+function extractExistingByteDanceProblems(source) {
+  const match = source.match(
+    /export const leetcodeByteDanceProblems = \(([\s\S]*?\n\])\) satisfies/,
+  );
+  if (!match) return [];
+  return JSON.parse(match[1]);
+}
+
 function csrfToken(cookie) {
   const match = cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : "";
@@ -272,6 +280,30 @@ function mergeBucketEntry(target, source) {
     }
   }
   if (source.bytedanceRank !== null) target.bytedanceRank = source.bytedanceRank;
+}
+
+function mergeStudyDetails(entries, existingEntries) {
+  const existingBySlug = new Map(
+    existingEntries.map((entry) => [entry.titleSlug, entry]),
+  );
+  return entries.map((entry) => {
+    const existing = existingBySlug.get(entry.titleSlug);
+    if (!existing) return entry;
+    const merged = { ...entry };
+    for (const key of ["statementPreview", "approachPreview", "followUps"]) {
+      if (existing[key] !== undefined) merged[key] = existing[key];
+    }
+    return merged;
+  });
+}
+
+async function readExistingByteDanceProblems() {
+  try {
+    return extractExistingByteDanceProblems(await readFile(outputPath, "utf8"));
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
 }
 
 function companyEntriesFromBuckets(bucketRows) {
@@ -462,6 +494,9 @@ export interface LeetcodeByteDanceProblem {
   tags: Array<{ slug: string; name: string }>;
   buckets: LeetcodeByteDanceBucketRanks;
   bucketSources?: Partial<Record<keyof LeetcodeByteDanceBucketRanks, LeetcodeByteDanceBucketSource>>;
+  statementPreview?: string;
+  approachPreview?: string;
+  followUps?: Array<{ question: string; answer: string }>;
 }
 
 export const leetcodeByteDanceProblems = (${JSON.stringify(
@@ -482,7 +517,10 @@ async function main() {
     retries: numberOption("retries", defaultRetryCount),
   };
   const renderedJsonPath = optionValue("rendered-json", "");
-  const source = await readFile(problemsPath, "utf8");
+  const [source, existingByteDanceProblems] = await Promise.all([
+    readFile(problemsPath, "utf8"),
+    readExistingByteDanceProblems(),
+  ]);
   const problems = extractProblems(source);
   const bucketRows = {};
   const bucketTotals = {};
@@ -538,7 +576,15 @@ async function main() {
     }
   }
 
-  await writeFile(outputPath, renderOutput(entries, bucketTotals, sourceStatus, extraStats));
+  await writeFile(
+    outputPath,
+    renderOutput(
+      mergeStudyDetails(entries, existingByteDanceProblems),
+      bucketTotals,
+      sourceStatus,
+      extraStats,
+    ),
+  );
   console.log(`wrote ${entries.length} ByteDance rows to ${outputPath.pathname}`);
 }
 
