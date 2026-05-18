@@ -242,7 +242,23 @@ activity, and streak status. A collapsed daily-history view shows the last
 restart the current session timer or restart only the current active problem
 timer. A less prominent, confirmed control clears the active problem's stored
 PB and last Accepted record without rolling back daily summaries. The normal
-flow remains automatic.
+flow remains automatic. Immersive practice flow is a default-off local toggle
+available from the timing board button or `Cmd+Option+F`; when it is enabled,
+only a full LeetCode submit that returns Accepted opens the next problem in the
+current filter and search order. Passing sample runs never trigger this
+navigation.
+
+"Suggested practice" can also hold an immersive flow, but it is not list-order
+navigation. The user can start suggested flow from the "Suggested practice"
+popover or with `Cmd+Option+Shift+F`; the page first opens the current top
+recommendation and marks the flow state as suggested. After each full submit
+that returns Accepted, the page recomputes "Suggested practice" from the latest
+local submissions, timing, manual state, and current-session fatigue, then
+opens the new highest-ranked recommendation instead of the next visible row.
+The just-Accepted problem is not immediately recommended back to itself. If no
+recommendable problem exists, the page stays on the current problem and shows a
+status cue. Non-Accepted submits and passed sample runs never advance suggested
+flow.
 
 Full submissions and official-example runs made through this page also append
 to a separate local submission-stat store. The store does not import historical
@@ -283,7 +299,9 @@ reason. Problems with local submission evidence still show compact row signals.
 A collapsed footer note explains the five components, stability,
 retrievability, cold start, and tie-breakers. The highest score becomes the
 "Suggested practice" item, and top ranked problems can be opened directly from
-the popover. This ranking is intentionally heuristic and browser-local.
+the popover. The popover also offers a "Start suggested flow" action that holds
+the recommendation flow. This ranking is intentionally heuristic and
+browser-local.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and

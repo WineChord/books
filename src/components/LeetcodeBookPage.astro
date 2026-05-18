@@ -68,6 +68,12 @@ const restartProblemTimerTitle = isZh
 const clearProblemRecordTitle = isZh
   ? "清除当前题 PB 和上次 AC（Cmd+Option+Shift+T）"
   : "Clear current problem PB and last AC (Cmd+Option+Shift+T)";
+const flowModeTitle = isZh
+  ? "切换沉浸刷题流（Cmd+Option+F）"
+  : "Toggle immersive practice flow (Cmd+Option+F)";
+const suggestedFlowTitle = isZh
+  ? "启动猜你想练推荐流（Cmd+Option+Shift+F）"
+  : "Start suggested practice flow (Cmd+Option+Shift+F)";
 const resetAllDraftsTitle = isZh
   ? "重置全部题目草稿（Cmd+Option+Shift+R）"
   : "Reset all problem drafts (Cmd+Option+Shift+R)";
@@ -477,6 +483,16 @@ const shortcutRows = [
     en: "Submit to LeetCode",
   },
   {
+    keys: "Cmd+Option+F",
+    zh: "切换顺序沉浸流",
+    en: "Toggle list flow",
+  },
+  {
+    keys: "Cmd+Option+Shift+F",
+    zh: "启动猜你想练流",
+    en: "Start suggested flow",
+  },
+  {
     keys: "Cmd+/",
     zh: "注释或取消注释选中代码",
     en: "Toggle selected code comments",
@@ -696,6 +712,7 @@ const shortcutRows = [
           <p>{isZh ? "本题 PB" : "Problem PB"}</p>
         </div>
         <div class="leetcode-session-actions">
+          <button type="button" data-flow-mode-toggle aria-pressed="false" title={flowModeTitle}>{isZh ? "沉浸流：关" : "Flow: off"}</button>
           <button type="button" data-timing-action="reset-session" title={resetSessionTitle}>{isZh ? "重开本次" : "Reset session"}</button>
           <button type="button" data-timing-action="restart-problem" title={restartProblemTimerTitle}>{isZh ? "重开本题" : "Restart problem"}</button>
           <button type="button" class="is-subtle" data-timing-action="clear-problem-record" title={clearProblemRecordTitle}>{isZh ? "清本题记录" : "Clear record"}</button>
@@ -727,13 +744,21 @@ const shortcutRows = [
           <button type="button" data-page-action="last" title={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
           <span
             class="leetcode-insight-tip"
-            title={isZh ? "悬浮查看推荐题；点击打开第一题" : "Hover for recommended problems; click to open the first one"}
+            title={isZh ? "悬浮查看推荐题；点击打开第一题，或启动推荐流" : "Hover for recommended problems; click to open the first one or start suggested flow"}
           >
             <button type="button" data-insight-open aria-disabled="true">
               {isZh ? "猜你想练" : "Suggested practice"}
             </button>
             <span class="leetcode-insight-popover" role="tooltip">
               <strong data-insight-pick>{isZh ? "按本地状态和题目价值排序" : "Ranked by local state and problem value"}</strong>
+              <span class="leetcode-insight-actions">
+                <button type="button" data-insight-flow aria-pressed="false" title={suggestedFlowTitle}>
+                  {isZh ? "开始推荐流" : "Start suggested flow"}
+                </button>
+                <small data-insight-flow-note>
+                  {isZh ? "完整 AC 后重新推荐下一题" : "Recommends again after full Accepted"}
+                </small>
+              </span>
               <span class="leetcode-insight-list" data-insight-list>
                 <span>{isZh ? "正在准备推荐队列。" : "Preparing recommendations."}</span>
               </span>
@@ -955,6 +980,11 @@ const shortcutRows = [
                 <code>到期复习 + 薄弱程度 + 题目价值 + 当前适配 - 疲劳惩罚</code>，
                 最后截断到 0 到 100。
               </p>
+              <p>
+                浮层里的“开始推荐流”会把“猜你想练”保持为沉浸流：先打开当前
+                第一推荐；之后只有完整提交 AC 才会重新计算并跳到下一道推荐题。
+                它不是页面下一题，运行样例通过不会跳。
+              </p>
               <ol>
                 <li>
                   <strong>到期复习：</strong>页面会估计每题的本地稳定度和可回忆率。
@@ -1002,6 +1032,13 @@ const shortcutRows = [
                 Read the formula as:
                 <code>review due-ness + weakness + problem value + current fit - fatigue penalty</code>,
                 clamped to 0 to 100.
+              </p>
+              <p>
+                "Start suggested flow" holds Suggested practice as the
+                immersive route: it opens the current top recommendation first,
+                then only a full Accepted submit recomputes and opens the next
+                recommendation. It is not the next visible row, and passing
+                sample runs do not advance it.
               </p>
               <ol>
                 <li>
@@ -1182,6 +1219,7 @@ const shortcutRows = [
     const editorDailyResetKey = "leetcode-book-editor-daily-reset-v1";
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
     const editorStatementPanelKey = "leetcode-book-editor-statement-panel-v1";
+    const flowModeKey = "leetcode-book-flow-mode-v1";
     const extraRunCasesKey = "leetcode-book-extra-run-cases-v1";
     const extraRunCasesDayKey = "leetcode-book-extra-run-cases-day-v1";
     const timingKey = "leetcode-book-timing-v1";
@@ -1202,6 +1240,9 @@ const shortcutRows = [
     const shortcutHelp = document.querySelector("[data-shortcut-help]");
     const dailyResetToggle = document.getElementById("leetcode-daily-reset");
     const dailyResetStatus = document.querySelector("[data-daily-reset-status]");
+    const flowModeToggleButtons = Array.from(
+      document.querySelectorAll("[data-flow-mode-toggle]"),
+    );
     const pageFontSelect = document.getElementById("leetcode-page-font");
     const editorThemeSelect = document.getElementById("leetcode-editor-theme");
     const editorFontSelect = document.getElementById("leetcode-editor-font");
@@ -1213,6 +1254,12 @@ const shortcutRows = [
       "https://github.com/WineChord/books/releases/latest/download/leetcode-submit.zip";
     const insightPick = document.querySelector("[data-insight-pick]");
     const insightOpen = document.querySelector("[data-insight-open]");
+    const insightFlowButtons = Array.from(
+      document.querySelectorAll("[data-insight-flow]"),
+    );
+    const insightFlowNotes = Array.from(
+      document.querySelectorAll("[data-insight-flow-note]"),
+    );
     const insightList = document.querySelector("[data-insight-list]");
     const fallbackLanguages = [
       ["cpp", "C++"],
@@ -1310,6 +1357,9 @@ const shortcutRows = [
     const timingTimeZone = "Asia/Shanghai";
     const timingDayMs = 24 * 60 * 60 * 1000;
     const timingHistoryDays = 14;
+    const flowModeOff = "off";
+    const flowModeList = "list";
+    const flowModeInsight = "insight";
     const insightDisplayLimit = 5;
     const submissionHistoryLimit = 80;
     const submissionScoreMax = 100;
@@ -1452,6 +1502,7 @@ const shortcutRows = [
     let editorAutoGrow = localStorage.getItem(editorHeightModeKey) !== "fixed";
     let editorStatementPanelVisible =
       localStorage.getItem(editorStatementPanelKey) !== "off";
+    let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
     let timing = readJson(timingKey, {});
     if (!timing || typeof timing !== "object") timing = {};
     timing.problems = timing.problems && typeof timing.problems === "object"
@@ -1481,6 +1532,12 @@ const shortcutRows = [
       return localStorage.getItem(editorDailyResetKey) !== "off";
     }
 
+    function normalizedFlowMode(value) {
+      if (value === "on" || value === flowModeList) return flowModeList;
+      if (value === flowModeInsight) return flowModeInsight;
+      return flowModeOff;
+    }
+
     function writeEditorAppearance() {
       localStorage.setItem(editorAppearanceKey, JSON.stringify(editorAppearance));
     }
@@ -1502,6 +1559,85 @@ const shortcutRows = [
           ? (isChinesePage ? "已开启" : "On")
           : (isChinesePage ? "已关闭" : "Off");
       }
+    }
+
+    function flowModeLabel() {
+      if (flowMode === flowModeInsight) {
+        return isChinesePage ? "推荐流：开" : "Suggested flow: on";
+      }
+      if (flowMode === flowModeList) {
+        return isChinesePage ? "顺序流：开" : "List flow: on";
+      }
+      return isChinesePage ? "沉浸流：关" : "Flow: off";
+    }
+
+    function flowModeEnabled() {
+      return flowMode !== flowModeOff;
+    }
+
+    function insightFlowLabel() {
+      if (flowMode === flowModeInsight) {
+        return isChinesePage ? "推荐流运行中" : "Suggested flow on";
+      }
+      return isChinesePage ? "开始推荐流" : "Start suggested flow";
+    }
+
+    function insightFlowNote(hasPick = true) {
+      if (!hasPick) {
+        return isChinesePage ? "暂无可推荐题目" : "No recommendation available";
+      }
+      if (flowMode === flowModeInsight) {
+        return isChinesePage
+          ? "完整 AC 后会重新推荐下一题"
+          : "Full Accepted submits choose the next recommendation";
+      }
+      return isChinesePage
+        ? "先打开第一推荐；完整 AC 后继续推荐"
+        : "Opens the top pick first; full Accepted submits continue it";
+    }
+
+    function syncFlowModeUi() {
+      flowModeToggleButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        button.classList.toggle("is-on", flowModeEnabled());
+        button.setAttribute("aria-pressed", String(flowModeEnabled()));
+        button.textContent = flowModeLabel();
+      });
+      syncInsightFlowUi();
+    }
+
+    function syncInsightFlowUi(hasPick = Boolean(suggestedFlowProblem())) {
+      insightFlowButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        button.classList.toggle("is-on", flowMode === flowModeInsight);
+        button.disabled = !hasPick;
+        button.setAttribute(
+          "aria-pressed",
+          String(flowMode === flowModeInsight),
+        );
+        button.textContent = insightFlowLabel();
+      });
+      insightFlowNotes.forEach((note) => {
+        if (note instanceof HTMLElement) {
+          note.textContent = insightFlowNote(hasPick);
+        }
+      });
+    }
+
+    function setFlowMode(nextMode) {
+      flowMode = normalizedFlowMode(nextMode);
+      localStorage.setItem(flowModeKey, flowMode);
+      syncFlowModeUi();
+    }
+
+    function toggleFlowMode() {
+      const nextMode = flowModeEnabled() ? flowModeOff : flowModeList;
+      setFlowMode(nextMode);
+      timingMilestone = flowModeEnabled()
+        ? (isChinesePage ? "顺序沉浸流已开启" : "List flow enabled")
+        : (isChinesePage ? "沉浸刷题流已关闭" : "Immersive flow disabled");
+      syncTimingUi();
+      return true;
     }
 
     function applyEditorAppearance() {
@@ -1835,6 +1971,7 @@ const shortcutRows = [
     }
 
     syncDailyResetUi();
+    syncFlowModeUi();
     applyEditorAppearance();
     rollExtraRunCasesForToday();
     rollEditorDraftsForToday();
@@ -2940,6 +3077,12 @@ const shortcutRows = [
         ));
     }
 
+    function suggestedFlowProblem(excludedSlug = "") {
+      return submissionInsightItems()
+        .find((item) => item.problem.titleSlug !== excludedSlug)
+        ?.problem || null;
+    }
+
     function submissionReason(item) {
       const reasons = [];
       if (!item.accepted) {
@@ -3161,6 +3304,7 @@ const shortcutRows = [
                 : "No recommendable problems yet."
             }</span>`;
       }
+      syncInsightFlowUi(Boolean(pick));
     }
 
     function syncSubmissionStatsUi(slug) {
@@ -3886,6 +4030,81 @@ const shortcutRows = [
       const startIndex = currentIndex === -1 ? (direction > 0 ? -1 : items.length) : currentIndex;
       const nextIndex = Math.max(0, Math.min(items.length - 1, startIndex + direction));
       openPracticeAtIndex(items, nextIndex);
+    }
+
+    function startSuggestedFlow() {
+      const problem = suggestedFlowProblem();
+      if (!problem?.titleSlug) {
+        timingMilestone = isChinesePage
+          ? "暂无可推荐题目"
+          : "No suggested practice problem available";
+        syncTimingUi();
+        syncFlowModeUi();
+        return false;
+      }
+      setFlowMode(flowModeInsight);
+      timingMilestone = isChinesePage
+        ? `推荐流已进入 ${problem.frontendId}. ${problem.titleCn}`
+        : `Suggested flow opened ${problem.frontendId}. ${problem.titleCn}`;
+      openRelatedProblem(problem.titleSlug);
+      return true;
+    }
+
+    function nextListFlowProblemAfterAccepted(problem) {
+      if (flowMode !== flowModeList || !problem?.titleSlug) return null;
+      const items = orderedProblems();
+      const currentIndex = items.findIndex(
+        (item) => item.titleSlug === problem.titleSlug,
+      );
+      return currentIndex >= 0 && currentIndex < items.length - 1
+        ? items[currentIndex + 1]
+        : null;
+    }
+
+    function advanceFlowAfterAcceptedSubmit(nextProblem, timingResult = {}) {
+      if (!flowModeEnabled()) return false;
+      if (!nextProblem?.titleSlug) {
+        timingMilestone = timingResult.milestone || (
+          isChinesePage
+            ? "已 AC；当前沉浸流没有下一题"
+            : "Accepted; current flow has no next problem"
+        );
+        syncTimingUi();
+        return false;
+      }
+
+      if (flowMode === flowModeList) {
+        const items = orderedProblems();
+        const nextIndex = items.findIndex(
+          (item) => item.titleSlug === nextProblem.titleSlug,
+        );
+        if (nextIndex === -1) {
+          timingMilestone = timingResult.milestone || (
+            isChinesePage
+              ? "已 AC；下一题不在当前列表"
+              : "Accepted; next problem is outside the current list"
+          );
+          syncTimingUi();
+          return false;
+        }
+
+        timingMilestone = [
+          timingResult.milestone,
+          isChinesePage
+            ? `顺序流已进入 ${nextProblem.frontendId}. ${nextProblem.titleCn}`
+            : `List flow opened ${nextProblem.frontendId}. ${nextProblem.titleCn}`,
+        ].filter(Boolean).join(" · ");
+        openPracticeAtIndex(items, nextIndex);
+        return true;
+      }
+
+      timingMilestone = [
+        timingResult.milestone,
+        isChinesePage
+          ? `推荐流已进入 ${nextProblem.frontendId}. ${nextProblem.titleCn}`
+          : `Suggested flow opened ${nextProblem.frontendId}. ${nextProblem.titleCn}`,
+      ].filter(Boolean).join(" · ");
+      return openRelatedProblem(nextProblem.titleSlug);
     }
 
     function openRelatedProblem(slug) {
@@ -5032,6 +5251,26 @@ const shortcutRows = [
         event.shiftKey &&
         !event.ctrlKey &&
         event.code === "KeyS"
+      );
+    }
+
+    function isFlowModeShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        event.code === "KeyF"
+      );
+    }
+
+    function isSuggestedFlowShortcut(event) {
+      return (
+        event.metaKey &&
+        event.altKey &&
+        event.shiftKey &&
+        !event.ctrlKey &&
+        event.code === "KeyF"
       );
     }
 
@@ -6476,6 +6715,7 @@ const shortcutRows = [
         const summary = submissionSummary(result);
         if (submissionStatusAccepted(result)) {
           const timingResult = recordAcceptedTiming(problem.titleSlug);
+          let nextFlowProblem = nextListFlowProblemAfterAccepted(problem);
           recordSubmissionAttempt(problem, textarea, result, {
             accepted: true,
             elapsedMs: timingResult.elapsed,
@@ -6494,11 +6734,15 @@ const shortcutRows = [
             done: true,
           };
           writeState();
+          if (flowMode === flowModeInsight) {
+            nextFlowProblem = suggestedFlowProblem(problem.titleSlug);
+          }
           setSubmitStatus(
             panel,
             `${summary || "Accepted"} · ${timingSummary}${milestoneSummary}`,
             "success",
           );
+          advanceFlowAfterAcceptedSubmit(nextFlowProblem, timingResult);
           return;
         }
         recordSubmissionAttempt(problem, textarea, result, {
@@ -6923,6 +7167,11 @@ const shortcutRows = [
       if (!target.closest("[data-preview]")) {
         closePreviewPopovers();
       }
+      const insightFlowTarget = target.closest("[data-insight-flow]");
+      if (insightFlowTarget instanceof HTMLElement) {
+        startSuggestedFlow();
+        return;
+      }
       const insightTarget = target.closest("[data-open-insight]");
       if (insightTarget instanceof HTMLElement) {
         openRelatedProblem(insightTarget.dataset.openInsight || "");
@@ -6941,6 +7190,11 @@ const shortcutRows = [
         if (action === "reset-all-drafts") {
           resetAllEditorDrafts({ focusSlug: state.expandedSlug });
         }
+        return;
+      }
+      const flowModeToggle = target.closest("[data-flow-mode-toggle]");
+      if (flowModeToggle instanceof HTMLElement) {
+        toggleFlowMode();
         return;
       }
       const actionButton = target.closest("[data-timing-action]");
@@ -7183,6 +7437,16 @@ const shortcutRows = [
       if (event.key === "Escape") {
         closePreviewPopovers();
         closeShortcutHelp();
+        return;
+      }
+      if (isSuggestedFlowShortcut(event)) {
+        event.preventDefault();
+        startSuggestedFlow();
+        return;
+      }
+      if (isFlowModeShortcut(event)) {
+        event.preventDefault();
+        toggleFlowMode();
         return;
       }
       const textEntryActive = isTextEntryTarget(document.activeElement);
@@ -7749,6 +8013,12 @@ const shortcutRows = [
       color: var(--color-terracotta);
     }
 
+    .leetcode-session-actions button.is-on {
+      border-color: rgb(217 119 87 / 72%);
+      background: rgb(217 119 87 / 13%);
+      color: var(--color-terracotta);
+    }
+
     .leetcode-session-actions button.is-subtle {
       border-color: rgb(194 192 182 / 42%);
       color: var(--color-muted);
@@ -7867,6 +8137,57 @@ const shortcutRows = [
       margin: 0 0 0.34rem;
       color: var(--color-charcoal);
       font-size: 0.72rem;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-insight-actions {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 0.34rem;
+      align-items: center;
+      margin: 0 0 0.34rem;
+      border: 1px solid rgb(217 119 87 / 22%);
+      border-radius: 0.42rem;
+      background: rgb(217 119 87 / 6%);
+      padding: 0.28rem;
+    }
+
+    .leetcode-insight-actions button {
+      border: 1px solid rgb(217 119 87 / 46%);
+      border-radius: 0.38rem;
+      background: rgb(255 255 255 / 42%);
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.66rem;
+      line-height: 1;
+      padding: 0.2rem 0.34rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-insight-actions button.is-on {
+      border-color: rgb(217 119 87 / 72%);
+      background: rgb(217 119 87 / 14%);
+      color: var(--color-terracotta);
+      font-weight: 700;
+    }
+
+    .leetcode-insight-actions button:disabled {
+      cursor: default;
+      opacity: 0.48;
+    }
+
+    .leetcode-insight-actions button:not(:disabled):hover {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-insight-actions small {
+      overflow: hidden;
+      color: var(--color-muted);
+      font-size: 0.62rem;
       line-height: 1.2;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -9209,6 +9530,23 @@ const shortcutRows = [
       background: rgb(255 255 255 / 4%);
     }
 
+    html.dark .leetcode-insight-actions {
+      border-color: rgb(217 119 87 / 28%);
+      background: rgb(217 119 87 / 8%);
+    }
+
+    html.dark .leetcode-insight-actions button {
+      border-color: #333;
+      background: rgb(255 255 255 / 5%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-insight-actions button.is-on {
+      border-color: rgb(217 119 87 / 68%);
+      background: rgb(217 119 87 / 16%);
+      color: #d97757;
+    }
+
     html.dark .leetcode-insight-popover > strong,
     html.dark .leetcode-insight-item b {
       color: var(--color-cream);
@@ -9258,6 +9596,12 @@ const shortcutRows = [
     html.dark .leetcode-practice-meter b,
     html.dark .leetcode-practice-signal {
       border-color: #333;
+    }
+
+    html.dark .leetcode-session-actions button.is-on {
+      border-color: rgb(217 119 87 / 68%);
+      background: rgb(217 119 87 / 16%);
+      color: #d97757;
     }
 
     html.dark .leetcode-practice-nav button,
