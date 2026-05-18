@@ -472,6 +472,11 @@ const shortcutRows = [
     en: "Submit to LeetCode",
   },
   {
+    keys: "Cmd+/",
+    zh: "注释或取消注释选中代码",
+    en: "Toggle selected code comments",
+  },
+  {
     keys: "Cmd+Shift+L",
     zh: "打开当前题力扣页",
     en: "Open current LeetCode problem",
@@ -3388,6 +3393,110 @@ const shortcutRows = [
       replaceTextareaRange(textarea, blockStart, blockEnd, replacement, nextStart, nextEnd);
     }
 
+    function editorLineCommentPrefix(lang) {
+      const grammar = highlightGrammarByLanguage[languageKey(lang)] || {};
+      const comments = grammar.comments || [];
+      if (comments.includes("sql")) return "-- ";
+      if (comments.includes("semicolon")) return "; ";
+      if (comments.includes("percent")) return "% ";
+      if (comments.includes("hash") && !comments.includes("slash")) return "# ";
+      return "// ";
+    }
+
+    function lineCommentRemovalLength(line, prefix) {
+      const indent = lineIndent(line);
+      const rest = line.slice(indent.length);
+      const marker = prefix.trimEnd();
+      if (!rest.startsWith(marker)) return 0;
+      return marker.length + (rest[marker.length] === " " ? 1 : 0);
+    }
+
+    function lineHasCommentPrefix(line, prefix) {
+      return lineCommentRemovalLength(line, prefix) > 0;
+    }
+
+    function selectedEditorLineRange(value, start, end) {
+      const effectiveEnd =
+        end > start && end > 0 && value[end - 1] === "\n" ? end - 1 : end;
+      const blockStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+      const nextBreak = value.indexOf("\n", effectiveEnd);
+      return {
+        end: nextBreak === -1 ? value.length : nextBreak,
+        start: blockStart,
+      };
+    }
+
+    function positionAfterLineCommentChanges(position, changes) {
+      let next = position;
+      let totalDelta = 0;
+      for (const change of changes) {
+        const start = change.start;
+        const end = start + change.removedLength;
+        const delta = change.insertedLength - change.removedLength;
+        const adjustedStart = start + totalDelta;
+        if (position < start) break;
+        if (change.removedLength > 0 && position <= end) {
+          return adjustedStart + change.insertedLength;
+        }
+        if (position >= start) {
+          next += delta;
+        }
+        totalDelta += delta;
+      }
+      return next;
+    }
+
+    function toggleTextareaLineComment(textarea, lang) {
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const prefix = editorLineCommentPrefix(lang);
+      const range = selectedEditorLineRange(value, start, end);
+      const block = value.slice(range.start, range.end);
+      const lines = block.split("\n");
+      const nonBlankLines = lines.filter((line) => line.trim());
+      const shouldUncomment =
+        nonBlankLines.length > 0 &&
+        nonBlankLines.every((line) => lineHasCommentPrefix(line, prefix));
+      const changes = [];
+      let cursor = range.start;
+      const replacement = lines
+        .map((line) => {
+          const lineStart = cursor;
+          cursor += line.length + 1;
+          if (shouldUncomment) {
+            const indent = lineIndent(line);
+            const removalLength = lineCommentRemovalLength(line, prefix);
+            if (!removalLength) return line;
+            changes.push({
+              insertedLength: 0,
+              removedLength: removalLength,
+              start: lineStart + indent.length,
+            });
+            return indent + line.slice(indent.length + removalLength);
+          }
+          if (!line.trim() && lines.length > 1) return line;
+          const indent = lineIndent(line);
+          changes.push({
+            insertedLength: prefix.length,
+            removedLength: 0,
+            start: lineStart + indent.length,
+          });
+          return indent + prefix + line.slice(indent.length);
+        })
+        .join("\n");
+      if (!changes.length) return false;
+      replaceTextareaRange(
+        textarea,
+        range.start,
+        range.end,
+        replacement,
+        positionAfterLineCommentChanges(start, changes),
+        positionAfterLineCommentChanges(end, changes),
+      );
+      return true;
+    }
+
     function handleEditorClosingToken(event, textarea) {
       if (!editorClosingTokens.has(event.key)) return false;
       if (textarea.selectionStart !== textarea.selectionEnd) return false;
@@ -3434,6 +3543,16 @@ const shortcutRows = [
         !event.altKey &&
         !event.ctrlKey &&
         event.code === "KeyL"
+      );
+    }
+
+    function isEditorToggleCommentShortcut(event) {
+      return (
+        event.metaKey &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.shiftKey &&
+        (event.key === "/" || event.code === "Slash")
       );
     }
 
@@ -3805,6 +3924,10 @@ const shortcutRows = [
           textarea,
         );
         return true;
+      }
+      if (isEditorToggleCommentShortcut(event)) {
+        event.preventDefault();
+        return toggleTextareaLineComment(textarea, context.lang);
       }
       if (isEditorOpenLeetcodeShortcut(event)) {
         event.preventDefault();

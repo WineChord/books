@@ -176,13 +176,15 @@ saved filters, the page falls back to the matching filtered list without
 opening an editor.
 Editor shortcuts match the primary LeetCode muscle memory: `Cmd+'`
 runs the official example testcases and `Cmd+Enter` performs a full LeetCode
-submit. Practice navigation is also keyboard-first: `Option+J` or `Option+Down`
-opens and focuses the next visible problem's editor, while `Option+K` or
-`Option+Up` opens and focuses the previous one. Common page actions must also
-be keyboard reachable: `/` focuses search, `Option+1` through `Option+3`
-switch scope filters, `Option+4` through `Option+8` switch ByteDance filters,
-`Option+9`, `Option+0`, and `Option+-` switch state filters, `Option+P`
-focuses page jump, and `Option+Left` / `Option+Right` jump to first / last page.
+submit. Inside the editor, `Cmd+/` toggles line comments for the current
+language while preserving the active selection or caret. Practice navigation is
+also keyboard-first: `Option+J` or `Option+Down` opens and focuses the next
+visible problem's editor, while `Option+K` or `Option+Up` opens and focuses the
+previous one. Common page actions must also be keyboard reachable: `/` focuses
+search, `Option+1` through `Option+3` switch scope filters, `Option+4` through
+`Option+8` switch ByteDance filters, `Option+9`, `Option+0`, and `Option+-`
+switch state filters, `Option+P` focuses page jump, and `Option+Left` /
+`Option+Right` jump to first / last page.
 The current problem toolbar supports `Cmd+Option+L` for language focus,
 `Cmd+Option+C` for copy, `Cmd+Option+H` for editor height, `Cmd+Option+R` for
 current draft reset, and `Cmd+Option+D`/`S`/`M` for done/review/mastered state.
