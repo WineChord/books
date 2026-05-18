@@ -3807,6 +3807,53 @@ const shortcutRows = [
       replaceTextareaRange(textarea, start, end, insertion, nextPosition);
     }
 
+    function editorSelectionFocus(textarea) {
+      if (textarea.selectionStart === textarea.selectionEnd) return textarea.selectionStart;
+      return textarea.selectionDirection === "backward"
+        ? textarea.selectionStart
+        : textarea.selectionEnd;
+    }
+
+    function editorSelectionAnchor(textarea) {
+      if (textarea.selectionStart === textarea.selectionEnd) return textarea.selectionEnd;
+      return textarea.selectionDirection === "backward"
+        ? textarea.selectionEnd
+        : textarea.selectionStart;
+    }
+
+    function firstCodePositionInLine(value, start, end) {
+      const offset = value.slice(start, end).search(/\S/);
+      return offset === -1 ? start : start + offset;
+    }
+
+    function isEditorSmartLineSelectShortcut(event) {
+      return (
+        event.metaKey &&
+        event.shiftKey &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        event.key === "ArrowLeft"
+      );
+    }
+
+    function handleEditorSmartLineSelect(event, textarea) {
+      if (!isEditorSmartLineSelectShortcut(event)) return false;
+      const value = textarea.value;
+      const focus = editorSelectionFocus(textarea);
+      const anchor = editorSelectionAnchor(textarea);
+      const bounds = lineBounds(value, focus);
+      const codeStart = firstCodePositionInLine(value, bounds.start, bounds.end);
+      const nextFocus = focus > codeStart ? codeStart : bounds.start;
+      const selectionStart = Math.min(anchor, nextFocus);
+      const selectionEnd = Math.max(anchor, nextFocus);
+      const direction = nextFocus < anchor ? "backward" : "forward";
+      event.preventDefault();
+      textarea.setSelectionRange(selectionStart, selectionEnd, direction);
+      scheduleViewStateWrite();
+      scheduleEditorCaretReveal(textarea);
+      return true;
+    }
+
     function isPlainEditorTypingEvent(event) {
       return !event.metaKey && !event.altKey && !event.ctrlKey;
     }
@@ -4392,6 +4439,9 @@ const shortcutRows = [
       if (practiceDirection) {
         event.preventDefault();
         navigatePractice(practiceDirection, context.slug);
+        return true;
+      }
+      if (handleEditorSmartLineSelect(event, textarea)) {
         return true;
       }
       if (isEditorRunShortcut(event)) {
