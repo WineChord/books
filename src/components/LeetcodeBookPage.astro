@@ -1061,11 +1061,12 @@ const shortcutRows = [
     const extensionSubmitRequestType = "submit";
     const extensionExtraRunTestcasesCapability = "extra-run-testcases";
     const extensionGroupedRunTestcasesCapability = "grouped-run-testcases";
+    const extensionRunOutputDetailsCapability = "run-output-details";
     const leetcodeRequestTimeoutCode = "leetcode_request_timeout";
     const unsupportedRequestTypeCode = "unsupported_request_type";
     const extensionProbeFailedCode = "extension_probe_failed";
     const extensionProbeTimeoutCode = "extension_probe_timeout";
-    const extensionRequiredFeatureVersion = 3;
+    const extensionRequiredFeatureVersion = 4;
     const extensionPingTimeoutMs = 2500;
     const extensionProbeCacheMs = 15 * 1000;
     const extensionCheckTimeoutMs = 45000;
@@ -3961,7 +3962,8 @@ const shortcutRows = [
         capabilities.has(extensionRunRequestType) &&
         capabilities.has(extensionSubmitRequestType) &&
         capabilities.has(extensionExtraRunTestcasesCapability) &&
-        capabilities.has(extensionGroupedRunTestcasesCapability)
+        capabilities.has(extensionGroupedRunTestcasesCapability) &&
+        capabilities.has(extensionRunOutputDetailsCapability)
       );
     }
 
@@ -4381,6 +4383,127 @@ const shortcutRows = [
       return [[isChinesePage ? "运行用例" : "Run testcases", value]];
     }
 
+    function parsedDetailArray(value) {
+      if (Array.isArray(value)) {
+        return value.map(submissionDetailValue).filter(Boolean);
+      }
+      const text = meaningfulSubmissionValue(value);
+      if (!text || !text.startsWith("[")) return [];
+      try {
+        const parsed = JSON.parse(text);
+        return Array.isArray(parsed)
+          ? parsed.map(submissionDetailValue).filter(Boolean)
+          : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function detailValuesForCases(value, caseCount) {
+      const parsed = parsedDetailArray(value);
+      if (parsed.length === caseCount) return parsed;
+      const text = submissionDetailValue(value);
+      if (!text) return [];
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      return lines.length === caseCount ? lines : [];
+    }
+
+    function runResultLabels() {
+      return isChinesePage
+        ? {
+            compileError: "编译错误",
+            expectedOutput: "预期输出",
+            output: "实际输出",
+            runtimeError: "运行错误",
+            standardOutput: "标准输出",
+          }
+        : {
+            compileError: "Compile error",
+            expectedOutput: "Expected output",
+            output: "Actual output",
+            runtimeError: "Runtime error",
+            standardOutput: "Stdout",
+          };
+    }
+
+    function appendResultField(fields, name, value) {
+      if (!value) return false;
+      fields.push({ name, value });
+      return true;
+    }
+
+    function enrichRunTestcases(cases, result) {
+      const labels = runResultLabels();
+      const caseCount = cases.length;
+      const outputs = detailValuesForCases(result?.output, caseCount);
+      const expectedOutputs = detailValuesForCases(result?.expectedOutput, caseCount);
+      const standardOutputs = detailValuesForCases(result?.standardOutput, caseCount);
+      const consumed = {
+        expectedOutput: expectedOutputs.length === caseCount,
+        output: outputs.length === caseCount,
+        standardOutput: standardOutputs.length === caseCount,
+      };
+      return {
+        cases: cases.map((testcase, index) => {
+          const fields = [...testcase.fields];
+          if (consumed.output) appendResultField(fields, labels.output, outputs[index]);
+          if (consumed.expectedOutput) {
+            appendResultField(fields, labels.expectedOutput, expectedOutputs[index]);
+          }
+          if (consumed.standardOutput) {
+            appendResultField(fields, labels.standardOutput, standardOutputs[index]);
+          }
+          return { ...testcase, fields };
+        }),
+        consumed,
+      };
+    }
+
+    function standaloneRunResultDetails(result, consumed = {}) {
+      const labels = runResultLabels();
+      const details = [
+        [labels.compileError, submissionDetailValue(result?.compileError)],
+        [labels.runtimeError, submissionDetailValue(result?.runtimeError)],
+      ];
+      if (!consumed.output) {
+        details.push([labels.output, submissionDetailValue(result?.output)]);
+      }
+      if (!consumed.expectedOutput) {
+        details.push([
+          labels.expectedOutput,
+          submissionDetailValue(result?.expectedOutput),
+        ]);
+      }
+      if (!consumed.standardOutput) {
+        details.push([
+          labels.standardOutput,
+          submissionDetailValue(result?.standardOutput),
+        ]);
+      }
+      return details.filter(([, value]) => value);
+    }
+
+    function runResultDetails(testcases, groups, result) {
+      const rows = runTestcaseDetails(testcases, groups);
+      const testcaseRow = rows.find(
+        (row) => row && typeof row === "object" && row.kind === "testcases",
+      );
+      if (!testcaseRow) {
+        return [
+          ...rows,
+          ...standaloneRunResultDetails(result),
+        ];
+      }
+      const enriched = enrichRunTestcases(testcaseRow.cases, result);
+      return [
+        { ...testcaseRow, cases: enriched.cases },
+        ...standaloneRunResultDetails(result, enriched.consumed),
+      ];
+    }
+
     function saveFailedSubmissionCase(problem, result) {
       const testcase = submissionDetailValue(result?.input);
       if (!testcase) return false;
@@ -4645,12 +4768,17 @@ const shortcutRows = [
           runPollAttempts,
           testcaseRows,
         );
+        const completedRows = runResultDetails(
+          response.data?.testcases || extraTestcases,
+          response.data?.testcaseGroups,
+          result,
+        );
         const summary = submissionSummary(result);
         if (runAccepted(result)) {
-          setSubmitStatus(panel, `样例通过 ${summary}`, "success", null, testcaseRows);
+          setSubmitStatus(panel, `样例通过 ${summary}`, "success", null, completedRows);
           return;
         }
-        setSubmitStatus(panel, `样例未通过 ${summary}`, "error", result, testcaseRows);
+        setSubmitStatus(panel, `样例未通过 ${summary}`, "error", null, completedRows);
       } catch (error) {
         setSubmitStatus(panel, error.message || "运行失败。", "error");
       } finally {

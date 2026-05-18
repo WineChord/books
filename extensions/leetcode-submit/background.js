@@ -1,7 +1,7 @@
 const pageMessageSource = "books-leetcode-page";
 const extensionMessageSource = "books-leetcode-extension";
 const protocolVersion = 1;
-const featureVersion = 3;
+const featureVersion = 4;
 const leetcodeOrigin = "https://leetcode.cn";
 const leetcodeUrlFilter = "||leetcode.cn/";
 const leetcodeHeaderRuleId = 1;
@@ -21,6 +21,7 @@ const submitRequestType = "submit";
 const loginStatusRequestType = "login-status";
 const extraRunTestcasesCapability = "extra-run-testcases";
 const groupedRunTestcasesCapability = "grouped-run-testcases";
+const runOutputDetailsCapability = "run-output-details";
 const officialTestcaseSource = "official";
 const extraTestcaseSource = "extra";
 const defaultTestcaseParameterName = "input";
@@ -32,6 +33,7 @@ const extensionCapabilities = [
   loginStatusRequestType,
   extraRunTestcasesCapability,
   groupedRunTestcasesCapability,
+  runOutputDetailsCapability,
 ];
 const pendingState = "PENDING";
 const startedState = "STARTED";
@@ -470,20 +472,28 @@ function isFinishedSubmission(payload) {
   return Boolean(payload?.status_msg || payload?.status_code);
 }
 
+function firstPresent(...values) {
+  return values.find((value) => value !== null && value !== undefined) ?? "";
+}
+
 function normalizeSubmission(payload, submissionId) {
   return {
     compileError: payload?.compile_error || payload?.full_compile_error || "",
-    expectedOutput: payload?.expected_output || "",
+    expectedOutput: firstPresent(
+      payload?.expected_output,
+      payload?.expected_code_answer,
+      payload?.correct_answer,
+    ),
     finished: isFinishedSubmission(payload),
     input: payload?.input || payload?.last_testcase || "",
     memory: payload?.memory || "",
-    output: payload?.code_output || payload?.code_answer || "",
+    output: firstPresent(payload?.code_output, payload?.code_answer),
     runSuccess: Boolean(payload?.run_success),
     runtimeError: payload?.runtime_error || payload?.full_runtime_error || "",
     state: payload?.state || "",
     statusCode: payload?.status_code ?? null,
     statusMessage: payload?.status_msg || "",
-    standardOutput: payload?.std_output || "",
+    standardOutput: firstPresent(payload?.std_output, payload?.std_output_list),
     submissionId,
     totalCorrect: payload?.total_correct ?? null,
     totalTestcases: payload?.total_testcases ?? null,

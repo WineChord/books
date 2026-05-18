@@ -128,10 +128,10 @@ window.postMessage(
       memory: "9.8 MB",
       compileError: "",
       input: "",
-      output: "",
-      expectedOutput: "",
+      output: ["0"],
+      expectedOutput: ["0"],
       runtimeError: "",
-      standardOutput: "",
+      standardOutput: ["debug line"],
       finished: true,
       raw: {}
     }
@@ -139,10 +139,10 @@ window.postMessage(
 }
 ```
 
-When LeetCode returns a failed testcase, `input` contains that testcase,
-`output` contains the submitted code output, and `expectedOutput` contains the
-judge expectation. Runtime and compile diagnostics are exposed through
-`runtimeError` and `compileError`.
+When LeetCode returns run or submit details, `output` contains the submitted
+code output, `expectedOutput` contains the judge expectation, and
+`standardOutput` contains stdout when LeetCode exposes it. Runtime and compile
+diagnostics are exposed through `runtimeError` and `compileError`.
 
 Errors use the same envelope and set `ok` to `false`.
 
@@ -192,10 +192,11 @@ extension is current before running or submitting.
       "submit",
       "login-status",
       "extra-run-testcases",
-      "grouped-run-testcases"
+      "grouped-run-testcases",
+      "run-output-details"
     ],
-    extensionVersion: "0.3.0",
-    featureVersion: 3,
+    extensionVersion: "0.4.0",
+    featureVersion: 4,
     isLoggedIn: true,
     hasCsrfToken: true
   }
@@ -220,7 +221,9 @@ For a run or submit request, the background service worker:
 
 For run requests, the extension also parses `questionEditorData.metaData` and
 returns `testcaseGroups` so the page can display each LeetCode input case with
-its parameter names instead of one combined blob.
+its parameter names instead of one combined blob. Run check responses preserve
+LeetCode's output, expected output, and stdout fields so the page can attach
+them to matching case tabs or show them as standalone debug details.
 
 Cookie values are not logged, hardcoded, sent to the page, or stored by this
 extension.
