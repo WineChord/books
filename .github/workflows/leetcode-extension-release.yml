@@ -1,0 +1,63 @@
+name: Release LeetCode Extension
+
+on:
+  push:
+    tags:
+      - "leetcode-submit-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: manifest
+        run: |
+          version="$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync("extensions/leetcode-submit/manifest.json", "utf8")); console.log(manifest.version);')"
+          expected_tag="leetcode-submit-v${version}"
+          if [ "${GITHUB_REF_NAME}" != "${expected_tag}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match manifest version ${version}."
+            echo "Expected ${expected_tag}."
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${expected_tag}" >> "${GITHUB_OUTPUT}"
+      - run: npm run package:leetcode-extension
+      - run: |
+          cat > release-notes.md <<'EOF'
+          Chrome extension package for WineChord Books LeetCode submit.
+
+          Install:
+          1. Download `leetcode-submit.zip`.
+          2. Unzip it.
+          3. Open `chrome://extensions`, enable Developer mode, click
+             Load unpacked, and select the unzipped folder.
+          4. Sign in to `leetcode.cn` in the same Chrome profile.
+
+          The page sends only the problem slug, language, and editor code to
+          the extension. LeetCode cookies stay inside Chrome extension APIs.
+          EOF
+          if gh release view "${{ steps.manifest.outputs.tag }}" >/dev/null 2>&1; then
+            gh release edit "${{ steps.manifest.outputs.tag }}" \
+              --title "LeetCode Submit Extension ${{ steps.manifest.outputs.version }}" \
+              --notes-file release-notes.md
+            gh release upload "${{ steps.manifest.outputs.tag }}" \
+              "dist/extensions/leetcode-submit.zip#leetcode-submit.zip" \
+              "dist/extensions/leetcode-submit-${{ steps.manifest.outputs.version }}.zip#leetcode-submit-${{ steps.manifest.outputs.version }}.zip" \
+              --clobber
+          else
+            gh release create "${{ steps.manifest.outputs.tag }}" \
+              "dist/extensions/leetcode-submit.zip#leetcode-submit.zip" \
+              "dist/extensions/leetcode-submit-${{ steps.manifest.outputs.version }}.zip#leetcode-submit-${{ steps.manifest.outputs.version }}.zip" \
+              --title "LeetCode Submit Extension ${{ steps.manifest.outputs.version }}" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -7,6 +7,27 @@ page JavaScript.
 
 ## Install
 
+### Release package
+
+1. Download the latest `leetcode-submit.zip` from
+   <https://github.com/WineChord/books/releases/latest/download/leetcode-submit.zip>.
+2. Unzip the package to a local folder.
+3. Open `chrome://extensions`.
+4. Enable Developer mode.
+5. Click Load unpacked.
+6. Select the unzipped `leetcode-submit` folder.
+7. Sign in to <https://leetcode.cn> in the same Chrome profile.
+
+Chrome still requires an unzipped folder for non-store extensions. The release
+ZIP makes the download direct, but it is not a one-click Chrome Web Store
+install.
+
+After downloading an updated ZIP, replace the local unzipped folder and click
+Reload on this unpacked extension in `chrome://extensions` before retesting the
+page.
+
+### Source checkout
+
 1. Open `chrome://extensions`.
 2. Enable Developer mode.
 3. Click Load unpacked.
@@ -15,6 +36,26 @@ page JavaScript.
 
 After pulling extension changes, click Reload on this unpacked extension in
 `chrome://extensions` before retesting the page.
+
+## Release
+
+The extension release tag is tied to `manifest.json`:
+
+```sh
+npm run package:leetcode-extension
+git tag leetcode-submit-v$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync("extensions/leetcode-submit/manifest.json", "utf8")); console.log(manifest.version);')
+git push origin leetcode-submit-v$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync("extensions/leetcode-submit/manifest.json", "utf8")); console.log(manifest.version);')
+```
+
+Pushing `leetcode-submit-v<version>` runs the release workflow. The workflow
+checks that the tag matches the manifest version, packages the extension files
+at the archive root, and publishes both assets:
+
+- `leetcode-submit.zip`
+- `leetcode-submit-<version>.zip`
+
+The page links to the stable latest-release asset name, so the install link
+does not need a page edit for each extension version.
 
 ## Protocol
 

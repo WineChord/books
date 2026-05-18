@@ -287,10 +287,17 @@ already saved.
 Extra run cases reset on the next Beijing calendar day, so daily practice
 starts from the official examples again.
 The page footer also keeps always-visible links to the GitHub repository,
-extension directory, feedback issues, and page spec. It also includes a
-collapsed, beginner-oriented installation guide for loading or reloading this
-unpacked Chrome extension from the repository; the practice editor links
-directly to this guide.
+extension directory, latest extension ZIP, feedback issues, and page spec. It
+also includes a collapsed, beginner-oriented installation guide for loading or
+reloading this unpacked Chrome extension from a GitHub Release package or from
+the repository source; the practice editor links directly to this guide and to
+the stable latest-release download URL. Extension release tags are named
+`leetcode-submit-v<manifest version>`. Pushing such a tag packages
+`extensions/leetcode-submit` into `leetcode-submit.zip` and
+`leetcode-submit-<version>.zip` on the GitHub Release. Chrome still installs it
+as an unpacked extension, so the guide must say to download the ZIP, unzip it,
+load the unzipped folder through `chrome://extensions`, and reload that
+unpacked extension after updating the local folder.
 
 Preview controls include approach, implementation, tags, and related problems.
 The statement is not a hover target; it lives above the open editor. Approach,

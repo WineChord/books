@@ -43,6 +43,8 @@ const title = isZh ? book.zhTitle : book.title;
 const description = isZh ? book.zhDescription : book.description;
 const repositoryUrl = "https://github.com/WineChord/books";
 const extensionDirectoryUrl = `${repositoryUrl}/tree/main/extensions/leetcode-submit`;
+const extensionReleaseDownloadUrl = `${repositoryUrl}/releases/latest/download/leetcode-submit.zip`;
+const extensionReleasesUrl = `${repositoryUrl}/releases`;
 const issuesUrl = `${repositoryUrl}/issues`;
 const leetcodeSpecUrl = `${repositoryUrl}/blob/main/docs/${
   isZh ? "zh/leetcode/spec.md" : "leetcode/spec.md"
@@ -564,7 +566,10 @@ const shortcutRows = [
   lang={lang}
   titleSuffix={title}
 >
-  <main class="leetcode-shell mx-auto max-w-6xl px-4 py-0 md:px-8">
+  <main
+    class="leetcode-shell mx-auto max-w-6xl px-4 py-0 md:px-8"
+    data-extension-download-url={extensionReleaseDownloadUrl}
+  >
     <section class="leetcode-hero">
       <div>
         <p class="leetcode-kicker">{book.coverKicker}</p>
@@ -1064,24 +1069,40 @@ const shortcutRows = [
                 语言和当前代码发给扩展；登录 cookie 留在 Chrome 扩展侧，页面
                 JavaScript 不会读取它。
               </p>
+              <p class="leetcode-extension-download">
+                <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
+                  下载最新扩展 ZIP
+                </a>
+                <span>
+                  下载后先解压，再在 Chrome 里加载解压后的文件夹；非商店扩展不能直接点
+                  ZIP 完成安装。
+                </span>
+              </p>
               <ol>
+                <li>
+                  从 <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Release</a>
+                  下载 <code>leetcode-submit.zip</code>，并解压到本地。
+                </li>
                 <li>在 Chrome 地址栏打开 <code>chrome://extensions</code>。</li>
                 <li>打开右上角的 <strong>开发者模式</strong>。</li>
                 <li>
-                  打开 <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，
-                  clone 或下载到本地；扩展源码在
+                  如果需要从源码安装，可以打开 <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，
+                  clone 到本地；扩展源码在
                   <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
                     extensions/leetcode-submit
                   </a>。
                 </li>
                 <li>点击 <strong>加载已解压的扩展程序</strong>。</li>
-                <li>选择本地仓库里的 <code>extensions/leetcode-submit</code> 文件夹。</li>
+                <li>
+                  优先选择刚解压出的 <code>leetcode-submit</code> 文件夹；源码安装时选择
+                  <code>extensions/leetcode-submit</code> 文件夹。
+                </li>
                 <li>在同一个 Chrome 用户里登录 <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a>。</li>
                 <li>回到本页展开一道题，点击“运行样例”或“提交力扣”。</li>
               </ol>
               <p>
-                拉到扩展代码更新后，需要回到 <code>chrome://extensions</code>，
-                对这个已解压扩展点一次“重新加载”。
+                扩展更新后，下载最新 ZIP、覆盖本地解压目录，然后回到
+                <code>chrome://extensions</code> 对这个已解压扩展点一次“重新加载”。
               </p>
             </>
           ) : (
@@ -1091,23 +1112,42 @@ const shortcutRows = [
                 the problem slug, language, and editor code to the extension; LeetCode
                 cookies stay inside Chrome extension APIs.
               </p>
+              <p class="leetcode-extension-download">
+                <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
+                  Download latest extension ZIP
+                </a>
+                <span>
+                  Unzip it first, then load the unzipped folder in Chrome. A
+                  non-store extension cannot be installed directly from the ZIP.
+                </span>
+              </p>
               <ol>
+                <li>
+                  Download <code>leetcode-submit.zip</code> from
+                  <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Releases</a>
+                  and unzip it locally.
+                </li>
                 <li>Open <code>chrome://extensions</code> in Chrome.</li>
                 <li>Enable <strong>Developer mode</strong>.</li>
                 <li>
-                  Open the <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub repository</a>,
-                  then clone or download it locally. The extension source is in
+                  To install from source instead, open the
+                  <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub repository</a>
+                  and clone it locally. The extension source is in
                   <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
                     extensions/leetcode-submit
                   </a>.
                 </li>
                 <li>Click <strong>Load unpacked</strong>.</li>
-                <li>Select the local <code>extensions/leetcode-submit</code> folder.</li>
+                <li>
+                  Prefer the unzipped <code>leetcode-submit</code> folder. For source
+                  installs, select <code>extensions/leetcode-submit</code>.
+                </li>
                 <li>Sign in to <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a> in the same Chrome profile.</li>
                 <li>Return to this page, open a problem, then run or submit.</li>
               </ol>
               <p>
-                After extension code changes, reload this unpacked extension in
+                After extension updates, download the latest ZIP, replace the local
+                unzipped folder, then reload this unpacked extension in
                 <code>chrome://extensions</code>.
               </p>
             </>
@@ -1123,6 +1163,9 @@ const shortcutRows = [
       </a>
       <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
         {isZh ? "Chrome 扩展源码" : "Chrome extension"}
+      </a>
+      <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
+        {isZh ? "下载扩展 ZIP" : "Download extension ZIP"}
       </a>
       <a href={issuesUrl} target="_blank" rel="noopener noreferrer">
         {isZh ? "反馈 Issue" : "Feedback issues"}
@@ -1174,6 +1217,9 @@ const shortcutRows = [
     const editorSizeSelect = document.getElementById("leetcode-editor-size");
     const editorLeadingSelect = document.getElementById("leetcode-editor-leading");
     const leetcodeShell = document.querySelector(".leetcode-shell");
+    const extensionReleaseDownloadUrl =
+      leetcodeShell?.dataset.extensionDownloadUrl ||
+      "https://github.com/WineChord/books/releases/latest/download/leetcode-submit.zip";
     const insightPick = document.querySelector("[data-insight-pick]");
     const insightOpen = document.querySelector("[data-insight-open]");
     const insightList = document.querySelector("[data-insight-list]");
@@ -6152,7 +6198,8 @@ const shortcutRows = [
           <div class="leetcode-submit-note" aria-live="polite">
             <div class="leetcode-submit-status-row">
               <span data-submit-status="${escapeHtml(problem.titleSlug)}">${escapeHtml(extensionDetectingMessage())}</span>
-              <a href="#leetcode-extension-guide" data-extension-guide-link>${isChinesePage ? "安装/更新方法" : "Install/update"}</a>
+              <a href="${escapeHtml(extensionReleaseDownloadUrl)}" target="_blank" rel="noopener noreferrer" data-extension-download-link>${isChinesePage ? "下载扩展" : "Download"}</a>
+              <a href="#leetcode-extension-guide" data-extension-guide-link>${isChinesePage ? "安装方法" : "Install steps"}</a>
             </div>
             <div class="leetcode-submit-meta">${escapeHtml(templateStatus)}</div>
             <div class="leetcode-submit-detail" data-submit-detail hidden></div>
@@ -7717,6 +7764,28 @@ const shortcutRows = [
       margin-top: 0.24rem;
     }
 
+    .leetcode-extension-download {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.28rem 0.5rem;
+      align-items: baseline;
+    }
+
+    .leetcode-extension-download a {
+      border: 1px solid rgb(22 138 119 / 34%);
+      border-radius: 0.38rem;
+      background: rgb(22 138 119 / 8%);
+      color: #168a77;
+      font-weight: 700;
+      padding: 0.12rem 0.44rem;
+    }
+
+    .leetcode-extension-download span {
+      flex: 1 1 22rem;
+      color: var(--color-muted);
+      font-size: 0.72rem;
+    }
+
     .leetcode-extension-guide code,
     .leetcode-insight-guide code {
       border-radius: 0.28rem;
@@ -7759,6 +7828,8 @@ const shortcutRows = [
 
     .leetcode-footer-links a:hover,
     .leetcode-footer-links a:focus-visible,
+    .leetcode-submit-note [data-extension-download-link]:hover,
+    .leetcode-submit-note [data-extension-download-link]:focus-visible,
     .leetcode-submit-note [data-extension-guide-link]:hover,
     .leetcode-submit-note [data-extension-guide-link]:focus-visible,
     .leetcode-extension-guide a:hover,
@@ -8409,6 +8480,7 @@ const shortcutRows = [
       line-height: 1.35;
     }
 
+    .leetcode-submit-note [data-extension-download-link],
     .leetcode-submit-note [data-extension-guide-link] {
       flex: 0 0 auto;
       color: var(--color-terracotta);
@@ -8417,6 +8489,10 @@ const shortcutRows = [
       line-height: 1.45;
       text-decoration: none;
       white-space: nowrap;
+    }
+
+    .leetcode-submit-note [data-extension-download-link] {
+      color: #168a77;
     }
 
     .leetcode-submit-note [data-tone="pending"] {
@@ -8749,6 +8825,12 @@ const shortcutRows = [
     html.dark .leetcode-insight-guide code {
       background: rgb(255 255 255 / 7%);
       color: var(--color-cream);
+    }
+
+    html.dark .leetcode-extension-download a {
+      border-color: rgb(105 201 183 / 36%);
+      background: rgb(105 201 183 / 10%);
+      color: #69c9b7;
     }
 
     html.dark .leetcode-editor-shell {
