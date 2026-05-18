@@ -728,9 +728,9 @@ const shortcutRows = [
               {isZh ? "猜你想写" : "Suggested"}
             </button>
             <span class="leetcode-insight-popover" role="tooltip">
-              <strong data-insight-pick>{isZh ? "提交几次后开始排序" : "Submit a few problems to rank them"}</strong>
+              <strong data-insight-pick>{isZh ? "运行或提交后开始排序" : "Run or submit problems to rank them"}</strong>
               <span class="leetcode-insight-list" data-insight-list>
-                <span>{isZh ? "暂无本站提交统计。" : "No local submission stats yet."}</span>
+                <span>{isZh ? "暂无本站运行/提交统计。" : "No local run or submission stats yet."}</span>
               </span>
             </span>
           </span>
@@ -933,6 +933,125 @@ const shortcutRows = [
         </button>
       </div>
     </section>
+
+    <details class="leetcode-insight-guide">
+      <summary>{isZh ? "猜你想写的排序规则" : "How suggested problems are ranked"}</summary>
+      <div>
+        {
+          isZh ? (
+            <>
+              <p>
+                “猜你想写”按 0 到 100 的不熟练分排序。分数越高，越值得今天
+                复习。它只使用当前浏览器记录到的本页运行和提交行为，不读取
+                力扣历史提交。
+              </p>
+              <p>
+                公式可以理解为：
+                <code>基础风险 + 提交失败 + 样例失败 + 速度 + 遗忘 + 人工标记 - 通过折扣 - 熟练折扣</code>，
+                最后截断到 0 到 100。
+              </p>
+              <ol>
+                <li>
+                  <strong>基础风险：</strong>没有完整 AC 时先加风险分。样例已通过但
+                  还没完整提交，加 16；样例也没过或没有通过记录，加 28。
+                </li>
+                <li>
+                  <strong>提交失败：</strong>完整提交失败是最强信号，最多加 38。
+                  失败率会做贝叶斯平滑，避免“一次失败”被过度放大；失败次数用
+                  对数增长，避免反复调试把分数冲爆。
+                </li>
+                <li>
+                  <strong>样例失败：</strong>运行官方示例失败也会计入，但权重低于
+                  完整提交失败，最多加 18。扩展连接失败、查询超时这类工具问题
+                  不算题目错误。
+                </li>
+                <li>
+                  <strong>速度：</strong>只看完整 AC 的耗时，并按非空代码行数归一成
+                  “每 10 行耗时”。低于 60 秒/10 行不加分，180 秒/10 行附近达到
+                  速度惩罚上限 24。计分速度更偏重最近一次 AC，也保留少量历史
+                  平均，避免一次偶然发挥完全覆盖长期表现。
+                </li>
+                <li>
+                  <strong>遗忘曲线：</strong>完整 AC 后，随距离上次 AC 的天数按
+                  <code>24 * (1 - e^(-days / 10))</code>增长。它会逐渐接近上限，
+                  不会无限累加。
+                </li>
+                <li>
+                  <strong>通过折扣：</strong>完整 AC 次数、最近连续 AC、样例通过次数
+                  会降低分数，最多减 26。完整 AC 的权重最高，样例通过只是轻量
+                  降噪。
+                </li>
+                <li>
+                  <strong>人工状态：</strong>标成“需思考”加 10；标成“熟练”减 14。
+                  这是为了让人的判断可以修正纯数据的误差。
+                </li>
+              </ol>
+              <p>
+                分数相同时，优先看提交失败次数、样例失败次数、计分速度、AC 次数，
+                最后再用力扣频率排序。这个排序是启发式建议，不是能力证明。
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Suggested problems are ranked by a 0 to 100 unfamiliarity score.
+                Higher scores are better review candidates. The score uses only
+                local run and submit activity from this browser, not historical
+                LeetCode submissions.
+              </p>
+              <p>
+                Read the formula as:
+                <code>base risk + submit failures + sample failures + speed + forgetting + manual review - accepted discount - mastered discount</code>,
+                clamped to 0 to 100.
+              </p>
+              <ol>
+                <li>
+                  <strong>Base risk:</strong> a problem that has not reached full
+                  Accepted starts with risk. Passing samples but not submitting
+                  adds 16; having no accepted evidence adds 28.
+                </li>
+                <li>
+                  <strong>Submit failures:</strong> failed full submissions are the
+                  strongest failure signal, capped at 38. Failure rate is Bayesian
+                  smoothed, and repeated failures grow logarithmically.
+                </li>
+                <li>
+                  <strong>Sample failures:</strong> failed official-example runs
+                  count with lower weight, capped at 18. Extension connection
+                  errors and polling timeouts do not count as problem mistakes.
+                </li>
+                <li>
+                  <strong>Speed:</strong> full Accepted time is normalized by
+                  nonblank code lines into time per 10 lines. No penalty is added
+                  below 60 seconds per 10 lines; the cap of 24 is reached around
+                  180 seconds per 10 lines. The score favors the latest Accepted
+                  run while keeping a small historical average.
+                </li>
+                <li>
+                  <strong>Forgetting:</strong> after a full Accepted, stale age grows
+                  as <code>24 * (1 - e^(-days / 10))</code>, so it approaches a cap
+                  instead of growing forever.
+                </li>
+                <li>
+                  <strong>Accepted discount:</strong> full Accepted count, recent
+                  Accepted streak, and passed sample runs reduce the score, capped
+                  at 26. Full Accepted evidence matters most.
+                </li>
+                <li>
+                  <strong>Manual state:</strong> review adds 10; mastered subtracts
+                  14, so human judgment can correct noisy data.
+                </li>
+              </ol>
+              <p>
+                Ties are broken by submit failures, sample failures, scoring speed,
+                Accepted count, then LeetCode frequency. This is a heuristic review
+                aid, not a proof of ability.
+              </p>
+            </>
+          )
+        }
+      </div>
+    </details>
 
     <details id="leetcode-extension-guide" class="leetcode-extension-guide">
       <summary>{isZh ? "安装 Chrome 扩展后直接提交到力扣" : "Install the Chrome extension to submit to LeetCode"}</summary>
@@ -1156,8 +1275,29 @@ const shortcutRows = [
     const submissionTenLineUnit = 10;
     const submissionSlowSecondsPerTenLines = 60;
     const submissionVerySlowSecondsPerTenLines = 180;
-    const submissionStaleDayWeight = 2.2;
-    const submissionStaleDayCap = 30;
+    const noAcceptedBasePenalty = 28;
+    const samplePassedNoAcceptedPenalty = 16;
+    const submitFailurePriorAttempts = 2;
+    const submitFailurePriorRate = 0.35;
+    const submitFailureRateWeight = 30;
+    const submitFailureCountWeight = 7;
+    const submitFailurePenaltyCap = 38;
+    const runFailurePriorAttempts = 2;
+    const runFailurePriorRate = 0.3;
+    const runFailureRateWeight = 14;
+    const runFailureCountWeight = 3;
+    const runFailurePenaltyCap = 18;
+    const submissionSpeedPenaltyCap = 24;
+    const submissionStaleHalfLifeDays = 10;
+    const submissionStalePenaltyCap = 24;
+    const acceptedRepeatDiscountCap = 26;
+    const acceptedCountDiscountWeight = 7;
+    const acceptedStreakDiscountWeight = 6;
+    const runAcceptedDiscountWeight = 1.5;
+    const lastAcceptedSpeedScoreWeight = 0.72;
+    const averageAcceptedSpeedScoreWeight = 0.28;
+    const manualReviewPenalty = 10;
+    const manualMasteredDiscount = 14;
     const timingDateFormatter = new Intl.DateTimeFormat("en-CA", {
       day: "2-digit",
       month: "2-digit",
@@ -2174,7 +2314,11 @@ const shortcutRows = [
           lastCodeLines: 0,
           lastCodeNonBlankLines: 0,
           lastElapsedMs: null,
+          lastRunAt: null,
           lastSubmittedAt: null,
+          runAcceptedCount: 0,
+          runAttemptCount: 0,
+          runErrorCount: 0,
           totalAcceptedMs: 0,
         };
       }
@@ -2182,6 +2326,9 @@ const shortcutRows = [
       record.acceptedCount = Number(record.acceptedCount || 0);
       record.attemptCount = Number(record.attemptCount || 0);
       record.errorCount = Number(record.errorCount || 0);
+      record.runAcceptedCount = Number(record.runAcceptedCount || 0);
+      record.runAttemptCount = Number(record.runAttemptCount || 0);
+      record.runErrorCount = Number(record.runErrorCount || 0);
       record.totalAcceptedMs = Number(record.totalAcceptedMs || 0);
       record.events = submissionEvents(record).slice(-submissionHistoryLimit);
       record.bestMs = record.bestMs === null ? null : Number(record.bestMs || 0);
@@ -2192,6 +2339,7 @@ const shortcutRows = [
       record.lastCodeNonBlankLines = Number(record.lastCodeNonBlankLines || 0);
       record.firstSubmittedAt = record.firstSubmittedAt || null;
       record.lastAcceptedAt = record.lastAcceptedAt || null;
+      record.lastRunAt = record.lastRunAt || null;
       record.lastSubmittedAt = record.lastSubmittedAt || null;
       return record;
     }
@@ -2204,6 +2352,10 @@ const shortcutRows = [
     function averageAcceptedMs(record) {
       const accepted = Number(record?.acceptedCount || 0);
       return accepted ? Number(record?.totalAcceptedMs || 0) / accepted : 0;
+    }
+
+    function totalErrorCount(record) {
+      return Number(record?.errorCount || 0) + Number(record?.runErrorCount || 0);
     }
 
     function elapsedPerTenLinesMs(elapsedMs, nonBlankLines) {
@@ -2230,6 +2382,26 @@ const shortcutRows = [
       }, 0);
     }
 
+    function averageAcceptedSpeedMs(record) {
+      const speeds = acceptedSubmissionEvents(record)
+        .map((event) => elapsedPerTenLinesMs(
+          event.elapsedMs,
+          event.codeNonBlankLines,
+        ))
+        .filter(Boolean);
+      if (!speeds.length) return 0;
+      return speeds.reduce((sum, speed) => sum + speed, 0) / speeds.length;
+    }
+
+    function scoreAcceptedSpeedMs(record) {
+      const lastSpeed = lastAcceptedSpeedMs(record);
+      const averageSpeed = averageAcceptedSpeedMs(record);
+      if (!lastSpeed) return averageSpeed;
+      if (!averageSpeed) return lastSpeed;
+      return lastSpeed * lastAcceptedSpeedScoreWeight +
+        averageSpeed * averageAcceptedSpeedScoreWeight;
+    }
+
     function daysSinceIso(value) {
       const time = Date.parse(String(value || ""));
       if (!Number.isFinite(time)) return 0;
@@ -2244,6 +2416,44 @@ const shortcutRows = [
         count += 1;
       }
       return count;
+    }
+
+    function smoothedFailureRate(
+      errors,
+      attempts,
+      priorAttempts,
+      priorRate,
+    ) {
+      if (!attempts) return 0;
+      const priorErrors = priorAttempts * priorRate;
+      return (errors + priorErrors) / (attempts + priorAttempts);
+    }
+
+    function failurePenalty(
+      errors,
+      attempts,
+      priorAttempts,
+      priorRate,
+      rateWeight,
+      countWeight,
+      cap,
+    ) {
+      if (!attempts || !errors) return 0;
+      const rateSignal = smoothedFailureRate(
+        errors,
+        attempts,
+        priorAttempts,
+        priorRate,
+      ) * rateWeight;
+      const countSignal = Math.log1p(errors) * countWeight;
+      return Math.min(cap, rateSignal + countSignal);
+    }
+
+    function forgettingPenalty(staleDays) {
+      if (!staleDays) return 0;
+      return submissionStalePenaltyCap * (
+        1 - Math.exp(-staleDays / submissionStaleHalfLifeDays)
+      );
     }
 
     function clampScore(value) {
@@ -2261,37 +2471,60 @@ const shortcutRows = [
         1,
         (seconds - submissionSlowSecondsPerTenLines) / range,
       );
-      return ratio * 28;
+      return ratio * submissionSpeedPenaltyCap;
     }
 
     function submissionInsightFor(problem) {
       const record = storedProblemSubmissionStats(problem.titleSlug);
       const attempts = Number(record.attemptCount || 0);
-      if (!attempts) return null;
+      const runAttempts = Number(record.runAttemptCount || 0);
+      if (!attempts && !runAttempts) return null;
 
       const accepted = Number(record.acceptedCount || 0);
       const errors = Number(record.errorCount || 0);
-      const errorRate = errors / attempts;
+      const runAccepted = Number(record.runAcceptedCount || 0);
+      const runErrors = Number(record.runErrorCount || 0);
+      const totalErrors = totalErrorCount(record);
       const bestSpeed = bestAcceptedSpeedMs(record);
+      const scoreSpeed = scoreAcceptedSpeedMs(record);
       const lastAccepted = lastAcceptedSubmissionEvent(record);
       const staleDays = lastAccepted ? daysSinceIso(lastAccepted.at) : 0;
-      const noAcceptedPenalty = accepted ? 0 : 30;
-      const errorPenalty = Math.min(36, errorRate * 28 + errors * 5);
-      const stalePenalty = Math.min(
-        submissionStaleDayCap,
-        staleDays * submissionStaleDayWeight,
+      const noAcceptedPenalty = accepted
+        ? 0
+        : (runAccepted ? samplePassedNoAcceptedPenalty : noAcceptedBasePenalty);
+      const errorPenalty = failurePenalty(
+        errors,
+        attempts,
+        submitFailurePriorAttempts,
+        submitFailurePriorRate,
+        submitFailureRateWeight,
+        submitFailureCountWeight,
+        submitFailurePenaltyCap,
       );
+      const runErrorPenalty = failurePenalty(
+        runErrors,
+        runAttempts,
+        runFailurePriorAttempts,
+        runFailurePriorRate,
+        runFailureRateWeight,
+        runFailureCountWeight,
+        runFailurePenaltyCap,
+      );
+      const stalePenalty = accepted ? forgettingPenalty(staleDays) : 0;
       const repeatDiscount = Math.min(
-        28,
-        accepted * 4 + recentAcceptedStreak(record) * 8,
+        acceptedRepeatDiscountCap,
+        Math.log1p(accepted) * acceptedCountDiscountWeight +
+          recentAcceptedStreak(record) * acceptedStreakDiscountWeight +
+          runAccepted * runAcceptedDiscountWeight,
       );
       const status = rowState(problem.titleSlug);
-      const manualPenalty = status.review ? 8 : 0;
-      const manualDiscount = status.mastered ? 12 : 0;
+      const manualPenalty = status.review ? manualReviewPenalty : 0;
+      const manualDiscount = status.mastered ? manualMasteredDiscount : 0;
       const score = clampScore(
         noAcceptedPenalty +
           errorPenalty +
-          slowSpeedPenalty(bestSpeed) +
+          runErrorPenalty +
+          slowSpeedPenalty(scoreSpeed) +
           stalePenalty +
           manualPenalty -
           repeatDiscount -
@@ -2306,8 +2539,13 @@ const shortcutRows = [
         lastAccepted,
         problem,
         record,
+        runAccepted,
+        runAttempts,
+        runErrors,
+        scoreSpeed,
         score,
         staleDays,
+        totalErrors,
       };
     }
 
@@ -2318,6 +2556,8 @@ const shortcutRows = [
         .sort((left, right) => (
           right.score - left.score ||
           right.errors - left.errors ||
+          right.runErrors - left.runErrors ||
+          right.scoreSpeed - left.scoreSpeed ||
           left.accepted - right.accepted ||
           (left.problem.frequencyRank || 999999) -
             (right.problem.frequencyRank || 999999)
@@ -2332,17 +2572,24 @@ const shortcutRows = [
       if (item.errors) {
         reasons.push(
           isChinesePage
-            ? `错 ${item.errors} 次`
-            : `${item.errors} failed`,
+            ? `提交错 ${item.errors} 次`
+            : `${item.errors} submit failed`,
         );
       }
-      if (item.bestSpeed) {
-        const seconds = item.bestSpeed / 1000;
+      if (item.runErrors) {
+        reasons.push(
+          isChinesePage
+            ? `样例错 ${item.runErrors} 次`
+            : `${item.runErrors} sample run failed`,
+        );
+      }
+      if (item.scoreSpeed) {
+        const seconds = item.scoreSpeed / 1000;
         if (seconds > submissionSlowSecondsPerTenLines) {
           reasons.push(
             isChinesePage
-              ? `每 10 行 ${formatDuration(item.bestSpeed)}`
-              : `${formatDuration(item.bestSpeed)} per 10 lines`,
+              ? `每 10 行 ${formatDuration(item.scoreSpeed)}`
+              : `${formatDuration(item.scoreSpeed)} per 10 lines`,
           );
         }
       }
@@ -2359,16 +2606,47 @@ const shortcutRows = [
       return reasons.slice(0, 3).join(" · ");
     }
 
+    function submissionErrorLabel(record) {
+      const submitErrors = Number(record?.errorCount || 0);
+      const runErrors = Number(record?.runErrorCount || 0);
+      const totalErrors = submitErrors + runErrors;
+      if (!totalErrors) return isChinesePage ? "错 0" : "0 failed";
+      const split = isChinesePage
+        ? `提${submitErrors}/样${runErrors}`
+        : `submit ${submitErrors}/sample ${runErrors}`;
+      return isChinesePage
+        ? `错 ${totalErrors}（${split}）`
+        : `${totalErrors} failed (${split})`;
+    }
+
+    function submissionShortErrorLabel(item) {
+      if (!item.totalErrors) return isChinesePage ? "错0" : "0 failed";
+      if (!item.runErrors) {
+        return isChinesePage
+          ? `错${item.totalErrors}`
+          : `${item.totalErrors} failed`;
+      }
+      return isChinesePage
+        ? `错${item.totalErrors}(提${item.errors}/样${item.runErrors})`
+        : `${item.totalErrors} failed(sub${item.errors}/run${item.runErrors})`;
+    }
+
     function submissionStatsLabel(slug) {
       const record = storedProblemSubmissionStats(slug);
       const attempts = Number(record.attemptCount || 0);
-      if (!attempts) return isChinesePage ? "暂无提交" : "No submits";
+      const runAttempts = Number(record.runAttemptCount || 0);
+      if (!attempts && !runAttempts) {
+        return isChinesePage ? "暂无提交" : "No submits";
+      }
       const lastSpeed = lastAcceptedSpeedMs(record);
       return [
-        isChinesePage ? `写 ${attempts}` : `${attempts} submits`,
-        isChinesePage
-          ? `错 ${Number(record.errorCount || 0)}`
-          : `${Number(record.errorCount || 0)} failed`,
+        attempts
+          ? (isChinesePage ? `写 ${attempts}` : `${attempts} submits`)
+          : "",
+        runAttempts
+          ? (isChinesePage ? `跑 ${runAttempts}` : `${runAttempts} runs`)
+          : "",
+        submissionErrorLabel(record),
         lastSpeed
           ? `${isChinesePage ? "耗/10行" : "time/10 lines"} ${
               formatDuration(lastSpeed)
@@ -2395,8 +2673,8 @@ const shortcutRows = [
           : ` · ${formatDuration(speed)}/10 lines`)
         : "";
       const label = isChinesePage
-        ? `写${item.attempts} 错${item.errors}${speedText} · ${item.score}`
-        : `${item.attempts} submits ${item.errors} failed${speedText} · ${item.score}`;
+        ? `写${item.attempts} ${submissionShortErrorLabel(item)}${speedText} · ${item.score}`
+        : `${item.attempts} submits ${submissionShortErrorLabel(item)}${speedText} · ${item.score}`;
       return `
         <span class="leetcode-practice-signal" title="${escapeHtml(title)}">
           ${escapeHtml(label)}
@@ -2418,11 +2696,16 @@ const shortcutRows = [
     function renderSubmissionInsightItem(item, index) {
       const problem = item.problem;
       const meta = [
-        isChinesePage ? `写 ${item.attempts}` : `${item.attempts} submits`,
-        isChinesePage ? `错 ${item.errors}` : `${item.errors} failed`,
-        item.bestSpeed
-          ? `${isChinesePage ? "最快/10行" : "best/10 lines"} ${
-              formatDuration(item.bestSpeed)
+        item.attempts
+          ? (isChinesePage ? `写 ${item.attempts}` : `${item.attempts} submits`)
+          : "",
+        item.runAttempts
+          ? (isChinesePage ? `跑 ${item.runAttempts}` : `${item.runAttempts} runs`)
+          : "",
+        submissionErrorLabel(item.record),
+        item.scoreSpeed
+          ? `${isChinesePage ? "计分/10行" : "score/10 lines"} ${
+              formatDuration(item.scoreSpeed)
             }`
           : "",
       ].filter(Boolean).join(" · ");
@@ -2447,8 +2730,8 @@ const shortcutRows = [
         insightPick.textContent = pick
           ? `${pick.problem.frontendId}. ${pick.problem.titleCn} · ${pick.score}`
           : (isChinesePage
-            ? "提交几次后开始排序"
-            : "Submit a few problems to rank them");
+            ? "运行或提交后开始排序"
+            : "Run or submit problems to rank them");
       }
       if (insightOpen instanceof HTMLButtonElement) {
         insightOpen.setAttribute("aria-disabled", String(!pick));
@@ -2466,8 +2749,8 @@ const shortcutRows = [
               .join("")
           : `<span>${
               isChinesePage
-                ? "暂无本站提交统计。"
-                : "No local submission stats yet."
+                ? "暂无本站运行/提交统计。"
+                : "No local run or submission stats yet."
             }</span>`;
       }
     }
@@ -2475,7 +2758,7 @@ const shortcutRows = [
     function syncSubmissionStatsUi(slug) {
       const record = storedProblemSubmissionStats(slug);
       const attempts = Number(record.attemptCount || 0);
-      const errors = Number(record.errorCount || 0);
+      const errors = totalErrorCount(record);
       const lastCodeLines = Number(record.lastCodeNonBlankLines || 0);
       const avgMs = averageAcceptedMs(record);
       const lastSpeed = lastAcceptedSpeedMs(record);
@@ -2495,6 +2778,12 @@ const shortcutRows = [
         `[data-problem-speed="${slug}"]`,
         lastSpeed ? formatDuration(lastSpeed) : "--",
       );
+    }
+
+    function updateSubmissionCodeSnapshot(record, metrics) {
+      record.lastCodeChars = metrics.chars;
+      record.lastCodeLines = metrics.lines;
+      record.lastCodeNonBlankLines = metrics.nonBlankLines;
     }
 
     function recordSubmissionAttempt(
@@ -2529,9 +2818,7 @@ const shortcutRows = [
       record.attemptCount += 1;
       record.firstSubmittedAt = record.firstSubmittedAt || nowIso;
       record.lastSubmittedAt = nowIso;
-      record.lastCodeChars = metrics.chars;
-      record.lastCodeLines = metrics.lines;
-      record.lastCodeNonBlankLines = metrics.nonBlankLines;
+      updateSubmissionCodeSnapshot(record, metrics);
       record.events.push(event);
       record.events = record.events.slice(-submissionHistoryLimit);
       if (accepted) {
@@ -2543,6 +2830,33 @@ const shortcutRows = [
           !record.bestMs || elapsedMs < record.bestMs ? elapsedMs : record.bestMs;
       } else {
         record.errorCount += 1;
+      }
+      writeSubmissionStats();
+      syncSubmissionStatsUi(slug);
+      syncProblemSignal(slug);
+      syncSubmissionInsightUi();
+      return record;
+    }
+
+    function recordRunAttempt(
+      problem,
+      textarea,
+      accepted,
+    ) {
+      const slug = problem?.titleSlug || "";
+      if (!slug || !(textarea instanceof HTMLTextAreaElement)) return null;
+      const record = problemSubmissionStats(slug);
+      const payload = editorPayload(problem, textarea);
+      const metrics = codeMetrics(payload.code);
+      const runAccepted = Boolean(accepted);
+      const nowIso = new Date().toISOString();
+      record.runAttemptCount += 1;
+      record.lastRunAt = nowIso;
+      updateSubmissionCodeSnapshot(record, metrics);
+      if (runAccepted) {
+        record.runAcceptedCount += 1;
+      } else {
+        record.runErrorCount += 1;
       }
       writeSubmissionStats();
       syncSubmissionStatsUi(slug);
@@ -5575,6 +5889,7 @@ const shortcutRows = [
         const summary = submissionSummary(result, {
           suppressAcceptedStatus: !accepted,
         });
+        recordRunAttempt(problem, textarea, accepted);
         if (accepted) {
           setSubmitStatus(panel, `样例通过 ${summary}`, "success", null, completedRows);
           return;
@@ -5789,7 +6104,7 @@ const shortcutRows = [
                 <b>PB <em data-problem-best="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "上次 AC" : "Last AC"} <em data-problem-last="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "提交" : "Submits"} <em data-problem-submits="${escapeHtml(problem.titleSlug)}">0</em></b>
-                <b>${isChinesePage ? "错" : "Failed"} <em data-problem-errors="${escapeHtml(problem.titleSlug)}">0</em></b>
+                <b title="${isChinesePage ? "提交失败 + 运行样例失败" : "Submit failures + sample run failures"}">${isChinesePage ? "错" : "Failed"} <em data-problem-errors="${escapeHtml(problem.titleSlug)}">0</em></b>
                 <b>${isChinesePage ? "代码" : "Code"} <em data-problem-code-lines="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "均耗" : "Avg"} <em data-problem-avg="${escapeHtml(problem.titleSlug)}">--</em></b>
                 <b>${isChinesePage ? "耗/10行" : "Time/10 lines"} <em data-problem-speed="${escapeHtml(problem.titleSlug)}">--</em></b>
@@ -7356,7 +7671,8 @@ const shortcutRows = [
       padding: 0.16rem 0.42rem;
     }
 
-    .leetcode-extension-guide {
+    .leetcode-extension-guide,
+    .leetcode-insight-guide {
       margin: var(--leetcode-stack-gap) 0 0;
       border: 1px solid rgb(194 192 182 / 58%);
       border-radius: 0.5rem;
@@ -7365,13 +7681,15 @@ const shortcutRows = [
       font-size: 0.78rem;
     }
 
-    .leetcode-extension-guide summary {
+    .leetcode-extension-guide summary,
+    .leetcode-insight-guide summary {
       cursor: pointer;
       font-weight: 700;
       padding: 0.42rem 0.6rem;
     }
 
-    .leetcode-extension-guide > div {
+    .leetcode-extension-guide > div,
+    .leetcode-insight-guide > div {
       display: grid;
       gap: 0.52rem;
       border-top: 1px solid rgb(194 192 182 / 48%);
@@ -7379,19 +7697,24 @@ const shortcutRows = [
     }
 
     .leetcode-extension-guide p,
-    .leetcode-extension-guide ol {
+    .leetcode-extension-guide ol,
+    .leetcode-insight-guide p,
+    .leetcode-insight-guide ol {
       margin: 0;
     }
 
-    .leetcode-extension-guide ol {
+    .leetcode-extension-guide ol,
+    .leetcode-insight-guide ol {
       padding-left: 1.2rem;
     }
 
-    .leetcode-extension-guide li + li {
+    .leetcode-extension-guide li + li,
+    .leetcode-insight-guide li + li {
       margin-top: 0.24rem;
     }
 
-    .leetcode-extension-guide code {
+    .leetcode-extension-guide code,
+    .leetcode-insight-guide code {
       border-radius: 0.28rem;
       background: rgb(20 20 19 / 6%);
       font-size: 0.72rem;
@@ -8380,6 +8703,7 @@ const shortcutRows = [
 
     html.dark .leetcode-footer-settings,
     html.dark .leetcode-extension-guide,
+    html.dark .leetcode-insight-guide,
     html.dark .leetcode-footer-links {
       border-color: #333;
     }
@@ -8395,16 +8719,19 @@ const shortcutRows = [
       color: var(--color-cream);
     }
 
-    html.dark .leetcode-extension-guide {
+    html.dark .leetcode-extension-guide,
+    html.dark .leetcode-insight-guide {
       background: rgb(30 30 28 / 38%);
       color: var(--color-muted);
     }
 
-    html.dark .leetcode-extension-guide > div {
+    html.dark .leetcode-extension-guide > div,
+    html.dark .leetcode-insight-guide > div {
       border-top-color: #333;
     }
 
-    html.dark .leetcode-extension-guide code {
+    html.dark .leetcode-extension-guide code,
+    html.dark .leetcode-insight-guide code {
       background: rgb(255 255 255 / 7%);
       color: var(--color-cream);
     }

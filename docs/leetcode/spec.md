@@ -234,19 +234,24 @@ timer. A less prominent, confirmed control clears the active problem's stored
 PB and last Accepted record without rolling back daily summaries. The normal
 flow remains automatic.
 
-Full submissions made through this page also append to a separate local
-submission-stat store. The store does not import historical LeetCode records;
-it only records submissions initiated from the local editor after this feature
-exists. For each problem it tracks submit attempts, Accepted count, failed
-submit count, latest code size, Accepted time, average Accepted time, and time
-per 10 nonblank code lines. A compact recommendation button opens a hover/focus
-popover that ranks locally attempted problems by a heuristic unfamiliarity
-score: failed submissions, failure rate, slow Accepted time normalized by code
-size, review state, and forgetting-curve age increase the score; repeated
-recent Accepted submissions and manual mastered state reduce it. The highest
-score becomes the daily "Suggested today" item, and the top ranked problems can
-be opened directly from the popover. This ranking is intentionally heuristic
-and browser-local.
+Full submissions and official-example runs made through this page also append
+to a separate local submission-stat store. The store does not import historical
+LeetCode records; it only records actions initiated from the local editor after
+this feature exists. For each problem it tracks submit attempts, Accepted
+count, failed submit count, failed sample-run count, latest code size, Accepted
+time, average Accepted time, and time per 10 nonblank code lines. A compact
+recommendation button opens a hover/focus popover that ranks locally attempted
+problems by a heuristic 0 to 100 unfamiliarity score. Missing full Accepted
+evidence, failed submissions, failed sample runs, slow Accepted time normalized
+by code size, review state, and forgetting-curve age increase the score;
+repeated recent Accepted submissions, passed sample runs, and manual mastered
+state reduce it. Failed sample runs are counted separately and weighted lower
+than failed full submissions. Failure rates use smoothing, failure counts grow
+with diminishing returns, and the forgetting curve approaches a cap instead of
+growing forever. A collapsed footer note explains the scoring model and
+tie-breakers. The highest score becomes the daily "Suggested today" item, and
+the top ranked problems can be opened directly from the popover. This ranking
+is intentionally heuristic and browser-local.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and
