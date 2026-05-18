@@ -1111,6 +1111,16 @@ const shortcutRows = [
     const editorFixedVisibleLines = 14;
     const editorMaxAutoVisibleLines = 56;
     const editorIndentUnit = "    ";
+    const editorAutoPairs = new Map([
+      ["(", ")"],
+      ["[", "]"],
+      ["{", "}"],
+      ['"', '"'],
+      ["'", "'"],
+      ["`", "`"],
+    ]);
+    const editorAutoPairOpeners = new Set(editorAutoPairs.keys());
+    const editorAutoPairClosers = new Set(editorAutoPairs.values());
     const editorClosingTokens = new Set(["}", "]", ")"]);
     const editorCaretBottomGuardRatio = 0.28;
     const editorCaretBottomGuardMin = 96;
@@ -3797,6 +3807,72 @@ const shortcutRows = [
       replaceTextareaRange(textarea, start, end, insertion, nextPosition);
     }
 
+    function isPlainEditorTypingEvent(event) {
+      return !event.metaKey && !event.altKey && !event.ctrlKey;
+    }
+
+    function isEditorQuoteToken(token) {
+      return token === '"' || token === "'" || token === "`";
+    }
+
+    function isEditorWordToken(token) {
+      return /[\p{L}\p{N}_$]/u.test(token || "");
+    }
+
+    function handleEditorAutoPair(event, textarea) {
+      if (!isPlainEditorTypingEvent(event)) return false;
+      const closer = editorAutoPairs.get(event.key);
+      if (!closer) return false;
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      if (
+        start === end &&
+        isEditorQuoteToken(event.key) &&
+        (isEditorWordToken(value[start - 1]) || isEditorWordToken(value[start]))
+      ) {
+        return false;
+      }
+      event.preventDefault();
+      replaceTextareaRange(
+        textarea,
+        start,
+        end,
+        `${event.key}${value.slice(start, end)}${closer}`,
+        start + 1,
+        end > start ? end + 1 : start + 1,
+      );
+      return true;
+    }
+
+    function handleEditorClosingPairSkip(event, textarea) {
+      if (!isPlainEditorTypingEvent(event)) return false;
+      if (!editorAutoPairClosers.has(event.key)) return false;
+      if (textarea.selectionStart !== textarea.selectionEnd) return false;
+      if (textarea.value[textarea.selectionStart] !== event.key) return false;
+      event.preventDefault();
+      textarea.selectionStart += 1;
+      textarea.selectionEnd = textarea.selectionStart;
+      scheduleViewStateWrite();
+      return true;
+    }
+
+    function handleEditorEmptyPairBackspace(event, textarea) {
+      if (!isPlainEditorTypingEvent(event)) return false;
+      if (event.key !== "Backspace") return false;
+      if (textarea.selectionStart !== textarea.selectionEnd) return false;
+      const start = textarea.selectionStart;
+      if (start < 1) return false;
+      const opener = textarea.value[start - 1];
+      const closer = textarea.value[start];
+      if (!editorAutoPairOpeners.has(opener) || editorAutoPairs.get(opener) !== closer) {
+        return false;
+      }
+      event.preventDefault();
+      replaceTextareaRange(textarea, start - 1, start + 1, "", start - 1);
+      return true;
+    }
+
     function indentTextareaSelection(textarea) {
       const value = textarea.value;
       const start = textarea.selectionStart;
@@ -4393,6 +4469,15 @@ const shortcutRows = [
         toggleProblemProgress(context.slug, progressAction, {
           preserveEditorFocus: true,
         });
+        return true;
+      }
+      if (handleEditorClosingPairSkip(event, textarea)) {
+        return true;
+      }
+      if (handleEditorAutoPair(event, textarea)) {
+        return true;
+      }
+      if (handleEditorEmptyPairBackspace(event, textarea)) {
         return true;
       }
       if (event.key === "Enter") {
