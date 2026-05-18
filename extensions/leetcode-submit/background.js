@@ -277,6 +277,7 @@ function normalizedCodeInput(request) {
   const titleSlug = String(payload.titleSlug || "").trim();
   const langSlug = String(payload.langSlug || payload.lang || "").trim();
   const code = String(payload.code || payload.typedCode || "");
+  const extraTestcases = String(payload.extraTestcases || "").trim();
 
   if (!titleSlug) {
     throw new ExtensionError("invalid_request", "Missing titleSlug.");
@@ -288,7 +289,7 @@ function normalizedCodeInput(request) {
     throw new ExtensionError("invalid_request", "Missing code.");
   }
 
-  return { code, langSlug, titleSlug };
+  return { code, extraTestcases, langSlug, titleSlug };
 }
 
 function normalizedCheckInput(request) {
@@ -320,13 +321,16 @@ function submissionCheckUrl(submissionId) {
 }
 
 async function createRun(input, question, csrfToken) {
-  const dataInput = String(question.exampleTestcases || "").trim();
-  if (!dataInput) {
+  const officialTestcases = String(question.exampleTestcases || "").trim();
+  if (!officialTestcases) {
     throw new ExtensionError(
       "leetcode_examples_missing",
       "LeetCode did not return example testcases for this question.",
     );
   }
+  const dataInput = [officialTestcases, input.extraTestcases]
+    .filter(Boolean)
+    .join("\n");
 
   const payload = await fetchJson(interpretUrl(input.titleSlug), {
     body: JSON.stringify({
@@ -353,6 +357,7 @@ async function createRun(input, question, csrfToken) {
   return {
     payload,
     submissionId: interpretId,
+    testcases: dataInput,
   };
 }
 
@@ -454,6 +459,7 @@ async function handleRun(request) {
       },
       run: run.payload,
       submissionId: run.submissionId,
+      testcases: run.testcases,
     },
   });
 }

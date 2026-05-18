@@ -1003,6 +1003,8 @@ const shortcutRows = [
     const editorDraftDayKey = "leetcode-book-editor-day-v1";
     const editorDailyResetKey = "leetcode-book-editor-daily-reset-v1";
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
+    const extraRunCasesKey = "leetcode-book-extra-run-cases-v1";
+    const extraRunCasesDayKey = "leetcode-book-extra-run-cases-day-v1";
     const timingKey = "leetcode-book-timing-v1";
     const viewStateKey = "leetcode-book-view-state-v1";
     const dataNode = document.getElementById("leetcode-data");
@@ -1067,6 +1069,7 @@ const shortcutRows = [
     const submissionPollIntervalMs = 1500;
     const runPollAttempts = 24;
     const submitPollAttempts = 80;
+    const maxExtraRunCasesPerProblem = 6;
     const editorExtraVisibleLines = 1;
     const editorFixedVisibleLines = 14;
     const editorMaxAutoVisibleLines = 56;
@@ -1124,9 +1127,13 @@ const shortcutRows = [
     let clicked = readJson(clickedKey, {});
     let editorDrafts = readJson(editorKey, {});
     let editorAppearance = readJson(editorAppearanceKey, {});
+    let extraRunCases = readJson(extraRunCasesKey, {});
     let viewState = readJson(viewStateKey, {});
     if (!editorAppearance || typeof editorAppearance !== "object") {
       editorAppearance = {};
+    }
+    if (!extraRunCases || typeof extraRunCases !== "object") {
+      extraRunCases = {};
     }
     if (!viewState || typeof viewState !== "object") {
       viewState = {};
@@ -1414,6 +1421,10 @@ const shortcutRows = [
       localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
     }
 
+    function writeExtraRunCases() {
+      localStorage.setItem(extraRunCasesKey, JSON.stringify(extraRunCases));
+    }
+
     function writeTiming() {
       localStorage.setItem(timingKey, JSON.stringify(timing));
     }
@@ -1431,6 +1442,38 @@ const shortcutRows = [
       return [parts.year, parts.month, parts.day].join("-");
     }
 
+    function rollExtraRunCasesForToday() {
+      const todayKey = localDateKey();
+      const storedKey = localStorage.getItem(extraRunCasesDayKey);
+      if (storedKey === todayKey) return false;
+      localStorage.setItem(extraRunCasesDayKey, todayKey);
+      if (!storedKey) return false;
+      extraRunCases = {};
+      writeExtraRunCases();
+      return true;
+    }
+
+    function extraRunCaseList(slug) {
+      const cases = extraRunCases[slug];
+      return Array.isArray(cases)
+        ? cases.map((item) => String(item || "").trim()).filter(Boolean)
+        : [];
+    }
+
+    function extraRunTestcasesFor(problem) {
+      return extraRunCaseList(problem.titleSlug).join("\n");
+    }
+
+    function addExtraRunCase(slug, testcase) {
+      const normalized = String(testcase || "").trim();
+      if (!slug || !normalized) return false;
+      const cases = extraRunCaseList(slug).filter((item) => item !== normalized);
+      cases.push(normalized);
+      extraRunCases[slug] = cases.slice(-maxExtraRunCasesPerProblem);
+      writeExtraRunCases();
+      return true;
+    }
+
     function rollEditorDraftsForToday() {
       const todayKey = localDateKey();
       const storedKey = localStorage.getItem(editorDraftDayKey);
@@ -1444,7 +1487,11 @@ const shortcutRows = [
     }
 
     function syncEditorDraftDay() {
-      if (!rollEditorDraftsForToday()) return;
+      const extraCasesReset = rollExtraRunCasesForToday();
+      if (!rollEditorDraftsForToday()) {
+        if (extraCasesReset) scheduleViewStateWrite();
+        return;
+      }
       state.expandedSlug = "";
       render();
       scheduleViewStateWrite();
@@ -1452,6 +1499,7 @@ const shortcutRows = [
 
     syncDailyResetUi();
     applyEditorAppearance();
+    rollExtraRunCasesForToday();
     rollEditorDraftsForToday();
 
     function dateKeyParts(dateKey) {
@@ -3853,18 +3901,22 @@ const shortcutRows = [
       }
     }
 
-    function editorPayload(problem, textarea) {
+    function editorPayload(problem, textarea, options = {}) {
       const panel = textarea.closest(".leetcode-practice-panel");
       const select = panel?.querySelector("[data-editor-lang]");
       const lang =
         select instanceof HTMLSelectElement
           ? preferredLang(problem, select.value)
           : preferredLang(problem, editorDrafts[problem.titleSlug]?.lang);
-      return {
+      const payload = {
         code: textarea.value,
         langSlug: normalizeLangSlug(lang),
         titleSlug: problem.titleSlug,
       };
+      if (options.extraTestcases) {
+        payload.extraTestcases = options.extraTestcases;
+      }
+      return payload;
     }
 
     function setActionBusy(actionButton, busy) {
@@ -3873,13 +3925,22 @@ const shortcutRows = [
       }
     }
 
-    function setSubmitStatus(panel, message, tone = "", result = null) {
+    function setSubmitStatus(
+      panel,
+      message,
+      tone = "",
+      result = null,
+      detailRows = [],
+    ) {
       const status = panel?.querySelector("[data-submit-status]");
       if (status instanceof HTMLElement) {
         status.textContent = message;
         status.dataset.tone = tone;
       }
-      renderSubmissionFailureDetails(panel, tone === "error" ? result : null);
+      renderSubmitDetails(panel, [
+        ...detailRows,
+        ...(tone === "error" ? submissionFailureDetails(result) : []),
+      ]);
     }
 
     function delay(ms) {
@@ -3958,10 +4019,16 @@ const shortcutRows = [
       return response?.error?.code === leetcodeRequestTimeoutCode;
     }
 
-    function submissionAccepted(result) {
+    function submissionStatusAccepted(result) {
       return (
         result?.statusMessage === "Accepted" ||
-        result?.status_msg === "Accepted" ||
+        result?.status_msg === "Accepted"
+      );
+    }
+
+    function runAccepted(result) {
+      return (
+        submissionStatusAccepted(result) ||
         (result?.runSuccess &&
           result?.totalCorrect !== null &&
           result?.totalCorrect === result?.totalTestcases)
@@ -4048,6 +4115,18 @@ const shortcutRows = [
       ].filter(([, value]) => value);
     }
 
+    function runTestcaseDetails(testcases) {
+      const value = submissionDetailValue(testcases);
+      if (!value) return [];
+      return [[isChinesePage ? "运行用例" : "Run testcases", value]];
+    }
+
+    function saveFailedSubmissionCase(problem, result) {
+      const testcase = submissionDetailValue(result?.input);
+      if (!testcase) return false;
+      return addExtraRunCase(problem.titleSlug, testcase);
+    }
+
     function appendSubmissionDetailRow(container, label, value) {
       const row = document.createElement("div");
       const labelElement = document.createElement("span");
@@ -4060,11 +4139,10 @@ const shortcutRows = [
       container.append(row);
     }
 
-    function renderSubmissionFailureDetails(panel, result) {
+    function renderSubmitDetails(panel, rows) {
       const container = panel?.querySelector("[data-submit-detail]");
       if (!(container instanceof HTMLElement)) return;
       container.replaceChildren();
-      const rows = submissionFailureDetails(result);
       if (!rows.length) {
         container.hidden = true;
         return;
@@ -4110,11 +4188,23 @@ const shortcutRows = [
       return resultFinished(result) ? result : null;
     }
 
-    async function pollLeetcodeResult(panel, submissionId, label, maxAttempts) {
+    async function pollLeetcodeResult(
+      panel,
+      submissionId,
+      label,
+      maxAttempts,
+      detailRows = [],
+    ) {
       await delay(submissionPollInitialDelayMs);
       let lastErrorMessage = "";
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        setSubmitStatus(panel, `${label}，等待结果 ${attempt}/${maxAttempts}...`, "pending");
+        setSubmitStatus(
+          panel,
+          `${label}，等待结果 ${attempt}/${maxAttempts}...`,
+          "pending",
+          null,
+          detailRows,
+        );
         let response;
         try {
           response = await extensionRequest(
@@ -4129,6 +4219,8 @@ const shortcutRows = [
               panel,
               `${label}，本次查询超时，继续等待 ${attempt}/${maxAttempts}...`,
               "pending",
+              null,
+              detailRows,
             );
             await delay(submissionPollIntervalMs);
             continue;
@@ -4143,6 +4235,8 @@ const shortcutRows = [
               panel,
               `${label}，本次查询超时，继续等待 ${attempt}/${maxAttempts}...`,
               "pending",
+              null,
+              detailRows,
             );
             await delay(submissionPollIntervalMs);
             continue;
@@ -4163,6 +4257,7 @@ const shortcutRows = [
       kind,
       label,
       maxAttempts,
+      detailRows = [],
     ) {
       const initialResult = finishedInitialResult(response);
       if (initialResult) return initialResult;
@@ -4170,7 +4265,13 @@ const shortcutRows = [
       if (!submissionId) {
         throw new Error("力扣没有返回运行或提交 ID。");
       }
-      return pollLeetcodeResult(panel, submissionId, label, maxAttempts);
+      return pollLeetcodeResult(
+        panel,
+        submissionId,
+        label,
+        maxAttempts,
+        detailRows,
+      );
     }
 
     async function runLeetcode(panel, actionButton, problem, textarea) {
@@ -4178,13 +4279,26 @@ const shortcutRows = [
       try {
         await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在运行官方示例...", "pending");
+        const extraTestcases = extraRunTestcasesFor(problem);
         const response = await extensionRequest(
           extensionRunRequestType,
-          editorPayload(problem, textarea),
+          editorPayload(problem, textarea, { extraTestcases }),
           extensionInitialResultTimeoutMs,
         );
         if (!response?.ok) {
           throw new Error(extensionErrorMessage(response, "运行失败。"));
+        }
+        const testcaseRows = runTestcaseDetails(
+          response.data?.testcases || extraTestcases,
+        );
+        if (testcaseRows.length) {
+          setSubmitStatus(
+            panel,
+            "正在运行官方示例...",
+            "pending",
+            null,
+            testcaseRows,
+          );
         }
         const result = await leetcodeResultFromResponse(
           panel,
@@ -4192,13 +4306,14 @@ const shortcutRows = [
           extensionRunRequestType,
           "正在运行官方示例",
           runPollAttempts,
+          testcaseRows,
         );
         const summary = submissionSummary(result);
-        if (submissionAccepted(result)) {
-          setSubmitStatus(panel, `样例通过 ${summary}`, "success");
+        if (runAccepted(result)) {
+          setSubmitStatus(panel, `样例通过 ${summary}`, "success", null, testcaseRows);
           return;
         }
-        setSubmitStatus(panel, `样例未通过 ${summary}`, "error", result);
+        setSubmitStatus(panel, `样例未通过 ${summary}`, "error", result, testcaseRows);
       } catch (error) {
         setSubmitStatus(panel, error.message || "运行失败。", "error");
       } finally {
@@ -4227,7 +4342,7 @@ const shortcutRows = [
           submitPollAttempts,
         );
         const summary = submissionSummary(result);
-        if (submissionAccepted(result)) {
+        if (submissionStatusAccepted(result)) {
           const timingResult = recordAcceptedTiming(problem.titleSlug);
           const timingSummary =
             `${isChinesePage ? "本题" : "Problem"} ${formatDuration(timingResult.elapsed)}` +
@@ -4249,7 +4364,11 @@ const shortcutRows = [
           );
           return;
         }
-        setSubmitStatus(panel, summary, "error", result);
+        const savedCase = saveFailedSubmissionCase(problem, result);
+        const savedMessage = savedCase
+          ? (isChinesePage ? " · 已加入下次运行样例" : " · Added to next run")
+          : "";
+        setSubmitStatus(panel, `${summary}${savedMessage}`, "error", result);
       } catch (error) {
         setSubmitStatus(panel, error.message || "提交失败。", "error");
       } finally {

@@ -31,6 +31,7 @@ window.postMessage(
       titleSlug: "two-sum",
       langSlug: "cpp",
       code: "class Solution { ... };",
+      extraTestcases: "[0,4,3,0]\n0",
     },
   },
   window.location.origin,
@@ -38,9 +39,11 @@ window.postMessage(
 ```
 
 `run` creates an official-example run with the testcases returned by
-LeetCode's `questionEditorData.exampleTestcases`. `submit` creates a full
-LeetCode submission. Both request types use the same payload shape and return a
-LeetCode id quickly. The page then polls `check` with that id.
+LeetCode's `questionEditorData.exampleTestcases`, plus optional
+`extraTestcases` appended by the page. `submit` creates a full LeetCode
+submission and ignores `extraTestcases`. Both request types use the same core
+payload shape and return a LeetCode id quickly. The page then polls `check`
+with that id.
 
 The content script accepts messages only from the current page window on
 `wineandchord.com`, `www.wineandchord.com`, `localhost`, or `127.0.0.1`.
@@ -65,7 +68,8 @@ The extension responds back to the page with the same `requestId`.
     run: {
       interpret_id: 123456789,
     },
-    submissionId: 123456789
+    submissionId: 123456789,
+    testcases: "[2,7,11,15]\n9\n[0,4,3,0]\n0"
   }
 }
 ```

@@ -175,17 +175,20 @@ PB、当日均速新高、近 7 日活跃和连续天数；同时用一个折叠
 
 直接提交到力扣通过 `extensions/leetcode-submit` 里的 Chrome 扩展实现。
 页面只通过 `window.postMessage` 为 `run` 和 `submit` 发送 `titleSlug`、
-`langSlug` 和当前编辑器代码。content script 把请求转发给 extension
-background。background 负责持有力扣 cookie、查询 `questionEditorData`、
-通过 `interpret_solution` 创建官方示例运行任务、向力扣中国区创建完整提交，
-并尽快把 LeetCode 返回的运行或提交 ID 返回页面。页面随后用短 `check`
-请求轮询扩展；扩展每次只查一次 `/submissions/detail/{id}/check/` 并返回
-结构化状态，避免 Manifest V3 后台长时间等待导致消息通道断开。为了兼容
-已经加载的旧版 unpacked 扩展，页面也会先接受初始 `run` 或 `submit`
-响应里已经完成的结果，然后才发送 `check`。cookie 值不会发给页面
-JavaScript，也不会存入仓库。如果扩展未安装或用户未登录，页面只显示状态，
-本地编辑器仍然可用。力扣返回失败细节时，页面会在状态行下方展示失败用例、
-实际输出、期望输出，以及编译或运行错误诊断。
+`langSlug` 和当前编辑器代码；`run` 还可以带上本地保存的补充用例。content
+script 把请求转发给 extension background。background 负责持有力扣 cookie、
+查询 `questionEditorData`、通过 `interpret_solution` 创建官方示例加补充
+用例运行任务、向力扣中国区创建完整提交，并尽快把 LeetCode 返回的运行或
+提交 ID 返回页面。页面随后用短 `check` 请求轮询扩展；扩展每次只查一次
+`/submissions/detail/{id}/check/` 并返回结构化状态，避免 Manifest V3
+后台长时间等待导致消息通道断开。为了兼容已经加载的旧版 unpacked 扩展，
+页面也会先接受初始 `run` 或 `submit` 响应里已经完成的结果，然后才发送
+`check`。cookie 值不会发给页面 JavaScript，也不会存入仓库。如果扩展
+未安装或用户未登录，页面只显示状态，本地编辑器仍然可用。运行样例结果区会
+展示实际发送给力扣的用例输入。完整提交返回失败用例时，页面会在状态行下方
+展示失败用例、实际输出、期望输出，以及编译或运行错误诊断，并把该失败用例
+保存为同题下次运行样例的补充用例。补充用例会在下一个北京时间自然日清空，
+所以每天练习都会重新从官方默认样例开始。
 页面底部还提供常驻的 GitHub 仓库、扩展目录、反馈 issue 和页面规格链接。
 扩展安装说明默认折叠，讲清楚如何从本仓库加载这个未打包的 Chrome 扩展。
 

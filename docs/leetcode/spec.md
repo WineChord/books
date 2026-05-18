@@ -229,10 +229,11 @@ flow remains automatic.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and
-the current editor code through `window.postMessage` for `run` and `submit`.
-The content script forwards that request to the extension background. The
-background owns the LeetCode cookies, queries `questionEditorData`, runs
-official examples through `interpret_solution`, posts full submissions to
+the current editor code through `window.postMessage` for `run` and `submit`;
+`run` may also send locally saved extra testcases. The content script forwards
+that request to the extension background. The background owns the LeetCode
+cookies, queries `questionEditorData`, runs official examples plus any saved
+extra testcases through `interpret_solution`, posts full submissions to
 LeetCode China, and returns the LeetCode submission or interpretation id
 quickly. The page then polls the extension with short `check` requests, and
 the extension checks `/submissions/detail/{id}/check/` once per request. This
@@ -242,9 +243,12 @@ extensions, the page also accepts a finished result returned by the initial
 `run` or `submit` response before sending `check`. Cookie values are never sent
 to page JavaScript or stored in the repo. If the extension is not installed or
 the user is not logged in, the page shows that as status and keeps the local
-editor usable. When LeetCode returns failure details, the page shows the
+editor usable. The run result panel shows the exact testcase input sent to
+LeetCode. When full submission returns a failed testcase, the page shows the
 failing testcase, actual output, expected output, and compile or runtime
-diagnostics below the status line.
+diagnostics below the status line, then stores that testcase as an extra run
+case for the same problem. Extra run cases reset on the next Beijing calendar
+day, so daily practice starts from the official examples again.
 The page footer also keeps always-visible links to the GitHub repository,
 extension directory, feedback issues, and page spec. It also includes a
 collapsed, beginner-oriented installation guide for loading this unpacked
