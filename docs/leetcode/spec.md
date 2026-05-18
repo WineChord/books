@@ -183,6 +183,9 @@ When a practice editor is open, the cleaned local problem statement is rendered
 as normal page UI directly above the code editor. It is on by default, uses a
 moderate reading size rather than code comments, and can be collapsed or shown
 again from the statement panel; that visibility choice is saved per browser.
+Opening a problem or moving between problems with keyboard navigation frames
+the statement and editor together below the sticky header, so the editor keeps
+focus without hiding the local statement above it.
 Editor shortcuts match the primary LeetCode muscle memory: `Cmd+'`
 runs the official example testcases and `Cmd+Enter` performs a full LeetCode
 submit. Inside the editor, `Cmd+/` toggles line comments for the current

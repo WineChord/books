@@ -1291,6 +1291,10 @@ const shortcutRows = [
     const editorCaretBottomGuardMin = 96;
     const editorCaretBottomGuardMax = 220;
     const editorCaretTopGuard = 88;
+    const editorContextTopGap = 12;
+    const editorContextMaxRevealRatio = 0.35;
+    const editorContextMaxRevealMin = 140;
+    const editorContextMaxRevealMax = 280;
     const editorDraftDayCheckIntervalMs = 60 * 1000;
     const previewHoverCloseDelayMs = 180;
     const viewStateWriteDelayMs = 120;
@@ -3425,21 +3429,73 @@ const shortcutRows = [
       );
     }
 
-    function focusEditorForSlug(slug) {
+    function stickyHeaderOffset() {
+      const header = document.querySelector("header");
+      const height =
+        header instanceof HTMLElement ? header.getBoundingClientRect().height : 0;
+      return Math.max(0, height + editorContextTopGap);
+    }
+
+    function editorContextMaxReveal() {
+      const viewportHeight =
+        window.innerHeight || document.documentElement.clientHeight || 0;
+      return Math.min(
+        editorContextMaxRevealMax,
+        Math.max(
+          editorContextMaxRevealMin,
+          viewportHeight * editorContextMaxRevealRatio,
+        ),
+      );
+    }
+
+    function scrollEditorContextIntoView(panel, textarea, behavior = "smooth") {
+      if (!(panel instanceof HTMLElement)) return;
+      const viewportHeight =
+        window.innerHeight || document.documentElement.clientHeight || 0;
+      const headerOffset = stickyHeaderOffset();
+      const panelTop = panel.getBoundingClientRect().top + window.scrollY;
+      const editorTop =
+        textarea instanceof HTMLTextAreaElement
+          ? textarea.getBoundingClientRect().top + window.scrollY
+          : panelTop;
+      const editorOffset = Math.max(0, editorTop - panelTop);
+      const editorLimit = viewportHeight - editorBottomGuard();
+      let nextTop = panelTop - headerOffset;
+
+      if (editorOffset > editorLimit) {
+        const contextReveal = Math.min(editorOffset, editorContextMaxReveal());
+        nextTop = editorTop - headerOffset - contextReveal;
+      }
+
+      window.scrollTo({
+        behavior,
+        left: 0,
+        top: Math.max(0, nextTop),
+      });
+    }
+
+    function focusEditorForSlug(slug, options = {}) {
       window.requestAnimationFrame(() => {
         const panel = editorPanelForSlug(slug);
         const row = Array.from(list?.querySelectorAll(".leetcode-row") || [])
           .find((item) => item instanceof HTMLElement && item.dataset.slug === slug);
         const textarea = panel?.querySelector("[data-editor-code]");
         const target = panel || row;
+        const shouldFrameContext = options.frameContext === true;
         if (target instanceof HTMLElement) {
-          target.scrollIntoView({ block: "center", behavior: "smooth" });
+          if (shouldFrameContext && panel instanceof HTMLElement) {
+            scrollEditorContextIntoView(panel, textarea);
+          } else {
+            target.scrollIntoView({ block: "center", behavior: "smooth" });
+          }
         }
         if (textarea instanceof HTMLTextAreaElement) {
           const context = editorContextFor(textarea);
           textarea.focus({ preventScroll: true });
           placeEditorCaretAtImplementation(textarea, context);
-          scheduleEditorCaretReveal(textarea, "smooth");
+          if (!shouldFrameContext) {
+            scheduleEditorCaretReveal(textarea, "smooth");
+          }
         }
       });
     }
@@ -3461,7 +3517,7 @@ const shortcutRows = [
       state.expandedSlug = target.titleSlug;
       render();
       scheduleViewStateWrite();
-      focusEditorForSlug(target.titleSlug);
+      focusEditorForSlug(target.titleSlug, { frameContext: true });
     }
 
     function navigatePractice(direction, fallbackSlug = "") {
@@ -6660,7 +6716,7 @@ const shortcutRows = [
       state.expandedSlug = shouldOpen ? slug : "";
       render();
       scheduleViewStateWrite();
-      if (shouldOpen) focusEditorForSlug(slug);
+      if (shouldOpen) focusEditorForSlug(slug, { frameContext: true });
     });
 
     list?.addEventListener("pointerover", (event) => {
