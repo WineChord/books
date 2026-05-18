@@ -91,17 +91,18 @@ Each row shows the identifiers that matter for practice:
 3. the ByteDance company rank when the row is in the ByteDance company list;
 4. the original LeetCode frontend problem id inside the clickable title.
 
-Statement, approach, implementation, and tags are all attached to the title
-cell so the pointer does not need to cross the table. Hovering the linked title
-shows the statement. Moving slightly right to Approach shows the approach.
-Moving slightly farther right to Implementation shows the reference
-implementation. Moving one more small step to Tags shows topic tags and
-supplemental badges. The Related preview shows same-series problems first,
-then official LeetCode related problems, then a compact same-track high
-frequency set. In-book related problems open directly in the local practice
-panel; related problems outside the book open on LeetCode China and keep their
-paid-only marker when LeetCode reports one. These preview targets stay compact
-and must not increase the normal row height.
+Approach, implementation, tags, and related controls are attached to the title
+cell so the pointer does not need to cross the table. The linked title itself
+opens LeetCode directly and does not show a hover statement popover. The
+statement is shown inside the practice panel above the editor instead. Moving
+slightly right to Approach shows the approach. Moving slightly farther right to
+Implementation shows the reference implementation. Moving one more small step
+to Tags shows topic tags and supplemental badges. The Related preview shows
+same-series problems first, then official LeetCode related problems, then a
+compact same-track high frequency set. In-book related problems open directly
+in the local practice panel; related problems outside the book open on LeetCode
+China and keep their paid-only marker when LeetCode reports one. These preview
+targets stay compact and must not increase the normal row height.
 
 The duplicate audit appears below the working list in a collapsed details
 section. It lists every removed duplicate, the kept row, and the original
@@ -272,7 +273,8 @@ collapsed, beginner-oriented installation guide for loading or reloading this
 unpacked Chrome extension from the repository; the practice editor links
 directly to this guide.
 
-Preview controls include statement, approach, and implementation. Approach,
+Preview controls include approach, implementation, tags, and related problems.
+The statement is not a hover target; it lives above the open editor. Approach,
 implementation, and tag previews can be inspected temporarily by hover or
 pinned open by click. Hover previews should stay open while the pointer moves
 from the trigger into the floating content, then close after the pointer leaves
@@ -319,9 +321,9 @@ browser profile.
 
 ## Preview Contract
 
-The statement preview is a short plain-text excerpt from the Chinese problem
-statement. Prompt-like boilerplate embedded in problem text is removed from the
-preview before rendering.
+The statement panel uses a short plain-text excerpt from the Chinese problem
+statement. Prompt-like boilerplate embedded in problem text is removed before
+rendering.
 
 The approach preview has two layers:
 
