@@ -1013,6 +1013,7 @@ const shortcutRows = [
     const editorDraftDayKey = "leetcode-book-editor-day-v1";
     const editorDailyResetKey = "leetcode-book-editor-daily-reset-v1";
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
+    const editorStatementPanelKey = "leetcode-book-editor-statement-panel-v1";
     const extraRunCasesKey = "leetcode-book-extra-run-cases-v1";
     const extraRunCasesDayKey = "leetcode-book-extra-run-cases-day-v1";
     const timingKey = "leetcode-book-timing-v1";
@@ -1159,6 +1160,8 @@ const shortcutRows = [
       viewState = {};
     }
     let editorAutoGrow = localStorage.getItem(editorHeightModeKey) !== "fixed";
+    let editorStatementPanelVisible =
+      localStorage.getItem(editorStatementPanelKey) !== "off";
     let timing = readJson(timingKey, {});
     if (!timing || typeof timing !== "object") timing = {};
     timing.problems = timing.problems && typeof timing.problems === "object"
@@ -5109,6 +5112,107 @@ const shortcutRows = [
       }
     }
 
+    function problemStatementText(problem) {
+      return String(
+        problem.statement ||
+          problem.statementText ||
+          problem.contentText ||
+          problem.statementPreview ||
+          "",
+      ).trim();
+    }
+
+    function problemStatementParagraphs(problem) {
+      const text = problemStatementText(problem);
+      if (!text) return [];
+      const explicitParagraphs = text
+        .replace(/\r\n/g, "\n")
+        .split(/\n{2,}/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean);
+      if (explicitParagraphs.length > 1) return explicitParagraphs;
+
+      const sentences = text
+        .match(/[^。！？；.!?;]+[。！？；.!?;]?/g)
+        ?.map((sentence) => sentence.trim())
+        .filter(Boolean);
+      if (!sentences?.length) return [text];
+
+      const paragraphs = [];
+      let current = "";
+      sentences.forEach((sentence) => {
+        if (current && `${current} ${sentence}`.length > 190) {
+          paragraphs.push(current);
+          current = sentence;
+          return;
+        }
+        current = current ? `${current} ${sentence}` : sentence;
+      });
+      if (current) paragraphs.push(current);
+      return paragraphs;
+    }
+
+    function renderProblemStatementPanel(problem) {
+      const slug = escapeHtml(problem.titleSlug);
+      const hiddenClass = editorStatementPanelVisible ? "" : " is-hidden";
+      const paragraphs = problemStatementParagraphs(problem);
+      const body = paragraphs.length
+        ? paragraphs
+            .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+            .join("")
+        : `<p>${
+            isChinesePage
+              ? "本地题面待同步，可先打开力扣原题查看。"
+              : "Local statement pending; open LeetCode for the full problem."
+          }</p>`;
+      return `
+        <div class="leetcode-statement-panel${hiddenClass}" data-statement-panel="${slug}">
+          <div class="leetcode-statement-collapsed">
+            <span>${isChinesePage ? "题面已收起" : "Statement hidden"}</span>
+            <button type="button" data-editor-action="statement-panel" data-statement-visible="true" aria-expanded="false">
+              ${isChinesePage ? "显示题面" : "Show statement"}
+            </button>
+          </div>
+          <div class="leetcode-statement-content">
+            <div class="leetcode-statement-head">
+              <span class="leetcode-statement-label">${isChinesePage ? "题面" : "Statement"}</span>
+              <div class="leetcode-statement-actions">
+                <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${slug}">
+                  ${isChinesePage ? "力扣原题" : "LeetCode"}
+                </a>
+                <button type="button" data-editor-action="statement-panel" data-statement-visible="false" aria-expanded="true">
+                  ${isChinesePage ? "收起" : "Hide"}
+                </button>
+              </div>
+            </div>
+            <div class="leetcode-statement-body">
+              ${body}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function syncStatementPanels() {
+      list?.querySelectorAll("[data-statement-panel]").forEach((panel) => {
+        if (!(panel instanceof HTMLElement)) return;
+        panel.classList.toggle("is-hidden", !editorStatementPanelVisible);
+        panel.querySelectorAll("[data-statement-visible]").forEach((control) => {
+          if (!(control instanceof HTMLElement)) return;
+          control.setAttribute("aria-expanded", String(editorStatementPanelVisible));
+        });
+      });
+    }
+
+    function setStatementPanelVisible(visible) {
+      editorStatementPanelVisible = visible;
+      localStorage.setItem(
+        editorStatementPanelKey,
+        editorStatementPanelVisible ? "on" : "off",
+      );
+      syncStatementPanels();
+    }
+
     function renderPracticePanel(problem) {
       const draft = draftFor(problem);
       const lang = preferredLang(problem, draft.lang);
@@ -5116,6 +5220,7 @@ const shortcutRows = [
       const languages = editorLanguages(problem);
       return `
         <section class="leetcode-practice-panel" data-editor-panel="${escapeHtml(problem.titleSlug)}">
+          ${renderProblemStatementPanel(problem)}
           <div class="leetcode-editor-shell">
             <pre class="leetcode-editor-lines" aria-hidden="true">${editorLineNumbersText(code)}</pre>
             <pre class="leetcode-editor-highlight" aria-hidden="true"><code>${editorHighlightHtml(code, lang)}</code></pre>
@@ -5266,6 +5371,7 @@ const shortcutRows = [
         resultCount.textContent = `${items.length} 道题`;
       }
       syncPagination();
+      syncStatementPanels();
       syncRenderedEditors();
       syncRenderedExtensionStatus();
       syncActivePracticeTimerAfterRender();
@@ -5462,6 +5568,10 @@ const shortcutRows = [
         }
         const actionButton = target.closest("[data-editor-action]");
         if (actionButton instanceof HTMLElement) {
+          if (actionButton.dataset.editorAction === "statement-panel") {
+            setStatementPanelVisible(actionButton.dataset.statementVisible === "true");
+            return;
+          }
           const slug = actionButton.dataset.slug || "";
           const panel = actionButton.closest(".leetcode-practice-panel");
           const textarea = panel?.querySelector("[data-editor-code]");
@@ -6846,6 +6956,89 @@ const shortcutRows = [
       padding: 0.56rem 0.72rem 0.62rem;
     }
 
+    .leetcode-statement-panel {
+      display: grid;
+      gap: 0.52rem;
+      border: 1px solid rgb(194 192 182 / 54%);
+      border-radius: 0.45rem;
+      background: rgb(255 255 255 / 42%);
+      padding: 0.62rem 0.72rem 0.68rem;
+    }
+
+    .leetcode-statement-panel.is-hidden {
+      gap: 0;
+      padding: 0.38rem 0.52rem;
+    }
+
+    .leetcode-statement-panel.is-hidden .leetcode-statement-content,
+    .leetcode-statement-panel:not(.is-hidden) .leetcode-statement-collapsed {
+      display: none;
+    }
+
+    .leetcode-statement-collapsed,
+    .leetcode-statement-head,
+    .leetcode-statement-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.34rem;
+    }
+
+    .leetcode-statement-collapsed,
+    .leetcode-statement-head {
+      justify-content: space-between;
+    }
+
+    .leetcode-statement-label,
+    .leetcode-statement-collapsed span {
+      color: #72563c;
+      font-size: 0.74rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .leetcode-statement-actions {
+      justify-content: flex-end;
+    }
+
+    .leetcode-statement-actions a,
+    .leetcode-statement-panel button {
+      border: 1px solid var(--color-border);
+      border-radius: 0.38rem;
+      background: transparent;
+      color: var(--color-muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.68rem;
+      line-height: 1.15;
+      padding: 0.17rem 0.34rem;
+      text-decoration: none;
+    }
+
+    .leetcode-statement-actions a:hover,
+    .leetcode-statement-panel button:hover {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-statement-body {
+      display: grid;
+      gap: 0.44rem;
+      max-height: min(22rem, 42vh);
+      overflow: auto;
+      color: var(--color-secondary);
+      font-size: 0.88rem;
+      line-height: 1.72;
+      padding-right: 0.18rem;
+    }
+
+    .leetcode-practice-panel .leetcode-statement-body p {
+      color: inherit;
+      font-size: inherit;
+      line-height: inherit;
+      margin: 0;
+    }
+
     .leetcode-practice-head,
     .leetcode-practice-actions {
       display: flex;
@@ -7265,6 +7458,26 @@ const shortcutRows = [
 
     html.dark .leetcode-practice-panel {
       background: rgb(30 30 28 / 42%);
+    }
+
+    html.dark .leetcode-statement-panel {
+      border-color: #333;
+      background: rgb(21 21 20 / 46%);
+    }
+
+    html.dark .leetcode-statement-label,
+    html.dark .leetcode-statement-collapsed span {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-statement-body {
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-statement-actions a,
+    html.dark .leetcode-statement-panel button {
+      border-color: #333;
+      color: var(--color-muted);
     }
 
     html.dark .leetcode-submit-detail-label {
