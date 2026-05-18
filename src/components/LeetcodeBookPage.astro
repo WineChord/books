@@ -78,6 +78,9 @@ const flowModeTitle = isZh
 const skipSqlFlowTitle = isZh
   ? "顺序跳转、推荐流和 Option+↑/↓ 跳过数据库 SQL 题"
   : "Skip database SQL problems in list flow, suggested flow, and Option+Up/Down";
+const skipFrontendFlowTitle = isZh
+  ? "顺序跳转、推荐流和 Option+↑/↓ 跳过纯前端 JavaScript/TypeScript 题"
+  : "Skip pure frontend JavaScript/TypeScript problems in list flow, suggested flow, and Option+Up/Down";
 const suggestedFlowTitle = isZh
   ? "启动猜你想练推荐流（Cmd+Option+Shift+F）"
   : "Start suggested practice flow (Cmd+Option+Shift+F)";
@@ -722,7 +725,8 @@ const shortcutRows = [
         </div>
         <div class="leetcode-session-actions">
           <button type="button" data-flow-mode-toggle aria-pressed="false" title={flowModeTitle}>{isZh ? "沉浸流：关" : "Flow: off"}</button>
-          <button type="button" data-flow-skip-sql aria-pressed="false" title={skipSqlFlowTitle}>{isZh ? "跳过 SQL：关" : "Skip SQL: off"}</button>
+          <button type="button" data-flow-skip-sql aria-pressed="true" title={skipSqlFlowTitle}>{isZh ? "跳过 SQL：开" : "Skip SQL: on"}</button>
+          <button type="button" data-flow-skip-frontend aria-pressed="true" title={skipFrontendFlowTitle}>{isZh ? "跳过前端：开" : "Skip FE: on"}</button>
           <button type="button" data-timing-action="reset-session" title={resetSessionTitle}>{isZh ? "重开本次" : "Reset session"}</button>
           <button type="button" data-timing-action="restart-problem" title={restartProblemTimerTitle}>{isZh ? "重开本题" : "Restart problem"}</button>
           <button type="button" class="is-subtle" data-timing-action="clear-problem-record" title={clearProblemRecordTitle}>{isZh ? "清本题记录" : "Clear record"}</button>
@@ -1236,6 +1240,7 @@ const shortcutRows = [
     const editorStatementPanelKey = "leetcode-book-editor-statement-panel-v1";
     const flowModeKey = "leetcode-book-flow-mode-v1";
     const flowSkipSqlKey = "leetcode-book-flow-skip-sql-v1";
+    const flowSkipFrontendKey = "leetcode-book-flow-skip-frontend-v1";
     const extraRunCasesKey = "leetcode-book-extra-run-cases-v1";
     const extraRunCasesDayKey = "leetcode-book-extra-run-cases-day-v1";
     const timingKey = "leetcode-book-timing-v1";
@@ -1261,6 +1266,9 @@ const shortcutRows = [
     );
     const flowSkipSqlButtons = Array.from(
       document.querySelectorAll("[data-flow-skip-sql]"),
+    );
+    const flowSkipFrontendButtons = Array.from(
+      document.querySelectorAll("[data-flow-skip-frontend]"),
     );
     const pageFontSelect = document.getElementById("leetcode-page-font");
     const editorThemeSelect = document.getElementById("leetcode-editor-theme");
@@ -1379,7 +1387,8 @@ const shortcutRows = [
     const flowModeOff = "off";
     const flowModeList = "list";
     const flowModeInsight = "insight";
-    const flowSkipSqlOn = "on";
+    const flowSkipOn = "on";
+    const flowSkipDefaultEnabled = true;
     const sqlProblemTagSlug = "database";
     const sqlLanguageSlugs = new Set([
       "mysql",
@@ -1387,6 +1396,10 @@ const shortcutRows = [
       "oracle",
       "oraclesql",
       "sql",
+    ]);
+    const frontendLanguageSlugs = new Set([
+      "javascript",
+      "typescript",
     ]);
     const insightDisplayLimit = 5;
     const submissionHistoryLimit = 80;
@@ -1531,7 +1544,8 @@ const shortcutRows = [
     let editorStatementPanelVisible =
       localStorage.getItem(editorStatementPanelKey) !== "off";
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
-    let flowSkipSql = localStorage.getItem(flowSkipSqlKey) === flowSkipSqlOn;
+    let flowSkipSql = savedFlowSkipEnabled(flowSkipSqlKey);
+    let flowSkipFrontend = savedFlowSkipEnabled(flowSkipFrontendKey);
     let timing = readJson(timingKey, {});
     if (!timing || typeof timing !== "object") timing = {};
     timing.problems = timing.problems && typeof timing.problems === "object"
@@ -1567,19 +1581,39 @@ const shortcutRows = [
       return flowModeOff;
     }
 
+    function savedFlowSkipEnabled(key) {
+      const value = localStorage.getItem(key);
+      if (value === flowModeOff) return false;
+      if (value === flowSkipOn) return true;
+      return flowSkipDefaultEnabled;
+    }
+
+    function problemCodeTemplates(problem) {
+      return Array.isArray(problem?.codeTemplates) ? problem.codeTemplates : [];
+    }
+
     function isSqlProblem(problem) {
       const tags = Array.isArray(problem?.tags) ? problem.tags : [];
       if (tags.some((tag) => tag?.slug === sqlProblemTagSlug)) return true;
-      const templates = Array.isArray(problem?.codeTemplates)
-        ? problem.codeTemplates
-        : [];
-      return templates.some((template) => (
+      return problemCodeTemplates(problem).some((template) => (
         sqlLanguageSlugs.has(languageKey(template?.langSlug || template?.lang))
       ));
     }
 
-    function shouldSkipSqlProblem(problem) {
-      return flowSkipSql && isSqlProblem(problem);
+    function isPureFrontendProblem(problem) {
+      const templates = problemCodeTemplates(problem);
+      return templates.length > 0 && templates.every((template) => (
+        frontendLanguageSlugs.has(
+          languageKey(template?.langSlug || template?.lang),
+        )
+      ));
+    }
+
+    function shouldSkipRouteProblem(problem) {
+      return (
+        (flowSkipSql && isSqlProblem(problem)) ||
+        (flowSkipFrontend && isPureFrontendProblem(problem))
+      );
     }
 
     function writeEditorAppearance() {
@@ -1646,18 +1680,26 @@ const shortcutRows = [
         : (isChinesePage ? "跳过 SQL：关" : "Skip SQL: off");
     }
 
-    function flowSkipSqlStatus() {
-      return flowSkipSql
-        ? (
-          isChinesePage
-            ? "刷题跳转将跳过数据库 SQL 题"
-            : "Practice routing will skip database SQL problems"
-        )
-        : (
-          isChinesePage
-            ? "刷题跳转包含数据库 SQL 题"
-            : "Practice routing includes database SQL problems"
-        );
+    function flowSkipFrontendLabel() {
+      return flowSkipFrontend
+        ? (isChinesePage ? "跳过前端：开" : "Skip FE: on")
+        : (isChinesePage ? "跳过前端：关" : "Skip FE: off");
+    }
+
+    function flowSkipStatus() {
+      const skipped = [];
+      if (flowSkipSql) skipped.push(isChinesePage ? "SQL" : "SQL");
+      if (flowSkipFrontend) {
+        skipped.push(isChinesePage ? "纯前端" : "pure frontend");
+      }
+      if (skipped.length) {
+        return isChinesePage
+          ? `刷题跳转将跳过 ${skipped.join("、")} 题`
+          : `Practice routing will skip ${skipped.join(" and ")} problems`;
+      }
+      return isChinesePage
+        ? "刷题跳转包含 SQL 和纯前端题"
+        : "Practice routing includes SQL and pure frontend problems";
     }
 
     function syncFlowSkipSqlUi() {
@@ -1667,6 +1709,26 @@ const shortcutRows = [
         button.setAttribute("aria-pressed", String(flowSkipSql));
         button.textContent = flowSkipSqlLabel();
       });
+    }
+
+    function syncFlowSkipFrontendUi() {
+      flowSkipFrontendButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        button.classList.toggle("is-on", flowSkipFrontend);
+        button.setAttribute("aria-pressed", String(flowSkipFrontend));
+        button.textContent = flowSkipFrontendLabel();
+      });
+    }
+
+    function syncFlowSkipUi() {
+      syncFlowSkipSqlUi();
+      syncFlowSkipFrontendUi();
+    }
+
+    function flowSkipBoundaryLabel(direction) {
+      return flowSkipSql || flowSkipFrontend
+        ? skippedRouteBoundaryLabel(direction)
+        : normalRouteBoundaryLabel(direction);
     }
 
     function syncFlowModeUi() {
@@ -1697,19 +1759,59 @@ const shortcutRows = [
       });
     }
 
+    function normalRouteBoundaryLabel(direction) {
+      if (direction > 0) {
+        return isChinesePage
+          ? "当前列表没有下一题"
+          : "No next problem in the current list";
+      }
+      return isChinesePage
+        ? "当前列表没有上一题"
+        : "No previous problem in the current list";
+    }
+
+    function skippedRouteBoundaryLabel(direction) {
+      if (direction > 0) {
+        return isChinesePage
+          ? "跳过已关闭题型后当前列表没有下一题"
+          : "No next problem after skipped problem types";
+      }
+      return isChinesePage
+        ? "跳过已关闭题型后当前列表没有上一题"
+        : "No previous problem after skipped problem types";
+    }
+
+    function setFlowSkipValue(key, nextValue) {
+      localStorage.setItem(
+        key,
+        nextValue ? flowSkipOn : flowModeOff,
+      );
+    }
+
     function setFlowSkipSql(nextValue) {
       flowSkipSql = Boolean(nextValue);
-      localStorage.setItem(
-        flowSkipSqlKey,
-        flowSkipSql ? flowSkipSqlOn : flowModeOff,
-      );
-      syncFlowSkipSqlUi();
+      setFlowSkipValue(flowSkipSqlKey, flowSkipSql);
+      syncFlowSkipUi();
       syncSubmissionInsightUi();
     }
 
     function toggleFlowSkipSql() {
       setFlowSkipSql(!flowSkipSql);
-      timingMilestone = flowSkipSqlStatus();
+      timingMilestone = flowSkipStatus();
+      syncTimingUi();
+      return true;
+    }
+
+    function setFlowSkipFrontend(nextValue) {
+      flowSkipFrontend = Boolean(nextValue);
+      setFlowSkipValue(flowSkipFrontendKey, flowSkipFrontend);
+      syncFlowSkipUi();
+      syncSubmissionInsightUi();
+    }
+
+    function toggleFlowSkipFrontend() {
+      setFlowSkipFrontend(!flowSkipFrontend);
+      timingMilestone = flowSkipStatus();
       syncTimingUi();
       return true;
     }
@@ -2062,7 +2164,7 @@ const shortcutRows = [
 
     syncDailyResetUi();
     syncFlowModeUi();
-    syncFlowSkipSqlUi();
+    syncFlowSkipUi();
     applyEditorAppearance();
     rollExtraRunCasesForToday();
     rollEditorDraftsForToday();
@@ -3170,7 +3272,7 @@ const shortcutRows = [
 
     function suggestedPracticeItems() {
       return submissionInsightItems()
-        .filter((item) => !shouldSkipSqlProblem(item.problem));
+        .filter((item) => !shouldSkipRouteProblem(item.problem));
     }
 
     function suggestedFlowProblem(excludedSlug = "") {
@@ -4126,7 +4228,7 @@ const shortcutRows = [
         index >= 0 && index < items.length;
         index += step
       ) {
-        if (!shouldSkipSqlProblem(items[index])) {
+        if (!shouldSkipRouteProblem(items[index])) {
           return { index, problem: items[index] };
         }
       }
@@ -4143,29 +4245,7 @@ const shortcutRows = [
         : currentIndex;
       const target = practiceRouteTarget(items, startIndex, direction);
       if (!target) {
-        const boundary = direction > 0
-          ? (
-            isChinesePage
-              ? "当前列表没有下一题"
-              : "No next problem in the current list"
-          )
-          : (
-            isChinesePage
-              ? "当前列表没有上一题"
-              : "No previous problem in the current list"
-          );
-        const skippedBoundary = direction > 0
-          ? (
-            isChinesePage
-              ? "跳过 SQL 后当前列表没有下一题"
-              : "No next problem after skipping SQL"
-          )
-          : (
-            isChinesePage
-              ? "跳过 SQL 后当前列表没有上一题"
-              : "No previous problem after skipping SQL"
-          );
-        timingMilestone = flowSkipSql ? skippedBoundary : boundary;
+        timingMilestone = flowSkipBoundaryLabel(direction);
         syncTimingUi();
         return;
       }
@@ -7360,6 +7440,11 @@ const shortcutRows = [
         toggleFlowSkipSql();
         return;
       }
+      const flowSkipFrontendToggle = target.closest("[data-flow-skip-frontend]");
+      if (flowSkipFrontendToggle instanceof HTMLElement) {
+        toggleFlowSkipFrontend();
+        return;
+      }
       const actionButton = target.closest("[data-timing-action]");
       if (!(actionButton instanceof HTMLElement)) return;
       const action = actionButton.dataset.timingAction || "";
@@ -8154,6 +8239,7 @@ const shortcutRows = [
       grid-column: 10;
       grid-row: 1;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 0.22rem;
       justify-content: flex-end;

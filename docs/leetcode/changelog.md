@@ -17,9 +17,11 @@ its Chrome extension workflow.
 - A suggested-flow action in the "Suggested practice" popover, also available
   with `Cmd+Option+Shift+F`. It opens the top recommendation first, then
   recomputes recommendations and advances after each full Accepted submit.
-- A default-off "Skip SQL" route toggle for `Option+Up/Down`, list flow, and
-  suggested flow. It skips database-tagged SQL problems during automatic
-  practice routing while keeping them visible for search and manual opening.
+- Default-on "Skip SQL" and "Skip frontend" route toggles for
+  `Option+Up/Down`, list flow, and suggested flow. They skip database-tagged
+  SQL problems and pure frontend JavaScript/TypeScript problems during
+  automatic practice routing while keeping them visible for search and manual
+  opening.
 - Data ranges for every problem shown in the local statement panel, synced
   from LeetCode problem statements with public Doocs fallbacks for paid-only
   statements.
