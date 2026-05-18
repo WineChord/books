@@ -1188,9 +1188,9 @@ const shortcutRows = [
         <label for="leetcode-page-font">
           <span>{isZh ? "页面字体" : "Page font"}</span>
           <select id="leetcode-page-font">
+            <option value="system" selected>{isZh ? "系统黑体" : "System sans"}</option>
             <option value="kai">{isZh ? "楷体" : "Kai"}</option>
             <option value="serif">{isZh ? "原本衬线" : "Original serif"}</option>
-            <option value="system">{isZh ? "系统黑体" : "System sans"}</option>
           </select>
         </label>
         <label for="leetcode-editor-theme">
@@ -1425,9 +1425,7 @@ const shortcutRows = [
       Digit0: "review",
       Minus: "unmastered",
     };
-    const pageFontDefaultApple = "system";
-    const pageFontDefaultFallback = "kai";
-    const appleDevicePattern = /Mac|iPhone|iPad|iPod/i;
+    const pageFontDefault = "system";
     const editorDefaultTheme = "cursor-light";
     const editorDefaultFont = "cursor";
     const editorDefaultSize = "compact";
@@ -2265,12 +2263,7 @@ const shortcutRows = [
     }
 
     function defaultPageFont() {
-      const platform = navigator.platform || "";
-      const userAgent = navigator.userAgent || "";
-      const deviceSignature = `${platform} ${userAgent}`;
-      return appleDevicePattern.test(deviceSignature)
-        ? pageFontDefaultApple
-        : pageFontDefaultFallback;
+      return pageFontDefault;
     }
 
     function syncDailyResetUi() {
@@ -8788,11 +8781,11 @@ const shortcutRows = [
     .leetcode-shell {
       --leetcode-kai-font: "Kaiti SC", "STKaiti", "KaiTi", "KaiTi SC",
         "楷体", serif;
-      --leetcode-page-font: var(--leetcode-kai-font);
-      --leetcode-display-font: var(--leetcode-kai-font);
       --leetcode-system-font: "PingFang SC", -apple-system,
         BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Sans GB",
         "Microsoft YaHei", sans-serif;
+      --leetcode-page-font: var(--leetcode-system-font);
+      --leetcode-display-font: var(--leetcode-system-font);
       --leetcode-statement-font: var(--leetcode-system-font);
       --leetcode-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
         monospace;
@@ -8822,6 +8815,11 @@ const shortcutRows = [
       --leetcode-stack-gap: 0.48rem;
       color: var(--color-charcoal);
       font-family: var(--leetcode-page-font);
+    }
+
+    .leetcode-shell[data-page-font="kai"] {
+      --leetcode-page-font: var(--leetcode-kai-font);
+      --leetcode-display-font: var(--leetcode-kai-font);
     }
 
     .leetcode-shell[data-page-font="serif"] {
