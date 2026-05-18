@@ -7047,13 +7047,19 @@ const shortcutRows = [
       const items = constraintHtml.length
         ? constraintHtml
         : constraints.map((item) => escapeHtml(item));
+      const separator = isChinesePage ? "；" : ";";
       return `
-        <section class="leetcode-constraints">
-          <strong>${isChinesePage ? "数据范围" : "Data ranges"}</strong>
-          <ul>
-            ${items.map((item) => `<li>${item}</li>`).join("")}
-          </ul>
-        </section>
+        <p class="leetcode-statement-constraints">
+          <strong>${isChinesePage ? "数据范围：" : "Constraints:"}</strong>
+          ${items
+            .map((item, index) => {
+              const prefix = index
+                ? `<span class="leetcode-statement-constraint-separator">${separator}</span>`
+                : "";
+              return `${prefix}<span class="leetcode-statement-constraint-item">${item}</span>`;
+            })
+            .join("")}
+        </p>
       `;
     }
 
@@ -9258,45 +9264,39 @@ const shortcutRows = [
       margin: 0;
     }
 
-    .leetcode-statement-body .katex,
-    .leetcode-constraints .katex {
+    .leetcode-statement-body .katex {
       color: inherit;
       font-size: 1em;
       line-height: 1;
       text-rendering: auto;
     }
 
-    .leetcode-statement-body .katex-html,
-    .leetcode-constraints .katex-html {
+    .leetcode-statement-body .katex-html {
       white-space: nowrap;
     }
 
-    .leetcode-constraints {
-      display: grid;
-      gap: 0.34rem;
-      border-top: 1px solid rgb(194 192 182 / 42%);
-      margin-top: 0.08rem;
-      padding-top: 0.52rem;
-    }
-
-    .leetcode-constraints strong {
-      color: var(--color-secondary);
-      font-size: 0.78rem;
-      line-height: 1.2;
-    }
-
-    .leetcode-constraints ul {
-      display: grid;
-      gap: 0.18rem;
-      margin: 0;
-      padding-left: 1.1rem;
-    }
-
-    .leetcode-constraints li {
+    .leetcode-practice-panel .leetcode-statement-body
+      .leetcode-statement-constraints {
       color: var(--color-muted);
       font-size: 0.8rem;
-      line-height: 1.55;
+      line-height: 1.62;
+      margin-top: 0.06rem;
       word-break: break-word;
+    }
+
+    .leetcode-statement-constraints strong {
+      color: var(--color-secondary);
+      font-weight: 600;
+      margin-right: 0.24rem;
+    }
+
+    .leetcode-statement-constraint-item {
+      display: inline;
+    }
+
+    .leetcode-statement-constraint-separator {
+      color: var(--color-border);
+      margin: 0 0.34rem;
     }
 
     @media (max-width: 46rem) {

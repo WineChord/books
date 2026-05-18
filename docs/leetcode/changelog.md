@@ -22,9 +22,10 @@ its Chrome extension workflow.
   SQL problems and pure frontend JavaScript/TypeScript problems during
   automatic practice routing while keeping them visible for search and manual
   opening.
-- Data ranges for every problem shown in the local statement panel, synced
-  from LeetCode problem statements with public Doocs fallbacks for paid-only
-  statements.
+- Data ranges for every problem, synced from LeetCode problem statements with
+  public Doocs fallbacks for paid-only statements. They render as a compact
+  inline constraints sentence at the end of the local statement instead of a
+  separate block.
 - KaTeX-rendered math for local statements and data ranges. Generated math
   output fixes broken plain-text fragments such as `n 2`, `m x n`, `10 9`,
   subscripted variables, Big-O notation, ranges, and comparisons before the
