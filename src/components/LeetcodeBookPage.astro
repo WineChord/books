@@ -6079,6 +6079,13 @@ const shortcutRows = [
       const lang = preferredLang(problem, draft.lang);
       const code = draft.code || defaultTemplate(problem, lang);
       const languages = editorLanguages(problem);
+      const templateStatus = problem.codeTemplates?.length
+        ? (isChinesePage
+            ? "官方模板已同步；草稿保存在当前浏览器。"
+            : "Official template synced; draft is saved in this browser.")
+        : (isChinesePage
+            ? "官方模板缺失，先使用本地 fallback；草稿保存在当前浏览器。"
+            : "Official template missing; using a local fallback. Draft is saved in this browser.");
       return `
         <section class="leetcode-practice-panel" data-editor-panel="${escapeHtml(problem.titleSlug)}">
           ${renderProblemStatementPanel(problem)}
@@ -6094,11 +6101,6 @@ const shortcutRows = [
           </div>
           <div class="leetcode-practice-head">
             <div>
-              <span>${
-                problem.codeTemplates?.length
-                  ? "官方模板已同步；草稿保存在当前浏览器。"
-                  : "官方模板缺失，先使用本地 fallback；草稿保存在当前浏览器。"
-              }</span>
               <span class="leetcode-practice-meter">
                 <b>${isChinesePage ? "当前" : "Now"} <em data-problem-active="${escapeHtml(problem.titleSlug)}">0:00</em></b>
                 <b>PB <em data-problem-best="${escapeHtml(problem.titleSlug)}">--</em></b>
@@ -6152,6 +6154,7 @@ const shortcutRows = [
               <span data-submit-status="${escapeHtml(problem.titleSlug)}">${escapeHtml(extensionDetectingMessage())}</span>
               <a href="#leetcode-extension-guide" data-extension-guide-link>${isChinesePage ? "安装/更新方法" : "Install/update"}</a>
             </div>
+            <div class="leetcode-submit-meta">${escapeHtml(templateStatus)}</div>
             <div class="leetcode-submit-detail" data-submit-detail hidden></div>
           </div>
         </section>
@@ -8398,6 +8401,13 @@ const shortcutRows = [
       overflow-wrap: anywhere;
     }
 
+    .leetcode-submit-meta {
+      margin-top: 0.16rem;
+      color: rgb(114 86 60 / 68%);
+      font-size: 0.68rem;
+      line-height: 1.35;
+    }
+
     .leetcode-submit-note [data-extension-guide-link] {
       flex: 0 0 auto;
       color: var(--color-terracotta);
@@ -8584,6 +8594,10 @@ const shortcutRows = [
     html.dark .leetcode-submit-note {
       border-color: #333;
       background: rgb(21 21 20 / 38%);
+    }
+
+    html.dark .leetcode-submit-meta {
+      color: var(--color-muted);
     }
 
     html.dark .leetcode-submit-detail-label {
