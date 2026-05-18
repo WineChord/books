@@ -75,6 +75,9 @@ const clearProblemRecordTitle = isZh
 const flowModeTitle = isZh
   ? "切换沉浸刷题流（Cmd+Option+F）"
   : "Toggle immersive practice flow (Cmd+Option+F)";
+const skipSqlFlowTitle = isZh
+  ? "顺序跳转、推荐流和 Option+↑/↓ 跳过数据库 SQL 题"
+  : "Skip database SQL problems in list flow, suggested flow, and Option+Up/Down";
 const suggestedFlowTitle = isZh
   ? "启动猜你想练推荐流（Cmd+Option+Shift+F）"
   : "Start suggested practice flow (Cmd+Option+Shift+F)";
@@ -719,6 +722,7 @@ const shortcutRows = [
         </div>
         <div class="leetcode-session-actions">
           <button type="button" data-flow-mode-toggle aria-pressed="false" title={flowModeTitle}>{isZh ? "沉浸流：关" : "Flow: off"}</button>
+          <button type="button" data-flow-skip-sql aria-pressed="false" title={skipSqlFlowTitle}>{isZh ? "跳过 SQL：关" : "Skip SQL: off"}</button>
           <button type="button" data-timing-action="reset-session" title={resetSessionTitle}>{isZh ? "重开本次" : "Reset session"}</button>
           <button type="button" data-timing-action="restart-problem" title={restartProblemTimerTitle}>{isZh ? "重开本题" : "Restart problem"}</button>
           <button type="button" class="is-subtle" data-timing-action="clear-problem-record" title={clearProblemRecordTitle}>{isZh ? "清本题记录" : "Clear record"}</button>
@@ -1231,6 +1235,7 @@ const shortcutRows = [
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
     const editorStatementPanelKey = "leetcode-book-editor-statement-panel-v1";
     const flowModeKey = "leetcode-book-flow-mode-v1";
+    const flowSkipSqlKey = "leetcode-book-flow-skip-sql-v1";
     const extraRunCasesKey = "leetcode-book-extra-run-cases-v1";
     const extraRunCasesDayKey = "leetcode-book-extra-run-cases-day-v1";
     const timingKey = "leetcode-book-timing-v1";
@@ -1253,6 +1258,9 @@ const shortcutRows = [
     const dailyResetStatus = document.querySelector("[data-daily-reset-status]");
     const flowModeToggleButtons = Array.from(
       document.querySelectorAll("[data-flow-mode-toggle]"),
+    );
+    const flowSkipSqlButtons = Array.from(
+      document.querySelectorAll("[data-flow-skip-sql]"),
     );
     const pageFontSelect = document.getElementById("leetcode-page-font");
     const editorThemeSelect = document.getElementById("leetcode-editor-theme");
@@ -1371,6 +1379,15 @@ const shortcutRows = [
     const flowModeOff = "off";
     const flowModeList = "list";
     const flowModeInsight = "insight";
+    const flowSkipSqlOn = "on";
+    const sqlProblemTagSlug = "database";
+    const sqlLanguageSlugs = new Set([
+      "mysql",
+      "mssql",
+      "oracle",
+      "oraclesql",
+      "sql",
+    ]);
     const insightDisplayLimit = 5;
     const submissionHistoryLimit = 80;
     const submissionScoreMax = 100;
@@ -1514,6 +1531,7 @@ const shortcutRows = [
     let editorStatementPanelVisible =
       localStorage.getItem(editorStatementPanelKey) !== "off";
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
+    let flowSkipSql = localStorage.getItem(flowSkipSqlKey) === flowSkipSqlOn;
     let timing = readJson(timingKey, {});
     if (!timing || typeof timing !== "object") timing = {};
     timing.problems = timing.problems && typeof timing.problems === "object"
@@ -1547,6 +1565,21 @@ const shortcutRows = [
       if (value === "on" || value === flowModeList) return flowModeList;
       if (value === flowModeInsight) return flowModeInsight;
       return flowModeOff;
+    }
+
+    function isSqlProblem(problem) {
+      const tags = Array.isArray(problem?.tags) ? problem.tags : [];
+      if (tags.some((tag) => tag?.slug === sqlProblemTagSlug)) return true;
+      const templates = Array.isArray(problem?.codeTemplates)
+        ? problem.codeTemplates
+        : [];
+      return templates.some((template) => (
+        sqlLanguageSlugs.has(languageKey(template?.langSlug || template?.lang))
+      ));
+    }
+
+    function shouldSkipSqlProblem(problem) {
+      return flowSkipSql && isSqlProblem(problem);
     }
 
     function writeEditorAppearance() {
@@ -1607,6 +1640,35 @@ const shortcutRows = [
         : "Opens the top pick first; full Accepted submits continue it";
     }
 
+    function flowSkipSqlLabel() {
+      return flowSkipSql
+        ? (isChinesePage ? "跳过 SQL：开" : "Skip SQL: on")
+        : (isChinesePage ? "跳过 SQL：关" : "Skip SQL: off");
+    }
+
+    function flowSkipSqlStatus() {
+      return flowSkipSql
+        ? (
+          isChinesePage
+            ? "刷题跳转将跳过数据库 SQL 题"
+            : "Practice routing will skip database SQL problems"
+        )
+        : (
+          isChinesePage
+            ? "刷题跳转包含数据库 SQL 题"
+            : "Practice routing includes database SQL problems"
+        );
+    }
+
+    function syncFlowSkipSqlUi() {
+      flowSkipSqlButtons.forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        button.classList.toggle("is-on", flowSkipSql);
+        button.setAttribute("aria-pressed", String(flowSkipSql));
+        button.textContent = flowSkipSqlLabel();
+      });
+    }
+
     function syncFlowModeUi() {
       flowModeToggleButtons.forEach((button) => {
         if (!(button instanceof HTMLButtonElement)) return;
@@ -1633,6 +1695,23 @@ const shortcutRows = [
           note.textContent = insightFlowNote(hasPick);
         }
       });
+    }
+
+    function setFlowSkipSql(nextValue) {
+      flowSkipSql = Boolean(nextValue);
+      localStorage.setItem(
+        flowSkipSqlKey,
+        flowSkipSql ? flowSkipSqlOn : flowModeOff,
+      );
+      syncFlowSkipSqlUi();
+      syncSubmissionInsightUi();
+    }
+
+    function toggleFlowSkipSql() {
+      setFlowSkipSql(!flowSkipSql);
+      timingMilestone = flowSkipSqlStatus();
+      syncTimingUi();
+      return true;
     }
 
     function setFlowMode(nextMode) {
@@ -1983,6 +2062,7 @@ const shortcutRows = [
 
     syncDailyResetUi();
     syncFlowModeUi();
+    syncFlowSkipSqlUi();
     applyEditorAppearance();
     rollExtraRunCasesForToday();
     rollEditorDraftsForToday();
@@ -3088,8 +3168,13 @@ const shortcutRows = [
         ));
     }
 
-    function suggestedFlowProblem(excludedSlug = "") {
+    function suggestedPracticeItems() {
       return submissionInsightItems()
+        .filter((item) => !shouldSkipSqlProblem(item.problem));
+    }
+
+    function suggestedFlowProblem(excludedSlug = "") {
+      return suggestedPracticeItems()
         .find((item) => item.problem.titleSlug !== excludedSlug)
         ?.problem || null;
     }
@@ -3286,7 +3371,7 @@ const shortcutRows = [
     }
 
     function syncSubmissionInsightUi() {
-      const items = submissionInsightItems();
+      const items = suggestedPracticeItems();
       const pick = items[0];
       if (insightPick instanceof HTMLElement) {
         insightPick.textContent = pick
@@ -4034,14 +4119,57 @@ const shortcutRows = [
       focusEditorForSlug(target.titleSlug, { frameContext: true });
     }
 
+    function practiceRouteTarget(items, startIndex, direction) {
+      const step = direction > 0 ? 1 : -1;
+      for (
+        let index = startIndex + step;
+        index >= 0 && index < items.length;
+        index += step
+      ) {
+        if (!shouldSkipSqlProblem(items[index])) {
+          return { index, problem: items[index] };
+        }
+      }
+      return null;
+    }
+
     function navigatePractice(direction, fallbackSlug = "") {
       const items = orderedProblems();
       if (!items.length) return;
       const slug = currentPracticeSlug(fallbackSlug);
       const currentIndex = items.findIndex((item) => item.titleSlug === slug);
-      const startIndex = currentIndex === -1 ? (direction > 0 ? -1 : items.length) : currentIndex;
-      const nextIndex = Math.max(0, Math.min(items.length - 1, startIndex + direction));
-      openPracticeAtIndex(items, nextIndex);
+      const startIndex = currentIndex === -1
+        ? (direction > 0 ? -1 : items.length)
+        : currentIndex;
+      const target = practiceRouteTarget(items, startIndex, direction);
+      if (!target) {
+        const boundary = direction > 0
+          ? (
+            isChinesePage
+              ? "当前列表没有下一题"
+              : "No next problem in the current list"
+          )
+          : (
+            isChinesePage
+              ? "当前列表没有上一题"
+              : "No previous problem in the current list"
+          );
+        const skippedBoundary = direction > 0
+          ? (
+            isChinesePage
+              ? "跳过 SQL 后当前列表没有下一题"
+              : "No next problem after skipping SQL"
+          )
+          : (
+            isChinesePage
+              ? "跳过 SQL 后当前列表没有上一题"
+              : "No previous problem after skipping SQL"
+          );
+        timingMilestone = flowSkipSql ? skippedBoundary : boundary;
+        syncTimingUi();
+        return;
+      }
+      openPracticeAtIndex(items, target.index);
     }
 
     function startSuggestedFlow() {
@@ -4068,9 +4196,8 @@ const shortcutRows = [
       const currentIndex = items.findIndex(
         (item) => item.titleSlug === problem.titleSlug,
       );
-      return currentIndex >= 0 && currentIndex < items.length - 1
-        ? items[currentIndex + 1]
-        : null;
+      if (currentIndex < 0) return null;
+      return practiceRouteTarget(items, currentIndex, 1)?.problem || null;
     }
 
     function advanceFlowAfterAcceptedSubmit(nextProblem, timingResult = {}) {
@@ -7226,6 +7353,11 @@ const shortcutRows = [
       const flowModeToggle = target.closest("[data-flow-mode-toggle]");
       if (flowModeToggle instanceof HTMLElement) {
         toggleFlowMode();
+        return;
+      }
+      const flowSkipSqlToggle = target.closest("[data-flow-skip-sql]");
+      if (flowSkipSqlToggle instanceof HTMLElement) {
+        toggleFlowSkipSql();
         return;
       }
       const actionButton = target.closest("[data-timing-action]");

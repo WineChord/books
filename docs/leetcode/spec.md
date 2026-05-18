@@ -205,7 +205,9 @@ before falling back to the true line start, matching the LeetCode editor's
 indent-aware line-start behavior. Practice navigation is
 also keyboard-first: `Option+J` or `Option+Down` opens and focuses the next
 visible problem's editor, while `Option+K` or `Option+Up` opens and focuses the
-previous one. Common page actions must also be keyboard reachable: `/` focuses
+previous one. A local "Skip SQL" route toggle on the timing board lets these
+keyboard route jumps ignore database-tagged SQL problems without hiding them
+from the list. Common page actions must also be keyboard reachable: `/` focuses
 search, `Option+1` through `Option+3` switch scope filters, `Option+4` through
 `Option+8` switch ByteDance filters, `Option+9`, `Option+0`, and `Option+-`
 switch state filters, `Option+P` focuses page jump, and `Option+Left` /
@@ -255,8 +257,9 @@ PB and last Accepted record without rolling back daily summaries. The normal
 flow remains automatic. Immersive practice flow is a default-off local toggle
 available from the timing board button or `Cmd+Option+F`; when it is enabled,
 only a full LeetCode submit that returns Accepted opens the next problem in the
-current filter and search order. Passing sample runs never trigger this
-navigation.
+current filter and search order. If "Skip SQL" is enabled, list flow chooses
+the next non-SQL problem in that same order. Passing sample runs never trigger
+this navigation.
 
 "Suggested practice" can also hold an immersive flow, but it is not list-order
 navigation. The user can start suggested flow from the "Suggested practice"
@@ -265,10 +268,11 @@ recommendation and marks the flow state as suggested. After each full submit
 that returns Accepted, the page recomputes "Suggested practice" from the latest
 local submissions, timing, manual state, and current-session fatigue, then
 opens the new highest-ranked recommendation instead of the next visible row.
-The just-Accepted problem is not immediately recommended back to itself. If no
-recommendable problem exists, the page stays on the current problem and shows a
-status cue. Non-Accepted submits and passed sample runs never advance suggested
-flow.
+If "Skip SQL" is enabled, SQL problems are removed from this candidate queue
+before selecting the top recommendation. The just-Accepted problem is not
+immediately recommended back to itself. If no recommendable problem exists, the
+page stays on the current problem and shows a status cue. Non-Accepted submits
+and passed sample runs never advance suggested flow.
 
 Full submissions and official-example runs made through this page also append
 to a separate local submission-stat store. The store does not import historical
