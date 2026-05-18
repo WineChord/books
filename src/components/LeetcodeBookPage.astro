@@ -730,12 +730,12 @@ const shortcutRows = [
             title={isZh ? "悬浮查看推荐题；点击打开第一题" : "Hover for recommended problems; click to open the first one"}
           >
             <button type="button" data-insight-open aria-disabled="true">
-              {isZh ? "猜你想写" : "Suggested"}
+              {isZh ? "猜你想练" : "Suggested practice"}
             </button>
             <span class="leetcode-insight-popover" role="tooltip">
-              <strong data-insight-pick>{isZh ? "运行或提交后开始排序" : "Run or submit problems to rank them"}</strong>
+              <strong data-insight-pick>{isZh ? "按本地状态和题目价值排序" : "Ranked by local state and problem value"}</strong>
               <span class="leetcode-insight-list" data-insight-list>
-                <span>{isZh ? "暂无本站运行/提交统计。" : "No local run or submission stats yet."}</span>
+                <span>{isZh ? "正在准备推荐队列。" : "Preparing recommendations."}</span>
               </span>
             </span>
           </span>
@@ -940,117 +940,108 @@ const shortcutRows = [
     </section>
 
     <details class="leetcode-insight-guide">
-      <summary>{isZh ? "猜你想写的排序规则" : "How suggested problems are ranked"}</summary>
+      <summary>{isZh ? "猜你想练的排序规则" : "How suggested practice is ranked"}</summary>
       <div>
         {
           isZh ? (
             <>
               <p>
-                “猜你想写”按 0 到 100 的不熟练分排序。分数越高，越值得今天
-                复习。它只使用当前浏览器记录到的本页运行和提交行为，不读取
-                力扣历史提交。
+                “猜你想练”按 0 到 100 的练习调度分排序。分数越高，越值得现在
+                打开。它只使用当前浏览器记录到的本页状态、运行和提交行为，
+                不读取力扣历史提交。
               </p>
               <p>
                 公式可以理解为：
-                <code>基础风险 + 提交失败 + 样例失败 + 速度 + 遗忘 + 人工标记 - 通过折扣 - 熟练折扣</code>，
+                <code>到期复习 + 薄弱程度 + 题目价值 + 当前适配 - 疲劳惩罚</code>，
                 最后截断到 0 到 100。
               </p>
               <ol>
                 <li>
-                  <strong>基础风险：</strong>没有完整 AC 时先加风险分。样例已通过但
-                  还没完整提交，加 16；样例也没过或没有通过记录，加 28。
+                  <strong>到期复习：</strong>页面会估计每题的本地稳定度和可回忆率。
+                  完整 AC、连续 AC、样例通过和“熟练”会提高稳定度；失败、耗时偏慢
+                  和“需思考”会降低稳定度。距离上次 AC 越久，可回忆率越低。
                 </li>
                 <li>
-                  <strong>提交失败：</strong>完整提交失败是最强信号，最多加 38。
-                  失败率会做贝叶斯平滑，避免“一次失败”被过度放大；失败次数用
-                  对数增长，避免反复调试把分数冲爆。
+                  <strong>薄弱程度：</strong>没有完整 AC、提交失败、样例失败、
+                  每 10 行耗时偏慢和“需思考”会提高分数；近期连续 AC、样例通过
+                  和“熟练”会降低分数。
                 </li>
                 <li>
-                  <strong>样例失败：</strong>运行官方示例失败也会计入，但权重低于
-                  完整提交失败，最多加 18。扩展连接失败、查询超时这类工具问题
-                  不算题目错误。
+                  <strong>题目价值：</strong>Top888 频率、Hot100、字节企业题库、
+                  最近字节 bucket、核心标签覆盖和相关题网络会提高分数，避免
+                  低频冷门题只因为“不会”长期压过高频核心题。
                 </li>
                 <li>
-                  <strong>速度：</strong>只看完整 AC 的耗时，并按非空代码行数归一成
-                  “每 10 行耗时”。低于 60 秒/10 行不加分，180 秒/10 行附近达到
-                  速度惩罚上限 24。计分速度更偏重最近一次 AC，也保留少量历史
-                  平均，避免一次偶然发挥完全覆盖长期表现。
+                  <strong>当前适配：</strong>如果当前打开了一题，共享标签、相关题
+                  和难度邻近会提高推荐分，让下一题更像同路线迁移或合理进阶。
                 </li>
                 <li>
-                  <strong>遗忘曲线：</strong>完整 AC 后，随距离上次 AC 的天数按
-                  <code>24 * (1 - e^(-days / 10))</code>增长。它会逐渐接近上限，
-                  不会无限累加。
+                  <strong>疲劳惩罚：</strong>今天已经 AC、当前 session 已经 AC、
+                  或与今天已练标签高度重复的题会降分，避免推荐流卡在同一类题里。
                 </li>
                 <li>
-                  <strong>通过折扣：</strong>完整 AC 次数、最近连续 AC、样例通过次数
-                  会降低分数，最多减 26。完整 AC 的权重最高，样例通过只是轻量
-                  降噪。
-                </li>
-                <li>
-                  <strong>人工状态：</strong>标成“需思考”加 10；标成“熟练”减 14。
-                  这是为了让人的判断可以修正纯数据的误差。
+                  <strong>冷启动：</strong>没有本地提交记录的题也可以被推荐，但主要
+                  依赖题目价值、人工状态和未建立稳定度的风险。
                 </li>
               </ol>
               <p>
-                分数相同时，优先看提交失败次数、样例失败次数、计分速度、AC 次数，
-                最后再用力扣频率排序。这个排序是启发式建议，不是能力证明。
+                分数相同时，优先看到期复习、薄弱程度、题目价值、提交失败、
+                样例失败、计分速度和 AC 次数，最后再用力扣频率排序。这个排序是
+                启发式建议，不是能力证明。
               </p>
             </>
           ) : (
             <>
               <p>
-                Suggested problems are ranked by a 0 to 100 unfamiliarity score.
-                Higher scores are better review candidates. The score uses only
-                local run and submit activity from this browser, not historical
-                LeetCode submissions.
+                Suggested practice is ranked by a 0 to 100 scheduling score.
+                Higher scores are better candidates to open now. The score uses
+                only local page state, run activity, and submission activity
+                from this browser, not historical LeetCode submissions.
               </p>
               <p>
                 Read the formula as:
-                <code>base risk + submit failures + sample failures + speed + forgetting + manual review - accepted discount - mastered discount</code>,
+                <code>review due-ness + weakness + problem value + current fit - fatigue penalty</code>,
                 clamped to 0 to 100.
               </p>
               <ol>
                 <li>
-                  <strong>Base risk:</strong> a problem that has not reached full
-                  Accepted starts with risk. Passing samples but not submitting
-                  adds 16; having no accepted evidence adds 28.
+                  <strong>Review due-ness:</strong> the page estimates local
+                  stability and retrievability. Accepted submissions, Accepted
+                  streaks, passed samples, and mastered state raise stability;
+                  failures, slow normalized time, and review state lower it.
                 </li>
                 <li>
-                  <strong>Submit failures:</strong> failed full submissions are the
-                  strongest failure signal, capped at 38. Failure rate is Bayesian
-                  smoothed, and repeated failures grow logarithmically.
+                  <strong>Weakness:</strong> missing full Accepted evidence,
+                  submit failures, sample failures, slow time per 10 lines, and
+                  review state raise the score; recent Accepted streaks, passed
+                  samples, and mastered state lower it.
                 </li>
                 <li>
-                  <strong>Sample failures:</strong> failed official-example runs
-                  count with lower weight, capped at 18. Extension connection
-                  errors and polling timeouts do not count as problem mistakes.
+                  <strong>Problem value:</strong> Top888 frequency, Hot100,
+                  ByteDance buckets, core tag coverage, and related-problem
+                  centrality raise the score.
                 </li>
                 <li>
-                  <strong>Speed:</strong> full Accepted time is normalized by
-                  nonblank code lines into time per 10 lines. No penalty is added
-                  below 60 seconds per 10 lines; the cap of 24 is reached around
-                  180 seconds per 10 lines. The score favors the latest Accepted
-                  run while keeping a small historical average.
+                  <strong>Current fit:</strong> when a problem is open, shared
+                  tags, related links, and nearby difficulty prefer same-route
+                  transfer or reasonable progression.
                 </li>
                 <li>
-                  <strong>Forgetting:</strong> after a full Accepted, stale age grows
-                  as <code>24 * (1 - e^(-days / 10))</code>, so it approaches a cap
-                  instead of growing forever.
+                  <strong>Fatigue penalty:</strong> problems Accepted today,
+                  Accepted in the current session, or heavily overlapping with
+                  tags practiced today are lowered.
                 </li>
                 <li>
-                  <strong>Accepted discount:</strong> full Accepted count, recent
-                  Accepted streak, and passed sample runs reduce the score, capped
-                  at 26. Full Accepted evidence matters most.
-                </li>
-                <li>
-                  <strong>Manual state:</strong> review adds 10; mastered subtracts
-                  14, so human judgment can correct noisy data.
+                  <strong>Cold start:</strong> problems without local submission
+                  stats can still be recommended through value, manual state,
+                  and the risk of not having stable memory yet.
                 </li>
               </ol>
               <p>
-                Ties are broken by submit failures, sample failures, scoring speed,
-                Accepted count, then LeetCode frequency. This is a heuristic review
-                aid, not a proof of ability.
+                Ties prefer review due-ness, weakness, value, submit failures,
+                sample failures, scoring speed, Accepted count, and then
+                LeetCode frequency. This ranking is a heuristic suggestion, not
+                proof of ability.
               </p>
             </>
           )
@@ -1338,8 +1329,6 @@ const shortcutRows = [
     const runFailureCountWeight = 3;
     const runFailurePenaltyCap = 18;
     const submissionSpeedPenaltyCap = 24;
-    const submissionStaleHalfLifeDays = 10;
-    const submissionStalePenaltyCap = 24;
     const acceptedRepeatDiscountCap = 26;
     const acceptedCountDiscountWeight = 7;
     const acceptedStreakDiscountWeight = 6;
@@ -1348,6 +1337,80 @@ const shortcutRows = [
     const averageAcceptedSpeedScoreWeight = 0.28;
     const manualReviewPenalty = 10;
     const manualMasteredDiscount = 14;
+    const recommendationDueWeight = 0.34;
+    const recommendationWeaknessWeight = 0.28;
+    const recommendationValueWeight = 0.26;
+    const recommendationFitWeight = 0.12;
+    const recommendationColdStartDueScore = 72;
+    const recommendationNoAcceptedDueScore = 88;
+    const recommendationSamplePassedDueScore = 76;
+    const recommendationBaseStabilityDays = 2;
+    const recommendationAcceptedStabilityDays = 4.8;
+    const recommendationStreakStabilityDays = 2.2;
+    const recommendationRunAcceptedStabilityDays = 0.8;
+    const recommendationMasteredStabilityMultiplier = 1.45;
+    const recommendationReviewStabilityMultiplier = 0.7;
+    const recommendationErrorStabilityPenaltyDays = 0.8;
+    const recommendationSpeedStabilityPenaltyFactor = 0.08;
+    const recommendationMinStabilityDays = 0.75;
+    const recommendationMaxStabilityDays = 45;
+    const recommendationColdStartUncertaintyScore = 14;
+    const recommendationPartialEvidenceUncertaintyScore = 8;
+    const recommendationSingleAcceptedUncertaintyScore = 5;
+    const recommendationFrequencyValueCap = 38;
+    const recommendationHotValueBase = 10;
+    const recommendationHotRankValueCap = 6;
+    const recommendationByteDanceValueBase = 8;
+    const recommendationByteDanceBucketValueCap = 16;
+    const recommendationCoreTagValueCap = 12;
+    const recommendationRelatedValueCap = 10;
+    const recommendationCompanyFollowUpValue = 4;
+    const recommendationRelatedFitScore = 24;
+    const recommendationSharedTagFitScore = 8;
+    const recommendationCoreSharedTagFitScore = 5;
+    const recommendationSameDifficultyFitScore = 12;
+    const recommendationNearbyDifficultyFitScore = 8;
+    const recommendationCurrentProblemFitScore = 6;
+    const recommendationTodayAcceptedPenalty = 20;
+    const recommendationSessionAcceptedPenalty = 14;
+    const recommendationTagFatiguePenaltyCap = 18;
+    const recommendationTagFatiguePenaltyWeight = 7;
+    const recommendationRankFallback = 999999;
+    const recommendationHotRankMax = 100;
+    const recommendationByteDanceBucketRankMax = 100;
+    const recommendationRelatedValueWeight = 2;
+    const recommendationCoreTagValueWeight = 4;
+    const recommendationByteDanceBucketWeights = {
+      all: 4,
+      thirtyDays: 7,
+      threeMonths: 5,
+      sixMonths: 4,
+      moreThanSixMonths: 2,
+    };
+    const recommendationCoreTagSlugs = new Set([
+      "backtracking",
+      "binary-search",
+      "binary-tree",
+      "bit-manipulation",
+      "breadth-first-search",
+      "depth-first-search",
+      "dynamic-programming",
+      "graph",
+      "heap-priority-queue",
+      "linked-list",
+      "monotonic-queue",
+      "monotonic-stack",
+      "prefix-sum",
+      "shortest-path",
+      "sliding-window",
+      "stack",
+      "string-matching",
+      "topological-sort",
+      "tree",
+      "trie",
+      "two-pointers",
+      "union-find",
+    ]);
     const timingDateFormatter = new Intl.DateTimeFormat("en-CA", {
       day: "2-digit",
       month: "2-digit",
@@ -2499,15 +2562,12 @@ const shortcutRows = [
       return Math.min(cap, rateSignal + countSignal);
     }
 
-    function forgettingPenalty(staleDays) {
-      if (!staleDays) return 0;
-      return submissionStalePenaltyCap * (
-        1 - Math.exp(-staleDays / submissionStaleHalfLifeDays)
-      );
-    }
-
     function clampScore(value) {
       return Math.max(0, Math.min(submissionScoreMax, Math.round(value)));
+    }
+
+    function clampValue(value, min, max) {
+      return Math.max(min, Math.min(max, value));
     }
 
     function slowSpeedPenalty(speedMs) {
@@ -2524,13 +2584,224 @@ const shortcutRows = [
       return ratio * submissionSpeedPenaltyCap;
     }
 
+    function rankValueScore(rank, maxRank, cap) {
+      const currentRank = Number(rank || 0);
+      if (!currentRank || currentRank >= recommendationRankFallback) return 0;
+      const normalizedMaxRank = Math.max(maxRank, currentRank);
+      const denominator = Math.log1p(normalizedMaxRank);
+      if (!denominator) return 0;
+      const ratio = 1 - Math.log(currentRank) / denominator;
+      return clampValue(ratio * cap, 0, cap);
+    }
+
+    function difficultyIndex(problem) {
+      const difficulty = String(problem?.difficulty || "").toLowerCase();
+      if (difficulty.includes("easy") || difficulty.includes("简单")) return 0;
+      if (difficulty.includes("hard") || difficulty.includes("困难")) return 2;
+      return 1;
+    }
+
+    function tagSlugSet(problem) {
+      return new Set((problem?.tags || []).map((tag) => tag.slug));
+    }
+
+    function sharedTagSlugs(left, right) {
+      const rightTags = tagSlugSet(right);
+      return (left?.tags || [])
+        .map((tag) => tag.slug)
+        .filter((slug) => rightTags.has(slug));
+    }
+
+    function relatedQuestionSlugs(problem) {
+      const related = problem?.relatedQuestions || {};
+      return [
+        ...(related.official || []),
+        ...(related.series || []),
+        ...(related.topicPeers || []),
+      ].map((item) => item.titleSlug);
+    }
+
+    function hasRelatedLink(left, right) {
+      if (!left || !right || left.titleSlug === right.titleSlug) return false;
+      return relatedQuestionSlugs(left).includes(right.titleSlug) ||
+        relatedQuestionSlugs(right).includes(left.titleSlug);
+    }
+
+    function byteDanceValueScore(problem) {
+      if (!problem?.bytedance) return 0;
+      const buckets = byteDanceBuckets(problem);
+      const bucketScore = Object.entries(recommendationByteDanceBucketWeights)
+        .reduce((score, [bucket, weight]) => {
+          return score + rankValueScore(
+            buckets[bucket],
+            recommendationByteDanceBucketRankMax,
+            weight,
+          );
+        }, 0);
+      return recommendationByteDanceValueBase +
+        Math.min(recommendationByteDanceBucketValueCap, bucketScore);
+    }
+
+    function coreTagValueScore(problem) {
+      const coreTagCount = (problem?.tags || [])
+        .filter((tag) => recommendationCoreTagSlugs.has(tag.slug))
+        .length;
+      return Math.min(
+        recommendationCoreTagValueCap,
+        coreTagCount * recommendationCoreTagValueWeight,
+      );
+    }
+
+    function relatedValueScore(problem) {
+      return Math.min(
+        recommendationRelatedValueCap,
+        Number(problem?.relatedQuestions?.total || 0) *
+          recommendationRelatedValueWeight,
+      );
+    }
+
+    function problemValueScore(problem) {
+      const rank = problem.topRank ?? problem.frequencyRank;
+      const frequencyScore = rankValueScore(
+        rank,
+        maxPageSize,
+        recommendationFrequencyValueCap,
+      );
+      const hotScore = problem.hot100
+        ? recommendationHotValueBase +
+          rankValueScore(
+            problem.hotRank,
+            recommendationHotRankMax,
+            recommendationHotRankValueCap,
+          )
+        : 0;
+      const followUpScore = problem.companyFollowUps?.length
+        ? recommendationCompanyFollowUpValue
+        : 0;
+      return clampScore(
+        frequencyScore +
+          hotScore +
+          byteDanceValueScore(problem) +
+          coreTagValueScore(problem) +
+          relatedValueScore(problem) +
+          followUpScore,
+      );
+    }
+
+    function activeInsightProblem() {
+      const slug = activePracticeTimer.slug || state.expandedSlug;
+      return problems.find((problem) => problem.titleSlug === slug) || null;
+    }
+
+    function currentFitScore(problem) {
+      const activeProblem = activeInsightProblem();
+      if (!activeProblem) return 0;
+      if (activeProblem.titleSlug === problem.titleSlug) {
+        return recommendationCurrentProblemFitScore;
+      }
+      const shared = sharedTagSlugs(activeProblem, problem);
+      const coreSharedCount = shared
+        .filter((slug) => recommendationCoreTagSlugs.has(slug))
+        .length;
+      const tagScore = shared.length * recommendationSharedTagFitScore +
+        coreSharedCount * recommendationCoreSharedTagFitScore;
+      const relatedScore = hasRelatedLink(activeProblem, problem)
+        ? recommendationRelatedFitScore
+        : 0;
+      const difficultyGap = Math.abs(
+        difficultyIndex(activeProblem) - difficultyIndex(problem),
+      );
+      const difficultyScore = difficultyGap === 0
+        ? recommendationSameDifficultyFitScore
+        : (difficultyGap === 1 ? recommendationNearbyDifficultyFitScore : 0);
+      return clampScore(tagScore + relatedScore + difficultyScore);
+    }
+
+    function todayAcceptedSlugs() {
+      const today = timing.days?.[localDateKey()];
+      return Array.isArray(today?.acceptedSlugs) ? today.acceptedSlugs : [];
+    }
+
+    function practicedTagSlugs() {
+      const slugs = new Set([
+        ...todayAcceptedSlugs(),
+        ...Array.from(sessionTiming.acceptedSlugs || []),
+      ]);
+      const tags = new Set();
+      problems.forEach((problem) => {
+        if (!slugs.has(problem.titleSlug)) return;
+        problem.tags?.forEach((tag) => tags.add(tag.slug));
+      });
+      return tags;
+    }
+
+    function tagFatiguePenalty(problem) {
+      const practicedTags = practicedTagSlugs();
+      if (!practicedTags.size) return 0;
+      const overlap = (problem.tags || [])
+        .filter((tag) => practicedTags.has(tag.slug))
+        .length;
+      return Math.min(
+        recommendationTagFatiguePenaltyCap,
+        overlap * recommendationTagFatiguePenaltyWeight,
+      );
+    }
+
+    function fatiguePenalty(problem) {
+      const todayAccepted = todayAcceptedSlugs().includes(problem.titleSlug)
+        ? recommendationTodayAcceptedPenalty
+        : 0;
+      const sessionAccepted = sessionTiming.acceptedSlugs.has(problem.titleSlug)
+        ? recommendationSessionAcceptedPenalty
+        : 0;
+      return todayAccepted + sessionAccepted + tagFatiguePenalty(problem);
+    }
+
+    function recommendationStabilityDays(item) {
+      let stability = recommendationBaseStabilityDays +
+        Math.log1p(item.accepted) * recommendationAcceptedStabilityDays +
+        recentAcceptedStreak(item.record) * recommendationStreakStabilityDays +
+        Math.sqrt(item.runAccepted) * recommendationRunAcceptedStabilityDays;
+      stability -= Math.log1p(item.totalErrors) *
+        recommendationErrorStabilityPenaltyDays;
+      stability -= slowSpeedPenalty(item.scoreSpeed) *
+        recommendationSpeedStabilityPenaltyFactor;
+      if (item.status.mastered) {
+        stability *= recommendationMasteredStabilityMultiplier;
+      }
+      if (item.status.review) {
+        stability *= recommendationReviewStabilityMultiplier;
+      }
+      return clampValue(
+        stability,
+        recommendationMinStabilityDays,
+        recommendationMaxStabilityDays,
+      );
+    }
+
+    function retrievabilityScore(staleDays, stabilityDays) {
+      if (!staleDays) return 1;
+      return clampValue(Math.exp(-staleDays / stabilityDays), 0, 1);
+    }
+
+    function uncertaintyScore(accepted, attempts, runAttempts) {
+      if (!accepted && !attempts && !runAttempts) {
+        return recommendationColdStartUncertaintyScore;
+      }
+      if (!accepted) return recommendationPartialEvidenceUncertaintyScore;
+      if (accepted === 1) return recommendationSingleAcceptedUncertaintyScore;
+      return 0;
+    }
+
     function submissionInsightFor(problem) {
       const record = storedProblemSubmissionStats(problem.titleSlug);
       const attempts = Number(record.attemptCount || 0);
       const runAttempts = Number(record.runAttemptCount || 0);
-      if (!attempts && !runAttempts) return null;
-
-      const accepted = Number(record.acceptedCount || 0);
+      const timingRecord = storedProblemTiming(problem.titleSlug);
+      const accepted = Math.max(
+        Number(record.acceptedCount || 0),
+        Number(timingRecord.acceptedCount || 0),
+      );
       const errors = Number(record.errorCount || 0);
       const runAccepted = Number(record.runAcceptedCount || 0);
       const runErrors = Number(record.runErrorCount || 0);
@@ -2538,7 +2809,8 @@ const shortcutRows = [
       const bestSpeed = bestAcceptedSpeedMs(record);
       const scoreSpeed = scoreAcceptedSpeedMs(record);
       const lastAccepted = lastAcceptedSubmissionEvent(record);
-      const staleDays = lastAccepted ? daysSinceIso(lastAccepted.at) : 0;
+      const lastAcceptedAt = lastAccepted?.at || timingRecord.lastAcceptedAt;
+      const staleDays = accepted ? daysSinceIso(lastAcceptedAt) : 0;
       const noAcceptedPenalty = accepted
         ? 0
         : (runAccepted ? samplePassedNoAcceptedPenalty : noAcceptedBasePenalty);
@@ -2560,7 +2832,6 @@ const shortcutRows = [
         runFailureCountWeight,
         runFailurePenaltyCap,
       );
-      const stalePenalty = accepted ? forgettingPenalty(staleDays) : 0;
       const repeatDiscount = Math.min(
         acceptedRepeatDiscountCap,
         Math.log1p(accepted) * acceptedCountDiscountWeight +
@@ -2570,41 +2841,96 @@ const shortcutRows = [
       const status = rowState(problem.titleSlug);
       const manualPenalty = status.review ? manualReviewPenalty : 0;
       const manualDiscount = status.mastered ? manualMasteredDiscount : 0;
-      const score = clampScore(
+      const weaknessScore = clampScore(
         noAcceptedPenalty +
           errorPenalty +
           runErrorPenalty +
           slowSpeedPenalty(scoreSpeed) +
-          stalePenalty +
+          uncertaintyScore(accepted, attempts, runAttempts) +
           manualPenalty -
           repeatDiscount -
           manualDiscount,
       );
-
-      return {
+      const localEvidenceCount = attempts + runAttempts + accepted;
+      const item = {
         accepted,
         attempts,
         bestSpeed,
         errors,
         lastAccepted,
+        lastAcceptedAt,
+        localEvidenceCount,
         problem,
         record,
         runAccepted,
         runAttempts,
         runErrors,
         scoreSpeed,
+        staleDays,
+        status,
+        totalErrors,
+        weaknessScore,
+      };
+      const stabilityDays = recommendationStabilityDays(item);
+      const retrievability = accepted
+        ? retrievabilityScore(staleDays, stabilityDays)
+        : 0;
+      const dueScore = accepted
+        ? clampScore((1 - retrievability) * submissionScoreMax)
+        : (runAccepted
+          ? recommendationSamplePassedDueScore
+          : (localEvidenceCount
+            ? recommendationNoAcceptedDueScore
+            : recommendationColdStartDueScore));
+      const valueScore = problemValueScore(problem);
+      const fitScore = currentFitScore(problem);
+      const penalty = fatiguePenalty(problem);
+      const score = clampScore(
+        dueScore * recommendationDueWeight +
+          weaknessScore * recommendationWeaknessWeight +
+          valueScore * recommendationValueWeight +
+          fitScore * recommendationFitWeight -
+          penalty,
+      );
+
+      return {
+        accepted,
+        attempts,
+        bestSpeed,
+        dueScore,
+        errors,
+        fitScore,
+        lastAccepted,
+        lastAcceptedAt,
+        localEvidenceCount,
+        penalty,
+        problem,
+        record,
+        retrievability,
+        runAccepted,
+        runAttempts,
+        runErrors,
+        scoreSpeed,
         score,
         staleDays,
+        stabilityDays,
+        status,
         totalErrors,
+        valueScore,
+        weaknessScore,
       };
     }
 
     function submissionInsightItems() {
       return problems
         .map(submissionInsightFor)
-        .filter(Boolean)
         .sort((left, right) => (
           right.score - left.score ||
+          right.dueScore - left.dueScore ||
+          right.weaknessScore - left.weaknessScore ||
+          right.valueScore - left.valueScore ||
+          right.fitScore - left.fitScore ||
+          left.penalty - right.penalty ||
           right.errors - left.errors ||
           right.runErrors - left.runErrors ||
           right.scoreSpeed - left.scoreSpeed ||
@@ -2617,7 +2943,13 @@ const shortcutRows = [
     function submissionReason(item) {
       const reasons = [];
       if (!item.accepted) {
-        reasons.push(isChinesePage ? "还没通过" : "not accepted yet");
+        reasons.push(isChinesePage ? "未完整 AC" : "not accepted yet");
+      } else if (item.dueScore >= 50) {
+        reasons.push(
+          isChinesePage
+            ? `可回忆率 ${Math.round(item.retrievability * 100)}%`
+            : `${Math.round(item.retrievability * 100)}% retrievable`,
+        );
       }
       if (item.errors) {
         reasons.push(
@@ -2643,7 +2975,13 @@ const shortcutRows = [
           );
         }
       }
-      if (item.staleDays >= 1) {
+      if (item.valueScore >= 70) {
+        reasons.push(isChinesePage ? "高价值题" : "high-value problem");
+      }
+      if (item.fitScore >= 24) {
+        reasons.push(isChinesePage ? "同路线迁移" : "same-route practice");
+      }
+      if (item.staleDays >= 1 && reasons.length < 4) {
         reasons.push(
           isChinesePage
             ? `${Math.floor(item.staleDays)} 天未 AC`
@@ -2651,7 +2989,7 @@ const shortcutRows = [
         );
       }
       if (!reasons.length) {
-        reasons.push(isChinesePage ? "主要看遗忘曲线" : "mostly forgetting curve");
+        reasons.push(isChinesePage ? "高频冷启动" : "high-value cold start");
       }
       return reasons.slice(0, 3).join(" · ");
     }
@@ -2707,14 +3045,20 @@ const shortcutRows = [
 
     function submissionCompactSignal(problem) {
       const item = submissionInsightFor(problem);
-      if (!item) return "";
+      if (
+        !item.localEvidenceCount &&
+        !item.status.review &&
+        !item.status.mastered
+      ) {
+        return "";
+      }
       const record = item.record;
       const speed = lastAcceptedSpeedMs(record);
       const title = [
         submissionStatsLabel(problem.titleSlug),
         isChinesePage
-          ? `不熟练分 ${item.score}`
-          : `weakness score ${item.score}`,
+          ? `练习分 ${item.score}`
+          : `practice score ${item.score}`,
         submissionReason(item),
       ].join(" · ");
       const speedText = speed
@@ -2723,8 +3067,8 @@ const shortcutRows = [
           : ` · ${formatDuration(speed)}/10 lines`)
         : "";
       const label = isChinesePage
-        ? `写${item.attempts} ${submissionShortErrorLabel(item)}${speedText} · ${item.score}`
-        : `${item.attempts} submits ${submissionShortErrorLabel(item)}${speedText} · ${item.score}`;
+        ? `练${item.score} · 写${item.attempts}/跑${item.runAttempts}${speedText}`
+        : `practice ${item.score} · ${item.attempts}/${item.runAttempts}${speedText}`;
       return `
         <span class="leetcode-practice-signal" title="${escapeHtml(title)}">
           ${escapeHtml(label)}
@@ -2746,13 +3090,27 @@ const shortcutRows = [
     function renderSubmissionInsightItem(item, index) {
       const problem = item.problem;
       const meta = [
+        isChinesePage
+          ? `练 ${item.score}`
+          : `score ${item.score}`,
+        isChinesePage
+          ? `复 ${item.dueScore}`
+          : `due ${item.dueScore}`,
+        isChinesePage
+          ? `弱 ${item.weaknessScore}`
+          : `weak ${item.weaknessScore}`,
+        isChinesePage
+          ? `值 ${item.valueScore}`
+          : `value ${item.valueScore}`,
+        item.fitScore
+          ? (isChinesePage ? `适 ${item.fitScore}` : `fit ${item.fitScore}`)
+          : "",
         item.attempts
           ? (isChinesePage ? `写 ${item.attempts}` : `${item.attempts} submits`)
           : "",
         item.runAttempts
           ? (isChinesePage ? `跑 ${item.runAttempts}` : `${item.runAttempts} runs`)
           : "",
-        submissionErrorLabel(item.record),
         item.scoreSpeed
           ? `${isChinesePage ? "计分/10行" : "score/10 lines"} ${
               formatDuration(item.scoreSpeed)
@@ -2780,8 +3138,8 @@ const shortcutRows = [
         insightPick.textContent = pick
           ? `${pick.problem.frontendId}. ${pick.problem.titleCn} · ${pick.score}`
           : (isChinesePage
-            ? "运行或提交后开始排序"
-            : "Run or submit problems to rank them");
+            ? "按本地状态和题目价值排序"
+            : "Ranked by local state and problem value");
       }
       if (insightOpen instanceof HTMLButtonElement) {
         insightOpen.setAttribute("aria-disabled", String(!pick));
@@ -2799,8 +3157,8 @@ const shortcutRows = [
               .join("")
           : `<span>${
               isChinesePage
-                ? "暂无本站运行/提交统计。"
-                : "No local run or submission stats yet."
+                ? "暂无可推荐题目。"
+                : "No recommendable problems yet."
             }</span>`;
       }
     }

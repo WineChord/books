@@ -250,18 +250,40 @@ LeetCode records; it only records actions initiated from the local editor after
 this feature exists. For each problem it tracks submit attempts, Accepted
 count, failed submit count, failed sample-run count, latest code size, Accepted
 time, average Accepted time, and time per 10 nonblank code lines. A compact
-recommendation button opens a hover/focus popover that ranks locally attempted
-problems by a heuristic 0 to 100 unfamiliarity score. Missing full Accepted
-evidence, failed submissions, failed sample runs, slow Accepted time normalized
-by code size, review state, and forgetting-curve age increase the score;
-repeated recent Accepted submissions, passed sample runs, and manual mastered
-state reduce it. Failed sample runs are counted separately and weighted lower
-than failed full submissions. Failure rates use smoothing, failure counts grow
-with diminishing returns, and the forgetting curve approaches a cap instead of
-growing forever. A collapsed footer note explains the scoring model and
-tie-breakers. The highest score becomes the daily "Suggested today" item, and
-the top ranked problems can be opened directly from the popover. This ranking
-is intentionally heuristic and browser-local.
+"Suggested practice" button opens a hover/focus popover, and its ranking is
+modeled as browser-local practice scheduling instead of a single weakness
+score.
+
+The final "Suggested practice" score is still clamped to 0 to 100, but it is
+composed from five explainable parts: review due-ness, weakness, problem value,
+current fit, and fatigue penalty. Review due-ness estimates a local stability
+and retrievability for each problem. Full Accepted submissions, recent Accepted
+streaks, passed sample runs, and manual mastered state increase stability;
+failures, slow normalized Accepted time, and manual review state lower it. As
+days since last Accepted increase, retrievability falls and due-ness rises;
+problems without a full Accepted are treated as not having established stable
+memory yet. Weakness still uses missing full Accepted evidence, failed
+submissions, failed sample runs, slow Accepted time normalized by code size,
+and manual review state. Failed full submissions are stronger than failed
+sample runs, failure rates are smoothed, and failure counts grow with
+diminishing returns. Problem value comes from Top 888 frequency, Hot 100
+membership, ByteDance company presence, recent ByteDance buckets, tag coverage,
+and related-problem centrality, so a low-value obscure problem does not
+permanently outrank a slightly weaker high-frequency core problem. Current fit
+uses the currently open problem, shared tags, related-problem links, and nearby
+difficulty to prefer same-route transfer or reasonable progression. Fatigue
+penalty lowers problems already Accepted today, already Accepted in the current
+session, or heavily overlapping with tags practiced today.
+
+The scheduler also supports cold start. A problem can enter the recommendation
+queue without local submission stats when it is high frequency, in Hot 100,
+ByteDance-heavy, valuable for tag coverage, or manually marked for review. The
+popover shows the top ranked problems, final practice score, and the main
+reason. Problems with local submission evidence still show compact row signals.
+A collapsed footer note explains the five components, stability,
+retrievability, cold start, and tie-breakers. The highest score becomes the
+"Suggested practice" item, and top ranked problems can be opened directly from
+the popover. This ranking is intentionally heuristic and browser-local.
 
 Direct LeetCode submission is implemented through the Chrome extension in
 `extensions/leetcode-submit`. The page sends only `titleSlug`, `langSlug`, and
