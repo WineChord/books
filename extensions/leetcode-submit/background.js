@@ -472,31 +472,49 @@ function isFinishedSubmission(payload) {
   return Boolean(payload?.status_msg || payload?.status_code);
 }
 
-function firstPresent(...values) {
-  return values.find((value) => value !== null && value !== undefined) ?? "";
+function hasSubmissionDetail(value) {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) return value.some(hasSubmissionDetail);
+  if (typeof value === "string") return value.trim() !== "";
+  return true;
+}
+
+function firstSubmissionDetail(...values) {
+  return values.find(hasSubmissionDetail) ?? "";
+}
+
+function legacyCorrectAnswerValue(payload) {
+  const value = payload?.correct_answer;
+  return typeof value === "boolean" ? "" : value;
 }
 
 function normalizeSubmission(payload, submissionId) {
-  const codeAnswer = firstPresent(payload?.code_answer);
-  const codeOutput = firstPresent(payload?.code_output);
-  const stdout = firstPresent(payload?.std_output_list, payload?.std_output);
+  const codeAnswer = firstSubmissionDetail(payload?.code_answer);
+  const codeOutput = firstSubmissionDetail(payload?.code_output);
+  const stdout = firstSubmissionDetail(
+    payload?.std_output_list,
+    payload?.std_output,
+  );
   return {
     compileError: payload?.compile_error || payload?.full_compile_error || "",
-    expectedOutput: firstPresent(
+    expectedOutput: firstSubmissionDetail(
       payload?.expected_code_answer,
       payload?.expected_output,
-      payload?.correct_answer,
+      legacyCorrectAnswerValue(payload),
     ),
     finished: isFinishedSubmission(payload),
-    input: payload?.input || payload?.last_testcase || "",
+    input: firstSubmissionDetail(payload?.input, payload?.last_testcase),
     memory: payload?.memory || "",
-    output: firstPresent(codeAnswer, codeOutput),
+    output: firstSubmissionDetail(codeAnswer, codeOutput),
     runSuccess: Boolean(payload?.run_success),
     runtimeError: payload?.runtime_error || payload?.full_runtime_error || "",
     state: payload?.state || "",
     statusCode: payload?.status_code ?? null,
     statusMessage: payload?.status_msg || "",
-    standardOutput: firstPresent(stdout, codeAnswer ? codeOutput : ""),
+    standardOutput: firstSubmissionDetail(
+      stdout,
+      codeAnswer ? codeOutput : "",
+    ),
     submissionId,
     totalCorrect: payload?.total_correct ?? null,
     totalTestcases: payload?.total_testcases ?? null,

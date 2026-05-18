@@ -181,10 +181,13 @@ window.postMessage(
 ```
 
 When LeetCode returns run or submit details, `output` contains the submitted
-code answer from LeetCode's `code_answer`, `expectedOutput` contains the judge
-expectation from `expected_code_answer`, and `standardOutput` contains stdout
-from `std_output_list` or `std_output` when LeetCode exposes it. Runtime and
-compile diagnostics are exposed through `runtimeError` and `compileError`.
+code answer from LeetCode's `code_answer` run field or `code_output` submit
+field, `expectedOutput` contains the judge expectation from
+`expected_code_answer` or `expected_output`, and `standardOutput` contains
+stdout from `std_output_list` or `std_output` when LeetCode exposes it. Empty
+placeholder fields are skipped so a submit result can still surface the actual
+answer from `code_output`. Runtime and compile diagnostics are exposed through
+`runtimeError` and `compileError`.
 
 Errors use the same envelope and set `ok` to `false`.
 
