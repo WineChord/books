@@ -397,7 +397,9 @@ Extra run cases reset on the next Beijing calendar day, so daily practice
 starts from the official examples again.
 The page footer also keeps always-visible links to the GitHub repository,
 extension directory, latest extension ZIP, feedback issues, and page spec. It
-also includes a collapsed, beginner-oriented installation guide for loading or
+must have comfortable bottom breathing room so the link row never sits flush
+against the page end or the viewport edge. The footer also includes a collapsed,
+beginner-oriented installation guide for loading or
 reloading this unpacked Chrome extension from a GitHub Release package or from
 the repository source; the practice editor links directly to this guide and to
 the stable latest-release download URL. Extension release tags are named
