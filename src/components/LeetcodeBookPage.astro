@@ -1056,9 +1056,10 @@ const shortcutRows = [
     const extensionLoginStatusRequestType = "login-status";
     const extensionRunRequestType = "run";
     const extensionSubmitRequestType = "submit";
+    const leetcodeRequestTimeoutCode = "leetcode_request_timeout";
     const unsupportedRequestTypeCode = "unsupported_request_type";
     const extensionPingTimeoutMs = 2500;
-    const extensionCheckTimeoutMs = 20000;
+    const extensionCheckTimeoutMs = 45000;
     const extensionRequestTimeoutMs = 30000;
     const extensionInitialResultTimeoutMs = 120000;
     const submissionPollInitialDelayMs = 800;
@@ -3694,10 +3695,10 @@ const shortcutRows = [
         const timeout = window.setTimeout(() => {
           const pending = pendingExtensionRequests.get(requestId);
           pendingExtensionRequests.delete(requestId);
-          const message = pending?.ack
-            ? "扩展已连接，但力扣请求超时；请稍后查看力扣提交记录。"
-            : "未检测到 Chrome 扩展响应，请确认已加载 extensions/leetcode-submit。";
-          reject(new Error(message));
+          const error = new Error(extensionTimeoutMessage(type, pending?.ack));
+          error.requestType = type;
+          error.timedOut = true;
+          reject(error);
         }, timeoutMs);
         pendingExtensionRequests.set(requestId, {
           ack: false,
@@ -3718,6 +3719,19 @@ const shortcutRows = [
       });
     }
 
+    function extensionTimeoutMessage(type, acknowledged) {
+      if (!acknowledged) {
+        return "未检测到 Chrome 扩展响应，请确认已加载 extensions/leetcode-submit。";
+      }
+      if (type === extensionCheckRequestType) {
+        return "扩展已连接，但本次力扣结果查询超时。";
+      }
+      if (type === extensionLoginStatusRequestType) {
+        return "扩展已连接，但登录状态检测超时；请刷新本页后重试。";
+      }
+      return "扩展已连接，但力扣请求超时；请稍后查看力扣提交记录。";
+    }
+
     function unsupportedCheckMessage() {
       return isChinesePage
         ? "当前加载的 Chrome 扩展版本不支持查询结果；请在 chrome://extensions 里重新加载 extensions/leetcode-submit，然后刷新本页。"
@@ -3735,6 +3749,14 @@ const shortcutRows = [
         return unsupportedCheckMessage();
       }
       return message || fallback;
+    }
+
+    function retryableCheckError(error) {
+      return Boolean(error?.timedOut && error?.requestType === extensionCheckRequestType);
+    }
+
+    function retryableCheckResponse(response) {
+      return response?.error?.code === leetcodeRequestTimeoutCode;
     }
 
     function submissionAccepted(result) {
@@ -3797,21 +3819,49 @@ const shortcutRows = [
 
     async function pollLeetcodeResult(panel, submissionId, label, maxAttempts) {
       await delay(submissionPollInitialDelayMs);
+      let lastErrorMessage = "";
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         setSubmitStatus(panel, `${label}，等待结果 ${attempt}/${maxAttempts}...`, "pending");
-        const response = await extensionRequest(
-          extensionCheckRequestType,
-          { submissionId },
-          extensionCheckTimeoutMs,
-        );
+        let response;
+        try {
+          response = await extensionRequest(
+            extensionCheckRequestType,
+            { submissionId },
+            extensionCheckTimeoutMs,
+          );
+        } catch (error) {
+          lastErrorMessage = error.message || "查询结果失败。";
+          if (retryableCheckError(error) && attempt < maxAttempts) {
+            setSubmitStatus(
+              panel,
+              `${label}，本次查询超时，继续等待 ${attempt}/${maxAttempts}...`,
+              "pending",
+            );
+            await delay(submissionPollIntervalMs);
+            continue;
+          }
+          throw error;
+        }
         if (!response?.ok) {
-          throw new Error(extensionErrorMessage(response, "查询结果失败。"));
+          const message = extensionErrorMessage(response, "查询结果失败。");
+          lastErrorMessage = message;
+          if (retryableCheckResponse(response) && attempt < maxAttempts) {
+            setSubmitStatus(
+              panel,
+              `${label}，本次查询超时，继续等待 ${attempt}/${maxAttempts}...`,
+              "pending",
+            );
+            await delay(submissionPollIntervalMs);
+            continue;
+          }
+          throw new Error(message);
         }
         const result = response.data?.result || {};
         if (resultFinished(result)) return result;
         await delay(submissionPollIntervalMs);
       }
-      throw new Error(`${label}超时；请稍后查看力扣提交记录。`);
+      const suffix = lastErrorMessage ? `最近错误：${lastErrorMessage}` : "";
+      throw new Error(`${label}超时；请稍后查看力扣提交记录。${suffix}`);
     }
 
     async function leetcodeResultFromResponse(
