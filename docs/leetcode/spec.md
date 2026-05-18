@@ -265,7 +265,14 @@ active-attempt timer for any repeat attempt. Running examples does not count as
 an Accepted solve. The page also starts a session timer when it loads and shows
 current problem time, session elapsed time, distinct session Accepted count,
 session average, today versus best daily count, current streak, seven-day
-count, and the current problem PB. Day boundaries are always computed in
+count, and the current problem PB. The Today/Best metric must render as a
+compact slash value without spaces, such as `38/42`, and must never truncate
+with an ellipsis or overlap adjacent metric cards at desktop, tablet, or 320 px
+mobile widths. The timing board should reflow to fewer metric columns before
+individual metric cards become too narrow for their values. The visible metric
+label provides the meaning, while assistive text expands the same value as
+today's solved count and the best daily record. Day boundaries are always
+computed in
 `Asia/Shanghai`
 (`北京时间`), not the browser's current local timezone. Session counters live
 only in memory for the current page load; per-problem PB/last Accepted and

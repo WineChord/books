@@ -717,7 +717,7 @@ const shortcutRows = [
           <p>{isZh ? "本次均速" : "Average"}</p>
         </div>
         <div class="leetcode-session-metric">
-          <span data-timing-today>0 题</span>
+          <span data-timing-today>0/--</span>
           <p>{isZh ? "今日/纪录" : "Today/Best"}</p>
         </div>
         <div class="leetcode-session-metric">
@@ -2230,6 +2230,17 @@ const shortcutRows = [
       return isChinesePage ? `${value} 题` : `${value} solved`;
     }
 
+    function formatTodayBestCount(todayCount, bestCount) {
+      return `${Number(todayCount || 0)}/${bestCount || "--"}`;
+    }
+
+    function todayBestCountLabel(todayCount, bestCount) {
+      const bestLabel = bestCount || (isChinesePage ? "暂无" : "none yet");
+      return isChinesePage
+        ? `今日 ${todayCount} 题，历史纪录 ${bestLabel}`
+        : `Today ${todayCount}, best day ${bestLabel}`;
+    }
+
     function dayTiming(dateKey = localDateKey()) {
       if (!timing.days[dateKey] || typeof timing.days[dateKey] !== "object") {
         timing.days[dateKey] = {
@@ -2537,6 +2548,15 @@ const shortcutRows = [
       });
     }
 
+    function setTextAndLabelAll(selector, value, label) {
+      document.querySelectorAll(selector).forEach((node) => {
+        node.textContent = value;
+        if (node instanceof HTMLElement) {
+          node.setAttribute("aria-label", label);
+        }
+      });
+    }
+
     function syncTimingUi() {
       const practiceTimingActive = syncPracticeClockState();
       const now = Date.now();
@@ -2551,6 +2571,10 @@ const shortcutRows = [
         : 0;
       const overview = timingOverview();
       const todayBest = overview.bestDay.unique || "--";
+      const todayBestText = formatTodayBestCount(
+        overview.todayUnique,
+        todayBest,
+      );
       const milestone = practiceTimingActive
         ? timingMilestone || defaultTimingMilestone(overview)
         : (isChinesePage
@@ -2567,7 +2591,11 @@ const shortcutRows = [
         "[data-timing-session-avg]",
         sessionAverage ? formatDuration(sessionAverage) : "--",
       );
-      setTextAll("[data-timing-today]", `${overview.todayUnique} / ${todayBest}`);
+      setTextAndLabelAll(
+        "[data-timing-today]",
+        todayBestText,
+        todayBestCountLabel(overview.todayUnique, todayBest),
+      );
       setTextAll("[data-timing-streak]", formatStreak(overview.streak));
       setTextAll("[data-timing-week]", formatProblemCount(overview.recent.unique));
       setTextAll(
@@ -10554,6 +10582,23 @@ const shortcutRows = [
       color: var(--color-cream);
     }
 
+    @media (max-width: 1180px) {
+      .leetcode-session-board {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .leetcode-session-actions {
+        grid-column: 1 / -1;
+        grid-row: auto;
+        justify-content: flex-start;
+      }
+
+      .leetcode-session-history {
+        grid-column: 1 / -1;
+        grid-row: auto;
+      }
+    }
+
     @media (max-width: 900px) {
       .leetcode-hero {
         grid-template-columns: 1fr;
@@ -10582,19 +10627,7 @@ const shortcutRows = [
         grid-template-columns: 1fr;
       }
 
-      .leetcode-session-board {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .leetcode-session-actions {
-        grid-column: 1 / -1;
-        grid-row: auto;
-        justify-content: flex-start;
-      }
-
       .leetcode-session-history {
-        grid-column: 1 / -1;
-        grid-row: auto;
         grid-template-columns: 1fr;
         gap: 0.18rem;
       }
