@@ -1052,9 +1052,15 @@ const shortcutRows = [
     const extensionRequestSource = "books-leetcode-page";
     const extensionResponseSource = "books-leetcode-extension";
     const extensionProtocolVersion = 1;
+    const extensionCheckRequestType = "check";
+    const extensionLoginStatusRequestType = "login-status";
+    const extensionRunRequestType = "run";
+    const extensionSubmitRequestType = "submit";
+    const unsupportedRequestTypeCode = "unsupported_request_type";
     const extensionPingTimeoutMs = 2500;
     const extensionCheckTimeoutMs = 20000;
     const extensionRequestTimeoutMs = 30000;
+    const extensionInitialResultTimeoutMs = 120000;
     const submissionPollInitialDelayMs = 800;
     const submissionPollIntervalMs = 1500;
     const runPollAttempts = 24;
@@ -1129,9 +1135,10 @@ const shortcutRows = [
     const sessionTiming = {
       acceptedDurations: [],
       acceptedSlugs: new Set(),
-      startedAt: Date.now(),
+      elapsedMs: 0,
+      startedAt: isPracticeTimingActive() ? Date.now() : 0,
     };
-    let activePracticeTimer = { slug: "", startedAt: 0 };
+    let activePracticeTimer = { elapsedMs: 0, slug: "", startedAt: 0 };
     let timingMilestone = "";
 
     function dailyEditorResetEnabled() {
@@ -1552,9 +1559,52 @@ const shortcutRows = [
       return Boolean(record.bestMs || record.lastMs || record.acceptedCount);
     }
 
-    function activePracticeElapsed() {
-      if (!activePracticeTimer.slug || !activePracticeTimer.startedAt) return 0;
-      return Date.now() - activePracticeTimer.startedAt;
+    function isPracticeTimingActive() {
+      const focused = typeof document.hasFocus === "function"
+        ? document.hasFocus()
+        : true;
+      return !document.hidden && focused;
+    }
+
+    function startElapsedClock(clock, now = Date.now()) {
+      if (clock.startedAt || !isPracticeTimingActive()) return;
+      clock.startedAt = now;
+    }
+
+    function pauseElapsedClock(clock, now = Date.now()) {
+      if (!clock.startedAt) return;
+      clock.elapsedMs += Math.max(0, now - clock.startedAt);
+      clock.startedAt = 0;
+    }
+
+    function resetElapsedClock(clock, now = Date.now()) {
+      clock.elapsedMs = 0;
+      clock.startedAt = isPracticeTimingActive() ? now : 0;
+    }
+
+    function elapsedClockMs(clock, now = Date.now()) {
+      const currentSegment = clock.startedAt
+        ? Math.max(0, now - clock.startedAt)
+        : 0;
+      return Math.max(0, Number(clock.elapsedMs || 0) + currentSegment);
+    }
+
+    function syncPracticeClockState() {
+      const now = Date.now();
+      const active = isPracticeTimingActive();
+      if (!active) {
+        pauseElapsedClock(sessionTiming, now);
+        pauseElapsedClock(activePracticeTimer, now);
+        return false;
+      }
+      startElapsedClock(sessionTiming, now);
+      if (activePracticeTimer.slug) startElapsedClock(activePracticeTimer, now);
+      return true;
+    }
+
+    function activePracticeElapsed(now = Date.now()) {
+      if (!activePracticeTimer.slug) return 0;
+      return elapsedClockMs(activePracticeTimer, now);
     }
 
     function setTextAll(selector, value) {
@@ -1564,10 +1614,12 @@ const shortcutRows = [
     }
 
     function syncTimingUi() {
-      const elapsed = activePracticeElapsed();
+      const practiceTimingActive = syncPracticeClockState();
+      const now = Date.now();
+      const elapsed = activePracticeElapsed(now);
       const activeSlug = activePracticeTimer.slug;
       const activeRecord = activeSlug ? storedProblemTiming(activeSlug) : {};
-      const sessionElapsed = Date.now() - sessionTiming.startedAt;
+      const sessionElapsed = elapsedClockMs(sessionTiming, now);
       const sessionAcceptedCount = sessionTiming.acceptedDurations.length;
       const sessionAverage = sessionAcceptedCount
         ? sessionTiming.acceptedDurations.reduce((sum, item) => sum + item, 0) /
@@ -1575,6 +1627,11 @@ const shortcutRows = [
         : 0;
       const overview = timingOverview();
       const todayBest = overview.bestDay.unique || "--";
+      const milestone = practiceTimingActive
+        ? timingMilestone || defaultTimingMilestone(overview)
+        : (isChinesePage
+          ? "计时已暂停，回到本页后继续"
+          : "Timing paused; return to this page to resume");
 
       setTextAll("[data-timing-active]", formatDuration(elapsed));
       setTextAll("[data-timing-session]", formatDuration(sessionElapsed));
@@ -1594,10 +1651,7 @@ const shortcutRows = [
         activeRecord.bestMs ? formatDuration(activeRecord.bestMs) : "--",
       );
       setTextAll("[data-timing-timezone]", isChinesePage ? "北京时间" : "Beijing time");
-      setTextAll(
-        "[data-timing-milestone]",
-        timingMilestone || defaultTimingMilestone(overview),
-      );
+      setTextAll("[data-timing-milestone]", milestone);
       document.querySelectorAll("[data-timing-history-list]").forEach((node) => {
         if (node instanceof HTMLElement) {
           node.innerHTML = renderTimingHistory(overview);
@@ -1642,9 +1696,11 @@ const shortcutRows = [
       );
       const nextSlug = hasPanel ? state.expandedSlug : "";
       if (activePracticeTimer.slug !== nextSlug) {
+        const now = Date.now();
         activePracticeTimer = {
+          elapsedMs: 0,
           slug: nextSlug,
-          startedAt: nextSlug ? Date.now() : 0,
+          startedAt: nextSlug && isPracticeTimingActive() ? now : 0,
         };
       }
       syncTimingUi();
@@ -1653,17 +1709,17 @@ const shortcutRows = [
     function resetSessionTiming() {
       sessionTiming.acceptedDurations = [];
       sessionTiming.acceptedSlugs = new Set();
-      sessionTiming.startedAt = Date.now();
+      resetElapsedClock(sessionTiming);
       timingMilestone = "";
       if (activePracticeTimer.slug) {
-        activePracticeTimer.startedAt = Date.now();
+        resetElapsedClock(activePracticeTimer);
       }
       syncTimingUi();
     }
 
     function restartActiveProblemTimer() {
       if (!activePracticeTimer.slug) return;
-      activePracticeTimer.startedAt = Date.now();
+      resetElapsedClock(activePracticeTimer);
       timingMilestone = isChinesePage
         ? "已重开本题计时"
         : "Current problem timer restarted";
@@ -1686,8 +1742,9 @@ const shortcutRows = [
     }
 
     function recordAcceptedTiming(slug) {
+      syncPracticeClockState();
       const elapsed = Math.max(0, activePracticeTimer.slug === slug
-        ? Date.now() - activePracticeTimer.startedAt
+        ? activePracticeElapsed()
         : 0);
       const todayKey = localDateKey();
       const beforeOverview = timingOverview();
@@ -1713,7 +1770,7 @@ const shortcutRows = [
       sessionTiming.acceptedDurations.push(elapsed);
       sessionTiming.acceptedSlugs.add(slug);
       if (activePracticeTimer.slug === slug) {
-        activePracticeTimer.startedAt = Date.now();
+        resetElapsedClock(activePracticeTimer);
       }
       const afterOverview = timingOverview();
       const todayUnique = afterOverview.todayUnique;
@@ -3583,12 +3640,12 @@ const shortcutRows = [
     async function ensureLeetcodeReady(panel) {
       setSubmitStatus(panel, "正在检测 Chrome 扩展...", "pending");
       const loginStatus = await extensionRequest(
-        "login-status",
+        extensionLoginStatusRequestType,
         {},
         extensionPingTimeoutMs,
       );
       if (!loginStatus?.ok) {
-        throw new Error(loginStatus?.error?.message || "扩展检测失败。");
+        throw new Error(extensionErrorMessage(loginStatus, "扩展检测失败。"));
       }
       if (!loginStatus.data?.isLoggedIn) {
         throw new Error("Chrome 扩展已连接，但当前 Chrome 未登录 leetcode.cn。");
@@ -3661,6 +3718,25 @@ const shortcutRows = [
       });
     }
 
+    function unsupportedCheckMessage() {
+      return isChinesePage
+        ? "当前加载的 Chrome 扩展版本不支持查询结果；请在 chrome://extensions 里重新加载 extensions/leetcode-submit，然后刷新本页。"
+        : "The loaded Chrome extension does not support result checks; reload extensions/leetcode-submit in chrome://extensions, then refresh this page.";
+    }
+
+    function extensionErrorMessage(response, fallback) {
+      const error = response?.error;
+      if (!error) return fallback;
+      const message = String(error.message || "");
+      if (
+        error.code === unsupportedRequestTypeCode &&
+        message.includes(extensionCheckRequestType)
+      ) {
+        return unsupportedCheckMessage();
+      }
+      return message || fallback;
+    }
+
     function submissionAccepted(result) {
       return (
         result?.statusMessage === "Accepted" ||
@@ -3713,17 +3789,23 @@ const shortcutRows = [
       );
     }
 
+    function finishedInitialResult(response) {
+      const result = response?.data?.result;
+      if (!result || typeof result !== "object") return null;
+      return resultFinished(result) ? result : null;
+    }
+
     async function pollLeetcodeResult(panel, submissionId, label, maxAttempts) {
       await delay(submissionPollInitialDelayMs);
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         setSubmitStatus(panel, `${label}，等待结果 ${attempt}/${maxAttempts}...`, "pending");
         const response = await extensionRequest(
-          "check",
+          extensionCheckRequestType,
           { submissionId },
           extensionCheckTimeoutMs,
         );
         if (!response?.ok) {
-          throw new Error(response?.error?.message || "查询结果失败。");
+          throw new Error(extensionErrorMessage(response, "查询结果失败。"));
         }
         const result = response.data?.result || {};
         if (resultFinished(result)) return result;
@@ -3732,22 +3814,39 @@ const shortcutRows = [
       throw new Error(`${label}超时；请稍后查看力扣提交记录。`);
     }
 
+    async function leetcodeResultFromResponse(
+      panel,
+      response,
+      kind,
+      label,
+      maxAttempts,
+    ) {
+      const initialResult = finishedInitialResult(response);
+      if (initialResult) return initialResult;
+      const submissionId = submissionIdFrom(response, kind);
+      if (!submissionId) {
+        throw new Error("力扣没有返回运行或提交 ID。");
+      }
+      return pollLeetcodeResult(panel, submissionId, label, maxAttempts);
+    }
+
     async function runLeetcode(panel, actionButton, problem, textarea) {
       setActionBusy(actionButton, true);
       try {
         await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在运行官方示例...", "pending");
-        const response = await extensionRequest("run", editorPayload(problem, textarea));
+        const response = await extensionRequest(
+          extensionRunRequestType,
+          editorPayload(problem, textarea),
+          extensionInitialResultTimeoutMs,
+        );
         if (!response?.ok) {
-          throw new Error(response?.error?.message || "运行失败。");
+          throw new Error(extensionErrorMessage(response, "运行失败。"));
         }
-        const submissionId = submissionIdFrom(response, "run");
-        if (!submissionId) {
-          throw new Error("力扣没有返回样例运行 ID。");
-        }
-        const result = await pollLeetcodeResult(
+        const result = await leetcodeResultFromResponse(
           panel,
-          submissionId,
+          response,
+          extensionRunRequestType,
           "正在运行官方示例",
           runPollAttempts,
         );
@@ -3769,17 +3868,18 @@ const shortcutRows = [
       try {
         await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在提交到力扣...", "pending");
-        const response = await extensionRequest("submit", editorPayload(problem, textarea));
+        const response = await extensionRequest(
+          extensionSubmitRequestType,
+          editorPayload(problem, textarea),
+          extensionInitialResultTimeoutMs,
+        );
         if (!response?.ok) {
-          throw new Error(response?.error?.message || "提交失败。");
+          throw new Error(extensionErrorMessage(response, "提交失败。"));
         }
-        const submissionId = submissionIdFrom(response, "submit");
-        if (!submissionId) {
-          throw new Error("力扣没有返回提交 ID。");
-        }
-        const result = await pollLeetcodeResult(
+        const result = await leetcodeResultFromResponse(
           panel,
-          submissionId,
+          response,
+          extensionSubmitRequestType,
           "正在提交到力扣",
           submitPollAttempts,
         );
@@ -4411,9 +4511,19 @@ const shortcutRows = [
     render();
     window.setInterval(syncTimingUi, 1000);
     window.setInterval(syncEditorDraftDay, editorDraftDayCheckIntervalMs);
-    window.addEventListener("focus", syncEditorDraftDay);
+    window.addEventListener("blur", syncTimingUi);
+    window.addEventListener("focus", () => {
+      syncEditorDraftDay();
+      syncTimingUi();
+    });
+    window.addEventListener("pagehide", syncTimingUi);
+    window.addEventListener("pageshow", () => {
+      syncEditorDraftDay();
+      syncTimingUi();
+    });
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) syncEditorDraftDay();
+      syncTimingUi();
     });
   </script>
 

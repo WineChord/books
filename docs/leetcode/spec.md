@@ -193,15 +193,20 @@ leaves that content.
 Practice timing is automatic. Daily history stays collapsed into a hover/focus
 popover so it does not push the first problem rows down. Opening or
 keyboard-switching into a problem starts that problem's forward timer without
-requiring a start button. A full
-LeetCode submit that returns Accepted records the elapsed time from the latest
-switch/open moment, marks the problem done, updates the problem's last Accepted
-time and personal best, and then resets the active-attempt timer for any
-repeat attempt. Running examples does not count as an Accepted solve. The page
-also starts a session timer when it loads and shows current problem time,
-session elapsed time, distinct session Accepted count, session average,
-today versus best daily count, current streak, seven-day count, and the current
-problem PB. Day boundaries are always computed in `Asia/Shanghai`
+requiring a start button. The current-problem timer and session timer count
+only foreground practice time: they pause when the document is hidden or the
+browser window loses focus, then resume from the accumulated value when the page
+is visible and focused again. There is no idle timeout, because reading,
+debugging, and thinking without keyboard input are still valid practice time. A
+full LeetCode submit that returns Accepted records the elapsed foreground time
+from the latest switch/open moment, marks the problem done, updates the
+problem's last Accepted time and personal best, and then resets the
+active-attempt timer for any repeat attempt. Running examples does not count as
+an Accepted solve. The page also starts a session timer when it loads and shows
+current problem time, session elapsed time, distinct session Accepted count,
+session average, today versus best daily count, current streak, seven-day
+count, and the current problem PB. Day boundaries are always computed in
+`Asia/Shanghai`
 (`北京时间`), not the browser's current local timezone. Session counters live
 only in memory for the current page load; per-problem PB/last Accepted and
 daily Accepted summaries persist in local storage. Daily summaries store the
@@ -226,9 +231,12 @@ LeetCode China, and returns the LeetCode submission or interpretation id
 quickly. The page then polls the extension with short `check` requests, and
 the extension checks `/submissions/detail/{id}/check/` once per request. This
 avoids keeping a Manifest V3 message channel open while LeetCode is still
-running the job. Cookie values are never sent to page JavaScript or stored in
-the repo. If the extension is not installed or the user is not logged in, the
-page shows that as status and keeps the local editor usable.
+running the job. For compatibility with already-loaded older unpacked
+extensions, the page also accepts a finished result returned by the initial
+`run` or `submit` response before sending `check`. Cookie values are never sent
+to page JavaScript or stored in the repo. If the extension is not installed or
+the user is not logged in, the page shows that as status and keeps the local
+editor usable.
 The page footer also keeps always-visible links to the GitHub repository,
 extension directory, feedback issues, and page spec. It also includes a
 collapsed, beginner-oriented installation guide for loading this unpacked
