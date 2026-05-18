@@ -4280,6 +4280,58 @@ const shortcutRows = [
       return true;
     }
 
+    function editorIndentColumn(text) {
+      let column = 0;
+      for (const token of String(text)) {
+        if (token === "\t") {
+          const remainder = column % editorIndentUnit.length;
+          column += remainder === 0 ? editorIndentUnit.length : editorIndentUnit.length - remainder;
+        } else {
+          column += 1;
+        }
+      }
+      return column;
+    }
+
+    function editorBackspaceIndentStart(prefix) {
+      const currentColumn = editorIndentColumn(prefix);
+      if (currentColumn <= 0) return prefix.length;
+      const remainder = currentColumn % editorIndentUnit.length;
+      const previousStop =
+        remainder === 0
+          ? currentColumn - editorIndentUnit.length
+          : currentColumn - remainder;
+      let column = 0;
+      for (let index = 0; index < prefix.length; index += 1) {
+        const token = prefix[index];
+        const nextColumn =
+          token === "\t"
+            ? column +
+              (column % editorIndentUnit.length === 0
+                ? editorIndentUnit.length
+                : editorIndentUnit.length - (column % editorIndentUnit.length))
+            : column + 1;
+        if (nextColumn > previousStop) return index;
+        column = nextColumn;
+      }
+      return prefix.length;
+    }
+
+    function handleEditorIndentBackspace(event, textarea) {
+      if (!isPlainEditorTypingEvent(event)) return false;
+      if (event.key !== "Backspace") return false;
+      if (textarea.selectionStart !== textarea.selectionEnd) return false;
+      const start = textarea.selectionStart;
+      const bounds = lineBounds(textarea.value, start);
+      if (!/^[\t ]+$/.test(bounds.beforeCursor)) return false;
+      const deleteStart =
+        bounds.start + editorBackspaceIndentStart(bounds.beforeCursor);
+      if (deleteStart >= start) return false;
+      event.preventDefault();
+      replaceTextareaRange(textarea, deleteStart, start, "", deleteStart);
+      return true;
+    }
+
     function indentTextareaSelection(textarea) {
       const value = textarea.value;
       const start = textarea.selectionStart;
@@ -4888,6 +4940,9 @@ const shortcutRows = [
         return true;
       }
       if (handleEditorEmptyPairBackspace(event, textarea)) {
+        return true;
+      }
+      if (handleEditorIndentBackspace(event, textarea)) {
         return true;
       }
       if (event.key === "Enter") {

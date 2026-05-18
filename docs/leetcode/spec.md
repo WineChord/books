@@ -147,6 +147,10 @@ Enter keeps the current line indentation and adds one indentation level after
 opening braces, brackets, parentheses, or Python colons; `Tab` and `Shift+Tab`
 indent and outdent the current line or selected lines; typing a closing brace,
 bracket, or parenthesis on an indentation-only line aligns it back one level.
+Plain `Backspace` in leading indentation deletes back to the previous
+4-space tab stop, so an 8-space indent becomes 4 spaces, a 6-space indent
+becomes 4 spaces, and a partial indent before the first tab stop clears to the
+line start.
 The editor shows a fixed line-number gutter synchronized with the textarea and
 highlight layer. The editor defaults to an auto-growing height equal to the
 current code line count plus one spare line, growing with the code up to a
