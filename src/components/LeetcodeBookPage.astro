@@ -3676,11 +3676,13 @@ const shortcutRows = [
       }
     }
 
-    function setSubmitStatus(panel, message, tone = "") {
+    function setSubmitStatus(panel, message, tone = "", result = null) {
       const status = panel?.querySelector("[data-submit-status]");
-      if (!(status instanceof HTMLElement)) return;
-      status.textContent = message;
-      status.dataset.tone = tone;
+      if (status instanceof HTMLElement) {
+        status.textContent = message;
+        status.dataset.tone = tone;
+      }
+      renderSubmissionFailureDetails(panel, tone === "error" ? result : null);
     }
 
     function delay(ms) {
@@ -3780,6 +3782,76 @@ const shortcutRows = [
       const text = meaningfulSubmissionValue(value);
       if (!text) return "";
       return text.split("\n").map((line) => line.trim()).find(Boolean) || "";
+    }
+
+    function submissionDetailValue(value) {
+      if (value === null || value === undefined) return "";
+      if (Array.isArray(value)) {
+        return value.map(submissionDetailValue).filter(Boolean).join("\n");
+      }
+      if (typeof value === "object") {
+        try {
+          return JSON.stringify(value, null, 2);
+        } catch {
+          return "";
+        }
+      }
+      return meaningfulSubmissionValue(value);
+    }
+
+    function submissionFailureDetails(result) {
+      const labels = isChinesePage
+        ? {
+            compileError: "编译错误",
+            expectedOutput: "期望输出",
+            input: "失败用例",
+            output: "实际输出",
+            runtimeError: "运行错误",
+            standardOutput: "标准输出",
+          }
+        : {
+            compileError: "Compile error",
+            expectedOutput: "Expected output",
+            input: "Failing testcase",
+            output: "Actual output",
+            runtimeError: "Runtime error",
+            standardOutput: "Stdout",
+          };
+      return [
+        [labels.compileError, submissionDetailValue(result?.compileError)],
+        [labels.runtimeError, submissionDetailValue(result?.runtimeError)],
+        [labels.input, submissionDetailValue(result?.input)],
+        [labels.output, submissionDetailValue(result?.output)],
+        [labels.expectedOutput, submissionDetailValue(result?.expectedOutput)],
+        [labels.standardOutput, submissionDetailValue(result?.standardOutput)],
+      ].filter(([, value]) => value);
+    }
+
+    function appendSubmissionDetailRow(container, label, value) {
+      const row = document.createElement("div");
+      const labelElement = document.createElement("span");
+      const valueElement = document.createElement("pre");
+      row.className = "leetcode-submit-detail-row";
+      labelElement.className = "leetcode-submit-detail-label";
+      labelElement.textContent = label;
+      valueElement.textContent = value;
+      row.append(labelElement, valueElement);
+      container.append(row);
+    }
+
+    function renderSubmissionFailureDetails(panel, result) {
+      const container = panel?.querySelector("[data-submit-detail]");
+      if (!(container instanceof HTMLElement)) return;
+      container.replaceChildren();
+      const rows = submissionFailureDetails(result);
+      if (!rows.length) {
+        container.hidden = true;
+        return;
+      }
+      rows.forEach(([label, value]) => {
+        appendSubmissionDetailRow(container, label, value);
+      });
+      container.hidden = false;
     }
 
     function submissionSummary(result) {
@@ -3905,7 +3977,7 @@ const shortcutRows = [
           setSubmitStatus(panel, `样例通过 ${summary}`, "success");
           return;
         }
-        setSubmitStatus(panel, `样例未通过 ${summary}`, "error");
+        setSubmitStatus(panel, `样例未通过 ${summary}`, "error", result);
       } catch (error) {
         setSubmitStatus(panel, error.message || "运行失败。", "error");
       } finally {
@@ -3956,7 +4028,7 @@ const shortcutRows = [
           );
           return;
         }
-        setSubmitStatus(panel, summary, "error");
+        setSubmitStatus(panel, summary, "error", result);
       } catch (error) {
         setSubmitStatus(panel, error.message || "提交失败。", "error");
       } finally {
@@ -4016,9 +4088,10 @@ const shortcutRows = [
               <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" title="${isChinesePage ? "打开当前题力扣页（Cmd+Shift+L）" : "Open current LeetCode problem (Cmd+Shift+L)"}" data-shortcut-label="${isChinesePage ? "打开力扣 · Cmd+Shift+L" : "Open LeetCode · Cmd+Shift+L"}" data-link-slug="${escapeHtml(problem.titleSlug)}">打开力扣</a>
             </div>
           </div>
-          <p class="leetcode-submit-note">
+          <div class="leetcode-submit-note" aria-live="polite">
             <span data-submit-status="${escapeHtml(problem.titleSlug)}">安装本仓库 Chrome 扩展后可直接提交到力扣；页面不会读取你的登录 cookie。</span>
-          </p>
+            <div class="leetcode-submit-detail" data-submit-detail hidden></div>
+          </div>
         </section>
       `;
     }
@@ -5882,7 +5955,8 @@ const shortcutRows = [
       box-shadow: 0 0 0 1px var(--leetcode-editor-focus);
     }
 
-    .leetcode-practice-panel p {
+    .leetcode-practice-panel p,
+    .leetcode-submit-note {
       margin: 0;
     }
 
@@ -5900,8 +5974,53 @@ const shortcutRows = [
       font-weight: 700;
     }
 
+    .leetcode-submit-detail {
+      display: grid;
+      gap: 0.52rem;
+      margin-top: 0.62rem;
+    }
+
+    .leetcode-submit-detail[hidden] {
+      display: none;
+    }
+
+    .leetcode-submit-detail-row {
+      display: grid;
+      gap: 0.22rem;
+    }
+
+    .leetcode-submit-detail-label {
+      color: #72563c;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .leetcode-submit-detail pre {
+      max-height: 12rem;
+      overflow: auto;
+      overflow-wrap: anywhere;
+      border: 1px solid var(--leetcode-editor-border);
+      border-radius: 6px;
+      background: rgb(255 255 255 / 58%);
+      color: var(--leetcode-editor-foreground);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0.58rem 0.68rem;
+      white-space: pre-wrap;
+    }
+
     html.dark .leetcode-practice-panel {
       background: rgb(30 30 28 / 42%);
+    }
+
+    html.dark .leetcode-submit-detail-label {
+      color: #d6b48c;
+    }
+
+    html.dark .leetcode-submit-detail pre {
+      background: rgb(21 21 20 / 72%);
     }
 
     html.dark .leetcode-session-board {

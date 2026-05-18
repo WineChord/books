@@ -110,12 +110,19 @@ window.postMessage(
       input: "",
       output: "",
       expectedOutput: "",
+      runtimeError: "",
+      standardOutput: "",
       finished: true,
       raw: {}
     }
   }
 }
 ```
+
+When LeetCode returns a failed testcase, `input` contains that testcase,
+`output` contains the submitted code output, and `expectedOutput` contains the
+judge expectation. Runtime and compile diagnostics are exposed through
+`runtimeError` and `compileError`.
 
 Errors use the same envelope and set `ok` to `false`.
 

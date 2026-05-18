@@ -236,7 +236,9 @@ extensions, the page also accepts a finished result returned by the initial
 `run` or `submit` response before sending `check`. Cookie values are never sent
 to page JavaScript or stored in the repo. If the extension is not installed or
 the user is not logged in, the page shows that as status and keeps the local
-editor usable.
+editor usable. When LeetCode returns failure details, the page shows the
+failing testcase, actual output, expected output, and compile or runtime
+diagnostics below the status line.
 The page footer also keeps always-visible links to the GitHub repository,
 extension directory, feedback issues, and page spec. It also includes a
 collapsed, beginner-oriented installation guide for loading this unpacked
