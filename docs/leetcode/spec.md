@@ -135,6 +135,8 @@ tooltips or custom gray strip pseudo-tooltips. Text that used to live in a gray
 strip, such as "hover to view; click or Enter/Space to pin", belongs at the top
 of the matching yellow popover. Plain controls without a yellow popover keep
 only accessible `aria-label` text and the central shortcut list.
+As an acceptance check, the rendered practice page DOM should not leave any
+`title` attributes that would trigger browser-native gray tooltips.
 
 The duplicate audit appears below the working list in a collapsed details
 section. It lists every removed duplicate, the kept row, and the original
