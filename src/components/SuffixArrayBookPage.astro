@@ -97,6 +97,7 @@ const pageText = isZh
       alternateAction: "English",
       coverFooter: "单页交互教材",
       stats: [
+        ["00", "后缀概念"],
         ["01", "坐标压缩"],
         ["02", "倍增排序"],
         ["03", "Kasai LCP"],
@@ -108,6 +109,7 @@ const pageText = isZh
       examplesLabel: "样例",
       roundLabel: "倍增轮次",
       stageLabels: {
+        concept: "概念",
         compress: "压缩",
         doubling: "倍增",
         lcp: "LCP",
@@ -150,6 +152,7 @@ const pageText = isZh
       alternateAction: "中文",
       coverFooter: "Single-page interactive book",
       stats: [
+        ["00", "Suffix concept"],
         ["01", "Compression"],
         ["02", "Doubling sort"],
         ["03", "Kasai LCP"],
@@ -161,6 +164,7 @@ const pageText = isZh
       examplesLabel: "Examples",
       roundLabel: "Doubling round",
       stageLabels: {
+        concept: "Concept",
         compress: "Compress",
         doubling: "Doubling",
         lcp: "LCP",
@@ -217,11 +221,129 @@ const clientText = isZh
       answerMiddle: "来自起点",
       answerSuffix: "的子数组",
       noAnswer: "没有可视化数据。",
+      activeStart: "当前起点",
+      activeSuffix: "当前后缀",
+      candidateSubarrays: "它能产生的前缀式子数组",
+      codeBridge: "代码对应",
+      commonPrefix: "共同前缀",
+      chooseStart: "选择起点",
+      neighborCompare: "邻居对比",
+      previousNeighbor: "左邻居",
+      nextNeighbor: "右邻居",
+      noNeighbor: "没有邻居",
+      selfCheck: "自测",
+      correct: "正确",
+      incorrect: "再想一下",
       stageNotes: {
+        concept: "先把子数组问题翻译成后缀前缀问题：从同一个起点出发，越短的子数组越像这个后缀的短前缀。",
         compress: "压缩只改变符号编号，不改变任意两个元素的相等关系和大小关系。",
         doubling: "当前轮按二元组排序；二元组相同的后缀会拿到同一个新 rank。",
         lcp: "LCP[p] 比较 sa[p] 和 sa[p-1]，所以右邻居要看 LCP[p+1]。",
         answer: "对每个起点取左右 LCP 的最大值，加一就是首次能避开重复的长度。",
+      },
+      lessons: {
+        concept: {
+          step: "00",
+          title: "先把每个起点变成一个后缀",
+          body: "后缀就是从某个位置开始一直走到结尾的整段。一个从 i 开始的子数组，一定是后缀 a[i..] 的前缀。",
+          bullets: [
+            "点任意起点，下面所有面板都会跟着同一个后缀变化。",
+            "如果两个后缀开头相同，那么这些相同长度内的子数组就会重复。",
+            "后缀数组做的事，就是把所有后缀按字典序排好。",
+          ],
+          code: "smallestUniqueSubarray 里的 for(int i = 0; i < n; i++) 枚举每个起点。",
+        },
+        compress: {
+          step: "01",
+          title: "坐标压缩只是在换名字",
+          body: "后缀排序只关心两个值是否相等、谁更小。把原值改成 1、2、3 这样的 rank，不会改变比较结果。",
+          bullets: [
+            "相等的原值会得到相同 rank。",
+            "更小的原值会得到更小 rank。",
+            "压缩后算法不用关心原值有多大或是否为负数。",
+          ],
+          code: "compress 中 sort + unique 建出字母表，lower_bound 找到每个值的 rank。",
+        },
+        doubling: {
+          step: "02",
+          title: "倍增排序每次看两段",
+          body: "第 k 轮已经知道长度 k 的片段顺序，于是用 (rank[i], rank[i+k]) 表示长度 2k 的片段。",
+          bullets: [
+            "第一个 rank 比前半段。",
+            "第二个 rank 比后半段，越界时用 -1。",
+            "二元组一样，说明当前长度内还分不出这两个后缀。",
+          ],
+          code: "build1 里的 cmp 正是在比较 rank[i] 和 rank[i+k]。",
+        },
+        lcp: {
+          step: "03",
+          title: "LCP 只记录相邻后缀的共同开头",
+          body: "后缀排好序后，长得最像的后缀会靠在一起。LCP[p] 就是 sa[p] 和 sa[p-1] 开头连续相同的长度。",
+          bullets: [
+            "左邻居用 LCP[p]。",
+            "右邻居用 LCP[p+1]。",
+            "公共前缀里的长度都还不是唯一子数组。",
+          ],
+          code: "build2 中 while 循环逐个比较 a[i+h] 和 a[j+h]。",
+        },
+        answer: {
+          step: "04",
+          title: "same + 1 是第一次跳出重复",
+          body: "same 是当前后缀和左右邻居能共享的最长前缀。长度不超过 same 的子数组会重复；再多取一个才可能唯一。",
+          bullets: [
+            "same = max(左 LCP, 右 LCP)。",
+            "need = same + 1。",
+            "如果 need 超出数组边界，这个起点给不出唯一子数组。",
+          ],
+          code: "smallestUniqueSubarray 最后几行计算 same、need 和 res。",
+        },
+      },
+      checks: {
+        concept: {
+          question: "为什么子数组可以交给后缀数组处理？",
+          choices: [
+            ["因为从同一起点开始的子数组都是该后缀的前缀", true],
+            ["因为所有子数组长度都一样", false],
+            ["因为后缀数组会删除重复元素", false],
+          ],
+          feedback: "关键是“前缀”：从 i 开始拿 1 个、2 个、3 个元素，都在后缀 a[i..] 的开头。",
+        },
+        compress: {
+          question: "坐标压缩为什么不会破坏答案？",
+          choices: [
+            ["因为它保留相等关系和大小关系", true],
+            ["因为它会把数组变短", false],
+            ["因为它只保留最大值", false],
+          ],
+          feedback: "后缀比较只需要知道两个值是否相等、谁更小；压缩后的 rank 正好保留这两件事。",
+        },
+        doubling: {
+          question: "二元组 (rank[i], rank[i+k]) 表示什么？",
+          choices: [
+            ["长度 2k 片段的前半段和后半段顺序", true],
+            ["两个随机位置", false],
+            ["答案的左右边界", false],
+          ],
+          feedback: "倍增的核心是复用上一轮长度 k 的排序结果，拼出长度 2k 的比较键。",
+        },
+        lcp: {
+          question: "当前后缀的右邻居 LCP 为什么看 LCP[p+1]？",
+          choices: [
+            ["因为 LCP[p+1] 比较 sa[p+1] 和 sa[p]", true],
+            ["因为数组下标必须加一", false],
+            ["因为右邻居总是答案", false],
+          ],
+          feedback: "定义是 LCP[x] 比较 sa[x] 和 sa[x-1]，所以右邻居那一对落在 LCP[p+1]。",
+        },
+        answer: {
+          question: "为什么 need 要等于 same + 1？",
+          choices: [
+            ["长度 same 以内仍会重复，多取一个才跳出重复", true],
+            ["因为数组下标从 1 开始", false],
+            ["因为 LCP 必须加到 n", false],
+          ],
+          feedback: "same 是最大撞车长度。要让当前起点的子数组唯一，必须比所有撞车前缀都长 1。",
+        },
       },
       examples: [
         ["1 2 1 2 3", "尾部唯一"],
@@ -249,11 +371,129 @@ const clientText = isZh
       answerMiddle: "from start",
       answerSuffix: "subarray",
       noAnswer: "No visualization data.",
+      activeStart: "Active start",
+      activeSuffix: "Active suffix",
+      candidateSubarrays: "Prefix subarrays it can produce",
+      codeBridge: "Code bridge",
+      commonPrefix: "Common prefix",
+      chooseStart: "Choose start",
+      neighborCompare: "Neighbor comparison",
+      previousNeighbor: "Previous neighbor",
+      nextNeighbor: "Next neighbor",
+      noNeighbor: "No neighbor",
+      selfCheck: "Self-check",
+      correct: "Correct",
+      incorrect: "Try again",
       stageNotes: {
+        concept: "First translate subarrays into suffix prefixes: every subarray starting at i is a short prefix of suffix a[i..].",
         compress: "Compression only renames symbols; equality and ordering stay the same.",
         doubling: "This round sorts by a pair. Equal pairs receive the same new rank.",
         lcp: "LCP[p] compares sa[p] with sa[p-1], so the right neighbor is LCP[p+1].",
         answer: "For each start, take the larger neighbor LCP and add one.",
+      },
+      lessons: {
+        concept: {
+          step: "00",
+          title: "Turn each start into a suffix",
+          body: "A suffix is the segment from one position to the end. Any subarray starting at i is a prefix of suffix a[i..].",
+          bullets: [
+            "Click any start; every panel follows the same suffix.",
+            "If two suffixes share a prefix, subarrays of those lengths repeat.",
+            "A suffix array sorts all suffixes lexicographically.",
+          ],
+          code: "The for loop in smallestUniqueSubarray enumerates every start i.",
+        },
+        compress: {
+          step: "01",
+          title: "Compression only renames values",
+          body: "Suffix sorting only needs equality and order. Replacing values with ranks 1, 2, 3 keeps both facts intact.",
+          bullets: [
+            "Equal original values receive equal ranks.",
+            "Smaller original values receive smaller ranks.",
+            "The algorithm no longer cares whether original values are huge or negative.",
+          ],
+          code: "compress builds the alphabet with sort + unique and finds each rank with lower_bound.",
+        },
+        doubling: {
+          step: "02",
+          title: "Doubling compares two known halves",
+          body: "At round k, the order of length-k pieces is known, so (rank[i], rank[i+k]) describes a length-2k piece.",
+          bullets: [
+            "The first rank compares the first half.",
+            "The second rank compares the next half, or -1 past the end.",
+            "Equal pairs still cannot be separated at this length.",
+          ],
+          code: "The cmp function in build1 compares rank[i] and rank[i+k].",
+        },
+        lcp: {
+          step: "03",
+          title: "LCP records shared starts of neighbors",
+          body: "After sorting, the most similar suffixes sit next to each other. LCP[p] is the shared prefix length of sa[p] and sa[p-1].",
+          bullets: [
+            "The left neighbor uses LCP[p].",
+            "The right neighbor uses LCP[p+1].",
+            "Lengths inside the shared prefix are not unique yet.",
+          ],
+          code: "The while loop in build2 compares a[i+h] with a[j+h].",
+        },
+        answer: {
+          step: "04",
+          title: "same + 1 is the first non-repeating length",
+          body: "same is the largest shared prefix with either neighbor. Prefixes up to same repeat; taking one more item is the first unique candidate.",
+          bullets: [
+            "same = max(left LCP, right LCP).",
+            "need = same + 1.",
+            "If need runs past the end, that start cannot produce a unique subarray.",
+          ],
+          code: "The final loop in smallestUniqueSubarray computes same, need, and res.",
+        },
+      },
+      checks: {
+        concept: {
+          question: "Why can subarrays be studied through suffixes?",
+          choices: [
+            ["Every subarray from one start is a prefix of that suffix", true],
+            ["All subarrays have the same length", false],
+            ["Suffix arrays delete duplicates", false],
+          ],
+          feedback: "The key word is prefix: taking 1, 2, or 3 items from start i all stays at the beginning of suffix a[i..].",
+        },
+        compress: {
+          question: "Why does compression preserve the answer?",
+          choices: [
+            ["It preserves equality and order", true],
+            ["It makes the array shorter", false],
+            ["It keeps only the maximum value", false],
+          ],
+          feedback: "Suffix comparison only asks whether two values are equal and which one is smaller; ranks preserve exactly that.",
+        },
+        doubling: {
+          question: "What does (rank[i], rank[i+k]) represent?",
+          choices: [
+            ["The order of two halves of a length-2k piece", true],
+            ["Two random positions", false],
+            ["The answer boundaries", false],
+          ],
+          feedback: "Doubling reuses the previous length-k order to compare length-2k pieces.",
+        },
+        lcp: {
+          question: "Why is the right-neighbor LCP stored at LCP[p+1]?",
+          choices: [
+            ["Because LCP[p+1] compares sa[p+1] and sa[p]", true],
+            ["Because every index must add one", false],
+            ["Because the right neighbor is always the answer", false],
+          ],
+          feedback: "By definition, LCP[x] compares sa[x] with sa[x-1]. The pair with the right neighbor is therefore at p+1.",
+        },
+        answer: {
+          question: "Why is need equal to same + 1?",
+          choices: [
+            ["Lengths up to same still repeat; one more escapes", true],
+            ["Because indexes start from 1", false],
+            ["Because LCP must be extended to n", false],
+          ],
+          feedback: "same is the maximum collision length. A unique subarray must be longer than every colliding prefix.",
+        },
       },
       examples: [
         ["1 2 1 2 3", "Unique tail"],
@@ -329,7 +569,7 @@ const clientText = isZh
         {Object.entries(pageText.stageLabels).map(([stage, label]) => (
           <button
             type="button"
-            class={stage === "compress" ? "is-active" : ""}
+            class={stage === "concept" ? "is-active" : ""}
             data-sa-stage={stage}
           >
             {label}
@@ -338,7 +578,35 @@ const clientText = isZh
       </div>
 
       <div class="sa-stage-note" data-sa-stage-note>
-        {clientText.stageNotes.compress}
+        {clientText.stageNotes.concept}
+      </div>
+
+      <div class="sa-lesson-board">
+        <article class="sa-teacher-card">
+          <p class="sa-section-kicker" data-sa-step-index>00</p>
+          <h2 data-sa-step-title></h2>
+          <p data-sa-step-body></p>
+          <ul data-sa-step-bullets></ul>
+          <div class="sa-code-bridge">
+            <span>{clientText.codeBridge}</span>
+            <strong data-sa-code-bridge></strong>
+          </div>
+        </article>
+
+        <article class="sa-focus-card">
+          <p class="sa-section-kicker">{clientText.activeSuffix}</p>
+          <h2 data-sa-active-title></h2>
+          <div class="sa-active-suffix" data-sa-active-suffix></div>
+          <div class="sa-prefix-list" data-sa-prefix-list></div>
+          <div class="sa-neighbor-box" data-sa-neighbor-box></div>
+        </article>
+
+        <article class="sa-quiz-card">
+          <p class="sa-section-kicker">{clientText.selfCheck}</p>
+          <h2 data-sa-quiz-question></h2>
+          <div class="sa-quiz-choices" data-sa-quiz-choices></div>
+          <p data-sa-quiz-feedback></p>
+        </article>
       </div>
 
       <div class="sa-round-control">
@@ -351,6 +619,7 @@ const clientText = isZh
         <section class="sa-panel sa-sequence-panel">
           <h2>{pageText.stageLabels.compress}</h2>
           <div class="sa-array-stack" data-sa-sequence></div>
+          <div class="sa-suffix-picker" data-sa-suffix-picker></div>
           <p data-sa-compression-summary></p>
         </section>
 
@@ -464,6 +733,19 @@ const clientText = isZh
     const answerBody = document.querySelector("[data-sa-answer-body]");
     const resultNode = document.querySelector("[data-sa-result]");
     const stageNote = document.querySelector("[data-sa-stage-note]");
+    const suffixPickerNode = document.querySelector("[data-sa-suffix-picker]");
+    const stepIndexNode = document.querySelector("[data-sa-step-index]");
+    const stepTitleNode = document.querySelector("[data-sa-step-title]");
+    const stepBodyNode = document.querySelector("[data-sa-step-body]");
+    const stepBulletsNode = document.querySelector("[data-sa-step-bullets]");
+    const codeBridgeNode = document.querySelector("[data-sa-code-bridge]");
+    const activeTitleNode = document.querySelector("[data-sa-active-title]");
+    const activeSuffixNode = document.querySelector("[data-sa-active-suffix]");
+    const prefixListNode = document.querySelector("[data-sa-prefix-list]");
+    const neighborBoxNode = document.querySelector("[data-sa-neighbor-box]");
+    const quizQuestionNode = document.querySelector("[data-sa-quiz-question]");
+    const quizChoicesNode = document.querySelector("[data-sa-quiz-choices]");
+    const quizFeedbackNode = document.querySelector("[data-sa-quiz-feedback]");
     const stageButtons = Array.from(
       document.querySelectorAll("[data-sa-stage]"),
     );
@@ -473,8 +755,9 @@ const clientText = isZh
     let state = {
       activeStart: 0,
       data: null,
+      quizChoice: null,
       roundIndex: 0,
-      stage: "compress",
+      stage: "concept",
     };
 
     function parseValues(raw) {
@@ -605,16 +888,55 @@ const clientText = isZh
       };
     }
 
-    function tokenList(values, activeStart, offset = 0) {
+    function commonPrefixLength(values, leftStart, rightStart) {
+      if (leftStart === null || rightStart === null) return 0;
+      let length = 0;
+      while (
+        leftStart + length < values.length &&
+        rightStart + length < values.length &&
+        values[leftStart + length] === values[rightStart + length]
+      ) {
+        length += 1;
+      }
+      return length;
+    }
+
+    function tokenList(values, activeStart, offset = 0, options = {}) {
+      const matchLength = options.matchLength || 0;
+      const candidateStart = options.candidateStart ?? -1;
+      const candidateLength = options.candidateLength || 0;
       return values.map((value, index) => {
         const position = offset + index;
-        const activeClass = position === activeStart ? " is-active" : "";
-        return `<span class="sa-token${activeClass}">${value}</span>`;
+        const classes = ["sa-token"];
+        if (position === activeStart) classes.push("is-active");
+        if (index < matchLength) classes.push("is-match");
+        if (
+          position >= candidateStart &&
+          position < candidateStart + candidateLength
+        ) {
+          classes.push("is-candidate");
+        }
+        return `<span class="${classes.join(" ")}">${value}</span>`;
       }).join("");
     }
 
-    function suffixText(values, start, activeStart) {
-      return tokenList(values.slice(start), activeStart, start);
+    function suffixText(values, start, activeStart, options = {}) {
+      return tokenList(values.slice(start), activeStart, start, options);
+    }
+
+    function renderSuffixPicker(data) {
+      suffixPickerNode.innerHTML = `
+        <span>${suffixArrayCopy.chooseStart}</span>
+        ${data.nums.map((_, start) => `
+          <button
+            type="button"
+            data-sa-pick-start="${start}"
+            class="${start === state.activeStart ? "is-active" : ""}"
+          >
+            ${start}
+          </button>
+        `).join("")}
+      `;
     }
 
     function renderSequence(data) {
@@ -633,6 +955,134 @@ const clientText = isZh
       compressionSummaryNode.textContent = `${suffixArrayCopy.sortedValues}: ${
         data.compressed.alphabet.join(", ")
       }`;
+    }
+
+    function renderPrefixList(data) {
+      const start = state.activeStart;
+      const remaining = data.nums.length - start;
+      const limit = Math.min(remaining, 5);
+      const rows = [];
+      for (let length = 1; length <= limit; length += 1) {
+        const values = data.nums.slice(start, start + length);
+        rows.push(`<span>[${values.join(", ")}]</span>`);
+      }
+      if (remaining > limit) rows.push("<em>...</em>");
+      prefixListNode.innerHTML = `
+        <strong>${suffixArrayCopy.candidateSubarrays}</strong>
+        <div>${rows.join("")}</div>
+      `;
+    }
+
+    function renderNeighborRow(data, label, neighborStart, lcpLength) {
+      if (neighborStart === null || neighborStart === undefined) {
+        return `
+          <div class="sa-neighbor-row">
+            <span>${label}</span>
+            <em>${suffixArrayCopy.noNeighbor}</em>
+          </div>
+        `;
+      }
+      return `
+        <div class="sa-neighbor-row" data-sa-start="${neighborStart}">
+          <span>${label}: ${neighborStart}</span>
+          <div>${suffixText(data.values, neighborStart, state.activeStart, {
+            matchLength: lcpLength,
+          })}</div>
+          <b>${suffixArrayCopy.commonPrefix}: ${lcpLength}</b>
+        </div>
+      `;
+    }
+
+    function renderLesson(data) {
+      const lesson = suffixArrayCopy.lessons[state.stage];
+      const check = suffixArrayCopy.checks[state.stage];
+      const start = state.activeStart;
+      const position = data.rank[start];
+      const previousStart = position > 0 ? data.sa[position - 1] : null;
+      const nextStart = position + 1 < data.sa.length
+        ? data.sa[position + 1]
+        : null;
+      const leftLcp = previousStart === null
+        ? 0
+        : commonPrefixLength(data.values, start, previousStart);
+      const rightLcp = nextStart === null
+        ? 0
+        : commonPrefixLength(data.values, start, nextStart);
+      const candidate = data.answer.candidates[start];
+      const candidateLength = candidate?.fits ? candidate.need : 0;
+
+      stepIndexNode.textContent = lesson.step;
+      stepTitleNode.textContent = lesson.title;
+      stepBodyNode.textContent = lesson.body;
+      stepBulletsNode.innerHTML = lesson.bullets.map((item) =>
+        `<li>${item}</li>`
+      ).join("");
+      codeBridgeNode.textContent = lesson.code;
+
+      activeTitleNode.textContent = `${suffixArrayCopy.activeStart} ${start}`;
+      activeSuffixNode.innerHTML = `
+        <div class="sa-active-line">
+          <span>${suffixArrayCopy.original}</span>
+          <div>${suffixText(data.nums, start, start, {
+            candidateStart: start,
+            candidateLength,
+          })}</div>
+        </div>
+        <div class="sa-active-line">
+          <span>${suffixArrayCopy.compressed}</span>
+          <div>${suffixText(data.values, start, start, {
+            candidateStart: start,
+            candidateLength,
+          })}</div>
+        </div>
+      `;
+      renderPrefixList(data);
+      neighborBoxNode.innerHTML = `
+        <strong>${suffixArrayCopy.neighborCompare}</strong>
+        ${renderNeighborRow(
+          data,
+          suffixArrayCopy.previousNeighbor,
+          previousStart,
+          leftLcp,
+        )}
+        <div class="sa-neighbor-row is-current">
+          <span>${suffixArrayCopy.activeSuffix}: ${start}</span>
+          <div>${suffixText(data.values, start, start, {
+            matchLength: Math.max(leftLcp, rightLcp),
+            candidateStart: start,
+            candidateLength,
+          })}</div>
+          <b>${suffixArrayCopy.same}: ${candidate.same}; ${
+            suffixArrayCopy.need
+          }: ${candidate.need}</b>
+        </div>
+        ${renderNeighborRow(
+          data,
+          suffixArrayCopy.nextNeighbor,
+          nextStart,
+          rightLcp,
+        )}
+      `;
+
+      quizQuestionNode.textContent = check.question;
+      quizChoicesNode.innerHTML = check.choices.map((choice, index) => `
+        <button
+          type="button"
+          data-sa-quiz-choice="${index}"
+          class="${state.quizChoice === index ? "is-active" : ""}"
+        >
+          ${choice[0]}
+        </button>
+      `).join("");
+      if (state.quizChoice === null) {
+        quizFeedbackNode.textContent = "";
+      } else {
+        const selected = check.choices[state.quizChoice];
+        const marker = selected[1]
+          ? suffixArrayCopy.correct
+          : suffixArrayCopy.incorrect;
+        quizFeedbackNode.textContent = `${marker}: ${check.feedback}`;
+      }
     }
 
     function currentRound(data) {
@@ -663,6 +1113,14 @@ const clientText = isZh
             data.values,
             row.start,
             state.activeStart,
+            {
+              matchLength: row.start === state.activeStart
+                ? Math.max(
+                    data.answer.candidates[row.start]?.left || 0,
+                    data.answer.candidates[row.start]?.right || 0,
+                  )
+                : 0,
+            },
           )}</div></td>
           <td>(${row.pair[0]}, ${row.pair[1]})</td>
           <td>${row.newRank}</td>
@@ -681,6 +1139,11 @@ const clientText = isZh
             data.values,
             start,
             state.activeStart,
+            {
+              matchLength: start === state.activeStart
+                ? data.lcp[order]
+                : 0,
+            },
           )}</div></td>
           <td>${data.lcp[order]}</td>
         </tr>
@@ -723,6 +1186,7 @@ const clientText = isZh
 
     function setStage(nextStage) {
       state.stage = nextStage;
+      state.quizChoice = null;
       stageButtons.forEach((button) => {
         button.classList.toggle("is-active", button.dataset.saStage === nextStage);
       });
@@ -731,16 +1195,19 @@ const clientText = isZh
         "data-active-stage",
         nextStage,
       );
+      renderAll();
     }
 
     function renderAll() {
       const data = state.data;
       if (!data) return;
       syncRoundControl(data);
+      renderSuffixPicker(data);
       renderSequence(data);
       renderRound(data);
       renderLcp(data);
       renderAnswer(data);
+      renderLesson(data);
     }
 
     function runVisualization() {
@@ -748,7 +1215,8 @@ const clientText = isZh
       const nums = parsed.length ? parsed : defaultValues;
       if (!parsed.length) inputNode.value = nums.join(" ");
       state.data = buildData(nums);
-      state.activeStart = state.data.answer.best?.start ?? 0;
+      state.activeStart = 0;
+      state.quizChoice = null;
       state.roundIndex = 0;
       renderAll();
     }
@@ -776,13 +1244,24 @@ const clientText = isZh
       });
     });
     document.addEventListener("click", (event) => {
+      const pick = event.target.closest("[data-sa-pick-start]");
+      if (pick) {
+        activateStart(Number(pick.dataset.saPickStart));
+        return;
+      }
+      const quizChoice = event.target.closest("[data-sa-quiz-choice]");
+      if (quizChoice) {
+        state.quizChoice = Number(quizChoice.dataset.saQuizChoice);
+        renderAll();
+        return;
+      }
       const row = event.target.closest("[data-sa-start]");
       if (!row) return;
       activateStart(Number(row.dataset.saStart));
     });
 
-    setStage("compress");
     runVisualization();
+    setStage("concept");
   </script>
 
   <style is:global>
@@ -916,7 +1395,7 @@ const clientText = isZh
 
     .sa-stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 0.28rem;
       margin: 0 0 0.34rem;
       border-top: 1px solid var(--color-border);
@@ -1013,7 +1492,9 @@ const clientText = isZh
     }
 
     .sa-toolbar button,
-    .sa-stage-tabs button {
+    .sa-stage-tabs button,
+    .sa-suffix-picker button,
+    .sa-quiz-choices button {
       border: 1px solid var(--color-border);
       border-radius: 0.38rem;
       background: transparent;
@@ -1028,12 +1509,18 @@ const clientText = isZh
 
     .sa-toolbar button:hover,
     .sa-stage-tabs button:hover,
-    .sa-stage-tabs button.is-active {
+    .sa-stage-tabs button.is-active,
+    .sa-suffix-picker button:hover,
+    .sa-suffix-picker button.is-active,
+    .sa-quiz-choices button:hover,
+    .sa-quiz-choices button.is-active {
       border-color: var(--color-terracotta);
       color: var(--color-terracotta);
     }
 
-    .sa-stage-tabs button.is-active {
+    .sa-stage-tabs button.is-active,
+    .sa-suffix-picker button.is-active,
+    .sa-quiz-choices button.is-active {
       background: rgb(217 119 87 / 12%);
     }
 
@@ -1058,6 +1545,172 @@ const clientText = isZh
       font-size: 0.68rem;
       font-weight: 800;
       white-space: nowrap;
+    }
+
+    .sa-lesson-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.16fr) minmax(0, 0.9fr);
+      gap: var(--leetcode-stack-gap);
+    }
+
+    .sa-teacher-card,
+    .sa-focus-card,
+    .sa-quiz-card {
+      min-width: 0;
+      border: 1px solid var(--sa-line);
+      border-radius: 0.5rem;
+      background: var(--sa-panel-background);
+      padding: 0.68rem;
+    }
+
+    .sa-teacher-card h2,
+    .sa-focus-card h2,
+    .sa-quiz-card h2 {
+      margin: 0 0 0.4rem;
+      color: var(--color-charcoal);
+      font-size: 0.98rem;
+      line-height: 1.18;
+    }
+
+    .sa-teacher-card p:not(.sa-section-kicker),
+    .sa-quiz-card p {
+      margin: 0;
+      color: var(--color-secondary);
+      font-size: 0.76rem;
+      line-height: 1.48;
+    }
+
+    .sa-teacher-card ul {
+      display: grid;
+      gap: 0.24rem;
+      margin: 0.52rem 0;
+      padding-left: 1.05rem;
+      color: var(--color-secondary);
+      font-size: 0.72rem;
+      line-height: 1.42;
+    }
+
+    .sa-code-bridge {
+      display: grid;
+      gap: 0.18rem;
+      border-top: 1px solid rgb(194 192 182 / 44%);
+      padding-top: 0.46rem;
+    }
+
+    .sa-code-bridge span {
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .sa-code-bridge strong {
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.68rem;
+      line-height: 1.42;
+    }
+
+    .sa-active-suffix {
+      display: grid;
+      gap: 0.36rem;
+      margin-bottom: 0.56rem;
+    }
+
+    .sa-active-line {
+      display: grid;
+      grid-template-columns: 5.4rem minmax(0, 1fr);
+      gap: 0.38rem;
+      align-items: start;
+    }
+
+    .sa-active-line > span,
+    .sa-prefix-list strong,
+    .sa-neighbor-box > strong,
+    .sa-suffix-picker > span {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-weight: 800;
+    }
+
+    .sa-prefix-list {
+      display: grid;
+      gap: 0.28rem;
+      margin: 0 0 0.56rem;
+    }
+
+    .sa-prefix-list div {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.22rem;
+    }
+
+    .sa-prefix-list span,
+    .sa-prefix-list em {
+      border: 1px solid rgb(35 120 147 / 24%);
+      border-radius: 0.34rem;
+      background: rgb(35 120 147 / 6%);
+      color: var(--sa-blue);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.64rem;
+      font-style: normal;
+      padding: 0.18rem 0.3rem;
+    }
+
+    .sa-neighbor-box {
+      display: grid;
+      gap: 0.28rem;
+    }
+
+    .sa-neighbor-row {
+      display: grid;
+      grid-template-columns: 5.6rem minmax(0, 1fr) auto;
+      gap: 0.36rem;
+      align-items: center;
+      min-width: 0;
+      border: 1px solid rgb(194 192 182 / 44%);
+      border-radius: 0.42rem;
+      padding: 0.28rem;
+    }
+
+    .sa-neighbor-row.is-current {
+      border-color: rgb(217 119 87 / 46%);
+      background: rgb(217 119 87 / 7%);
+    }
+
+    .sa-neighbor-row span,
+    .sa-neighbor-row b,
+    .sa-neighbor-row em {
+      color: var(--color-secondary);
+      font-size: 0.62rem;
+      font-style: normal;
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+
+    .sa-neighbor-row b {
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-code-font);
+      font-weight: 800;
+    }
+
+    .sa-quiz-choices {
+      display: grid;
+      gap: 0.24rem;
+      margin: 0.5rem 0;
+    }
+
+    .sa-quiz-choices button {
+      text-align: left;
+      white-space: normal;
+    }
+
+    .sa-suffix-picker {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.22rem;
+      margin: 0.52rem 0 0;
     }
 
     .sa-visual-grid {
@@ -1121,6 +1774,16 @@ const clientText = isZh
       border-color: rgb(217 119 87 / 72%);
       background: rgb(217 119 87 / 15%);
       color: var(--color-terracotta);
+    }
+
+    .sa-token.is-match {
+      border-color: rgb(47 125 79 / 42%);
+      background: rgb(47 125 79 / 10%);
+      color: var(--sa-green);
+    }
+
+    .sa-token.is-candidate {
+      box-shadow: inset 0 -0.18rem 0 rgb(217 119 87 / 34%);
     }
 
     .sa-sequence-panel p,
@@ -1268,12 +1931,17 @@ const clientText = isZh
     }
 
     html.dark .sa-toolbar button,
-    html.dark .sa-stage-tabs button {
+    html.dark .sa-stage-tabs button,
+    html.dark .sa-suffix-picker button,
+    html.dark .sa-quiz-choices button {
       border-color: #333;
       color: var(--color-cream);
     }
 
     html.dark .sa-stage-note,
+    html.dark .sa-teacher-card p:not(.sa-section-kicker),
+    html.dark .sa-teacher-card ul,
+    html.dark .sa-quiz-card p,
     html.dark .sa-sequence-panel p,
     html.dark .sa-result,
     html.dark .sa-table,
@@ -1283,6 +1951,11 @@ const clientText = isZh
     }
 
     html.dark .sa-round-control span,
+    html.dark .sa-teacher-card h2,
+    html.dark .sa-focus-card h2,
+    html.dark .sa-quiz-card h2,
+    html.dark .sa-code-bridge strong,
+    html.dark .sa-neighbor-row b,
     html.dark .sa-panel h2,
     html.dark .sa-table tr:hover,
     html.dark .sa-table tr.is-active,
@@ -1319,6 +1992,7 @@ const clientText = isZh
       }
 
       .sa-stats,
+      .sa-lesson-board,
       .sa-visual-grid,
       .sa-explain-grid,
       .sa-code-section {
@@ -1332,6 +2006,11 @@ const clientText = isZh
       }
 
       .sa-array-row {
+        grid-template-columns: 1fr;
+      }
+
+      .sa-active-line,
+      .sa-neighbor-row {
         grid-template-columns: 1fr;
       }
 
