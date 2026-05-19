@@ -84,6 +84,9 @@ The page must provide a linked workbench, not just a final result render:
     active suffix, round slider, tables, and code focus.
 13. The provided C++ solution must use syntax highlighting. The code section
     related to the active micro-step must be visually emphasized.
+14. The micro-step flow must support playback. The reader can start and pause
+    automatic advancement, choose a preset speed, or enter a custom millisecond
+    interval. Playback must stop cleanly at the final step.
 
 ## Algorithm Contract
 
@@ -131,3 +134,5 @@ Before publishing:
    explanation without losing table, suffix, round, or code synchronization.
 8. The C++ code block renders highlighted tokens and changes the active code
    section as the micro-step changes.
+9. Playback controls start, pause, change speed, accept a custom interval, and
+   keep the active visualization synchronized while advancing.

@@ -327,6 +327,15 @@ const clientText = isZh
       stepOf: "步骤",
       whyLabel: "为什么成立",
       codeFocus: "代码焦点",
+      playLabel: "开始播放",
+      pauseLabel: "暂停",
+      intervalLabel: "间隔",
+      intervalSuffix: "毫秒",
+      speedOptions: [
+        ["900", "快"],
+        ["1600", "标准"],
+        ["2600", "慢"],
+      ],
       flowSteps: [
         {
           stage: "concept",
@@ -725,6 +734,15 @@ const clientText = isZh
       stepOf: "Step",
       whyLabel: "Why it works",
       codeFocus: "Code focus",
+      playLabel: "Play",
+      pauseLabel: "Pause",
+      intervalLabel: "Interval",
+      intervalSuffix: "ms",
+      speedOptions: [
+        ["900", "Fast"],
+        ["1600", "Normal"],
+        ["2600", "Slow"],
+      ],
       flowSteps: [
         {
           stage: "concept",
@@ -1180,6 +1198,38 @@ const clientText = isZh
             </button>
           </div>
         </div>
+        <div class="sa-playback-panel">
+          <button
+            type="button"
+            class="sa-playback-toggle"
+            data-sa-playback-toggle
+          >
+            {clientText.playLabel}
+          </button>
+          <div class="sa-speed-group" aria-label={clientText.intervalLabel}>
+            {clientText.speedOptions.map(([value, label]) => (
+              <button
+                type="button"
+                class={value === "1600" ? "is-active" : ""}
+                data-sa-speed={value}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label class="sa-interval-field">
+            <span>{clientText.intervalLabel}</span>
+            <input
+              type="number"
+              min="300"
+              max="10000"
+              step="100"
+              value="1600"
+              data-sa-playback-interval
+            />
+            <em>{clientText.intervalSuffix}</em>
+          </label>
+        </div>
         <div class="sa-flow-current">
           <span data-sa-flow-stage></span>
           <p data-sa-flow-body></p>
@@ -1364,6 +1414,15 @@ const clientText = isZh
     const flowWhyNode = document.querySelector("[data-sa-flow-why]");
     const flowCodeNode = document.querySelector("[data-sa-flow-code]");
     const flowRailNode = document.querySelector("[data-sa-flow-rail]");
+    const playbackToggleButton = document.querySelector(
+      "[data-sa-playback-toggle]",
+    );
+    const playbackIntervalInput = document.querySelector(
+      "[data-sa-playback-interval]",
+    );
+    const speedButtons = Array.from(
+      document.querySelectorAll("[data-sa-speed]"),
+    );
     const stepIndexNode = document.querySelector("[data-sa-step-index]");
     const stepTitleNode = document.querySelector("[data-sa-step-title]");
     const stepBodyNode = document.querySelector("[data-sa-step-body]");
@@ -1389,7 +1448,11 @@ const clientText = isZh
       roundIndex: 0,
       stage: "concept",
       stepIndex: 0,
+      isPlaying: false,
+      playbackInterval: 1600,
     };
+    let playbackTimer = null;
+    let replacePlaybackIntervalOnKey = false;
 
     function parseValues(raw) {
       const matches = String(raw || "").match(/-?\d+/g) || [];
@@ -1819,6 +1882,20 @@ const clientText = isZh
       return Math.min(Math.max(value, min), max);
     }
 
+    function normalizePlaybackInterval(value) {
+      return clampNumber(Number(value) || 1600, 300, 10000);
+    }
+
+    function intervalFromControlValue(value) {
+      const raw = String(value || "").trim();
+      const current = String(state.playbackInterval);
+      if (raw !== current && raw.includes(current)) {
+        const replaced = raw.replace(current, "");
+        if (replaced) return normalizePlaybackInterval(replaced);
+      }
+      return normalizePlaybackInterval(raw);
+    }
+
     function currentFlowStep() {
       return suffixArrayCopy.flowSteps[state.stepIndex] ||
         suffixArrayCopy.flowSteps[0];
@@ -1862,6 +1939,18 @@ const clientText = isZh
       });
     }
 
+    function renderPlaybackControls() {
+      playbackToggleButton.textContent = state.isPlaying
+        ? suffixArrayCopy.pauseLabel
+        : suffixArrayCopy.playLabel;
+      playbackToggleButton.classList.toggle("is-playing", state.isPlaying);
+      playbackIntervalInput.value = String(state.playbackInterval);
+      speedButtons.forEach((button) => {
+        const value = normalizePlaybackInterval(button.dataset.saSpeed);
+        button.classList.toggle("is-active", value === state.playbackInterval);
+      });
+    }
+
     function renderFlow() {
       const steps = suffixArrayCopy.flowSteps || [];
       const step = currentFlowStep();
@@ -1889,6 +1978,7 @@ const clientText = isZh
         </button>
       `).join("");
       renderCodeFocus(step);
+      renderPlaybackControls();
     }
 
     function applyFlowStep(index) {
@@ -1917,6 +2007,51 @@ const clientText = isZh
       renderAll();
     }
 
+    function stopPlayback() {
+      if (playbackTimer !== null) {
+        window.clearTimeout(playbackTimer);
+        playbackTimer = null;
+      }
+      state.isPlaying = false;
+      renderPlaybackControls();
+    }
+
+    function schedulePlayback() {
+      if (!state.isPlaying) return;
+      if (playbackTimer !== null) window.clearTimeout(playbackTimer);
+      playbackTimer = window.setTimeout(() => {
+        const lastIndex = suffixArrayCopy.flowSteps.length - 1;
+        if (state.stepIndex >= lastIndex) {
+          stopPlayback();
+          return;
+        }
+        applyFlowStep(state.stepIndex + 1);
+        schedulePlayback();
+      }, state.playbackInterval);
+    }
+
+    function startPlayback() {
+      const lastIndex = suffixArrayCopy.flowSteps.length - 1;
+      if (state.stepIndex >= lastIndex) applyFlowStep(0);
+      state.isPlaying = true;
+      renderPlaybackControls();
+      schedulePlayback();
+    }
+
+    function togglePlayback() {
+      if (state.isPlaying) {
+        stopPlayback();
+        return;
+      }
+      startPlayback();
+    }
+
+    function setPlaybackInterval(value) {
+      state.playbackInterval = intervalFromControlValue(value);
+      renderPlaybackControls();
+      if (state.isPlaying) schedulePlayback();
+    }
+
     function setStage(nextStage) {
       const index = suffixArrayCopy.flowSteps.findIndex((step) =>
         step.stage === nextStage
@@ -1938,6 +2073,7 @@ const clientText = isZh
     }
 
     function runVisualization() {
+      stopPlayback();
       const parsed = parseValues(inputNode.value);
       const nums = parsed.length ? parsed : defaultValues;
       if (!parsed.length) inputNode.value = nums.join(" ");
@@ -1961,6 +2097,27 @@ const clientText = isZh
     roundInput?.addEventListener("input", () => {
       state.roundIndex = Number(roundInput.value);
       renderAll();
+    });
+    playbackToggleButton?.addEventListener("click", togglePlayback);
+    playbackIntervalInput?.addEventListener("focus", () => {
+      replacePlaybackIntervalOnKey = true;
+      playbackIntervalInput.select();
+    });
+    playbackIntervalInput?.addEventListener("keydown", (event) => {
+      if (!replacePlaybackIntervalOnKey) return;
+      if (/^\d$/.test(event.key)) {
+        event.preventDefault();
+        playbackIntervalInput.value = event.key;
+      }
+      replacePlaybackIntervalOnKey = false;
+    });
+    playbackIntervalInput?.addEventListener("change", () => {
+      setPlaybackInterval(playbackIntervalInput.value);
+    });
+    speedButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setPlaybackInterval(button.dataset.saSpeed);
+      });
     });
     stepPrevButton?.addEventListener("click", () => {
       applyFlowStep(state.stepIndex - 1);
@@ -2232,6 +2389,8 @@ const clientText = isZh
     .sa-toolbar button,
     .sa-stage-tabs button,
     .sa-flow-actions button,
+    .sa-playback-toggle,
+    .sa-speed-group button,
     .sa-suffix-picker button,
     .sa-quiz-choices button {
       border: 1px solid var(--color-border);
@@ -2250,6 +2409,10 @@ const clientText = isZh
     .sa-stage-tabs button:hover,
     .sa-stage-tabs button.is-active,
     .sa-flow-actions button:hover,
+    .sa-playback-toggle:hover,
+    .sa-playback-toggle.is-playing,
+    .sa-speed-group button:hover,
+    .sa-speed-group button.is-active,
     .sa-suffix-picker button:hover,
     .sa-suffix-picker button.is-active,
     .sa-quiz-choices button:hover,
@@ -2259,6 +2422,8 @@ const clientText = isZh
     }
 
     .sa-stage-tabs button.is-active,
+    .sa-playback-toggle.is-playing,
+    .sa-speed-group button.is-active,
     .sa-suffix-picker button.is-active,
     .sa-quiz-choices button.is-active {
       background: rgb(217 119 87 / 12%);
@@ -2320,6 +2485,53 @@ const clientText = isZh
     .sa-flow-actions button:disabled {
       cursor: not-allowed;
       opacity: 0.42;
+    }
+
+    .sa-playback-panel {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.34rem;
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.44rem;
+      background: rgb(255 255 255 / 28%);
+      padding: 0.34rem;
+    }
+
+    .sa-speed-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.24rem;
+    }
+
+    .sa-interval-field {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 0.24rem;
+      margin-left: auto;
+    }
+
+    .sa-interval-field span,
+    .sa-interval-field em {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-style: normal;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .sa-interval-field input {
+      width: 5.4rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.38rem;
+      background: rgb(255 255 255 / 48%);
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 0.24rem 0.34rem;
     }
 
     .sa-flow-current {
@@ -2861,9 +3073,17 @@ const clientText = isZh
     html.dark .sa-toolbar button,
     html.dark .sa-stage-tabs button,
     html.dark .sa-flow-actions button,
+    html.dark .sa-playback-toggle,
+    html.dark .sa-speed-group button,
     html.dark .sa-suffix-picker button,
     html.dark .sa-quiz-choices button {
       border-color: #333;
+      color: var(--color-cream);
+    }
+
+    html.dark .sa-interval-field input {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
       color: var(--color-cream);
     }
 
@@ -2878,13 +3098,16 @@ const clientText = isZh
     html.dark .sa-flow-current > span,
     html.dark .sa-flow-current > p,
     html.dark .sa-flow-current > div,
+    html.dark .sa-playback-panel,
     html.dark .sa-flow-rail button {
       border-color: #333;
       background: rgb(255 255 255 / 4%);
     }
 
     html.dark .sa-flow-rail button:hover,
-    html.dark .sa-flow-rail button.is-active {
+    html.dark .sa-flow-rail button.is-active,
+    html.dark .sa-playback-toggle.is-playing,
+    html.dark .sa-speed-group button.is-active {
       color: var(--color-cream);
     }
 
@@ -2952,6 +3175,10 @@ const clientText = isZh
 
       .sa-flow-actions {
         justify-content: flex-start;
+      }
+
+      .sa-interval-field {
+        margin-left: 0;
       }
 
       .sa-flow-rail {
