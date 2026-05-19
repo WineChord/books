@@ -1554,13 +1554,22 @@ const shortcutRows = [
     const oneShotHashSeed = 2166136261;
     const oneShotHashPrime = 16777619;
     const oneShotRewardParticleMin = 90;
-    const oneShotRewardParticleMax = 520;
+    const oneShotRewardParticleMax = 760;
+    const oneShotRewardParticleHardMax = 980;
     const oneShotRewardGlyphMin = 7;
-    const oneShotRewardGlyphMax = 22;
+    const oneShotRewardGlyphMax = 34;
+    const oneShotRewardIntensityMin = 1;
+    const oneShotRewardIntensityMax = 5;
+    const oneShotRewardLegendBaseStreak = 20;
+    const oneShotRewardLegendModulo = 10;
+    const oneShotRewardApexStreak = 64;
+    const oneShotRewardBreakthroughRatio = 0.25;
+    const oneShotRewardGoldenAngle = 2.399963;
     const oneShotRewardDurationMs = 4200;
     const oneShotRewardReducedMotionMs = 2600;
     const oneShotComboPulseMs = 1500;
     const oneShotRecordPulseMs = 2600;
+    const oneShotRewardMilestoneStreaks = new Set([3, 5, 8, 13]);
     const flowModeOff = "off";
     const flowModeList = "list";
     const flowModeInsight = "insight";
@@ -3471,6 +3480,7 @@ const shortcutRows = [
         counted: outcome.type === "accepted" && outcome.attemptId === attempt.id,
         isRecord: Number(oneShotStreak.best || 0) > beforeBest,
         neutral: outcome.type !== "accepted",
+        previousBest: beforeBest,
         streak: Number(oneShotStreak.current || 0),
       };
     }
@@ -3587,7 +3597,12 @@ const shortcutRows = [
     function oneShotSubmitSummary(result) {
       if (!result) return "";
       if (result.counted) {
-        const record = result.isRecord
+        const recordBreak = Boolean(
+          result.isRecord &&
+            Number(result.previousBest || 0) > 0 &&
+            Number(result.streak || 0) > 1,
+        );
+        const record = recordBreak
           ? (isChinesePage ? "，新纪录" : ", new record")
           : "";
         return isChinesePage
@@ -3607,6 +3622,100 @@ const shortcutRows = [
 
     function randomItem(items) {
       return items[Math.floor(Math.random() * items.length)];
+    }
+
+    function clampNumber(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function oneShotRewardRecordDelta(result) {
+      if (!result?.isRecord) return 0;
+      const best = Number(result.best || result.streak || 0);
+      const previousBest = Number(result.previousBest || 0);
+      return Math.max(1, best - previousBest);
+    }
+
+    function oneShotRewardPowerLevel(streak) {
+      return Math.max(0, Math.floor(Math.log2(Math.max(1, streak))));
+    }
+
+    function oneShotRewardIsPowerMilestone(streak) {
+      if (streak < 4) return false;
+      const powerLevel = oneShotRewardPowerLevel(streak);
+      return 2 ** powerLevel === streak;
+    }
+
+    function oneShotRewardProfile(result) {
+      const streak = Math.max(1, Number(result?.streak || 0));
+      const best = Number(result?.best || streak);
+      const previousBest = Number(result?.previousBest || 0);
+      const recordBreak = Boolean(
+        result?.isRecord && previousBest > 0 && streak > 1,
+      );
+      const recordDelta = recordBreak ? oneShotRewardRecordDelta(result) : 0;
+      const powerLevel = oneShotRewardPowerLevel(streak);
+      const previousPowerLevel = oneShotRewardPowerLevel(previousBest);
+      const breakthroughThreshold = Math.max(
+        2,
+        Math.ceil(previousBest * oneShotRewardBreakthroughRatio),
+      );
+      const decadeBreakthrough =
+        Math.floor(streak / oneShotRewardLegendModulo) >
+        Math.floor(previousBest / oneShotRewardLegendModulo);
+      const apexBreakthrough =
+        streak >= oneShotRewardApexStreak &&
+        previousBest < oneShotRewardApexStreak;
+      const breakthrough = Boolean(
+        recordBreak &&
+          (recordDelta >= breakthroughThreshold ||
+            powerLevel > previousPowerLevel ||
+            decadeBreakthrough ||
+            apexBreakthrough),
+      );
+      let intensity = oneShotRewardIntensityMin +
+        Math.min(3, Math.floor(powerLevel / 2));
+      if (recordBreak) intensity += 1;
+      if (breakthrough) intensity += 1;
+      intensity = clampNumber(
+        intensity,
+        oneShotRewardIntensityMin,
+        oneShotRewardIntensityMax,
+      );
+      const multiplier = 2 ** (
+        (intensity - oneShotRewardIntensityMin) * 0.38
+      );
+
+      let tier = "combo";
+      if (recordBreak && intensity >= oneShotRewardIntensityMax) {
+        tier = "apex";
+      } else if (recordBreak) {
+        tier = "record";
+      } else if (streak >= oneShotRewardApexStreak) {
+        tier = "apex";
+      } else if (
+        streak >= oneShotRewardLegendBaseStreak ||
+        streak % oneShotRewardLegendModulo === 0
+      ) {
+        tier = "legend";
+      } else if (
+        oneShotRewardMilestoneStreaks.has(streak) ||
+        oneShotRewardIsPowerMilestone(streak)
+      ) {
+        tier = "milestone";
+      }
+
+      return {
+        best,
+        breakthrough,
+        intensity,
+        multiplier,
+        powerLevel,
+        previousBest,
+        recordBreak,
+        recordDelta,
+        streak,
+        tier,
+      };
     }
 
     function rareOneShotLine(streak, isRecord) {
@@ -3668,17 +3777,11 @@ const shortcutRows = [
       return "";
     }
 
-    function oneShotRewardTier(result) {
-      if (result.isRecord && result.streak > 1) return "record";
-      if (result.streak >= 20 || result.streak % 10 === 0) return "legend";
-      if ([3, 5, 8, 13].includes(result.streak)) return "milestone";
-      return "combo";
-    }
-
     function oneShotRewardCopy(result, problem) {
-      const tier = oneShotRewardTier(result);
+      const profile = oneShotRewardProfile(result);
+      const tier = profile.tier;
       const title = `${problem.frontendId}. ${problem.titleCn}`;
-      const rare = rareOneShotLine(result.streak, result.isRecord);
+      const rare = rareOneShotLine(profile.streak, profile.recordBreak);
       const zh = {
         combo: [
           "一遍过，太稳了",
@@ -3773,6 +3876,18 @@ const shortcutRows = [
           "这谁顶得住，最高连击又涨了",
           "纪录线：我还能再高一点",
         ],
+        apex: [
+          "指数级爆发，今天这局直接封顶",
+          "史诗连击触发，题库压力拉满",
+          "这不是奖励，这是给纪录开的演唱会",
+          "连击进入王炸层，继续挑战自己的上限",
+          "AC 能量堆到顶格，下一题也别放过",
+          "纪录墙已经不是发光，是开始上强度",
+          "这波突破很夸张，值得全屏庆祝",
+          "自我挑战模式拉满，新的目标线已经出现",
+          "今天这手感，不冲更高都说不过去",
+          "连击指数爆表，继续把上限往外推",
+        ],
       };
       const en = {
         combo: [
@@ -3834,6 +3949,15 @@ const shortcutRows = [
           "That record has your signature now.",
           "A sharper personal best landed.",
         ],
+        apex: [
+          "Exponential burst unlocked.",
+          "Epic combo tier reached.",
+          "This is the ceiling moving in real time.",
+          "The challenge bar just rose again.",
+          "Maximum-energy reward fired.",
+          "The record wall is no longer quiet.",
+          "That breakthrough deserves the full screen.",
+        ],
       };
       const copy = isChinesePage ? zh : en;
       const headline = rare || randomItem(copy[tier]);
@@ -3841,9 +3965,12 @@ const shortcutRows = [
         ? [
             `${title} · AC 连击 x${result.streak}`,
             `北京时间今日连击 x${result.streak}`,
-            result.isRecord
+            profile.recordBreak
               ? `历史最高改写为 x${result.best}`
               : `历史最高 x${result.best}`,
+            profile.recordBreak
+              ? `纪录突破 ${profile.previousBest || 0} → ${profile.best}`
+              : `指数能量 Lv.${profile.intensity}`,
             "不用点确认，继续写下一题就行",
             "这一轮从默认模板开始，首次提交命中",
             "没有样例失误，没有提交返工",
@@ -3861,9 +3988,12 @@ const shortcutRows = [
         : [
             `${title} · AC combo x${result.streak}`,
             `Beijing-day combo x${result.streak}`,
-            result.isRecord
+            profile.recordBreak
               ? `Best combo moved to x${result.best}`
               : `Best combo x${result.best}`,
+            profile.recordBreak
+              ? `Record jump ${profile.previousBest || 0} → ${profile.best}`
+              : `Exponential energy Lv.${profile.intensity}`,
             "No confirm button. Keep moving.",
             "Fresh template, first submit, accepted.",
             "No sample miss, no submit repair.",
@@ -3877,10 +4007,62 @@ const shortcutRows = [
             "This AC joined today's highlight reel.",
           ];
       return {
+        badges: oneShotRewardBadges(result, profile),
         headline,
+        profile,
         subtitle: randomItem(subtitlePool),
         tier,
       };
+    }
+
+    function oneShotRewardStageName(tier, intensity) {
+      const zh = {
+        apex: "史诗突破",
+        combo: "连击起势",
+        legend: "传奇连击",
+        milestone: "节点跃迁",
+        record: "纪录刷新",
+      };
+      const en = {
+        apex: "Epic break",
+        combo: "Combo rise",
+        legend: "Legend chain",
+        milestone: "Milestone jump",
+        record: "Record break",
+      };
+      const labels = isChinesePage ? zh : en;
+      const suffix = isChinesePage ? ` Lv.${intensity}` : ` Lv.${intensity}`;
+      return `${labels[tier] || labels.combo}${suffix}`;
+    }
+
+    function oneShotRewardBadges(result, profile) {
+      const streak = Number(profile.streak || result?.streak || 0);
+      const power = profile.powerLevel;
+      const badges = isChinesePage
+        ? [
+            oneShotRewardStageName(profile.tier, profile.intensity),
+            `指数能量 x${profile.multiplier.toFixed(1)}`,
+            `AC 连击 x${streak}`,
+          ]
+        : [
+            oneShotRewardStageName(profile.tier, profile.intensity),
+            `Energy x${profile.multiplier.toFixed(1)}`,
+            `AC combo x${streak}`,
+          ];
+      if (power >= 2) {
+        badges.push(isChinesePage ? `2^${power} 阶` : `2^${power} tier`);
+      }
+      if (profile.recordBreak) {
+        badges.push(
+          isChinesePage
+            ? `纪录 ${profile.previousBest || 0} → ${profile.best}`
+            : `Record ${profile.previousBest || 0} → ${profile.best}`,
+        );
+      }
+      if (profile.breakthrough) {
+        badges.push(isChinesePage ? "大幅突破" : "Big leap");
+      }
+      return badges;
     }
 
     function oneShotRewardGlyphPool(result, tier) {
@@ -3920,6 +4102,16 @@ const shortcutRows = [
         "牌面拉满",
         "历史最高",
       ];
+      const apexZh = [
+        "指数爆发",
+        "史诗突破",
+        "王炸连击",
+        "上限外推",
+        "全屏庆祝",
+        "挑战自我",
+        "能量顶格",
+        "纪录沸腾",
+      ];
       const legendZh = [
         "高能区",
         "遥遥领先",
@@ -3950,6 +4142,13 @@ const shortcutRows = [
         "Wall updated",
         "Peak raised",
       ];
+      const apexEn = [
+        "Epic",
+        "Apex",
+        "Max energy",
+        "Big leap",
+        "Ceiling moved",
+      ];
       const legendEn = [
         "High energy",
         "Sustained",
@@ -3958,36 +4157,43 @@ const shortcutRows = [
         "Serious pace",
       ];
       if (!isChinesePage) {
+        if (tier === "apex") return commonEn.concat(recordEn, legendEn, apexEn);
         if (tier === "record") return commonEn.concat(recordEn, legendEn);
         if (tier === "legend") return commonEn.concat(legendEn);
         return commonEn;
       }
+      if (tier === "apex") return commonZh.concat(recordZh, legendZh, apexZh);
       if (tier === "record") return commonZh.concat(recordZh, legendZh);
       if (tier === "legend") return commonZh.concat(legendZh);
       if (tier === "milestone") return commonZh.concat(["节点点亮", "奖励加码"]);
       return commonZh;
     }
 
-    function oneShotRewardGlyphCount(tier) {
+    function oneShotRewardGlyphCount(profile) {
       const ranges = {
         combo: [oneShotRewardGlyphMin, 12],
         legend: [13, 18],
         milestone: [10, 15],
         record: [16, oneShotRewardGlyphMax],
+        apex: [22, oneShotRewardGlyphMax],
       };
-      const range = ranges[tier] || ranges.combo;
-      return randomInteger(range[0], range[1]);
+      const range = ranges[profile.tier] || ranges.combo;
+      return clampNumber(
+        Math.round(randomInteger(range[0], range[1]) * profile.multiplier),
+        range[0],
+        oneShotRewardGlyphMax,
+      );
     }
 
-    function renderOneShotRewardGlyphs(glyphs, result, tier, palette) {
+    function renderOneShotRewardGlyphs(glyphs, result, profile, palette) {
       if (!(glyphs instanceof HTMLElement)) return;
       glyphs.replaceChildren();
-      const pool = oneShotRewardGlyphPool(result, tier);
+      const pool = oneShotRewardGlyphPool(result, profile.tier);
       const fragment = document.createDocumentFragment();
-      const count = oneShotRewardGlyphCount(tier);
+      const count = oneShotRewardGlyphCount(profile);
       for (let index = 0; index < count; index += 1) {
         const glyph = document.createElement("span");
-        const yMax = tier === "record" ? 72 : 76;
+        const yMax = profile.intensity >= 4 ? 70 : 76;
         glyph.className = "leetcode-one-shot-reward-glyph";
         glyph.textContent = randomItem(pool);
         glyph.style.setProperty("--reward-glyph-color", randomItem(palette));
@@ -4011,6 +4217,19 @@ const shortcutRows = [
           "--reward-glyph-rotate",
           `${randomBetween(-18, 18).toFixed(2)}deg`,
         );
+        const glyphScale = randomBetween(0.92, 1 + profile.intensity * 0.09);
+        glyph.style.setProperty(
+          "--reward-glyph-enter-scale",
+          (glyphScale * 0.72).toFixed(2),
+        );
+        glyph.style.setProperty(
+          "--reward-glyph-live-scale",
+          glyphScale.toFixed(2),
+        );
+        glyph.style.setProperty(
+          "--reward-glyph-exit-scale",
+          (glyphScale * 1.08).toFixed(2),
+        );
         glyph.style.animationDelay = `${randomBetween(0, 0.52).toFixed(2)}s`;
         glyph.dataset.variant = Math.random() > 0.72 ? "solid" : "outline";
         fragment.append(glyph);
@@ -4026,20 +4245,34 @@ const shortcutRows = [
       const layer = document.createElement("div");
       const canvas = document.createElement("canvas");
       const glyphs = document.createElement("div");
+      const rings = document.createElement("div");
       const message = document.createElement("div");
       const headline = document.createElement("strong");
       const subtitle = document.createElement("span");
+      const meta = document.createElement("div");
       layer.className = "leetcode-one-shot-reward";
       canvas.setAttribute("aria-hidden", "true");
       glyphs.className = "leetcode-one-shot-reward-glyphs";
       glyphs.setAttribute("aria-hidden", "true");
+      rings.className = "leetcode-one-shot-reward-rings";
+      rings.setAttribute("aria-hidden", "true");
       message.className = "leetcode-one-shot-reward-message";
+      meta.className = "leetcode-one-shot-reward-meta";
       headline.dataset.oneShotRewardHeadline = "true";
       subtitle.dataset.oneShotRewardSubtitle = "true";
-      message.append(headline, subtitle);
-      layer.append(canvas, glyphs, message);
+      message.append(headline, subtitle, meta);
+      layer.append(canvas, glyphs, rings, message);
       (leetcodeShell || document.body).append(layer);
-      oneShotRewardLayer = { canvas, glyphs, headline, layer, message, subtitle };
+      oneShotRewardLayer = {
+        canvas,
+        glyphs,
+        headline,
+        layer,
+        message,
+        meta,
+        rings,
+        subtitle,
+      };
       return oneShotRewardLayer;
     }
 
@@ -4073,37 +4306,89 @@ const shortcutRows = [
           ["#ffffff", "#facc15", "#fb7185", "#38bdf8", "#a78bfa"],
           ["#fef9c3", "#f97316", "#e879f9", "#2dd4bf", "#84cc16"],
         ],
+        apex: [
+          ["#ffffff", "#fef08a", "#fb7185", "#38bdf8", "#a78bfa", "#22c55e"],
+          ["#fef3c7", "#f97316", "#ec4899", "#06b6d4", "#bef264", "#c084fc"],
+          ["#fff7ed", "#facc15", "#f43f5e", "#2dd4bf", "#818cf8", "#f0abfc"],
+        ],
       };
       return randomItem(palettes[tier] || palettes.combo);
     }
 
-    function oneShotParticleCount(tier) {
+    function renderOneShotRewardBadges(meta, badges, palette) {
+      if (!(meta instanceof HTMLElement)) return;
+      meta.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      badges.forEach((badge, index) => {
+        const item = document.createElement("span");
+        item.textContent = badge;
+        item.style.setProperty(
+          "--reward-badge-color",
+          palette[index % palette.length],
+        );
+        fragment.append(item);
+      });
+      meta.append(fragment);
+    }
+
+    function renderOneShotRewardRings(rings, profile, palette) {
+      if (!(rings instanceof HTMLElement)) return;
+      rings.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      const count = clampNumber(profile.intensity + 1, 2, 6);
+      for (let index = 0; index < count; index += 1) {
+        const ring = document.createElement("span");
+        ring.style.setProperty(
+          "--reward-ring-color",
+          palette[index % palette.length],
+        );
+        ring.style.setProperty("--reward-ring-index", String(index));
+        ring.style.setProperty(
+          "--reward-ring-delay",
+          `${(index * 0.16).toFixed(2)}s`,
+        );
+        ring.style.setProperty(
+          "--reward-ring-scale",
+          (1 + index * 0.32 + profile.intensity * 0.1).toFixed(2),
+        );
+        fragment.append(ring);
+      }
+      rings.append(fragment);
+    }
+
+    function oneShotParticleCount(profile) {
       const base = {
         combo: [oneShotRewardParticleMin, 160],
         legend: [260, 380],
         milestone: [180, 270],
         record: [390, oneShotRewardParticleMax],
-      }[tier] || [oneShotRewardParticleMin, 150];
-      return randomInteger(base[0], base[1]);
+        apex: [520, oneShotRewardParticleMax],
+      }[profile.tier] || [oneShotRewardParticleMin, 150];
+      return clampNumber(
+        Math.round(randomInteger(base[0], base[1]) * profile.multiplier),
+        base[0],
+        oneShotRewardParticleHardMax,
+      );
     }
 
-    function createOneShotParticles(width, height, tier, palette) {
+    function createOneShotParticles(width, height, profile, palette) {
       const particles = [];
-      const burstCount = tier === "record"
-        ? randomInteger(7, 11)
-        : tier === "legend"
-          ? randomInteger(5, 8)
-          : randomInteger(3, 6);
+      const tier = profile.tier;
+      const burstCount = clampNumber(
+        randomInteger(3, 5 + profile.intensity * 2),
+        3,
+        14,
+      );
       const burstMode = randomItem(
-        tier === "record"
-          ? ["radial", "crown", "side", "sky"]
+        profile.intensity >= 4
+          ? ["radial", "crown", "side", "sky", "orbit"]
           : ["radial", "crown", "side"],
       );
       const centers = Array.from({ length: burstCount }, () => ({
         x: randomBetween(width * 0.16, width * 0.84),
         y: randomBetween(height * 0.16, height * 0.58),
       }));
-      const count = oneShotParticleCount(tier);
+      const count = oneShotParticleCount(profile);
       for (let index = 0; index < count; index += 1) {
         const center = oneShotParticleCenter(
           centers,
@@ -4112,8 +4397,11 @@ const shortcutRows = [
           width,
           height,
         );
-        const angle = oneShotParticleAngle(center, burstMode, width);
-        const speed = randomBetween(1.6, tier === "record" ? 9.2 : 6.4);
+        const angle = oneShotParticleAngle(center, burstMode, width, height);
+        const speed = randomBetween(
+          1.6 + profile.intensity * 0.22,
+          5.2 + profile.intensity * 1.18,
+        );
         const drift = randomBetween(-0.012, 0.012);
         const verticalVelocity = burstMode === "sky"
           ? Math.abs(Math.sin(angle) * speed)
@@ -4121,7 +4409,7 @@ const shortcutRows = [
         particles.push({
           alpha: randomBetween(0.78, 1),
           color: randomItem(palette),
-          life: randomBetween(720, tier === "record" ? 1850 : 1450),
+          life: randomBetween(720, 1250 + profile.intensity * 180),
           rotation: randomBetween(0, Math.PI),
           shape: randomItem([
             "circle",
@@ -4133,7 +4421,7 @@ const shortcutRows = [
             "star",
             "ribbon",
           ]),
-          size: randomBetween(1.4, tier === "record" ? 5.8 : 4.4),
+          size: randomBetween(1.4, 3.8 + profile.intensity * 0.6),
           spin: randomBetween(-0.18, 0.18),
           vx: Math.cos(angle) * speed + drift * width,
           vy: verticalVelocity,
@@ -4166,13 +4454,25 @@ const shortcutRows = [
           y: randomBetween(height * 0.42, height * 0.68),
         };
       }
+      if (mode === "orbit") {
+        const angle =
+          index * oneShotRewardGoldenAngle + randomBetween(-0.22, 0.22);
+        const radius = randomBetween(width * 0.12, width * 0.34);
+        return {
+          x: width * 0.5 + Math.cos(angle) * radius,
+          y: height * 0.46 + Math.sin(angle) * radius * 0.42,
+        };
+      }
       return centers[index % centers.length];
     }
 
-    function oneShotParticleAngle(center, mode, width) {
+    function oneShotParticleAngle(center, mode, width, height) {
       if (mode === "sky") return randomBetween(Math.PI * 0.18, Math.PI * 0.82);
       if (mode === "crown") {
         return randomBetween(Math.PI * 1.08, Math.PI * 1.92);
+      }
+      if (mode === "orbit") {
+        return Math.atan2(center.y - height * 0.46, center.x - width * 0.5);
       }
       if (mode === "side") {
         return center.x < width / 2
@@ -4239,7 +4539,7 @@ const shortcutRows = [
       context.restore();
     }
 
-    function animateOneShotReward(layer, tier, palette) {
+    function animateOneShotReward(layer, profile, palette) {
       window.cancelAnimationFrame(oneShotRewardAnimation);
       const canvas = layer.canvas;
       const context = canvas.getContext("2d");
@@ -4252,10 +4552,12 @@ const shortcutRows = [
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      const particles = createOneShotParticles(width, height, tier, palette);
+      const particles = createOneShotParticles(width, height, profile, palette);
       const startedAt = performance.now();
-      const duration = oneShotRewardDurationMs + randomInteger(-360, 520);
-      const gravity = tier === "record" ? 0.055 : 0.042;
+      const duration =
+        oneShotRewardDurationMs +
+        randomInteger(-260, 420 + profile.intensity * 260);
+      const gravity = 0.034 + profile.intensity * 0.006;
 
       function frame(now) {
         const elapsed = now - startedAt;
@@ -4275,8 +4577,9 @@ const shortcutRows = [
           oneShotRewardAnimation = window.requestAnimationFrame(frame);
           return;
         }
-        layer.layer.classList.remove("is-visible", "is-record");
+        layer.layer.classList.remove("is-visible", "is-record", "is-apex");
         layer.glyphs?.replaceChildren();
+        layer.rings?.replaceChildren();
         context.clearRect(0, 0, width, height);
       }
 
@@ -4297,6 +4600,7 @@ const shortcutRows = [
       if (!result?.counted || !problem) return;
       const layer = ensureOneShotRewardLayer();
       const copy = oneShotRewardCopy(result, problem);
+      const profile = copy.profile;
       const palette = oneShotRewardPalette(copy.tier);
       const reducedMotion = window.matchMedia?.(
         "(prefers-reduced-motion: reduce)",
@@ -4304,10 +4608,21 @@ const shortcutRows = [
       layer.headline.textContent = copy.headline;
       layer.subtitle.textContent = copy.subtitle;
       layer.layer.dataset.rewardTier = copy.tier;
+      layer.layer.dataset.rewardIntensity = String(profile.intensity);
       layer.layer.style.setProperty("--one-shot-accent", palette[0]);
       layer.layer.style.setProperty("--one-shot-accent-2", palette[1]);
+      layer.layer.style.setProperty(
+        "--one-shot-intensity",
+        String(profile.intensity),
+      );
+      layer.layer.style.setProperty(
+        "--one-shot-scale",
+        (1 + profile.intensity * 0.035).toFixed(2),
+      );
       layer.layer.classList.add("is-visible");
       layer.layer.classList.toggle("is-record", copy.tier === "record");
+      layer.layer.classList.toggle("is-apex", copy.tier === "apex");
+      renderOneShotRewardBadges(layer.meta, copy.badges, palette);
       if (reducedMotion) {
         window.cancelAnimationFrame(oneShotRewardAnimation);
         layer.canvas.getContext("2d")?.clearRect(
@@ -4317,9 +4632,10 @@ const shortcutRows = [
           layer.canvas.height,
         );
         layer.glyphs.replaceChildren();
+        layer.rings.replaceChildren();
         window.clearTimeout(layer.hideTimer);
         layer.hideTimer = window.setTimeout(() => {
-          layer.layer.classList.remove("is-visible", "is-record");
+          layer.layer.classList.remove("is-visible", "is-record", "is-apex");
         }, oneShotRewardReducedMotionMs);
         return;
       }
@@ -4328,9 +4644,10 @@ const shortcutRows = [
         "is-combo-pulse",
         oneShotComboPulseMs,
       );
-      renderOneShotRewardGlyphs(layer.glyphs, result, copy.tier, palette);
-      animateOneShotReward(layer, copy.tier, palette);
-      if (result.isRecord) {
+      renderOneShotRewardGlyphs(layer.glyphs, result, profile, palette);
+      renderOneShotRewardRings(layer.rings, profile, palette);
+      animateOneShotReward(layer, profile, palette);
+      if (profile.recordBreak) {
         pulseOneShotMetric(
           ".leetcode-session-metric.is-record",
           "is-record-pulse",
@@ -10561,6 +10878,41 @@ const shortcutRows = [
       overflow: hidden;
     }
 
+    .leetcode-one-shot-reward-rings {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .leetcode-one-shot-reward-rings span {
+      position: absolute;
+      width: min(46vw, 34rem);
+      aspect-ratio: 1;
+      border: 1px solid color-mix(
+        in srgb,
+        var(--reward-ring-color, #facc15) 58%,
+        transparent
+      );
+      border-radius: 999px;
+      box-shadow:
+        0 0 2rem color-mix(
+          in srgb,
+          var(--reward-ring-color, #facc15) 28%,
+          transparent
+        ),
+        inset 0 0 1.2rem color-mix(
+          in srgb,
+          var(--reward-ring-color, #facc15) 18%,
+          transparent
+        );
+      opacity: 0;
+      transform: scale(0.22);
+      animation: leetcode-reward-ring 2.85s ease-out
+        var(--reward-ring-delay, 0s) forwards;
+    }
+
     .leetcode-one-shot-reward-glyph {
       position: absolute;
       left: var(--reward-glyph-x, 50vw);
@@ -10588,7 +10940,7 @@ const shortcutRows = [
       text-shadow: 0 0.08rem 0.45rem rgb(0 0 0 / 32%);
       transform: translate(-50%, -50%)
         rotate(var(--reward-glyph-rotate, 0deg))
-        scale(0.72);
+        scale(var(--reward-glyph-enter-scale, 0.72));
       opacity: 0;
       animation: leetcode-reward-glyph 1.72s cubic-bezier(0.16, 1, 0.3, 1)
         forwards;
@@ -10642,10 +10994,11 @@ const shortcutRows = [
     }
 
     .leetcode-one-shot-reward.is-visible .leetcode-one-shot-reward-message {
-      transform: translateY(0) scale(1);
+      transform: translateY(0) scale(var(--one-shot-scale, 1));
     }
 
-    .leetcode-one-shot-reward.is-record .leetcode-one-shot-reward-message {
+    .leetcode-one-shot-reward.is-record .leetcode-one-shot-reward-message,
+    .leetcode-one-shot-reward.is-apex .leetcode-one-shot-reward-message {
       border-color: color-mix(
         in srgb,
         var(--one-shot-accent, #facc15) 86%,
@@ -10656,6 +11009,32 @@ const shortcutRows = [
         0 0 4.2rem color-mix(
           in srgb,
           var(--one-shot-accent, #facc15) 58%,
+          transparent
+        );
+    }
+
+    .leetcode-one-shot-reward.is-apex .leetcode-one-shot-reward-message {
+      background:
+        radial-gradient(
+          circle at 50% 0%,
+          color-mix(
+            in srgb,
+            var(--one-shot-accent, #facc15) 32%,
+            transparent
+          ),
+          transparent 42%
+        ),
+        linear-gradient(135deg, rgb(14 14 13 / 90%), rgb(71 36 61 / 82%));
+      box-shadow:
+        0 1.8rem 4.4rem rgb(0 0 0 / 42%),
+        0 0 5.4rem color-mix(
+          in srgb,
+          var(--one-shot-accent-2, #fb7185) 62%,
+          transparent
+        ),
+        0 0 8rem color-mix(
+          in srgb,
+          var(--one-shot-accent, #facc15) 38%,
           transparent
         );
     }
@@ -10680,19 +11059,65 @@ const shortcutRows = [
       line-height: 1.28;
     }
 
+    .leetcode-one-shot-reward-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      justify-content: center;
+      margin-top: 0.2rem;
+    }
+
+    .leetcode-one-shot-reward-meta span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.32rem;
+      border: 1px solid color-mix(
+        in srgb,
+        var(--reward-badge-color, #facc15) 58%,
+        transparent
+      );
+      border-radius: 999px;
+      background: color-mix(
+        in srgb,
+        var(--reward-badge-color, #facc15) 18%,
+        transparent
+      );
+      color: white;
+      font-size: 0.68rem;
+      font-weight: 850;
+      line-height: 1;
+      padding: 0.24rem 0.48rem;
+    }
+
+    @keyframes leetcode-reward-ring {
+      0% {
+        opacity: 0;
+        transform: scale(0.18);
+      }
+
+      16% {
+        opacity: 0.88;
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(var(--reward-ring-scale, 2.2));
+      }
+    }
+
     @keyframes leetcode-reward-glyph {
       0% {
         opacity: 0;
         transform: translate(-50%, -50%)
           rotate(var(--reward-glyph-rotate, 0deg))
-          scale(0.72);
+          scale(var(--reward-glyph-enter-scale, 0.72));
       }
 
       14% {
         opacity: 1;
         transform: translate(-50%, -50%)
           rotate(var(--reward-glyph-rotate, 0deg))
-          scale(1);
+          scale(var(--reward-glyph-live-scale, 1));
       }
 
       72% {
@@ -10706,7 +11131,7 @@ const shortcutRows = [
             calc(-50% + var(--reward-glyph-ty, -4rem))
           )
           rotate(calc(var(--reward-glyph-rotate, 0deg) + 12deg))
-          scale(1.08);
+          scale(var(--reward-glyph-exit-scale, 1.08));
       }
     }
 
@@ -11205,6 +11630,7 @@ const shortcutRows = [
       }
 
       .leetcode-one-shot-reward-glyph,
+      .leetcode-one-shot-reward-rings span,
       .leetcode-session-metric.is-combo-pulse,
       .leetcode-session-metric.is-record-pulse {
         animation: none;
