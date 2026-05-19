@@ -16,6 +16,8 @@ function preserveHtmlUrls(item) {
     "/books/leetcode",
     "/books/zh/leetcode",
     "/books/sa",
+    "/books/cc",
+    "/books/zh/cc",
   ]);
   const htmlPagePrefixes = [
     "/books/codex-from-source/",
@@ -26,6 +28,8 @@ function preserveHtmlUrls(item) {
     "/books/zh/leetcode/",
     "/books/sa/",
     "/books/zh/sa/",
+    "/books/cc/",
+    "/books/zh/cc/",
   ];
 
   if (landingPaths.has(url.pathname)) {

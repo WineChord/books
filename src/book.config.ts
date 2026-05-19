@@ -275,6 +275,21 @@ const lcpPages: PageConfig[] = [
   },
 ];
 
+const ccPages: PageConfig[] = [
+  {
+    book: "cc",
+    path: "cc/spec",
+    zhPath: "zh/cc/spec",
+    title: "Spec",
+    zhTitle: "规格说明",
+    description:
+      "The source, route, coverage, interaction, and QA contract for the Claude Code interview book.",
+    zhDescription:
+      "说明 Claude Code 面试书的来源、路由、覆盖范围、交互和验收契约。",
+    kind: "front",
+  },
+];
+
 export const codexFromSourceBook = makeBook({
   slug: "codex-from-source",
   title: siteTitle,
@@ -368,12 +383,32 @@ export const lcpBook = makeBook({
   pages: lcpPages,
 });
 
+export const ccBook = makeBook({
+  slug: "cc",
+  title: "Claude Code Interview Book",
+  zhTitle: "Claude Code 面试核心书",
+  shortTitle: "Claude Code",
+  zhShortTitle: "Claude Code",
+  description:
+    "A single-page interactive book about Claude Code context management, memory, compaction, subagents, and interview answers.",
+  zhDescription:
+    "一页交互式长书，系统讲解 Claude Code 上下文管理、记忆、压缩、多 Agent 和面试答法。",
+  coverKicker: "Context, Compaction, Multi-Agent",
+  zhCoverKicker: "Context, Compaction, Multi-Agent",
+  coverTitle: "Claude<br />Code<br />Interviews",
+  coverFooter: "single-page interactive book",
+  zhCoverFooter: "单页交互式长书",
+  parts: [],
+  pages: ccPages,
+});
+
 export const books = [
   codexFromSourceBook,
   codexContextManagementBook,
   leetcodeBook,
   suffixArrayBook,
   lcpBook,
+  ccBook,
 ] as const;
 export const allPages = books.flatMap((book) => book.pages);
 

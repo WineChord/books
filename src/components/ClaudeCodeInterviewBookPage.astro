@@ -1,0 +1,1456 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "./Header.astro";
+import { ccBook } from "../book.config";
+import { pageUrl } from "../urls";
+
+interface Props {
+  lang?: "zh";
+}
+
+const { lang = "zh" } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const book = ccBook;
+const title = book.zhTitle;
+const description = book.zhDescription;
+const specPath = "cc/spec";
+
+const sourceCards = [
+  {
+    title: "上下文窗口管理原文",
+    status: "已读取微信正文",
+    href: "https://mp.weixin.qq.com/s/NBR6dRr3iO7KCTEChk8QUg",
+    body: "覆盖 token、三类朴素方案、五层压缩、Auto-Compact、摘要 prompt 和面试答法。",
+  },
+  {
+    title: "Claude Code 源码解析",
+    status: "微信受限，读取转载",
+    href: "https://www.eefocus.com/article/1984643.html",
+    body: "补齐 Agent loop、Tool-Use Loop、Plan Mode、System Prompt、记忆系统和压缩全景。",
+  },
+  {
+    title: "多 Agent 实现机制",
+    status: "微信受限，读取转载",
+    href: "https://www.eefocus.com/article/2009921.html",
+    body: "补齐 Subagent、Fork、Coordinator、工具隔离、上下文隔离和消息通信。",
+  },
+  {
+    title: "Anthropic 官方文档",
+    status: "公开能力校验",
+    href: "https://docs.anthropic.com/en/docs/claude-code/sub-agents",
+    body: "校验 subagents、独立上下文、工具权限、memory、MCP、slash commands 等公开能力。",
+  },
+];
+
+const tocItems = [
+  ["mental-model", "0. 先建立心智模型"],
+  ["window", "1. 上下文窗口为什么会爆"],
+  ["bad-solutions", "2. 三种朴素方案为什么不够"],
+  ["pyramid", "3. 五层压缩金字塔"],
+  ["auto-compact", "4. Auto-Compact 深拆"],
+  ["summary-prompt", "5. 摘要 Prompt 怎么设计"],
+  ["memory", "6. 记忆和上下文不是一回事"],
+  ["multi-agent", "7. 多 Agent 为什么也是上下文管理"],
+  ["interview", "8. 面试怎么答"],
+  ["source-map", "9. 资料覆盖地图"],
+];
+
+const layerCards = [
+  {
+    id: "disk",
+    name: "第 1 层",
+    title: "大结果存磁盘",
+    loss: "几乎无损",
+    cost: "零 API",
+    trigger: "单个工具结果过大",
+    detail:
+      "完整结果不塞进消息，只写到本地文件；上下文里留下短预览和可回读路径。适合日志、长文件、大 grep 结果。",
+  },
+  {
+    id: "snip",
+    name: "第 2 层",
+    title: "Snip 边界裁剪",
+    loss: "低",
+    cost: "零 API",
+    trigger: "很早的消息已明显过时",
+    detail:
+      "删除远古探索消息，插入边界标记。它不是摘要，而是承认某些早期噪声对当前任务已经没有价值。",
+  },
+  {
+    id: "micro",
+    name: "第 3 层",
+    title: "Micro-Compact",
+    loss: "中低",
+    cost: "零 API",
+    trigger: "Prompt cache 过期或工具结果太多",
+    detail:
+      "清掉可重复获取的旧工具结果，只保留最近少量结果；不可重复的子 agent 输出和任务状态不能裁剪。",
+  },
+  {
+    id: "collapse",
+    name: "第 4 层",
+    title: "Context Collapse",
+    loss: "中",
+    cost: "低",
+    trigger: "上下文约 90% 起",
+    detail:
+      "读时投影：原始历史不动，只在发 API 请求时动态生成压缩视图。够用时就避免昂贵的全量摘要。",
+  },
+  {
+    id: "auto",
+    name: "第 5 层",
+    title: "Auto-Compact",
+    loss: "高",
+    cost: "一次模型调用",
+    trigger: "有效窗口减 13K 缓冲",
+    detail:
+      "兜底全量重写：旧消息被结构化摘要替换，再把最近文件、计划、技能、异步任务作为附件恢复。",
+  },
+];
+
+const pipelineSteps = [
+  {
+    title: "触发",
+    body: "计算有效窗口，如果当前 token 数超过窗口减 13K，就进入 compact。手动 /compact 可带额外关注点。",
+  },
+  {
+    title: "预处理",
+    body: "先做 microcompact，把可重复获取的旧工具输出换成占位符，避免摘要器自己被撑爆。",
+  },
+  {
+    title: "生成摘要",
+    body: "用同一个主模型输出 XML 结构摘要，禁止调用任何工具，重点保留用户请求、文件、错误、待办和当前进度。",
+  },
+  {
+    title: "恢复附件",
+    body: "按最近活跃度恢复最多 5 个文件、每个最多 5K token、总计最多 50K token，并恢复技能和异步任务状态。",
+  },
+  {
+    title: "接力",
+    body: "旧消息链被替换为边界标记、摘要、附件和 hook 结果；模型被明确告知这是续跑，不是新会话。",
+  },
+];
+
+const comparisonRows = [
+  ["滑动窗口", "从最早消息开始砍", "会误删初始目标、约束和关键工具结果"],
+  ["每 N 轮摘要", "固定轮数或固定 token 做摘要", "触发点机械，可能在关键转折处粗暴压缩"],
+  ["向量召回历史", "把历史切片，按相似度召回 top-k", "忽略时序，可能拆散 tool_use 与 tool_result"],
+  ["Claude Code 分层压缩", "先零成本瘦身，再读时投影，最后全量重写", "把语义、状态、永久规则分通道管理"],
+];
+
+const promptSections = [
+  "Primary Request and Intent",
+  "Key Technical Concepts",
+  "Files and Code Sections",
+  "Errors and fixes",
+  "Problem Solving",
+  "All user messages",
+  "Pending Tasks",
+  "Current Work",
+  "Optional Next Step",
+];
+
+const memoryRows = [
+  ["企业/组织规则", "IT 或 DevOps 管理", "所有人都必须遵守的安全、合规、代码规范"],
+  ["项目记忆 CLAUDE.md", "仓库根目录", "团队共享的架构、命令、约束、常见坑"],
+  ["用户记忆", "个人目录", "个人偏好、常用工具、跨项目工作习惯"],
+  ["会话摘要", "当前对话内", "只服务这次长任务的压缩后接续状态"],
+];
+
+const multiAgentModes = [
+  {
+    title: "常规 Subagent",
+    body: "主 agent 派一个专门角色去做子任务。子 agent 有独立上下文和工具池，完成后把结果交回主 agent。",
+  },
+  {
+    title: "Fork Subagent",
+    body: "让子 agent 复用父 agent 的缓存安全前缀，适合完整继承上下文、只分叉试一条轻量路线的场景。",
+  },
+  {
+    title: "Coordinator 模式",
+    body: "主 agent 只做拆分、派工、收结果和合成，worker 并行执行。关键是协调者必须理解结果，不能只转发。",
+  },
+];
+
+const interviewCards = [
+  {
+    q: "Claude Code 的上下文窗口怎么管理？",
+    a: "先说观点：不是简单滑动窗口，也不是固定轮数摘要，而是五层从轻到重的压缩体系。大结果存磁盘、Snip、Micro-Compact、Context Collapse 先尽量零成本减压，最后才由 Auto-Compact 做全量重写和附件恢复。",
+  },
+  {
+    q: "Auto-Compact 什么时候触发？",
+    a: "核心公式是有效上下文窗口减去固定缓冲。文章中提到的缓冲是 13K token，目的不是按比例省空间，而是给摘要任务和后续输出留出可预测余量。",
+  },
+  {
+    q: "压缩时到底保什么？",
+    a: "语义信息进摘要，状态信息走附件，永久规则下一轮重新加载，系统 prompt 重新构建。最近文件、异步任务、计划和技能都不应该只靠摘要保留。",
+  },
+  {
+    q: "为什么向量召回不能直接替代上下文管理？",
+    a: "Agent 历史强依赖顺序和成对工具消息。向量召回只按相似度选片段，可能漏掉低相似但高约束的信息，也可能拆散 tool_use 和 tool_result。",
+  },
+  {
+    q: "多 Agent 的核心风险是什么？",
+    a: "隔离和通信。工具权限要按 agent 类型过滤；上下文状态要按字段决定克隆、禁写或保留通路；父子之间要走消息队列和通知，而不是同步函数调用。",
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonicalPath="cc/"
+  lang={lang}
+  titleSuffix={title}
+>
+  <Header
+    lang="zh"
+    alternatePath={null}
+    homePath="cc/"
+    brandTitle={book.zhTitle}
+    brandShortTitle={book.zhShortTitle}
+    compact
+  />
+
+  <main class="cc-page">
+    <section class="cc-hero" aria-labelledby="cc-title">
+      <div class="cc-hero-copy">
+        <p class="cc-kicker">Claude Code Context & Interview</p>
+        <h1 id="cc-title">把上下文管理讲到面试官愿意继续追问</h1>
+        <p class="cc-lede">
+          这是一页可交互的零基础长书：从 token、tool call、context
+          window 开始，讲到 Claude Code 的五层压缩、Auto-Compact、
+          Memory、Subagent、Fork、Coordinator，以及真正能落地的面试答法。
+        </p>
+        <div class="cc-hero-actions">
+          <a href="#window">开始阅读</a>
+          <a href={pageUrl(base, specPath)}>查看规格</a>
+        </div>
+      </div>
+
+      <div class="cc-workbench" aria-label="上下文工作台示意图">
+        <div class="cc-workbench-top">
+          <span>Context workbench</span>
+          <span>200K window</span>
+        </div>
+        <div class="cc-workbench-stack">
+          <span class="cc-stack-system">system prompt</span>
+          <span class="cc-stack-memory">CLAUDE.md</span>
+          <span class="cc-stack-user">user goals</span>
+          <span class="cc-stack-tool">tool_use</span>
+          <span class="cc-stack-result">tool_result</span>
+          <span class="cc-stack-file">recent files</span>
+        </div>
+        <div class="cc-workbench-note">
+          长任务不是“聊天越聊越长”这么简单，而是工具调用、文件内容、计划、记忆和子任务状态一起挤进同一张桌子。
+        </div>
+      </div>
+    </section>
+
+    <nav class="cc-toc" aria-label="章节目录">
+      {tocItems.map(([href, label]) => (
+        <a href={`#${href}`}>{label}</a>
+      ))}
+    </nav>
+
+    <section class="cc-section cc-section-band" id="mental-model">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">0. Mental Model</p>
+        <h2>先把 Claude Code 看成一个“受约束的执行循环”</h2>
+      </div>
+      <div class="cc-two-col">
+        <div>
+          <p>
+            初学者容易把 Claude Code 理解成“会写代码的聊天框”。这个理解太浅。
+            聊天框只负责回答；Copilot 主要负责补全；Agent 则会在一个循环里反复
+            感知环境、决定下一步、调用工具、接收结果，再决定是否继续。
+          </p>
+          <p>
+            这就是为什么上下文管理会成为核心面试点：Agent 的每一次行动都会制造新的上下文。
+            它读过的文件、跑过的命令、失败过的测试、用户临时加的限制、后台子任务的进度，
+            都会影响下一步是否正确。
+          </p>
+        </div>
+        <div class="cc-loop" aria-label="Tool-Use Loop">
+          <div>用户目标</div>
+          <div>组装上下文</div>
+          <div>模型返回 tool_use 或 end_turn</div>
+          <div>执行工具并写回结果</div>
+          <div>继续或结束</div>
+        </div>
+      </div>
+      <div class="cc-callout">
+        <strong>面试切入点：</strong>
+        Claude Code 的重点不是某一个神奇 prompt，而是把模型、工具、权限、记忆、
+        压缩、计划和子 agent 都放进同一个可审查的运行时。
+      </div>
+    </section>
+
+    <section class="cc-section" id="window">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">1. Context Window</p>
+        <h2>上下文窗口为什么会爆</h2>
+      </div>
+      <div class="cc-two-col">
+        <div>
+          <p>
+            大模型没有像人一样的持久记忆。每一次调用模型，本质都是把 system prompt、
+            历史消息、当前问题、工具定义、工具结果等内容重新塞进请求里。能塞进去的总量上限，
+            就是上下文窗口。
+          </p>
+          <p>
+            Agent 比普通聊天更容易爆窗口，因为它开局就有固定成本：system prompt、
+            工具描述、项目规则、记忆文件。真正开始工作后，每次工具调用又至少制造两类消息：
+            <code>tool_use</code> 和 <code>tool_result</code>。读一个大文件，真正占空间的是返回内容。
+          </p>
+          <p>
+            只靠长上下文也不够。窗口越长，成本和首 token 延迟越高；更麻烦的是
+            Lost in the Middle：模型通常更容易利用首尾信息，中间段容易被弱化。
+            所以上下文管理不是“省 token”，而是主动保护任务结构。
+          </p>
+        </div>
+
+        <div class="cc-simulator" aria-label="Token 预算模拟器">
+          <h3>Token 预算模拟器</h3>
+          <label>
+            固定开销
+            <input id="cc-base" type="range" min="4000" max="20000" value="9000" step="1000" />
+          </label>
+          <label>
+            读取文件数
+            <input id="cc-files" type="range" min="0" max="20" value="6" step="1" />
+          </label>
+          <label>
+            工具轮数
+            <input id="cc-rounds" type="range" min="0" max="80" value="18" step="1" />
+          </label>
+          <label>
+            平均工具结果
+            <input id="cc-tool" type="range" min="500" max="10000" value="2600" step="500" />
+          </label>
+          <div class="cc-meter" aria-hidden="true">
+            <span id="cc-meter-fill"></span>
+          </div>
+          <div class="cc-sim-grid">
+            <span>估算总量</span><strong id="cc-total">0</strong>
+            <span>窗口占用</span><strong id="cc-ratio">0%</strong>
+            <span>可能触发</span><strong id="cc-trigger">第 1 层</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section cc-section-band" id="bad-solutions">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">2. Naive Solutions</p>
+        <h2>三种朴素方案为什么不够</h2>
+      </div>
+      <div class="cc-table-wrap">
+        <table class="cc-table">
+          <thead>
+            <tr>
+              <th>方案</th>
+              <th>直觉</th>
+              <th>Agent 场景里的失败点</th>
+            </tr>
+          </thead>
+          <tbody>
+            {comparisonRows.map((row) => (
+              <tr>
+                <td>{row[0]}</td>
+                <td>{row[1]}</td>
+                <td>{row[2]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p>
+        这里最容易被问到的是“为什么不能直接 RAG 化历史”。答案是：文档检索和
+        agent 历史不是一类问题。文档片段可以按相关性召回，agent 历史还必须尊重顺序、
+        因果、工具调用成对结构，以及用户中途改需求的全局约束。
+      </p>
+    </section>
+
+    <section class="cc-section" id="pyramid">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">3. Five-Layer Pyramid</p>
+        <h2>Claude Code 的上下文管理是从轻到重的金字塔</h2>
+      </div>
+      <div class="cc-layer-layout">
+        <div class="cc-layer-buttons" role="list" aria-label="五层压缩">
+          {layerCards.map((layer, index) => (
+            <button
+              type="button"
+              class:list={["cc-layer-button", { "is-active": index === 0 }]}
+              data-layer={layer.id}
+            >
+              <span>{layer.name}</span>
+              <strong>{layer.title}</strong>
+            </button>
+          ))}
+        </div>
+        <div class="cc-layer-detail" aria-live="polite">
+          <p id="cc-layer-name">{layerCards[0].name}</p>
+          <h3 id="cc-layer-title">{layerCards[0].title}</h3>
+          <div class="cc-layer-facts">
+            <span id="cc-layer-loss">{layerCards[0].loss}</span>
+            <span id="cc-layer-cost">{layerCards[0].cost}</span>
+            <span id="cc-layer-trigger">{layerCards[0].trigger}</span>
+          </div>
+          <p id="cc-layer-body">{layerCards[0].detail}</p>
+        </div>
+      </div>
+      <div class="cc-callout">
+        <strong>关键原则：</strong>
+        前三层尽量不调用模型；第四层不破坏原始历史；第五层才承认“旧消息链必须被重写”。
+        每一层都在为下一层减负。
+      </div>
+    </section>
+
+    <section class="cc-section cc-section-band" id="auto-compact">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">4. Auto-Compact</p>
+        <h2>最值得背的不是“摘要”，而是“全量重写 + 分通道恢复”</h2>
+      </div>
+      <div class="cc-two-col">
+        <div>
+          <p>
+            Auto-Compact 是兜底机制。它不按“每 10 轮”这种机械节奏触发，而是按
+            token 距离窗口上限的固定缓冲触发。文章中提到的数字是 13K token，
+            重点不是数字本身，而是思路：给摘要输出和下一轮模型响应预留稳定空间。
+          </p>
+          <p>
+            触发后也不是简单保留最近 N 条。Claude Code 会把可压缩的历史整体重写成结构化摘要，
+            然后把最近文件、计划文件、活跃技能、异步任务状态等精确状态通过附件恢复。
+          </p>
+          <p>
+            这套取舍背后有一条清晰边界：语义信息适合摘要，运行状态不适合摘要；
+            永久规则不需要摘要，下一轮重新加载；system prompt 也不需要摘要，重新构建。
+          </p>
+        </div>
+        <div class="cc-pipeline" aria-label="Auto-Compact 流程">
+          <div class="cc-pipeline-tabs">
+            {pipelineSteps.map((step, index) => (
+              <button
+                type="button"
+                class:list={["cc-pipeline-tab", { "is-active": index === 0 }]}
+                data-step={index}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+          <h3 id="cc-pipeline-title">{pipelineSteps[0].title}</h3>
+          <p id="cc-pipeline-body">{pipelineSteps[0].body}</p>
+          <div class="cc-pipeline-track" aria-hidden="true">
+            <span class="is-hot">messages</span>
+            <span>microcompact</span>
+            <span>summary</span>
+            <span>attachments</span>
+            <span>new chain</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section" id="summary-prompt">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">5. Summary Prompt</p>
+        <h2>好的 compact prompt 不是一句“请总结一下”</h2>
+      </div>
+      <div class="cc-two-col">
+        <div>
+          <p>
+            摘要器只有一个任务：保住下一轮继续干活必须依赖的信息。
+            所以 prompt 要先防呆：只输出文本，不调用 Read、Bash、Grep、Edit 等工具。
+            摘要阶段如果模型又去行动，就把“总结历史”变成了“继续做任务”，这会污染压缩结果。
+          </p>
+          <p>
+            结构上，它要把内容分成固定清单。最重要的两个清单是
+            <strong>所有用户消息</strong> 和 <strong>当前工作进度</strong>。
+            前者防止用户中途新增的约束丢失，后者保证下一轮不是重新探索，而是接着干。
+          </p>
+        </div>
+        <div class="cc-prompt-card">
+          <div class="cc-xml-tag">&lt;summary&gt;</div>
+          <ol>
+            {promptSections.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ol>
+          <div class="cc-xml-tag">&lt;/summary&gt;</div>
+        </div>
+      </div>
+      <div class="cc-callout">
+        <strong>可迁移模板：</strong>
+        不要只要求“简短”。要要求摘要列出原始意图、关键文件、错误和修复、用户每次改口、
+        未完成事项、当前最细颗粒度进度，以及唯一下一步。
+      </div>
+    </section>
+
+    <section class="cc-section cc-section-band" id="memory">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">6. Memory</p>
+        <h2>记忆、摘要、上下文窗口是三套机制</h2>
+      </div>
+      <div class="cc-two-col">
+        <div>
+          <p>
+            上下文窗口是“这次 API 调用模型能看见什么”。摘要是“长会话快撑不住时，把当前历史改写成更小的状态”。
+            记忆则是“跨会话或跨项目长期存在的规则和偏好”。把三者混在一起，是很多 agent 项目的根本问题。
+          </p>
+          <p>
+            例如 CLAUDE.md 这种项目记忆不需要塞进摘要。压缩后可以清空用户上下文缓存，让下一轮重新加载它。
+            这叫分通道：永久规则走 memory 通道，当前工作走 summary 通道，最近文件走 attachment 通道。
+          </p>
+        </div>
+        <div class="cc-memory-panel">
+          <h3>记忆类型速查</h3>
+          {memoryRows.map((row) => (
+            <div class="cc-memory-row">
+              <strong>{row[0]}</strong>
+              <span>{row[1]}</span>
+              <p>{row[2]}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section" id="multi-agent">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">7. Multi-Agent</p>
+        <h2>多 Agent 不是“多叫几个模型”，而是上下文隔离策略</h2>
+      </div>
+      <div class="cc-two-col">
+        <div>
+          <p>
+            一个 agent 既调研、又实现、又评审，最先爆的通常不是智力，而是上下文和职责。
+            多 Agent 的价值是把任务切成干净的上下文，把权限切成合适的工具箱，把结果通过消息机制交回主线。
+          </p>
+          <p>
+            面试要讲清三件事：工具隔离、上下文隔离、消息通信。工具隔离避免子 agent 无限递归或抢用户对话权；
+            上下文隔离要逐字段判断克隆、禁写还是保留通路；消息通信要异步，父子之间不要互相同步阻塞。
+          </p>
+        </div>
+        <div class="cc-agent-board">
+          {multiAgentModes.map((mode) => (
+            <article>
+              <h3>{mode.title}</h3>
+              <p>{mode.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+      <div class="cc-message-demo" aria-label="父子 agent 通信示意">
+        <div>
+          <span>Parent</span>
+          <p>把新指令追加到子 agent 的 pendingMessages。</p>
+        </div>
+        <div>
+          <span>Subagent</span>
+          <p>在下一轮循环边界读取消息，作为新的用户消息继续执行。</p>
+        </div>
+        <div>
+          <span>Notification</span>
+          <p>完成后把状态、摘要、结果包装成通知，注入父 agent 历史。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section cc-section-band" id="interview">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">8. Interview</p>
+        <h2>面试回答要从“现象”讲到“工程边界”</h2>
+      </div>
+      <div class="cc-answer-frame">
+        <div>
+          <strong>30 秒版</strong>
+          <p>
+            Claude Code 不靠简单滑动窗口，而是分层管理上下文：能不压就不压，
+            先裁剪大结果和旧工具输出，再读时投影，最后用 Auto-Compact 全量重写历史，
+            并通过文件、技能、任务状态附件恢复关键运行状态。
+          </p>
+        </div>
+        <div>
+          <strong>2 分钟版</strong>
+          <p>
+            先讲上下文为什么爆，再讲三种朴素方案的问题，然后展开五层金字塔。
+            对 Auto-Compact 重点说触发阈值、全量重写、9 项摘要 prompt、附件恢复、
+            circuit breaker、递归守卫和续跑提示。
+          </p>
+        </div>
+        <div>
+          <strong>追问版</strong>
+          <p>
+            如果面试官追问多 Agent，就从工具权限、字段级上下文隔离、pending message、
+            XML-like notification、Fork 缓存复用和 Coordinator 合成责任继续展开。
+          </p>
+        </div>
+      </div>
+      <div class="cc-card-grid">
+        {interviewCards.map((card) => (
+          <details class="cc-qa">
+            <summary>{card.q}</summary>
+            <p>{card.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <section class="cc-section" id="source-map">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">9. Source Map</p>
+        <h2>资料覆盖地图</h2>
+      </div>
+      <div class="cc-source-grid">
+        {sourceCards.map((source) => (
+          <a href={source.href} target="_blank" rel="noopener noreferrer" class="cc-source-card">
+            <span>{source.status}</span>
+            <strong>{source.title}</strong>
+            <p>{source.body}</p>
+          </a>
+        ))}
+      </div>
+      <div class="cc-callout">
+        本页覆盖原文和内部同主题链接的核心内容，并把原图的“模型工作台、三种方案、五层金字塔、
+        Auto-Compact 流程、信息半衰期、压缩接力、多 Agent 通信”等图意改写成可交互讲解。
+        微信原图未热链复制，避免把第三方图片资产直接发布到本站。
+      </div>
+    </section>
+  </main>
+
+  <script is:inline>
+    (() => {
+      const format = new Intl.NumberFormat("zh-CN");
+      const windowTokens = 200000;
+      const autoBuffer = 13000;
+
+      const layers = [
+        {
+          id: "disk",
+          name: "第 1 层",
+          title: "大结果存磁盘",
+          loss: "几乎无损",
+          cost: "零 API",
+          trigger: "单个工具结果过大",
+          detail:
+            "完整结果不塞进消息，只写到本地文件；上下文里留下短预览和可回读路径。适合日志、长文件、大 grep 结果。",
+        },
+        {
+          id: "snip",
+          name: "第 2 层",
+          title: "Snip 边界裁剪",
+          loss: "低",
+          cost: "零 API",
+          trigger: "很早的消息已明显过时",
+          detail:
+            "删除远古探索消息，插入边界标记。它不是摘要，而是承认某些早期噪声对当前任务已经没有价值。",
+        },
+        {
+          id: "micro",
+          name: "第 3 层",
+          title: "Micro-Compact",
+          loss: "中低",
+          cost: "零 API",
+          trigger: "Prompt cache 过期或工具结果太多",
+          detail:
+            "清掉可重复获取的旧工具结果，只保留最近少量结果；不可重复的子 agent 输出和任务状态不能裁剪。",
+        },
+        {
+          id: "collapse",
+          name: "第 4 层",
+          title: "Context Collapse",
+          loss: "中",
+          cost: "低",
+          trigger: "上下文约 90% 起",
+          detail:
+            "读时投影：原始历史不动，只在发 API 请求时动态生成压缩视图。够用时就避免昂贵的全量摘要。",
+        },
+        {
+          id: "auto",
+          name: "第 5 层",
+          title: "Auto-Compact",
+          loss: "高",
+          cost: "一次模型调用",
+          trigger: "有效窗口减 13K 缓冲",
+          detail:
+            "兜底全量重写：旧消息被结构化摘要替换，再把最近文件、计划、技能、异步任务作为附件恢复。",
+        },
+      ];
+
+      const pipeline = [
+        {
+          title: "触发",
+          body:
+            "计算有效窗口，如果当前 token 数超过窗口减 13K，就进入 compact。手动 /compact 可带额外关注点。",
+        },
+        {
+          title: "预处理",
+          body:
+            "先做 microcompact，把可重复获取的旧工具输出换成占位符，避免摘要器自己被撑爆。",
+        },
+        {
+          title: "生成摘要",
+          body:
+            "用同一个主模型输出 XML 结构摘要，禁止调用任何工具，重点保留用户请求、文件、错误、待办和当前进度。",
+        },
+        {
+          title: "恢复附件",
+          body:
+            "按最近活跃度恢复最多 5 个文件、每个最多 5K token、总计最多 50K token，并恢复技能和异步任务状态。",
+        },
+        {
+          title: "接力",
+          body:
+            "旧消息链被替换为边界标记、摘要、附件和 hook 结果；模型被明确告知这是续跑，不是新会话。",
+        },
+      ];
+
+      function readNumber(id) {
+        const node = document.getElementById(id);
+        return node instanceof HTMLInputElement ? Number(node.value) : 0;
+      }
+
+      function setText(id, value) {
+        const node = document.getElementById(id);
+        if (node) node.textContent = value;
+      }
+
+      function updateSimulator() {
+        const base = readNumber("cc-base");
+        const files = readNumber("cc-files");
+        const rounds = readNumber("cc-rounds");
+        const tool = readNumber("cc-tool");
+        const total = base + files * 5000 + rounds * tool * 2;
+        const ratio = Math.min(100, Math.round((total / windowTokens) * 100));
+        let trigger = "第 1-3 层足够";
+        if (total > windowTokens - autoBuffer) {
+          trigger = "第 5 层 Auto-Compact";
+        } else if (total > windowTokens * 0.9) {
+          trigger = "第 4 层 Context Collapse";
+        } else if (total > windowTokens * 0.6) {
+          trigger = "第 2-3 层开始减压";
+        }
+
+        setText("cc-total", `${format.format(total)} token`);
+        setText("cc-ratio", `${ratio}%`);
+        setText("cc-trigger", trigger);
+        const fill = document.getElementById("cc-meter-fill");
+        if (fill instanceof HTMLElement) {
+          fill.style.width = `${ratio}%`;
+          fill.dataset.level = trigger.includes("Auto")
+            ? "hot"
+            : trigger.includes("Context")
+              ? "warm"
+              : "cool";
+        }
+      }
+
+      function activateLayer(id) {
+        const layer = layers.find((item) => item.id === id) || layers[0];
+        document.querySelectorAll(".cc-layer-button").forEach((button) => {
+          button.classList.toggle("is-active", button.dataset.layer === id);
+        });
+        setText("cc-layer-name", layer.name);
+        setText("cc-layer-title", layer.title);
+        setText("cc-layer-loss", layer.loss);
+        setText("cc-layer-cost", layer.cost);
+        setText("cc-layer-trigger", layer.trigger);
+        setText("cc-layer-body", layer.detail);
+      }
+
+      function activateStep(index) {
+        const step = pipeline[index] || pipeline[0];
+        document.querySelectorAll(".cc-pipeline-tab").forEach((button) => {
+          button.classList.toggle("is-active", Number(button.dataset.step) === index);
+        });
+        setText("cc-pipeline-title", step.title);
+        setText("cc-pipeline-body", step.body);
+      }
+
+      ["cc-base", "cc-files", "cc-rounds", "cc-tool"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("input", updateSimulator);
+      });
+
+      document.querySelectorAll(".cc-layer-button").forEach((button) => {
+        button.addEventListener("click", () => activateLayer(button.dataset.layer || "disk"));
+      });
+
+      document.querySelectorAll(".cc-pipeline-tab").forEach((button) => {
+        button.addEventListener("click", () => activateStep(Number(button.dataset.step || 0)));
+      });
+
+      updateSimulator();
+    })();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  .cc-page {
+    --cc-ink: #172026;
+    --cc-muted: #5c6870;
+    --cc-line: #d9e1e6;
+    --cc-panel: #ffffff;
+    --cc-band: #eef4f2;
+    --cc-coral: #b85f42;
+    --cc-blue: #2366a8;
+    --cc-green: #25735d;
+    --cc-yellow: #a97816;
+    color: var(--cc-ink);
+    background: #f8faf8;
+  }
+
+  .dark .cc-page {
+    --cc-ink: #f4f1e8;
+    --cc-muted: #b9c2c4;
+    --cc-line: #334047;
+    --cc-panel: #172026;
+    --cc-band: #111c1f;
+    --cc-coral: #e08a68;
+    --cc-blue: #79b7f2;
+    --cc-green: #6ec7a8;
+    --cc-yellow: #e5bd6d;
+    background: #0c1214;
+  }
+
+  .cc-hero,
+  .cc-section,
+  .cc-toc {
+    margin: 0 auto;
+    max-width: 1180px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .cc-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 480px);
+    gap: 40px;
+    align-items: center;
+    min-height: calc(100vh - 2.25rem);
+    padding-bottom: 48px;
+    padding-top: 56px;
+  }
+
+  .cc-kicker {
+    margin: 0 0 10px;
+    color: var(--cc-coral);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .cc-hero h1,
+  .cc-section h2 {
+    color: var(--cc-ink);
+    font-family: "Source Serif 4 Variable", Georgia, serif;
+    font-weight: 780;
+    letter-spacing: 0;
+  }
+
+  .cc-hero h1 {
+    margin: 0;
+    max-width: 760px;
+    font-size: clamp(2.45rem, 7vw, 5.4rem);
+    line-height: 0.98;
+  }
+
+  .cc-lede {
+    max-width: 760px;
+    margin: 24px 0 0;
+    color: var(--cc-muted);
+    font-size: 1.08rem;
+    line-height: 1.85;
+  }
+
+  .cc-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .cc-hero-actions a,
+  .cc-toc a {
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    color: var(--cc-ink);
+    font-weight: 700;
+    text-decoration: none;
+    transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+  }
+
+  .cc-hero-actions a {
+    padding: 12px 16px;
+  }
+
+  .cc-hero-actions a:first-child {
+    border-color: var(--cc-coral);
+    background: var(--cc-coral);
+    color: #ffffff;
+  }
+
+  .cc-hero-actions a:hover,
+  .cc-toc a:hover {
+    border-color: var(--cc-coral);
+    color: var(--cc-coral);
+  }
+
+  .cc-workbench,
+  .cc-simulator,
+  .cc-layer-detail,
+  .cc-pipeline,
+  .cc-prompt-card,
+  .cc-memory-panel,
+  .cc-agent-board article,
+  .cc-answer-frame > div,
+  .cc-qa,
+  .cc-source-card {
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    background: var(--cc-panel);
+    box-shadow: 0 18px 50px rgba(23, 32, 38, 0.08);
+  }
+
+  .dark .cc-workbench,
+  .dark .cc-simulator,
+  .dark .cc-layer-detail,
+  .dark .cc-pipeline,
+  .dark .cc-prompt-card,
+  .dark .cc-memory-panel,
+  .dark .cc-agent-board article,
+  .dark .cc-answer-frame > div,
+  .dark .cc-qa,
+  .dark .cc-source-card {
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  }
+
+  .cc-workbench {
+    padding: 18px;
+  }
+
+  .cc-workbench-top,
+  .cc-layer-facts,
+  .cc-sim-grid,
+  .cc-pipeline-track {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .cc-workbench-top {
+    color: var(--cc-muted);
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.8rem;
+  }
+
+  .cc-workbench-stack {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .cc-workbench-stack span {
+    border-left: 6px solid var(--cc-blue);
+    border-radius: 6px;
+    padding: 12px 14px;
+    background: rgba(35, 102, 168, 0.08);
+    color: var(--cc-ink);
+    font-weight: 800;
+  }
+
+  .cc-workbench-stack .cc-stack-memory {
+    border-color: var(--cc-green);
+    background: rgba(37, 115, 93, 0.1);
+  }
+
+  .cc-workbench-stack .cc-stack-tool,
+  .cc-workbench-stack .cc-stack-result {
+    border-color: var(--cc-yellow);
+    background: rgba(169, 120, 22, 0.12);
+  }
+
+  .cc-workbench-stack .cc-stack-file {
+    border-color: var(--cc-coral);
+    background: rgba(184, 95, 66, 0.11);
+  }
+
+  .cc-workbench-note {
+    margin-top: 18px;
+    color: var(--cc-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .cc-toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 24px;
+  }
+
+  .cc-toc a {
+    padding: 8px 11px;
+    font-size: 0.88rem;
+  }
+
+  .cc-section {
+    padding-bottom: 72px;
+    padding-top: 72px;
+  }
+
+  .cc-section-band {
+    max-width: none;
+    padding-left: max(20px, calc((100vw - 1180px) / 2 + 20px));
+    padding-right: max(20px, calc((100vw - 1180px) / 2 + 20px));
+    background: var(--cc-band);
+  }
+
+  .cc-section-heading {
+    max-width: 860px;
+    margin-bottom: 28px;
+  }
+
+  .cc-section h2 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1.08;
+  }
+
+  .cc-section p {
+    color: var(--cc-muted);
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+
+  .cc-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 460px);
+    gap: 32px;
+    align-items: start;
+  }
+
+  .cc-loop {
+    display: grid;
+    gap: 12px;
+  }
+
+  .cc-loop div {
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    background: var(--cc-panel);
+    color: var(--cc-ink);
+    font-weight: 800;
+  }
+
+  .cc-callout {
+    border-left: 4px solid var(--cc-coral);
+    margin-top: 28px;
+    padding: 16px 18px;
+    background: rgba(184, 95, 66, 0.1);
+    color: var(--cc-muted);
+    line-height: 1.85;
+  }
+
+  .cc-callout strong {
+    color: var(--cc-ink);
+  }
+
+  .cc-simulator,
+  .cc-pipeline,
+  .cc-prompt-card,
+  .cc-memory-panel {
+    padding: 20px;
+  }
+
+  .cc-simulator h3,
+  .cc-pipeline h3,
+  .cc-memory-panel h3,
+  .cc-agent-board h3 {
+    margin: 0 0 16px;
+    color: var(--cc-ink);
+    font-size: 1.1rem;
+  }
+
+  .cc-simulator label {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 15px;
+    color: var(--cc-muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .cc-simulator input {
+    width: 100%;
+    accent-color: var(--cc-coral);
+  }
+
+  .cc-meter {
+    height: 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(92, 104, 112, 0.18);
+  }
+
+  .cc-meter span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: var(--cc-green);
+    transition: width 160ms ease, background 160ms ease;
+  }
+
+  .cc-meter span[data-level="warm"] {
+    background: var(--cc-yellow);
+  }
+
+  .cc-meter span[data-level="hot"] {
+    background: var(--cc-coral);
+  }
+
+  .cc-sim-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 16px;
+    color: var(--cc-muted);
+    font-size: 0.88rem;
+  }
+
+  .cc-sim-grid strong {
+    color: var(--cc-ink);
+    text-align: right;
+  }
+
+  .cc-table-wrap {
+    overflow-x: auto;
+  }
+
+  .cc-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    overflow: hidden;
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    background: var(--cc-panel);
+  }
+
+  .cc-table th,
+  .cc-table td {
+    border-bottom: 1px solid var(--cc-line);
+    padding: 14px 16px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .cc-table th {
+    color: var(--cc-ink);
+    font-size: 0.9rem;
+  }
+
+  .cc-table td {
+    color: var(--cc-muted);
+    line-height: 1.7;
+  }
+
+  .cc-layer-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .cc-layer-buttons {
+    display: grid;
+    gap: 10px;
+  }
+
+  .cc-layer-button,
+  .cc-pipeline-tab {
+    cursor: pointer;
+    border: 1px solid var(--cc-line);
+    color: var(--cc-ink);
+    background: var(--cc-panel);
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+
+  .cc-layer-button {
+    border-radius: 8px;
+    padding: 14px 16px;
+    text-align: left;
+  }
+
+  .cc-layer-button span {
+    display: block;
+    color: var(--cc-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .cc-layer-button strong {
+    display: block;
+    margin-top: 4px;
+  }
+
+  .cc-layer-button.is-active,
+  .cc-layer-button:hover,
+  .cc-pipeline-tab.is-active,
+  .cc-pipeline-tab:hover {
+    border-color: var(--cc-coral);
+    background: rgba(184, 95, 66, 0.1);
+  }
+
+  .cc-layer-detail {
+    min-height: 320px;
+    padding: 24px;
+  }
+
+  .cc-layer-detail > p:first-child {
+    margin: 0 0 8px;
+    color: var(--cc-coral);
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .cc-layer-detail h3 {
+    margin: 0;
+    color: var(--cc-ink);
+    font-size: clamp(1.6rem, 3vw, 2.5rem);
+  }
+
+  .cc-layer-facts {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+
+  .cc-layer-facts span {
+    border: 1px solid var(--cc-line);
+    border-radius: 999px;
+    padding: 7px 10px;
+    color: var(--cc-muted);
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
+  .cc-pipeline-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .cc-pipeline-tab {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-weight: 800;
+  }
+
+  .cc-pipeline-track {
+    flex-wrap: wrap;
+    margin-top: 22px;
+  }
+
+  .cc-pipeline-track span {
+    border: 1px solid var(--cc-line);
+    border-radius: 6px;
+    padding: 8px 9px;
+    color: var(--cc-muted);
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.78rem;
+  }
+
+  .cc-pipeline-track .is-hot {
+    color: var(--cc-coral);
+  }
+
+  .cc-prompt-card {
+    font-family: "JetBrains Mono Variable", monospace;
+  }
+
+  .cc-prompt-card ol {
+    margin: 12px 0;
+    padding-left: 24px;
+    color: var(--cc-ink);
+    line-height: 1.85;
+  }
+
+  .cc-xml-tag {
+    color: var(--cc-coral);
+    font-weight: 800;
+  }
+
+  .cc-memory-row {
+    border-top: 1px solid var(--cc-line);
+    padding: 14px 0;
+  }
+
+  .cc-memory-row strong,
+  .cc-memory-row span {
+    display: block;
+  }
+
+  .cc-memory-row strong {
+    color: var(--cc-ink);
+  }
+
+  .cc-memory-row span {
+    margin-top: 4px;
+    color: var(--cc-coral);
+    font-size: 0.86rem;
+    font-weight: 800;
+  }
+
+  .cc-memory-row p {
+    margin: 6px 0 0;
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+
+  .cc-agent-board {
+    display: grid;
+    gap: 12px;
+  }
+
+  .cc-agent-board article {
+    padding: 16px;
+  }
+
+  .cc-agent-board p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  .cc-message-demo,
+  .cc-answer-frame,
+  .cc-card-grid,
+  .cc-source-grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .cc-message-demo {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 28px;
+  }
+
+  .cc-message-demo > div {
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    padding: 18px;
+    background: rgba(35, 102, 168, 0.08);
+  }
+
+  .cc-message-demo span {
+    color: var(--cc-blue);
+    font-weight: 800;
+  }
+
+  .cc-message-demo p {
+    margin-bottom: 0;
+    font-size: 0.92rem;
+  }
+
+  .cc-answer-frame {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cc-answer-frame > div,
+  .cc-qa {
+    padding: 18px;
+  }
+
+  .cc-answer-frame strong {
+    color: var(--cc-coral);
+  }
+
+  .cc-answer-frame p {
+    margin-bottom: 0;
+    font-size: 0.92rem;
+  }
+
+  .cc-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 22px;
+  }
+
+  .cc-qa summary {
+    cursor: pointer;
+    color: var(--cc-ink);
+    font-weight: 800;
+  }
+
+  .cc-qa p {
+    margin-bottom: 0;
+    font-size: 0.94rem;
+  }
+
+  .cc-source-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cc-source-card {
+    display: block;
+    padding: 18px;
+    text-decoration: none;
+  }
+
+  .cc-source-card span {
+    display: block;
+    color: var(--cc-coral);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .cc-source-card strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--cc-ink);
+  }
+
+  .cc-source-card p {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 900px) {
+    .cc-hero,
+    .cc-two-col,
+    .cc-layer-layout,
+    .cc-message-demo,
+    .cc-answer-frame,
+    .cc-card-grid,
+    .cc-source-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .cc-hero {
+      min-height: auto;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .cc-hero,
+    .cc-section,
+    .cc-toc {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .cc-section-band {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .cc-hero h1 {
+      font-size: 2.35rem;
+    }
+  }
+</style>
