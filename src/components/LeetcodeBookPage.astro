@@ -117,6 +117,65 @@ const filterShortcutTitles = {
     ? "状态：未熟练（Option+-）"
     : "State: unmastered (Option+-)",
 };
+const toolbarHintText = {
+  search: isZh
+    ? "搜索：按题号、题名或标签过滤当前题单。快捷键 / 会直接聚焦这里。"
+    : "Search: filter by id, title, or tag. Press / to focus this field.",
+  scopeAll: isZh
+    ? "范围：全部。显示当前题册里的所有题目。"
+    : "Scope: all. Show every problem in this book.",
+  scopeHot100: isZh
+    ? "范围：Hot100。只显示 LeetCode Hot 100 题单内的题。"
+    : "Scope: Hot100. Show only problems from the LeetCode Hot 100 list.",
+  scopeFollowUps: isZh
+    ? "范围：公司追问。只显示收录了公开公司追问来源的题。"
+    : "Scope: follow-ups. Show only problems with sourced company follow-ups.",
+  bytedanceAll: isZh
+    ? "字节：全部。只看字节企业题库里所有时间段的题。"
+    : "ByteDance: all. Show every ByteDance-tagged problem.",
+  bytedanceThirtyDays: isZh
+    ? "字节：近 30 天。只看最近 30 天桶里的字节题。"
+    : "ByteDance: 30d. Show ByteDance problems from the last 30-day bucket.",
+  bytedanceThreeMonths: isZh
+    ? "字节：近 3 月。只看最近 3 个月桶里的字节题。"
+    : "ByteDance: 3m. Show ByteDance problems from the last 3-month bucket.",
+  bytedanceSixMonths: isZh
+    ? "字节：近 6 月。只看最近 6 个月桶里的字节题。"
+    : "ByteDance: 6m. Show ByteDance problems from the last 6-month bucket.",
+  bytedanceOld: isZh
+    ? "字节：6 月前。只看更早时间桶里的字节题。"
+    : "ByteDance: old. Show older ByteDance problems.",
+  stateUnsolved: isZh
+    ? "状态：未做。显示本地还没有标记为做过的题。"
+    : "State: unsolved. Show problems not marked done locally.",
+  stateReview: isZh
+    ? "状态：需思考。显示你本地标记为需要复盘的题。"
+    : "State: review. Show problems you marked for review.",
+  stateUnmastered: isZh
+    ? "状态：未熟练。显示尚未标记为熟练的题。"
+    : "State: unmastered. Show problems not marked mastered.",
+  flowMode: isZh
+    ? "沉浸流：控制刷题跳转模式。开启后可以按顺序流或推荐流连续练题。"
+    : "Flow mode: controls practice routing. Turn it on to move through list or suggested flow.",
+  skipSql: isZh
+    ? "跳过 SQL：开启时，顺序跳转、推荐流和 Option+↑/↓ 会避开数据库题。"
+    : "Skip SQL: when on, list flow, suggested flow, and Option+Up/Down avoid database problems.",
+  skipFrontend: isZh
+    ? "跳过前端：开启时，顺序跳转、推荐流和 Option+↑/↓ 会避开纯前端题。"
+    : "Skip frontend: when on, list flow, suggested flow, and Option+Up/Down avoid pure FE problems.",
+  resetSession: isZh
+    ? "重本次：清空本次会话计时和本次 AC 统计，不删除历史记录。"
+    : "Reset session: clear this session timer and accepted count without deleting history.",
+  restartProblem: isZh
+    ? "重本题：把当前展开题目的计时重新从 0 开始。"
+    : "Restart problem: reset the timer for the currently opened problem.",
+  clearRecord: isZh
+    ? "清记录：只清当前题的 PB 和上次 AC 记录，不回滚每日统计。"
+    : "Clear record: remove only this problem's PB and last Accepted record.",
+  pageSize: isZh
+    ? "每页个数：控制这一页显示多少道题。选自定义后可以输入具体数量。"
+    : "Page size: controls how many problems appear on each page. Choose custom to type a number.",
+};
 const leetcodeTargetLimit = 888;
 const syncedDedupedLimit = leetcodeStats.dedupedTop888;
 const relatedTopicPeerLimit = 6;
@@ -637,7 +696,7 @@ const shortcutRows = [
 
     <section class="leetcode-workspace" aria-label={isZh ? "题目列表" : "Problem list"}>
       <div class="leetcode-toolbar">
-        <div class="leetcode-search">
+        <div class="leetcode-search" data-ui-tip={toolbarHintText.search}>
           <label for="leetcode-search">{isZh ? "搜索" : "Search"}</label>
           <input
             id="leetcode-search"
@@ -651,49 +710,40 @@ const shortcutRows = [
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "范围" : "Scope"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
-              <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all}>{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100}>Hot100</button>
-              <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps}>{isZh ? "公司追问" : "Follow-ups"}</button>
+              <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all} data-ui-tip={toolbarHintText.scopeAll}>{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100} data-ui-tip={toolbarHintText.scopeHot100}>Hot100</button>
+              <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps} data-ui-tip={toolbarHintText.scopeFollowUps}>{isZh ? "追问" : "Follow"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "字节" : "ByteDance"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
-              <button type="button" data-filter="bytedanceAll" aria-label={filterShortcutTitles.bytedanceAll}>{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="bytedanceThirtyDays" aria-label={filterShortcutTitles.bytedanceThirtyDays}>{isZh ? "近30天" : "30d"}</button>
-              <button type="button" data-filter="bytedanceThreeMonths" aria-label={filterShortcutTitles.bytedanceThreeMonths}>{isZh ? "近3月" : "3m"}</button>
-              <button type="button" data-filter="bytedanceSixMonths" aria-label={filterShortcutTitles.bytedanceSixMonths}>{isZh ? "近6月" : "6m"}</button>
-              <button type="button" data-filter="bytedanceMoreThanSixMonths" aria-label={filterShortcutTitles.bytedanceMoreThanSixMonths}>{isZh ? "6月前" : "Old"}</button>
+              <button type="button" data-filter="bytedanceAll" aria-label={filterShortcutTitles.bytedanceAll} data-ui-tip={toolbarHintText.bytedanceAll}>{isZh ? "全部" : "All"}</button>
+              <button type="button" data-filter="bytedanceThirtyDays" aria-label={filterShortcutTitles.bytedanceThirtyDays} data-ui-tip={toolbarHintText.bytedanceThirtyDays}>{isZh ? "30天" : "30d"}</button>
+              <button type="button" data-filter="bytedanceThreeMonths" aria-label={filterShortcutTitles.bytedanceThreeMonths} data-ui-tip={toolbarHintText.bytedanceThreeMonths}>{isZh ? "3月" : "3m"}</button>
+              <button type="button" data-filter="bytedanceSixMonths" aria-label={filterShortcutTitles.bytedanceSixMonths} data-ui-tip={toolbarHintText.bytedanceSixMonths}>{isZh ? "6月" : "6m"}</button>
+              <button type="button" data-filter="bytedanceMoreThanSixMonths" aria-label={filterShortcutTitles.bytedanceMoreThanSixMonths} data-ui-tip={toolbarHintText.bytedanceOld}>{isZh ? "旧" : "Old"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "状态" : "State"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
-              <button type="button" data-filter="unsolved" aria-label={filterShortcutTitles.unsolved}>{isZh ? "未做" : "Unsolved"}</button>
-              <button type="button" data-filter="review" aria-label={filterShortcutTitles.review}>{isZh ? "需思考" : "Review"}</button>
-              <button type="button" data-filter="unmastered" aria-label={filterShortcutTitles.unmastered}>{isZh ? "未熟练" : "Unmastered"}</button>
+              <button type="button" data-filter="unsolved" aria-label={filterShortcutTitles.unsolved} data-ui-tip={toolbarHintText.stateUnsolved}>{isZh ? "未做" : "Unsolved"}</button>
+              <button type="button" data-filter="review" aria-label={filterShortcutTitles.review} data-ui-tip={toolbarHintText.stateReview}>{isZh ? "思考" : "Review"}</button>
+              <button type="button" data-filter="unmastered" aria-label={filterShortcutTitles.unmastered} data-ui-tip={toolbarHintText.stateUnmastered}>{isZh ? "未熟" : "Unmastered"}</button>
             </div>
           </div>
         </div>
 
-        <div class="leetcode-page-size">
-          <label for="leetcode-page-size">{isZh ? "每页" : "Page size"}</label>
-          <select id="leetcode-page-size">
-            <option value="10">10</option>
-            <option value="20" selected>20</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="custom">{isZh ? "自定义" : "Custom"}</option>
-          </select>
-          <input
-            id="leetcode-custom-size"
-            type="number"
-            min="1"
-            max={totalProblemCount}
-            inputmode="numeric"
-            placeholder="32"
-            hidden
-          />
+        <div class="leetcode-toolbar-utilities">
+          <div class="leetcode-session-actions" aria-label={isZh ? "刷题操作" : "Practice actions"}>
+            <button type="button" data-flow-mode-toggle aria-pressed="false" aria-label={flowModeTitle} data-ui-tip={toolbarHintText.flowMode}>{isZh ? "流：关" : "Flow off"}</button>
+            <button type="button" data-flow-skip-sql aria-pressed="true" aria-label={skipSqlFlowTitle} data-ui-tip={toolbarHintText.skipSql}>{isZh ? "SQL：开" : "SQL on"}</button>
+            <button type="button" data-flow-skip-frontend aria-pressed="true" aria-label={skipFrontendFlowTitle} data-ui-tip={toolbarHintText.skipFrontend}>{isZh ? "前端：开" : "FE on"}</button>
+            <button type="button" data-timing-action="reset-session" aria-label={resetSessionTitle} data-ui-tip={toolbarHintText.resetSession}>{isZh ? "本次" : "Reset"}</button>
+            <button type="button" data-timing-action="restart-problem" aria-label={restartProblemTimerTitle} data-ui-tip={toolbarHintText.restartProblem}>{isZh ? "本题" : "Restart"}</button>
+            <button type="button" class="is-subtle" data-timing-action="clear-problem-record" aria-label={clearProblemRecordTitle} data-ui-tip={toolbarHintText.clearRecord}>{isZh ? "清记录" : "Clear"}</button>
+          </div>
         </div>
       </div>
 
@@ -737,14 +787,6 @@ const shortcutRows = [
         <div class="leetcode-session-metric">
           <span data-timing-current-best>--</span>
           <p>{isZh ? "本题 PB" : "Problem PB"}</p>
-        </div>
-        <div class="leetcode-session-actions">
-          <button type="button" data-flow-mode-toggle aria-pressed="false" aria-label={flowModeTitle}>{isZh ? "沉浸流：关" : "Flow: off"}</button>
-          <button type="button" data-flow-skip-sql aria-pressed="true" aria-label={skipSqlFlowTitle}>{isZh ? "跳过 SQL：开" : "Skip SQL: on"}</button>
-          <button type="button" data-flow-skip-frontend aria-pressed="true" aria-label={skipFrontendFlowTitle}>{isZh ? "跳过前端：开" : "Skip FE: on"}</button>
-          <button type="button" data-timing-action="reset-session" aria-label={resetSessionTitle}>{isZh ? "重开本次" : "Reset session"}</button>
-          <button type="button" data-timing-action="restart-problem" aria-label={restartProblemTimerTitle}>{isZh ? "重开本题" : "Restart problem"}</button>
-          <button type="button" class="is-subtle" data-timing-action="clear-problem-record" aria-label={clearProblemRecordTitle}>{isZh ? "清本题记录" : "Clear record"}</button>
         </div>
         <div class="leetcode-session-history">
           <span data-timing-timezone>{isZh ? "北京时间" : "Beijing time"}</span>
@@ -815,6 +857,25 @@ const shortcutRows = [
             </span>
           </span>
         </nav>
+        <div class="leetcode-page-size leetcode-page-size-top" data-ui-tip={toolbarHintText.pageSize}>
+          <label for="leetcode-page-size">{isZh ? "每页" : "Page size"}</label>
+          <select id="leetcode-page-size">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="custom">{isZh ? "自定义" : "Custom"}</option>
+          </select>
+          <input
+            id="leetcode-custom-size"
+            type="number"
+            min="1"
+            max={totalProblemCount}
+            inputmode="numeric"
+            placeholder="32"
+            hidden
+          />
+        </div>
       </div>
 
       <div class="leetcode-table-wrap">
@@ -1193,14 +1254,6 @@ const shortcutRows = [
         <em data-daily-reset-status></em>
       </label>
       <div class="leetcode-editor-preferences" aria-label={isZh ? "编辑器设置" : "Editor settings"}>
-        <label for="leetcode-page-font">
-          <span>{isZh ? "页面字体" : "Page font"}</span>
-          <select id="leetcode-page-font">
-            <option value="system" selected>{isZh ? "系统黑体" : "System sans"}</option>
-            <option value="kai">{isZh ? "楷体" : "Kai"}</option>
-            <option value="serif">{isZh ? "原本衬线" : "Original serif"}</option>
-          </select>
-        </label>
         <label for="leetcode-editor-theme">
           <span>{isZh ? "编辑器主题" : "Editor theme"}</span>
           <select id="leetcode-editor-theme">
@@ -1331,7 +1384,6 @@ const shortcutRows = [
     const flowSkipFrontendButtons = Array.from(
       document.querySelectorAll("[data-flow-skip-frontend]"),
     );
-    const pageFontSelect = document.getElementById("leetcode-page-font");
     const editorThemeSelect = document.getElementById("leetcode-editor-theme");
     const editorFontSelect = document.getElementById("leetcode-editor-font");
     const editorSizeSelect = document.getElementById("leetcode-editor-size");
@@ -1438,7 +1490,6 @@ const shortcutRows = [
       Digit0: "review",
       Minus: "unmastered",
     };
-    const pageFontDefault = "system";
     const editorDefaultTheme = "cursor-light";
     const editorDefaultFont = "cursor";
     const editorDefaultSize = "compact";
@@ -2521,10 +2572,6 @@ const shortcutRows = [
         : fallback;
     }
 
-    function defaultPageFont() {
-      return pageFontDefault;
-    }
-
     function syncDailyResetUi() {
       const enabled = dailyEditorResetEnabled();
       if (dailyResetToggle instanceof HTMLInputElement) {
@@ -2539,12 +2586,12 @@ const shortcutRows = [
 
     function flowModeLabel() {
       if (flowMode === flowModeInsight) {
-        return isChinesePage ? "推荐流：开" : "Suggested flow: on";
+        return isChinesePage ? "推荐：开" : "Pick on";
       }
       if (flowMode === flowModeList) {
-        return isChinesePage ? "顺序流：开" : "List flow: on";
+        return isChinesePage ? "顺序：开" : "List on";
       }
-      return isChinesePage ? "沉浸流：关" : "Flow: off";
+      return isChinesePage ? "流：关" : "Flow off";
     }
 
     function flowModeEnabled() {
@@ -2574,14 +2621,14 @@ const shortcutRows = [
 
     function flowSkipSqlLabel() {
       return flowSkipSql
-        ? (isChinesePage ? "跳过 SQL：开" : "Skip SQL: on")
-        : (isChinesePage ? "跳过 SQL：关" : "Skip SQL: off");
+        ? (isChinesePage ? "SQL：开" : "SQL on")
+        : (isChinesePage ? "SQL：关" : "SQL off");
     }
 
     function flowSkipFrontendLabel() {
       return flowSkipFrontend
-        ? (isChinesePage ? "跳过前端：开" : "Skip FE: on")
-        : (isChinesePage ? "跳过前端：关" : "Skip FE: off");
+        ? (isChinesePage ? "前端：开" : "FE on")
+        : (isChinesePage ? "前端：关" : "FE off");
     }
 
     function flowSkipStatus() {
@@ -2731,11 +2778,6 @@ const shortcutRows = [
     }
 
     function applyEditorAppearance() {
-      const pageFont = selectedAppearanceValue(
-        pageFontSelect,
-        editorAppearance.pageFont,
-        defaultPageFont(),
-      );
       const theme = selectedAppearanceValue(
         editorThemeSelect,
         editorAppearance.theme,
@@ -2757,14 +2799,10 @@ const shortcutRows = [
         editorDefaultLeading,
       );
       if (leetcodeShell instanceof HTMLElement) {
-        leetcodeShell.dataset.pageFont = pageFont;
         leetcodeShell.dataset.editorTheme = theme;
         leetcodeShell.dataset.editorFont = font;
         leetcodeShell.dataset.editorSize = size;
         leetcodeShell.dataset.editorLeading = leading;
-      }
-      if (pageFontSelect instanceof HTMLSelectElement) {
-        pageFontSelect.value = pageFont;
       }
       if (editorThemeSelect instanceof HTMLSelectElement) {
         editorThemeSelect.value = theme;
@@ -9362,16 +9400,6 @@ const shortcutRows = [
       syncDailyResetUi();
     });
 
-    pageFontSelect?.addEventListener("change", () => {
-      if (!(pageFontSelect instanceof HTMLSelectElement)) return;
-      editorAppearance = {
-        ...editorAppearance,
-        pageFont: pageFontSelect.value,
-      };
-      writeEditorAppearance();
-      applyEditorAppearance();
-    });
-
     editorThemeSelect?.addEventListener("change", () => {
       if (!(editorThemeSelect instanceof HTMLSelectElement)) return;
       editorAppearance = {
@@ -9870,14 +9898,14 @@ const shortcutRows = [
 
   <style is:global>
     .leetcode-shell {
-      --leetcode-kai-font: "Kaiti SC", "STKaiti", "KaiTi", "KaiTi SC",
-        "楷体", serif;
-      --leetcode-system-font: "PingFang SC", -apple-system,
+      --leetcode-text-font: "PingFang SC", "PingFang TC", "PingFang HK",
+        -apple-system,
         BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Sans GB",
         "Microsoft YaHei", sans-serif;
-      --leetcode-page-font: var(--leetcode-system-font);
-      --leetcode-display-font: var(--leetcode-system-font);
-      --leetcode-statement-font: var(--leetcode-system-font);
+      --leetcode-system-font: var(--leetcode-text-font);
+      --leetcode-page-font: var(--leetcode-text-font);
+      --leetcode-display-font: var(--leetcode-text-font);
+      --leetcode-statement-font: var(--leetcode-text-font);
       --leetcode-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
         monospace;
       --leetcode-editor-background: var(--color-cream);
@@ -9906,21 +9934,6 @@ const shortcutRows = [
       --leetcode-stack-gap: 0.48rem;
       color: var(--color-charcoal);
       font-family: var(--leetcode-page-font);
-    }
-
-    .leetcode-shell[data-page-font="kai"] {
-      --leetcode-page-font: var(--leetcode-kai-font);
-      --leetcode-display-font: var(--leetcode-kai-font);
-    }
-
-    .leetcode-shell[data-page-font="serif"] {
-      --leetcode-page-font: var(--font-serif);
-      --leetcode-display-font: var(--font-serif);
-    }
-
-    .leetcode-shell[data-page-font="system"] {
-      --leetcode-page-font: var(--leetcode-system-font);
-      --leetcode-display-font: var(--leetcode-system-font);
     }
 
     .leetcode-shell[data-editor-size="standard"] {
@@ -10170,6 +10183,7 @@ const shortcutRows = [
     .leetcode-summary,
     .leetcode-pagination,
     .leetcode-status,
+    .leetcode-toolbar-utilities,
     .leetcode-title-tools {
       display: flex;
       align-items: center;
@@ -10328,10 +10342,100 @@ const shortcutRows = [
       white-space: nowrap;
     }
 
+    [data-ui-tip] {
+      position: relative;
+    }
+
+    [data-ui-tip]::before,
+    [data-ui-tip]::after {
+      position: absolute;
+      z-index: 45;
+      pointer-events: none;
+      opacity: 0;
+      transition:
+        opacity 0.12s ease,
+        transform 0.12s ease,
+        visibility 0.12s ease;
+      visibility: hidden;
+    }
+
+    [data-ui-tip]::before {
+      content: attr(data-ui-tip);
+      top: calc(100% + 0.34rem);
+      left: 0;
+      width: min(24rem, calc(100vw - 2rem));
+      max-height: min(18rem, 52vh);
+      overflow: auto;
+      transform: translateY(-0.12rem);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      background: rgb(255 252 242 / 98%);
+      box-shadow: 0 18px 45px rgb(20 20 19 / 18%);
+      color: var(--color-secondary);
+      font-size: 0.84rem;
+      font-weight: 500;
+      line-height: 1.55;
+      padding: 0.8rem;
+      text-align: left;
+      white-space: normal;
+    }
+
+    [data-ui-tip]::after {
+      content: "";
+      top: 100%;
+      left: 0;
+      width: min(24rem, calc(100vw - 2rem));
+      height: 0.42rem;
+      transform: translateY(-0.12rem);
+    }
+
+    [data-ui-tip]:hover::before,
+    [data-ui-tip]:hover::after,
+    [data-ui-tip]:focus::before,
+    [data-ui-tip]:focus::after,
+    [data-ui-tip]:focus-visible::before,
+    [data-ui-tip]:focus-visible::after,
+    [data-ui-tip]:focus-within::before,
+    [data-ui-tip]:focus-within::after {
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+    }
+
+    .leetcode-session-actions [data-ui-tip]::before,
+    .leetcode-page-size-top[data-ui-tip]::before {
+      right: 0;
+      left: auto;
+      transform: translateY(-0.12rem);
+    }
+
+    .leetcode-session-actions [data-ui-tip]::after,
+    .leetcode-page-size-top[data-ui-tip]::after {
+      right: 0;
+      left: auto;
+      transform: translateY(-0.12rem);
+    }
+
+    .leetcode-session-actions [data-ui-tip]:hover::before,
+    .leetcode-session-actions [data-ui-tip]:focus::before,
+    .leetcode-session-actions [data-ui-tip]:focus-visible::before,
+    .leetcode-page-size-top[data-ui-tip]:hover::before,
+    .leetcode-page-size-top[data-ui-tip]:focus-within::before {
+      transform: translateY(0);
+    }
+
+    .leetcode-session-actions [data-ui-tip]:hover::after,
+    .leetcode-session-actions [data-ui-tip]:focus::after,
+    .leetcode-session-actions [data-ui-tip]:focus-visible::after,
+    .leetcode-page-size-top[data-ui-tip]:hover::after,
+    .leetcode-page-size-top[data-ui-tip]:focus-within::after {
+      transform: translateY(0);
+    }
+
     .leetcode-session-board {
       display: grid;
       grid-template-columns:
-        repeat(10, minmax(0, 1fr)) minmax(15rem, 1.6fr) auto;
+        repeat(10, minmax(4.4rem, 1fr)) minmax(20rem, 1.8fr);
       gap: 0.24rem;
       align-items: stretch;
       margin: 0 0 0.2rem;
@@ -10410,24 +10514,24 @@ const shortcutRows = [
     }
 
     .leetcode-session-actions {
-      grid-column: 12;
-      grid-row: 1;
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       align-items: center;
-      gap: 0.22rem;
+      gap: 0.08rem;
       justify-content: flex-end;
+      min-width: 0;
     }
 
     .leetcode-session-actions button {
+      min-height: var(--leetcode-page-control-height);
       border: 1px solid var(--color-border);
       border-radius: 0.38rem;
       background: transparent;
       color: var(--color-secondary);
       cursor: pointer;
       font: inherit;
-      font-size: 0.62rem;
-      padding: 0.16rem 0.32rem;
+      font-size: 0.52rem;
+      padding: 0.1rem 0.16rem;
       white-space: nowrap;
     }
 
@@ -10475,7 +10579,7 @@ const shortcutRows = [
 
     .leetcode-session-history > span:not(.leetcode-history-tip) {
       color: var(--color-terracotta);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.56rem;
       font-weight: 800;
       letter-spacing: 0.08em;
@@ -10667,7 +10771,7 @@ const shortcutRows = [
 
     .leetcode-insight-item span {
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.55rem;
       line-height: 1.2;
     }
@@ -10776,11 +10880,19 @@ const shortcutRows = [
     }
 
     .leetcode-toolbar {
-      display: grid;
-      grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr) auto;
-      gap: 0.35rem;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.14rem;
       align-items: center;
       margin-bottom: 0.18rem;
+    }
+
+    .leetcode-toolbar-utilities {
+      flex: 0 0 auto;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 0;
+      justify-content: flex-end;
     }
 
     .leetcode-search,
@@ -10791,7 +10903,9 @@ const shortcutRows = [
     }
 
     .leetcode-search {
-      grid-template-columns: auto minmax(0, 1fr);
+      flex: 0 0 7.5rem;
+      grid-template-columns: minmax(0, 1fr);
+      max-width: 7.5rem;
     }
 
     .leetcode-search label,
@@ -10806,14 +10920,14 @@ const shortcutRows = [
     .leetcode-search input,
     .leetcode-page-size select,
     .leetcode-page-size input {
-      min-height: 1.5rem;
+      min-height: 1.38rem;
       border: 1px solid var(--color-border);
       border-radius: 0.38rem;
       background: rgb(255 255 255 / 48%);
       color: inherit;
       font: inherit;
-      font-size: 0.72rem;
-      padding: 0.12rem 0.42rem;
+      font-size: 0.64rem;
+      padding: 0.1rem 0.28rem;
     }
 
     .leetcode-search input {
@@ -10821,26 +10935,45 @@ const shortcutRows = [
     }
 
     .leetcode-page-size {
-      grid-template-columns: auto auto auto;
+      flex: 0 0 auto;
+      grid-template-columns: auto auto;
       align-items: end;
     }
 
+    .leetcode-page-size-top {
+      grid-column: 3;
+      justify-self: end;
+    }
+
+    .leetcode-toolbar .leetcode-search label,
+    .leetcode-toolbar .leetcode-page-size label,
+    .leetcode-toolbar .leetcode-filter-cluster > span {
+      position: absolute;
+      overflow: hidden;
+      width: 1px;
+      height: 1px;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
     .leetcode-filter-panel {
-      flex-wrap: wrap;
-      gap: 0.18rem 0.44rem;
-      justify-content: center;
+      flex: 1 1 auto;
+      flex-wrap: nowrap;
+      gap: 0.08rem;
+      justify-content: flex-start;
+      min-width: 0;
       padding-top: 0;
     }
 
     .leetcode-filter-cluster {
       min-width: 0;
-      flex-wrap: wrap;
-      gap: 0.24rem;
+      flex-wrap: nowrap;
+      gap: 0.08rem;
     }
 
     .leetcode-filter-cluster > span {
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.5rem;
       font-weight: 700;
       letter-spacing: 0.04em;
@@ -10848,8 +10981,8 @@ const shortcutRows = [
     }
 
     .leetcode-filter-group {
-      flex-wrap: wrap;
-      gap: 0.2rem;
+      flex-wrap: nowrap;
+      gap: 0.08rem;
       justify-content: flex-start;
     }
 
@@ -10867,6 +11000,13 @@ const shortcutRows = [
       padding: 0.16rem 0.3rem;
     }
 
+    .leetcode-toolbar .leetcode-filter-group button {
+      border-radius: 0.36rem;
+      font-size: 0.52rem;
+      padding: 0.1rem 0.16rem;
+      white-space: nowrap;
+    }
+
     .leetcode-filter-group button.is-active,
     .leetcode-status button.is-on {
       border-color: var(--color-terracotta);
@@ -10876,8 +11016,10 @@ const shortcutRows = [
     }
 
     .leetcode-list-meta {
-      flex-wrap: wrap;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      justify-content: stretch;
       gap: 0.55rem;
       margin: 0 0 0.25rem;
     }
@@ -11122,7 +11264,7 @@ const shortcutRows = [
 
     .leetcode-duplicate-row span {
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.75rem;
     }
 
@@ -11170,7 +11312,7 @@ const shortcutRows = [
       background: var(--color-cream);
       border-bottom: 1px solid rgb(194 192 182 / 48%);
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.64rem;
       font-weight: 700;
       padding: 0.28rem 0.25rem;
@@ -11221,9 +11363,12 @@ const shortcutRows = [
     }
 
     .leetcode-rank,
-    .leetcode-frequency,
-    .leetcode-byte {
+    .leetcode-frequency {
       font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    .leetcode-byte {
       font-size: 0.8rem;
     }
 
@@ -11310,7 +11455,7 @@ const shortcutRows = [
       border: 1px solid rgb(217 119 87 / 34%);
       border-radius: 0.42rem;
       color: var(--color-secondary);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.55rem;
       font-weight: 700;
       line-height: 1;
@@ -11530,7 +11675,7 @@ const shortcutRows = [
       border: 1px solid rgb(217 119 87 / 28%);
       border-radius: 999px;
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.66rem;
       font-weight: 700;
       line-height: 1.2;
@@ -11894,7 +12039,7 @@ const shortcutRows = [
 
     .leetcode-testcase-field-label {
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.66rem;
       font-weight: 700;
     }
@@ -12343,7 +12488,7 @@ const shortcutRows = [
       border-radius: 999px;
       background: rgb(217 119 87 / 9%);
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.68rem;
       line-height: 1.2;
       padding: 0.08rem 0.34rem;
@@ -12439,7 +12584,7 @@ const shortcutRows = [
       margin-bottom: 0.52rem;
       border-bottom: 1px solid rgb(217 119 87 / 20%);
       color: var(--color-terracotta);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.72rem;
       font-weight: 700;
       line-height: 1.35;
@@ -12448,7 +12593,7 @@ const shortcutRows = [
 
     .leetcode-popover-heading {
       color: var(--color-charcoal);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.72rem;
       font-weight: 800;
       letter-spacing: 0.08em;
@@ -12497,7 +12642,7 @@ const shortcutRows = [
     .leetcode-popover-section > strong {
       display: block;
       color: var(--color-charcoal);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.72rem;
       letter-spacing: 0.08em;
       margin-bottom: 0.35rem;
@@ -12520,7 +12665,7 @@ const shortcutRows = [
     .leetcode-followup-source {
       margin-bottom: 0.18rem;
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.72rem;
     }
 
@@ -12619,7 +12764,8 @@ const shortcutRows = [
     }
 
     .leetcode-pagination-top {
-      flex-basis: 100%;
+      grid-column: 2;
+      flex-basis: auto;
       justify-content: center;
     }
 
@@ -12703,15 +12849,17 @@ const shortcutRows = [
       color: var(--color-cream);
     }
 
+    html.dark [data-ui-tip]::before,
+    html.dark [data-ui-tip]::after {
+      border-color: #333;
+      background: var(--color-dark-surface);
+      color: var(--color-muted);
+      box-shadow: 0 18px 45px rgb(0 0 0 / 32%);
+    }
+
     @media (max-width: 1180px) {
       .leetcode-session-board {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .leetcode-session-actions {
-        grid-column: 1 / -1;
-        grid-row: auto;
-        justify-content: flex-start;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
       }
 
       .leetcode-session-history {
@@ -12745,7 +12893,27 @@ const shortcutRows = [
       }
 
       .leetcode-toolbar {
-        grid-template-columns: 1fr;
+        flex-wrap: wrap;
+      }
+
+      .leetcode-search {
+        flex: 1 1 100%;
+        max-width: none;
+      }
+
+      .leetcode-filter-panel,
+      .leetcode-session-actions {
+        flex-wrap: wrap;
+      }
+
+      .leetcode-toolbar-utilities {
+        flex: 1 1 100%;
+        justify-content: flex-start;
+      }
+
+      .leetcode-toolbar-utilities,
+      .leetcode-session-actions {
+        justify-content: flex-start;
       }
 
       .leetcode-session-history {
@@ -12763,7 +12931,14 @@ const shortcutRows = [
       }
 
       .leetcode-list-meta {
-        justify-content: flex-start;
+        grid-template-columns: 1fr;
+        justify-items: start;
+      }
+
+      .leetcode-pagination-top,
+      .leetcode-page-size-top {
+        grid-column: 1;
+        justify-self: start;
       }
 
       .leetcode-filter-cluster,
