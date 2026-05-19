@@ -50,6 +50,9 @@ const isZh = lang === "zh";
 const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
 const title = isZh ? book.zhTitle : book.title;
 const description = isZh ? book.zhDescription : book.description;
+const initialTimingMilestone = isZh
+  ? "今天 AC 后自动进入日统计"
+  : "Daily stats start after today's first Accepted";
 const repositoryUrl = "https://github.com/WineChord/books";
 const extensionDirectoryUrl = `${repositoryUrl}/tree/main/extensions/leetcode-submit`;
 const extensionReleaseDownloadUrl = `${repositoryUrl}/releases/latest/download/leetcode-submit.zip`;
@@ -738,7 +741,15 @@ const shortcutRows = [
         </div>
         <div class="leetcode-session-history">
           <span data-timing-timezone>{isZh ? "北京时间" : "Beijing time"}</span>
-          <strong data-timing-milestone>{isZh ? "今天 AC 后自动进入日统计" : "Daily stats start after today's first Accepted"}</strong>
+          <span
+            class="leetcode-milestone-tip"
+            data-timing-milestone-tip
+            data-ui-tip={initialTimingMilestone}
+            aria-label={initialTimingMilestone}
+            tabindex="0"
+          >
+            <strong data-timing-milestone>{initialTimingMilestone}</strong>
+          </span>
           <span class="leetcode-history-tip" tabindex="0">
             {isZh ? "日统计" : "Daily"}
             <span data-timing-history-list role="tooltip"></span>
@@ -4476,6 +4487,12 @@ const shortcutRows = [
       );
       setTextAll("[data-timing-timezone]", isChinesePage ? "北京时间" : "Beijing time");
       setTextAll("[data-timing-milestone]", milestone);
+      document.querySelectorAll("[data-timing-milestone-tip]").forEach((node) => {
+        if (node instanceof HTMLElement) {
+          node.setAttribute("data-ui-tip", milestone);
+          node.setAttribute("aria-label", milestone);
+        }
+      });
       document.querySelectorAll("[data-timing-history-list]").forEach((node) => {
         if (node instanceof HTMLElement) {
           node.innerHTML = renderTimingHistory(overview);
@@ -10845,6 +10862,29 @@ const shortcutRows = [
       font-weight: 700;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .leetcode-milestone-tip {
+      display: block;
+      min-width: 0;
+      cursor: help;
+      outline: none;
+    }
+
+    .leetcode-milestone-tip[data-ui-tip]::before {
+      width: min(32rem, calc(100vw - 2rem));
+      font-size: 0.76rem;
+      line-height: 1.45;
+    }
+
+    .leetcode-milestone-tip[data-ui-tip]::after {
+      width: min(32rem, calc(100vw - 2rem));
+    }
+
+    .leetcode-milestone-tip:focus-visible strong {
+      border-radius: 0.22rem;
+      box-shadow: 0 0 0 2px rgb(217 119 87 / 28%);
+      color: var(--color-terracotta);
     }
 
     .leetcode-history-tip {
