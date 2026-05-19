@@ -77,8 +77,8 @@ it reads naturally. Each constraint item's own trailing period or semicolon is
 trimmed before inline joining, so the rendered sentence never produces broken
 punctuation such as `。 ;`. Constraint text must use the same readable weight and
 color as the statement body, not faint muted helper text. The statement and
-constraint sentence use the same larger Kai-style reading font and normal visual
-weight. Questions whose official statement does not separate data ranges, such
+constraint sentence use the same larger PingFang-first reading font and normal
+visual weight. Questions whose official statement does not separate data ranges, such
 as some database tasks, receive an explicit note to use the table schema or
 input definition in the statement.
 
@@ -240,18 +240,18 @@ editor is being typed near the bottom of the viewport, the page reveals the
 current caret line and keeps it in a comfortable writing zone instead of making
 the user manually chase the page. When a default template is first opened,
 reset, or selected by language change, focus lands inside the function body
-where the user is expected to start writing. Page appearance controls live in
-the footer. The default page font uses the Apple system sans face on Apple
-devices and a Kai-style Chinese font elsewhere; users can switch back to the
-original serif face or a system sans face. This page-font setting affects the
-practice-page UI but does not change the code editor font. Editor
-appearance controls also live in the footer: theme, font, font size, and line
-spacing. The default light theme uses the same background as the page while
-keeping Cursor Light+ token colors, and the default editor font mirrors the
-current Cursor font stack (`Monaco, 'Cascadia Code', Consolas, 'Courier New',
-monospace`). The default size and line spacing use a tighter practice density
-to reduce vertical space for short templates. Alternate editor themes,
-monospace stacks, font sizes, and line spacings remain selectable per browser.
+where the user is expected to start writing. The practice-page UI, including
+statement text, popovers, timing metrics, keyboard hints, and reward overlays,
+defaults to a PingFang-first text stack with Apple and common system sans
+fallbacks. This page font is not user-configurable and does not change the code
+editor font. Editor appearance controls live in the footer: theme, font, font
+size, and line spacing. The default light theme uses the same background as the
+page while keeping Cursor Light+ token colors, and the default editor font
+mirrors the current Cursor font stack (`Monaco, 'Cascadia Code', Consolas,
+'Courier New', monospace`). The default size and line spacing use a tighter
+practice density to reduce vertical space for short templates. Alternate editor
+themes, monospace stacks, font sizes, and line spacings remain selectable per
+browser.
 Reloading the page restores the previous practice view from local storage:
 current filters, search text, page size, page number, expanded problem, page
 scroll position, editor selection, and editor internal scroll position. If
@@ -410,9 +410,12 @@ round, a counted round, and a neutral repeat submit. Accepted combo increments
 trigger non-blocking reward feedback: the page may draw fireworks, light
 trails, record pulses, and randomized encouragement copy in a fixed overlay,
 but it must never steal focus, require confirmation, block typing, or move
-layout. Reward intensity should scale from ordinary combo increments, to
-milestone counts, to very prominent new-record celebrations. Reduced-motion
-users should receive a quieter static cue instead of heavy particle animation.
+layout. The encouragement headline and subtitle must use the same default
+PingFang-first text stack as the rest of the practice UI, even when the fixed
+overlay is created dynamically. Reward intensity should scale from ordinary
+combo increments, to milestone counts, to very prominent new-record
+celebrations. Reduced-motion users should receive a quieter static cue instead
+of heavy particle animation.
 
 Full submissions and official-example runs made through this page also append
 to a separate local submission-stat store. The store does not import historical

@@ -3781,7 +3781,7 @@ const shortcutRows = [
       subtitle.dataset.oneShotRewardSubtitle = "true";
       message.append(headline, subtitle);
       layer.append(canvas, message);
-      document.body.append(layer);
+      (leetcodeShell || document.body).append(layer);
       oneShotRewardLayer = { canvas, headline, layer, message, subtitle };
       return oneShotRewardLayer;
     }
@@ -10057,7 +10057,7 @@ const shortcutRows = [
   </script>
 
   <style is:global>
-    .leetcode-shell {
+    :root {
       --leetcode-text-font: "PingFang SC", "PingFang TC", "PingFang HK",
         -apple-system,
         BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Sans GB",
@@ -10066,6 +10066,9 @@ const shortcutRows = [
       --leetcode-page-font: var(--leetcode-text-font);
       --leetcode-display-font: var(--leetcode-text-font);
       --leetcode-statement-font: var(--leetcode-text-font);
+    }
+
+    .leetcode-shell {
       --leetcode-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
         monospace;
       --leetcode-editor-background: var(--color-cream);
@@ -10135,6 +10138,7 @@ const shortcutRows = [
       place-items: center;
       pointer-events: none;
       opacity: 0;
+      font-family: var(--leetcode-page-font);
       transition: opacity 240ms ease;
     }
 
@@ -10206,7 +10210,7 @@ const shortcutRows = [
 
     .leetcode-one-shot-reward-message strong {
       display: block;
-      font-family: var(--leetcode-display-font);
+      font-family: inherit;
       font-size: clamp(1.15rem, 3.6vw, 2.75rem);
       font-weight: 900;
       letter-spacing: 0;
@@ -10217,7 +10221,7 @@ const shortcutRows = [
     .leetcode-one-shot-reward-message span {
       display: block;
       color: rgb(255 255 255 / 82%);
-      font-family: var(--leetcode-system-font);
+      font-family: inherit;
       font-size: clamp(0.74rem, 1.4vw, 0.98rem);
       font-weight: 700;
       letter-spacing: 0;
@@ -10302,7 +10306,7 @@ const shortcutRows = [
       display: none;
       margin: 0 0 0.45rem;
       color: var(--color-terracotta);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.68rem;
       font-weight: 650;
       letter-spacing: 0.08em;
@@ -10409,7 +10413,7 @@ const shortcutRows = [
 
     .leetcode-stats span {
       display: block;
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.86rem;
       font-weight: 700;
       line-height: 1;
@@ -10498,7 +10502,7 @@ const shortcutRows = [
       border-radius: 0.32rem;
       background: rgb(20 20 19 / 5%);
       color: var(--color-charcoal);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.68rem;
       font-weight: 700;
       padding: 0.12rem 0.3rem;
@@ -10655,7 +10659,7 @@ const shortcutRows = [
       display: block;
       overflow: hidden;
       color: var(--color-charcoal);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.82rem;
       font-weight: 800;
       line-height: 1.1;
@@ -11102,7 +11106,7 @@ const shortcutRows = [
 
     .leetcode-history-day em {
       color: var(--color-charcoal);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.78rem;
       font-style: normal;
       font-weight: 800;
@@ -11110,7 +11114,7 @@ const shortcutRows = [
 
     .leetcode-history-day small {
       color: var(--color-muted);
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.55rem;
     }
 
@@ -11866,7 +11870,7 @@ const shortcutRows = [
 
     .leetcode-rank,
     .leetcode-frequency {
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: 0.8rem;
     }
 
@@ -13341,7 +13345,7 @@ const shortcutRows = [
       color: var(--color-charcoal);
       appearance: textfield;
       font: inherit;
-      font-family: var(--font-mono);
+      font-family: var(--leetcode-page-font);
       font-size: var(--leetcode-meta-font-size, 0.7rem);
       line-height: 1;
       padding: 0 0.2rem;
