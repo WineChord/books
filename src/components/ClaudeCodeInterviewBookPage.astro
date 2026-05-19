@@ -20,19 +20,43 @@ const sourceCards = [
     title: "上下文窗口管理原文",
     status: "已读取微信正文",
     href: "https://mp.weixin.qq.com/s/NBR6dRr3iO7KCTEChk8QUg",
-    body: "覆盖 token、三类朴素方案、五层压缩、Auto-Compact、摘要 prompt 和面试答法。",
+    body: "覆盖 token、三类朴素方案、五层压缩、Auto-Compact、摘要 prompt、配图图意和面试答法。",
   },
   {
     title: "Claude Code 源码解析",
     status: "微信受限，读取转载",
     href: "https://www.eefocus.com/article/1984643.html",
-    body: "补齐 Agent loop、Tool-Use Loop、Plan Mode、System Prompt、记忆系统和压缩全景。",
+    body: "读取正文图 19 张，补齐 Agent loop、Tool-Use Loop、Plan Mode、System Prompt、记忆系统和压缩全景。",
   },
   {
     title: "多 Agent 实现机制",
     status: "微信受限，读取转载",
     href: "https://www.eefocus.com/article/2009921.html",
-    body: "补齐 Subagent、Fork、Coordinator、工具隔离、上下文隔离和消息通信。",
+    body: "读取正文图 32 张，补齐 Subagent、Fork、Coordinator、工具隔离、上下文隔离和消息通信。",
+  },
+  {
+    title: "Grep / Glob / Read 递归链接",
+    status: "内链补全",
+    href: "https://www.eefocus.com/article/2015097.html",
+    body: "补齐为什么代码上下文优先用确定性检索、按需读取和子 agent 探索，而不是默认 RAG。",
+  },
+  {
+    title: "Skills 与长期项目流程",
+    status: "内链补全",
+    href: "https://www.eefocus.com/article/2013527.html",
+    body: "补齐 planning-with-files、Claude Mem、MCP Builder 等把流程和记忆落盘的工程意义。",
+  },
+  {
+    title: "短期记忆章节",
+    status: "递归复核",
+    href: "https://www.yangyitao.com/books/harness-engineering/chapters/11-short-term-memory",
+    body: "复核有效窗口、工具结果预算、prompt caching、熔断器和工作记忆设计。",
+  },
+  {
+    title: "自动压缩章节",
+    status: "递归复核",
+    href: "https://zhanghandong.github.io/harness-engineering-from-cc-to-ai-coding/part3/ch09.html",
+    body: "复核 20K 输出预留、13K 自动压缩缓冲、3K 手动压缩线、PTL 重试和附件恢复。",
   },
   {
     title: "Anthropic 官方文档",
@@ -52,7 +76,9 @@ const tocItems = [
   ["memory", "6. 记忆和上下文不是一回事"],
   ["multi-agent", "7. 多 Agent 为什么也是上下文管理"],
   ["interview", "8. 面试怎么答"],
-  ["source-map", "9. 资料覆盖地图"],
+  ["visual-atlas", "9. 原图图意重构"],
+  ["recursive-audit", "10. 递归链接补全"],
+  ["source-map", "11. 资料覆盖地图"],
 ];
 
 const layerCards = [
@@ -104,14 +130,14 @@ const layerCards = [
     cost: "一次模型调用",
     trigger: "有效窗口减 13K 缓冲",
     detail:
-      "兜底全量重写：旧消息被结构化摘要替换，再把最近文件、计划、技能、异步任务作为附件恢复。",
+      "兜底全量重写：先为摘要输出预留约 20K，再用有效窗口减 13K 作为触发点，最后把最近文件、计划、技能、异步任务作为附件恢复。",
   },
 ];
 
 const pipelineSteps = [
   {
     title: "触发",
-    body: "计算有效窗口，如果当前 token 数超过窗口减 13K，就进入 compact。手动 /compact 可带额外关注点。",
+    body: "先从名义窗口扣掉摘要输出预留，再用有效窗口减 13K 作为自动压缩触发点。手动 /compact 可在更小余量下运行。",
   },
   {
     title: "预处理",
@@ -155,6 +181,7 @@ const memoryRows = [
   ["项目记忆 CLAUDE.md", "仓库根目录", "团队共享的架构、命令、约束、常见坑"],
   ["用户记忆", "个人目录", "个人偏好、常用工具、跨项目工作习惯"],
   ["会话摘要", "当前对话内", "只服务这次长任务的压缩后接续状态"],
+  ["计划文件 / Skills", "项目文件或技能包", "把复杂任务的计划、验收、流程和专用规则落盘"],
 ];
 
 const multiAgentModes = [
@@ -193,6 +220,116 @@ const interviewCards = [
     q: "多 Agent 的核心风险是什么？",
     a: "隔离和通信。工具权限要按 agent 类型过滤；上下文状态要按字段决定克隆、禁写或保留通路；父子之间要走消息队列和通知，而不是同步函数调用。",
   },
+  {
+    q: "为什么代码检索优先 Grep / Glob / Read？",
+    a: "代码检索常常需要精确名字、最新文件和可审计路径。Grep/Glob/Read 让模型一轮一轮决定搜什么、读哪里；RAG 更适合稳定语义知识库，不适合替代实时仓库里的精确代码定位。",
+  },
+  {
+    q: "Auto-Compact 的几个数字怎么讲？",
+    a: "先扣摘要输出预留，再计算自动触发线。常见讲法是 20K 给摘要输出上限，13K 给自动压缩缓冲，3K 是手动 compact 更紧的安全余量，连续失败还要熔断。",
+  },
+];
+
+const visualMotifs = [
+  {
+    title: "Agent 不是聊天框",
+    source: "源码解析图 5-7",
+    body: "原图把 ChatBot、Copilot、Agent 和 Claude Code 主循环分开。网页已重画成“用户目标 → 组装上下文 → tool_use/end_turn → 工具结果回写”的循环。",
+  },
+  {
+    title: "ReAct、Tool-Use、Plan Mode",
+    source: "源码解析图 8-13",
+    body: "图意是从 Thought-Action-Observation 转向更薄的工具循环，再用 EnterPlanMode / ExitPlanMode 把规划做成工具能力。",
+  },
+  {
+    title: "动态 System Prompt 边界",
+    source: "源码解析图 14-16",
+    body: "静态行为准则和动态环境信息用边界隔开，目标是让可缓存前缀尽量稳定，把项目规则、MCP、记忆放到可变区。",
+  },
+  {
+    title: "记忆索引与按需加载",
+    source: "源码解析图 17",
+    body: "MEMORY.md 更像入口索引；独立记忆文件按需读入，避免把长期知识一次性全塞进当前窗口。",
+  },
+  {
+    title: "压缩不是一次摘要",
+    source: "源码解析图 18 + 上下文原文",
+    body: "工具结果可重复获取就能裁剪；不可重放的子 agent 输出和任务状态必须保留。五层金字塔已把这个规则变成交互按钮。",
+  },
+  {
+    title: "三种 Multi-Agent 拓扑",
+    source: "多 Agent 图 1-3",
+    body: "父子型、平级协作型、主从协调型的差异已整理进常规 Subagent、Fork Subagent、Coordinator 三张卡。",
+  },
+  {
+    title: "工具隔离 + 上下文隔离",
+    source: "多 Agent 图 4-8",
+    body: "子 agent 不应该继承所有能力。网页补充了准入门、只读探索、字段级克隆、禁写和任务注册通路。",
+  },
+  {
+    title: "异步消息通信",
+    source: "多 Agent 图 9-16",
+    body: "父到子用 pending message，子到父用通知消息；超过前台等待线后自动后台化，避免父 agent 被同步阻塞。",
+  },
+  {
+    title: "Fork 缓存复用",
+    source: "多 Agent 图 17-21",
+    body: "缓存命中要求字节级前缀一致；Fork 复用父 agent 已渲染前缀，适合轻量分叉，不和 Coordinator 模式叠加。",
+  },
+  {
+    title: "Coordinator 不是转发器",
+    source: "多 Agent 图 22-32",
+    body: "协调者要派工、续命、停止、合成并亲自理解结果；worker 不拿协调工具，防止递归派人失控。",
+  },
+];
+
+const recursiveCards = [
+  {
+    title: "上下文窗口精确公式",
+    href: "https://www.yangyitao.com/books/harness-engineering/chapters/11-short-term-memory",
+    body: "递归复核后补入：名义窗口先扣摘要输出预留，自动压缩再扣 13K 缓冲；窗口管理是零和预算，不是越长越好。",
+  },
+  {
+    title: "Auto-Compact 失败恢复",
+    href: "https://zhanghandong.github.io/harness-engineering-from-cc-to-ai-coding/part3/ch09.html",
+    body: "补入熔断、PTL 重试、先清空再恢复附件、SessionStart hooks 等面试可追问点。",
+  },
+  {
+    title: "Grep / Glob / Read vs RAG",
+    href: "https://www.eefocus.com/article/2015097.html",
+    body: "补入代码检索的精确性、实时性、可解释性、token 经济，以及超过 3 次查询时派 Explore 子 agent。",
+  },
+  {
+    title: "Skills 与项目记忆",
+    href: "https://www.eefocus.com/article/2013527.html",
+    body: "补入 planning-with-files、长期记忆、MCP Builder、UI/测试技能：它们都是把规则和流程从短窗口移到可复用载体。",
+  },
+  {
+    title: "能力边界与选型",
+    href: "https://www.eefocus.com/article/1988689.html",
+    body: "补入 Claude Code 适合终端闭环、跨文件重构、测试修复；轻量补全或强本土化场景不一定是最优解。",
+  },
+  {
+    title: "官方 Subagents",
+    href: "https://docs.anthropic.com/en/docs/claude-code/sub-agents",
+    body: "复核 subagent 可配置 tools、disallowedTools、permissionMode、skills、memory、mcpServers、background、worktree isolation。",
+  },
+];
+
+const thresholdRows = [
+  ["名义窗口", "模型宣称可接收的总 token 上限", "不能用满"],
+  ["摘要输出预留", "通常按上限留约 20K", "保证 compact 自己有输出空间"],
+  ["有效窗口", "名义窗口 - 摘要输出预留", "真正参与触发计算"],
+  ["自动压缩缓冲", "有效窗口 - 13K", "自动 compact 的触发线"],
+  ["手动 compact 余量", "约 3K", "用户主动压缩可更贴近上限"],
+  ["连续失败熔断", "失败 3 次停止重试", "避免 prompt_too_long 类事故烧 API"],
+];
+
+const gapFixes = [
+  "把正文图按图意分成 10 组，新增读图重构章节，明确没有直接热链复制第三方图片。",
+  "把内链里的 Grep/RAG、Skills、能力边界、短期记忆、自动压缩、官方 Subagents 补进递归资料矩阵。",
+  "把 Auto-Compact 从“窗口减 13K”修正为“名义窗口先扣摘要输出预留，再扣 13K 缓冲”。",
+  "把多 Agent 的图意补到工具隔离、上下文隔离、pending message、XML-like notification、Fork 缓存和 Coordinator 递归防护。",
 ];
 ---
 
@@ -417,8 +554,9 @@ const interviewCards = [
         <div>
           <p>
             Auto-Compact 是兜底机制。它不按“每 10 轮”这种机械节奏触发，而是按
-            token 距离窗口上限的固定缓冲触发。文章中提到的数字是 13K token，
-            重点不是数字本身，而是思路：给摘要输出和下一轮模型响应预留稳定空间。
+            token 距离窗口上限的固定缓冲触发。更精确地说，要先从名义窗口里扣掉
+            摘要输出预留，再从有效窗口里扣掉自动压缩缓冲。文章和递归资料里反复出现的
+            13K token，指的是这层自动压缩缓冲。
           </p>
           <p>
             触发后也不是简单保留最近 N 条。Claude Code 会把可压缩的历史整体重写成结构化摘要，
@@ -486,6 +624,15 @@ const interviewCards = [
         <strong>可迁移模板：</strong>
         不要只要求“简短”。要要求摘要列出原始意图、关键文件、错误和修复、用户每次改口、
         未完成事项、当前最细颗粒度进度，以及唯一下一步。
+      </div>
+      <div class="cc-threshold-grid" aria-label="Auto-Compact 阈值速查">
+        {thresholdRows.map((row) => (
+          <article>
+            <strong>{row[0]}</strong>
+            <span>{row[1]}</span>
+            <p>{row[2]}</p>
+          </article>
+        ))}
       </div>
     </section>
 
@@ -599,9 +746,93 @@ const interviewCards = [
       </div>
     </section>
 
+    <section class="cc-section" id="visual-atlas">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">9. Visual Atlas</p>
+        <h2>原链接图片不是装饰，而是面试答案的骨架</h2>
+      </div>
+      <div class="cc-two-col">
+        <div>
+          <p>
+            我重新抽取了可访问转载页的正文图片，排除了广告、作者头像、页脚二维码和推荐位缩略图。
+            可复核到的正文图包括：Claude Code 源码解析 19 张，多 Agent 实现机制 32 张。
+            这些图大多不是为了好看，而是在表达架构边界：循环、缓存、压缩、隔离、通信、并发。
+          </p>
+          <p>
+            网页里没有直接复制这些第三方图片，而是把图意重新整理成可交互组件、对照卡和流程板。
+            这样读者能记住“为什么这么设计”，而不是只看一张图的布局。
+          </p>
+        </div>
+        <div class="cc-image-ledger" aria-label="图片读取清单">
+          <div>
+            <strong>19</strong>
+            <span>源码解析正文图</span>
+          </div>
+          <div>
+            <strong>32</strong>
+            <span>多 Agent 正文图</span>
+          </div>
+          <div>
+            <strong>51</strong>
+            <span>可复核正文图意</span>
+          </div>
+        </div>
+      </div>
+      <div class="cc-visual-grid">
+        {visualMotifs.map((item) => (
+          <article>
+            <span>{item.source}</span>
+            <strong>{item.title}</strong>
+            <p>{item.body}</p>
+          </article>
+        ))}
+      </div>
+      <div class="cc-remix-board" aria-label="图意重构示意">
+        <div class="cc-remix-lane">
+          <strong>上下文压力</strong>
+          <span>system</span>
+          <span>memory</span>
+          <span>tool results</span>
+          <span>files</span>
+          <span class="is-alert">compact</span>
+        </div>
+        <div class="cc-remix-lane">
+          <strong>多 Agent 隔离</strong>
+          <span>parent</span>
+          <span>allowlist</span>
+          <span>subagent</span>
+          <span>pending message</span>
+          <span class="is-alert">summary only</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="cc-section cc-section-band" id="recursive-audit">
+      <div class="cc-section-heading">
+        <p class="cc-kicker">10. Recursive Audit</p>
+        <h2>递归链接补全：只收和 Claude Code 上下文工程直接相关的内容</h2>
+      </div>
+      <div class="cc-recursive-grid">
+        {recursiveCards.map((item) => (
+          <a href={item.href} target="_blank" rel="noopener noreferrer">
+            <strong>{item.title}</strong>
+            <p>{item.body}</p>
+          </a>
+        ))}
+      </div>
+      <div class="cc-gap-list">
+        {gapFixes.map((item) => (
+          <div>
+            <span>已补</span>
+            <p>{item}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
     <section class="cc-section" id="source-map">
       <div class="cc-section-heading">
-        <p class="cc-kicker">9. Source Map</p>
+        <p class="cc-kicker">11. Source Map</p>
         <h2>资料覆盖地图</h2>
       </div>
       <div class="cc-source-grid">
@@ -614,8 +845,8 @@ const interviewCards = [
         ))}
       </div>
       <div class="cc-callout">
-        本页覆盖原文和内部同主题链接的核心内容，并把原图的“模型工作台、三种方案、五层金字塔、
-        Auto-Compact 流程、信息半衰期、压缩接力、多 Agent 通信”等图意改写成可交互讲解。
+        本页覆盖原文、原文图片、内部同主题链接和递归复核资料的核心内容，并把原图的“模型工作台、
+        三种方案、五层金字塔、Auto-Compact 流程、信息半衰期、压缩接力、多 Agent 通信”等图意改写成可交互讲解。
         微信原图未热链复制，避免把第三方图片资产直接发布到本站。
       </div>
     </section>
@@ -625,7 +856,10 @@ const interviewCards = [
     (() => {
       const format = new Intl.NumberFormat("zh-CN");
       const windowTokens = 200000;
+      const summaryReserve = 20000;
       const autoBuffer = 13000;
+      const effectiveWindow = windowTokens - summaryReserve;
+      const autoThreshold = effectiveWindow - autoBuffer;
 
       const layers = [
         {
@@ -676,7 +910,7 @@ const interviewCards = [
           cost: "一次模型调用",
           trigger: "有效窗口减 13K 缓冲",
           detail:
-            "兜底全量重写：旧消息被结构化摘要替换，再把最近文件、计划、技能、异步任务作为附件恢复。",
+            "兜底全量重写：先为摘要输出预留约 20K，再用有效窗口减 13K 作为触发点，最后把最近文件、计划、技能、异步任务作为附件恢复。",
         },
       ];
 
@@ -684,7 +918,7 @@ const interviewCards = [
         {
           title: "触发",
           body:
-            "计算有效窗口，如果当前 token 数超过窗口减 13K，就进入 compact。手动 /compact 可带额外关注点。",
+            "先从名义窗口扣掉摘要输出预留，再用有效窗口减 13K 作为自动压缩触发点。手动 /compact 可在更小余量下运行。",
         },
         {
           title: "预处理",
@@ -726,11 +960,13 @@ const interviewCards = [
         const total = base + files * 5000 + rounds * tool * 2;
         const ratio = Math.min(100, Math.round((total / windowTokens) * 100));
         let trigger = "第 1-3 层足够";
-        if (total > windowTokens - autoBuffer) {
+        if (total > autoThreshold) {
           trigger = "第 5 层 Auto-Compact";
-        } else if (total > windowTokens * 0.9) {
+        } else if (total > autoThreshold - 20000) {
+          trigger = "接近警告线";
+        } else if (total > effectiveWindow * 0.9) {
           trigger = "第 4 层 Context Collapse";
-        } else if (total > windowTokens * 0.6) {
+        } else if (total > effectiveWindow * 0.6) {
           trigger = "第 2-3 层开始减压";
         }
 
@@ -742,7 +978,7 @@ const interviewCards = [
           fill.style.width = `${ratio}%`;
           fill.dataset.level = trigger.includes("Auto")
             ? "hot"
-            : trigger.includes("Context")
+            : trigger.includes("Context") || trigger.includes("警告")
               ? "warm"
               : "cool";
         }
@@ -908,6 +1144,11 @@ const interviewCards = [
   .cc-agent-board article,
   .cc-answer-frame > div,
   .cc-qa,
+  .cc-threshold-grid article,
+  .cc-image-ledger,
+  .cc-visual-grid article,
+  .cc-recursive-grid a,
+  .cc-gap-list > div,
   .cc-source-card {
     border: 1px solid var(--cc-line);
     border-radius: 8px;
@@ -924,6 +1165,11 @@ const interviewCards = [
   .dark .cc-agent-board article,
   .dark .cc-answer-frame > div,
   .dark .cc-qa,
+  .dark .cc-threshold-grid article,
+  .dark .cc-image-ledger,
+  .dark .cc-visual-grid article,
+  .dark .cc-recursive-grid a,
+  .dark .cc-gap-list > div,
   .dark .cc-source-card {
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
   }
@@ -1331,6 +1577,10 @@ const interviewCards = [
   .cc-message-demo,
   .cc-answer-frame,
   .cc-card-grid,
+  .cc-threshold-grid,
+  .cc-visual-grid,
+  .cc-recursive-grid,
+  .cc-gap-list,
   .cc-source-grid {
     display: grid;
     gap: 16px;
@@ -1392,8 +1642,145 @@ const interviewCards = [
     font-size: 0.94rem;
   }
 
+  .cc-threshold-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 22px;
+  }
+
+  .cc-threshold-grid article,
+  .cc-visual-grid article,
+  .cc-recursive-grid a,
+  .cc-gap-list > div {
+    padding: 18px;
+  }
+
+  .cc-threshold-grid strong,
+  .cc-visual-grid strong,
+  .cc-recursive-grid strong {
+    display: block;
+    color: var(--cc-ink);
+  }
+
+  .cc-threshold-grid span,
+  .cc-visual-grid span,
+  .cc-gap-list span {
+    display: block;
+    margin-top: 8px;
+    color: var(--cc-coral);
+    font-size: 0.8rem;
+    font-weight: 800;
+  }
+
+  .cc-threshold-grid p,
+  .cc-visual-grid p,
+  .cc-recursive-grid p,
+  .cc-gap-list p {
+    margin-bottom: 0;
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  .cc-image-ledger {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .cc-image-ledger div {
+    display: grid;
+    align-content: center;
+    min-height: 118px;
+    border-radius: 8px;
+    background: rgba(35, 102, 168, 0.08);
+    padding: 14px;
+    text-align: center;
+  }
+
+  .cc-image-ledger strong {
+    color: var(--cc-blue);
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    line-height: 1;
+  }
+
+  .cc-image-ledger span {
+    margin-top: 8px;
+    color: var(--cc-muted);
+    font-size: 0.88rem;
+    font-weight: 800;
+  }
+
+  .cc-visual-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 28px;
+  }
+
+  .cc-remix-board {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+  }
+
+  .cc-remix-lane {
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    padding: 18px;
+    background: linear-gradient(135deg, rgba(35, 102, 168, 0.08), rgba(37, 115, 93, 0.08));
+  }
+
+  .cc-remix-lane strong {
+    display: block;
+    margin-bottom: 14px;
+    color: var(--cc-ink);
+  }
+
+  .cc-remix-lane span {
+    display: inline-block;
+    margin: 0 8px 10px 0;
+    border: 1px solid var(--cc-line);
+    border-radius: 999px;
+    padding: 8px 10px;
+    background: var(--cc-panel);
+    color: var(--cc-muted);
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.78rem;
+  }
+
+  .cc-remix-lane .is-alert {
+    border-color: var(--cc-coral);
+    color: var(--cc-coral);
+  }
+
+  .cc-recursive-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cc-recursive-grid a {
+    text-decoration: none;
+  }
+
+  .cc-recursive-grid a:hover {
+    border-color: var(--cc-coral);
+  }
+
+  .cc-gap-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 24px;
+  }
+
+  .cc-gap-list > div {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .cc-gap-list span {
+    margin-top: 0;
+  }
+
   .cc-source-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   }
 
   .cc-source-card {
@@ -1427,6 +1814,12 @@ const interviewCards = [
     .cc-message-demo,
     .cc-answer-frame,
     .cc-card-grid,
+    .cc-threshold-grid,
+    .cc-image-ledger,
+    .cc-visual-grid,
+    .cc-remix-board,
+    .cc-recursive-grid,
+    .cc-gap-list,
     .cc-source-grid {
       grid-template-columns: 1fr;
     }

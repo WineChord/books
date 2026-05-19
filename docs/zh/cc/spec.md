@@ -15,6 +15,21 @@ Auto-Compact、摘要 prompt、压缩后接续和面试回答结构。
 1. `https://www.eefocus.com/article/1984643.html`
 2. `https://www.eefocus.com/article/2009921.html`
 
+页面也必须覆盖可读来源页中的图片。实现需要读取正文图片，排除网站外框、广告、
+作者头像、页脚二维码和推荐位缩略图，并重构图意，不得直接热链第三方图片资产。
+已复核的正文图片集合为：
+
+1. `https://www.eefocus.com/article/1984643.html` 的正文图 19 张；
+2. `https://www.eefocus.com/article/2009921.html` 的正文图 32 张。
+
+用于查漏补缺的同主题递归链接包括：
+
+1. `https://www.eefocus.com/article/2015097.html`
+2. `https://www.eefocus.com/article/2013527.html`
+3. `https://www.eefocus.com/article/1988689.html`
+4. `https://www.yangyitao.com/books/harness-engineering/chapters/11-short-term-memory`
+5. `https://zhanghandong.github.io/harness-engineering-from-cc-to-ai-coding/part3/ch09.html`
+
 页面同时用 Anthropic 官方文档校验 subagents、memory、MCP、slash commands
 等公开能力，避免只依赖非官方源码分析。
 
@@ -35,15 +50,17 @@ Auto-Compact、摘要 prompt、压缩后接续和面试回答结构。
 3. 为什么 coding agent 比普通聊天更快消耗上下文；
 4. 为什么长上下文不能消除上下文管理需求；
 5. 为什么滑动窗口、固定间隔摘要、向量召回不适合作为 agent 历史的唯一方案；
-6. 五层压缩金字塔：大结果存磁盘、Snip、Micro-Compact、Context Collapse、
+6. 为什么 live repo 的代码检索应优先使用 Grep、Glob、Read 和 Explore 子 agent，
+   而不是默认 RAG；
+7. 五层压缩金字塔：大结果存磁盘、Snip、Micro-Compact、Context Collapse、
    Auto-Compact；
-7. Auto-Compact 的触发、13K 缓冲、手动和自动差异、熔断、递归守卫、
-   全量重写和恢复通道；
-8. 摘要 prompt 的 XML 结构、九项清单、所有用户消息和当前工作；
-9. 压缩后的边界标记、summary、attachments、hook results 和 transcript 兜底；
-10. memory、context、summary 的区别；
-11. Subagent、Fork Subagent、Coordinator、工具隔离、上下文隔离、消息队列和完成通知；
-12. 30 秒版、2 分钟版和追问版面试答法。
+8. Auto-Compact 的触发、20K 摘要输出预留、13K 自动缓冲、3K 手动缓冲、
+   熔断、递归守卫、全量重写和恢复通道；
+9. 摘要 prompt 的 XML 结构、九项清单、所有用户消息和当前工作；
+10. 压缩后的边界标记、summary、attachments、hook results 和 transcript 兜底；
+11. memory、context、summary 的区别，以及项目文件、计划文件、skills 和长期记忆；
+12. Subagent、Fork Subagent、Coordinator、工具隔离、上下文隔离、消息队列和完成通知；
+13. 30 秒版、2 分钟版和追问版面试答法。
 
 ## 交互契约
 
@@ -55,7 +72,9 @@ Auto-Compact、摘要 prompt、压缩后接续和面试回答结构。
 4. 九项摘要 prompt；
 5. memory 类型和恢复通道；
 6. 多 Agent 通信；
-7. 面试问答卡片。
+7. 原图图意重构；
+8. 递归链接查漏补缺矩阵；
+9. 面试问答卡片。
 
 原文图片不直接热链发布到本站；页面用本站自有交互图和解释文本重构图意。
 
