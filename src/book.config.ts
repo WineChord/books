@@ -290,6 +290,21 @@ const ccPages: PageConfig[] = [
   },
 ];
 
+const iqPages: PageConfig[] = [
+  {
+    book: "iq",
+    path: "iq/spec",
+    zhPath: "zh/iq/spec",
+    title: "Spec",
+    zhTitle: "规格说明",
+    description:
+      "The route, coverage, interaction, and QA contract for the classic brain-teaser book.",
+    zhDescription:
+      "说明经典智力题高频题库的路由、覆盖范围、交互和验收契约。",
+    kind: "front",
+  },
+];
+
 export const codexFromSourceBook = makeBook({
   slug: "codex-from-source",
   title: siteTitle,
@@ -402,10 +417,30 @@ export const ccBook = makeBook({
   pages: ccPages,
 });
 
+export const iqBook = makeBook({
+  slug: "iq",
+  title: "Classic Brain Teasers",
+  zhTitle: "经典智力题高频题库",
+  shortTitle: "Brain Teasers",
+  zhShortTitle: "智力题",
+  description:
+    "A single-page interactive book of classic logic, probability, coding, scheduling, and construction brain teasers.",
+  zhDescription:
+    "一本单页交互式智力题书，系统讲解逻辑、概率、编码、调度、构造等高频经典题。",
+  coverKicker: "Logic, Probability, Construction",
+  zhCoverKicker: "Logic, Probability, Construction",
+  coverTitle: "Classic<br />Brain<br />Teasers",
+  coverFooter: "28 puzzles + interactive demos",
+  zhCoverFooter: "28 题 + 交互演示",
+  parts: [],
+  pages: iqPages,
+});
+
 export const books = [
   codexFromSourceBook,
   codexContextManagementBook,
   leetcodeBook,
+  iqBook,
   suffixArrayBook,
   lcpBook,
   ccBook,

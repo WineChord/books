@@ -34,6 +34,11 @@ const publicBooks = [
     enDir: join(docsDir, "cc"),
     zhDir: join(docsDir, "zh", "cc"),
   },
+  {
+    slug: "iq",
+    enDir: join(docsDir, "iq"),
+    zhDir: join(docsDir, "zh", "iq"),
+  },
 ];
 
 function walk(dir) {

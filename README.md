@@ -7,6 +7,7 @@ This repository hosts long-form online books for
 
 - [Codex From Source](https://www.wineandchord.com/books/codex-from-source/)
 - [LeetCode Frequency 888](https://www.wineandchord.com/books/leetcode/)
+- [Classic Brain Teasers](https://www.wineandchord.com/books/iq/)
 - [Suffix Array Primer](https://www.wineandchord.com/books/sa/)
 - [Claude Code Interview Book](https://www.wineandchord.com/books/cc/)
 
