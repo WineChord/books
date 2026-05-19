@@ -46,6 +46,12 @@ LCP, and answer scan. Every step must answer:
 2. why the step is valid;
 3. which function or variable in the provided C++ code it maps to.
 
+The five steps are further decomposed into a micro-step flow. The default
+Chinese lesson must expose at least 20 numbered micro-steps so a beginner can
+advance one idea at a time. Each micro-step must state the local idea, explain
+why it is true, point at a code fragment, and drive the visualization to the
+matching stage, start position, and doubling round.
+
 ## Interaction Contract
 
 The page must provide a linked workbench, not just a final result render:
@@ -72,6 +78,12 @@ The page must provide a linked workbench, not just a final result render:
    explain the reasoning, not just say right or wrong.
 10. The active stage must map back to code, at least to `compress`, `build1`,
     `build2`, or `smallestUniqueSubarray`.
+11. A previous/next stepper and a numbered step rail must let the reader move
+    through the full lesson one micro-step at a time.
+12. Clicking a micro-step must synchronize the stage tab, explanatory text,
+    active suffix, round slider, tables, and code focus.
+13. The provided C++ solution must use syntax highlighting. The code section
+    related to the active micro-step must be visually emphasized.
 
 ## Algorithm Contract
 
@@ -115,3 +127,7 @@ Before publishing:
    answers all change page state.
 6. Both the default Chinese page and the English page open correctly, and the
    language switch does not break interaction.
+7. Previous/next buttons and the micro-step rail advance through the detailed
+   explanation without losing table, suffix, round, or code synchronization.
+8. The C++ code block renders highlighted tokens and changes the active code
+   section as the micro-step changes.

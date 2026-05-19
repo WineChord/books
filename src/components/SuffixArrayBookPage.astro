@@ -88,6 +88,93 @@ public:
     }
 };`;
 
+const cppKeywords = new Set([
+  "auto",
+  "break",
+  "class",
+  "continue",
+  "for",
+  "if",
+  "public",
+  "return",
+  "while",
+]);
+const cppTypes = new Set(["int", "vector"]);
+const cppFunctions = new Set([
+  "begin",
+  "compress",
+  "end",
+  "erase",
+  "lower_bound",
+  "max",
+  "min",
+  "push_back",
+  "size",
+  "sort",
+  "unique",
+]);
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function wrapCppToken(kind: string, value: string) {
+  return `<span class="sa-code-token-${kind}">${escapeHtml(value)}</span>`;
+}
+
+function highlightCppLine(line: string) {
+  const tokenPattern = /([A-Za-z_]\w*|\d+|"(?:\\.|[^"\\])*")/g;
+  let cursor = 0;
+  let output = "";
+  for (const match of line.matchAll(tokenPattern)) {
+    const value = match[0];
+    const index = match.index || 0;
+    output += escapeHtml(line.slice(cursor, index));
+    if (cppKeywords.has(value)) {
+      output += wrapCppToken("keyword", value);
+    } else if (cppTypes.has(value)) {
+      output += wrapCppToken("type", value);
+    } else if (cppFunctions.has(value)) {
+      output += wrapCppToken("function", value);
+    } else if (/^\d+$/.test(value)) {
+      output += wrapCppToken("number", value);
+    } else if (value.startsWith('"')) {
+      output += wrapCppToken("string", value);
+    } else {
+      output += escapeHtml(value);
+    }
+    cursor = index + value.length;
+  }
+  output += escapeHtml(line.slice(cursor));
+  return output || " ";
+}
+
+let activeCodeSection = "class";
+const highlightedSolutionCode = solutionCode
+  .split("\n")
+  .map((line, index) => {
+    if (line.includes("vector<int> compress")) {
+      activeCodeSection = "compress";
+    } else if (line.includes("vector<int> build1")) {
+      activeCodeSection = "build1";
+    } else if (line.includes("vector<int> build2")) {
+      activeCodeSection = "build2";
+    } else if (
+      line.includes("public:") ||
+      line.includes("int smallestUniqueSubarray")
+    ) {
+      activeCodeSection = "smallestUniqueSubarray";
+    }
+    return `<span class="sa-code-line" data-code-section="${activeCodeSection}" data-code-line="${
+      index + 1
+    }">${highlightCppLine(line)}</span>`;
+  })
+  .join("");
+
 const pageText = isZh
   ? {
       kicker: "Suffix Array, LCP, Unique Subarray",
@@ -234,6 +321,254 @@ const clientText = isZh
       selfCheck: "自测",
       correct: "正确",
       incorrect: "再想一下",
+      flowTitle: "剥丝抽茧流程",
+      previousStep: "上一步",
+      nextStep: "下一步",
+      stepOf: "步骤",
+      whyLabel: "为什么成立",
+      codeFocus: "代码焦点",
+      flowSteps: [
+        {
+          stage: "concept",
+          title: "先把题目翻译成一句话",
+          body: "我们要找的是：有没有一个从某个位置开始的最短连续片段，只在整个数组里出现一次。",
+          why: "先不急着写算法，先固定“起点”和“长度”这两个变量，问题会变成可以比较的前缀问题。",
+          code: "smallestUniqueSubarray(vector<int>& a)",
+          start: 0,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "选择一个起点，世界先变小",
+          body: "点亮起点 i 后，只看从 i 往右的内容。所有从 i 开始的候选子数组，都藏在这条右延伸的路里。",
+          why: "连续子数组不能跳格子，所以起点一固定，能选择的只剩下“往右拿几个”。",
+          code: "for(int i = 0; i < n; i++)",
+          start: 0,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "后缀就是从起点一路走到底",
+          body: "从位置 i 到数组结尾的整段叫后缀。后缀不是新数组，它只是原数组的一段视角。",
+          why: "后缀把“从 i 开始可能拿到的所有长度”一次性装进同一个对象里。",
+          code: "suffix a[i..]",
+          start: 1,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "子数组其实是后缀的前缀",
+          body: "从 i 开始拿 1 个、2 个、3 个数，都是后缀 a[i..] 的开头一小段。",
+          why: "因此“某个子数组是否重复”，可以改问“某个后缀的前缀是否和别的后缀前缀相同”。",
+          code: "a[i], a[i..i+1], a[i..i+2]",
+          start: 2,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "重复来自两个后缀拥有相同开头",
+          body: "如果两个后缀前 2 个数相同，那么长度 1 和长度 2 的前缀式子数组都会撞车。",
+          why: "唯一性的反面不是“后缀完全相同”，而是“某个前缀长度内相同”。",
+          code: "same = max(left LCP, right LCP)",
+          start: 0,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "compress",
+          title: "先把值域换成小字母表",
+          body: "原数组里的数可能很大，也可能为负。后缀排序只需要知道相等和大小，不需要原值本身。",
+          why: "压缩后比较 1、2、3，和比较原值的先后顺序完全一致。",
+          code: "a = compress(a);",
+          start: 0,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "compress",
+          title: "sort + unique 得到字母表",
+          body: "先复制一份数组，排序后去重，得到所有可能符号的升序表。",
+          why: "升序表的位置天然就是 rank：越小的原值排得越靠前。",
+          code: "sort(a.begin(), a.end()); unique(...)",
+          start: 0,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "compress",
+          title: "lower_bound 给每个值贴编号",
+          body: "每个原值在字母表里找到自己的位置，再加一变成从 1 开始的编号。",
+          why: "相同值会找到同一个位置，不同值会按原来的大小关系排开。",
+          code: "lower_bound(a.begin(), a.end(), x)",
+          start: 2,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "compress",
+          title: "压缩后答案不会变",
+          body: "所有相等关系和大小关系都被保留，所以后缀的字典序比较结果不会被改写。",
+          why: "算法只比较谁相等、谁更小；没有任何地方依赖原始数字的绝对大小。",
+          code: "return b;",
+          start: 3,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "doubling",
+          title: "从 k=1 开始看短块",
+          body: "第一轮只知道单个元素的 rank，于是先比较长度 2 的片段：当前元素和下一个元素。",
+          why: "长比较可以由两个已经知道顺序的短比较拼出来。",
+          code: "for(int k = 1; k < n; k <<= 1)",
+          start: 0,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "二元组是两个已知块",
+          body: "(rank[i], rank[i+k]) 的第一项管前半段，第二项管后半段；越界时用 -1。",
+          why: "字典序比较先看前半段，前半段相同才看后半段。",
+          code: "rank[i], rank[i+k], -1",
+          start: 1,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "按二元组排序所有后缀",
+          body: "把所有起点按照当前二元组排好，临时得到一个新的后缀顺序。",
+          why: "这一轮只承诺区分长度 2k 内能区分的后缀，还不要求一次看完整个后缀。",
+          code: "sort(sa.begin(), sa.end(), cmp);",
+          start: 2,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "相同二元组拿同一个新 rank",
+          body: "排序后从前往后扫，只有当前后缀真的比前一个大时，新 rank 才加一。",
+          why: "二元组相同表示当前长度里仍然看不出差异，必须等待下一轮更长的比较。",
+          code: "if(cmp(sa[i-1], sa[i])) tmp[sa[i]]++;",
+          start: 0,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "k 翻倍，视野翻倍",
+          body: "第二轮 k=2，会比较长度 4 的片段；再下一轮比较长度 8，直到所有 rank 都不同。",
+          why: "每轮都复用上一轮结果，所以不需要从头逐个元素慢慢比较完整后缀。",
+          code: "rank[sa[n-1]] == n-1",
+          start: 3,
+          round: 1,
+          codeSection: "build1",
+        },
+        {
+          stage: "lcp",
+          title: "后缀排好后，相似者会靠近",
+          body: "字典序排序会把开头很像的后缀放在相邻位置，像字典里同前缀的单词会挨在一起。",
+          why: "如果中间夹着一个完全不同开头的后缀，字典序就会被破坏。",
+          code: "auto sa = build1(a);",
+          start: 0,
+          round: 1,
+          codeSection: "build2",
+        },
+        {
+          stage: "lcp",
+          title: "LCP[p] 只记录左边那一对",
+          body: "如果当前后缀在后缀数组中的位置是 p，LCP[p] 比较的是 sa[p] 和 sa[p-1]。",
+          why: "LCP 数组按排序后的位置存，不按原数组起点存。",
+          code: "lcp[p] = h;",
+          start: 2,
+          round: 1,
+          codeSection: "build2",
+        },
+        {
+          stage: "lcp",
+          title: "右邻居藏在 LCP[p+1]",
+          body: "当前后缀和右邻居 sa[p+1] 的共同前缀，存在右邻居那一格的 LCP 里。",
+          why: "因为 LCP[x] 永远描述 sa[x] 和它左边 sa[x-1] 的关系。",
+          code: "if(p+1 < n) same = max(same, lcp[p+1]);",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "lcp",
+          title: "Kasai 的 h 可以复用",
+          body: "从下一个起点继续比较时，前面已经匹配过的高度最多少 1，不必完全清零。",
+          why: "两个后缀同时右移一格，公共前缀也至少少掉开头那一个元素。",
+          code: "if(h > 0) h--;",
+          start: 1,
+          round: 1,
+          codeSection: "build2",
+        },
+        {
+          stage: "answer",
+          title: "同一起点只怕左右两个邻居",
+          body: "排好序后，和当前后缀共享最长前缀的竞争者一定在左右相邻位置。",
+          why: "更远的后缀若有更长共同前缀，就会被这个共同前缀拉到当前后缀旁边。",
+          code: "int p = rank[i];",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "same 是最危险的撞车长度",
+          body: "same 取左右 LCP 的最大值，表示当前起点最长会和别人撞到多远。",
+          why: "长度不超过 same 的候选子数组仍然能在另一个起点找到同样内容。",
+          code: "same = max(same, lcp[p]);",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "need = same + 1",
+          body: "要想唯一，长度必须比所有撞车前缀多拿一个元素。",
+          why: "same 是最后一个还可能重复的长度，same + 1 才是第一个能跳出去的候选长度。",
+          code: "int need = same + 1;",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "need 还必须没有越界",
+          body: "如果从起点 i 到结尾剩下的元素不够 need 个，这个起点就给不出唯一子数组。",
+          why: "子数组必须真实存在，不能拿到数组边界之外。",
+          code: "if(need <= n-i)",
+          start: 3,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "每个起点都独立算一次",
+          body: "算法扫描所有 i，对每个起点都算自己的 left、right、same、need。",
+          why: "答案可能来自任何起点；局部最短不代表全局最短。",
+          code: "for(int i = 0; i < n; i++)",
+          start: 2,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "全局最小 need 就是答案",
+          body: "所有合法 need 里最小的那个，就是整道题要的最短唯一子数组长度。",
+          why: "我们已经证明每个起点的 need 是该起点最短，再取所有起点的最小即可。",
+          code: "res = min(res, need); return res;",
+          start: 4,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+      ],
       stageNotes: {
         concept: "先把子数组问题翻译成后缀前缀问题：从同一个起点出发，越短的子数组越像这个后缀的短前缀。",
         compress: "压缩只改变符号编号，不改变任意两个元素的相等关系和大小关系。",
@@ -384,6 +719,254 @@ const clientText = isZh
       selfCheck: "Self-check",
       correct: "Correct",
       incorrect: "Try again",
+      flowTitle: "Step-by-Step Flow",
+      previousStep: "Previous",
+      nextStep: "Next",
+      stepOf: "Step",
+      whyLabel: "Why it works",
+      codeFocus: "Code focus",
+      flowSteps: [
+        {
+          stage: "concept",
+          title: "Translate the task into one sentence",
+          body: "We want the shortest contiguous segment starting somewhere that appears only once in the whole array.",
+          why: "Before writing an algorithm, fix two variables: the start and the length. That turns the task into prefix comparison.",
+          code: "smallestUniqueSubarray(vector<int>& a)",
+          start: 0,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "Pick one start to shrink the world",
+          body: "After start i is chosen, only the values to its right matter. Every candidate from i lives on that same rightward path.",
+          why: "A subarray is contiguous, so once the start is fixed, the only remaining choice is how many items to take.",
+          code: "for(int i = 0; i < n; i++)",
+          start: 0,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "A suffix runs from a start to the end",
+          body: "The segment from position i to the end is a suffix. It is not a new array; it is a view of the original array.",
+          why: "One suffix packages every possible length that begins at the same start.",
+          code: "suffix a[i..]",
+          start: 1,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "A subarray is a prefix of a suffix",
+          body: "Taking 1, 2, or 3 values from i always takes a short prefix of suffix a[i..].",
+          why: "So repeated subarrays can be studied as repeated prefixes of suffixes.",
+          code: "a[i], a[i..i+1], a[i..i+2]",
+          start: 2,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "concept",
+          title: "Repetition comes from shared starts",
+          body: "If two suffixes share their first two values, then prefix lengths 1 and 2 repeat.",
+          why: "Uniqueness fails because of a shared prefix length, not because the whole suffix must be equal.",
+          code: "same = max(left LCP, right LCP)",
+          start: 0,
+          round: 0,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "compress",
+          title: "Rename values into a small alphabet",
+          body: "Input values may be huge or negative. Suffix sorting only needs equality and order, not the original magnitudes.",
+          why: "Comparing ranks 1, 2, and 3 gives the same order as comparing the original values.",
+          code: "a = compress(a);",
+          start: 0,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "compress",
+          title: "sort + unique builds the alphabet",
+          body: "Copy the array, sort it, and remove duplicates to get every symbol in increasing order.",
+          why: "A value's position in this ordered alphabet is exactly its rank.",
+          code: "sort(a.begin(), a.end()); unique(...)",
+          start: 0,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "compress",
+          title: "lower_bound assigns each rank",
+          body: "Each original value finds its position in the alphabet and adds one to become a 1-based rank.",
+          why: "Equal values find the same position; smaller values stay before larger values.",
+          code: "lower_bound(a.begin(), a.end(), x)",
+          start: 2,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "compress",
+          title: "Compression keeps the answer unchanged",
+          body: "All equality and order facts are preserved, so lexicographic suffix comparisons do not change.",
+          why: "The algorithm never uses the absolute magnitude of an original number.",
+          code: "return b;",
+          start: 3,
+          round: 0,
+          codeSection: "compress",
+        },
+        {
+          stage: "doubling",
+          title: "Start at k = 1 with short blocks",
+          body: "At the first round, single-value ranks are known, so compare length-2 pieces: current value and next value.",
+          why: "A longer comparison can be built from two shorter comparisons whose order is already known.",
+          code: "for(int k = 1; k < n; k <<= 1)",
+          start: 0,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "The pair means two known halves",
+          body: "(rank[i], rank[i+k]) describes the first half and second half; past the end uses -1.",
+          why: "Lexicographic order compares the first half first, then the second half only on ties.",
+          code: "rank[i], rank[i+k], -1",
+          start: 1,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "Sort every suffix by the pair",
+          body: "All starts are sorted by the current pair, giving a temporary suffix order for this round.",
+          why: "This round only promises to separate suffixes distinguishable within length 2k.",
+          code: "sort(sa.begin(), sa.end(), cmp);",
+          start: 2,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "Equal pairs receive the same new rank",
+          body: "After sorting, scan left to right. Increase the new rank only when the current suffix is truly greater than the previous one.",
+          why: "An equal pair still cannot be separated at the current length, so the next round must look farther.",
+          code: "if(cmp(sa[i-1], sa[i])) tmp[sa[i]]++;",
+          start: 0,
+          round: 0,
+          codeSection: "build1",
+        },
+        {
+          stage: "doubling",
+          title: "Double k to double the view",
+          body: "The second round uses k=2 and compares length-4 pieces; the next round would compare length 8.",
+          why: "Each round reuses previous ranks instead of comparing whole suffixes from scratch.",
+          code: "rank[sa[n-1]] == n-1",
+          start: 3,
+          round: 1,
+          codeSection: "build1",
+        },
+        {
+          stage: "lcp",
+          title: "Similar suffixes become neighbors",
+          body: "Lexicographic sorting places suffixes with shared starts next to each other, like words with the same prefix in a dictionary.",
+          why: "A very different suffix cannot sit between two suffixes that share a longer prefix without breaking the order.",
+          code: "auto sa = build1(a);",
+          start: 0,
+          round: 1,
+          codeSection: "build2",
+        },
+        {
+          stage: "lcp",
+          title: "LCP[p] records the left pair",
+          body: "If the current suffix is at sorted position p, LCP[p] compares sa[p] with sa[p-1].",
+          why: "The LCP array is indexed by sorted position, not by original start.",
+          code: "lcp[p] = h;",
+          start: 2,
+          round: 1,
+          codeSection: "build2",
+        },
+        {
+          stage: "lcp",
+          title: "The right neighbor lives at LCP[p+1]",
+          body: "The shared prefix with sa[p+1] is stored in the right neighbor's LCP slot.",
+          why: "By definition, LCP[x] always compares sa[x] with the item to its left.",
+          code: "if(p+1 < n) same = max(same, lcp[p+1]);",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "lcp",
+          title: "Kasai reuses h",
+          body: "When moving to the next start, the previously matched height can drop by at most one before comparison continues.",
+          why: "Both suffixes shift one step right, so their shared prefix loses only the first matched value.",
+          code: "if(h > 0) h--;",
+          start: 1,
+          round: 1,
+          codeSection: "build2",
+        },
+        {
+          stage: "answer",
+          title: "Each start only fears two neighbors",
+          body: "After sorting, the suffix with the longest shared prefix must be immediately left or right of the current suffix.",
+          why: "If a farther suffix shared a longer prefix, that common prefix would pull it next to the current suffix.",
+          code: "int p = rank[i];",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "same is the dangerous collision length",
+          body: "same is the larger of the left and right LCP values, meaning how far this start can still collide.",
+          why: "Any candidate length up to same can still be found at another start.",
+          code: "same = max(same, lcp[p]);",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "need = same + 1",
+          body: "To become unique, the candidate must take one more value than every colliding prefix.",
+          why: "same is the last length that may repeat, so same + 1 is the first possible escape.",
+          code: "int need = same + 1;",
+          start: 0,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "need must still fit in the suffix",
+          body: "If fewer than need values remain from start i, that start cannot produce a valid unique subarray.",
+          why: "The subarray must exist inside the array bounds.",
+          code: "if(need <= n-i)",
+          start: 3,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "Try every start independently",
+          body: "The loop computes left, right, same, and need for every possible start i.",
+          why: "The answer may come from any start; the best local answer is not automatically the best global answer.",
+          code: "for(int i = 0; i < n; i++)",
+          start: 2,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+        {
+          stage: "answer",
+          title: "The smallest valid need is the answer",
+          body: "Among all valid candidates, the minimum need is the shortest unique subarray length.",
+          why: "Each start has already produced its own shortest possible length, so the global minimum solves the task.",
+          code: "res = min(res, need); return res;",
+          start: 4,
+          round: 1,
+          codeSection: "smallestUniqueSubarray",
+        },
+      ],
       stageNotes: {
         concept: "First translate subarrays into suffix prefixes: every subarray starting at i is a short prefix of suffix a[i..].",
         compress: "Compression only renames symbols; equality and ordering stay the same.",
@@ -581,6 +1164,37 @@ const clientText = isZh
         {clientText.stageNotes.concept}
       </div>
 
+      <section class="sa-flow-card" aria-label={clientText.flowTitle}>
+        <div class="sa-flow-head">
+          <div>
+            <p class="sa-section-kicker">{clientText.flowTitle}</p>
+            <h2 data-sa-flow-title></h2>
+          </div>
+          <div class="sa-flow-actions">
+            <button type="button" data-sa-step-prev>
+              {clientText.previousStep}
+            </button>
+            <span data-sa-step-count></span>
+            <button type="button" data-sa-step-next>
+              {clientText.nextStep}
+            </button>
+          </div>
+        </div>
+        <div class="sa-flow-current">
+          <span data-sa-flow-stage></span>
+          <p data-sa-flow-body></p>
+          <div>
+            <strong>{clientText.whyLabel}</strong>
+            <p data-sa-flow-why></p>
+          </div>
+          <div class="sa-flow-code">
+            <strong>{clientText.codeFocus}</strong>
+            <code data-sa-flow-code></code>
+          </div>
+        </div>
+        <div class="sa-flow-rail" data-sa-flow-rail></div>
+      </section>
+
       <div class="sa-lesson-board">
         <article class="sa-teacher-card">
           <p class="sa-section-kicker" data-sa-step-index>00</p>
@@ -703,17 +1317,24 @@ const clientText = isZh
         <p class="sa-section-kicker">C++</p>
         <h2>{pageText.codeTitle}</h2>
         {pageText.codeBlocks.map(([name, body]) => (
-          <details open={name === "compress"}>
+          <details data-code-note={name} open={name === "compress"}>
             <summary>{name}</summary>
             <p>{body}</p>
           </details>
         ))}
       </div>
-      <pre class="sa-code-block"><code>{solutionCode}</code></pre>
+      <pre class="sa-code-block" data-sa-code-block><code set:html={highlightedSolutionCode}></code></pre>
     </section>
   </main>
 
-  <script type="application/json" id="sa-copy" set:html={JSON.stringify(clientText)}></script>
+  <script
+    type="application/json"
+    id="sa-copy"
+    set:html={JSON.stringify({
+      ...clientText,
+      stageLabels: pageText.stageLabels,
+    })}
+  ></script>
   <script>
     const suffixArrayCopy = JSON.parse(
       document.getElementById("sa-copy")?.textContent || "{}",
@@ -734,6 +1355,15 @@ const clientText = isZh
     const resultNode = document.querySelector("[data-sa-result]");
     const stageNote = document.querySelector("[data-sa-stage-note]");
     const suffixPickerNode = document.querySelector("[data-sa-suffix-picker]");
+    const stepPrevButton = document.querySelector("[data-sa-step-prev]");
+    const stepNextButton = document.querySelector("[data-sa-step-next]");
+    const stepCountNode = document.querySelector("[data-sa-step-count]");
+    const flowStageNode = document.querySelector("[data-sa-flow-stage]");
+    const flowTitleNode = document.querySelector("[data-sa-flow-title]");
+    const flowBodyNode = document.querySelector("[data-sa-flow-body]");
+    const flowWhyNode = document.querySelector("[data-sa-flow-why]");
+    const flowCodeNode = document.querySelector("[data-sa-flow-code]");
+    const flowRailNode = document.querySelector("[data-sa-flow-rail]");
     const stepIndexNode = document.querySelector("[data-sa-step-index]");
     const stepTitleNode = document.querySelector("[data-sa-step-title]");
     const stepBodyNode = document.querySelector("[data-sa-step-body]");
@@ -758,6 +1388,7 @@ const clientText = isZh
       quizChoice: null,
       roundIndex: 0,
       stage: "concept",
+      stepIndex: 0,
     };
 
     function parseValues(raw) {
@@ -1184,18 +1815,113 @@ const clientText = isZh
       state.roundIndex = Number(roundInput.value);
     }
 
-    function setStage(nextStage) {
-      state.stage = nextStage;
-      state.quizChoice = null;
+    function clampNumber(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function currentFlowStep() {
+      return suffixArrayCopy.flowSteps[state.stepIndex] ||
+        suffixArrayCopy.flowSteps[0];
+    }
+
+    function codeSectionForStage(stage) {
+      const map = {
+        answer: "smallestUniqueSubarray",
+        compress: "compress",
+        concept: "smallestUniqueSubarray",
+        doubling: "build1",
+        lcp: "build2",
+      };
+      return map[stage] || "smallestUniqueSubarray";
+    }
+
+    function syncStageUi(nextStage) {
       stageButtons.forEach((button) => {
-        button.classList.toggle("is-active", button.dataset.saStage === nextStage);
+        button.classList.toggle(
+          "is-active",
+          button.dataset.saStage === nextStage,
+        );
       });
       stageNote.textContent = suffixArrayCopy.stageNotes[nextStage];
       document.querySelector(".sa-workspace")?.setAttribute(
         "data-active-stage",
         nextStage,
       );
+    }
+
+    function renderCodeFocus(step) {
+      const section = step?.codeSection || codeSectionForStage(state.stage);
+      document.querySelectorAll("[data-code-section]").forEach((line) => {
+        line.classList.toggle(
+          "is-active-section",
+          line.dataset.codeSection === section,
+        );
+      });
+      document.querySelectorAll("[data-code-note]").forEach((detail) => {
+        detail.open = detail.dataset.codeNote === section;
+      });
+    }
+
+    function renderFlow() {
+      const steps = suffixArrayCopy.flowSteps || [];
+      const step = currentFlowStep();
+      if (!steps.length || !step) return;
+      const current = String(state.stepIndex + 1).padStart(2, "0");
+      const total = String(steps.length).padStart(2, "0");
+      stepCountNode.textContent = `${suffixArrayCopy.stepOf} ${current} / ${total}`;
+      flowStageNode.textContent = suffixArrayCopy.stageLabels[step.stage];
+      flowTitleNode.textContent = step.title;
+      flowBodyNode.textContent = step.body;
+      flowWhyNode.textContent = step.why;
+      flowCodeNode.textContent = step.code;
+      stepPrevButton.disabled = state.stepIndex === 0;
+      stepNextButton.disabled = state.stepIndex === steps.length - 1;
+      flowRailNode.innerHTML = steps.map((item, index) => `
+        <button
+          type="button"
+          data-sa-flow-step="${index}"
+          class="${
+            index === state.stepIndex ? "is-active" : ""
+          } ${index < state.stepIndex ? "is-complete" : ""}"
+        >
+          <span>${String(index + 1).padStart(2, "0")}</span>
+          <strong>${item.title}</strong>
+        </button>
+      `).join("");
+      renderCodeFocus(step);
+    }
+
+    function applyFlowStep(index) {
+      const steps = suffixArrayCopy.flowSteps || [];
+      if (!steps.length) return;
+      const nextIndex = clampNumber(Number(index) || 0, 0, steps.length - 1);
+      const step = steps[nextIndex];
+      state.stepIndex = nextIndex;
+      state.stage = step.stage || state.stage;
+      state.quizChoice = null;
+      if (state.data) {
+        const maxStart = Math.max(0, state.data.nums.length - 1);
+        if (Number.isInteger(step.start)) {
+          state.activeStart = clampNumber(step.start, 0, maxStart);
+        } else {
+          state.activeStart = clampNumber(state.activeStart, 0, maxStart);
+        }
+        const maxRound = Math.max(0, state.data.rounds.length - 1);
+        if (Number.isInteger(step.round)) {
+          state.roundIndex = clampNumber(step.round, 0, maxRound);
+        } else {
+          state.roundIndex = clampNumber(state.roundIndex, 0, maxRound);
+        }
+      }
+      syncStageUi(state.stage);
       renderAll();
+    }
+
+    function setStage(nextStage) {
+      const index = suffixArrayCopy.flowSteps.findIndex((step) =>
+        step.stage === nextStage
+      );
+      applyFlowStep(index >= 0 ? index : state.stepIndex);
     }
 
     function renderAll() {
@@ -1208,6 +1934,7 @@ const clientText = isZh
       renderLcp(data);
       renderAnswer(data);
       renderLesson(data);
+      renderFlow();
     }
 
     function runVisualization() {
@@ -1218,11 +1945,12 @@ const clientText = isZh
       state.activeStart = 0;
       state.quizChoice = null;
       state.roundIndex = 0;
-      renderAll();
+      applyFlowStep(0);
     }
 
     function activateStart(start) {
-      state.activeStart = start;
+      const maxStart = Math.max(0, state.data.nums.length - 1);
+      state.activeStart = clampNumber(start, 0, maxStart);
       renderAll();
     }
 
@@ -1234,6 +1962,12 @@ const clientText = isZh
       state.roundIndex = Number(roundInput.value);
       renderAll();
     });
+    stepPrevButton?.addEventListener("click", () => {
+      applyFlowStep(state.stepIndex - 1);
+    });
+    stepNextButton?.addEventListener("click", () => {
+      applyFlowStep(state.stepIndex + 1);
+    });
     stageButtons.forEach((button) => {
       button.addEventListener("click", () => setStage(button.dataset.saStage));
     });
@@ -1244,6 +1978,11 @@ const clientText = isZh
       });
     });
     document.addEventListener("click", (event) => {
+      const flowStep = event.target.closest("[data-sa-flow-step]");
+      if (flowStep) {
+        applyFlowStep(Number(flowStep.dataset.saFlowStep));
+        return;
+      }
       const pick = event.target.closest("[data-sa-pick-start]");
       if (pick) {
         activateStart(Number(pick.dataset.saPickStart));
@@ -1261,7 +2000,6 @@ const clientText = isZh
     });
 
     runVisualization();
-    setStage("concept");
   </script>
 
   <style is:global>
@@ -1493,6 +2231,7 @@ const clientText = isZh
 
     .sa-toolbar button,
     .sa-stage-tabs button,
+    .sa-flow-actions button,
     .sa-suffix-picker button,
     .sa-quiz-choices button {
       border: 1px solid var(--color-border);
@@ -1510,6 +2249,7 @@ const clientText = isZh
     .sa-toolbar button:hover,
     .sa-stage-tabs button:hover,
     .sa-stage-tabs button.is-active,
+    .sa-flow-actions button:hover,
     .sa-suffix-picker button:hover,
     .sa-suffix-picker button.is-active,
     .sa-quiz-choices button:hover,
@@ -1532,6 +2272,159 @@ const clientText = isZh
       font-size: 0.76rem;
       line-height: 1.36;
       padding: 0.52rem 0.64rem;
+    }
+
+    .sa-flow-card {
+      display: grid;
+      min-width: 0;
+      gap: 0.5rem;
+      border: 1px solid var(--sa-line);
+      border-radius: 0.5rem;
+      background: linear-gradient(
+        135deg,
+        rgb(255 255 255 / 36%),
+        rgb(217 119 87 / 7%)
+      );
+      padding: 0.68rem;
+    }
+
+    .sa-flow-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.7rem;
+      align-items: start;
+    }
+
+    .sa-flow-head h2 {
+      margin: 0;
+      color: var(--color-charcoal);
+      font-size: 1.08rem;
+      line-height: 1.22;
+    }
+
+    .sa-flow-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.32rem;
+      white-space: nowrap;
+    }
+
+    .sa-flow-actions span {
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .sa-flow-actions button:disabled {
+      cursor: not-allowed;
+      opacity: 0.42;
+    }
+
+    .sa-flow-current {
+      display: grid;
+      grid-template-columns:
+        minmax(5.8rem, 0.48fr) minmax(0, 1.18fr)
+        minmax(12rem, 1fr) minmax(10rem, 0.82fr);
+      gap: 0.48rem;
+      align-items: stretch;
+    }
+
+    .sa-flow-current > span,
+    .sa-flow-current > p,
+    .sa-flow-current > div {
+      min-width: 0;
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 34%);
+      padding: 0.46rem 0.52rem;
+    }
+
+    .sa-flow-current > span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-terracotta);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    .sa-flow-current p {
+      margin: 0;
+      color: var(--color-secondary);
+      font-size: 0.76rem;
+      line-height: 1.48;
+    }
+
+    .sa-flow-current strong {
+      display: block;
+      margin: 0 0 0.22rem;
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .sa-flow-code code {
+      display: inline-block;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.68rem;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .sa-flow-rail {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.24rem;
+    }
+
+    .sa-flow-rail button {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 0.26rem;
+      align-items: start;
+      min-width: 0;
+      min-height: 3.1rem;
+      border: 1px solid rgb(194 192 182 / 54%);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 24%);
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      padding: 0.34rem;
+      text-align: left;
+    }
+
+    .sa-flow-rail button:hover,
+    .sa-flow-rail button.is-active {
+      border-color: var(--color-terracotta);
+      background: rgb(217 119 87 / 12%);
+      color: var(--color-charcoal);
+    }
+
+    .sa-flow-rail button.is-complete:not(.is-active) {
+      border-color: rgb(47 125 79 / 30%);
+      background: rgb(47 125 79 / 7%);
+    }
+
+    .sa-flow-rail span {
+      color: var(--color-terracotta);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.62rem;
+      font-weight: 800;
+    }
+
+    .sa-flow-rail strong {
+      overflow: hidden;
+      color: inherit;
+      font-size: 0.62rem;
+      font-weight: 700;
+      line-height: 1.28;
     }
 
     .sa-round-control input {
@@ -1924,6 +2817,41 @@ const clientText = isZh
       font-family: inherit;
     }
 
+    .sa-code-line {
+      display: block;
+      min-height: 1em;
+      border-left: 0.16rem solid transparent;
+      padding: 0 0.42rem;
+      white-space: pre;
+    }
+
+    .sa-code-line.is-active-section {
+      border-left-color: var(--color-terracotta);
+      background: rgb(217 119 87 / 16%);
+    }
+
+    .sa-code-token-keyword {
+      color: #f4a261;
+      font-weight: 800;
+    }
+
+    .sa-code-token-type {
+      color: #8bd3dd;
+      font-weight: 800;
+    }
+
+    .sa-code-token-function {
+      color: #b8e986;
+    }
+
+    .sa-code-token-number {
+      color: #f7d36a;
+    }
+
+    .sa-code-token-string {
+      color: #f7b7a3;
+    }
+
     html.dark .sa-input-group input {
       border-color: #333;
       background: rgb(30 30 28 / 38%);
@@ -1932,9 +2860,31 @@ const clientText = isZh
 
     html.dark .sa-toolbar button,
     html.dark .sa-stage-tabs button,
+    html.dark .sa-flow-actions button,
     html.dark .sa-suffix-picker button,
     html.dark .sa-quiz-choices button {
       border-color: #333;
+      color: var(--color-cream);
+    }
+
+    html.dark .sa-flow-card {
+      background: linear-gradient(
+        135deg,
+        rgb(30 30 28 / 52%),
+        rgb(217 119 87 / 9%)
+      );
+    }
+
+    html.dark .sa-flow-current > span,
+    html.dark .sa-flow-current > p,
+    html.dark .sa-flow-current > div,
+    html.dark .sa-flow-rail button {
+      border-color: #333;
+      background: rgb(255 255 255 / 4%);
+    }
+
+    html.dark .sa-flow-rail button:hover,
+    html.dark .sa-flow-rail button.is-active {
       color: var(--color-cream);
     }
 
@@ -1942,6 +2892,7 @@ const clientText = isZh
     html.dark .sa-teacher-card p:not(.sa-section-kicker),
     html.dark .sa-teacher-card ul,
     html.dark .sa-quiz-card p,
+    html.dark .sa-flow-current p,
     html.dark .sa-sequence-panel p,
     html.dark .sa-result,
     html.dark .sa-table,
@@ -1951,6 +2902,9 @@ const clientText = isZh
     }
 
     html.dark .sa-round-control span,
+    html.dark .sa-flow-head h2,
+    html.dark .sa-flow-actions span,
+    html.dark .sa-flow-code code,
     html.dark .sa-teacher-card h2,
     html.dark .sa-focus-card h2,
     html.dark .sa-quiz-card h2,
@@ -1991,6 +2945,19 @@ const clientText = isZh
         justify-content: flex-start;
       }
 
+      .sa-flow-head,
+      .sa-flow-current {
+        grid-template-columns: 1fr;
+      }
+
+      .sa-flow-actions {
+        justify-content: flex-start;
+      }
+
+      .sa-flow-rail {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .sa-stats,
       .sa-lesson-board,
       .sa-visual-grid,
@@ -2011,6 +2978,10 @@ const clientText = isZh
 
       .sa-active-line,
       .sa-neighbor-row {
+        grid-template-columns: 1fr;
+      }
+
+      .sa-flow-rail {
         grid-template-columns: 1fr;
       }
 
