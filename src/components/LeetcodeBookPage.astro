@@ -10517,32 +10517,26 @@ const shortcutRows = [
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
-      gap: 0.12rem;
+      gap: 0.16rem;
       justify-content: flex-end;
       min-width: 0;
-      border-left: 1px solid rgb(194 192 182 / 55%);
-      padding-left: 0.3rem;
     }
 
     .leetcode-session-actions button {
       min-height: var(--leetcode-toolbar-control-height, 1.52rem);
-      border: 1px solid rgb(194 192 182 / 82%);
-      border-radius: 999px;
-      background: rgb(255 255 255 / 62%);
+      border: 1px solid var(--color-border);
+      border-radius: 0.44rem;
+      background: transparent;
       color: var(--color-secondary);
       cursor: pointer;
       font: inherit;
-      font-size: 0.6rem;
+      font-size: 0.66rem;
       font-weight: 650;
       line-height: 1;
-      padding: 0 0.42rem;
-      box-shadow:
-        0 0.12rem 0.34rem rgb(48 43 36 / 5%),
-        inset 0 1px 0 rgb(255 255 255 / 78%);
+      padding: 0 0.38rem;
       transition:
         border-color 160ms ease,
         background 160ms ease,
-        box-shadow 160ms ease,
         color 160ms ease;
       white-space: nowrap;
     }
@@ -10554,11 +10548,7 @@ const shortcutRows = [
 
     .leetcode-session-actions button.is-on {
       border-color: rgb(217 119 87 / 72%);
-      background: linear-gradient(
-        180deg,
-        rgb(255 246 241 / 96%),
-        rgb(217 119 87 / 14%)
-      );
+      background: rgb(217 119 87 / 10%);
       color: var(--color-terracotta);
     }
 
@@ -10896,29 +10886,18 @@ const shortcutRows = [
     }
 
     .leetcode-toolbar {
-      --leetcode-toolbar-control-height: 1.72rem;
-      display: grid;
-      grid-template-columns: minmax(9rem, 12rem) minmax(0, 1fr) auto;
-      flex-wrap: nowrap;
-      gap: 0.34rem;
+      --leetcode-toolbar-control-height: 1.58rem;
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 0.46rem;
+      row-gap: 0.14rem;
       align-items: center;
-      margin-bottom: 0.32rem;
-      border: 1px solid rgb(194 192 182 / 58%);
-      border-radius: 0.72rem;
-      background: linear-gradient(
-        180deg,
-        rgb(255 255 255 / 74%),
-        rgb(248 244 235 / 58%)
-      );
-      box-shadow:
-        0 0.46rem 1.25rem rgb(48 43 36 / 7%),
-        inset 0 1px 0 rgb(255 255 255 / 82%);
-      padding: 0.26rem;
+      margin-bottom: 0.18rem;
     }
 
     .leetcode-toolbar-utilities {
-      flex: 0 0 auto;
-      justify-self: end;
+      flex: 1 1 100%;
+      margin-left: 0;
       min-width: 0;
       flex-wrap: wrap;
       gap: 0;
@@ -10933,9 +10912,9 @@ const shortcutRows = [
     }
 
     .leetcode-search {
-      flex: 0 0 100%;
+      flex: 0 0 clamp(13rem, 25vw, 20rem);
       grid-template-columns: minmax(0, 1fr);
-      max-width: none;
+      max-width: 20rem;
       min-width: 0;
     }
 
@@ -10952,33 +10931,26 @@ const shortcutRows = [
     .leetcode-page-size select,
     .leetcode-page-size input {
       min-height: var(--leetcode-toolbar-control-height, 1.52rem);
-      border: 1px solid rgb(194 192 182 / 82%);
-      border-radius: 0.58rem;
-      background: rgb(255 255 255 / 70%);
+      border: 1px solid var(--color-border);
+      border-radius: 0.44rem;
+      background: transparent;
       color: inherit;
       font: inherit;
-      font-size: 0.66rem;
+      font-size: 0.68rem;
       line-height: 1;
-      padding: 0 0.46rem;
-      box-shadow:
-        0 0.12rem 0.36rem rgb(48 43 36 / 5%),
-        inset 0 1px 0 rgb(255 255 255 / 80%);
+      padding: 0 0.42rem;
       transition:
-        border-color 160ms ease,
-        box-shadow 160ms ease;
+        border-color 160ms ease;
     }
 
     .leetcode-search input {
       width: 100%;
-      font-size: 0.72rem;
+      font-size: 0.82rem;
     }
 
     .leetcode-search input:focus {
       outline: none;
       border-color: rgb(217 119 87 / 64%);
-      box-shadow:
-        0 0 0 0.16rem rgb(217 119 87 / 12%),
-        inset 0 1px 0 rgb(255 255 255 / 84%);
     }
 
     .leetcode-page-size {
@@ -11004,8 +10976,8 @@ const shortcutRows = [
 
     .leetcode-filter-panel {
       flex: 1 1 auto;
-      flex-wrap: wrap;
-      gap: 0.18rem;
+      flex-wrap: nowrap;
+      gap: 0.38rem;
       justify-content: flex-start;
       min-width: 0;
       padding-top: 0;
@@ -11014,21 +10986,16 @@ const shortcutRows = [
     .leetcode-filter-cluster {
       min-width: 0;
       flex-wrap: nowrap;
-      gap: 0.12rem;
-      border-radius: 999px;
-      background: rgb(255 255 255 / 38%);
-      box-shadow: inset 0 0 0 1px rgb(194 192 182 / 28%);
-      padding: 0.08rem;
+      gap: 0.14rem;
     }
 
     .leetcode-filter-cluster > span {
       color: var(--color-muted);
       font-family: var(--leetcode-page-font);
-      font-size: 0.54rem;
+      font-size: 0.66rem;
       font-weight: 700;
       letter-spacing: 0;
       text-transform: uppercase;
-      padding-left: 0.14rem;
     }
 
     .leetcode-filter-group {
@@ -11053,25 +11020,21 @@ const shortcutRows = [
 
     .leetcode-toolbar .leetcode-filter-group button {
       min-height: var(--leetcode-toolbar-control-height, 1.52rem);
-      border-color: rgb(194 192 182 / 72%);
-      border-radius: 999px;
-      background: rgb(255 255 255 / 64%);
-      font-size: 0.6rem;
+      border-radius: 0.44rem;
+      background: transparent;
+      font-size: 0.7rem;
       font-weight: 650;
       line-height: 1;
-      padding: 0 0.34rem;
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 76%);
+      padding: 0 0.38rem;
       transition:
         border-color 160ms ease,
         background 160ms ease,
-        box-shadow 160ms ease,
         color 160ms ease;
       white-space: nowrap;
     }
 
     .leetcode-toolbar .leetcode-filter-group button:hover {
-      border-color: rgb(217 119 87 / 54%);
-      background: rgb(255 249 245 / 86%);
+      border-color: var(--color-terracotta);
       color: var(--color-terracotta);
     }
 
@@ -11084,14 +11047,7 @@ const shortcutRows = [
     }
 
     .leetcode-toolbar .leetcode-filter-group button.is-active {
-      background: linear-gradient(
-        180deg,
-        rgb(255 246 241 / 98%),
-        rgb(217 119 87 / 15%)
-      );
-      box-shadow:
-        0 0.12rem 0.4rem rgb(217 119 87 / 13%),
-        inset 0 1px 0 rgb(255 255 255 / 84%);
+      background: rgb(217 119 87 / 10%);
     }
 
     .leetcode-list-meta {
@@ -12316,40 +12272,15 @@ const shortcutRows = [
       color: var(--color-terracotta);
     }
 
-    html.dark .leetcode-toolbar {
-      border-color: #333;
-      background: linear-gradient(
-        180deg,
-        rgb(28 28 26 / 88%),
-        rgb(18 18 17 / 84%)
-      );
-      box-shadow:
-        0 0.52rem 1.35rem rgb(0 0 0 / 24%),
-        inset 0 1px 0 rgb(255 255 255 / 6%);
-    }
-
-    html.dark .leetcode-toolbar .leetcode-filter-cluster {
-      background: rgb(255 255 255 / 4%);
-      box-shadow: inset 0 0 0 1px rgb(255 255 255 / 7%);
-    }
-
     html.dark .leetcode-search input,
     html.dark .leetcode-toolbar .leetcode-filter-group button,
     html.dark .leetcode-session-actions button {
       border-color: #333;
-      background: rgb(255 255 255 / 5%);
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+      background: transparent;
     }
 
     html.dark .leetcode-search input:focus {
       border-color: rgb(217 119 87 / 58%);
-      box-shadow:
-        0 0 0 0.16rem rgb(217 119 87 / 16%),
-        inset 0 1px 0 rgb(255 255 255 / 8%);
-    }
-
-    html.dark .leetcode-session-actions {
-      border-left-color: #333;
     }
 
     html.dark .leetcode-toolbar .leetcode-filter-group button:hover,
@@ -12362,7 +12293,7 @@ const shortcutRows = [
     html.dark .leetcode-toolbar .leetcode-filter-group button.is-active,
     html.dark .leetcode-session-actions button.is-on {
       border-color: rgb(217 119 87 / 68%);
-      background: rgb(217 119 87 / 16%);
+      background: rgb(217 119 87 / 13%);
       color: #d97757;
     }
 
@@ -12988,18 +12919,26 @@ const shortcutRows = [
 
     @media (max-width: 1180px) {
       .leetcode-toolbar {
-        grid-template-columns: 1fr;
-        align-items: stretch;
+        flex-wrap: wrap;
+        align-items: center;
       }
 
       .leetcode-toolbar-utilities {
-        justify-self: start;
+        margin-left: 0;
+      }
+
+      .leetcode-search,
+      .leetcode-filter-panel {
+        flex: 1 1 100%;
+        max-width: none;
+      }
+
+      .leetcode-filter-panel {
+        flex-wrap: wrap;
       }
 
       .leetcode-session-actions {
         flex-wrap: wrap;
-        border-left: 0;
-        padding-left: 0;
       }
 
       .leetcode-session-board {
