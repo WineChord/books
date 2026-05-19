@@ -1,0 +1,1275 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { lcpBook } from "../book.config";
+import { pageUrl } from "../urls";
+
+interface Props {
+  lang?: "en" | "zh";
+}
+
+const { lang = "zh" } = Astro.props;
+const isZh = lang === "zh";
+const base = import.meta.env.BASE_URL;
+const title = isZh ? lcpBook.zhTitle : lcpBook.title;
+const description = isZh ? lcpBook.zhDescription : lcpBook.description;
+const homePath = isZh ? "lcp/" : "lcp/en";
+const alternatePath = isZh ? "lcp/en" : "lcp/";
+const saPath = isZh ? "sa/" : "sa/en";
+const problemPath = isZh ? "sa/unique-subarray" : "sa/unique-subarray-en";
+const specPath = isZh ? "zh/lcp/spec" : "lcp/spec";
+
+const kasaiCode = `vector<int> buildLCP(string s, vector<int>& sa) {
+    int n = s.size();
+    vector<int> rank(n), lcp(n, 0);
+    for (int i = 0; i < n; i++) rank[sa[i]] = i;
+
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        int p = rank[i];
+        if (p == 0) continue;
+        int j = sa[p - 1];
+        while (i + h < n && j + h < n && s[i + h] == s[j + h]) h++;
+        lcp[p] = h;
+        if (h > 0) h--;
+    }
+    return lcp;
+}`;
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+const highlightedCode = kasaiCode
+  .split("\n")
+  .map((line) => {
+    const highlighted = escapeHtml(line)
+      .replace(/\b(vector|int|for|if|while|return|string)\b/g, '<span class="lcp-code-keyword">$1</span>')
+      .replace(/\b(\d+)\b/g, '<span class="lcp-code-number">$1</span>');
+    return `<span class="lcp-code-line">${highlighted || " "}</span>`;
+  })
+  .join("");
+
+const copy = isZh
+  ? {
+      kicker: "LCP Array Only",
+      hero:
+        "这一页只讲 LCP 本身：排好序的相邻后缀之间，开头到底连续相同了多长；以及 Kasai 为什么能线性扫出来。",
+      alternate: "English",
+      spec: "规格",
+      sa: "回到后缀数组",
+      problem: "看应用题解",
+      inputLabel: "字符串",
+      run: "重建",
+      examples: [
+        ["banana", "banana"],
+        ["abracadabra", "abracadabra"],
+        ["mississippi", "mississippi"],
+      ],
+      stages: {
+        meaning: "含义",
+        adjacent: "相邻",
+        rank: "rank",
+        kasai: "Kasai",
+        result: "结果",
+      },
+      play: "开始播放",
+      pause: "暂停",
+      prev: "上一步",
+      next: "下一步",
+      stepLabel: "步骤",
+      interval: "间隔",
+      ms: "毫秒",
+      speeds: [
+        ["900", "快"],
+        ["1500", "标准"],
+        ["2600", "慢"],
+      ],
+      panels: {
+        suffixes: "相邻后缀",
+        compare: "字符对齐比较",
+        trace: "Kasai 扫描",
+        code: "核心代码",
+        links: "知识互链",
+      },
+      table: {
+        pos: "位置",
+        start: "起点",
+        suffix: "后缀",
+        lcp: "LCP",
+        rank: "rank",
+        h: "h",
+      },
+      links: [
+        [
+          "后缀数组是什么",
+          "LCP 的前提是后缀已经排好；排序本身由后缀数组负责。",
+          saPath,
+        ],
+        [
+          "应用：最短唯一子数组",
+          "应用题会同时用到 SA 的相邻顺序和 LCP 的相似长度。",
+          problemPath,
+        ],
+      ],
+      steps: [
+        {
+          stage: "meaning",
+          title: "先把 LCP 翻译成人话",
+          body: "LCP 是 longest common prefix：两个字符串从开头开始，连续相同了几个字符。",
+          why: "它只关心开头，不关心中间或结尾是否还会再次相同。",
+          activeOrder: 1,
+          trace: 0,
+        },
+        {
+          stage: "meaning",
+          title: "LCP 是长度，不是字符串",
+          body: "如果两个后缀开头都是 ana，那么它们的 LCP 是 3，而不是保存 ana 本身。",
+          why: "算法需要的是相似到哪里；长度足够表达这个边界。",
+          activeOrder: 2,
+          trace: 1,
+        },
+        {
+          stage: "adjacent",
+          title: "为什么放在后缀数组旁边讲",
+          body: "后缀排好序后，长得像的后缀会靠在一起。",
+          why: "如果两个后缀共享很长前缀，中间不可能夹一个前缀完全不同的后缀。",
+          activeOrder: 3,
+          trace: 2,
+        },
+        {
+          stage: "adjacent",
+          title: "lcp[p] 比较哪两个后缀",
+          body: "lcp[p] 比较的是 sa[p] 和 sa[p-1]，也就是排序后第 p 个和左边那个。",
+          why: "LCP 数组按排序位置存，不按原始起点存。",
+          activeOrder: 3,
+          trace: 2,
+        },
+        {
+          stage: "rank",
+          title: "rank 是从起点反查排序位置",
+          body: "rank[i] 告诉我们：起点 i 的后缀，在后缀数组里排第几。",
+          why: "Kasai 按原始起点 i 扫描，却要快速找到它在排序表里的左邻居。",
+          activeOrder: 4,
+          trace: 3,
+        },
+        {
+          stage: "kasai",
+          title: "朴素比较会重复很多工作",
+          body: "每一对相邻后缀都从 0 开始比，最坏会反复走过同一长段字符。",
+          why: "Kasai 的目标就是把这些重复比较省掉。",
+          activeOrder: 2,
+          trace: 1,
+        },
+        {
+          stage: "kasai",
+          title: "h 表示上一次留下来的公共长度",
+          body: "从 i 移到 i+1 时，之前匹配过的公共前缀最多只会少掉第一个字符。",
+          why: "两个后缀都向右移动一格，已经相同的尾部仍然有机会继续相同。",
+          activeOrder: 2,
+          trace: 2,
+        },
+        {
+          stage: "kasai",
+          title: "为什么每轮结束 h--",
+          body: "下一个起点开始时，至少可以继承 h-1 的比较成果。",
+          why: "这让 h 的总增长次数被字符串长度限制住，所以整体是线性的。",
+          activeOrder: 4,
+          trace: 4,
+        },
+        {
+          stage: "result",
+          title: "最终 LCP 表怎么读",
+          body: "每一行的 LCP 都描述当前后缀和上一行后缀的共同前缀长度。",
+          why: "看任意后缀的左邻居用 lcp[p]，右邻居则看 lcp[p+1]。",
+          activeOrder: 1,
+          trace: 5,
+        },
+        {
+          stage: "result",
+          title: "LCP 自己不解决题目",
+          body: "LCP 只是告诉我们相邻后缀相似到哪里；怎样用它，要看具体问题。",
+          why: "这也是为什么本页只讲 LCP 本身，应用题放在单独页面。",
+          activeOrder: 1,
+          trace: 5,
+        },
+      ],
+    }
+  : {
+      kicker: "LCP Array Only",
+      hero:
+        "This page teaches LCP itself: how long adjacent sorted suffixes match from the start, and why Kasai computes those lengths in linear time.",
+      alternate: "中文",
+      spec: "Spec",
+      sa: "Back to suffix arrays",
+      problem: "Problem application",
+      inputLabel: "String",
+      run: "Rebuild",
+      examples: [
+        ["banana", "banana"],
+        ["abracadabra", "abracadabra"],
+        ["mississippi", "mississippi"],
+      ],
+      stages: {
+        meaning: "Meaning",
+        adjacent: "Adjacent",
+        rank: "rank",
+        kasai: "Kasai",
+        result: "Result",
+      },
+      play: "Play",
+      pause: "Pause",
+      prev: "Previous",
+      next: "Next",
+      stepLabel: "Step",
+      interval: "Interval",
+      ms: "ms",
+      speeds: [
+        ["900", "Fast"],
+        ["1500", "Normal"],
+        ["2600", "Slow"],
+      ],
+      panels: {
+        suffixes: "Adjacent suffixes",
+        compare: "Aligned comparison",
+        trace: "Kasai scan",
+        code: "Core code",
+        links: "Knowledge links",
+      },
+      table: {
+        pos: "pos",
+        start: "start",
+        suffix: "suffix",
+        lcp: "LCP",
+        rank: "rank",
+        h: "h",
+      },
+      links: [
+        [
+          "What suffix arrays are",
+          "LCP assumes suffixes are already sorted; suffix arrays do that sorting.",
+          saPath,
+        ],
+        [
+          "Application: shortest unique subarray",
+          "The application uses suffix-array neighbors and LCP lengths together.",
+          problemPath,
+        ],
+      ],
+      steps: [
+        {
+          stage: "meaning",
+          title: "Translate LCP first",
+          body: "LCP means longest common prefix: how many leading characters two strings share.",
+          why: "It only cares about the start, not later matches in the middle.",
+          activeOrder: 1,
+          trace: 0,
+        },
+        {
+          stage: "meaning",
+          title: "LCP is a length, not the text",
+          body: "If two suffixes begin with ana, their LCP is 3; the array stores the boundary.",
+          why: "The algorithm needs to know how far the tie goes, and length is enough.",
+          activeOrder: 2,
+          trace: 1,
+        },
+        {
+          stage: "adjacent",
+          title: "Why LCP sits next to suffix arrays",
+          body: "Once suffixes are sorted, similar suffixes become neighbors.",
+          why: "A suffix with a totally different prefix cannot sit between two suffixes sharing a longer prefix.",
+          activeOrder: 3,
+          trace: 2,
+        },
+        {
+          stage: "adjacent",
+          title: "What lcp[p] compares",
+          body: "lcp[p] compares sa[p] with sa[p-1], the suffix directly to its left.",
+          why: "The LCP array is indexed by sorted position, not original start.",
+          activeOrder: 3,
+          trace: 2,
+        },
+        {
+          stage: "rank",
+          title: "rank maps a start back to sorted position",
+          body: "rank[i] tells where the suffix starting at i appears inside sa.",
+          why: "Kasai scans original starts but needs each suffix's sorted left neighbor.",
+          activeOrder: 4,
+          trace: 3,
+        },
+        {
+          stage: "kasai",
+          title: "Naive comparison repeats work",
+          body: "Restarting from 0 for every adjacent pair can revisit the same long matched region.",
+          why: "Kasai exists to avoid that repeated work.",
+          activeOrder: 2,
+          trace: 1,
+        },
+        {
+          stage: "kasai",
+          title: "h carries the previous shared length",
+          body: "When moving from i to i+1, the previous match can lose at most the first character.",
+          why: "Both suffixes shift right by one, so most of a previous match can still matter.",
+          activeOrder: 2,
+          trace: 2,
+        },
+        {
+          stage: "kasai",
+          title: "Why h decreases after each row",
+          body: "The next start can inherit at least h-1 known matches.",
+          why: "That bounds total growth of h by the string length, making the scan linear.",
+          activeOrder: 4,
+          trace: 4,
+        },
+        {
+          stage: "result",
+          title: "How to read the final table",
+          body: "Each LCP row describes how far the current suffix matches the row above it.",
+          why: "The left neighbor uses lcp[p], while the right neighbor uses lcp[p+1].",
+          activeOrder: 1,
+          trace: 5,
+        },
+        {
+          stage: "result",
+          title: "LCP alone is not the problem solution",
+          body: "LCP only measures neighbor similarity; applications decide how to use that measure.",
+          why: "This page stays focused on LCP itself; the problem application lives separately.",
+          activeOrder: 1,
+          trace: 5,
+        },
+      ],
+    };
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonicalPath={homePath}
+  lang={lang}
+  titleSuffix={title}
+>
+  <main class="lcp-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10">
+    <section class="lcp-hero">
+      <div>
+        <p class="lcp-kicker">{copy.kicker}</p>
+        <h1>{title}</h1>
+        <p>{copy.hero}</p>
+      </div>
+      <nav class="lcp-actions" aria-label={isZh ? "相关链接" : "Related links"}>
+        <a href={pageUrl(base, saPath)}>{copy.sa}</a>
+        <a href={pageUrl(base, problemPath)}>{copy.problem}</a>
+        <a href={pageUrl(base, specPath)}>{copy.spec}</a>
+        <a href={pageUrl(base, alternatePath)}>{copy.alternate}</a>
+      </nav>
+    </section>
+
+    <section class="lcp-workbench">
+      <div class="lcp-toolbar">
+        <label for="lcp-input">{copy.inputLabel}</label>
+        <input id="lcp-input" value="banana" spellcheck="false" />
+        <button type="button" data-lcp-run>{copy.run}</button>
+        <div>
+          {copy.examples.map(([value, label]) => (
+            <button type="button" data-lcp-example={value}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div class="lcp-stage-tabs">
+        {Object.entries(copy.stages).map(([stage, label]) => (
+          <button
+            type="button"
+            data-lcp-stage={stage}
+            class={stage === "meaning" ? "is-active" : ""}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <section class="lcp-stepper">
+        <div class="lcp-stepper-head">
+          <div>
+            <p class="lcp-section-kicker" data-lcp-stage-label></p>
+            <h2 data-lcp-step-title></h2>
+          </div>
+          <div class="lcp-step-actions">
+            <button type="button" data-lcp-prev>{copy.prev}</button>
+            <span data-lcp-step-count></span>
+            <button type="button" data-lcp-next>{copy.next}</button>
+          </div>
+        </div>
+        <div class="lcp-playback">
+          <button type="button" data-lcp-play>{copy.play}</button>
+          <div>
+            {copy.speeds.map(([value, label]) => (
+              <button
+                type="button"
+                data-lcp-speed={value}
+                class={value === "1500" ? "is-active" : ""}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label>
+            <span>{copy.interval}</span>
+            <input
+              type="number"
+              min="300"
+              max="10000"
+              step="100"
+              value="1500"
+              data-lcp-interval
+            />
+            <em>{copy.ms}</em>
+          </label>
+        </div>
+        <div class="lcp-step-body">
+          <p data-lcp-step-body></p>
+          <div>
+            <strong>{isZh ? "为什么" : "Why"}</strong>
+            <p data-lcp-step-why></p>
+          </div>
+        </div>
+        <div class="lcp-step-rail" data-lcp-step-rail></div>
+      </section>
+
+      <section class="lcp-grid">
+        <article class="lcp-panel">
+          <h2>{copy.panels.suffixes}</h2>
+          <div class="lcp-suffix-list" data-lcp-suffixes></div>
+        </article>
+        <article class="lcp-panel">
+          <h2>{copy.panels.compare}</h2>
+          <div class="lcp-compare" data-lcp-compare></div>
+        </article>
+        <article class="lcp-panel lcp-wide">
+          <h2>{copy.panels.trace}</h2>
+          <div class="lcp-table-wrap">
+            <table class="lcp-table">
+              <thead>
+                <tr>
+                  <th>i</th>
+                  <th>{copy.table.rank}</th>
+                  <th>{copy.table.start}</th>
+                  <th>{copy.table.h}</th>
+                  <th>{copy.table.lcp}</th>
+                </tr>
+              </thead>
+              <tbody data-lcp-trace></tbody>
+            </table>
+          </div>
+        </article>
+        <article class="lcp-panel lcp-links">
+          <h2>{copy.panels.links}</h2>
+          {copy.links.map(([linkTitle, body, path]) => (
+            <a href={pageUrl(base, path)}>
+              <strong>{linkTitle}</strong>
+              <span>{body}</span>
+            </a>
+          ))}
+        </article>
+      </section>
+    </section>
+
+    <section class="lcp-code-section">
+      <div>
+        <p class="lcp-section-kicker">C++</p>
+        <h2>{copy.panels.code}</h2>
+        <p>{isZh
+          ? "Kasai 的关键不是 while，而是 h 的复用：每次最多先继承 h-1，再继续向右扩展。"
+          : "The key in Kasai is not the while loop alone; it is reusing h so the next start inherits h-1 before extending."}</p>
+      </div>
+      <pre class="lcp-code"><code set:html={highlightedCode}></code></pre>
+    </section>
+  </main>
+
+  <script
+    type="application/json"
+    id="lcp-copy"
+    set:html={JSON.stringify(copy)}
+  ></script>
+  <script>
+    const copy = JSON.parse(document.getElementById("lcp-copy").textContent);
+    const input = document.getElementById("lcp-input");
+    const runButton = document.querySelector("[data-lcp-run]");
+    const suffixNode = document.querySelector("[data-lcp-suffixes]");
+    const compareNode = document.querySelector("[data-lcp-compare]");
+    const traceNode = document.querySelector("[data-lcp-trace]");
+    const titleNode = document.querySelector("[data-lcp-step-title]");
+    const bodyNode = document.querySelector("[data-lcp-step-body]");
+    const whyNode = document.querySelector("[data-lcp-step-why]");
+    const countNode = document.querySelector("[data-lcp-step-count]");
+    const stageLabelNode = document.querySelector("[data-lcp-stage-label]");
+    const railNode = document.querySelector("[data-lcp-step-rail]");
+    const playButton = document.querySelector("[data-lcp-play]");
+    const intervalInput = document.querySelector("[data-lcp-interval]");
+    const stageButtons = Array.from(document.querySelectorAll("[data-lcp-stage]"));
+    const speedButtons = Array.from(document.querySelectorAll("[data-lcp-speed]"));
+    let state = {
+      activeOrder: 1,
+      data: null,
+      interval: 1500,
+      playing: false,
+      stage: "meaning",
+      step: 0,
+      trace: 0,
+    };
+    let timer = null;
+
+    function cleanText(value) {
+      const trimmed = String(value || "").replace(/\s+/g, "");
+      if (trimmed.length < 2) return "banana";
+      return trimmed.slice(0, 14);
+    }
+
+    function suffix(text, start) {
+      return text.slice(start);
+    }
+
+    function commonPrefix(text, left, right) {
+      let length = 0;
+      while (
+        left + length < text.length &&
+        right + length < text.length &&
+        text[left + length] === text[right + length]
+      ) {
+        length += 1;
+      }
+      return length;
+    }
+
+    function buildData(text) {
+      const sa = Array.from({ length: text.length }, (_, start) => start)
+        .sort((a, b) => suffix(text, a).localeCompare(suffix(text, b)));
+      const rank = Array(text.length);
+      sa.forEach((start, order) => rank[start] = order);
+      const lcp = Array(text.length).fill(0);
+      for (let order = 1; order < sa.length; order += 1) {
+        lcp[order] = commonPrefix(text, sa[order], sa[order - 1]);
+      }
+      let h = 0;
+      const trace = [];
+      for (let start = 0; start < text.length; start += 1) {
+        const order = rank[start];
+        if (order === 0) {
+          trace.push({ hBefore: h, hAfter: h, lcp: 0, order, other: null, start });
+          continue;
+        }
+        const other = sa[order - 1];
+        const hBefore = h;
+        while (
+          start + h < text.length &&
+          other + h < text.length &&
+          text[start + h] === text[other + h]
+        ) {
+          h += 1;
+        }
+        const value = h;
+        if (h > 0) h -= 1;
+        trace.push({ hBefore, hAfter: h, lcp: value, order, other, start });
+      }
+      return { lcp, rank, sa, text, trace };
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function activeStep() {
+      return copy.steps[state.step] || copy.steps[0];
+    }
+
+    function renderSuffixes() {
+      suffixNode.innerHTML = state.data.sa.map((start, order) => `
+        <button
+          type="button"
+          data-lcp-order="${order}"
+          class="${order === state.activeOrder ? "is-active" : ""}"
+        >
+          <span>${order}</span>
+          <strong>${start}</strong>
+          <code>${suffix(state.data.text, start)}</code>
+          <b>${state.data.lcp[order]}</b>
+        </button>
+      `).join("");
+    }
+
+    function tokenRow(start, matchLength) {
+      return [...suffix(state.data.text, start)].map((char, index) => `
+        <span class="${index < matchLength ? "is-match" : ""}">${char}</span>
+      `).join("");
+    }
+
+    function renderCompare() {
+      const order = clamp(state.activeOrder, 1, state.data.sa.length - 1);
+      const start = state.data.sa[order];
+      const previous = state.data.sa[order - 1];
+      const length = state.data.lcp[order];
+      compareNode.innerHTML = `
+        <div><strong>sa[${order - 1}] = ${previous}</strong><p>${tokenRow(previous, length)}</p></div>
+        <div><strong>sa[${order}] = ${start}</strong><p>${tokenRow(start, length)}</p></div>
+        <em>LCP = ${length}</em>
+      `;
+    }
+
+    function renderTrace() {
+      traceNode.innerHTML = state.data.trace.map((row, index) => `
+        <tr class="${index === state.trace ? "is-active" : ""}">
+          <td>${row.start}</td>
+          <td>${row.order}</td>
+          <td>${row.other === null ? "-" : row.other}</td>
+          <td>${row.hBefore} -> ${row.hAfter}</td>
+          <td>${row.lcp}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderStepper() {
+      const step = activeStep();
+      titleNode.textContent = step.title;
+      bodyNode.textContent = step.body;
+      whyNode.textContent = step.why;
+      countNode.textContent = `${copy.stepLabel} ${String(state.step + 1).padStart(2, "0")} / ${String(copy.steps.length).padStart(2, "0")}`;
+      stageLabelNode.textContent = copy.stages[state.stage];
+      railNode.innerHTML = copy.steps.map((item, index) => `
+        <button
+          type="button"
+          data-lcp-step="${index}"
+          class="${index === state.step ? "is-active" : ""} ${
+            index < state.step ? "is-complete" : ""
+          }"
+        >
+          <span>${String(index + 1).padStart(2, "0")}</span>
+          ${item.title}
+        </button>
+      `).join("");
+      stageButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.lcpStage === state.stage);
+      });
+      playButton.textContent = state.playing ? copy.pause : copy.play;
+      playButton.classList.toggle("is-playing", state.playing);
+      intervalInput.value = String(state.interval);
+      speedButtons.forEach((button) => {
+        button.classList.toggle(
+          "is-active",
+          Number(button.dataset.lcpSpeed) === state.interval,
+        );
+      });
+    }
+
+    function renderAll() {
+      renderSuffixes();
+      renderCompare();
+      renderTrace();
+      renderStepper();
+    }
+
+    function applyStep(index) {
+      const stepIndex = clamp(index, 0, copy.steps.length - 1);
+      const step = copy.steps[stepIndex];
+      state.step = stepIndex;
+      state.stage = step.stage;
+      state.activeOrder = clamp(step.activeOrder, 1, state.data.sa.length - 1);
+      state.trace = clamp(step.trace, 0, state.data.trace.length - 1);
+      renderAll();
+    }
+
+    function stopPlayback() {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      state.playing = false;
+      renderStepper();
+    }
+
+    function schedulePlayback() {
+      if (!state.playing) return;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (state.step >= copy.steps.length - 1) {
+          stopPlayback();
+          return;
+        }
+        applyStep(state.step + 1);
+        schedulePlayback();
+      }, state.interval);
+    }
+
+    function startPlayback() {
+      if (state.step >= copy.steps.length - 1) applyStep(0);
+      state.playing = true;
+      renderStepper();
+      schedulePlayback();
+    }
+
+    function setIntervalMs(value) {
+      state.interval = clamp(Number(value) || 1500, 300, 10000);
+      renderStepper();
+      if (state.playing) schedulePlayback();
+    }
+
+    function rebuild() {
+      stopPlayback();
+      const text = cleanText(input.value);
+      input.value = text;
+      state.data = buildData(text);
+      applyStep(0);
+    }
+
+    runButton.addEventListener("click", rebuild);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") rebuild();
+    });
+    document.addEventListener("click", (event) => {
+      const stepButton = event.target.closest("[data-lcp-step]");
+      if (stepButton) {
+        applyStep(Number(stepButton.dataset.lcpStep));
+        return;
+      }
+      const orderButton = event.target.closest("[data-lcp-order]");
+      if (orderButton) {
+        state.activeOrder = Number(orderButton.dataset.lcpOrder);
+        renderAll();
+      }
+    });
+    document.querySelector("[data-lcp-prev]").addEventListener("click", () => {
+      applyStep(state.step - 1);
+    });
+    document.querySelector("[data-lcp-next]").addEventListener("click", () => {
+      applyStep(state.step + 1);
+    });
+    playButton.addEventListener("click", () => {
+      if (state.playing) stopPlayback();
+      else startPlayback();
+    });
+    intervalInput.addEventListener("change", () => {
+      setIntervalMs(intervalInput.value);
+    });
+    speedButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setIntervalMs(button.dataset.lcpSpeed);
+      });
+    });
+    stageButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = copy.steps.findIndex((step) =>
+          step.stage === button.dataset.lcpStage
+        );
+        applyStep(index >= 0 ? index : state.step);
+      });
+    });
+    document.querySelectorAll("[data-lcp-example]").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.dataset.lcpExample;
+        rebuild();
+      });
+    });
+
+    rebuild();
+  </script>
+
+  <style is:global>
+    .lcp-shell {
+      --lcp-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
+        monospace;
+      --lcp-panel: rgb(255 255 255 / 32%);
+      --lcp-soft: rgb(20 20 19 / 3%);
+      --lcp-line: rgb(194 192 182 / 70%);
+      color: var(--color-charcoal);
+      font-family: "PingFang SC", -apple-system, BlinkMacSystemFont,
+        "Helvetica Neue", "Segoe UI", sans-serif;
+    }
+
+    html.dark .lcp-shell {
+      --lcp-panel: rgb(30 30 28 / 46%);
+      --lcp-soft: rgb(255 255 255 / 5%);
+      --lcp-line: #333;
+      color: var(--color-cream);
+    }
+
+    .lcp-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      align-items: end;
+      border-bottom: 1px solid var(--lcp-line);
+      padding: 0.18rem 0 0.5rem;
+    }
+
+    .lcp-kicker,
+    .lcp-section-kicker {
+      margin: 0 0 0.28rem;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .lcp-hero h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2vw, 1.65rem);
+      line-height: 1.1;
+    }
+
+    .lcp-hero p:not(.lcp-kicker) {
+      max-width: 60rem;
+      margin: 0.35rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.76rem;
+      line-height: 1.45;
+    }
+
+    .lcp-actions,
+    .lcp-toolbar,
+    .lcp-stage-tabs,
+    .lcp-step-actions,
+    .lcp-playback,
+    .lcp-toolbar > div,
+    .lcp-playback > div {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .lcp-actions {
+      justify-content: flex-end;
+    }
+
+    .lcp-actions a,
+    .lcp-toolbar button,
+    .lcp-stage-tabs button,
+    .lcp-step-actions button,
+    .lcp-playback button,
+    .lcp-suffix-list button,
+    .lcp-step-rail button {
+      border: 1px solid var(--lcp-line);
+      border-radius: 0.4rem;
+      background: transparent;
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 0.24rem 0.42rem;
+      text-decoration: none;
+    }
+
+    .lcp-actions a:hover,
+    .lcp-toolbar button:hover,
+    .lcp-stage-tabs button:hover,
+    .lcp-stage-tabs button.is-active,
+    .lcp-step-actions button:hover,
+    .lcp-playback button:hover,
+    .lcp-playback button.is-active,
+    .lcp-playback button.is-playing,
+    .lcp-suffix-list button:hover,
+    .lcp-suffix-list button.is-active,
+    .lcp-step-rail button:hover,
+    .lcp-step-rail button.is-active {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .lcp-workbench {
+      display: grid;
+      gap: 0.48rem;
+      margin: 0.6rem 0 1.4rem;
+    }
+
+    .lcp-toolbar,
+    .lcp-stage-tabs,
+    .lcp-stepper,
+    .lcp-panel,
+    .lcp-code-section {
+      border: 1px solid var(--lcp-line);
+      border-radius: 0.52rem;
+      background: var(--lcp-panel);
+    }
+
+    .lcp-toolbar,
+    .lcp-stage-tabs,
+    .lcp-stepper,
+    .lcp-panel,
+    .lcp-code-section {
+      padding: 0.64rem;
+    }
+
+    .lcp-toolbar label,
+    .lcp-playback label span,
+    .lcp-playback label em {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-style: normal;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .lcp-toolbar input,
+    .lcp-playback input {
+      border: 1px solid var(--lcp-line);
+      border-radius: 0.4rem;
+      background: rgb(255 255 255 / 52%);
+      color: var(--color-charcoal);
+      font-family: var(--lcp-code-font);
+      font-size: 0.74rem;
+      padding: 0.28rem 0.42rem;
+    }
+
+    .lcp-toolbar input {
+      min-width: 9rem;
+      flex: 1 1 14rem;
+    }
+
+    .lcp-stepper {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .lcp-stepper-head,
+    .lcp-step-body,
+    .lcp-code-section {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.7rem;
+      align-items: start;
+    }
+
+    .lcp-stepper h2,
+    .lcp-panel h2,
+    .lcp-code-section h2 {
+      margin: 0;
+      color: var(--color-charcoal);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .lcp-step-actions span {
+      font-family: var(--lcp-code-font);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .lcp-playback {
+      border: 1px solid rgb(194 192 182 / 44%);
+      border-radius: 0.44rem;
+      background: var(--lcp-soft);
+      padding: 0.34rem;
+    }
+
+    .lcp-playback label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-left: auto;
+    }
+
+    .lcp-playback input {
+      width: 5rem;
+    }
+
+    .lcp-step-body {
+      grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.8fr);
+    }
+
+    .lcp-step-body > p,
+    .lcp-step-body > div {
+      min-width: 0;
+      margin: 0;
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.44rem;
+      background: rgb(255 255 255 / 28%);
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+      line-height: 1.52;
+      padding: 0.54rem;
+    }
+
+    .lcp-step-body strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      text-transform: uppercase;
+    }
+
+    .lcp-step-body p {
+      margin: 0;
+    }
+
+    .lcp-step-rail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.24rem;
+    }
+
+    .lcp-step-rail button {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 0.24rem;
+      min-height: 2.8rem;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .lcp-step-rail button.is-complete:not(.is-active) {
+      border-color: rgb(47 125 79 / 30%);
+      background: rgb(47 125 79 / 7%);
+    }
+
+    .lcp-step-rail span {
+      color: var(--color-terracotta);
+      font-family: var(--lcp-code-font);
+    }
+
+    .lcp-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.48rem;
+    }
+
+    .lcp-wide {
+      grid-column: span 2;
+    }
+
+    .lcp-suffix-list {
+      display: grid;
+      gap: 0.24rem;
+    }
+
+    .lcp-suffix-list button {
+      display: grid;
+      grid-template-columns: 2rem 2rem minmax(0, 1fr) 2rem;
+      align-items: center;
+      text-align: left;
+    }
+
+    .lcp-suffix-list span {
+      color: var(--color-muted);
+      font-family: var(--lcp-code-font);
+      font-size: 0.56rem;
+    }
+
+    .lcp-suffix-list code,
+    .lcp-table code {
+      font-family: var(--lcp-code-font);
+      font-size: 0.72rem;
+    }
+
+    .lcp-suffix-list b {
+      color: var(--color-terracotta);
+      font-family: var(--lcp-code-font);
+      font-size: 0.7rem;
+    }
+
+    .lcp-compare {
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .lcp-compare div {
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.44rem;
+      padding: 0.45rem;
+    }
+
+    .lcp-compare strong {
+      color: var(--color-muted);
+      font-family: var(--lcp-code-font);
+      font-size: 0.66rem;
+    }
+
+    .lcp-compare p {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.2rem;
+      margin: 0.32rem 0 0;
+    }
+
+    .lcp-compare span {
+      display: inline-flex;
+      min-width: 1.55rem;
+      min-height: 1.55rem;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgb(35 120 147 / 34%);
+      border-radius: 0.34rem;
+      color: #237893;
+      font-family: var(--lcp-code-font);
+      font-weight: 800;
+    }
+
+    .lcp-compare span.is-match {
+      border-color: rgb(47 125 79 / 44%);
+      background: rgb(47 125 79 / 10%);
+      color: #2f7d4f;
+    }
+
+    .lcp-compare em {
+      color: var(--color-charcoal);
+      font-family: var(--lcp-code-font);
+      font-style: normal;
+      font-weight: 800;
+    }
+
+    .lcp-table-wrap {
+      overflow: auto;
+    }
+
+    .lcp-table {
+      width: 100%;
+      border-collapse: collapse;
+      color: var(--color-secondary);
+      font-size: 0.7rem;
+    }
+
+    .lcp-table th,
+    .lcp-table td {
+      border-bottom: 1px solid rgb(194 192 182 / 42%);
+      padding: 0.34rem 0.28rem;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .lcp-table th {
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      text-transform: uppercase;
+    }
+
+    .lcp-table tr.is-active {
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-charcoal);
+    }
+
+    .lcp-links {
+      display: grid;
+      gap: 0.34rem;
+    }
+
+    .lcp-links a {
+      display: grid;
+      gap: 0.16rem;
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.44rem;
+      padding: 0.48rem;
+      text-decoration: none;
+    }
+
+    .lcp-links strong {
+      color: var(--color-charcoal);
+      font-size: 0.78rem;
+    }
+
+    .lcp-links span {
+      color: var(--color-secondary);
+      font-size: 0.7rem;
+      line-height: 1.45;
+    }
+
+    .lcp-code-section {
+      grid-template-columns: minmax(12rem, 0.72fr) minmax(0, 1.28fr);
+    }
+
+    .lcp-code-section p {
+      margin: 0.4rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+      line-height: 1.52;
+    }
+
+    .lcp-code {
+      overflow: auto;
+      margin: 0;
+      border-radius: 0.44rem;
+      background: rgb(20 20 19 / 94%);
+      color: #f6efe2;
+      font-family: var(--lcp-code-font);
+      font-size: 0.72rem;
+      line-height: 1.44;
+      padding: 0.58rem 0;
+    }
+
+    .lcp-code-line {
+      display: block;
+      min-height: 1em;
+      padding: 0 0.7rem;
+      white-space: pre;
+    }
+
+    .lcp-code-keyword {
+      color: #f4a261;
+      font-weight: 800;
+    }
+
+    .lcp-code-number {
+      color: #f7d36a;
+    }
+
+    html.dark .lcp-hero p:not(.lcp-kicker),
+    html.dark .lcp-step-body > p,
+    html.dark .lcp-step-body > div,
+    html.dark .lcp-table,
+    html.dark .lcp-links span,
+    html.dark .lcp-code-section p {
+      color: var(--color-muted);
+    }
+
+    html.dark .lcp-toolbar input,
+    html.dark .lcp-playback input {
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-cream);
+    }
+
+    html.dark .lcp-stepper h2,
+    html.dark .lcp-panel h2,
+    html.dark .lcp-code-section h2,
+    html.dark .lcp-compare em,
+    html.dark .lcp-table tr.is-active,
+    html.dark .lcp-links strong {
+      color: var(--color-cream);
+    }
+
+    @media (max-width: 900px) {
+      .lcp-hero,
+      .lcp-stepper-head,
+      .lcp-step-body,
+      .lcp-grid,
+      .lcp-code-section {
+        grid-template-columns: 1fr;
+      }
+
+      .lcp-actions {
+        justify-content: flex-start;
+      }
+
+      .lcp-wide {
+        grid-column: auto;
+      }
+
+      .lcp-step-rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .lcp-playback label {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .lcp-step-rail {
+        grid-template-columns: 1fr;
+      }
+
+      .lcp-suffix-list button {
+        grid-template-columns: 1.5rem 1.5rem minmax(0, 1fr) 1.5rem;
+      }
+    }
+  </style>
+</BaseLayout>

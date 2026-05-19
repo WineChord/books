@@ -16,102 +16,57 @@ const description = isZh
   : suffixArrayBook.description;
 const homePath = isZh ? "sa/" : "sa/en";
 const alternatePath = isZh ? "sa/en" : "sa/";
+const lcpPath = isZh ? "lcp/" : "lcp/en";
+const problemPath = isZh ? "sa/unique-subarray" : "sa/unique-subarray-en";
 const specPath = isZh ? "zh/sa/spec" : "sa/spec";
 
-const solutionCode = `class Solution {
-    vector<int> compress(vector<int>& nums) {
-        auto a = nums;
-        sort(a.begin(), a.end());
-        a.erase(unique(a.begin(), a.end()), a.end());
-        vector<int> b;
-        for(auto x: nums) {
-            int id = lower_bound(a.begin(), a.end(), x) - a.begin() + 1;
-            b.push_back(id);
-        }
-        return b;
-    }
-    vector<int> build1(vector<int>& a) {
-        int n = a.size();
-        vector<int> sa(n), rank(n), tmp(n);
-        for(int i = 0; i < n; i++) sa[i] = i, rank[i] = a[i];
-        for(int k = 1; k < n; k <<= 1) {
-            auto cmp = [&](int i, int j) {
-                if(rank[i] != rank[j]) return rank[i] < rank[j];
-                int ri = (i+k < n) ? rank[i+k] : -1;
-                int rj = (j+k < n) ? rank[j+k] : -1;
-                return ri < rj;
-            };
-            sort(sa.begin(), sa.end(), cmp);
-            tmp[sa[0]] = 0;
-            for(int i = 1; i < n; i++) {
-                tmp[sa[i]] = tmp[sa[i-1]];
-                if(cmp(sa[i-1], sa[i])) tmp[sa[i]]++;
-            }
-            for(int i = 0; i < n; i++) rank[i] = tmp[i];
-            if(rank[sa[n-1]] == n-1) break;
-        }
-        return sa;
-    }
-    vector<int> build2(vector<int>& a, vector<int>& sa) {
-        int n = a.size();
-        vector<int> rank(n), lcp(n, 0);
-        for(int i = 0; i < n; i++) rank[sa[i]] = i;
-        int h = 0;
-        for(int i = 0; i < n; i++) {
-            int p = rank[i];
-            if(p == 0) continue;
-            int j = sa[p-1];
-            while(i+h < n && j+h < n && a[i+h] == a[j+h]) h++;
-            lcp[p] = h;
-            if(h > 0) h--;
-        }
-        return lcp;
-    }
-public:
-    int smallestUniqueSubarray(vector<int>& a) {
-        int n = a.size();
-        a = compress(a);
-        auto sa = build1(a);
-        auto lcp = build2(a, sa);
-        vector<int> rank(n);
-        for(int i = 0; i < n; i++) rank[sa[i]] = i;
-        int res = n;
-        for(int i = 0; i < n; i++) {
-            int p = rank[i];
-            int same = 0;
-            if(p > 0) same = max(same, lcp[p]);
-            if(p+1 < n) same = max(same, lcp[p+1]);
-            int need = same + 1;
-            if(need <= n-i) res = min(res, need);
-        }
-        return res;
-    }
-};`;
+const buildCode = `vector<int> buildSuffixArray(string s) {
+    s += '$';
+    int n = s.size();
+    vector<int> sa(n), cls(n);
 
-const cppKeywords = new Set([
+    vector<pair<char, int>> first(n);
+    for (int i = 0; i < n; i++) first[i] = {s[i], i};
+    sort(first.begin(), first.end());
+    for (int i = 0; i < n; i++) sa[i] = first[i].second;
+    cls[sa[0]] = 0;
+    for (int i = 1; i < n; i++) {
+        cls[sa[i]] = cls[sa[i - 1]];
+        if (first[i].first != first[i - 1].first) cls[sa[i]]++;
+    }
+
+    for (int len = 1; len < n; len <<= 1) {
+        sort(sa.begin(), sa.end(), [&](int a, int b) {
+            if (cls[a] != cls[b]) return cls[a] < cls[b];
+            return cls[(a + len) % n] < cls[(b + len) % n];
+        });
+        vector<int> next(n);
+        next[sa[0]] = 0;
+        for (int i = 1; i < n; i++) {
+            pair<int, int> prev = {
+                cls[sa[i - 1]], cls[(sa[i - 1] + len) % n],
+            };
+            pair<int, int> now = {
+                cls[sa[i]], cls[(sa[i] + len) % n],
+            };
+            next[sa[i]] = next[sa[i - 1]] + (prev != now);
+        }
+        cls = next;
+    }
+    sa.erase(sa.begin());
+    return sa;
+}`;
+
+const keywordSet = new Set([
   "auto",
-  "break",
-  "class",
-  "continue",
+  "char",
   "for",
   "if",
-  "public",
+  "int",
   "return",
-  "while",
-]);
-const cppTypes = new Set(["int", "vector"]);
-const cppFunctions = new Set([
-  "begin",
-  "compress",
-  "end",
-  "erase",
-  "lower_bound",
-  "max",
-  "min",
-  "push_back",
-  "size",
   "sort",
-  "unique",
+  "string",
+  "vector",
 ]);
 
 function escapeHtml(value: string) {
@@ -122,28 +77,20 @@ function escapeHtml(value: string) {
     .replaceAll('"', "&quot;");
 }
 
-function wrapCppToken(kind: string, value: string) {
-  return `<span class="sa-code-token-${kind}">${escapeHtml(value)}</span>`;
-}
-
-function highlightCppLine(line: string) {
-  const tokenPattern = /([A-Za-z_]\w*|\d+|"(?:\\.|[^"\\])*")/g;
-  let cursor = 0;
+function highlightLine(line: string) {
+  const tokenPattern = /([A-Za-z_]\w*|\d+|'[^']*'|"(?:\\.|[^"\\])*")/g;
   let output = "";
+  let cursor = 0;
   for (const match of line.matchAll(tokenPattern)) {
     const value = match[0];
     const index = match.index || 0;
     output += escapeHtml(line.slice(cursor, index));
-    if (cppKeywords.has(value)) {
-      output += wrapCppToken("keyword", value);
-    } else if (cppTypes.has(value)) {
-      output += wrapCppToken("type", value);
-    } else if (cppFunctions.has(value)) {
-      output += wrapCppToken("function", value);
+    if (keywordSet.has(value)) {
+      output += `<span class="sa-code-keyword">${escapeHtml(value)}</span>`;
     } else if (/^\d+$/.test(value)) {
-      output += wrapCppToken("number", value);
-    } else if (value.startsWith('"')) {
-      output += wrapCppToken("string", value);
+      output += `<span class="sa-code-number">${value}</span>`;
+    } else if (value.startsWith("'") || value.startsWith('"')) {
+      output += `<span class="sa-code-string">${escapeHtml(value)}</span>`;
     } else {
       output += escapeHtml(value);
     }
@@ -153,953 +100,330 @@ function highlightCppLine(line: string) {
   return output || " ";
 }
 
-let activeCodeSection = "class";
-const highlightedSolutionCode = solutionCode
+const highlightedCode = buildCode
   .split("\n")
-  .map((line, index) => {
-    if (line.includes("vector<int> compress")) {
-      activeCodeSection = "compress";
-    } else if (line.includes("vector<int> build1")) {
-      activeCodeSection = "build1";
-    } else if (line.includes("vector<int> build2")) {
-      activeCodeSection = "build2";
-    } else if (
-      line.includes("public:") ||
-      line.includes("int smallestUniqueSubarray")
-    ) {
-      activeCodeSection = "smallestUniqueSubarray";
-    }
-    return `<span class="sa-code-line" data-code-section="${activeCodeSection}" data-code-line="${
-      index + 1
-    }">${highlightCppLine(line)}</span>`;
-  })
+  .map((line) => `<span class="sa-code-line">${highlightLine(line)}</span>`)
   .join("");
 
-const pageText = isZh
+const copy = isZh
   ? {
-      kicker: "Suffix Array, LCP, Unique Subarray",
+      kicker: "Suffix Array Only",
       hero:
-        "用一个力扣式数组题把后缀数组讲清楚：先把每个后缀排序，再用 LCP 找出一个起点至少要取多长，才能得到只出现一次的子数组。",
-      primaryAction: "查看规格",
-      alternateAction: "English",
-      coverFooter: "单页交互教材",
-      stats: [
-        ["00", "后缀概念"],
-        ["01", "坐标压缩"],
-        ["02", "倍增排序"],
-        ["03", "Kasai LCP"],
-        ["04", "唯一子数组"],
+        "这一页只讲后缀数组本身：把所有后缀排成字典序，理解 rank 为什么能代表一段前缀，理解倍增为什么每轮只看两个已经知道顺序的块。",
+      alternate: "English",
+      spec: "规格",
+      lcp: "去学 LCP",
+      problem: "看应用题解",
+      inputLabel: "字符串",
+      run: "重建",
+      examples: [
+        ["banana", "banana"],
+        ["abracadabra", "abracadabra"],
+        ["mississippi", "mississippi"],
       ],
-      labTitle: "可视化工作台",
-      inputLabel: "数组",
-      runLabel: "运行",
-      examplesLabel: "样例",
-      roundLabel: "倍增轮次",
-      stageLabels: {
-        concept: "概念",
-        compress: "压缩",
+      stages: {
+        suffix: "后缀",
+        order: "字典序",
+        rank: "rank",
         doubling: "倍增",
-        lcp: "LCP",
-        answer: "答案",
+        result: "结果",
       },
-      introTitle: "为什么子数组可以交给后缀数组",
-      intro:
-        "从位置 i 开始的任何子数组，都是后缀 a[i..] 的一个前缀。题目要找最短的唯一子数组，所以我们只需要知道每个后缀的前缀会和哪些后缀撞车。",
-      codeTitle: "代码分块讲解",
-      proofTitle: "核心结论",
-      proof:
-        "在所有排好序的后缀里，和某个后缀共享最长前缀的竞争者，一定出现在它的左右相邻位置。于是同一起点 i 的最短唯一长度就是 max(left LCP, right LCP) + 1。",
-      complexityTitle: "复杂度",
-      complexity:
-        "这份实现用 sort 做倍增排序，所以构建后缀数组是 O(n log^2 n)，Kasai LCP 是 O(n)，最后扫描答案也是 O(n)。",
-      codeBlocks: [
-        [
-          "compress",
-          "数组里的值可能很大、也可能为负。坐标压缩只保留大小关系和相等关系，让后缀数组处理的是从 1 开始的紧凑整数。",
-        ],
-        [
-          "build1",
-          "倍增算法每轮按二元组 (rank[i], rank[i+k]) 排序。k 从 1、2、4 一直翻倍，意思是先比较长度 k 的前半段，再比较后半段。",
-        ],
-        [
-          "build2",
-          "LCP 数组记录相邻两个后缀的最长公共前缀。Kasai 的 h 每次最多先加后减，总体线性完成。",
-        ],
-        [
-          "smallestUniqueSubarray",
-          "每个起点只看后缀数组中的左右邻居。共同前缀最长值叫 same，长度 same 以内都会和别人重复，same + 1 才可能唯一。",
-        ],
-      ],
-    }
-  : {
-      kicker: "Suffix Array, LCP, Unique Subarray",
-      hero:
-        "A single-page interactive lesson that uses a LeetCode-style array problem to explain suffix arrays, LCP, and the provided C++ solution.",
-      primaryAction: "Read spec",
-      alternateAction: "中文",
-      coverFooter: "Single-page interactive book",
-      stats: [
-        ["00", "Suffix concept"],
-        ["01", "Compression"],
-        ["02", "Doubling sort"],
-        ["03", "Kasai LCP"],
-        ["04", "Unique subarray"],
-      ],
-      labTitle: "Visualization Lab",
-      inputLabel: "Array",
-      runLabel: "Run",
-      examplesLabel: "Examples",
-      roundLabel: "Doubling round",
-      stageLabels: {
-        concept: "Concept",
-        compress: "Compress",
-        doubling: "Doubling",
-        lcp: "LCP",
-        answer: "Answer",
-      },
-      introTitle: "Why Subarrays Become Suffix Prefixes",
-      intro:
-        "Every subarray starting at i is a prefix of the suffix a[i..]. To find the shortest unique subarray, we only need to know how long each suffix keeps tying with other suffixes.",
-      codeTitle: "Code Walkthrough",
-      proofTitle: "Key Fact",
-      proof:
-        "After suffixes are sorted, the suffix that shares the longest prefix with one suffix must be one of its two sorted neighbors. The shortest unique length at start i is therefore max(left LCP, right LCP) + 1.",
-      complexityTitle: "Complexity",
-      complexity:
-        "This implementation uses sort inside doubling, so suffix-array construction is O(n log^2 n). Kasai LCP and the final answer scan are both O(n).",
-      codeBlocks: [
-        [
-          "compress",
-          "Values can be large or negative. Compression preserves ordering and equality while turning the input into a compact 1-based alphabet.",
-        ],
-        [
-          "build1",
-          "The doubling algorithm sorts by the pair (rank[i], rank[i+k]). k doubles from 1 to 2 to 4, comparing the first half and then the second half.",
-        ],
-        [
-          "build2",
-          "The LCP array stores the longest common prefix of adjacent suffixes. Kasai reuses h, so the total work stays linear.",
-        ],
-        [
-          "smallestUniqueSubarray",
-          "Each start only checks its two suffix-array neighbors. Prefixes of length same still repeat; same + 1 is the first candidate unique length.",
-        ],
-      ],
-    };
-
-const clientText = isZh
-  ? {
-      compressed: "压缩后",
-      original: "原数组",
-      sortedValues: "去重排序",
-      pair: "比较键",
-      newRank: "新 rank",
-      lcpWithPrevious: "与上一后缀 LCP",
-      start: "起点",
-      suffix: "后缀",
-      left: "左 LCP",
-      right: "右 LCP",
-      same: "same",
-      need: "need",
-      status: "状态",
-      fits: "可取",
-      tooLong: "超过边界",
-      answerPrefix: "答案",
-      answerMiddle: "来自起点",
-      answerSuffix: "的子数组",
-      noAnswer: "没有可视化数据。",
-      activeStart: "当前起点",
-      activeSuffix: "当前后缀",
-      candidateSubarrays: "它能产生的前缀式子数组",
-      codeBridge: "代码对应",
-      commonPrefix: "共同前缀",
-      chooseStart: "选择起点",
-      neighborCompare: "邻居对比",
-      previousNeighbor: "左邻居",
-      nextNeighbor: "右邻居",
-      noNeighbor: "没有邻居",
-      selfCheck: "自测",
-      correct: "正确",
-      incorrect: "再想一下",
-      flowTitle: "剥丝抽茧流程",
-      previousStep: "上一步",
-      nextStep: "下一步",
-      stepOf: "步骤",
-      whyLabel: "为什么成立",
-      codeFocus: "代码焦点",
-      playLabel: "开始播放",
-      pauseLabel: "暂停",
-      intervalLabel: "间隔",
-      intervalSuffix: "毫秒",
-      speedOptions: [
+      play: "开始播放",
+      pause: "暂停",
+      prev: "上一步",
+      next: "下一步",
+      stepLabel: "步骤",
+      interval: "间隔",
+      ms: "毫秒",
+      speeds: [
         ["900", "快"],
-        ["1600", "标准"],
+        ["1500", "标准"],
         ["2600", "慢"],
       ],
-      flowSteps: [
-        {
-          stage: "concept",
-          title: "先把题目翻译成一句话",
-          body: "我们要找的是：有没有一个从某个位置开始的最短连续片段，只在整个数组里出现一次。",
-          why: "先不急着写算法，先固定“起点”和“长度”这两个变量，问题会变成可以比较的前缀问题。",
-          code: "smallestUniqueSubarray(vector<int>& a)",
-          start: 0,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "选择一个起点，世界先变小",
-          body: "点亮起点 i 后，只看从 i 往右的内容。所有从 i 开始的候选子数组，都藏在这条右延伸的路里。",
-          why: "连续子数组不能跳格子，所以起点一固定，能选择的只剩下“往右拿几个”。",
-          code: "for(int i = 0; i < n; i++)",
-          start: 0,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "后缀就是从起点一路走到底",
-          body: "从位置 i 到数组结尾的整段叫后缀。后缀不是新数组，它只是原数组的一段视角。",
-          why: "后缀把“从 i 开始可能拿到的所有长度”一次性装进同一个对象里。",
-          code: "suffix a[i..]",
-          start: 1,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "子数组其实是后缀的前缀",
-          body: "从 i 开始拿 1 个、2 个、3 个数，都是后缀 a[i..] 的开头一小段。",
-          why: "因此“某个子数组是否重复”，可以改问“某个后缀的前缀是否和别的后缀前缀相同”。",
-          code: "a[i], a[i..i+1], a[i..i+2]",
-          start: 2,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "重复来自两个后缀拥有相同开头",
-          body: "如果两个后缀前 2 个数相同，那么长度 1 和长度 2 的前缀式子数组都会撞车。",
-          why: "唯一性的反面不是“后缀完全相同”，而是“某个前缀长度内相同”。",
-          code: "same = max(left LCP, right LCP)",
-          start: 0,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "compress",
-          title: "先把值域换成小字母表",
-          body: "原数组里的数可能很大，也可能为负。后缀排序只需要知道相等和大小，不需要原值本身。",
-          why: "压缩后比较 1、2、3，和比较原值的先后顺序完全一致。",
-          code: "a = compress(a);",
-          start: 0,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "compress",
-          title: "sort + unique 得到字母表",
-          body: "先复制一份数组，排序后去重，得到所有可能符号的升序表。",
-          why: "升序表的位置天然就是 rank：越小的原值排得越靠前。",
-          code: "sort(a.begin(), a.end()); unique(...)",
-          start: 0,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "compress",
-          title: "lower_bound 给每个值贴编号",
-          body: "每个原值在字母表里找到自己的位置，再加一变成从 1 开始的编号。",
-          why: "相同值会找到同一个位置，不同值会按原来的大小关系排开。",
-          code: "lower_bound(a.begin(), a.end(), x)",
-          start: 2,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "compress",
-          title: "压缩后答案不会变",
-          body: "所有相等关系和大小关系都被保留，所以后缀的字典序比较结果不会被改写。",
-          why: "算法只比较谁相等、谁更小；没有任何地方依赖原始数字的绝对大小。",
-          code: "return b;",
-          start: 3,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "doubling",
-          title: "从 k=1 开始看短块",
-          body: "第一轮只知道单个元素的 rank，于是先比较长度 2 的片段：当前元素和下一个元素。",
-          why: "长比较可以由两个已经知道顺序的短比较拼出来。",
-          code: "for(int k = 1; k < n; k <<= 1)",
-          start: 0,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "二元组是两个已知块",
-          body: "(rank[i], rank[i+k]) 的第一项管前半段，第二项管后半段；越界时用 -1。",
-          why: "字典序比较先看前半段，前半段相同才看后半段。",
-          code: "rank[i], rank[i+k], -1",
-          start: 1,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "按二元组排序所有后缀",
-          body: "把所有起点按照当前二元组排好，临时得到一个新的后缀顺序。",
-          why: "这一轮只承诺区分长度 2k 内能区分的后缀，还不要求一次看完整个后缀。",
-          code: "sort(sa.begin(), sa.end(), cmp);",
-          start: 2,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "相同二元组拿同一个新 rank",
-          body: "排序后从前往后扫，只有当前后缀真的比前一个大时，新 rank 才加一。",
-          why: "二元组相同表示当前长度里仍然看不出差异，必须等待下一轮更长的比较。",
-          code: "if(cmp(sa[i-1], sa[i])) tmp[sa[i]]++;",
-          start: 0,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "k 翻倍，视野翻倍",
-          body: "第二轮 k=2，会比较长度 4 的片段；再下一轮比较长度 8，直到所有 rank 都不同。",
-          why: "每轮都复用上一轮结果，所以不需要从头逐个元素慢慢比较完整后缀。",
-          code: "rank[sa[n-1]] == n-1",
-          start: 3,
-          round: 1,
-          codeSection: "build1",
-        },
-        {
-          stage: "lcp",
-          title: "后缀排好后，相似者会靠近",
-          body: "字典序排序会把开头很像的后缀放在相邻位置，像字典里同前缀的单词会挨在一起。",
-          why: "如果中间夹着一个完全不同开头的后缀，字典序就会被破坏。",
-          code: "auto sa = build1(a);",
-          start: 0,
-          round: 1,
-          codeSection: "build2",
-        },
-        {
-          stage: "lcp",
-          title: "LCP[p] 只记录左边那一对",
-          body: "如果当前后缀在后缀数组中的位置是 p，LCP[p] 比较的是 sa[p] 和 sa[p-1]。",
-          why: "LCP 数组按排序后的位置存，不按原数组起点存。",
-          code: "lcp[p] = h;",
-          start: 2,
-          round: 1,
-          codeSection: "build2",
-        },
-        {
-          stage: "lcp",
-          title: "右邻居藏在 LCP[p+1]",
-          body: "当前后缀和右邻居 sa[p+1] 的共同前缀，存在右邻居那一格的 LCP 里。",
-          why: "因为 LCP[x] 永远描述 sa[x] 和它左边 sa[x-1] 的关系。",
-          code: "if(p+1 < n) same = max(same, lcp[p+1]);",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "lcp",
-          title: "Kasai 的 h 可以复用",
-          body: "从下一个起点继续比较时，前面已经匹配过的高度最多少 1，不必完全清零。",
-          why: "两个后缀同时右移一格，公共前缀也至少少掉开头那一个元素。",
-          code: "if(h > 0) h--;",
-          start: 1,
-          round: 1,
-          codeSection: "build2",
-        },
-        {
-          stage: "answer",
-          title: "同一起点只怕左右两个邻居",
-          body: "排好序后，和当前后缀共享最长前缀的竞争者一定在左右相邻位置。",
-          why: "更远的后缀若有更长共同前缀，就会被这个共同前缀拉到当前后缀旁边。",
-          code: "int p = rank[i];",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "same 是最危险的撞车长度",
-          body: "same 取左右 LCP 的最大值，表示当前起点最长会和别人撞到多远。",
-          why: "长度不超过 same 的候选子数组仍然能在另一个起点找到同样内容。",
-          code: "same = max(same, lcp[p]);",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "need = same + 1",
-          body: "要想唯一，长度必须比所有撞车前缀多拿一个元素。",
-          why: "same 是最后一个还可能重复的长度，same + 1 才是第一个能跳出去的候选长度。",
-          code: "int need = same + 1;",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "need 还必须没有越界",
-          body: "如果从起点 i 到结尾剩下的元素不够 need 个，这个起点就给不出唯一子数组。",
-          why: "子数组必须真实存在，不能拿到数组边界之外。",
-          code: "if(need <= n-i)",
-          start: 3,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "每个起点都独立算一次",
-          body: "算法扫描所有 i，对每个起点都算自己的 left、right、same、need。",
-          why: "答案可能来自任何起点；局部最短不代表全局最短。",
-          code: "for(int i = 0; i < n; i++)",
-          start: 2,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "全局最小 need 就是答案",
-          body: "所有合法 need 里最小的那个，就是整道题要的最短唯一子数组长度。",
-          why: "我们已经证明每个起点的 need 是该起点最短，再取所有起点的最小即可。",
-          code: "res = min(res, need); return res;",
-          start: 4,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
+      panels: {
+        tape: "原字符串",
+        suffixes: "后缀观察台",
+        round: "当前构造轮",
+        why: "为什么",
+        code: "核心代码",
+        links: "知识互链",
+      },
+      table: {
+        order: "#",
+        start: "起点",
+        suffix: "后缀",
+        key: "比较键",
+        rank: "新 rank",
+      },
+      links: [
+        [
+          "LCP 是什么",
+          "后缀数组只负责排序；相邻后缀到底像到哪里，由 LCP 单独讲。",
+          lcpPath,
+        ],
+        [
+          "应用：最短唯一子数组",
+          "这道题会把后缀数组和 LCP 拼起来，但不污染本页的基础概念。",
+          problemPath,
+        ],
       ],
-      stageNotes: {
-        concept: "先把子数组问题翻译成后缀前缀问题：从同一个起点出发，越短的子数组越像这个后缀的短前缀。",
-        compress: "压缩只改变符号编号，不改变任意两个元素的相等关系和大小关系。",
-        doubling: "当前轮按二元组排序；二元组相同的后缀会拿到同一个新 rank。",
-        lcp: "LCP[p] 比较 sa[p] 和 sa[p-1]，所以右邻居要看 LCP[p+1]。",
-        answer: "对每个起点取左右 LCP 的最大值，加一就是首次能避开重复的长度。",
-      },
-      lessons: {
-        concept: {
-          step: "00",
-          title: "先把每个起点变成一个后缀",
-          body: "后缀就是从某个位置开始一直走到结尾的整段。一个从 i 开始的子数组，一定是后缀 a[i..] 的前缀。",
-          bullets: [
-            "点任意起点，下面所有面板都会跟着同一个后缀变化。",
-            "如果两个后缀开头相同，那么这些相同长度内的子数组就会重复。",
-            "后缀数组做的事，就是把所有后缀按字典序排好。",
-          ],
-          code: "smallestUniqueSubarray 里的 for(int i = 0; i < n; i++) 枚举每个起点。",
+      steps: [
+        {
+          stage: "suffix",
+          title: "先问：我们到底要排序什么",
+          body: "后缀数组排序的不是字符本身，而是每一个“从某个位置开始直到结尾”的后缀。",
+          why: "一个字符串有 n 个起点，也就有 n 个后缀；把这些后缀排序后，许多字符串问题会变成相邻关系问题。",
+          active: 0,
+          round: 0,
         },
-        compress: {
-          step: "01",
-          title: "坐标压缩只是在换名字",
-          body: "后缀排序只关心两个值是否相等、谁更小。把原值改成 1、2、3 这样的 rank，不会改变比较结果。",
-          bullets: [
-            "相等的原值会得到相同 rank。",
-            "更小的原值会得到更小 rank。",
-            "压缩后算法不用关心原值有多大或是否为负数。",
-          ],
-          code: "compress 中 sort + unique 建出字母表，lower_bound 找到每个值的 rank。",
+        {
+          stage: "suffix",
+          title: "后缀不是复制出来的新字符串",
+          body: "后缀只需要记住起点。起点 2 的后缀，就是从第 2 个字符一路看到结尾。",
+          why: "只存起点能避免大量复制；后缀数组 sa 保存的正是这些起点。",
+          active: 2,
+          round: 0,
         },
-        doubling: {
-          step: "02",
-          title: "倍增排序每次看两段",
-          body: "第 k 轮已经知道长度 k 的片段顺序，于是用 (rank[i], rank[i+k]) 表示长度 2k 的片段。",
-          bullets: [
-            "第一个 rank 比前半段。",
-            "第二个 rank 比后半段，越界时用 -1。",
-            "二元组一样，说明当前长度内还分不出这两个后缀。",
-          ],
-          code: "build1 里的 cmp 正是在比较 rank[i] 和 rank[i+k]。",
+        {
+          stage: "order",
+          title: "字典序先比较第一个字符",
+          body: "像查字典一样，两个后缀先看第一个字符；不同就立刻决定顺序。",
+          why: "这是后缀数组的排序规则，不是算法技巧。算法只是更快地完成这个排序。",
+          active: 1,
+          round: 0,
         },
-        lcp: {
-          step: "03",
-          title: "LCP 只记录相邻后缀的共同开头",
-          body: "后缀排好序后，长得最像的后缀会靠在一起。LCP[p] 就是 sa[p] 和 sa[p-1] 开头连续相同的长度。",
-          bullets: [
-            "左邻居用 LCP[p]。",
-            "右邻居用 LCP[p+1]。",
-            "公共前缀里的长度都还不是唯一子数组。",
-          ],
-          code: "build2 中 while 循环逐个比较 a[i+h] 和 a[j+h]。",
+        {
+          stage: "order",
+          title: "第一个字符相同，才继续往后看",
+          body: "如果两个后缀都以同一个字符开头，比较会推进到第二个字符、第三个字符。",
+          why: "这也是为什么重复结构会让后缀排序变难：它们一开始看起来很像。",
+          active: 3,
+          round: 0,
         },
-        answer: {
-          step: "04",
-          title: "same + 1 是第一次跳出重复",
-          body: "same 是当前后缀和左右邻居能共享的最长前缀。长度不超过 same 的子数组会重复；再多取一个才可能唯一。",
-          bullets: [
-            "same = max(左 LCP, 右 LCP)。",
-            "need = same + 1。",
-            "如果 need 超出数组边界，这个起点给不出唯一子数组。",
-          ],
-          code: "smallestUniqueSubarray 最后几行计算 same、need 和 res。",
+        {
+          stage: "rank",
+          title: "rank 是“当前看过长度”的名字",
+          body: "第一轮只看 1 个字符，所以相同字符得到同一个 rank，不同字符得到不同 rank。",
+          why: "rank 不是最终答案；它只是把已经比较过的一段前缀压成一个整数标签。",
+          active: 1,
+          round: 0,
         },
-      },
-      checks: {
-        concept: {
-          question: "为什么子数组可以交给后缀数组处理？",
-          choices: [
-            ["因为从同一起点开始的子数组都是该后缀的前缀", true],
-            ["因为所有子数组长度都一样", false],
-            ["因为后缀数组会删除重复元素", false],
-          ],
-          feedback: "关键是“前缀”：从 i 开始拿 1 个、2 个、3 个元素，都在后缀 a[i..] 的开头。",
+        {
+          stage: "rank",
+          title: "相同 rank 表示暂时分不出来",
+          body: "两个后缀如果当前 rank 相同，只能说明目前看的长度内相同，不能说明完整后缀相同。",
+          why: "倍增算法的核心就是：先承认自己只看了一小段，然后逐步扩大视野。",
+          active: 3,
+          round: 0,
         },
-        compress: {
-          question: "坐标压缩为什么不会破坏答案？",
-          choices: [
-            ["因为它保留相等关系和大小关系", true],
-            ["因为它会把数组变短", false],
-            ["因为它只保留最大值", false],
-          ],
-          feedback: "后缀比较只需要知道两个值是否相等、谁更小；压缩后的 rank 正好保留这两件事。",
+        {
+          stage: "doubling",
+          title: "为什么可以每次翻倍",
+          body: "如果已经知道长度 len 的片段排名，那么长度 2len 的片段可以拆成前半段和后半段。",
+          why: "两个整数 rank 就能代表两个半段；比较两个长度 2len 的片段，就变成比较两个二元组。",
+          active: 0,
+          round: 1,
         },
-        doubling: {
-          question: "二元组 (rank[i], rank[i+k]) 表示什么？",
-          choices: [
-            ["长度 2k 片段的前半段和后半段顺序", true],
-            ["两个随机位置", false],
-            ["答案的左右边界", false],
-          ],
-          feedback: "倍增的核心是复用上一轮长度 k 的排序结果，拼出长度 2k 的比较键。",
+        {
+          stage: "doubling",
+          title: "比较键长成这样：(前半段 rank, 后半段 rank)",
+          body: "前半段不同，顺序立即确定；前半段相同，再看后半段。",
+          why: "这完全复刻字典序，只是把一长段字符换成了两个已经知道含义的 rank。",
+          active: 1,
+          round: 1,
         },
-        lcp: {
-          question: "当前后缀的右邻居 LCP 为什么看 LCP[p+1]？",
-          choices: [
-            ["因为 LCP[p+1] 比较 sa[p+1] 和 sa[p]", true],
-            ["因为数组下标必须加一", false],
-            ["因为右邻居总是答案", false],
-          ],
-          feedback: "定义是 LCP[x] 比较 sa[x] 和 sa[x-1]，所以右邻居那一对落在 LCP[p+1]。",
+        {
+          stage: "doubling",
+          title: "排序后重新编号",
+          body: "按二元组排完后，从上到下扫描；相同二元组拿同一个新 rank，不同二元组 rank 加一。",
+          why: "新 rank 表示长度 2len 的片段类别，下一轮又可以把它当作更大块的名字。",
+          active: 2,
+          round: 1,
         },
-        answer: {
-          question: "为什么 need 要等于 same + 1？",
-          choices: [
-            ["长度 same 以内仍会重复，多取一个才跳出重复", true],
-            ["因为数组下标从 1 开始", false],
-            ["因为 LCP 必须加到 n", false],
-          ],
-          feedback: "same 是最大撞车长度。要让当前起点的子数组唯一，必须比所有撞车前缀都长 1。",
+        {
+          stage: "doubling",
+          title: "下一轮视野继续翻倍",
+          body: "len 从 1 到 2，再到 4、8。每一轮都在用旧 rank 构造更长前缀的新 rank。",
+          why: "当 len 覆盖整个字符串后，rank 的顺序就等于完整后缀的字典序。",
+          active: 3,
+          round: 2,
         },
-      },
-      examples: [
-        ["1 2 1 2 3", "尾部唯一"],
-        ["4 4 4 4", "全相同"],
-        ["3 1 3 1 3 2", "交替重复"],
+        {
+          stage: "result",
+          title: "sa[i] 的含义",
+          body: "最终的 sa 是一串起点：sa[0] 是字典序最小后缀的起点，sa[1] 是第二小后缀的起点。",
+          why: "后缀数组不是存排序后的字符串，而是存排序后的起点列表。",
+          active: 0,
+          round: 99,
+        },
+        {
+          stage: "result",
+          title: "为什么这件事有用",
+          body: "排序让相似后缀靠近，后续的查找、重复子串、唯一子串都能利用这种邻近性。",
+          why: "本页到这里为止只负责“排好”。相似到哪里，是 LCP 的任务；怎么用于题目，是应用页的任务。",
+          active: 0,
+          round: 99,
+        },
       ],
     }
   : {
-      compressed: "Compressed",
-      original: "Original",
-      sortedValues: "Sorted unique values",
-      pair: "Sort key",
-      newRank: "New rank",
-      lcpWithPrevious: "LCP with previous",
-      start: "Start",
-      suffix: "Suffix",
-      left: "Left LCP",
-      right: "Right LCP",
-      same: "same",
-      need: "need",
-      status: "State",
-      fits: "fits",
-      tooLong: "too long",
-      answerPrefix: "Answer",
-      answerMiddle: "from start",
-      answerSuffix: "subarray",
-      noAnswer: "No visualization data.",
-      activeStart: "Active start",
-      activeSuffix: "Active suffix",
-      candidateSubarrays: "Prefix subarrays it can produce",
-      codeBridge: "Code bridge",
-      commonPrefix: "Common prefix",
-      chooseStart: "Choose start",
-      neighborCompare: "Neighbor comparison",
-      previousNeighbor: "Previous neighbor",
-      nextNeighbor: "Next neighbor",
-      noNeighbor: "No neighbor",
-      selfCheck: "Self-check",
-      correct: "Correct",
-      incorrect: "Try again",
-      flowTitle: "Step-by-Step Flow",
-      previousStep: "Previous",
-      nextStep: "Next",
-      stepOf: "Step",
-      whyLabel: "Why it works",
-      codeFocus: "Code focus",
-      playLabel: "Play",
-      pauseLabel: "Pause",
-      intervalLabel: "Interval",
-      intervalSuffix: "ms",
-      speedOptions: [
+      kicker: "Suffix Array Only",
+      hero:
+        "This page teaches the suffix array itself: suffixes, lexicographic order, rank classes, and why doubling can compare longer prefixes from two known halves.",
+      alternate: "中文",
+      spec: "Spec",
+      lcp: "Learn LCP",
+      problem: "Problem application",
+      inputLabel: "String",
+      run: "Rebuild",
+      examples: [
+        ["banana", "banana"],
+        ["abracadabra", "abracadabra"],
+        ["mississippi", "mississippi"],
+      ],
+      stages: {
+        suffix: "Suffix",
+        order: "Order",
+        rank: "rank",
+        doubling: "Doubling",
+        result: "Result",
+      },
+      play: "Play",
+      pause: "Pause",
+      prev: "Previous",
+      next: "Next",
+      stepLabel: "Step",
+      interval: "Interval",
+      ms: "ms",
+      speeds: [
         ["900", "Fast"],
-        ["1600", "Normal"],
+        ["1500", "Normal"],
         ["2600", "Slow"],
       ],
-      flowSteps: [
-        {
-          stage: "concept",
-          title: "Translate the task into one sentence",
-          body: "We want the shortest contiguous segment starting somewhere that appears only once in the whole array.",
-          why: "Before writing an algorithm, fix two variables: the start and the length. That turns the task into prefix comparison.",
-          code: "smallestUniqueSubarray(vector<int>& a)",
-          start: 0,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "Pick one start to shrink the world",
-          body: "After start i is chosen, only the values to its right matter. Every candidate from i lives on that same rightward path.",
-          why: "A subarray is contiguous, so once the start is fixed, the only remaining choice is how many items to take.",
-          code: "for(int i = 0; i < n; i++)",
-          start: 0,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "A suffix runs from a start to the end",
-          body: "The segment from position i to the end is a suffix. It is not a new array; it is a view of the original array.",
-          why: "One suffix packages every possible length that begins at the same start.",
-          code: "suffix a[i..]",
-          start: 1,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "A subarray is a prefix of a suffix",
-          body: "Taking 1, 2, or 3 values from i always takes a short prefix of suffix a[i..].",
-          why: "So repeated subarrays can be studied as repeated prefixes of suffixes.",
-          code: "a[i], a[i..i+1], a[i..i+2]",
-          start: 2,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "concept",
-          title: "Repetition comes from shared starts",
-          body: "If two suffixes share their first two values, then prefix lengths 1 and 2 repeat.",
-          why: "Uniqueness fails because of a shared prefix length, not because the whole suffix must be equal.",
-          code: "same = max(left LCP, right LCP)",
-          start: 0,
-          round: 0,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "compress",
-          title: "Rename values into a small alphabet",
-          body: "Input values may be huge or negative. Suffix sorting only needs equality and order, not the original magnitudes.",
-          why: "Comparing ranks 1, 2, and 3 gives the same order as comparing the original values.",
-          code: "a = compress(a);",
-          start: 0,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "compress",
-          title: "sort + unique builds the alphabet",
-          body: "Copy the array, sort it, and remove duplicates to get every symbol in increasing order.",
-          why: "A value's position in this ordered alphabet is exactly its rank.",
-          code: "sort(a.begin(), a.end()); unique(...)",
-          start: 0,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "compress",
-          title: "lower_bound assigns each rank",
-          body: "Each original value finds its position in the alphabet and adds one to become a 1-based rank.",
-          why: "Equal values find the same position; smaller values stay before larger values.",
-          code: "lower_bound(a.begin(), a.end(), x)",
-          start: 2,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "compress",
-          title: "Compression keeps the answer unchanged",
-          body: "All equality and order facts are preserved, so lexicographic suffix comparisons do not change.",
-          why: "The algorithm never uses the absolute magnitude of an original number.",
-          code: "return b;",
-          start: 3,
-          round: 0,
-          codeSection: "compress",
-        },
-        {
-          stage: "doubling",
-          title: "Start at k = 1 with short blocks",
-          body: "At the first round, single-value ranks are known, so compare length-2 pieces: current value and next value.",
-          why: "A longer comparison can be built from two shorter comparisons whose order is already known.",
-          code: "for(int k = 1; k < n; k <<= 1)",
-          start: 0,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "The pair means two known halves",
-          body: "(rank[i], rank[i+k]) describes the first half and second half; past the end uses -1.",
-          why: "Lexicographic order compares the first half first, then the second half only on ties.",
-          code: "rank[i], rank[i+k], -1",
-          start: 1,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "Sort every suffix by the pair",
-          body: "All starts are sorted by the current pair, giving a temporary suffix order for this round.",
-          why: "This round only promises to separate suffixes distinguishable within length 2k.",
-          code: "sort(sa.begin(), sa.end(), cmp);",
-          start: 2,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "Equal pairs receive the same new rank",
-          body: "After sorting, scan left to right. Increase the new rank only when the current suffix is truly greater than the previous one.",
-          why: "An equal pair still cannot be separated at the current length, so the next round must look farther.",
-          code: "if(cmp(sa[i-1], sa[i])) tmp[sa[i]]++;",
-          start: 0,
-          round: 0,
-          codeSection: "build1",
-        },
-        {
-          stage: "doubling",
-          title: "Double k to double the view",
-          body: "The second round uses k=2 and compares length-4 pieces; the next round would compare length 8.",
-          why: "Each round reuses previous ranks instead of comparing whole suffixes from scratch.",
-          code: "rank[sa[n-1]] == n-1",
-          start: 3,
-          round: 1,
-          codeSection: "build1",
-        },
-        {
-          stage: "lcp",
-          title: "Similar suffixes become neighbors",
-          body: "Lexicographic sorting places suffixes with shared starts next to each other, like words with the same prefix in a dictionary.",
-          why: "A very different suffix cannot sit between two suffixes that share a longer prefix without breaking the order.",
-          code: "auto sa = build1(a);",
-          start: 0,
-          round: 1,
-          codeSection: "build2",
-        },
-        {
-          stage: "lcp",
-          title: "LCP[p] records the left pair",
-          body: "If the current suffix is at sorted position p, LCP[p] compares sa[p] with sa[p-1].",
-          why: "The LCP array is indexed by sorted position, not by original start.",
-          code: "lcp[p] = h;",
-          start: 2,
-          round: 1,
-          codeSection: "build2",
-        },
-        {
-          stage: "lcp",
-          title: "The right neighbor lives at LCP[p+1]",
-          body: "The shared prefix with sa[p+1] is stored in the right neighbor's LCP slot.",
-          why: "By definition, LCP[x] always compares sa[x] with the item to its left.",
-          code: "if(p+1 < n) same = max(same, lcp[p+1]);",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "lcp",
-          title: "Kasai reuses h",
-          body: "When moving to the next start, the previously matched height can drop by at most one before comparison continues.",
-          why: "Both suffixes shift one step right, so their shared prefix loses only the first matched value.",
-          code: "if(h > 0) h--;",
-          start: 1,
-          round: 1,
-          codeSection: "build2",
-        },
-        {
-          stage: "answer",
-          title: "Each start only fears two neighbors",
-          body: "After sorting, the suffix with the longest shared prefix must be immediately left or right of the current suffix.",
-          why: "If a farther suffix shared a longer prefix, that common prefix would pull it next to the current suffix.",
-          code: "int p = rank[i];",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "same is the dangerous collision length",
-          body: "same is the larger of the left and right LCP values, meaning how far this start can still collide.",
-          why: "Any candidate length up to same can still be found at another start.",
-          code: "same = max(same, lcp[p]);",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "need = same + 1",
-          body: "To become unique, the candidate must take one more value than every colliding prefix.",
-          why: "same is the last length that may repeat, so same + 1 is the first possible escape.",
-          code: "int need = same + 1;",
-          start: 0,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "need must still fit in the suffix",
-          body: "If fewer than need values remain from start i, that start cannot produce a valid unique subarray.",
-          why: "The subarray must exist inside the array bounds.",
-          code: "if(need <= n-i)",
-          start: 3,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "Try every start independently",
-          body: "The loop computes left, right, same, and need for every possible start i.",
-          why: "The answer may come from any start; the best local answer is not automatically the best global answer.",
-          code: "for(int i = 0; i < n; i++)",
-          start: 2,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
-        {
-          stage: "answer",
-          title: "The smallest valid need is the answer",
-          body: "Among all valid candidates, the minimum need is the shortest unique subarray length.",
-          why: "Each start has already produced its own shortest possible length, so the global minimum solves the task.",
-          code: "res = min(res, need); return res;",
-          start: 4,
-          round: 1,
-          codeSection: "smallestUniqueSubarray",
-        },
+      panels: {
+        tape: "Original string",
+        suffixes: "Suffix lab",
+        round: "Current round",
+        why: "Why",
+        code: "Core code",
+        links: "Knowledge links",
+      },
+      table: {
+        order: "#",
+        start: "start",
+        suffix: "suffix",
+        key: "key",
+        rank: "new rank",
+      },
+      links: [
+        [
+          "What LCP means",
+          "The suffix array only sorts suffixes. LCP explains how far adjacent suffixes match.",
+          lcpPath,
+        ],
+        [
+          "Application: shortest unique subarray",
+          "The problem combines suffix arrays with LCP, but the base ideas stay separate.",
+          problemPath,
+        ],
       ],
-      stageNotes: {
-        concept: "First translate subarrays into suffix prefixes: every subarray starting at i is a short prefix of suffix a[i..].",
-        compress: "Compression only renames symbols; equality and ordering stay the same.",
-        doubling: "This round sorts by a pair. Equal pairs receive the same new rank.",
-        lcp: "LCP[p] compares sa[p] with sa[p-1], so the right neighbor is LCP[p+1].",
-        answer: "For each start, take the larger neighbor LCP and add one.",
-      },
-      lessons: {
-        concept: {
-          step: "00",
-          title: "Turn each start into a suffix",
-          body: "A suffix is the segment from one position to the end. Any subarray starting at i is a prefix of suffix a[i..].",
-          bullets: [
-            "Click any start; every panel follows the same suffix.",
-            "If two suffixes share a prefix, subarrays of those lengths repeat.",
-            "A suffix array sorts all suffixes lexicographically.",
-          ],
-          code: "The for loop in smallestUniqueSubarray enumerates every start i.",
+      steps: [
+        {
+          stage: "suffix",
+          title: "First ask: what are we sorting?",
+          body: "A suffix array sorts every suffix, meaning every segment that starts at one position and runs to the end.",
+          why: "A length-n string has n starts and therefore n suffixes. Sorting them turns many string questions into neighbor questions.",
+          active: 0,
+          round: 0,
         },
-        compress: {
-          step: "01",
-          title: "Compression only renames values",
-          body: "Suffix sorting only needs equality and order. Replacing values with ranks 1, 2, 3 keeps both facts intact.",
-          bullets: [
-            "Equal original values receive equal ranks.",
-            "Smaller original values receive smaller ranks.",
-            "The algorithm no longer cares whether original values are huge or negative.",
-          ],
-          code: "compress builds the alphabet with sort + unique and finds each rank with lower_bound.",
+        {
+          stage: "suffix",
+          title: "A suffix is not copied",
+          body: "A suffix only needs its start. The suffix at start 2 is the view from character 2 to the end.",
+          why: "Keeping starts avoids copying strings; the suffix array stores exactly those starts.",
+          active: 2,
+          round: 0,
         },
-        doubling: {
-          step: "02",
-          title: "Doubling compares two known halves",
-          body: "At round k, the order of length-k pieces is known, so (rank[i], rank[i+k]) describes a length-2k piece.",
-          bullets: [
-            "The first rank compares the first half.",
-            "The second rank compares the next half, or -1 past the end.",
-            "Equal pairs still cannot be separated at this length.",
-          ],
-          code: "The cmp function in build1 compares rank[i] and rank[i+k].",
+        {
+          stage: "order",
+          title: "Lexicographic order checks the first character",
+          body: "Like a dictionary, two suffixes first compare their first character. If it differs, the order is decided.",
+          why: "This is the definition of the order. The algorithm is only a faster way to compute it.",
+          active: 1,
+          round: 0,
         },
-        lcp: {
-          step: "03",
-          title: "LCP records shared starts of neighbors",
-          body: "After sorting, the most similar suffixes sit next to each other. LCP[p] is the shared prefix length of sa[p] and sa[p-1].",
-          bullets: [
-            "The left neighbor uses LCP[p].",
-            "The right neighbor uses LCP[p+1].",
-            "Lengths inside the shared prefix are not unique yet.",
-          ],
-          code: "The while loop in build2 compares a[i+h] with a[j+h].",
+        {
+          stage: "order",
+          title: "On ties, comparison moves right",
+          body: "When two suffixes start with the same character, the comparison moves to the second and third characters.",
+          why: "Repeated structure is exactly what makes suffix sorting non-trivial.",
+          active: 3,
+          round: 0,
         },
-        answer: {
-          step: "04",
-          title: "same + 1 is the first non-repeating length",
-          body: "same is the largest shared prefix with either neighbor. Prefixes up to same repeat; taking one more item is the first unique candidate.",
-          bullets: [
-            "same = max(left LCP, right LCP).",
-            "need = same + 1.",
-            "If need runs past the end, that start cannot produce a unique subarray.",
-          ],
-          code: "The final loop in smallestUniqueSubarray computes same, need, and res.",
+        {
+          stage: "rank",
+          title: "rank names the length seen so far",
+          body: "At the first round, only one character is known, so equal characters get the same rank.",
+          why: "rank is not the final answer. It is a compact label for an already-compared prefix.",
+          active: 1,
+          round: 0,
         },
-      },
-      checks: {
-        concept: {
-          question: "Why can subarrays be studied through suffixes?",
-          choices: [
-            ["Every subarray from one start is a prefix of that suffix", true],
-            ["All subarrays have the same length", false],
-            ["Suffix arrays delete duplicates", false],
-          ],
-          feedback: "The key word is prefix: taking 1, 2, or 3 items from start i all stays at the beginning of suffix a[i..].",
+        {
+          stage: "rank",
+          title: "Equal rank means not separated yet",
+          body: "Equal current ranks mean only that the inspected prefix is equal, not that full suffixes are equal.",
+          why: "Doubling works by honestly tracking how much has been inspected, then expanding that view.",
+          active: 3,
+          round: 0,
         },
-        compress: {
-          question: "Why does compression preserve the answer?",
-          choices: [
-            ["It preserves equality and order", true],
-            ["It makes the array shorter", false],
-            ["It keeps only the maximum value", false],
-          ],
-          feedback: "Suffix comparison only asks whether two values are equal and which one is smaller; ranks preserve exactly that.",
+        {
+          stage: "doubling",
+          title: "Why doubling is possible",
+          body: "If length len pieces are ranked, a length 2len piece is just two known halves.",
+          why: "Two integer ranks can represent those halves, so a long comparison becomes a pair comparison.",
+          active: 0,
+          round: 1,
         },
-        doubling: {
-          question: "What does (rank[i], rank[i+k]) represent?",
-          choices: [
-            ["The order of two halves of a length-2k piece", true],
-            ["Two random positions", false],
-            ["The answer boundaries", false],
-          ],
-          feedback: "Doubling reuses the previous length-k order to compare length-2k pieces.",
+        {
+          stage: "doubling",
+          title: "The key is (left rank, right rank)",
+          body: "If the left rank differs, order is decided; if it ties, compare the right rank.",
+          why: "This is lexicographic order again, with long text replaced by two meaningful ranks.",
+          active: 1,
+          round: 1,
         },
-        lcp: {
-          question: "Why is the right-neighbor LCP stored at LCP[p+1]?",
-          choices: [
-            ["Because LCP[p+1] compares sa[p+1] and sa[p]", true],
-            ["Because every index must add one", false],
-            ["Because the right neighbor is always the answer", false],
-          ],
-          feedback: "By definition, LCP[x] compares sa[x] with sa[x-1]. The pair with the right neighbor is therefore at p+1.",
+        {
+          stage: "doubling",
+          title: "Sort, then re-label",
+          body: "After sorting by pairs, scan from top to bottom. Equal pairs share a new rank; different pairs increment it.",
+          why: "The new rank names a length 2len prefix and becomes the raw material for the next round.",
+          active: 2,
+          round: 1,
         },
-        answer: {
-          question: "Why is need equal to same + 1?",
-          choices: [
-            ["Lengths up to same still repeat; one more escapes", true],
-            ["Because indexes start from 1", false],
-            ["Because LCP must be extended to n", false],
-          ],
-          feedback: "same is the maximum collision length. A unique subarray must be longer than every colliding prefix.",
+        {
+          stage: "doubling",
+          title: "The view keeps doubling",
+          body: "len goes 1, 2, 4, 8. Each round builds larger prefix ranks from previous ranks.",
+          why: "Once len covers the whole string, rank order is full suffix order.",
+          active: 3,
+          round: 2,
         },
-      },
-      examples: [
-        ["1 2 1 2 3", "Unique tail"],
-        ["4 4 4 4", "All equal"],
-        ["3 1 3 1 3 2", "Alternating"],
+        {
+          stage: "result",
+          title: "What sa[i] means",
+          body: "The final sa is a list of starts: sa[0] starts the smallest suffix, sa[1] starts the second smallest suffix.",
+          why: "The suffix array stores sorted starts, not copied suffix strings.",
+          active: 0,
+          round: 99,
+        },
+        {
+          stage: "result",
+          title: "Why this is useful",
+          body: "Sorting makes similar suffixes close, which later supports search, repeated substrings, and uniqueness questions.",
+          why: "This page only sorts. LCP explains how far neighbors match; the application page explains one problem use.",
+          active: 0,
+          round: 99,
+        },
       ],
     };
 ---
@@ -1112,1804 +436,789 @@ const clientText = isZh
   titleSuffix={title}
 >
   <main class="leetcode-shell sa-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10">
-    <section class="leetcode-hero sa-hero">
+    <section class="sa-hero">
       <div>
-        <p class="leetcode-kicker">{pageText.kicker}</p>
-        <h1 class="leetcode-title sa-title">{title}</h1>
-        <p class="leetcode-copy">{pageText.hero}</p>
-        <div class="leetcode-actions">
-          <a href={pageUrl(base, specPath)} class="leetcode-primary-link">
-            {pageText.primaryAction}
-          </a>
-          <a
-            href={pageUrl(base, alternatePath)}
-            class="leetcode-secondary-link"
-          >
-            {pageText.alternateAction}
-          </a>
-        </div>
+        <p class="sa-kicker">{copy.kicker}</p>
+        <h1>{title}</h1>
+        <p>{copy.hero}</p>
       </div>
-      <div class="book-cover" aria-label={`${title} cover`}>
-        <div class="book-cover__kicker">{suffixArrayBook.coverKicker}</div>
-        <div class="book-cover__title" set:html={suffixArrayBook.coverTitle} />
-        <div class="book-cover__footer">{pageText.coverFooter}</div>
-      </div>
+      <nav class="sa-actions" aria-label={isZh ? "相关链接" : "Related links"}>
+        <a href={pageUrl(base, lcpPath)}>{copy.lcp}</a>
+        <a href={pageUrl(base, problemPath)}>{copy.problem}</a>
+        <a href={pageUrl(base, specPath)}>{copy.spec}</a>
+        <a href={pageUrl(base, alternatePath)}>{copy.alternate}</a>
+      </nav>
     </section>
 
-    <section class="sa-stats" aria-label={isZh ? "学习路径" : "Learning path"}>
-      {pageText.stats.map(([number, label]) => (
-        <div>
-          <span>{number}</span>
-          <p>{label}</p>
-        </div>
-      ))}
-    </section>
-
-    <section class="sa-workspace" aria-label={pageText.labTitle}>
+    <section class="sa-workbench">
       <div class="sa-toolbar">
-        <div class="sa-input-group">
-          <label for="sa-input">{pageText.inputLabel}</label>
-          <input
-            id="sa-input"
-            type="text"
-            value="1 2 1 2 3"
-            inputmode="numeric"
-            autocomplete="off"
-          />
-          <button type="button" data-sa-run>{pageText.runLabel}</button>
-        </div>
-        <div class="sa-example-group" aria-label={pageText.examplesLabel}>
-          <span>{pageText.examplesLabel}</span>
-          {clientText.examples.map(([value, label]) => (
+        <label for="sa-input">{copy.inputLabel}</label>
+        <input id="sa-input" value="banana" spellcheck="false" />
+        <button type="button" data-sa-run>{copy.run}</button>
+        <div class="sa-examples">
+          {copy.examples.map(([value, label]) => (
             <button type="button" data-sa-example={value}>{label}</button>
           ))}
         </div>
       </div>
 
-      <div class="sa-stage-tabs" role="tablist" aria-label={pageText.labTitle}>
-        {Object.entries(pageText.stageLabels).map(([stage, label]) => (
+      <div class="sa-stage-tabs">
+        {Object.entries(copy.stages).map(([stage, label]) => (
           <button
             type="button"
-            class={stage === "concept" ? "is-active" : ""}
             data-sa-stage={stage}
+            class={stage === "suffix" ? "is-active" : ""}
           >
             {label}
           </button>
         ))}
       </div>
 
-      <div class="sa-stage-note" data-sa-stage-note>
-        {clientText.stageNotes.concept}
-      </div>
-
-      <section class="sa-flow-card" aria-label={clientText.flowTitle}>
-        <div class="sa-flow-head">
+      <section class="sa-stepper">
+        <div class="sa-stepper-head">
           <div>
-            <p class="sa-section-kicker">{clientText.flowTitle}</p>
-            <h2 data-sa-flow-title></h2>
+            <p class="sa-section-kicker" data-sa-stage-label></p>
+            <h2 data-sa-step-title></h2>
           </div>
-          <div class="sa-flow-actions">
-            <button type="button" data-sa-step-prev>
-              {clientText.previousStep}
-            </button>
+          <div class="sa-step-actions">
+            <button type="button" data-sa-prev>{copy.prev}</button>
             <span data-sa-step-count></span>
-            <button type="button" data-sa-step-next>
-              {clientText.nextStep}
-            </button>
+            <button type="button" data-sa-next>{copy.next}</button>
           </div>
         </div>
-        <div class="sa-playback-panel">
-          <button
-            type="button"
-            class="sa-playback-toggle"
-            data-sa-playback-toggle
-          >
-            {clientText.playLabel}
-          </button>
-          <div class="sa-speed-group" aria-label={clientText.intervalLabel}>
-            {clientText.speedOptions.map(([value, label]) => (
+
+        <div class="sa-playback">
+          <button type="button" data-sa-play>{copy.play}</button>
+          <div>
+            {copy.speeds.map(([value, label]) => (
               <button
                 type="button"
-                class={value === "1600" ? "is-active" : ""}
                 data-sa-speed={value}
+                class={value === "1500" ? "is-active" : ""}
               >
                 {label}
               </button>
             ))}
           </div>
-          <label class="sa-interval-field">
-            <span>{clientText.intervalLabel}</span>
+          <label>
+            <span>{copy.interval}</span>
             <input
               type="number"
               min="300"
               max="10000"
               step="100"
-              value="1600"
-              data-sa-playback-interval
+              value="1500"
+              data-sa-interval
             />
-            <em>{clientText.intervalSuffix}</em>
+            <em>{copy.ms}</em>
           </label>
         </div>
-        <div class="sa-flow-current">
-          <span data-sa-flow-stage></span>
-          <p data-sa-flow-body></p>
+
+        <div class="sa-step-body">
+          <p data-sa-step-body></p>
           <div>
-            <strong>{clientText.whyLabel}</strong>
-            <p data-sa-flow-why></p>
-          </div>
-          <div class="sa-flow-code">
-            <strong>{clientText.codeFocus}</strong>
-            <code data-sa-flow-code></code>
+            <strong>{copy.panels.why}</strong>
+            <p data-sa-step-why></p>
           </div>
         </div>
-        <div class="sa-flow-rail" data-sa-flow-rail></div>
+
+        <div class="sa-step-rail" data-sa-step-rail></div>
       </section>
 
-      <div class="sa-lesson-board">
-        <article class="sa-teacher-card">
-          <p class="sa-section-kicker" data-sa-step-index>00</p>
-          <h2 data-sa-step-title></h2>
-          <p data-sa-step-body></p>
-          <ul data-sa-step-bullets></ul>
-          <div class="sa-code-bridge">
-            <span>{clientText.codeBridge}</span>
-            <strong data-sa-code-bridge></strong>
-          </div>
+      <section class="sa-grid">
+        <article class="sa-panel">
+          <h2>{copy.panels.tape}</h2>
+          <div class="sa-tape" data-sa-tape></div>
         </article>
 
-        <article class="sa-focus-card">
-          <p class="sa-section-kicker">{clientText.activeSuffix}</p>
-          <h2 data-sa-active-title></h2>
-          <div class="sa-active-suffix" data-sa-active-suffix></div>
-          <div class="sa-prefix-list" data-sa-prefix-list></div>
-          <div class="sa-neighbor-box" data-sa-neighbor-box></div>
+        <article class="sa-panel">
+          <h2>{copy.panels.suffixes}</h2>
+          <div class="sa-suffix-list" data-sa-suffixes></div>
         </article>
 
-        <article class="sa-quiz-card">
-          <p class="sa-section-kicker">{clientText.selfCheck}</p>
-          <h2 data-sa-quiz-question></h2>
-          <div class="sa-quiz-choices" data-sa-quiz-choices></div>
-          <p data-sa-quiz-feedback></p>
-        </article>
-      </div>
-
-      <div class="sa-round-control">
-        <label for="sa-round">{pageText.roundLabel}</label>
-        <input id="sa-round" type="range" min="0" max="0" value="0" />
-        <span data-sa-round-label>k = 1</span>
-      </div>
-
-      <div class="sa-visual-grid">
-        <section class="sa-panel sa-sequence-panel">
-          <h2>{pageText.stageLabels.compress}</h2>
-          <div class="sa-array-stack" data-sa-sequence></div>
-          <div class="sa-suffix-picker" data-sa-suffix-picker></div>
-          <p data-sa-compression-summary></p>
-        </section>
-
-        <section class="sa-panel">
-          <h2>{pageText.stageLabels.doubling}</h2>
+        <article class="sa-panel sa-wide">
+          <h2>{copy.panels.round}</h2>
           <div class="sa-table-wrap">
             <table class="sa-table">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>{clientText.start}</th>
-                  <th>{clientText.suffix}</th>
-                  <th>{clientText.pair}</th>
-                  <th>{clientText.newRank}</th>
+                  <th>{copy.table.order}</th>
+                  <th>{copy.table.start}</th>
+                  <th>{copy.table.suffix}</th>
+                  <th>{copy.table.key}</th>
+                  <th>{copy.table.rank}</th>
                 </tr>
               </thead>
-              <tbody data-sa-round-body></tbody>
+              <tbody data-sa-round></tbody>
             </table>
           </div>
-        </section>
+        </article>
 
-        <section class="sa-panel">
-          <h2>{pageText.stageLabels.lcp}</h2>
-          <div class="sa-table-wrap">
-            <table class="sa-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>{clientText.start}</th>
-                  <th>{clientText.suffix}</th>
-                  <th>{clientText.lcpWithPrevious}</th>
-                </tr>
-              </thead>
-              <tbody data-sa-lcp-body></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="sa-panel">
-          <h2>{pageText.stageLabels.answer}</h2>
-          <p class="sa-result" data-sa-result></p>
-          <div class="sa-table-wrap">
-            <table class="sa-table">
-              <thead>
-                <tr>
-                  <th>{clientText.start}</th>
-                  <th>{clientText.left}</th>
-                  <th>{clientText.right}</th>
-                  <th>{clientText.same}</th>
-                  <th>{clientText.need}</th>
-                  <th>{clientText.status}</th>
-                </tr>
-              </thead>
-              <tbody data-sa-answer-body></tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-    </section>
-
-    <section class="sa-explain-grid">
-      <article>
-        <p class="sa-section-kicker">{pageText.kicker}</p>
-        <h2>{pageText.introTitle}</h2>
-        <p>{pageText.intro}</p>
-      </article>
-      <article>
-        <p class="sa-section-kicker">LCP</p>
-        <h2>{pageText.proofTitle}</h2>
-        <p>{pageText.proof}</p>
-      </article>
-      <article>
-        <p class="sa-section-kicker">O(n)</p>
-        <h2>{pageText.complexityTitle}</h2>
-        <p>{pageText.complexity}</p>
-      </article>
+        <article class="sa-panel sa-links">
+          <h2>{copy.panels.links}</h2>
+          {copy.links.map(([linkTitle, body, path]) => (
+            <a href={pageUrl(base, path)}>
+              <strong>{linkTitle}</strong>
+              <span>{body}</span>
+            </a>
+          ))}
+        </article>
+      </section>
     </section>
 
     <section class="sa-code-section">
-      <div class="sa-code-notes">
+      <div>
         <p class="sa-section-kicker">C++</p>
-        <h2>{pageText.codeTitle}</h2>
-        {pageText.codeBlocks.map(([name, body]) => (
-          <details data-code-note={name} open={name === "compress"}>
-            <summary>{name}</summary>
-            <p>{body}</p>
-          </details>
-        ))}
+        <h2>{copy.panels.code}</h2>
+        <p>{isZh
+          ? "这段代码展示倍增构造的骨架。重点不是背模板，而是理解 rank 如何把一段前缀压成可比较的名字。"
+          : "This code shows the doubling skeleton. The point is not memorizing a template, but seeing how ranks name comparable prefixes."}</p>
       </div>
-      <pre class="sa-code-block" data-sa-code-block><code set:html={highlightedSolutionCode}></code></pre>
+      <pre class="sa-code"><code set:html={highlightedCode}></code></pre>
     </section>
   </main>
 
   <script
     type="application/json"
     id="sa-copy"
-    set:html={JSON.stringify({
-      ...clientText,
-      stageLabels: pageText.stageLabels,
-    })}
+    set:html={JSON.stringify(copy)}
   ></script>
   <script>
-    const suffixArrayCopy = JSON.parse(
-      document.getElementById("sa-copy")?.textContent || "{}",
-    );
-    const maxVisualLength = 10;
-    const defaultValues = [1, 2, 1, 2, 3];
-    const inputNode = document.getElementById("sa-input");
+    const copy = JSON.parse(document.getElementById("sa-copy").textContent);
+    const input = document.getElementById("sa-input");
     const runButton = document.querySelector("[data-sa-run]");
-    const sequenceNode = document.querySelector("[data-sa-sequence]");
-    const compressionSummaryNode = document.querySelector(
-      "[data-sa-compression-summary]",
-    );
-    const roundInput = document.getElementById("sa-round");
-    const roundLabel = document.querySelector("[data-sa-round-label]");
-    const roundBody = document.querySelector("[data-sa-round-body]");
-    const lcpBody = document.querySelector("[data-sa-lcp-body]");
-    const answerBody = document.querySelector("[data-sa-answer-body]");
-    const resultNode = document.querySelector("[data-sa-result]");
-    const stageNote = document.querySelector("[data-sa-stage-note]");
-    const suffixPickerNode = document.querySelector("[data-sa-suffix-picker]");
-    const stepPrevButton = document.querySelector("[data-sa-step-prev]");
-    const stepNextButton = document.querySelector("[data-sa-step-next]");
-    const stepCountNode = document.querySelector("[data-sa-step-count]");
-    const flowStageNode = document.querySelector("[data-sa-flow-stage]");
-    const flowTitleNode = document.querySelector("[data-sa-flow-title]");
-    const flowBodyNode = document.querySelector("[data-sa-flow-body]");
-    const flowWhyNode = document.querySelector("[data-sa-flow-why]");
-    const flowCodeNode = document.querySelector("[data-sa-flow-code]");
-    const flowRailNode = document.querySelector("[data-sa-flow-rail]");
-    const playbackToggleButton = document.querySelector(
-      "[data-sa-playback-toggle]",
-    );
-    const playbackIntervalInput = document.querySelector(
-      "[data-sa-playback-interval]",
-    );
-    const speedButtons = Array.from(
-      document.querySelectorAll("[data-sa-speed]"),
-    );
-    const stepIndexNode = document.querySelector("[data-sa-step-index]");
+    const tapeNode = document.querySelector("[data-sa-tape]");
+    const suffixNode = document.querySelector("[data-sa-suffixes]");
+    const roundNode = document.querySelector("[data-sa-round]");
     const stepTitleNode = document.querySelector("[data-sa-step-title]");
     const stepBodyNode = document.querySelector("[data-sa-step-body]");
-    const stepBulletsNode = document.querySelector("[data-sa-step-bullets]");
-    const codeBridgeNode = document.querySelector("[data-sa-code-bridge]");
-    const activeTitleNode = document.querySelector("[data-sa-active-title]");
-    const activeSuffixNode = document.querySelector("[data-sa-active-suffix]");
-    const prefixListNode = document.querySelector("[data-sa-prefix-list]");
-    const neighborBoxNode = document.querySelector("[data-sa-neighbor-box]");
-    const quizQuestionNode = document.querySelector("[data-sa-quiz-question]");
-    const quizChoicesNode = document.querySelector("[data-sa-quiz-choices]");
-    const quizFeedbackNode = document.querySelector("[data-sa-quiz-feedback]");
-    const stageButtons = Array.from(
-      document.querySelectorAll("[data-sa-stage]"),
-    );
-    const exampleButtons = Array.from(
-      document.querySelectorAll("[data-sa-example]"),
-    );
+    const stepWhyNode = document.querySelector("[data-sa-step-why]");
+    const stepCountNode = document.querySelector("[data-sa-step-count]");
+    const stageLabelNode = document.querySelector("[data-sa-stage-label]");
+    const railNode = document.querySelector("[data-sa-step-rail]");
+    const playButton = document.querySelector("[data-sa-play]");
+    const intervalInput = document.querySelector("[data-sa-interval]");
+    const stageButtons = Array.from(document.querySelectorAll("[data-sa-stage]"));
+    const speedButtons = Array.from(document.querySelectorAll("[data-sa-speed]"));
     let state = {
-      activeStart: 0,
+      active: 0,
       data: null,
-      quizChoice: null,
-      roundIndex: 0,
-      stage: "concept",
-      stepIndex: 0,
-      isPlaying: false,
-      playbackInterval: 1600,
+      interval: 1500,
+      playing: false,
+      round: 0,
+      stage: "suffix",
+      step: 0,
     };
-    let playbackTimer = null;
-    let replacePlaybackIntervalOnKey = false;
+    let timer = null;
 
-    function parseValues(raw) {
-      const matches = String(raw || "").match(/-?\d+/g) || [];
-      return matches.slice(0, maxVisualLength).map(Number);
+    function cleanText(value) {
+      const trimmed = String(value || "").replace(/\s+/g, "");
+      return (trimmed || "banana").slice(0, 14);
     }
 
-    function comparePairs(left, right) {
+    function suffixOf(text, start) {
+      return text.slice(start);
+    }
+
+    function keyCompare(left, right) {
       if (left[0] !== right[0]) return left[0] - right[0];
       return left[1] - right[1];
     }
 
-    function compressValues(nums) {
-      const alphabet = [...new Set(nums)].sort((left, right) => left - right);
-      const rankByValue = new Map(
-        alphabet.map((value, index) => [value, index + 1]),
-      );
-      return {
-        alphabet,
-        values: nums.map((value) => rankByValue.get(value)),
-      };
+    function classRows(text) {
+      const chars = [...text];
+      const alphabet = [...new Set(chars)].sort();
+      const rankByChar = new Map(alphabet.map((char, index) => [char, index]));
+      const rows = chars.map((char, start) => ({
+        key: [rankByChar.get(char), -1],
+        newRank: rankByChar.get(char),
+        order: 0,
+        start,
+      }));
+      rows.sort((left, right) => keyCompare(left.key, right.key));
+      rows.forEach((row, order) => row.order = order);
+      return rows;
     }
 
-    function buildSuffixArray(values) {
-      const size = values.length;
-      const sa = Array.from({ length: size }, (_, index) => index);
-      let rank = values.slice();
-      const rounds = [];
-      for (let k = 1; k < size; k <<= 1) {
-        const beforeRank = rank.slice();
-        const pairAt = (index) => [
-          beforeRank[index],
-          index + k < size ? beforeRank[index + k] : -1,
+    function buildData(text) {
+      const n = text.length;
+      const initial = classRows(text);
+      let sa = initial.map((row) => row.start);
+      let rank = Array(n);
+      initial.forEach((row) => rank[row.start] = row.newRank);
+      const rounds = [{
+        label: "1",
+        len: 1,
+        rows: initial,
+        sa: sa.slice(),
+      }];
+      for (let len = 1; len < n; len <<= 1) {
+        const before = rank.slice();
+        const keyAt = (start) => [
+          before[start],
+          start + len < n ? before[start + len] : -1,
         ];
-        sa.sort((left, right) => comparePairs(pairAt(left), pairAt(right)));
-        const tmp = Array(size).fill(0);
-        for (let index = 1; index < size; index += 1) {
-          const previous = sa[index - 1];
-          const current = sa[index];
-          tmp[current] = tmp[previous];
-          if (comparePairs(pairAt(previous), pairAt(current)) < 0) {
-            tmp[current] += 1;
+        sa.sort((left, right) => keyCompare(keyAt(left), keyAt(right)));
+        const next = Array(n).fill(0);
+        for (let i = 1; i < n; i += 1) {
+          next[sa[i]] = next[sa[i - 1]];
+          if (keyCompare(keyAt(sa[i - 1]), keyAt(sa[i])) < 0) {
+            next[sa[i]] += 1;
           }
         }
         rounds.push({
-          beforeRank,
-          k,
+          label: String(len * 2),
+          len: len * 2,
           rows: sa.map((start, order) => ({
-            newRank: tmp[start],
+            key: keyAt(start),
+            newRank: next[start],
             order,
-            pair: pairAt(start),
             start,
           })),
           sa: sa.slice(),
         });
-        rank = tmp;
-        if (rank[sa[size - 1]] === size - 1) break;
+        rank = next;
       }
-      return {
-        rounds,
-        sa,
-      };
+      return { rank, rounds, sa, text };
     }
 
-    function buildLcp(values, sa) {
-      const size = values.length;
-      const rank = Array(size);
-      const lcp = Array(size).fill(0);
-      for (let index = 0; index < size; index += 1) rank[sa[index]] = index;
-      let height = 0;
-      for (let index = 0; index < size; index += 1) {
-        const position = rank[index];
-        if (position === 0) continue;
-        const previousStart = sa[position - 1];
-        while (
-          index + height < size &&
-          previousStart + height < size &&
-          values[index + height] === values[previousStart + height]
-        ) {
-          height += 1;
-        }
-        lcp[position] = height;
-        if (height > 0) height -= 1;
-      }
-      return {
-        lcp,
-        rank,
-      };
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
     }
 
-    function buildAnswer(values, sa, lcp, rank) {
-      const size = values.length;
-      const candidates = [];
-      let best = null;
-      for (let start = 0; start < size; start += 1) {
-        const position = rank[start];
-        const left = position > 0 ? lcp[position] : 0;
-        const right = position + 1 < size ? lcp[position + 1] : 0;
-        const same = Math.max(left, right);
-        const need = same + 1;
-        const fits = need <= size - start;
-        const candidate = { fits, left, need, position, right, same, start };
-        candidates.push(candidate);
-        if (fits && (!best || need < best.need)) best = candidate;
-      }
-      return { best, candidates };
+    function activeStep() {
+      return copy.steps[state.step] || copy.steps[0];
     }
 
-    function buildData(nums) {
-      const compressed = compressValues(nums);
-      const suffixArray = buildSuffixArray(compressed.values);
-      const lcpData = buildLcp(compressed.values, suffixArray.sa);
-      const answer = buildAnswer(
-        compressed.values,
-        suffixArray.sa,
-        lcpData.lcp,
-        lcpData.rank,
-      );
-      return {
-        answer,
-        compressed,
-        lcp: lcpData.lcp,
-        nums,
-        rank: lcpData.rank,
-        rounds: suffixArray.rounds,
-        sa: suffixArray.sa,
-        values: compressed.values,
-      };
+    function activeRound() {
+      const max = state.data.rounds.length - 1;
+      const index = state.round >= 99 ? max : clamp(state.round, 0, max);
+      return state.data.rounds[index];
     }
 
-    function commonPrefixLength(values, leftStart, rightStart) {
-      if (leftStart === null || rightStart === null) return 0;
-      let length = 0;
-      while (
-        leftStart + length < values.length &&
-        rightStart + length < values.length &&
-        values[leftStart + length] === values[rightStart + length]
-      ) {
-        length += 1;
-      }
-      return length;
-    }
-
-    function tokenList(values, activeStart, offset = 0, options = {}) {
-      const matchLength = options.matchLength || 0;
-      const candidateStart = options.candidateStart ?? -1;
-      const candidateLength = options.candidateLength || 0;
-      return values.map((value, index) => {
-        const position = offset + index;
-        const classes = ["sa-token"];
-        if (position === activeStart) classes.push("is-active");
-        if (index < matchLength) classes.push("is-match");
-        if (
-          position >= candidateStart &&
-          position < candidateStart + candidateLength
-        ) {
-          classes.push("is-candidate");
-        }
-        return `<span class="${classes.join(" ")}">${value}</span>`;
-      }).join("");
-    }
-
-    function suffixText(values, start, activeStart, options = {}) {
-      return tokenList(values.slice(start), activeStart, start, options);
-    }
-
-    function renderSuffixPicker(data) {
-      suffixPickerNode.innerHTML = `
-        <span>${suffixArrayCopy.chooseStart}</span>
-        ${data.nums.map((_, start) => `
-          <button
-            type="button"
-            data-sa-pick-start="${start}"
-            class="${start === state.activeStart ? "is-active" : ""}"
-          >
-            ${start}
-          </button>
-        `).join("")}
-      `;
-    }
-
-    function renderSequence(data) {
-      const original = tokenList(data.nums, state.activeStart);
-      const compressed = tokenList(data.values, state.activeStart);
-      sequenceNode.innerHTML = `
-        <div class="sa-array-row">
-          <span>${suffixArrayCopy.original}</span>
-          <div>${original}</div>
-        </div>
-        <div class="sa-array-row">
-          <span>${suffixArrayCopy.compressed}</span>
-          <div>${compressed}</div>
-        </div>
-      `;
-      compressionSummaryNode.textContent = `${suffixArrayCopy.sortedValues}: ${
-        data.compressed.alphabet.join(", ")
-      }`;
-    }
-
-    function renderPrefixList(data) {
-      const start = state.activeStart;
-      const remaining = data.nums.length - start;
-      const limit = Math.min(remaining, 5);
-      const rows = [];
-      for (let length = 1; length <= limit; length += 1) {
-        const values = data.nums.slice(start, start + length);
-        rows.push(`<span>[${values.join(", ")}]</span>`);
-      }
-      if (remaining > limit) rows.push("<em>...</em>");
-      prefixListNode.innerHTML = `
-        <strong>${suffixArrayCopy.candidateSubarrays}</strong>
-        <div>${rows.join("")}</div>
-      `;
-    }
-
-    function renderNeighborRow(data, label, neighborStart, lcpLength) {
-      if (neighborStart === null || neighborStart === undefined) {
-        return `
-          <div class="sa-neighbor-row">
-            <span>${label}</span>
-            <em>${suffixArrayCopy.noNeighbor}</em>
-          </div>
-        `;
-      }
-      return `
-        <div class="sa-neighbor-row" data-sa-start="${neighborStart}">
-          <span>${label}: ${neighborStart}</span>
-          <div>${suffixText(data.values, neighborStart, state.activeStart, {
-            matchLength: lcpLength,
-          })}</div>
-          <b>${suffixArrayCopy.commonPrefix}: ${lcpLength}</b>
-        </div>
-      `;
-    }
-
-    function renderLesson(data) {
-      const lesson = suffixArrayCopy.lessons[state.stage];
-      const check = suffixArrayCopy.checks[state.stage];
-      const start = state.activeStart;
-      const position = data.rank[start];
-      const previousStart = position > 0 ? data.sa[position - 1] : null;
-      const nextStart = position + 1 < data.sa.length
-        ? data.sa[position + 1]
-        : null;
-      const leftLcp = previousStart === null
-        ? 0
-        : commonPrefixLength(data.values, start, previousStart);
-      const rightLcp = nextStart === null
-        ? 0
-        : commonPrefixLength(data.values, start, nextStart);
-      const candidate = data.answer.candidates[start];
-      const candidateLength = candidate?.fits ? candidate.need : 0;
-
-      stepIndexNode.textContent = lesson.step;
-      stepTitleNode.textContent = lesson.title;
-      stepBodyNode.textContent = lesson.body;
-      stepBulletsNode.innerHTML = lesson.bullets.map((item) =>
-        `<li>${item}</li>`
-      ).join("");
-      codeBridgeNode.textContent = lesson.code;
-
-      activeTitleNode.textContent = `${suffixArrayCopy.activeStart} ${start}`;
-      activeSuffixNode.innerHTML = `
-        <div class="sa-active-line">
-          <span>${suffixArrayCopy.original}</span>
-          <div>${suffixText(data.nums, start, start, {
-            candidateStart: start,
-            candidateLength,
-          })}</div>
-        </div>
-        <div class="sa-active-line">
-          <span>${suffixArrayCopy.compressed}</span>
-          <div>${suffixText(data.values, start, start, {
-            candidateStart: start,
-            candidateLength,
-          })}</div>
-        </div>
-      `;
-      renderPrefixList(data);
-      neighborBoxNode.innerHTML = `
-        <strong>${suffixArrayCopy.neighborCompare}</strong>
-        ${renderNeighborRow(
-          data,
-          suffixArrayCopy.previousNeighbor,
-          previousStart,
-          leftLcp,
-        )}
-        <div class="sa-neighbor-row is-current">
-          <span>${suffixArrayCopy.activeSuffix}: ${start}</span>
-          <div>${suffixText(data.values, start, start, {
-            matchLength: Math.max(leftLcp, rightLcp),
-            candidateStart: start,
-            candidateLength,
-          })}</div>
-          <b>${suffixArrayCopy.same}: ${candidate.same}; ${
-            suffixArrayCopy.need
-          }: ${candidate.need}</b>
-        </div>
-        ${renderNeighborRow(
-          data,
-          suffixArrayCopy.nextNeighbor,
-          nextStart,
-          rightLcp,
-        )}
-      `;
-
-      quizQuestionNode.textContent = check.question;
-      quizChoicesNode.innerHTML = check.choices.map((choice, index) => `
+    function renderTape() {
+      tapeNode.innerHTML = [...state.data.text].map((char, index) => `
         <button
           type="button"
-          data-sa-quiz-choice="${index}"
-          class="${state.quizChoice === index ? "is-active" : ""}"
+          data-sa-start="${index}"
+          class="${index === state.active ? "is-active" : ""}"
         >
-          ${choice[0]}
+          <span>${index}</span>
+          <strong>${char}</strong>
         </button>
       `).join("");
-      if (state.quizChoice === null) {
-        quizFeedbackNode.textContent = "";
-      } else {
-        const selected = check.choices[state.quizChoice];
-        const marker = selected[1]
-          ? suffixArrayCopy.correct
-          : suffixArrayCopy.incorrect;
-        quizFeedbackNode.textContent = `${marker}: ${check.feedback}`;
-      }
     }
 
-    function currentRound(data) {
-      if (!data.rounds.length) {
-        return {
-          k: 0,
-          rows: data.sa.map((start, order) => ({
-            newRank: data.values[start],
-            order,
-            pair: [data.values[start], -1],
-            start,
-          })),
-        };
-      }
-      return data.rounds[state.roundIndex] || data.rounds[0];
+    function renderSuffixes() {
+      const round = activeRound();
+      suffixNode.innerHTML = round.sa.map((start, order) => `
+        <button
+          type="button"
+          data-sa-start="${start}"
+          class="${start === state.active ? "is-active" : ""}"
+        >
+          <span>${order}</span>
+          <strong>${start}</strong>
+          <code>${suffixOf(state.data.text, start)}</code>
+        </button>
+      `).join("");
     }
 
-    function renderRound(data) {
-      const round = currentRound(data);
-      roundLabel.textContent = round.k ? `k = ${round.k}` : "n = 1";
-      roundBody.innerHTML = round.rows.map((row) => `
-        <tr data-sa-start="${row.start}" class="${
-          row.start === state.activeStart ? "is-active" : ""
-        }">
+    function renderRound() {
+      const round = activeRound();
+      roundNode.innerHTML = round.rows.map((row) => `
+        <tr
+          data-sa-start="${row.start}"
+          class="${row.start === state.active ? "is-active" : ""}"
+        >
           <td>${row.order}</td>
           <td>${row.start}</td>
-          <td><div class="sa-suffix">${suffixText(
-            data.values,
-            row.start,
-            state.activeStart,
-            {
-              matchLength: row.start === state.activeStart
-                ? Math.max(
-                    data.answer.candidates[row.start]?.left || 0,
-                    data.answer.candidates[row.start]?.right || 0,
-                  )
-                : 0,
-            },
-          )}</div></td>
-          <td>(${row.pair[0]}, ${row.pair[1]})</td>
+          <td><code>${suffixOf(state.data.text, row.start)}</code></td>
+          <td>(${row.key[0]}, ${row.key[1]})</td>
           <td>${row.newRank}</td>
         </tr>
       `).join("");
     }
 
-    function renderLcp(data) {
-      lcpBody.innerHTML = data.sa.map((start, order) => `
-        <tr data-sa-start="${start}" class="${
-          start === state.activeStart ? "is-active" : ""
-        }">
-          <td>${order}</td>
-          <td>${start}</td>
-          <td><div class="sa-suffix">${suffixText(
-            data.values,
-            start,
-            state.activeStart,
-            {
-              matchLength: start === state.activeStart
-                ? data.lcp[order]
-                : 0,
-            },
-          )}</div></td>
-          <td>${data.lcp[order]}</td>
-        </tr>
-      `).join("");
-    }
-
-    function renderAnswer(data) {
-      const best = data.answer.best;
-      if (!best) {
-        resultNode.textContent = suffixArrayCopy.noAnswer;
-      } else {
-        const subarray = data.nums.slice(best.start, best.start + best.need);
-        resultNode.textContent = `${suffixArrayCopy.answerPrefix}: ${
-          best.need
-        }; ${suffixArrayCopy.answerMiddle} ${best.start} ${
-          suffixArrayCopy.answerSuffix
-        } [${subarray.join(", ")}]`;
-      }
-      answerBody.innerHTML = data.answer.candidates.map((row) => `
-        <tr data-sa-start="${row.start}" class="${
-          row.start === state.activeStart ? "is-active" : ""
-        } ${best && row.start === best.start ? "is-best" : ""}">
-          <td>${row.start}</td>
-          <td>${row.left}</td>
-          <td>${row.right}</td>
-          <td>${row.same}</td>
-          <td>${row.need}</td>
-          <td>${row.fits ? suffixArrayCopy.fits : suffixArrayCopy.tooLong}</td>
-        </tr>
-      `).join("");
-    }
-
-    function syncRoundControl(data) {
-      const max = Math.max(0, data.rounds.length - 1);
-      roundInput.max = String(max);
-      roundInput.value = String(Math.min(state.roundIndex, max));
-      roundInput.disabled = data.rounds.length <= 1;
-      state.roundIndex = Number(roundInput.value);
-    }
-
-    function clampNumber(value, min, max) {
-      return Math.min(Math.max(value, min), max);
-    }
-
-    function normalizePlaybackInterval(value) {
-      return clampNumber(Number(value) || 1600, 300, 10000);
-    }
-
-    function intervalFromControlValue(value) {
-      const raw = String(value || "").trim();
-      const current = String(state.playbackInterval);
-      if (raw !== current && raw.includes(current)) {
-        const replaced = raw.replace(current, "");
-        if (replaced) return normalizePlaybackInterval(replaced);
-      }
-      return normalizePlaybackInterval(raw);
-    }
-
-    function currentFlowStep() {
-      return suffixArrayCopy.flowSteps[state.stepIndex] ||
-        suffixArrayCopy.flowSteps[0];
-    }
-
-    function codeSectionForStage(stage) {
-      const map = {
-        answer: "smallestUniqueSubarray",
-        compress: "compress",
-        concept: "smallestUniqueSubarray",
-        doubling: "build1",
-        lcp: "build2",
-      };
-      return map[stage] || "smallestUniqueSubarray";
-    }
-
-    function syncStageUi(nextStage) {
-      stageButtons.forEach((button) => {
-        button.classList.toggle(
-          "is-active",
-          button.dataset.saStage === nextStage,
-        );
-      });
-      stageNote.textContent = suffixArrayCopy.stageNotes[nextStage];
-      document.querySelector(".sa-workspace")?.setAttribute(
-        "data-active-stage",
-        nextStage,
-      );
-    }
-
-    function renderCodeFocus(step) {
-      const section = step?.codeSection || codeSectionForStage(state.stage);
-      document.querySelectorAll("[data-code-section]").forEach((line) => {
-        line.classList.toggle(
-          "is-active-section",
-          line.dataset.codeSection === section,
-        );
-      });
-      document.querySelectorAll("[data-code-note]").forEach((detail) => {
-        detail.open = detail.dataset.codeNote === section;
-      });
-    }
-
-    function renderPlaybackControls() {
-      playbackToggleButton.textContent = state.isPlaying
-        ? suffixArrayCopy.pauseLabel
-        : suffixArrayCopy.playLabel;
-      playbackToggleButton.classList.toggle("is-playing", state.isPlaying);
-      playbackIntervalInput.value = String(state.playbackInterval);
-      speedButtons.forEach((button) => {
-        const value = normalizePlaybackInterval(button.dataset.saSpeed);
-        button.classList.toggle("is-active", value === state.playbackInterval);
-      });
-    }
-
-    function renderFlow() {
-      const steps = suffixArrayCopy.flowSteps || [];
-      const step = currentFlowStep();
-      if (!steps.length || !step) return;
-      const current = String(state.stepIndex + 1).padStart(2, "0");
-      const total = String(steps.length).padStart(2, "0");
-      stepCountNode.textContent = `${suffixArrayCopy.stepOf} ${current} / ${total}`;
-      flowStageNode.textContent = suffixArrayCopy.stageLabels[step.stage];
-      flowTitleNode.textContent = step.title;
-      flowBodyNode.textContent = step.body;
-      flowWhyNode.textContent = step.why;
-      flowCodeNode.textContent = step.code;
-      stepPrevButton.disabled = state.stepIndex === 0;
-      stepNextButton.disabled = state.stepIndex === steps.length - 1;
-      flowRailNode.innerHTML = steps.map((item, index) => `
+    function renderStepper() {
+      const step = activeStep();
+      const total = copy.steps.length;
+      stepTitleNode.textContent = step.title;
+      stepBodyNode.textContent = step.body;
+      stepWhyNode.textContent = step.why;
+      stepCountNode.textContent = `${copy.stepLabel} ${String(state.step + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+      stageLabelNode.textContent = copy.stages[state.stage];
+      railNode.innerHTML = copy.steps.map((item, index) => `
         <button
           type="button"
-          data-sa-flow-step="${index}"
-          class="${
-            index === state.stepIndex ? "is-active" : ""
-          } ${index < state.stepIndex ? "is-complete" : ""}"
+          data-sa-step="${index}"
+          class="${index === state.step ? "is-active" : ""} ${
+            index < state.step ? "is-complete" : ""
+          }"
         >
           <span>${String(index + 1).padStart(2, "0")}</span>
-          <strong>${item.title}</strong>
+          ${item.title}
         </button>
       `).join("");
-      renderCodeFocus(step);
-      renderPlaybackControls();
+      stageButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.saStage === state.stage);
+      });
+      playButton.textContent = state.playing ? copy.pause : copy.play;
+      playButton.classList.toggle("is-playing", state.playing);
+      intervalInput.value = String(state.interval);
+      speedButtons.forEach((button) => {
+        button.classList.toggle(
+          "is-active",
+          Number(button.dataset.saSpeed) === state.interval,
+        );
+      });
     }
 
-    function applyFlowStep(index) {
-      const steps = suffixArrayCopy.flowSteps || [];
-      if (!steps.length) return;
-      const nextIndex = clampNumber(Number(index) || 0, 0, steps.length - 1);
-      const step = steps[nextIndex];
-      state.stepIndex = nextIndex;
-      state.stage = step.stage || state.stage;
-      state.quizChoice = null;
-      if (state.data) {
-        const maxStart = Math.max(0, state.data.nums.length - 1);
-        if (Number.isInteger(step.start)) {
-          state.activeStart = clampNumber(step.start, 0, maxStart);
-        } else {
-          state.activeStart = clampNumber(state.activeStart, 0, maxStart);
-        }
-        const maxRound = Math.max(0, state.data.rounds.length - 1);
-        if (Number.isInteger(step.round)) {
-          state.roundIndex = clampNumber(step.round, 0, maxRound);
-        } else {
-          state.roundIndex = clampNumber(state.roundIndex, 0, maxRound);
-        }
-      }
-      syncStageUi(state.stage);
+    function renderAll() {
+      if (!state.data) return;
+      renderTape();
+      renderSuffixes();
+      renderRound();
+      renderStepper();
+    }
+
+    function applyStep(index) {
+      const stepIndex = clamp(index, 0, copy.steps.length - 1);
+      const step = copy.steps[stepIndex];
+      state.step = stepIndex;
+      state.stage = step.stage;
+      state.active = clamp(step.active, 0, state.data.text.length - 1);
+      state.round = step.round;
       renderAll();
     }
 
     function stopPlayback() {
-      if (playbackTimer !== null) {
-        window.clearTimeout(playbackTimer);
-        playbackTimer = null;
-      }
-      state.isPlaying = false;
-      renderPlaybackControls();
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      state.playing = false;
+      renderStepper();
     }
 
     function schedulePlayback() {
-      if (!state.isPlaying) return;
-      if (playbackTimer !== null) window.clearTimeout(playbackTimer);
-      playbackTimer = window.setTimeout(() => {
-        const lastIndex = suffixArrayCopy.flowSteps.length - 1;
-        if (state.stepIndex >= lastIndex) {
+      if (!state.playing) return;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (state.step >= copy.steps.length - 1) {
           stopPlayback();
           return;
         }
-        applyFlowStep(state.stepIndex + 1);
+        applyStep(state.step + 1);
         schedulePlayback();
-      }, state.playbackInterval);
+      }, state.interval);
     }
 
     function startPlayback() {
-      const lastIndex = suffixArrayCopy.flowSteps.length - 1;
-      if (state.stepIndex >= lastIndex) applyFlowStep(0);
-      state.isPlaying = true;
-      renderPlaybackControls();
+      if (state.step >= copy.steps.length - 1) applyStep(0);
+      state.playing = true;
+      renderStepper();
       schedulePlayback();
     }
 
-    function togglePlayback() {
-      if (state.isPlaying) {
-        stopPlayback();
-        return;
-      }
-      startPlayback();
+    function setIntervalMs(value) {
+      state.interval = clamp(Number(value) || 1500, 300, 10000);
+      renderStepper();
+      if (state.playing) schedulePlayback();
     }
 
-    function setPlaybackInterval(value) {
-      state.playbackInterval = intervalFromControlValue(value);
-      renderPlaybackControls();
-      if (state.isPlaying) schedulePlayback();
-    }
-
-    function setStage(nextStage) {
-      const index = suffixArrayCopy.flowSteps.findIndex((step) =>
-        step.stage === nextStage
-      );
-      applyFlowStep(index >= 0 ? index : state.stepIndex);
-    }
-
-    function renderAll() {
-      const data = state.data;
-      if (!data) return;
-      syncRoundControl(data);
-      renderSuffixPicker(data);
-      renderSequence(data);
-      renderRound(data);
-      renderLcp(data);
-      renderAnswer(data);
-      renderLesson(data);
-      renderFlow();
-    }
-
-    function runVisualization() {
+    function rebuild() {
       stopPlayback();
-      const parsed = parseValues(inputNode.value);
-      const nums = parsed.length ? parsed : defaultValues;
-      if (!parsed.length) inputNode.value = nums.join(" ");
-      state.data = buildData(nums);
-      state.activeStart = 0;
-      state.quizChoice = null;
-      state.roundIndex = 0;
-      applyFlowStep(0);
+      const text = cleanText(input.value);
+      input.value = text;
+      state.data = buildData(text);
+      applyStep(0);
     }
 
-    function activateStart(start) {
-      const maxStart = Math.max(0, state.data.nums.length - 1);
-      state.activeStart = clampNumber(start, 0, maxStart);
-      renderAll();
-    }
-
-    runButton?.addEventListener("click", runVisualization);
-    inputNode?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") runVisualization();
-    });
-    roundInput?.addEventListener("input", () => {
-      state.roundIndex = Number(roundInput.value);
-      renderAll();
-    });
-    playbackToggleButton?.addEventListener("click", togglePlayback);
-    playbackIntervalInput?.addEventListener("focus", () => {
-      replacePlaybackIntervalOnKey = true;
-      playbackIntervalInput.select();
-    });
-    playbackIntervalInput?.addEventListener("keydown", (event) => {
-      if (!replacePlaybackIntervalOnKey) return;
-      if (/^\d$/.test(event.key)) {
-        event.preventDefault();
-        playbackIntervalInput.value = event.key;
-      }
-      replacePlaybackIntervalOnKey = false;
-    });
-    playbackIntervalInput?.addEventListener("change", () => {
-      setPlaybackInterval(playbackIntervalInput.value);
-    });
-    speedButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        setPlaybackInterval(button.dataset.saSpeed);
-      });
-    });
-    stepPrevButton?.addEventListener("click", () => {
-      applyFlowStep(state.stepIndex - 1);
-    });
-    stepNextButton?.addEventListener("click", () => {
-      applyFlowStep(state.stepIndex + 1);
-    });
-    stageButtons.forEach((button) => {
-      button.addEventListener("click", () => setStage(button.dataset.saStage));
-    });
-    exampleButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        inputNode.value = button.dataset.saExample;
-        runVisualization();
-      });
+    runButton.addEventListener("click", rebuild);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") rebuild();
     });
     document.addEventListener("click", (event) => {
-      const flowStep = event.target.closest("[data-sa-flow-step]");
-      if (flowStep) {
-        applyFlowStep(Number(flowStep.dataset.saFlowStep));
+      const stepButton = event.target.closest("[data-sa-step]");
+      if (stepButton) {
+        applyStep(Number(stepButton.dataset.saStep));
         return;
       }
-      const pick = event.target.closest("[data-sa-pick-start]");
-      if (pick) {
-        activateStart(Number(pick.dataset.saPickStart));
-        return;
-      }
-      const quizChoice = event.target.closest("[data-sa-quiz-choice]");
-      if (quizChoice) {
-        state.quizChoice = Number(quizChoice.dataset.saQuizChoice);
+      const startButton = event.target.closest("[data-sa-start]");
+      if (startButton) {
+        state.active = Number(startButton.dataset.saStart);
         renderAll();
         return;
       }
-      const row = event.target.closest("[data-sa-start]");
-      if (!row) return;
-      activateStart(Number(row.dataset.saStart));
+    });
+    document.querySelector("[data-sa-prev]").addEventListener("click", () => {
+      applyStep(state.step - 1);
+    });
+    document.querySelector("[data-sa-next]").addEventListener("click", () => {
+      applyStep(state.step + 1);
+    });
+    playButton.addEventListener("click", () => {
+      if (state.playing) stopPlayback();
+      else startPlayback();
+    });
+    intervalInput.addEventListener("change", () => {
+      setIntervalMs(intervalInput.value);
+    });
+    speedButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setIntervalMs(button.dataset.saSpeed);
+      });
+    });
+    stageButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = copy.steps.findIndex((step) =>
+          step.stage === button.dataset.saStage
+        );
+        applyStep(index >= 0 ? index : state.step);
+      });
+    });
+    document.querySelectorAll("[data-sa-example]").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.dataset.saExample;
+        rebuild();
+      });
     });
 
-    runVisualization();
+    rebuild();
   </script>
 
   <style is:global>
     .leetcode-shell {
-      --leetcode-kai-font: "Kaiti SC", "STKaiti", "KaiTi", "KaiTi SC",
-        "楷体", serif;
-      --leetcode-system-font: "PingFang SC", -apple-system,
-        BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Sans GB",
-        "Microsoft YaHei", sans-serif;
-      --leetcode-page-font: var(--leetcode-system-font);
-      --leetcode-display-font: var(--leetcode-system-font);
       --leetcode-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
         monospace;
-      --leetcode-stack-gap: 0.48rem;
+      --sa-panel: rgb(255 255 255 / 32%);
+      --sa-soft: rgb(20 20 19 / 3%);
+      --sa-line: rgb(194 192 182 / 70%);
       color: var(--color-charcoal);
-      font-family: var(--leetcode-page-font);
+      font-family: "PingFang SC", -apple-system, BlinkMacSystemFont,
+        "Helvetica Neue", "Segoe UI", sans-serif;
     }
 
     html.dark .leetcode-shell {
+      --sa-panel: rgb(30 30 28 / 46%);
+      --sa-soft: rgb(255 255 255 / 5%);
+      --sa-line: #333;
       color: var(--color-cream);
     }
 
-    .leetcode-hero {
+    .sa-hero {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 0;
-      align-items: center;
-      margin: 0.12rem 0 0.24rem;
-      border-bottom: 1px solid var(--color-border);
-      padding: 0.16rem 0 0.22rem;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      align-items: end;
+      border-bottom: 1px solid var(--sa-line);
+      padding: 0.18rem 0 0.5rem;
     }
 
-    .leetcode-hero > div:first-child {
-      display: grid;
-      grid-template-columns: auto minmax(13rem, 1fr) auto;
-      gap: 0.18rem 0.88rem;
-      align-items: center;
-    }
-
-    .leetcode-hero .book-cover {
-      display: none;
-    }
-
-    .leetcode-kicker {
-      display: none;
-      margin: 0 0 0.45rem;
+    .sa-kicker,
+    .sa-section-kicker {
+      margin: 0 0 0.28rem;
       color: var(--color-terracotta);
       font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 650;
+      font-size: 0.58rem;
+      font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
 
-    .leetcode-title {
-      max-width: 12ch;
+    .sa-hero h1 {
       margin: 0;
-      font-family: var(--leetcode-display-font);
-      font-size: clamp(1.08rem, 1.55vw, 1.34rem);
-      line-height: 1;
-      white-space: nowrap;
+      font-size: clamp(1.15rem, 2vw, 1.65rem);
+      line-height: 1.1;
     }
 
-    .leetcode-copy {
-      max-width: none;
-      margin: 0;
-      border-left: 1px solid rgb(194 192 182 / 62%);
+    .sa-hero p:not(.sa-kicker) {
+      max-width: 60rem;
+      margin: 0.35rem 0 0;
       color: var(--color-secondary);
-      font-size: 0.68rem;
-      line-height: 1.22;
-      padding-left: 0.78rem;
+      font-size: 0.76rem;
+      line-height: 1.45;
     }
 
-    html.dark .leetcode-copy {
-      border-left-color: #333;
-      color: var(--color-muted);
-    }
-
-    .leetcode-actions {
+    .sa-actions {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
       justify-content: flex-end;
-      gap: 0.22rem;
-      margin-top: 0;
-    }
-
-    .leetcode-primary-link,
-    .leetcode-secondary-link {
-      border-radius: 0.38rem;
-      font-size: 0.66rem;
-      font-weight: 650;
-      padding: 0.2rem 0.36rem;
-      text-decoration: none;
-    }
-
-    .leetcode-primary-link {
-      background: var(--color-terracotta);
-      color: white;
-    }
-
-    .leetcode-secondary-link {
-      border: 1px solid var(--color-border);
-      color: var(--color-charcoal);
-    }
-
-    html.dark .leetcode-secondary-link {
-      border-color: #333;
-      color: var(--color-cream);
-    }
-
-    .sa-shell {
-      --sa-panel-background: rgb(255 255 255 / 24%);
-      --sa-soft-background: rgb(20 20 19 / 3%);
-      --sa-blue: #237893;
-      --sa-green: #2f7d4f;
-      --sa-line: rgb(194 192 182 / 70%);
-    }
-
-    html.dark .sa-shell {
-      --sa-panel-background: rgb(30 30 28 / 46%);
-      --sa-soft-background: rgb(255 255 255 / 5%);
-      --sa-blue: #8bd3dd;
-      --sa-green: #b8e986;
-      --sa-line: #333;
-    }
-
-    .sa-title {
-      max-width: none;
-    }
-
-    .sa-stats {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 0.28rem;
-      margin: 0 0 0.34rem;
-      border-top: 1px solid var(--color-border);
-      border-bottom: 1px solid var(--color-border);
-      padding: 0.34rem 0;
-    }
-
-    .sa-stats div {
-      display: flex;
-      min-width: 0;
-      align-items: center;
-      justify-content: center;
-      gap: 0.32rem;
-      white-space: nowrap;
-    }
-
-    .sa-stats span {
-      color: var(--color-charcoal);
-      font-family: var(--font-mono);
-      font-size: 0.86rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .sa-stats p {
-      margin: 0;
-      color: var(--color-muted);
-      font-size: 0.58rem;
-      line-height: 1.15;
-    }
-
-    html.dark .sa-stats {
-      border-color: #333;
-    }
-
-    html.dark .sa-stats span {
-      color: var(--color-cream);
-    }
-
-    .sa-workspace {
-      display: grid;
-      gap: var(--leetcode-stack-gap);
-      min-width: 0;
-      margin: 0 0 1.6rem;
-    }
-
-    .sa-toolbar,
-    .sa-stage-tabs,
-    .sa-round-control {
-      display: flex;
-      min-width: 0;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.32rem;
-      border: 1px solid var(--sa-line);
-      border-radius: 0.5rem;
-      background: var(--sa-panel-background);
-      padding: 0.32rem;
-    }
-
-    .sa-input-group,
-    .sa-example-group {
-      display: flex;
-      min-width: 0;
-      flex: 1 1 18rem;
-      align-items: center;
       gap: 0.28rem;
     }
 
-    .sa-example-group {
-      justify-content: flex-end;
-    }
-
-    .sa-input-group label,
-    .sa-example-group span,
-    .sa-round-control label {
-      color: var(--color-muted);
-      font-size: 0.62rem;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .sa-input-group input {
-      min-width: 8rem;
-      flex: 1 1 auto;
-      border: 1px solid var(--color-border);
-      border-radius: 0.42rem;
-      background: rgb(255 255 255 / 50%);
-      color: var(--color-charcoal);
-      font: inherit;
-      font-family: var(--leetcode-code-font);
-      font-size: 0.72rem;
-      padding: 0.3rem 0.42rem;
-    }
-
+    .sa-actions a,
     .sa-toolbar button,
     .sa-stage-tabs button,
-    .sa-flow-actions button,
-    .sa-playback-toggle,
-    .sa-speed-group button,
-    .sa-suffix-picker button,
-    .sa-quiz-choices button {
-      border: 1px solid var(--color-border);
-      border-radius: 0.38rem;
+    .sa-step-actions button,
+    .sa-playback button,
+    .sa-tape button,
+    .sa-suffix-list button,
+    .sa-step-rail button {
+      border: 1px solid var(--sa-line);
+      border-radius: 0.4rem;
       background: transparent;
       color: var(--color-secondary);
       cursor: pointer;
       font: inherit;
       font-size: 0.66rem;
-      font-weight: 650;
+      font-weight: 700;
       padding: 0.24rem 0.42rem;
-      white-space: nowrap;
+      text-decoration: none;
     }
 
+    .sa-actions a:hover,
     .sa-toolbar button:hover,
     .sa-stage-tabs button:hover,
     .sa-stage-tabs button.is-active,
-    .sa-flow-actions button:hover,
-    .sa-playback-toggle:hover,
-    .sa-playback-toggle.is-playing,
-    .sa-speed-group button:hover,
-    .sa-speed-group button.is-active,
-    .sa-suffix-picker button:hover,
-    .sa-suffix-picker button.is-active,
-    .sa-quiz-choices button:hover,
-    .sa-quiz-choices button.is-active {
+    .sa-step-actions button:hover,
+    .sa-playback button:hover,
+    .sa-playback button.is-active,
+    .sa-playback button.is-playing,
+    .sa-tape button:hover,
+    .sa-tape button.is-active,
+    .sa-suffix-list button:hover,
+    .sa-suffix-list button.is-active,
+    .sa-step-rail button:hover,
+    .sa-step-rail button.is-active {
       border-color: var(--color-terracotta);
       color: var(--color-terracotta);
     }
 
-    .sa-stage-tabs button.is-active,
-    .sa-playback-toggle.is-playing,
-    .sa-speed-group button.is-active,
-    .sa-suffix-picker button.is-active,
-    .sa-quiz-choices button.is-active {
-      background: rgb(217 119 87 / 12%);
-    }
-
-    .sa-stage-note {
-      min-height: 2.1rem;
-      border-left: 0.22rem solid var(--color-terracotta);
-      background: var(--sa-soft-background);
-      color: var(--color-secondary);
-      font-size: 0.76rem;
-      line-height: 1.36;
-      padding: 0.52rem 0.64rem;
-    }
-
-    .sa-flow-card {
+    .sa-workbench {
       display: grid;
-      min-width: 0;
-      gap: 0.5rem;
+      gap: 0.48rem;
+      margin: 0.6rem 0 1.4rem;
+    }
+
+    .sa-toolbar,
+    .sa-stage-tabs,
+    .sa-stepper,
+    .sa-panel,
+    .sa-code-section {
       border: 1px solid var(--sa-line);
-      border-radius: 0.5rem;
-      background: linear-gradient(
-        135deg,
-        rgb(255 255 255 / 36%),
-        rgb(217 119 87 / 7%)
-      );
+      border-radius: 0.52rem;
+      background: var(--sa-panel);
+    }
+
+    .sa-toolbar,
+    .sa-stage-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.34rem;
+      padding: 0.34rem;
+    }
+
+    .sa-toolbar label,
+    .sa-playback label span,
+    .sa-playback label em {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-style: normal;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .sa-toolbar input,
+    .sa-playback input {
+      border: 1px solid var(--sa-line);
+      border-radius: 0.4rem;
+      background: rgb(255 255 255 / 52%);
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.74rem;
+      padding: 0.28rem 0.42rem;
+    }
+
+    .sa-toolbar input {
+      min-width: 9rem;
+      flex: 1 1 14rem;
+    }
+
+    .sa-examples,
+    .sa-playback > div {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.24rem;
+    }
+
+    .sa-stepper {
+      display: grid;
+      gap: 0.5rem;
       padding: 0.68rem;
     }
 
-    .sa-flow-head {
+    .sa-stepper-head,
+    .sa-step-body {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 0.7rem;
       align-items: start;
     }
 
-    .sa-flow-head h2 {
+    .sa-stepper h2,
+    .sa-panel h2,
+    .sa-code-section h2 {
       margin: 0;
       color: var(--color-charcoal);
-      font-size: 1.08rem;
-      line-height: 1.22;
+      font-size: 1rem;
+      line-height: 1.2;
     }
 
-    .sa-flow-actions {
+    .sa-step-actions,
+    .sa-playback {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      justify-content: flex-end;
-      gap: 0.32rem;
-      white-space: nowrap;
+      gap: 0.3rem;
     }
 
-    .sa-flow-actions span {
-      color: var(--color-charcoal);
+    .sa-step-actions span {
       font-family: var(--leetcode-code-font);
       font-size: 0.68rem;
       font-weight: 800;
     }
 
-    .sa-flow-actions button:disabled {
-      cursor: not-allowed;
-      opacity: 0.42;
-    }
-
-    .sa-playback-panel {
-      display: flex;
-      min-width: 0;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.34rem;
-      border: 1px solid rgb(194 192 182 / 42%);
+    .sa-playback {
+      border: 1px solid rgb(194 192 182 / 44%);
       border-radius: 0.44rem;
-      background: rgb(255 255 255 / 28%);
+      background: var(--sa-soft);
       padding: 0.34rem;
     }
 
-    .sa-speed-group {
+    .sa-playback label {
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.24rem;
-    }
-
-    .sa-interval-field {
-      display: flex;
-      min-width: 0;
       align-items: center;
-      gap: 0.24rem;
+      gap: 0.25rem;
       margin-left: auto;
     }
 
-    .sa-interval-field span,
-    .sa-interval-field em {
-      color: var(--color-muted);
-      font-size: 0.62rem;
-      font-style: normal;
-      font-weight: 800;
-      white-space: nowrap;
+    .sa-playback input {
+      width: 5rem;
     }
 
-    .sa-interval-field input {
-      width: 5.4rem;
-      border: 1px solid var(--color-border);
-      border-radius: 0.38rem;
-      background: rgb(255 255 255 / 48%);
-      color: var(--color-charcoal);
-      font-family: var(--leetcode-code-font);
-      font-size: 0.68rem;
-      font-weight: 800;
-      padding: 0.24rem 0.34rem;
+    .sa-step-body {
+      grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.8fr);
     }
 
-    .sa-flow-current {
-      display: grid;
-      grid-template-columns:
-        minmax(5.8rem, 0.48fr) minmax(0, 1.18fr)
-        minmax(12rem, 1fr) minmax(10rem, 0.82fr);
-      gap: 0.48rem;
-      align-items: stretch;
-    }
-
-    .sa-flow-current > span,
-    .sa-flow-current > p,
-    .sa-flow-current > div {
+    .sa-step-body > p,
+    .sa-step-body > div {
       min-width: 0;
-      border: 1px solid rgb(194 192 182 / 42%);
-      border-radius: 0.42rem;
-      background: rgb(255 255 255 / 34%);
-      padding: 0.46rem 0.52rem;
-    }
-
-    .sa-flow-current > span {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-terracotta);
-      font-size: 0.72rem;
-      font-weight: 800;
-    }
-
-    .sa-flow-current p {
       margin: 0;
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.44rem;
+      background: rgb(255 255 255 / 28%);
       color: var(--color-secondary);
-      font-size: 0.76rem;
-      line-height: 1.48;
+      font-size: 0.78rem;
+      line-height: 1.52;
+      padding: 0.54rem;
     }
 
-    .sa-flow-current strong {
+    .sa-step-body strong {
       display: block;
-      margin: 0 0 0.22rem;
+      margin-bottom: 0.2rem;
       color: var(--color-muted);
       font-size: 0.58rem;
-      font-weight: 800;
       text-transform: uppercase;
     }
 
-    .sa-flow-code code {
-      display: inline-block;
-      max-width: 100%;
-      overflow-wrap: anywhere;
-      color: var(--color-charcoal);
-      font-family: var(--leetcode-code-font);
-      font-size: 0.68rem;
-      font-weight: 800;
-      line-height: 1.4;
+    .sa-step-body p {
+      margin: 0;
     }
 
-    .sa-flow-rail {
+    .sa-step-rail {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0.24rem;
     }
 
-    .sa-flow-rail button {
+    .sa-step-rail button {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
-      gap: 0.26rem;
-      align-items: start;
-      min-width: 0;
-      min-height: 3.1rem;
-      border: 1px solid rgb(194 192 182 / 54%);
-      border-radius: 0.42rem;
-      background: rgb(255 255 255 / 24%);
-      color: var(--color-secondary);
-      cursor: pointer;
-      font: inherit;
-      padding: 0.34rem;
-      text-align: left;
-    }
-
-    .sa-flow-rail button:hover,
-    .sa-flow-rail button.is-active {
-      border-color: var(--color-terracotta);
-      background: rgb(217 119 87 / 12%);
-      color: var(--color-charcoal);
-    }
-
-    .sa-flow-rail button.is-complete:not(.is-active) {
-      border-color: rgb(47 125 79 / 30%);
-      background: rgb(47 125 79 / 7%);
-    }
-
-    .sa-flow-rail span {
-      color: var(--color-terracotta);
-      font-family: var(--leetcode-code-font);
-      font-size: 0.62rem;
-      font-weight: 800;
-    }
-
-    .sa-flow-rail strong {
-      overflow: hidden;
-      color: inherit;
-      font-size: 0.62rem;
-      font-weight: 700;
-      line-height: 1.28;
-    }
-
-    .sa-round-control input {
-      width: min(20rem, 100%);
-      accent-color: var(--color-terracotta);
-    }
-
-    .sa-round-control span {
-      color: var(--color-charcoal);
-      font-family: var(--font-mono);
-      font-size: 0.68rem;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .sa-lesson-board {
-      display: grid;
-      grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.16fr) minmax(0, 0.9fr);
-      gap: var(--leetcode-stack-gap);
-    }
-
-    .sa-teacher-card,
-    .sa-focus-card,
-    .sa-quiz-card {
-      min-width: 0;
-      border: 1px solid var(--sa-line);
-      border-radius: 0.5rem;
-      background: var(--sa-panel-background);
-      padding: 0.68rem;
-    }
-
-    .sa-teacher-card h2,
-    .sa-focus-card h2,
-    .sa-quiz-card h2 {
-      margin: 0 0 0.4rem;
-      color: var(--color-charcoal);
-      font-size: 0.98rem;
-      line-height: 1.18;
-    }
-
-    .sa-teacher-card p:not(.sa-section-kicker),
-    .sa-quiz-card p {
-      margin: 0;
-      color: var(--color-secondary);
-      font-size: 0.76rem;
-      line-height: 1.48;
-    }
-
-    .sa-teacher-card ul {
-      display: grid;
       gap: 0.24rem;
-      margin: 0.52rem 0;
-      padding-left: 1.05rem;
-      color: var(--color-secondary);
-      font-size: 0.72rem;
-      line-height: 1.42;
-    }
-
-    .sa-code-bridge {
-      display: grid;
-      gap: 0.18rem;
-      border-top: 1px solid rgb(194 192 182 / 44%);
-      padding-top: 0.46rem;
-    }
-
-    .sa-code-bridge span {
-      color: var(--color-muted);
-      font-size: 0.58rem;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .sa-code-bridge strong {
-      color: var(--color-charcoal);
-      font-family: var(--leetcode-code-font);
-      font-size: 0.68rem;
-      line-height: 1.42;
-    }
-
-    .sa-active-suffix {
-      display: grid;
-      gap: 0.36rem;
-      margin-bottom: 0.56rem;
-    }
-
-    .sa-active-line {
-      display: grid;
-      grid-template-columns: 5.4rem minmax(0, 1fr);
-      gap: 0.38rem;
-      align-items: start;
-    }
-
-    .sa-active-line > span,
-    .sa-prefix-list strong,
-    .sa-neighbor-box > strong,
-    .sa-suffix-picker > span {
-      color: var(--color-muted);
-      font-size: 0.62rem;
-      font-weight: 800;
-    }
-
-    .sa-prefix-list {
-      display: grid;
-      gap: 0.28rem;
-      margin: 0 0 0.56rem;
-    }
-
-    .sa-prefix-list div {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.22rem;
-    }
-
-    .sa-prefix-list span,
-    .sa-prefix-list em {
-      border: 1px solid rgb(35 120 147 / 24%);
-      border-radius: 0.34rem;
-      background: rgb(35 120 147 / 6%);
-      color: var(--sa-blue);
-      font-family: var(--leetcode-code-font);
-      font-size: 0.64rem;
-      font-style: normal;
-      padding: 0.18rem 0.3rem;
-    }
-
-    .sa-neighbor-box {
-      display: grid;
-      gap: 0.28rem;
-    }
-
-    .sa-neighbor-row {
-      display: grid;
-      grid-template-columns: 5.6rem minmax(0, 1fr) auto;
-      gap: 0.36rem;
-      align-items: center;
-      min-width: 0;
-      border: 1px solid rgb(194 192 182 / 44%);
-      border-radius: 0.42rem;
-      padding: 0.28rem;
-    }
-
-    .sa-neighbor-row.is-current {
-      border-color: rgb(217 119 87 / 46%);
-      background: rgb(217 119 87 / 7%);
-    }
-
-    .sa-neighbor-row span,
-    .sa-neighbor-row b,
-    .sa-neighbor-row em {
-      color: var(--color-secondary);
-      font-size: 0.62rem;
-      font-style: normal;
-      line-height: 1.25;
-      white-space: nowrap;
-    }
-
-    .sa-neighbor-row b {
-      color: var(--color-charcoal);
-      font-family: var(--leetcode-code-font);
-      font-weight: 800;
-    }
-
-    .sa-quiz-choices {
-      display: grid;
-      gap: 0.24rem;
-      margin: 0.5rem 0;
-    }
-
-    .sa-quiz-choices button {
+      min-height: 2.8rem;
       text-align: left;
       white-space: normal;
     }
 
-    .sa-suffix-picker {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.22rem;
-      margin: 0.52rem 0 0;
+    .sa-step-rail button.is-complete:not(.is-active) {
+      border-color: rgb(47 125 79 / 30%);
+      background: rgb(47 125 79 / 7%);
     }
 
-    .sa-visual-grid {
+    .sa-step-rail span {
+      color: var(--color-terracotta);
+      font-family: var(--leetcode-code-font);
+    }
+
+    .sa-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--leetcode-stack-gap);
+      gap: 0.48rem;
     }
 
     .sa-panel {
       min-width: 0;
-      border: 1px solid var(--sa-line);
-      border-radius: 0.5rem;
-      background: var(--sa-panel-background);
-      padding: 0.6rem;
+      padding: 0.64rem;
     }
 
-    .sa-panel h2 {
-      margin: 0 0 0.5rem;
-      color: var(--color-charcoal);
-      font-family: var(--leetcode-display-font);
-      font-size: 0.94rem;
-      line-height: 1.15;
+    .sa-wide {
+      grid-column: span 2;
     }
 
-    .sa-array-stack {
+    .sa-tape {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.26rem;
+    }
+
+    .sa-tape button {
       display: grid;
-      gap: 0.38rem;
+      min-width: 2.2rem;
+      min-height: 2.2rem;
+      place-items: center;
+      padding: 0.18rem;
     }
 
-    .sa-array-row {
-      display: grid;
-      grid-template-columns: 6rem minmax(0, 1fr);
-      gap: 0.42rem;
-      align-items: center;
-    }
-
-    .sa-array-row > span {
+    .sa-tape span,
+    .sa-suffix-list span {
       color: var(--color-muted);
-      font-size: 0.62rem;
-      font-weight: 700;
+      font-family: var(--leetcode-code-font);
+      font-size: 0.56rem;
     }
 
-    .sa-token {
-      display: inline-flex;
-      min-width: 1.62rem;
-      min-height: 1.62rem;
+    .sa-tape strong {
+      font-family: var(--leetcode-code-font);
+      font-size: 0.9rem;
+    }
+
+    .sa-suffix-list {
+      display: grid;
+      gap: 0.24rem;
+    }
+
+    .sa-suffix-list button {
+      display: grid;
+      grid-template-columns: 2rem 2rem minmax(0, 1fr);
       align-items: center;
-      justify-content: center;
-      margin: 0.08rem;
-      border: 1px solid rgb(35 120 147 / 34%);
-      border-radius: 0.34rem;
-      background: rgb(35 120 147 / 8%);
-      color: var(--sa-blue);
+      text-align: left;
+    }
+
+    .sa-suffix-list code,
+    .sa-table code {
       font-family: var(--leetcode-code-font);
       font-size: 0.72rem;
-      font-weight: 800;
-      line-height: 1;
-    }
-
-    .sa-token.is-active {
-      border-color: rgb(217 119 87 / 72%);
-      background: rgb(217 119 87 / 15%);
-      color: var(--color-terracotta);
-    }
-
-    .sa-token.is-match {
-      border-color: rgb(47 125 79 / 42%);
-      background: rgb(47 125 79 / 10%);
-      color: var(--sa-green);
-    }
-
-    .sa-token.is-candidate {
-      box-shadow: inset 0 -0.18rem 0 rgb(217 119 87 / 34%);
-    }
-
-    .sa-sequence-panel p,
-    .sa-result {
-      margin: 0.55rem 0 0;
-      color: var(--color-secondary);
-      font-size: 0.72rem;
-      line-height: 1.38;
     }
 
     .sa-table-wrap {
       overflow: auto;
-      max-width: 100%;
     }
 
     .sa-table {
       width: 100%;
       border-collapse: collapse;
       color: var(--color-secondary);
-      font-size: 0.68rem;
-      line-height: 1.25;
+      font-size: 0.7rem;
     }
 
     .sa-table th,
@@ -2917,310 +1226,148 @@ const clientText = isZh
       border-bottom: 1px solid rgb(194 192 182 / 42%);
       padding: 0.34rem 0.28rem;
       text-align: left;
-      vertical-align: top;
       white-space: nowrap;
     }
 
     .sa-table th {
       color: var(--color-muted);
       font-size: 0.58rem;
-      font-weight: 800;
       text-transform: uppercase;
     }
 
-    .sa-table tr {
-      cursor: pointer;
-    }
-
-    .sa-table tr:hover,
     .sa-table tr.is-active {
-      background: rgb(217 119 87 / 9%);
+      background: rgb(217 119 87 / 10%);
       color: var(--color-charcoal);
     }
 
-    .sa-table tr.is-best {
-      color: var(--sa-green);
-      font-weight: 800;
-    }
-
-    .sa-suffix {
-      min-width: max-content;
-    }
-
-    .sa-explain-grid {
+    .sa-links {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: var(--leetcode-stack-gap);
-      margin: 0 0 1.6rem;
+      gap: 0.34rem;
     }
 
-    .sa-explain-grid article,
-    .sa-code-notes,
-    .sa-code-block {
-      min-width: 0;
-      border: 1px solid var(--sa-line);
-      border-radius: 0.5rem;
-      background: var(--sa-panel-background);
-      padding: 0.78rem;
+    .sa-links a {
+      display: grid;
+      gap: 0.16rem;
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.44rem;
+      padding: 0.48rem;
+      text-decoration: none;
     }
 
-    .sa-section-kicker {
-      margin: 0 0 0.34rem;
-      color: var(--color-terracotta);
-      font-family: var(--font-mono);
-      font-size: 0.58rem;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .sa-explain-grid h2,
-    .sa-code-notes h2 {
-      margin: 0 0 0.42rem;
+    .sa-links strong {
       color: var(--color-charcoal);
-      font-size: 1rem;
-      line-height: 1.2;
+      font-size: 0.78rem;
     }
 
-    .sa-explain-grid p,
-    .sa-code-notes p {
-      margin: 0;
+    .sa-links span {
       color: var(--color-secondary);
-      font-size: 0.82rem;
-      line-height: 1.58;
+      font-size: 0.7rem;
+      line-height: 1.45;
     }
 
     .sa-code-section {
       display: grid;
-      grid-template-columns: minmax(14rem, 0.78fr) minmax(0, 1.22fr);
-      gap: var(--leetcode-stack-gap);
+      grid-template-columns: minmax(12rem, 0.72fr) minmax(0, 1.28fr);
+      gap: 0.5rem;
       align-items: start;
+      padding: 0.68rem;
     }
 
-    .sa-code-notes {
-      display: grid;
-      gap: 0.38rem;
+    .sa-code-section p {
+      margin: 0.4rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+      line-height: 1.52;
     }
 
-    .sa-code-notes details {
-      border-top: 1px solid rgb(194 192 182 / 44%);
-      padding-top: 0.38rem;
-    }
-
-    .sa-code-notes summary {
-      color: var(--color-charcoal);
-      cursor: pointer;
-      font-family: var(--leetcode-code-font);
-      font-size: 0.76rem;
-      font-weight: 800;
-    }
-
-    .sa-code-block {
+    .sa-code {
       overflow: auto;
       margin: 0;
-      background: rgb(20 20 19 / 92%);
+      border-radius: 0.44rem;
+      background: rgb(20 20 19 / 94%);
       color: #f6efe2;
       font-family: var(--leetcode-code-font);
       font-size: 0.72rem;
-      line-height: 1.42;
-    }
-
-    .sa-code-block code {
-      font-family: inherit;
+      line-height: 1.44;
+      padding: 0.58rem 0;
     }
 
     .sa-code-line {
       display: block;
       min-height: 1em;
-      border-left: 0.16rem solid transparent;
-      padding: 0 0.42rem;
+      padding: 0 0.7rem;
       white-space: pre;
     }
 
-    .sa-code-line.is-active-section {
-      border-left-color: var(--color-terracotta);
-      background: rgb(217 119 87 / 16%);
-    }
-
-    .sa-code-token-keyword {
+    .sa-code-keyword {
       color: #f4a261;
       font-weight: 800;
     }
 
-    .sa-code-token-type {
-      color: #8bd3dd;
-      font-weight: 800;
-    }
-
-    .sa-code-token-function {
-      color: #b8e986;
-    }
-
-    .sa-code-token-number {
+    .sa-code-number {
       color: #f7d36a;
     }
 
-    .sa-code-token-string {
-      color: #f7b7a3;
+    .sa-code-string {
+      color: #b8e986;
     }
 
-    html.dark .sa-input-group input {
-      border-color: #333;
-      background: rgb(30 30 28 / 38%);
-      color: var(--color-cream);
-    }
-
-    html.dark .sa-toolbar button,
-    html.dark .sa-stage-tabs button,
-    html.dark .sa-flow-actions button,
-    html.dark .sa-playback-toggle,
-    html.dark .sa-speed-group button,
-    html.dark .sa-suffix-picker button,
-    html.dark .sa-quiz-choices button {
-      border-color: #333;
-      color: var(--color-cream);
-    }
-
-    html.dark .sa-interval-field input {
-      border-color: #333;
-      background: rgb(30 30 28 / 38%);
-      color: var(--color-cream);
-    }
-
-    html.dark .sa-flow-card {
-      background: linear-gradient(
-        135deg,
-        rgb(30 30 28 / 52%),
-        rgb(217 119 87 / 9%)
-      );
-    }
-
-    html.dark .sa-flow-current > span,
-    html.dark .sa-flow-current > p,
-    html.dark .sa-flow-current > div,
-    html.dark .sa-playback-panel,
-    html.dark .sa-flow-rail button {
-      border-color: #333;
-      background: rgb(255 255 255 / 4%);
-    }
-
-    html.dark .sa-flow-rail button:hover,
-    html.dark .sa-flow-rail button.is-active,
-    html.dark .sa-playback-toggle.is-playing,
-    html.dark .sa-speed-group button.is-active {
-      color: var(--color-cream);
-    }
-
-    html.dark .sa-stage-note,
-    html.dark .sa-teacher-card p:not(.sa-section-kicker),
-    html.dark .sa-teacher-card ul,
-    html.dark .sa-quiz-card p,
-    html.dark .sa-flow-current p,
-    html.dark .sa-sequence-panel p,
-    html.dark .sa-result,
+    html.dark .sa-hero p:not(.sa-kicker),
+    html.dark .sa-step-body > p,
+    html.dark .sa-step-body > div,
     html.dark .sa-table,
-    html.dark .sa-explain-grid p,
-    html.dark .sa-code-notes p {
+    html.dark .sa-links span,
+    html.dark .sa-code-section p {
       color: var(--color-muted);
     }
 
-    html.dark .sa-round-control span,
-    html.dark .sa-flow-head h2,
-    html.dark .sa-flow-actions span,
-    html.dark .sa-flow-code code,
-    html.dark .sa-teacher-card h2,
-    html.dark .sa-focus-card h2,
-    html.dark .sa-quiz-card h2,
-    html.dark .sa-code-bridge strong,
-    html.dark .sa-neighbor-row b,
-    html.dark .sa-panel h2,
-    html.dark .sa-table tr:hover,
-    html.dark .sa-table tr.is-active,
-    html.dark .sa-explain-grid h2,
-    html.dark .sa-code-notes h2,
-    html.dark .sa-code-notes summary {
+    html.dark .sa-toolbar input,
+    html.dark .sa-playback input {
+      background: rgb(30 30 28 / 38%);
       color: var(--color-cream);
     }
 
-    html.dark .sa-table th,
-    html.dark .sa-table td {
-      border-bottom-color: #333;
+    html.dark .sa-stepper h2,
+    html.dark .sa-panel h2,
+    html.dark .sa-code-section h2,
+    html.dark .sa-table tr.is-active,
+    html.dark .sa-links strong {
+      color: var(--color-cream);
     }
 
     @media (max-width: 900px) {
-      .leetcode-hero {
-        grid-template-columns: 1fr;
-        gap: 0.9rem;
-      }
-
-      .leetcode-hero > div:first-child {
-        grid-template-columns: 1fr;
-      }
-
-      .leetcode-copy {
-        border-left: 0;
-        font-size: 0.8rem;
-        padding-left: 0;
-      }
-
-      .leetcode-actions,
-      .sa-example-group {
-        justify-content: flex-start;
-      }
-
-      .sa-flow-head,
-      .sa-flow-current {
-        grid-template-columns: 1fr;
-      }
-
-      .sa-flow-actions {
-        justify-content: flex-start;
-      }
-
-      .sa-interval-field {
-        margin-left: 0;
-      }
-
-      .sa-flow-rail {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .sa-stats,
-      .sa-lesson-board,
-      .sa-visual-grid,
-      .sa-explain-grid,
+      .sa-hero,
+      .sa-stepper-head,
+      .sa-step-body,
+      .sa-grid,
       .sa-code-section {
         grid-template-columns: 1fr;
+      }
+
+      .sa-actions {
+        justify-content: flex-start;
+      }
+
+      .sa-wide {
+        grid-column: auto;
+      }
+
+      .sa-step-rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .sa-playback label {
+        margin-left: 0;
       }
     }
 
     @media (max-width: 520px) {
-      .sa-stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .sa-array-row {
+      .sa-step-rail {
         grid-template-columns: 1fr;
       }
 
-      .sa-active-line,
-      .sa-neighbor-row {
-        grid-template-columns: 1fr;
-      }
-
-      .sa-flow-rail {
-        grid-template-columns: 1fr;
-      }
-
-      .sa-input-group {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        width: 100%;
-      }
-
-      .sa-input-group label,
-      .sa-input-group input {
-        grid-column: 1 / -1;
+      .sa-suffix-list button {
+        grid-template-columns: 1.5rem 1.5rem minmax(0, 1fr);
       }
     }
   </style>

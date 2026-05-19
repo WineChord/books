@@ -1,0 +1,1036 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { pageUrl } from "../urls";
+
+interface Props {
+  lang?: "en" | "zh";
+}
+
+const { lang = "zh" } = Astro.props;
+const isZh = lang === "zh";
+const base = import.meta.env.BASE_URL;
+const title = isZh ? "最短唯一子数组题解" : "Shortest Unique Subarray";
+const description = isZh
+  ? "用后缀数组和 LCP 解释最短唯一子数组。"
+  : "Explaining the shortest unique subarray with suffix arrays and LCP.";
+const homePath = isZh ? "sa/unique-subarray" : "sa/unique-subarray-en";
+const alternatePath = isZh ? "sa/unique-subarray-en" : "sa/unique-subarray";
+const saPath = isZh ? "sa/" : "sa/en";
+const lcpPath = isZh ? "lcp/" : "lcp/en";
+
+const solutionCode = `int smallestUniqueSubarray(vector<int>& a) {
+    int n = a.size();
+    a = compress(a);
+    auto sa = buildSuffixArray(a);
+    auto lcp = buildLCP(a, sa);
+
+    vector<int> rank(n);
+    for (int i = 0; i < n; i++) rank[sa[i]] = i;
+
+    int res = n;
+    for (int i = 0; i < n; i++) {
+        int p = rank[i];
+        int same = 0;
+        if (p > 0) same = max(same, lcp[p]);
+        if (p + 1 < n) same = max(same, lcp[p + 1]);
+        int need = same + 1;
+        if (need <= n - i) res = min(res, need);
+    }
+    return res;
+}`;
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+const highlightedCode = solutionCode
+  .split("\n")
+  .map((line) => {
+    const highlighted = escapeHtml(line)
+      .replace(/\b(auto|for|if|int|return|vector)\b/g, '<span class="app-code-keyword">$1</span>')
+      .replace(/\b(\d+)\b/g, '<span class="app-code-number">$1</span>');
+    return `<span class="app-code-line">${highlighted || " "}</span>`;
+  })
+  .join("");
+
+const copy = isZh
+  ? {
+      kicker: "Application Page",
+      hero:
+        "这一页才使用那道题：为什么“最短唯一子数组”可以被翻译成“某个后缀需要比左右邻居多看一位”。",
+      alternate: "English",
+      sa: "先学后缀数组",
+      lcp: "先学 LCP",
+      inputLabel: "数组",
+      run: "运行",
+      examples: [
+        ["1 2 1 2 3", "尾部唯一"],
+        ["4 4 4 4", "全相同"],
+        ["3 1 3 1 3 2", "交替重复"],
+      ],
+      play: "开始播放",
+      pause: "暂停",
+      prev: "上一步",
+      next: "下一步",
+      stepLabel: "步骤",
+      interval: "间隔",
+      ms: "毫秒",
+      speeds: [
+        ["900", "快"],
+        ["1500", "标准"],
+        ["2600", "慢"],
+      ],
+      panels: {
+        flow: "解题流程",
+        suffixes: "后缀排序",
+        answer: "每个起点的 need",
+        code: "核心代码",
+      },
+      table: {
+        order: "#",
+        start: "起点",
+        suffix: "后缀",
+        lcp: "LCP",
+        left: "left",
+        right: "right",
+        same: "same",
+        need: "need",
+        status: "状态",
+      },
+      ok: "可取",
+      bad: "越界",
+      resultPrefix: "答案",
+      steps: [
+        {
+          title: "第一刀：子数组变成后缀前缀",
+          body: "从起点 i 开始的任意子数组，都是后缀 a[i..] 的一个前缀。",
+          why: "所以我们不需要枚举所有子数组，只要问每个后缀的前缀多长才能唯一。",
+          active: 0,
+        },
+        {
+          title: "第二刀：重复来自共同前缀",
+          body: "如果另一个后缀和它前 k 个值相同，那么长度 k 以内的候选都重复。",
+          why: "唯一性的敌人不是完整后缀相同，而是某个前缀长度撞车。",
+          active: 0,
+        },
+        {
+          title: "第三刀：后缀数组让相似者相邻",
+          body: "排好序后，和当前后缀最像的竞争者只可能在左右邻居。",
+          why: "如果更远处有更长共同前缀，它会被字典序拉到当前后缀旁边。",
+          active: 2,
+        },
+        {
+          title: "第四刀：LCP 给出撞车长度",
+          body: "左邻居撞多长看 lcp[p]，右邻居撞多长看 lcp[p+1]。",
+          why: "LCP 的定义是 lcp[x] 比较 sa[x] 和 sa[x-1]。",
+          active: 0,
+        },
+        {
+          title: "第五刀：same 是最危险长度",
+          body: "same = max(left, right)，表示当前起点最长还会和别人撞到多远。",
+          why: "左右里谁更像，谁就决定当前起点必须跨过的重复边界。",
+          active: 0,
+        },
+        {
+          title: "第六刀：need = same + 1",
+          body: "长度不超过 same 还会重复；多拿一个，才第一次可能唯一。",
+          why: "这一步就是整个题目的核心转折。",
+          active: 0,
+        },
+        {
+          title: "最后：所有起点取最小合法 need",
+          body: "如果 need 没越界，它就是该起点的最短唯一长度；全局答案取最小。",
+          why: "每个起点都局部最优后，整题要求的是所有局部候选中的最短。",
+          active: 4,
+        },
+      ],
+    }
+  : {
+      kicker: "Application Page",
+      hero:
+        "This page uses the problem: why the shortest unique subarray becomes 'how far a suffix must go beyond both neighbors'.",
+      alternate: "中文",
+      sa: "Learn suffix arrays",
+      lcp: "Learn LCP",
+      inputLabel: "Array",
+      run: "Run",
+      examples: [
+        ["1 2 1 2 3", "Unique tail"],
+        ["4 4 4 4", "All equal"],
+        ["3 1 3 1 3 2", "Alternating"],
+      ],
+      play: "Play",
+      pause: "Pause",
+      prev: "Previous",
+      next: "Next",
+      stepLabel: "Step",
+      interval: "Interval",
+      ms: "ms",
+      speeds: [
+        ["900", "Fast"],
+        ["1500", "Normal"],
+        ["2600", "Slow"],
+      ],
+      panels: {
+        flow: "Reasoning flow",
+        suffixes: "Suffix order",
+        answer: "need for each start",
+        code: "Core code",
+      },
+      table: {
+        order: "#",
+        start: "start",
+        suffix: "suffix",
+        lcp: "LCP",
+        left: "left",
+        right: "right",
+        same: "same",
+        need: "need",
+        status: "state",
+      },
+      ok: "fits",
+      bad: "too long",
+      resultPrefix: "Answer",
+      steps: [
+        {
+          title: "Cut one: subarrays become suffix prefixes",
+          body: "Every subarray starting at i is a prefix of suffix a[i..].",
+          why: "So we can ask how long each suffix prefix must be before it becomes unique.",
+          active: 0,
+        },
+        {
+          title: "Cut two: repetition is shared prefix",
+          body: "If another suffix shares the first k values, candidates of length up to k repeat.",
+          why: "Uniqueness is defeated by a shared prefix length, not by whole-suffix equality.",
+          active: 0,
+        },
+        {
+          title: "Cut three: suffix arrays make rivals adjacent",
+          body: "After sorting, the closest rival for a suffix is on the left or right.",
+          why: "A farther suffix with a longer shared prefix would be pulled next to it by lexicographic order.",
+          active: 2,
+        },
+        {
+          title: "Cut four: LCP gives collision lengths",
+          body: "The left collision is lcp[p]; the right collision is lcp[p+1].",
+          why: "By definition, lcp[x] compares sa[x] with sa[x-1].",
+          active: 0,
+        },
+        {
+          title: "Cut five: same is the dangerous length",
+          body: "same = max(left, right), the longest collision for this start.",
+          why: "The more similar neighbor sets the boundary we must cross.",
+          active: 0,
+        },
+        {
+          title: "Cut six: need = same + 1",
+          body: "Lengths up to same still repeat; one extra value is the first possible unique length.",
+          why: "This is the central turn in the solution.",
+          active: 0,
+        },
+        {
+          title: "Finally: take the smallest valid need",
+          body: "If need fits, it is the shortest unique length for that start. The answer is the minimum.",
+          why: "Each start is locally solved; the global task asks for the shortest among them.",
+          active: 4,
+        },
+      ],
+    };
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonicalPath={homePath}
+  lang={lang}
+  titleSuffix={title}
+>
+  <main class="app-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10">
+    <section class="app-hero">
+      <div>
+        <p class="app-kicker">{copy.kicker}</p>
+        <h1>{title}</h1>
+        <p>{copy.hero}</p>
+      </div>
+      <nav class="app-actions" aria-label={isZh ? "相关知识" : "Related knowledge"}>
+        <a href={pageUrl(base, saPath)}>{copy.sa}</a>
+        <a href={pageUrl(base, lcpPath)}>{copy.lcp}</a>
+        <a href={pageUrl(base, alternatePath)}>{copy.alternate}</a>
+      </nav>
+    </section>
+
+    <section class="app-workbench">
+      <div class="app-toolbar">
+        <label for="app-input">{copy.inputLabel}</label>
+        <input id="app-input" value="1 2 1 2 3" />
+        <button type="button" data-app-run>{copy.run}</button>
+        <div>
+          {copy.examples.map(([value, label]) => (
+            <button type="button" data-app-example={value}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <section class="app-stepper">
+        <div class="app-step-head">
+          <div>
+            <p class="app-section-kicker">{copy.panels.flow}</p>
+            <h2 data-app-title></h2>
+          </div>
+          <div class="app-step-actions">
+            <button type="button" data-app-prev>{copy.prev}</button>
+            <span data-app-count></span>
+            <button type="button" data-app-next>{copy.next}</button>
+          </div>
+        </div>
+        <div class="app-playback">
+          <button type="button" data-app-play>{copy.play}</button>
+          <div>
+            {copy.speeds.map(([value, label]) => (
+              <button
+                type="button"
+                data-app-speed={value}
+                class={value === "1500" ? "is-active" : ""}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <label>
+            <span>{copy.interval}</span>
+            <input
+              type="number"
+              min="300"
+              max="10000"
+              value="1500"
+              data-app-interval
+            />
+            <em>{copy.ms}</em>
+          </label>
+        </div>
+        <div class="app-step-body">
+          <p data-app-body></p>
+          <div>
+            <strong>{isZh ? "为什么" : "Why"}</strong>
+            <p data-app-why></p>
+          </div>
+        </div>
+        <div class="app-rail" data-app-rail></div>
+      </section>
+
+      <section class="app-grid">
+        <article class="app-panel">
+          <h2>{copy.panels.suffixes}</h2>
+          <div class="app-suffixes" data-app-suffixes></div>
+        </article>
+        <article class="app-panel">
+          <h2>{copy.resultPrefix}</h2>
+          <p class="app-result" data-app-result></p>
+        </article>
+        <article class="app-panel app-wide">
+          <h2>{copy.panels.answer}</h2>
+          <div class="app-table-wrap">
+            <table class="app-table">
+              <thead>
+                <tr>
+                  <th>{copy.table.start}</th>
+                  <th>{copy.table.left}</th>
+                  <th>{copy.table.right}</th>
+                  <th>{copy.table.same}</th>
+                  <th>{copy.table.need}</th>
+                  <th>{copy.table.status}</th>
+                </tr>
+              </thead>
+              <tbody data-app-answer></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </section>
+
+    <section class="app-code-section">
+      <div>
+        <p class="app-section-kicker">C++</p>
+        <h2>{copy.panels.code}</h2>
+        <p>{isZh
+          ? "这段只展示题目应用层：compress、buildSuffixArray、buildLCP 的基础知识分别在两本基础页里讲。"
+          : "This shows only the application layer. Compression, suffix arrays, and LCP are explained on the linked concept pages."}</p>
+      </div>
+      <pre class="app-code"><code set:html={highlightedCode}></code></pre>
+    </section>
+  </main>
+
+  <script
+    type="application/json"
+    id="app-copy"
+    set:html={JSON.stringify(copy)}
+  ></script>
+  <script>
+    const copy = JSON.parse(document.getElementById("app-copy").textContent);
+    const input = document.getElementById("app-input");
+    const runButton = document.querySelector("[data-app-run]");
+    const suffixNode = document.querySelector("[data-app-suffixes]");
+    const answerNode = document.querySelector("[data-app-answer]");
+    const resultNode = document.querySelector("[data-app-result]");
+    const titleNode = document.querySelector("[data-app-title]");
+    const bodyNode = document.querySelector("[data-app-body]");
+    const whyNode = document.querySelector("[data-app-why]");
+    const countNode = document.querySelector("[data-app-count]");
+    const railNode = document.querySelector("[data-app-rail]");
+    const playButton = document.querySelector("[data-app-play]");
+    const intervalInput = document.querySelector("[data-app-interval]");
+    const speedButtons = Array.from(document.querySelectorAll("[data-app-speed]"));
+    let state = {
+      active: 0,
+      data: null,
+      interval: 1500,
+      playing: false,
+      step: 0,
+    };
+    let timer = null;
+
+    function parseInput(value) {
+      const nums = String(value || "").match(/-?\d+/g)?.map(Number) || [];
+      return (nums.length ? nums : [1, 2, 1, 2, 3]).slice(0, 10);
+    }
+
+    function suffix(nums, start) {
+      return nums.slice(start).join(" ");
+    }
+
+    function compareSuffix(nums, left, right) {
+      let offset = 0;
+      while (left + offset < nums.length && right + offset < nums.length) {
+        if (nums[left + offset] !== nums[right + offset]) {
+          return nums[left + offset] - nums[right + offset];
+        }
+        offset += 1;
+      }
+      return (nums.length - left) - (nums.length - right);
+    }
+
+    function commonPrefix(nums, left, right) {
+      let length = 0;
+      while (
+        left + length < nums.length &&
+        right + length < nums.length &&
+        nums[left + length] === nums[right + length]
+      ) {
+        length += 1;
+      }
+      return length;
+    }
+
+    function buildData(nums) {
+      const sa = Array.from({ length: nums.length }, (_, index) => index)
+        .sort((left, right) => compareSuffix(nums, left, right));
+      const rank = Array(nums.length);
+      sa.forEach((start, order) => rank[start] = order);
+      const lcp = Array(nums.length).fill(0);
+      for (let order = 1; order < nums.length; order += 1) {
+        lcp[order] = commonPrefix(nums, sa[order], sa[order - 1]);
+      }
+      const rows = [];
+      let best = null;
+      for (let start = 0; start < nums.length; start += 1) {
+        const order = rank[start];
+        const left = order > 0 ? lcp[order] : 0;
+        const right = order + 1 < nums.length ? lcp[order + 1] : 0;
+        const same = Math.max(left, right);
+        const need = same + 1;
+        const fits = need <= nums.length - start;
+        const row = { fits, left, need, order, right, same, start };
+        rows.push(row);
+        if (fits && (!best || need < best.need)) best = row;
+      }
+      return { best, lcp, nums, rank, rows, sa };
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function renderSuffixes() {
+      suffixNode.innerHTML = state.data.sa.map((start, order) => `
+        <button
+          type="button"
+          data-app-start="${start}"
+          class="${start === state.active ? "is-active" : ""}"
+        >
+          <span>${order}</span>
+          <strong>${start}</strong>
+          <code>${suffix(state.data.nums, start)}</code>
+          <b>${state.data.lcp[order]}</b>
+        </button>
+      `).join("");
+    }
+
+    function renderAnswer() {
+      const best = state.data.best;
+      if (!best) {
+        resultNode.textContent = "-";
+      } else {
+        const values = state.data.nums.slice(best.start, best.start + best.need);
+        resultNode.textContent = `${copy.resultPrefix}: ${best.need}; start ${best.start}; [${values.join(", ")}]`;
+      }
+      answerNode.innerHTML = state.data.rows.map((row) => `
+        <tr
+          data-app-start="${row.start}"
+          class="${row.start === state.active ? "is-active" : ""} ${
+            best && row.start === best.start ? "is-best" : ""
+          }"
+        >
+          <td>${row.start}</td>
+          <td>${row.left}</td>
+          <td>${row.right}</td>
+          <td>${row.same}</td>
+          <td>${row.need}</td>
+          <td>${row.fits ? copy.ok : copy.bad}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderStepper() {
+      const step = copy.steps[state.step] || copy.steps[0];
+      titleNode.textContent = step.title;
+      bodyNode.textContent = step.body;
+      whyNode.textContent = step.why;
+      countNode.textContent = `${copy.stepLabel} ${String(state.step + 1).padStart(2, "0")} / ${String(copy.steps.length).padStart(2, "0")}`;
+      railNode.innerHTML = copy.steps.map((item, index) => `
+        <button
+          type="button"
+          data-app-step="${index}"
+          class="${index === state.step ? "is-active" : ""} ${
+            index < state.step ? "is-complete" : ""
+          }"
+        >
+          <span>${String(index + 1).padStart(2, "0")}</span>
+          ${item.title}
+        </button>
+      `).join("");
+      playButton.textContent = state.playing ? copy.pause : copy.play;
+      playButton.classList.toggle("is-playing", state.playing);
+      intervalInput.value = String(state.interval);
+      speedButtons.forEach((button) => {
+        button.classList.toggle(
+          "is-active",
+          Number(button.dataset.appSpeed) === state.interval,
+        );
+      });
+    }
+
+    function renderAll() {
+      renderSuffixes();
+      renderAnswer();
+      renderStepper();
+    }
+
+    function applyStep(index) {
+      const stepIndex = clamp(index, 0, copy.steps.length - 1);
+      const step = copy.steps[stepIndex];
+      state.step = stepIndex;
+      state.active = clamp(step.active, 0, state.data.nums.length - 1);
+      renderAll();
+    }
+
+    function stopPlayback() {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      state.playing = false;
+      renderStepper();
+    }
+
+    function schedulePlayback() {
+      if (!state.playing) return;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (state.step >= copy.steps.length - 1) {
+          stopPlayback();
+          return;
+        }
+        applyStep(state.step + 1);
+        schedulePlayback();
+      }, state.interval);
+    }
+
+    function startPlayback() {
+      if (state.step >= copy.steps.length - 1) applyStep(0);
+      state.playing = true;
+      renderStepper();
+      schedulePlayback();
+    }
+
+    function setIntervalMs(value) {
+      state.interval = clamp(Number(value) || 1500, 300, 10000);
+      renderStepper();
+      if (state.playing) schedulePlayback();
+    }
+
+    function rebuild() {
+      stopPlayback();
+      const nums = parseInput(input.value);
+      input.value = nums.join(" ");
+      state.data = buildData(nums);
+      applyStep(0);
+    }
+
+    runButton.addEventListener("click", rebuild);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") rebuild();
+    });
+    document.addEventListener("click", (event) => {
+      const stepButton = event.target.closest("[data-app-step]");
+      if (stepButton) {
+        applyStep(Number(stepButton.dataset.appStep));
+        return;
+      }
+      const startButton = event.target.closest("[data-app-start]");
+      if (startButton) {
+        state.active = Number(startButton.dataset.appStart);
+        renderAll();
+      }
+    });
+    document.querySelector("[data-app-prev]").addEventListener("click", () => {
+      applyStep(state.step - 1);
+    });
+    document.querySelector("[data-app-next]").addEventListener("click", () => {
+      applyStep(state.step + 1);
+    });
+    playButton.addEventListener("click", () => {
+      if (state.playing) stopPlayback();
+      else startPlayback();
+    });
+    intervalInput.addEventListener("change", () => {
+      setIntervalMs(intervalInput.value);
+    });
+    speedButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setIntervalMs(button.dataset.appSpeed);
+      });
+    });
+    document.querySelectorAll("[data-app-example]").forEach((button) => {
+      button.addEventListener("click", () => {
+        input.value = button.dataset.appExample;
+        rebuild();
+      });
+    });
+
+    rebuild();
+  </script>
+
+  <style is:global>
+    .app-shell {
+      --app-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
+        monospace;
+      --app-panel: rgb(255 255 255 / 32%);
+      --app-line: rgb(194 192 182 / 70%);
+      color: var(--color-charcoal);
+      font-family: "PingFang SC", -apple-system, BlinkMacSystemFont,
+        "Helvetica Neue", "Segoe UI", sans-serif;
+    }
+
+    html.dark .app-shell {
+      --app-panel: rgb(30 30 28 / 46%);
+      --app-line: #333;
+      color: var(--color-cream);
+    }
+
+    .app-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      align-items: end;
+      border-bottom: 1px solid var(--app-line);
+      padding: 0.18rem 0 0.5rem;
+    }
+
+    .app-kicker,
+    .app-section-kicker {
+      margin: 0 0 0.28rem;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .app-hero h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2vw, 1.65rem);
+      line-height: 1.1;
+    }
+
+    .app-hero p:not(.app-kicker) {
+      max-width: 60rem;
+      margin: 0.35rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.76rem;
+      line-height: 1.45;
+    }
+
+    .app-actions,
+    .app-toolbar,
+    .app-toolbar > div,
+    .app-step-actions,
+    .app-playback,
+    .app-playback > div {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .app-actions {
+      justify-content: flex-end;
+    }
+
+    .app-actions a,
+    .app-toolbar button,
+    .app-step-actions button,
+    .app-playback button,
+    .app-suffixes button,
+    .app-rail button {
+      border: 1px solid var(--app-line);
+      border-radius: 0.4rem;
+      background: transparent;
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 0.24rem 0.42rem;
+      text-decoration: none;
+    }
+
+    .app-actions a:hover,
+    .app-toolbar button:hover,
+    .app-step-actions button:hover,
+    .app-playback button:hover,
+    .app-playback button.is-active,
+    .app-playback button.is-playing,
+    .app-suffixes button:hover,
+    .app-suffixes button.is-active,
+    .app-rail button:hover,
+    .app-rail button.is-active {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .app-workbench {
+      display: grid;
+      gap: 0.48rem;
+      margin: 0.6rem 0 1.4rem;
+    }
+
+    .app-toolbar,
+    .app-stepper,
+    .app-panel,
+    .app-code-section {
+      border: 1px solid var(--app-line);
+      border-radius: 0.52rem;
+      background: var(--app-panel);
+      padding: 0.64rem;
+    }
+
+    .app-toolbar label,
+    .app-playback label span,
+    .app-playback label em {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-style: normal;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .app-toolbar input,
+    .app-playback input {
+      border: 1px solid var(--app-line);
+      border-radius: 0.4rem;
+      background: rgb(255 255 255 / 52%);
+      color: var(--color-charcoal);
+      font-family: var(--app-code-font);
+      font-size: 0.74rem;
+      padding: 0.28rem 0.42rem;
+    }
+
+    .app-toolbar input {
+      min-width: 9rem;
+      flex: 1 1 14rem;
+    }
+
+    .app-stepper {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .app-step-head,
+    .app-step-body,
+    .app-code-section {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.7rem;
+      align-items: start;
+    }
+
+    .app-stepper h2,
+    .app-panel h2,
+    .app-code-section h2 {
+      margin: 0;
+      color: var(--color-charcoal);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .app-step-actions span {
+      font-family: var(--app-code-font);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .app-playback label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-left: auto;
+    }
+
+    .app-playback input {
+      width: 5rem;
+    }
+
+    .app-step-body {
+      grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.8fr);
+    }
+
+    .app-step-body > p,
+    .app-step-body > div {
+      min-width: 0;
+      margin: 0;
+      border: 1px solid rgb(194 192 182 / 42%);
+      border-radius: 0.44rem;
+      background: rgb(255 255 255 / 28%);
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+      line-height: 1.52;
+      padding: 0.54rem;
+    }
+
+    .app-step-body strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      text-transform: uppercase;
+    }
+
+    .app-step-body p {
+      margin: 0;
+    }
+
+    .app-rail {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.24rem;
+    }
+
+    .app-rail button {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 0.24rem;
+      min-height: 2.8rem;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .app-rail button.is-complete:not(.is-active) {
+      border-color: rgb(47 125 79 / 30%);
+      background: rgb(47 125 79 / 7%);
+    }
+
+    .app-rail span {
+      color: var(--color-terracotta);
+      font-family: var(--app-code-font);
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.48rem;
+    }
+
+    .app-wide {
+      grid-column: span 2;
+    }
+
+    .app-suffixes {
+      display: grid;
+      gap: 0.24rem;
+    }
+
+    .app-suffixes button {
+      display: grid;
+      grid-template-columns: 2rem 2rem minmax(0, 1fr) 2rem;
+      align-items: center;
+      text-align: left;
+    }
+
+    .app-suffixes span {
+      color: var(--color-muted);
+      font-family: var(--app-code-font);
+      font-size: 0.56rem;
+    }
+
+    .app-suffixes code,
+    .app-table code {
+      font-family: var(--app-code-font);
+      font-size: 0.72rem;
+    }
+
+    .app-suffixes b {
+      color: var(--color-terracotta);
+      font-family: var(--app-code-font);
+      font-size: 0.7rem;
+    }
+
+    .app-result {
+      color: var(--color-charcoal);
+      font-family: var(--app-code-font);
+      font-size: 0.86rem;
+      font-weight: 800;
+      line-height: 1.5;
+    }
+
+    .app-table-wrap {
+      overflow: auto;
+    }
+
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      color: var(--color-secondary);
+      font-size: 0.7rem;
+    }
+
+    .app-table th,
+    .app-table td {
+      border-bottom: 1px solid rgb(194 192 182 / 42%);
+      padding: 0.34rem 0.28rem;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .app-table th {
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      text-transform: uppercase;
+    }
+
+    .app-table tr.is-active {
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-charcoal);
+    }
+
+    .app-table tr.is-best {
+      color: #2f7d4f;
+      font-weight: 800;
+    }
+
+    .app-code-section {
+      grid-template-columns: minmax(12rem, 0.72fr) minmax(0, 1.28fr);
+    }
+
+    .app-code-section p {
+      margin: 0.4rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+      line-height: 1.52;
+    }
+
+    .app-code {
+      overflow: auto;
+      margin: 0;
+      border-radius: 0.44rem;
+      background: rgb(20 20 19 / 94%);
+      color: #f6efe2;
+      font-family: var(--app-code-font);
+      font-size: 0.72rem;
+      line-height: 1.44;
+      padding: 0.58rem 0;
+    }
+
+    .app-code-line {
+      display: block;
+      min-height: 1em;
+      padding: 0 0.7rem;
+      white-space: pre;
+    }
+
+    .app-code-keyword {
+      color: #f4a261;
+      font-weight: 800;
+    }
+
+    .app-code-number {
+      color: #f7d36a;
+    }
+
+    html.dark .app-hero p:not(.app-kicker),
+    html.dark .app-step-body > p,
+    html.dark .app-step-body > div,
+    html.dark .app-table,
+    html.dark .app-code-section p {
+      color: var(--color-muted);
+    }
+
+    html.dark .app-toolbar input,
+    html.dark .app-playback input {
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-cream);
+    }
+
+    html.dark .app-stepper h2,
+    html.dark .app-panel h2,
+    html.dark .app-code-section h2,
+    html.dark .app-result,
+    html.dark .app-table tr.is-active {
+      color: var(--color-cream);
+    }
+
+    @media (max-width: 900px) {
+      .app-hero,
+      .app-step-head,
+      .app-step-body,
+      .app-grid,
+      .app-code-section {
+        grid-template-columns: 1fr;
+      }
+
+      .app-actions {
+        justify-content: flex-start;
+      }
+
+      .app-wide {
+        grid-column: auto;
+      }
+
+      .app-rail {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .app-playback label {
+        margin-left: 0;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .app-rail {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</BaseLayout>

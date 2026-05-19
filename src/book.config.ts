@@ -260,6 +260,21 @@ const suffixArrayPages: PageConfig[] = [
   },
 ];
 
+const lcpPages: PageConfig[] = [
+  {
+    book: "lcp",
+    path: "lcp/spec",
+    zhPath: "zh/lcp/spec",
+    title: "Spec",
+    zhTitle: "规格说明",
+    description:
+      "The route, interaction, algorithm, and explanation contract for the LCP book.",
+    zhDescription:
+      "说明 LCP 单页书的路由、交互、算法和讲解契约。",
+    kind: "front",
+  },
+];
+
 export const codexFromSourceBook = makeBook({
   slug: "codex-from-source",
   title: siteTitle,
@@ -322,11 +337,11 @@ export const suffixArrayBook = makeBook({
   shortTitle: "Suffix Array",
   zhShortTitle: "后缀数组",
   description:
-    "A compact interactive suffix-array book that teaches coordinate compression, doubling construction, Kasai LCP, and the shortest unique subarray scan.",
+    "A compact interactive suffix-array book focused only on suffix order, rank classes, and doubling construction.",
   zhDescription:
-    "一本紧凑的交互式后缀数组小书，讲解坐标压缩、倍增构造、Kasai LCP 和最短唯一子数组扫描。",
-  coverKicker: "Suffix Array, LCP, Unique Subarray",
-  zhCoverKicker: "Suffix Array, LCP, Unique Subarray",
+    "一本紧凑的交互式后缀数组小书，只讲后缀顺序、rank 等价类和倍增构造。",
+  coverKicker: "Suffix Order, Rank Classes, Doubling",
+  zhCoverKicker: "Suffix Order, Rank Classes, Doubling",
   coverTitle: "Suffix<br />Array<br />Primer",
   coverFooter: "Interactive visualization",
   zhCoverFooter: "交互式可视化",
@@ -334,11 +349,31 @@ export const suffixArrayBook = makeBook({
   pages: suffixArrayPages,
 });
 
+export const lcpBook = makeBook({
+  slug: "lcp",
+  title: "LCP Array Primer",
+  zhTitle: "LCP 数组入门",
+  shortTitle: "LCP",
+  zhShortTitle: "LCP",
+  description:
+    "A compact interactive LCP book focused only on adjacent suffix matches and the Kasai scan.",
+  zhDescription:
+    "一本紧凑的交互式 LCP 小书，只讲相邻后缀公共前缀和 Kasai 扫描。",
+  coverKicker: "Adjacent Suffixes, Kasai, Reused Height",
+  zhCoverKicker: "Adjacent Suffixes, Kasai, Reused Height",
+  coverTitle: "LCP<br />Array<br />Primer",
+  coverFooter: "Interactive visualization",
+  zhCoverFooter: "交互式可视化",
+  parts: [],
+  pages: lcpPages,
+});
+
 export const books = [
   codexFromSourceBook,
   codexContextManagementBook,
   leetcodeBook,
   suffixArrayBook,
+  lcpBook,
 ] as const;
 export const allPages = books.flatMap((book) => book.pages);
 
