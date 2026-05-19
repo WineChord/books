@@ -245,6 +245,21 @@ const leetcodePages: PageConfig[] = [
   },
 ];
 
+const suffixArrayPages: PageConfig[] = [
+  {
+    book: "sa",
+    path: "sa/spec",
+    zhPath: "zh/sa/spec",
+    title: "Spec",
+    zhTitle: "规格说明",
+    description:
+      "The route, interaction, algorithm, and explanation contract for the suffix-array book.",
+    zhDescription:
+      "说明后缀数组单页书的路由、交互、算法和讲解契约。",
+    kind: "front",
+  },
+];
+
 export const codexFromSourceBook = makeBook({
   slug: "codex-from-source",
   title: siteTitle,
@@ -300,10 +315,30 @@ export const leetcodeBook = makeBook({
   pages: leetcodePages,
 });
 
+export const suffixArrayBook = makeBook({
+  slug: "sa",
+  title: "Suffix Array Primer",
+  zhTitle: "后缀数组入门",
+  shortTitle: "Suffix Array",
+  zhShortTitle: "后缀数组",
+  description:
+    "A compact interactive suffix-array book that teaches coordinate compression, doubling construction, Kasai LCP, and the shortest unique subarray scan.",
+  zhDescription:
+    "一本紧凑的交互式后缀数组小书，讲解坐标压缩、倍增构造、Kasai LCP 和最短唯一子数组扫描。",
+  coverKicker: "Suffix Array, LCP, Unique Subarray",
+  zhCoverKicker: "Suffix Array, LCP, Unique Subarray",
+  coverTitle: "Suffix<br />Array<br />Primer",
+  coverFooter: "Interactive visualization",
+  zhCoverFooter: "交互式可视化",
+  parts: [],
+  pages: suffixArrayPages,
+});
+
 export const books = [
   codexFromSourceBook,
   codexContextManagementBook,
   leetcodeBook,
+  suffixArrayBook,
 ] as const;
 export const allPages = books.flatMap((book) => book.pages);
 

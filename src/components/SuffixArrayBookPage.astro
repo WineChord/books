@@ -1,0 +1,1350 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { suffixArrayBook } from "../book.config";
+import { pageUrl } from "../urls";
+
+interface Props {
+  lang?: "en" | "zh";
+}
+
+const { lang = "zh" } = Astro.props;
+const isZh = lang === "zh";
+const base = import.meta.env.BASE_URL;
+const title = isZh ? suffixArrayBook.zhTitle : suffixArrayBook.title;
+const description = isZh
+  ? suffixArrayBook.zhDescription
+  : suffixArrayBook.description;
+const homePath = isZh ? "sa/" : "sa/en";
+const alternatePath = isZh ? "sa/en" : "sa/";
+const specPath = isZh ? "zh/sa/spec" : "sa/spec";
+
+const solutionCode = `class Solution {
+    vector<int> compress(vector<int>& nums) {
+        auto a = nums;
+        sort(a.begin(), a.end());
+        a.erase(unique(a.begin(), a.end()), a.end());
+        vector<int> b;
+        for(auto x: nums) {
+            int id = lower_bound(a.begin(), a.end(), x) - a.begin() + 1;
+            b.push_back(id);
+        }
+        return b;
+    }
+    vector<int> build1(vector<int>& a) {
+        int n = a.size();
+        vector<int> sa(n), rank(n), tmp(n);
+        for(int i = 0; i < n; i++) sa[i] = i, rank[i] = a[i];
+        for(int k = 1; k < n; k <<= 1) {
+            auto cmp = [&](int i, int j) {
+                if(rank[i] != rank[j]) return rank[i] < rank[j];
+                int ri = (i+k < n) ? rank[i+k] : -1;
+                int rj = (j+k < n) ? rank[j+k] : -1;
+                return ri < rj;
+            };
+            sort(sa.begin(), sa.end(), cmp);
+            tmp[sa[0]] = 0;
+            for(int i = 1; i < n; i++) {
+                tmp[sa[i]] = tmp[sa[i-1]];
+                if(cmp(sa[i-1], sa[i])) tmp[sa[i]]++;
+            }
+            for(int i = 0; i < n; i++) rank[i] = tmp[i];
+            if(rank[sa[n-1]] == n-1) break;
+        }
+        return sa;
+    }
+    vector<int> build2(vector<int>& a, vector<int>& sa) {
+        int n = a.size();
+        vector<int> rank(n), lcp(n, 0);
+        for(int i = 0; i < n; i++) rank[sa[i]] = i;
+        int h = 0;
+        for(int i = 0; i < n; i++) {
+            int p = rank[i];
+            if(p == 0) continue;
+            int j = sa[p-1];
+            while(i+h < n && j+h < n && a[i+h] == a[j+h]) h++;
+            lcp[p] = h;
+            if(h > 0) h--;
+        }
+        return lcp;
+    }
+public:
+    int smallestUniqueSubarray(vector<int>& a) {
+        int n = a.size();
+        a = compress(a);
+        auto sa = build1(a);
+        auto lcp = build2(a, sa);
+        vector<int> rank(n);
+        for(int i = 0; i < n; i++) rank[sa[i]] = i;
+        int res = n;
+        for(int i = 0; i < n; i++) {
+            int p = rank[i];
+            int same = 0;
+            if(p > 0) same = max(same, lcp[p]);
+            if(p+1 < n) same = max(same, lcp[p+1]);
+            int need = same + 1;
+            if(need <= n-i) res = min(res, need);
+        }
+        return res;
+    }
+};`;
+
+const pageText = isZh
+  ? {
+      kicker: "Suffix Array, LCP, Unique Subarray",
+      hero:
+        "用一个力扣式数组题把后缀数组讲清楚：先把每个后缀排序，再用 LCP 找出一个起点至少要取多长，才能得到只出现一次的子数组。",
+      primaryAction: "查看规格",
+      alternateAction: "English",
+      coverFooter: "单页交互教材",
+      stats: [
+        ["01", "坐标压缩"],
+        ["02", "倍增排序"],
+        ["03", "Kasai LCP"],
+        ["04", "唯一子数组"],
+      ],
+      labTitle: "可视化工作台",
+      inputLabel: "数组",
+      runLabel: "运行",
+      examplesLabel: "样例",
+      roundLabel: "倍增轮次",
+      stageLabels: {
+        compress: "压缩",
+        doubling: "倍增",
+        lcp: "LCP",
+        answer: "答案",
+      },
+      introTitle: "为什么子数组可以交给后缀数组",
+      intro:
+        "从位置 i 开始的任何子数组，都是后缀 a[i..] 的一个前缀。题目要找最短的唯一子数组，所以我们只需要知道每个后缀的前缀会和哪些后缀撞车。",
+      codeTitle: "代码分块讲解",
+      proofTitle: "核心结论",
+      proof:
+        "在所有排好序的后缀里，和某个后缀共享最长前缀的竞争者，一定出现在它的左右相邻位置。于是同一起点 i 的最短唯一长度就是 max(left LCP, right LCP) + 1。",
+      complexityTitle: "复杂度",
+      complexity:
+        "这份实现用 sort 做倍增排序，所以构建后缀数组是 O(n log^2 n)，Kasai LCP 是 O(n)，最后扫描答案也是 O(n)。",
+      codeBlocks: [
+        [
+          "compress",
+          "数组里的值可能很大、也可能为负。坐标压缩只保留大小关系和相等关系，让后缀数组处理的是从 1 开始的紧凑整数。",
+        ],
+        [
+          "build1",
+          "倍增算法每轮按二元组 (rank[i], rank[i+k]) 排序。k 从 1、2、4 一直翻倍，意思是先比较长度 k 的前半段，再比较后半段。",
+        ],
+        [
+          "build2",
+          "LCP 数组记录相邻两个后缀的最长公共前缀。Kasai 的 h 每次最多先加后减，总体线性完成。",
+        ],
+        [
+          "smallestUniqueSubarray",
+          "每个起点只看后缀数组中的左右邻居。共同前缀最长值叫 same，长度 same 以内都会和别人重复，same + 1 才可能唯一。",
+        ],
+      ],
+    }
+  : {
+      kicker: "Suffix Array, LCP, Unique Subarray",
+      hero:
+        "A single-page interactive lesson that uses a LeetCode-style array problem to explain suffix arrays, LCP, and the provided C++ solution.",
+      primaryAction: "Read spec",
+      alternateAction: "中文",
+      coverFooter: "Single-page interactive book",
+      stats: [
+        ["01", "Compression"],
+        ["02", "Doubling sort"],
+        ["03", "Kasai LCP"],
+        ["04", "Unique subarray"],
+      ],
+      labTitle: "Visualization Lab",
+      inputLabel: "Array",
+      runLabel: "Run",
+      examplesLabel: "Examples",
+      roundLabel: "Doubling round",
+      stageLabels: {
+        compress: "Compress",
+        doubling: "Doubling",
+        lcp: "LCP",
+        answer: "Answer",
+      },
+      introTitle: "Why Subarrays Become Suffix Prefixes",
+      intro:
+        "Every subarray starting at i is a prefix of the suffix a[i..]. To find the shortest unique subarray, we only need to know how long each suffix keeps tying with other suffixes.",
+      codeTitle: "Code Walkthrough",
+      proofTitle: "Key Fact",
+      proof:
+        "After suffixes are sorted, the suffix that shares the longest prefix with one suffix must be one of its two sorted neighbors. The shortest unique length at start i is therefore max(left LCP, right LCP) + 1.",
+      complexityTitle: "Complexity",
+      complexity:
+        "This implementation uses sort inside doubling, so suffix-array construction is O(n log^2 n). Kasai LCP and the final answer scan are both O(n).",
+      codeBlocks: [
+        [
+          "compress",
+          "Values can be large or negative. Compression preserves ordering and equality while turning the input into a compact 1-based alphabet.",
+        ],
+        [
+          "build1",
+          "The doubling algorithm sorts by the pair (rank[i], rank[i+k]). k doubles from 1 to 2 to 4, comparing the first half and then the second half.",
+        ],
+        [
+          "build2",
+          "The LCP array stores the longest common prefix of adjacent suffixes. Kasai reuses h, so the total work stays linear.",
+        ],
+        [
+          "smallestUniqueSubarray",
+          "Each start only checks its two suffix-array neighbors. Prefixes of length same still repeat; same + 1 is the first candidate unique length.",
+        ],
+      ],
+    };
+
+const clientText = isZh
+  ? {
+      compressed: "压缩后",
+      original: "原数组",
+      sortedValues: "去重排序",
+      pair: "比较键",
+      newRank: "新 rank",
+      lcpWithPrevious: "与上一后缀 LCP",
+      start: "起点",
+      suffix: "后缀",
+      left: "左 LCP",
+      right: "右 LCP",
+      same: "same",
+      need: "need",
+      status: "状态",
+      fits: "可取",
+      tooLong: "超过边界",
+      answerPrefix: "答案",
+      answerMiddle: "来自起点",
+      answerSuffix: "的子数组",
+      noAnswer: "没有可视化数据。",
+      stageNotes: {
+        compress: "压缩只改变符号编号，不改变任意两个元素的相等关系和大小关系。",
+        doubling: "当前轮按二元组排序；二元组相同的后缀会拿到同一个新 rank。",
+        lcp: "LCP[p] 比较 sa[p] 和 sa[p-1]，所以右邻居要看 LCP[p+1]。",
+        answer: "对每个起点取左右 LCP 的最大值，加一就是首次能避开重复的长度。",
+      },
+      examples: [
+        ["1 2 1 2 3", "尾部唯一"],
+        ["4 4 4 4", "全相同"],
+        ["3 1 3 1 3 2", "交替重复"],
+      ],
+    }
+  : {
+      compressed: "Compressed",
+      original: "Original",
+      sortedValues: "Sorted unique values",
+      pair: "Sort key",
+      newRank: "New rank",
+      lcpWithPrevious: "LCP with previous",
+      start: "Start",
+      suffix: "Suffix",
+      left: "Left LCP",
+      right: "Right LCP",
+      same: "same",
+      need: "need",
+      status: "State",
+      fits: "fits",
+      tooLong: "too long",
+      answerPrefix: "Answer",
+      answerMiddle: "from start",
+      answerSuffix: "subarray",
+      noAnswer: "No visualization data.",
+      stageNotes: {
+        compress: "Compression only renames symbols; equality and ordering stay the same.",
+        doubling: "This round sorts by a pair. Equal pairs receive the same new rank.",
+        lcp: "LCP[p] compares sa[p] with sa[p-1], so the right neighbor is LCP[p+1].",
+        answer: "For each start, take the larger neighbor LCP and add one.",
+      },
+      examples: [
+        ["1 2 1 2 3", "Unique tail"],
+        ["4 4 4 4", "All equal"],
+        ["3 1 3 1 3 2", "Alternating"],
+      ],
+    };
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  canonicalPath={homePath}
+  lang={lang}
+  titleSuffix={title}
+>
+  <main class="leetcode-shell sa-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10">
+    <section class="leetcode-hero sa-hero">
+      <div>
+        <p class="leetcode-kicker">{pageText.kicker}</p>
+        <h1 class="leetcode-title sa-title">{title}</h1>
+        <p class="leetcode-copy">{pageText.hero}</p>
+        <div class="leetcode-actions">
+          <a href={pageUrl(base, specPath)} class="leetcode-primary-link">
+            {pageText.primaryAction}
+          </a>
+          <a
+            href={pageUrl(base, alternatePath)}
+            class="leetcode-secondary-link"
+          >
+            {pageText.alternateAction}
+          </a>
+        </div>
+      </div>
+      <div class="book-cover" aria-label={`${title} cover`}>
+        <div class="book-cover__kicker">{suffixArrayBook.coverKicker}</div>
+        <div class="book-cover__title" set:html={suffixArrayBook.coverTitle} />
+        <div class="book-cover__footer">{pageText.coverFooter}</div>
+      </div>
+    </section>
+
+    <section class="sa-stats" aria-label={isZh ? "学习路径" : "Learning path"}>
+      {pageText.stats.map(([number, label]) => (
+        <div>
+          <span>{number}</span>
+          <p>{label}</p>
+        </div>
+      ))}
+    </section>
+
+    <section class="sa-workspace" aria-label={pageText.labTitle}>
+      <div class="sa-toolbar">
+        <div class="sa-input-group">
+          <label for="sa-input">{pageText.inputLabel}</label>
+          <input
+            id="sa-input"
+            type="text"
+            value="1 2 1 2 3"
+            inputmode="numeric"
+            autocomplete="off"
+          />
+          <button type="button" data-sa-run>{pageText.runLabel}</button>
+        </div>
+        <div class="sa-example-group" aria-label={pageText.examplesLabel}>
+          <span>{pageText.examplesLabel}</span>
+          {clientText.examples.map(([value, label]) => (
+            <button type="button" data-sa-example={value}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div class="sa-stage-tabs" role="tablist" aria-label={pageText.labTitle}>
+        {Object.entries(pageText.stageLabels).map(([stage, label]) => (
+          <button
+            type="button"
+            class={stage === "compress" ? "is-active" : ""}
+            data-sa-stage={stage}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div class="sa-stage-note" data-sa-stage-note>
+        {clientText.stageNotes.compress}
+      </div>
+
+      <div class="sa-round-control">
+        <label for="sa-round">{pageText.roundLabel}</label>
+        <input id="sa-round" type="range" min="0" max="0" value="0" />
+        <span data-sa-round-label>k = 1</span>
+      </div>
+
+      <div class="sa-visual-grid">
+        <section class="sa-panel sa-sequence-panel">
+          <h2>{pageText.stageLabels.compress}</h2>
+          <div class="sa-array-stack" data-sa-sequence></div>
+          <p data-sa-compression-summary></p>
+        </section>
+
+        <section class="sa-panel">
+          <h2>{pageText.stageLabels.doubling}</h2>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{clientText.start}</th>
+                  <th>{clientText.suffix}</th>
+                  <th>{clientText.pair}</th>
+                  <th>{clientText.newRank}</th>
+                </tr>
+              </thead>
+              <tbody data-sa-round-body></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="sa-panel">
+          <h2>{pageText.stageLabels.lcp}</h2>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{clientText.start}</th>
+                  <th>{clientText.suffix}</th>
+                  <th>{clientText.lcpWithPrevious}</th>
+                </tr>
+              </thead>
+              <tbody data-sa-lcp-body></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="sa-panel">
+          <h2>{pageText.stageLabels.answer}</h2>
+          <p class="sa-result" data-sa-result></p>
+          <div class="sa-table-wrap">
+            <table class="sa-table">
+              <thead>
+                <tr>
+                  <th>{clientText.start}</th>
+                  <th>{clientText.left}</th>
+                  <th>{clientText.right}</th>
+                  <th>{clientText.same}</th>
+                  <th>{clientText.need}</th>
+                  <th>{clientText.status}</th>
+                </tr>
+              </thead>
+              <tbody data-sa-answer-body></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="sa-explain-grid">
+      <article>
+        <p class="sa-section-kicker">{pageText.kicker}</p>
+        <h2>{pageText.introTitle}</h2>
+        <p>{pageText.intro}</p>
+      </article>
+      <article>
+        <p class="sa-section-kicker">LCP</p>
+        <h2>{pageText.proofTitle}</h2>
+        <p>{pageText.proof}</p>
+      </article>
+      <article>
+        <p class="sa-section-kicker">O(n)</p>
+        <h2>{pageText.complexityTitle}</h2>
+        <p>{pageText.complexity}</p>
+      </article>
+    </section>
+
+    <section class="sa-code-section">
+      <div class="sa-code-notes">
+        <p class="sa-section-kicker">C++</p>
+        <h2>{pageText.codeTitle}</h2>
+        {pageText.codeBlocks.map(([name, body]) => (
+          <details open={name === "compress"}>
+            <summary>{name}</summary>
+            <p>{body}</p>
+          </details>
+        ))}
+      </div>
+      <pre class="sa-code-block"><code>{solutionCode}</code></pre>
+    </section>
+  </main>
+
+  <script type="application/json" id="sa-copy" set:html={JSON.stringify(clientText)}></script>
+  <script>
+    const suffixArrayCopy = JSON.parse(
+      document.getElementById("sa-copy")?.textContent || "{}",
+    );
+    const maxVisualLength = 10;
+    const defaultValues = [1, 2, 1, 2, 3];
+    const inputNode = document.getElementById("sa-input");
+    const runButton = document.querySelector("[data-sa-run]");
+    const sequenceNode = document.querySelector("[data-sa-sequence]");
+    const compressionSummaryNode = document.querySelector(
+      "[data-sa-compression-summary]",
+    );
+    const roundInput = document.getElementById("sa-round");
+    const roundLabel = document.querySelector("[data-sa-round-label]");
+    const roundBody = document.querySelector("[data-sa-round-body]");
+    const lcpBody = document.querySelector("[data-sa-lcp-body]");
+    const answerBody = document.querySelector("[data-sa-answer-body]");
+    const resultNode = document.querySelector("[data-sa-result]");
+    const stageNote = document.querySelector("[data-sa-stage-note]");
+    const stageButtons = Array.from(
+      document.querySelectorAll("[data-sa-stage]"),
+    );
+    const exampleButtons = Array.from(
+      document.querySelectorAll("[data-sa-example]"),
+    );
+    let state = {
+      activeStart: 0,
+      data: null,
+      roundIndex: 0,
+      stage: "compress",
+    };
+
+    function parseValues(raw) {
+      const matches = String(raw || "").match(/-?\d+/g) || [];
+      return matches.slice(0, maxVisualLength).map(Number);
+    }
+
+    function comparePairs(left, right) {
+      if (left[0] !== right[0]) return left[0] - right[0];
+      return left[1] - right[1];
+    }
+
+    function compressValues(nums) {
+      const alphabet = [...new Set(nums)].sort((left, right) => left - right);
+      const rankByValue = new Map(
+        alphabet.map((value, index) => [value, index + 1]),
+      );
+      return {
+        alphabet,
+        values: nums.map((value) => rankByValue.get(value)),
+      };
+    }
+
+    function buildSuffixArray(values) {
+      const size = values.length;
+      const sa = Array.from({ length: size }, (_, index) => index);
+      let rank = values.slice();
+      const rounds = [];
+      for (let k = 1; k < size; k <<= 1) {
+        const beforeRank = rank.slice();
+        const pairAt = (index) => [
+          beforeRank[index],
+          index + k < size ? beforeRank[index + k] : -1,
+        ];
+        sa.sort((left, right) => comparePairs(pairAt(left), pairAt(right)));
+        const tmp = Array(size).fill(0);
+        for (let index = 1; index < size; index += 1) {
+          const previous = sa[index - 1];
+          const current = sa[index];
+          tmp[current] = tmp[previous];
+          if (comparePairs(pairAt(previous), pairAt(current)) < 0) {
+            tmp[current] += 1;
+          }
+        }
+        rounds.push({
+          beforeRank,
+          k,
+          rows: sa.map((start, order) => ({
+            newRank: tmp[start],
+            order,
+            pair: pairAt(start),
+            start,
+          })),
+          sa: sa.slice(),
+        });
+        rank = tmp;
+        if (rank[sa[size - 1]] === size - 1) break;
+      }
+      return {
+        rounds,
+        sa,
+      };
+    }
+
+    function buildLcp(values, sa) {
+      const size = values.length;
+      const rank = Array(size);
+      const lcp = Array(size).fill(0);
+      for (let index = 0; index < size; index += 1) rank[sa[index]] = index;
+      let height = 0;
+      for (let index = 0; index < size; index += 1) {
+        const position = rank[index];
+        if (position === 0) continue;
+        const previousStart = sa[position - 1];
+        while (
+          index + height < size &&
+          previousStart + height < size &&
+          values[index + height] === values[previousStart + height]
+        ) {
+          height += 1;
+        }
+        lcp[position] = height;
+        if (height > 0) height -= 1;
+      }
+      return {
+        lcp,
+        rank,
+      };
+    }
+
+    function buildAnswer(values, sa, lcp, rank) {
+      const size = values.length;
+      const candidates = [];
+      let best = null;
+      for (let start = 0; start < size; start += 1) {
+        const position = rank[start];
+        const left = position > 0 ? lcp[position] : 0;
+        const right = position + 1 < size ? lcp[position + 1] : 0;
+        const same = Math.max(left, right);
+        const need = same + 1;
+        const fits = need <= size - start;
+        const candidate = { fits, left, need, position, right, same, start };
+        candidates.push(candidate);
+        if (fits && (!best || need < best.need)) best = candidate;
+      }
+      return { best, candidates };
+    }
+
+    function buildData(nums) {
+      const compressed = compressValues(nums);
+      const suffixArray = buildSuffixArray(compressed.values);
+      const lcpData = buildLcp(compressed.values, suffixArray.sa);
+      const answer = buildAnswer(
+        compressed.values,
+        suffixArray.sa,
+        lcpData.lcp,
+        lcpData.rank,
+      );
+      return {
+        answer,
+        compressed,
+        lcp: lcpData.lcp,
+        nums,
+        rank: lcpData.rank,
+        rounds: suffixArray.rounds,
+        sa: suffixArray.sa,
+        values: compressed.values,
+      };
+    }
+
+    function tokenList(values, activeStart, offset = 0) {
+      return values.map((value, index) => {
+        const position = offset + index;
+        const activeClass = position === activeStart ? " is-active" : "";
+        return `<span class="sa-token${activeClass}">${value}</span>`;
+      }).join("");
+    }
+
+    function suffixText(values, start, activeStart) {
+      return tokenList(values.slice(start), activeStart, start);
+    }
+
+    function renderSequence(data) {
+      const original = tokenList(data.nums, state.activeStart);
+      const compressed = tokenList(data.values, state.activeStart);
+      sequenceNode.innerHTML = `
+        <div class="sa-array-row">
+          <span>${suffixArrayCopy.original}</span>
+          <div>${original}</div>
+        </div>
+        <div class="sa-array-row">
+          <span>${suffixArrayCopy.compressed}</span>
+          <div>${compressed}</div>
+        </div>
+      `;
+      compressionSummaryNode.textContent = `${suffixArrayCopy.sortedValues}: ${
+        data.compressed.alphabet.join(", ")
+      }`;
+    }
+
+    function currentRound(data) {
+      if (!data.rounds.length) {
+        return {
+          k: 0,
+          rows: data.sa.map((start, order) => ({
+            newRank: data.values[start],
+            order,
+            pair: [data.values[start], -1],
+            start,
+          })),
+        };
+      }
+      return data.rounds[state.roundIndex] || data.rounds[0];
+    }
+
+    function renderRound(data) {
+      const round = currentRound(data);
+      roundLabel.textContent = round.k ? `k = ${round.k}` : "n = 1";
+      roundBody.innerHTML = round.rows.map((row) => `
+        <tr data-sa-start="${row.start}" class="${
+          row.start === state.activeStart ? "is-active" : ""
+        }">
+          <td>${row.order}</td>
+          <td>${row.start}</td>
+          <td><div class="sa-suffix">${suffixText(
+            data.values,
+            row.start,
+            state.activeStart,
+          )}</div></td>
+          <td>(${row.pair[0]}, ${row.pair[1]})</td>
+          <td>${row.newRank}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderLcp(data) {
+      lcpBody.innerHTML = data.sa.map((start, order) => `
+        <tr data-sa-start="${start}" class="${
+          start === state.activeStart ? "is-active" : ""
+        }">
+          <td>${order}</td>
+          <td>${start}</td>
+          <td><div class="sa-suffix">${suffixText(
+            data.values,
+            start,
+            state.activeStart,
+          )}</div></td>
+          <td>${data.lcp[order]}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderAnswer(data) {
+      const best = data.answer.best;
+      if (!best) {
+        resultNode.textContent = suffixArrayCopy.noAnswer;
+      } else {
+        const subarray = data.nums.slice(best.start, best.start + best.need);
+        resultNode.textContent = `${suffixArrayCopy.answerPrefix}: ${
+          best.need
+        }; ${suffixArrayCopy.answerMiddle} ${best.start} ${
+          suffixArrayCopy.answerSuffix
+        } [${subarray.join(", ")}]`;
+      }
+      answerBody.innerHTML = data.answer.candidates.map((row) => `
+        <tr data-sa-start="${row.start}" class="${
+          row.start === state.activeStart ? "is-active" : ""
+        } ${best && row.start === best.start ? "is-best" : ""}">
+          <td>${row.start}</td>
+          <td>${row.left}</td>
+          <td>${row.right}</td>
+          <td>${row.same}</td>
+          <td>${row.need}</td>
+          <td>${row.fits ? suffixArrayCopy.fits : suffixArrayCopy.tooLong}</td>
+        </tr>
+      `).join("");
+    }
+
+    function syncRoundControl(data) {
+      const max = Math.max(0, data.rounds.length - 1);
+      roundInput.max = String(max);
+      roundInput.value = String(Math.min(state.roundIndex, max));
+      roundInput.disabled = data.rounds.length <= 1;
+      state.roundIndex = Number(roundInput.value);
+    }
+
+    function setStage(nextStage) {
+      state.stage = nextStage;
+      stageButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.saStage === nextStage);
+      });
+      stageNote.textContent = suffixArrayCopy.stageNotes[nextStage];
+      document.querySelector(".sa-workspace")?.setAttribute(
+        "data-active-stage",
+        nextStage,
+      );
+    }
+
+    function renderAll() {
+      const data = state.data;
+      if (!data) return;
+      syncRoundControl(data);
+      renderSequence(data);
+      renderRound(data);
+      renderLcp(data);
+      renderAnswer(data);
+    }
+
+    function runVisualization() {
+      const parsed = parseValues(inputNode.value);
+      const nums = parsed.length ? parsed : defaultValues;
+      if (!parsed.length) inputNode.value = nums.join(" ");
+      state.data = buildData(nums);
+      state.activeStart = state.data.answer.best?.start ?? 0;
+      state.roundIndex = 0;
+      renderAll();
+    }
+
+    function activateStart(start) {
+      state.activeStart = start;
+      renderAll();
+    }
+
+    runButton?.addEventListener("click", runVisualization);
+    inputNode?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") runVisualization();
+    });
+    roundInput?.addEventListener("input", () => {
+      state.roundIndex = Number(roundInput.value);
+      renderAll();
+    });
+    stageButtons.forEach((button) => {
+      button.addEventListener("click", () => setStage(button.dataset.saStage));
+    });
+    exampleButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        inputNode.value = button.dataset.saExample;
+        runVisualization();
+      });
+    });
+    document.addEventListener("click", (event) => {
+      const row = event.target.closest("[data-sa-start]");
+      if (!row) return;
+      activateStart(Number(row.dataset.saStart));
+    });
+
+    setStage("compress");
+    runVisualization();
+  </script>
+
+  <style is:global>
+    .leetcode-shell {
+      --leetcode-kai-font: "Kaiti SC", "STKaiti", "KaiTi", "KaiTi SC",
+        "楷体", serif;
+      --leetcode-system-font: "PingFang SC", -apple-system,
+        BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Sans GB",
+        "Microsoft YaHei", sans-serif;
+      --leetcode-page-font: var(--leetcode-system-font);
+      --leetcode-display-font: var(--leetcode-system-font);
+      --leetcode-code-font: Monaco, "Cascadia Code", Consolas, "Courier New",
+        monospace;
+      --leetcode-stack-gap: 0.48rem;
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-page-font);
+    }
+
+    html.dark .leetcode-shell {
+      color: var(--color-cream);
+    }
+
+    .leetcode-hero {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      align-items: center;
+      margin: 0.12rem 0 0.24rem;
+      border-bottom: 1px solid var(--color-border);
+      padding: 0.16rem 0 0.22rem;
+    }
+
+    .leetcode-hero > div:first-child {
+      display: grid;
+      grid-template-columns: auto minmax(13rem, 1fr) auto;
+      gap: 0.18rem 0.88rem;
+      align-items: center;
+    }
+
+    .leetcode-hero .book-cover {
+      display: none;
+    }
+
+    .leetcode-kicker {
+      display: none;
+      margin: 0 0 0.45rem;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 650;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .leetcode-title {
+      max-width: 12ch;
+      margin: 0;
+      font-family: var(--leetcode-display-font);
+      font-size: clamp(1.08rem, 1.55vw, 1.34rem);
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .leetcode-copy {
+      max-width: none;
+      margin: 0;
+      border-left: 1px solid rgb(194 192 182 / 62%);
+      color: var(--color-secondary);
+      font-size: 0.68rem;
+      line-height: 1.22;
+      padding-left: 0.78rem;
+    }
+
+    html.dark .leetcode-copy {
+      border-left-color: #333;
+      color: var(--color-muted);
+    }
+
+    .leetcode-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.22rem;
+      margin-top: 0;
+    }
+
+    .leetcode-primary-link,
+    .leetcode-secondary-link {
+      border-radius: 0.38rem;
+      font-size: 0.66rem;
+      font-weight: 650;
+      padding: 0.2rem 0.36rem;
+      text-decoration: none;
+    }
+
+    .leetcode-primary-link {
+      background: var(--color-terracotta);
+      color: white;
+    }
+
+    .leetcode-secondary-link {
+      border: 1px solid var(--color-border);
+      color: var(--color-charcoal);
+    }
+
+    html.dark .leetcode-secondary-link {
+      border-color: #333;
+      color: var(--color-cream);
+    }
+
+    .sa-shell {
+      --sa-panel-background: rgb(255 255 255 / 24%);
+      --sa-soft-background: rgb(20 20 19 / 3%);
+      --sa-blue: #237893;
+      --sa-green: #2f7d4f;
+      --sa-line: rgb(194 192 182 / 70%);
+    }
+
+    html.dark .sa-shell {
+      --sa-panel-background: rgb(30 30 28 / 46%);
+      --sa-soft-background: rgb(255 255 255 / 5%);
+      --sa-blue: #8bd3dd;
+      --sa-green: #b8e986;
+      --sa-line: #333;
+    }
+
+    .sa-title {
+      max-width: none;
+    }
+
+    .sa-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.28rem;
+      margin: 0 0 0.34rem;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0.34rem 0;
+    }
+
+    .sa-stats div {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: center;
+      gap: 0.32rem;
+      white-space: nowrap;
+    }
+
+    .sa-stats span {
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.86rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .sa-stats p {
+      margin: 0;
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      line-height: 1.15;
+    }
+
+    html.dark .sa-stats {
+      border-color: #333;
+    }
+
+    html.dark .sa-stats span {
+      color: var(--color-cream);
+    }
+
+    .sa-workspace {
+      display: grid;
+      gap: var(--leetcode-stack-gap);
+      min-width: 0;
+      margin: 0 0 1.6rem;
+    }
+
+    .sa-toolbar,
+    .sa-stage-tabs,
+    .sa-round-control {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.32rem;
+      border: 1px solid var(--sa-line);
+      border-radius: 0.5rem;
+      background: var(--sa-panel-background);
+      padding: 0.32rem;
+    }
+
+    .sa-input-group,
+    .sa-example-group {
+      display: flex;
+      min-width: 0;
+      flex: 1 1 18rem;
+      align-items: center;
+      gap: 0.28rem;
+    }
+
+    .sa-example-group {
+      justify-content: flex-end;
+    }
+
+    .sa-input-group label,
+    .sa-example-group span,
+    .sa-round-control label {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .sa-input-group input {
+      min-width: 8rem;
+      flex: 1 1 auto;
+      border: 1px solid var(--color-border);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 50%);
+      color: var(--color-charcoal);
+      font: inherit;
+      font-family: var(--leetcode-code-font);
+      font-size: 0.72rem;
+      padding: 0.3rem 0.42rem;
+    }
+
+    .sa-toolbar button,
+    .sa-stage-tabs button {
+      border: 1px solid var(--color-border);
+      border-radius: 0.38rem;
+      background: transparent;
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.66rem;
+      font-weight: 650;
+      padding: 0.24rem 0.42rem;
+      white-space: nowrap;
+    }
+
+    .sa-toolbar button:hover,
+    .sa-stage-tabs button:hover,
+    .sa-stage-tabs button.is-active {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .sa-stage-tabs button.is-active {
+      background: rgb(217 119 87 / 12%);
+    }
+
+    .sa-stage-note {
+      min-height: 2.1rem;
+      border-left: 0.22rem solid var(--color-terracotta);
+      background: var(--sa-soft-background);
+      color: var(--color-secondary);
+      font-size: 0.76rem;
+      line-height: 1.36;
+      padding: 0.52rem 0.64rem;
+    }
+
+    .sa-round-control input {
+      width: min(20rem, 100%);
+      accent-color: var(--color-terracotta);
+    }
+
+    .sa-round-control span {
+      color: var(--color-charcoal);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .sa-visual-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--leetcode-stack-gap);
+    }
+
+    .sa-panel {
+      min-width: 0;
+      border: 1px solid var(--sa-line);
+      border-radius: 0.5rem;
+      background: var(--sa-panel-background);
+      padding: 0.6rem;
+    }
+
+    .sa-panel h2 {
+      margin: 0 0 0.5rem;
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-display-font);
+      font-size: 0.94rem;
+      line-height: 1.15;
+    }
+
+    .sa-array-stack {
+      display: grid;
+      gap: 0.38rem;
+    }
+
+    .sa-array-row {
+      display: grid;
+      grid-template-columns: 6rem minmax(0, 1fr);
+      gap: 0.42rem;
+      align-items: center;
+    }
+
+    .sa-array-row > span {
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      font-weight: 700;
+    }
+
+    .sa-token {
+      display: inline-flex;
+      min-width: 1.62rem;
+      min-height: 1.62rem;
+      align-items: center;
+      justify-content: center;
+      margin: 0.08rem;
+      border: 1px solid rgb(35 120 147 / 34%);
+      border-radius: 0.34rem;
+      background: rgb(35 120 147 / 8%);
+      color: var(--sa-blue);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .sa-token.is-active {
+      border-color: rgb(217 119 87 / 72%);
+      background: rgb(217 119 87 / 15%);
+      color: var(--color-terracotta);
+    }
+
+    .sa-sequence-panel p,
+    .sa-result {
+      margin: 0.55rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.72rem;
+      line-height: 1.38;
+    }
+
+    .sa-table-wrap {
+      overflow: auto;
+      max-width: 100%;
+    }
+
+    .sa-table {
+      width: 100%;
+      border-collapse: collapse;
+      color: var(--color-secondary);
+      font-size: 0.68rem;
+      line-height: 1.25;
+    }
+
+    .sa-table th,
+    .sa-table td {
+      border-bottom: 1px solid rgb(194 192 182 / 42%);
+      padding: 0.34rem 0.28rem;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .sa-table th {
+      color: var(--color-muted);
+      font-size: 0.58rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .sa-table tr {
+      cursor: pointer;
+    }
+
+    .sa-table tr:hover,
+    .sa-table tr.is-active {
+      background: rgb(217 119 87 / 9%);
+      color: var(--color-charcoal);
+    }
+
+    .sa-table tr.is-best {
+      color: var(--sa-green);
+      font-weight: 800;
+    }
+
+    .sa-suffix {
+      min-width: max-content;
+    }
+
+    .sa-explain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--leetcode-stack-gap);
+      margin: 0 0 1.6rem;
+    }
+
+    .sa-explain-grid article,
+    .sa-code-notes,
+    .sa-code-block {
+      min-width: 0;
+      border: 1px solid var(--sa-line);
+      border-radius: 0.5rem;
+      background: var(--sa-panel-background);
+      padding: 0.78rem;
+    }
+
+    .sa-section-kicker {
+      margin: 0 0 0.34rem;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .sa-explain-grid h2,
+    .sa-code-notes h2 {
+      margin: 0 0 0.42rem;
+      color: var(--color-charcoal);
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .sa-explain-grid p,
+    .sa-code-notes p {
+      margin: 0;
+      color: var(--color-secondary);
+      font-size: 0.82rem;
+      line-height: 1.58;
+    }
+
+    .sa-code-section {
+      display: grid;
+      grid-template-columns: minmax(14rem, 0.78fr) minmax(0, 1.22fr);
+      gap: var(--leetcode-stack-gap);
+      align-items: start;
+    }
+
+    .sa-code-notes {
+      display: grid;
+      gap: 0.38rem;
+    }
+
+    .sa-code-notes details {
+      border-top: 1px solid rgb(194 192 182 / 44%);
+      padding-top: 0.38rem;
+    }
+
+    .sa-code-notes summary {
+      color: var(--color-charcoal);
+      cursor: pointer;
+      font-family: var(--leetcode-code-font);
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .sa-code-block {
+      overflow: auto;
+      margin: 0;
+      background: rgb(20 20 19 / 92%);
+      color: #f6efe2;
+      font-family: var(--leetcode-code-font);
+      font-size: 0.72rem;
+      line-height: 1.42;
+    }
+
+    .sa-code-block code {
+      font-family: inherit;
+    }
+
+    html.dark .sa-input-group input {
+      border-color: #333;
+      background: rgb(30 30 28 / 38%);
+      color: var(--color-cream);
+    }
+
+    html.dark .sa-toolbar button,
+    html.dark .sa-stage-tabs button {
+      border-color: #333;
+      color: var(--color-cream);
+    }
+
+    html.dark .sa-stage-note,
+    html.dark .sa-sequence-panel p,
+    html.dark .sa-result,
+    html.dark .sa-table,
+    html.dark .sa-explain-grid p,
+    html.dark .sa-code-notes p {
+      color: var(--color-muted);
+    }
+
+    html.dark .sa-round-control span,
+    html.dark .sa-panel h2,
+    html.dark .sa-table tr:hover,
+    html.dark .sa-table tr.is-active,
+    html.dark .sa-explain-grid h2,
+    html.dark .sa-code-notes h2,
+    html.dark .sa-code-notes summary {
+      color: var(--color-cream);
+    }
+
+    html.dark .sa-table th,
+    html.dark .sa-table td {
+      border-bottom-color: #333;
+    }
+
+    @media (max-width: 900px) {
+      .leetcode-hero {
+        grid-template-columns: 1fr;
+        gap: 0.9rem;
+      }
+
+      .leetcode-hero > div:first-child {
+        grid-template-columns: 1fr;
+      }
+
+      .leetcode-copy {
+        border-left: 0;
+        font-size: 0.8rem;
+        padding-left: 0;
+      }
+
+      .leetcode-actions,
+      .sa-example-group {
+        justify-content: flex-start;
+      }
+
+      .sa-stats,
+      .sa-visual-grid,
+      .sa-explain-grid,
+      .sa-code-section {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .sa-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .sa-array-row {
+        grid-template-columns: 1fr;
+      }
+
+      .sa-input-group {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        width: 100%;
+      }
+
+      .sa-input-group label,
+      .sa-input-group input {
+        grid-column: 1 / -1;
+      }
+    }
+  </style>
+</BaseLayout>
