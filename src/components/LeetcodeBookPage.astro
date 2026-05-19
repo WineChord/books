@@ -695,58 +695,6 @@ const shortcutRows = [
     </section>
 
     <section class="leetcode-workspace" aria-label={isZh ? "题目列表" : "Problem list"}>
-      <div class="leetcode-toolbar">
-        <div class="leetcode-search" data-ui-tip={toolbarHintText.search}>
-          <label for="leetcode-search">{isZh ? "搜索" : "Search"}</label>
-          <input
-            id="leetcode-search"
-            type="search"
-            placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"}
-            aria-label={searchShortcutTitle}
-          />
-        </div>
-
-        <div class="leetcode-filter-panel" aria-label={isZh ? "筛选" : "Filters"}>
-          <div class="leetcode-filter-cluster">
-            <span>{isZh ? "范围" : "Scope"}</span>
-            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
-              <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all} data-ui-tip={toolbarHintText.scopeAll}>{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100} data-ui-tip={toolbarHintText.scopeHot100}>Hot100</button>
-              <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps} data-ui-tip={toolbarHintText.scopeFollowUps}>{isZh ? "公司追问" : "Follow"}</button>
-            </div>
-          </div>
-          <div class="leetcode-filter-cluster">
-            <span>{isZh ? "字节" : "ByteDance"}</span>
-            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
-              <button type="button" data-filter="bytedanceAll" aria-label={filterShortcutTitles.bytedanceAll} data-ui-tip={toolbarHintText.bytedanceAll}>{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="bytedanceThirtyDays" aria-label={filterShortcutTitles.bytedanceThirtyDays} data-ui-tip={toolbarHintText.bytedanceThirtyDays}>{isZh ? "近30天" : "30d"}</button>
-              <button type="button" data-filter="bytedanceThreeMonths" aria-label={filterShortcutTitles.bytedanceThreeMonths} data-ui-tip={toolbarHintText.bytedanceThreeMonths}>{isZh ? "近3月" : "3m"}</button>
-              <button type="button" data-filter="bytedanceSixMonths" aria-label={filterShortcutTitles.bytedanceSixMonths} data-ui-tip={toolbarHintText.bytedanceSixMonths}>{isZh ? "近6月" : "6m"}</button>
-              <button type="button" data-filter="bytedanceMoreThanSixMonths" aria-label={filterShortcutTitles.bytedanceMoreThanSixMonths} data-ui-tip={toolbarHintText.bytedanceOld}>{isZh ? "6月前" : "Old"}</button>
-            </div>
-          </div>
-          <div class="leetcode-filter-cluster">
-            <span>{isZh ? "状态" : "State"}</span>
-            <div class="leetcode-filter-group" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
-              <button type="button" data-filter="unsolved" aria-label={filterShortcutTitles.unsolved} data-ui-tip={toolbarHintText.stateUnsolved}>{isZh ? "未做" : "Unsolved"}</button>
-              <button type="button" data-filter="review" aria-label={filterShortcutTitles.review} data-ui-tip={toolbarHintText.stateReview}>{isZh ? "需思考" : "Review"}</button>
-              <button type="button" data-filter="unmastered" aria-label={filterShortcutTitles.unmastered} data-ui-tip={toolbarHintText.stateUnmastered}>{isZh ? "未熟练" : "Unmastered"}</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="leetcode-toolbar-utilities">
-          <div class="leetcode-session-actions" aria-label={isZh ? "刷题操作" : "Practice actions"}>
-            <button type="button" data-flow-mode-toggle aria-pressed="false" aria-label={flowModeTitle} data-ui-tip={toolbarHintText.flowMode}>{isZh ? "顺序流：关" : "Flow off"}</button>
-            <button type="button" data-flow-skip-sql aria-pressed="true" aria-label={skipSqlFlowTitle} data-ui-tip={toolbarHintText.skipSql}>{isZh ? "跳过 SQL：开" : "SQL on"}</button>
-            <button type="button" data-flow-skip-frontend aria-pressed="true" aria-label={skipFrontendFlowTitle} data-ui-tip={toolbarHintText.skipFrontend}>{isZh ? "跳过前端：开" : "FE on"}</button>
-            <button type="button" data-timing-action="reset-session" aria-label={resetSessionTitle} data-ui-tip={toolbarHintText.resetSession}>{isZh ? "重开本次" : "Reset"}</button>
-            <button type="button" data-timing-action="restart-problem" aria-label={restartProblemTimerTitle} data-ui-tip={toolbarHintText.restartProblem}>{isZh ? "重开本题" : "Restart"}</button>
-            <button type="button" class="is-subtle" data-timing-action="clear-problem-record" aria-label={clearProblemRecordTitle} data-ui-tip={toolbarHintText.clearRecord}>{isZh ? "清本题记录" : "Clear"}</button>
-          </div>
-        </div>
-      </div>
-
       <section class="leetcode-session-board" aria-label={isZh ? "刷题计时" : "Practice timing"}>
         <div class="leetcode-session-metric is-live">
           <span data-timing-active>00:00</span>
@@ -799,6 +747,27 @@ const shortcutRows = [
       </section>
 
       <div class="leetcode-list-meta">
+        <div class="leetcode-list-primary-controls">
+          <div class="leetcode-list-scope-controls">
+            <div class="leetcode-filter-cluster">
+              <span>{isZh ? "范围" : "Scope"}</span>
+              <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
+                <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all} data-ui-tip={toolbarHintText.scopeAll}>{isZh ? "全部" : "All"}</button>
+                <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100} data-ui-tip={toolbarHintText.scopeHot100}>Hot100</button>
+                <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps} data-ui-tip={toolbarHintText.scopeFollowUps}>{isZh ? "公司追问" : "Follow"}</button>
+              </div>
+            </div>
+          </div>
+          <div class="leetcode-search leetcode-list-search" data-ui-tip={toolbarHintText.search}>
+            <label for="leetcode-search">{isZh ? "搜索" : "Search"}</label>
+            <input
+              id="leetcode-search"
+              type="search"
+              placeholder={isZh ? "题号、题名、标签" : "Id, title, tag"}
+              aria-label={searchShortcutTitle}
+            />
+          </div>
+        </div>
         <nav
           class="leetcode-pagination leetcode-pagination-top"
           data-pagination
@@ -857,67 +826,115 @@ const shortcutRows = [
             </span>
           </span>
         </nav>
-        <div class="leetcode-page-size leetcode-page-size-top" data-ui-tip={toolbarHintText.pageSize}>
-          <label for="leetcode-page-size">{isZh ? "每页" : "Page size"}</label>
-          <select id="leetcode-page-size">
-            <option value="10">10</option>
-            <option value="20" selected>20</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="custom">{isZh ? "自定义" : "Custom"}</option>
-          </select>
-          <input
-            id="leetcode-custom-size"
-            type="number"
-            min="1"
-            max={totalProblemCount}
-            inputmode="numeric"
-            placeholder="32"
-            hidden
-          />
+        <div class="leetcode-list-controls">
+          <div class="leetcode-toolbar-utilities">
+            <div class="leetcode-session-actions" aria-label={isZh ? "刷题操作" : "Practice actions"}>
+              <button type="button" data-flow-mode-toggle aria-pressed="false" aria-label={flowModeTitle} data-ui-tip={toolbarHintText.flowMode}>{isZh ? "顺序流：关" : "Flow off"}</button>
+              <button type="button" data-timing-action="reset-session" aria-label={resetSessionTitle} data-ui-tip={toolbarHintText.resetSession}>{isZh ? "重开本次" : "Reset"}</button>
+              <button type="button" data-timing-action="restart-problem" aria-label={restartProblemTimerTitle} data-ui-tip={toolbarHintText.restartProblem}>{isZh ? "重开本题" : "Restart"}</button>
+              <button type="button" class="is-subtle" data-timing-action="clear-problem-record" aria-label={clearProblemRecordTitle} data-ui-tip={toolbarHintText.clearRecord}>{isZh ? "清本题记录" : "Clear"}</button>
+            </div>
+          </div>
+          <div class="leetcode-page-size leetcode-page-size-top" data-ui-tip={toolbarHintText.pageSize}>
+            <label for="leetcode-page-size">{isZh ? "每页" : "Page size"}</label>
+            <select id="leetcode-page-size">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="custom">{isZh ? "自定义" : "Custom"}</option>
+            </select>
+            <input
+              id="leetcode-custom-size"
+              type="number"
+              min="1"
+              max={totalProblemCount}
+              inputmode="numeric"
+              placeholder="32"
+              hidden
+            />
+          </div>
         </div>
       </div>
 
       <div class="leetcode-table-wrap">
-        <div class="leetcode-table-head" aria-hidden="true">
+        <div class="leetcode-table-head">
           <span>Top</span>
           <span>Hot</span>
           <span>BD</span>
           <span>{isZh ? "题目" : "Problem"}</span>
           <span>{isZh ? "难度" : "Level"}</span>
           <span>{isZh ? "频率" : "Freq"}</span>
-          <span>{isZh ? "字节" : "BD"}</span>
-          <span>{isZh ? "状态" : "State"}</span>
+          <span class="leetcode-byte-filter-head">
+            <button
+              type="button"
+              class="leetcode-byte-filter-trigger"
+              aria-label={isZh ? "筛选字节题库" : "Filter ByteDance bucket"}
+              data-bytedance-filter-trigger
+            >
+              <span>{isZh ? "字节" : "BD"}</span>
+              <strong data-bytedance-filter-current hidden></strong>
+            </button>
+            <span class="leetcode-byte-filter-menu" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
+              <button type="button" data-filter="bytedanceAll" aria-label={filterShortcutTitles.bytedanceAll}>{isZh ? "全部字节" : "All BD"}</button>
+              <button type="button" data-filter="bytedanceThirtyDays" aria-label={filterShortcutTitles.bytedanceThirtyDays}>{isZh ? "近30天" : "30d"}</button>
+              <button type="button" data-filter="bytedanceThreeMonths" aria-label={filterShortcutTitles.bytedanceThreeMonths}>{isZh ? "近3月" : "3m"}</button>
+              <button type="button" data-filter="bytedanceSixMonths" aria-label={filterShortcutTitles.bytedanceSixMonths}>{isZh ? "近6月" : "6m"}</button>
+              <button type="button" data-filter="bytedanceMoreThanSixMonths" aria-label={filterShortcutTitles.bytedanceMoreThanSixMonths}>{isZh ? "6月前" : "Old"}</button>
+            </span>
+          </span>
+          <span class="leetcode-status-filter-head">
+            <button
+              type="button"
+              class="leetcode-status-filter-trigger"
+              aria-label={isZh ? "筛选状态" : "Filter state"}
+              data-status-filter-trigger
+            >
+              <span>{isZh ? "状态" : "State"}</span>
+              <strong data-status-filter-current hidden></strong>
+            </button>
+            <span class="leetcode-status-filter-menu" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
+              <button type="button" data-filter="unsolved" aria-label={filterShortcutTitles.unsolved}>{isZh ? "未做" : "Unsolved"}</button>
+              <button type="button" data-filter="review" aria-label={filterShortcutTitles.review}>{isZh ? "需思考" : "Review"}</button>
+              <button type="button" data-filter="unmastered" aria-label={filterShortcutTitles.unmastered}>{isZh ? "未熟练" : "Unmastered"}</button>
+            </span>
+          </span>
         </div>
         <div id="leetcode-problem-list" class="leetcode-problem-list"></div>
       </div>
 
-      <nav
-        class="leetcode-pagination leetcode-pagination-bottom"
-        data-pagination
-        aria-label={isZh ? "底部分页" : "Bottom pagination"}
-      >
-        <button type="button" data-page-action="first" aria-label={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
-        <button type="button" data-page-action="prev" aria-label={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
-        <label class="leetcode-page-jump">
-          <span>{isZh ? "第" : "Page"}</span>
-          <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={pageJumpShortcutTitle} />
-          <span data-page-indicator></span>
-        </label>
-        <button type="button" data-page-action="next" aria-label={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
-        <button type="button" data-page-action="last" aria-label={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
-        <span class="leetcode-shortcut-tip" tabindex="0" aria-label={shortcutHelpTitle}>
-          {isZh ? "快捷键" : "Keys"}
-          <span class="leetcode-shortcut-popover" role="tooltip">
-            {shortcutRows.map((item) => (
-              <span>
-                <kbd>{item.keys}</kbd>
-                <span>{isZh ? item.zh : item.en}</span>
-              </span>
-            ))}
+      <div class="leetcode-bottom-meta">
+        <nav
+          class="leetcode-pagination leetcode-pagination-bottom"
+          data-pagination
+          aria-label={isZh ? "底部分页" : "Bottom pagination"}
+        >
+          <button type="button" data-page-action="first" aria-label={firstPageShortcutTitle}>{isZh ? "首页" : "First"}</button>
+          <button type="button" data-page-action="prev" aria-label={previousPageShortcutTitle}>{isZh ? "上一页" : "Prev"}</button>
+          <label class="leetcode-page-jump">
+            <span>{isZh ? "第" : "Page"}</span>
+            <input data-page-jump type="number" min="1" inputmode="numeric" aria-label={pageJumpShortcutTitle} />
+            <span data-page-indicator></span>
+          </label>
+          <button type="button" data-page-action="next" aria-label={nextPageShortcutTitle}>{isZh ? "下一页" : "Next"}</button>
+          <button type="button" data-page-action="last" aria-label={lastPageShortcutTitle}>{isZh ? "末页" : "Last"}</button>
+          <span class="leetcode-shortcut-tip" tabindex="0" aria-label={shortcutHelpTitle}>
+            {isZh ? "快捷键" : "Keys"}
+            <span class="leetcode-shortcut-popover" role="tooltip">
+              {shortcutRows.map((item) => (
+                <span>
+                  <kbd>{item.keys}</kbd>
+                  <span>{isZh ? item.zh : item.en}</span>
+                </span>
+              ))}
+            </span>
           </span>
-        </span>
-      </nav>
+        </nav>
+        <div class="leetcode-route-skip-controls" aria-label={isZh ? "跳过题型" : "Skipped problem types"}>
+          <button type="button" data-flow-skip-sql aria-pressed="true" aria-label={skipSqlFlowTitle} data-ui-tip={toolbarHintText.skipSql}>{isZh ? "跳过 SQL：开" : "SQL on"}</button>
+          <button type="button" data-flow-skip-frontend aria-pressed="true" aria-label={skipFrontendFlowTitle} data-ui-tip={toolbarHintText.skipFrontend}>{isZh ? "跳过前端：开" : "FE on"}</button>
+        </div>
+      </div>
 
       <div class="leetcode-collapse-stack">
         {
@@ -1372,6 +1389,18 @@ const shortcutRows = [
     const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
     const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const byteDanceFilterCurrent = document.querySelector(
+      "[data-bytedance-filter-current]",
+    );
+    const byteDanceFilterTrigger = document.querySelector(
+      "[data-bytedance-filter-trigger]",
+    );
+    const statusFilterCurrent = document.querySelector(
+      "[data-status-filter-current]",
+    );
+    const statusFilterTrigger = document.querySelector(
+      "[data-status-filter-trigger]",
+    );
     const shortcutHelp = document.querySelector("[data-shortcut-help]");
     const dailyResetToggle = document.getElementById("leetcode-daily-reset");
     const dailyResetStatus = document.querySelector("[data-daily-reset-status]");
@@ -1418,7 +1447,11 @@ const shortcutRows = [
       "javascript",
     ];
     const state = {
-      filter: "all",
+      filters: {
+        scope: "all",
+        bytedance: "",
+        status: "",
+      },
       page: 1,
       pageSize: 20,
       totalPages: 1,
@@ -1490,6 +1523,15 @@ const shortcutRows = [
       Digit0: "review",
       Minus: "unmastered",
     };
+    const scopeFilterValues = new Set(["all", "hot100", "companyFollowUps"]);
+    const byteDanceFilterValues = new Set([
+      "bytedanceAll",
+      "bytedanceThirtyDays",
+      "bytedanceThreeMonths",
+      "bytedanceSixMonths",
+      "bytedanceMoreThanSixMonths",
+    ]);
+    const statusFilterValues = new Set(["unsolved", "review", "unmastered"]);
     const editorDefaultTheme = "cursor-light";
     const editorDefaultFont = "cursor";
     const editorDefaultSize = "compact";
@@ -1631,6 +1673,18 @@ const shortcutRows = [
     });
     const pendingExtensionRequests = new Map();
     const isChinesePage = document.documentElement.lang.startsWith("zh");
+    const byteDanceFilterLabels = {
+      bytedanceAll: isChinesePage ? "全量" : "All",
+      bytedanceThirtyDays: isChinesePage ? "近30天" : "30d",
+      bytedanceThreeMonths: isChinesePage ? "近3月" : "3m",
+      bytedanceSixMonths: isChinesePage ? "近6月" : "6m",
+      bytedanceMoreThanSixMonths: isChinesePage ? "6月前" : "Old",
+    };
+    const statusFilterLabels = {
+      unsolved: isChinesePage ? "未做" : "Unsolved",
+      review: isChinesePage ? "需思考" : "Review",
+      unmastered: isChinesePage ? "未熟练" : "Unmastered",
+    };
     let extensionRequestSequence = 0;
     let extensionProbeCheckedAt = 0;
     let extensionProbePromise = null;
@@ -2397,8 +2451,7 @@ const shortcutRows = [
     }
 
     function syncVisiblePracticeProjectionUi() {
-      const progressFilters = new Set(["unsolved", "review", "unmastered"]);
-      if (progressFilters.has(state.filter)) {
+      if (state.filters.status) {
         render();
         return;
       }
@@ -2828,17 +2881,108 @@ const shortcutRows = [
       return Boolean(slug && problems.some((item) => item.titleSlug === slug));
     }
 
-    function knownFilter(filter) {
-      return filterButtons.some(
-        (button) => button instanceof HTMLElement && button.dataset.filter === filter,
+    function defaultFilterState() {
+      return {
+        scope: "all",
+        bytedance: "",
+        status: "",
+      };
+    }
+
+    function filterGroupFor(filter) {
+      if (scopeFilterValues.has(filter)) return "scope";
+      if (byteDanceFilterValues.has(filter)) return "bytedance";
+      if (statusFilterValues.has(filter)) return "status";
+      return "";
+    }
+
+    function defaultFilterForGroup(group) {
+      return group === "scope" ? "all" : "";
+    }
+
+    function activeFilterForGroup(group) {
+      return state.filters[group] || defaultFilterForGroup(group);
+    }
+
+    function filterStateFromSingleFilter(filter) {
+      const nextFilters = defaultFilterState();
+      const group = filterGroupFor(filter);
+      if (!group) return nextFilters;
+      nextFilters[group] = filter;
+      return nextFilters;
+    }
+
+    function normalizedFilterState(filters, legacyFilter = "") {
+      if (!filters || typeof filters !== "object") {
+        return filterStateFromSingleFilter(legacyFilter);
+      }
+
+      const nextFilters = defaultFilterState();
+      Object.keys(nextFilters).forEach((group) => {
+        const value = String(filters[group] || "");
+        if (filterGroupFor(value) === group) {
+          nextFilters[group] = value;
+        }
+      });
+      return nextFilters;
+    }
+
+    function legacyFilterForViewState() {
+      return (
+        state.filters.status ||
+        state.filters.bytedance ||
+        state.filters.scope ||
+        "all"
       );
+    }
+
+    function knownFilter(filter) {
+      return Boolean(filterGroupFor(filter));
     }
 
     function syncFilterButtons() {
       filterButtons.forEach((button) => {
         if (!(button instanceof HTMLElement)) return;
-        button.classList.toggle("is-active", button.dataset.filter === state.filter);
+        const filter = button.dataset.filter || "";
+        const group = filterGroupFor(filter);
+        button.classList.toggle(
+          "is-active",
+          Boolean(group) && filter === activeFilterForGroup(group),
+        );
       });
+      const byteDanceLabel =
+        byteDanceFilterLabels[state.filters.bytedance] || "";
+      if (byteDanceFilterCurrent instanceof HTMLElement) {
+        byteDanceFilterCurrent.textContent = byteDanceLabel;
+        byteDanceFilterCurrent.hidden = !byteDanceLabel;
+      }
+      if (byteDanceFilterTrigger instanceof HTMLElement) {
+        byteDanceFilterTrigger.classList.toggle("is-active", Boolean(byteDanceLabel));
+        byteDanceFilterTrigger.setAttribute(
+          "aria-label",
+          byteDanceLabel
+            ? (isChinesePage
+              ? `字节筛选：${byteDanceLabel}`
+              : `ByteDance filter: ${byteDanceLabel}`)
+            : (isChinesePage ? "筛选字节题库" : "Filter ByteDance bucket"),
+        );
+      }
+      const statusLabel = statusFilterLabels[state.filters.status] || "";
+      if (statusFilterCurrent instanceof HTMLElement) {
+        statusFilterCurrent.textContent = statusLabel;
+        statusFilterCurrent.hidden = !statusLabel;
+      }
+      if (statusFilterTrigger instanceof HTMLElement) {
+        statusFilterTrigger.classList.toggle("is-active", Boolean(statusLabel));
+        statusFilterTrigger.setAttribute(
+          "aria-label",
+          statusLabel
+            ? (isChinesePage
+              ? `状态筛选：${statusLabel}`
+              : `State filter: ${statusLabel}`)
+            : (isChinesePage ? "筛选状态" : "Filter state"),
+        );
+      }
     }
 
     function savedEditorStateFor(slug) {
@@ -2883,7 +3027,8 @@ const shortcutRows = [
           : "",
         editor: visibleEditorViewState(),
         expandedSlug: state.expandedSlug,
-        filter: state.filter,
+        filter: legacyFilterForViewState(),
+        filters: { ...state.filters },
         page: state.page,
         pageSizeValue: pageSizeSelect instanceof HTMLSelectElement
           ? pageSizeSelect.value
@@ -2921,9 +3066,7 @@ const shortcutRows = [
           searchInput.value = viewState.query;
         }
       }
-      if (typeof viewState.filter === "string" && knownFilter(viewState.filter)) {
-        state.filter = viewState.filter;
-      }
+      state.filters = normalizedFilterState(viewState.filters, viewState.filter);
       syncFilterButtons();
 
       if (pageSizeSelect instanceof HTMLSelectElement) {
@@ -5845,11 +5988,23 @@ const shortcutRows = [
     }
 
     function applyFilter(filter) {
-      const button = filterButtons.find(
-        (item) => item instanceof HTMLElement && item.dataset.filter === filter,
-      );
-      if (!(button instanceof HTMLElement)) return false;
-      state.filter = filter || "all";
+      const requestedFilter = filter || "all";
+      if (!knownFilter(requestedFilter)) return false;
+      const group = filterGroupFor(requestedFilter);
+      const nextFilter =
+        requestedFilter === activeFilterForGroup(group) && requestedFilter !== "all"
+          ? defaultFilterForGroup(group)
+          : requestedFilter;
+      state.filters[group] = nextFilter;
+      syncFilterButtons();
+      state.page = 1;
+      render();
+      scheduleViewStateWrite();
+      return true;
+    }
+
+    function resetAllFilters() {
+      state.filters = defaultFilterState();
       syncFilterButtons();
       state.page = 1;
       render();
@@ -5860,16 +6015,19 @@ const shortcutRows = [
     function matchesFilter(problem) {
       const status = rowState(problem.titleSlug);
       const byteDance = byteDanceBuckets(problem);
-      if (state.filter === "hot100" && !problem.hot100) return false;
-      if (state.filter === "companyFollowUps" && !problem.companyFollowUps?.length) return false;
-      if (state.filter === "bytedanceAll" && !byteDance.all) return false;
-      if (state.filter === "bytedanceThirtyDays" && !byteDance.thirtyDays) return false;
-      if (state.filter === "bytedanceThreeMonths" && !byteDance.threeMonths) return false;
-      if (state.filter === "bytedanceSixMonths" && !byteDance.sixMonths) return false;
-      if (state.filter === "bytedanceMoreThanSixMonths" && !byteDance.moreThanSixMonths) return false;
-      if (state.filter === "unsolved" && status.done) return false;
-      if (state.filter === "review" && !status.review) return false;
-      if (state.filter === "unmastered" && status.mastered) return false;
+      const scopeFilter = state.filters.scope;
+      const byteDanceFilter = state.filters.bytedance;
+      const statusFilter = state.filters.status;
+      if (scopeFilter === "hot100" && !problem.hot100) return false;
+      if (scopeFilter === "companyFollowUps" && !problem.companyFollowUps?.length) return false;
+      if (byteDanceFilter === "bytedanceAll" && !byteDance.all) return false;
+      if (byteDanceFilter === "bytedanceThirtyDays" && !byteDance.thirtyDays) return false;
+      if (byteDanceFilter === "bytedanceThreeMonths" && !byteDance.threeMonths) return false;
+      if (byteDanceFilter === "bytedanceSixMonths" && !byteDance.sixMonths) return false;
+      if (byteDanceFilter === "bytedanceMoreThanSixMonths" && !byteDance.moreThanSixMonths) return false;
+      if (statusFilter === "unsolved" && status.done) return false;
+      if (statusFilter === "review" && !status.review) return false;
+      if (statusFilter === "unmastered" && status.mastered) return false;
       if (!state.query) return true;
       const haystack = [
         problem.frontendId,
@@ -5927,15 +6085,17 @@ const shortcutRows = [
 
     function orderedProblems() {
       const filtered = problems.filter(matchesFilter);
-      if (state.filter === "hot100") {
-        return filtered.sort((a, b) => (a.hotRank || 999) - (b.hotRank || 999));
-      }
-      if (state.filter.startsWith("bytedance")) {
+      const scopeFilter = state.filters.scope;
+      const byteDanceFilter = state.filters.bytedance;
+      if (byteDanceFilter) {
         return filtered.sort((a, b) => {
-          const left = byteDanceRankFor(a, state.filter) || Number.MAX_SAFE_INTEGER;
-          const right = byteDanceRankFor(b, state.filter) || Number.MAX_SAFE_INTEGER;
+          const left = byteDanceRankFor(a, byteDanceFilter) || Number.MAX_SAFE_INTEGER;
+          const right = byteDanceRankFor(b, byteDanceFilter) || Number.MAX_SAFE_INTEGER;
           return left - right || (a.frequencyRank || 999999) - (b.frequencyRank || 999999);
         });
+      }
+      if (scopeFilter === "hot100") {
+        return filtered.sort((a, b) => (a.hotRank || 999) - (b.hotRank || 999));
       }
       return filtered;
     }
@@ -6166,7 +6326,7 @@ const shortcutRows = [
         if (!problems.some((item) => item.titleSlug === slug)) return false;
         if (searchInput instanceof HTMLInputElement) searchInput.value = "";
         state.query = "";
-        applyFilter("all");
+        resetAllFilters();
         items = orderedProblems();
         index = items.findIndex((item) => item.titleSlug === slug);
       }
@@ -10177,6 +10337,9 @@ const shortcutRows = [
     .leetcode-filter-panel,
     .leetcode-filter-cluster,
     .leetcode-filter-group,
+    .leetcode-list-controls,
+    .leetcode-list-primary-controls,
+    .leetcode-list-scope-controls,
     .leetcode-list-meta,
     .leetcode-page-size,
     .leetcode-page-jump,
@@ -10271,12 +10434,12 @@ const shortcutRows = [
       box-sizing: border-box;
       min-height: var(--leetcode-page-control-height);
       border: 1px solid var(--color-border);
-      border-radius: 0.42rem;
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
       color: var(--color-muted);
       cursor: help;
-      font-size: 0.66rem;
+      font-size: var(--leetcode-meta-font-size, 0.66rem);
       line-height: 1;
-      padding: 0 0.38rem;
+      padding: 0 var(--leetcode-meta-pad-x, 0.38rem);
       white-space: nowrap;
     }
 
@@ -10403,6 +10566,8 @@ const shortcutRows = [
     }
 
     .leetcode-session-actions [data-ui-tip]::before,
+    .leetcode-list-controls [data-ui-tip]::before,
+    .leetcode-route-skip-controls [data-ui-tip]::before,
     .leetcode-page-size-top[data-ui-tip]::before {
       right: 0;
       left: auto;
@@ -10410,6 +10575,8 @@ const shortcutRows = [
     }
 
     .leetcode-session-actions [data-ui-tip]::after,
+    .leetcode-list-controls [data-ui-tip]::after,
+    .leetcode-route-skip-controls [data-ui-tip]::after,
     .leetcode-page-size-top[data-ui-tip]::after {
       right: 0;
       left: auto;
@@ -10419,6 +10586,10 @@ const shortcutRows = [
     .leetcode-session-actions [data-ui-tip]:hover::before,
     .leetcode-session-actions [data-ui-tip]:focus::before,
     .leetcode-session-actions [data-ui-tip]:focus-visible::before,
+    .leetcode-list-controls [data-ui-tip]:hover::before,
+    .leetcode-list-controls [data-ui-tip]:focus-visible::before,
+    .leetcode-route-skip-controls [data-ui-tip]:hover::before,
+    .leetcode-route-skip-controls [data-ui-tip]:focus-visible::before,
     .leetcode-page-size-top[data-ui-tip]:hover::before,
     .leetcode-page-size-top[data-ui-tip]:focus-within::before {
       transform: translateY(0);
@@ -10427,6 +10598,10 @@ const shortcutRows = [
     .leetcode-session-actions [data-ui-tip]:hover::after,
     .leetcode-session-actions [data-ui-tip]:focus::after,
     .leetcode-session-actions [data-ui-tip]:focus-visible::after,
+    .leetcode-list-controls [data-ui-tip]:hover::after,
+    .leetcode-list-controls [data-ui-tip]:focus-visible::after,
+    .leetcode-route-skip-controls [data-ui-tip]:hover::after,
+    .leetcode-route-skip-controls [data-ui-tip]:focus-visible::after,
     .leetcode-page-size-top[data-ui-tip]:hover::after,
     .leetcode-page-size-top[data-ui-tip]:focus-within::after {
       transform: translateY(0);
@@ -10517,23 +10692,24 @@ const shortcutRows = [
       display: flex;
       flex-wrap: nowrap;
       align-items: center;
-      gap: 0.08rem;
+      gap: var(--leetcode-meta-tight-gap, 0.08rem);
       justify-content: flex-end;
       min-width: 0;
     }
 
     .leetcode-session-actions button {
-      min-height: var(--leetcode-toolbar-control-height, 1.52rem);
+      box-sizing: border-box;
+      min-height: var(--leetcode-page-control-height, 1.52rem);
       border: 1px solid var(--color-border);
-      border-radius: 0.44rem;
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
       background: transparent;
       color: var(--color-secondary);
       cursor: pointer;
       font: inherit;
-      font-size: 0.62rem;
+      font-size: var(--leetcode-meta-font-size, 0.64rem);
       font-weight: 650;
       line-height: 1;
-      padding: 0 0.28rem;
+      padding: 0 var(--leetcode-meta-pad-x, 0.34rem);
       transition:
         border-color 160ms ease,
         background 160ms ease,
@@ -10565,6 +10741,72 @@ const shortcutRows = [
     .leetcode-session-actions button:disabled {
       cursor: default;
       opacity: 0.45;
+    }
+
+    .leetcode-bottom-meta {
+      --leetcode-meta-control-height: 1.48rem;
+      --leetcode-page-control-height: var(--leetcode-meta-control-height);
+      --leetcode-meta-font-size: 0.64rem;
+      --leetcode-meta-label-font-size: 0.62rem;
+      --leetcode-meta-radius: 0.4rem;
+      --leetcode-meta-pad-x: 0.34rem;
+      --leetcode-meta-gap: 0.2rem;
+      --leetcode-meta-tight-gap: 0.08rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.5rem;
+      margin: var(--leetcode-stack-gap) 0 var(--leetcode-stack-gap);
+    }
+
+    .leetcode-route-skip-controls {
+      --leetcode-page-control-height: 1.52rem;
+      grid-column: 3;
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--leetcode-meta-tight-gap, 0.08rem);
+      justify-content: flex-end;
+      justify-self: end;
+      min-width: 0;
+    }
+
+    .leetcode-route-skip-controls [data-ui-tip]::before {
+      top: auto;
+      bottom: calc(100% + 0.34rem);
+      transform: translateY(0.12rem);
+    }
+
+    .leetcode-route-skip-controls [data-ui-tip]::after {
+      top: auto;
+      bottom: 100%;
+      transform: translateY(0.12rem);
+    }
+
+    .leetcode-route-skip-controls button {
+      box-sizing: border-box;
+      min-height: var(--leetcode-page-control-height, 1.52rem);
+      border: 1px solid rgb(217 119 87 / 42%);
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
+      background: transparent;
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: var(--leetcode-meta-font-size, 0.66rem);
+      font-weight: 700;
+      line-height: 1;
+      padding: 0 var(--leetcode-meta-pad-x, 0.38rem);
+      transition:
+        border-color 160ms ease,
+        background 160ms ease,
+        color 160ms ease;
+      white-space: nowrap;
+    }
+
+    .leetcode-route-skip-controls button:hover,
+    .leetcode-route-skip-controls button.is-on {
+      border-color: rgb(217 119 87 / 72%);
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-terracotta);
     }
 
     .leetcode-session-history {
@@ -10622,14 +10864,14 @@ const shortcutRows = [
       box-sizing: border-box;
       min-height: var(--leetcode-page-control-height);
       border: 1px solid rgb(217 119 87 / 42%);
-      border-radius: 0.42rem;
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
       background: rgb(217 119 87 / 9%);
       color: var(--color-secondary);
       cursor: pointer;
       font: inherit;
-      font-size: 0.68rem;
+      font-size: var(--leetcode-meta-font-size, 0.68rem);
       line-height: 1;
-      padding: 0 0.42rem;
+      padding: 0 var(--leetcode-meta-pad-x, 0.42rem);
       white-space: nowrap;
     }
 
@@ -10956,15 +11198,47 @@ const shortcutRows = [
     .leetcode-page-size {
       flex: 0 0 auto;
       grid-template-columns: auto auto;
-      align-items: end;
+      align-items: center;
     }
 
     .leetcode-page-size-top {
+      min-width: 0;
+    }
+
+    .leetcode-list-controls {
+      --leetcode-page-control-height: var(--leetcode-meta-control-height, 1.52rem);
       grid-column: 3;
       justify-self: end;
+      justify-content: flex-end;
+      gap: 0.32rem;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .leetcode-list-primary-controls {
+      --leetcode-page-control-height: var(--leetcode-meta-control-height, 1.52rem);
+      grid-column: 1;
+      justify-self: start;
+      justify-content: flex-start;
+      gap: 0.42rem;
+      min-width: 0;
+      flex-wrap: nowrap;
+    }
+
+    .leetcode-list-scope-controls {
+      --leetcode-page-control-height: var(--leetcode-meta-control-height, 1.52rem);
+      flex: 0 0 auto;
+      justify-content: flex-start;
+      min-width: 0;
+    }
+
+    .leetcode-list-search {
+      flex: 0 1 clamp(7.8rem, 12vw, 9.2rem);
+      max-width: 9.2rem;
     }
 
     .leetcode-toolbar .leetcode-search label,
+    .leetcode-list-search label,
     .leetcode-toolbar .leetcode-page-size label {
       position: absolute;
       overflow: hidden;
@@ -10978,7 +11252,8 @@ const shortcutRows = [
       flex: 0 1 auto;
       flex-wrap: nowrap;
       gap: 0.22rem;
-      justify-content: flex-start;
+      justify-content: flex-end;
+      margin-left: auto;
       min-width: 0;
       padding-top: 0;
     }
@@ -10986,13 +11261,13 @@ const shortcutRows = [
     .leetcode-filter-cluster {
       min-width: 0;
       flex-wrap: nowrap;
-      gap: 0.1rem;
+      gap: 0.12rem;
     }
 
     .leetcode-filter-cluster > span {
       color: var(--color-muted);
       font-family: var(--leetcode-page-font);
-      font-size: 0.66rem;
+      font-size: var(--leetcode-meta-label-font-size, 0.66rem);
       font-weight: 700;
       letter-spacing: 0;
       text-transform: uppercase;
@@ -11000,7 +11275,7 @@ const shortcutRows = [
 
     .leetcode-filter-group {
       flex-wrap: nowrap;
-      gap: 0.05rem;
+      gap: var(--leetcode-meta-tight-gap, 0.08rem);
       justify-content: flex-start;
     }
 
@@ -11050,13 +11325,63 @@ const shortcutRows = [
       background: rgb(217 119 87 / 10%);
     }
 
+    .leetcode-list-controls .leetcode-filter-group button,
+    .leetcode-list-scope-controls .leetcode-filter-group button {
+      box-sizing: border-box;
+      min-height: var(--leetcode-page-control-height, 1.52rem);
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
+      font-size: var(--leetcode-meta-font-size, 0.68rem);
+      font-weight: 650;
+      line-height: 1;
+      padding: 0 var(--leetcode-meta-pad-x, 0.34rem);
+      white-space: nowrap;
+      transition:
+        border-color 160ms ease,
+        background 160ms ease,
+        color 160ms ease;
+    }
+
+    .leetcode-list-controls .leetcode-filter-group button:hover,
+    .leetcode-list-scope-controls .leetcode-filter-group button:hover {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-list-controls .leetcode-filter-group button.is-active,
+    .leetcode-list-scope-controls .leetcode-filter-group button.is-active {
+      background: rgb(217 119 87 / 10%);
+    }
+
     .leetcode-list-meta {
+      --leetcode-meta-control-height: 1.48rem;
+      --leetcode-toolbar-control-height: var(--leetcode-meta-control-height);
+      --leetcode-page-control-height: var(--leetcode-meta-control-height);
+      --leetcode-meta-font-size: 0.64rem;
+      --leetcode-meta-label-font-size: 0.62rem;
+      --leetcode-meta-radius: 0.4rem;
+      --leetcode-meta-pad-x: 0.34rem;
+      --leetcode-meta-gap: 0.2rem;
+      --leetcode-meta-tight-gap: 0.08rem;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
       align-items: center;
       justify-content: stretch;
-      gap: 0.55rem;
+      gap: 0.5rem;
       margin: 0 0 0.25rem;
+    }
+
+    .leetcode-list-meta .leetcode-search input,
+    .leetcode-list-meta .leetcode-page-size select,
+    .leetcode-list-meta .leetcode-page-size input {
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
+      font-size: var(--leetcode-meta-font-size, 0.68rem);
+    }
+
+    .leetcode-list-meta .leetcode-page-size label {
+      font-size: var(--leetcode-meta-label-font-size, 0.62rem);
+      font-weight: 650;
+      line-height: 1;
+      text-transform: none;
     }
 
     .leetcode-summary {
@@ -11354,15 +11679,157 @@ const shortcutRows = [
       text-transform: uppercase;
     }
 
-    .leetcode-table-head span:nth-child(1),
-    .leetcode-table-head span:nth-child(2),
-    .leetcode-table-head span:nth-child(3) {
+    .leetcode-table-head > span:nth-child(1),
+    .leetcode-table-head > span:nth-child(2),
+    .leetcode-table-head > span:nth-child(3) {
       text-align: center;
+    }
+
+    .leetcode-byte-filter-head,
+    .leetcode-status-filter-head {
+      position: relative;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      overflow: visible;
+      min-width: 0;
+    }
+
+    .leetcode-byte-filter-trigger,
+    .leetcode-status-filter-trigger {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      max-width: 100%;
+      gap: 0.18rem;
+      border: 0;
+      border-radius: 0.36rem;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+      line-height: 1;
+      padding: 0.16rem 0.22rem;
+      text-transform: inherit;
+    }
+
+    .leetcode-byte-filter-trigger::after,
+    .leetcode-status-filter-trigger::after {
+      content: "";
+      width: 0;
+      height: 0;
+      border-right: 0.2rem solid transparent;
+      border-left: 0.2rem solid transparent;
+      border-top: 0.28rem solid currentColor;
+      opacity: 0.58;
+    }
+
+    .leetcode-byte-filter-trigger:hover,
+    .leetcode-byte-filter-trigger:focus-visible,
+    .leetcode-byte-filter-trigger.is-active,
+    .leetcode-status-filter-trigger:hover,
+    .leetcode-status-filter-trigger:focus-visible,
+    .leetcode-status-filter-trigger.is-active {
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-terracotta);
+      outline: none;
+    }
+
+    .leetcode-byte-filter-trigger strong,
+    .leetcode-status-filter-trigger strong {
+      overflow: hidden;
+      color: var(--color-terracotta);
+      font-size: 0.6rem;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-byte-filter-menu,
+    .leetcode-status-filter-menu {
+      position: absolute;
+      top: calc(100% + 0.28rem);
+      right: 0;
+      z-index: 18;
+      display: none;
+      grid-template-columns: 1fr;
+      min-width: 6.7rem;
+      gap: 0.1rem;
+      border: 1px solid var(--color-border);
+      border-radius: 0.46rem;
+      background: rgb(255 252 242 / 98%);
+      box-shadow: 0 0.8rem 1.8rem rgb(58 44 30 / 14%);
+      padding: 0.22rem;
+      text-transform: none;
+    }
+
+    .leetcode-byte-filter-head::after,
+    .leetcode-status-filter-head::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 17;
+      display: none;
+      width: 7.2rem;
+      height: 0.36rem;
+    }
+
+    .leetcode-byte-filter-head:hover .leetcode-byte-filter-menu,
+    .leetcode-byte-filter-head:focus-within .leetcode-byte-filter-menu,
+    .leetcode-status-filter-head:hover .leetcode-status-filter-menu,
+    .leetcode-status-filter-head:focus-within .leetcode-status-filter-menu {
+      display: grid;
+    }
+
+    .leetcode-byte-filter-head:hover::after,
+    .leetcode-byte-filter-head:focus-within::after,
+    .leetcode-status-filter-head:hover::after,
+    .leetcode-status-filter-head:focus-within::after {
+      display: block;
+    }
+
+    .leetcode-byte-filter-menu button,
+    .leetcode-status-filter-menu button {
+      min-height: 1.5rem;
+      border: 1px solid transparent;
+      border-radius: 0.34rem;
+      background: transparent;
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.66rem;
+      font-weight: 700;
+      line-height: 1;
+      padding: 0 0.42rem;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .leetcode-byte-filter-menu button:hover,
+    .leetcode-byte-filter-menu button:focus-visible,
+    .leetcode-byte-filter-menu button.is-active,
+    .leetcode-status-filter-menu button:hover,
+    .leetcode-status-filter-menu button:focus-visible,
+    .leetcode-status-filter-menu button.is-active {
+      border-color: rgb(217 119 87 / 42%);
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-terracotta);
+      outline: none;
     }
 
     html.dark .leetcode-table-head {
       background: var(--color-charcoal);
       border-bottom-color: #333;
+    }
+
+    html.dark .leetcode-byte-filter-menu,
+    html.dark .leetcode-status-filter-menu {
+      border-color: #333;
+      background: var(--color-dark-surface);
+      box-shadow: 0 0.8rem 1.8rem rgb(0 0 0 / 32%);
     }
 
     .leetcode-row {
@@ -12274,7 +12741,8 @@ const shortcutRows = [
 
     html.dark .leetcode-search input,
     html.dark .leetcode-toolbar .leetcode-filter-group button,
-    html.dark .leetcode-session-actions button {
+    html.dark .leetcode-session-actions button,
+    html.dark .leetcode-route-skip-controls button {
       border-color: #333;
       background: transparent;
     }
@@ -12284,20 +12752,23 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-toolbar .leetcode-filter-group button:hover,
-    html.dark .leetcode-session-actions button:hover {
+    html.dark .leetcode-session-actions button:hover,
+    html.dark .leetcode-route-skip-controls button:hover {
       border-color: rgb(217 119 87 / 58%);
       background: rgb(217 119 87 / 10%);
       color: #d97757;
     }
 
     html.dark .leetcode-toolbar .leetcode-filter-group button.is-active,
-    html.dark .leetcode-session-actions button.is-on {
+    html.dark .leetcode-session-actions button.is-on,
+    html.dark .leetcode-route-skip-controls button.is-on {
       border-color: rgb(217 119 87 / 68%);
       background: rgb(217 119 87 / 13%);
       color: #d97757;
     }
 
     html.dark .leetcode-session-actions button,
+    html.dark .leetcode-route-skip-controls button,
     html.dark .leetcode-practice-meter b,
     html.dark .leetcode-practice-signal {
       border-color: #333;
@@ -12312,7 +12783,8 @@ const shortcutRows = [
       color: #facc15;
     }
 
-    html.dark .leetcode-session-actions button.is-on {
+    html.dark .leetcode-session-actions button.is-on,
+    html.dark .leetcode-route-skip-controls button.is-on {
       border-color: rgb(217 119 87 / 68%);
       background: rgb(217 119 87 / 16%);
       color: #d97757;
@@ -12813,13 +13285,13 @@ const shortcutRows = [
     }
 
     .leetcode-pagination {
-      --leetcode-page-control-height: 1.52rem;
+      --leetcode-page-control-height: var(--leetcode-meta-control-height, 1.52rem);
       flex: 0 0 auto;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 0.24rem;
+      gap: var(--leetcode-meta-gap, 0.24rem);
       color: var(--color-secondary);
-      font-size: 0.7rem;
+      font-size: var(--leetcode-meta-font-size, 0.7rem);
       line-height: 1;
     }
 
@@ -12830,7 +13302,8 @@ const shortcutRows = [
     }
 
     .leetcode-pagination-bottom {
-      margin: var(--leetcode-stack-gap) 0 var(--leetcode-stack-gap);
+      grid-column: 2;
+      margin: 0;
     }
 
     .leetcode-pagination-bottom .leetcode-shortcut-popover {
@@ -12844,7 +13317,7 @@ const shortcutRows = [
     }
 
     .leetcode-page-jump {
-      gap: 0.22rem;
+      gap: var(--leetcode-meta-tight-gap, 0.08rem);
       color: var(--color-muted);
       white-space: nowrap;
     }
@@ -12852,7 +13325,8 @@ const shortcutRows = [
     .leetcode-pagination button {
       box-sizing: border-box;
       min-height: var(--leetcode-page-control-height);
-      padding: 0 0.38rem;
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
+      padding: 0 var(--leetcode-meta-pad-x, 0.38rem);
       line-height: 1;
     }
 
@@ -12862,12 +13336,13 @@ const shortcutRows = [
       height: var(--leetcode-page-control-height);
       min-height: var(--leetcode-page-control-height);
       border: 1px solid var(--color-border);
-      border-radius: 0.42rem;
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
       background: rgb(255 255 255 / 48%);
       color: var(--color-charcoal);
       appearance: textfield;
       font: inherit;
       font-family: var(--font-mono);
+      font-size: var(--leetcode-meta-font-size, 0.7rem);
       line-height: 1;
       padding: 0 0.2rem;
       text-align: center;
@@ -12996,6 +13471,7 @@ const shortcutRows = [
 
       .leetcode-filter-panel {
         justify-content: flex-start;
+        margin-left: 0;
         padding-top: 0;
       }
 
@@ -13004,8 +13480,25 @@ const shortcutRows = [
         justify-items: start;
       }
 
+      .leetcode-bottom-meta {
+        grid-template-columns: 1fr;
+        justify-items: start;
+      }
+
       .leetcode-pagination-top,
-      .leetcode-page-size-top {
+      .leetcode-list-primary-controls,
+      .leetcode-list-scope-controls,
+      .leetcode-list-controls {
+        grid-column: 1;
+        justify-self: start;
+      }
+
+      .leetcode-list-primary-controls {
+        flex-wrap: wrap;
+      }
+
+      .leetcode-pagination-bottom,
+      .leetcode-route-skip-controls {
         grid-column: 1;
         justify-self: start;
       }
