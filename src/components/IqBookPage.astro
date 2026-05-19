@@ -7,6 +7,7 @@ import {
   RotateCcw,
   Search,
 } from "lucide-react";
+import { renderToString } from "katex";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "./Header.astro";
 import { iqBook } from "../book.config";
@@ -52,6 +53,11 @@ const base = import.meta.env.BASE_URL;
 const specPath = "iq/spec";
 const title = book.zhTitle;
 const description = book.zhDescription;
+const katexOptions = {
+  throwOnError: false,
+  strict: "ignore",
+  output: "htmlAndMathml",
+} as const;
 
 const puzzles: Puzzle[] = [
   {
@@ -2100,6 +2106,83 @@ function searchBlob(puzzle: Puzzle) {
     puzzle.principle,
   ].join(" ");
 }
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function normalizeLatex(value: string) {
+  return value
+    .replaceAll("₂", "_2")
+    .replaceAll("≤", "\\le ")
+    .replaceAll("≥", "\\ge ")
+    .replaceAll("≈", "\\approx ")
+    .replaceAll("→", "\\to ")
+    .replaceAll("->", "\\to ")
+    .replaceAll(">=", "\\ge ")
+    .replaceAll("<=", "\\le ")
+    .replaceAll("...", "\\ldots ")
+    .replace(/\bxor\b/gi, "\\oplus ")
+    .replace(/\bmod\b/gi, "\\bmod ")
+    .replace(/\*/g, "\\times ")
+    .replace(/%/g, "\\%")
+    .replace(/\b([A-Za-z0-9]+)\s*\/\s*([A-Za-z0-9]+)\b/g, "\\frac{$1}{$2}");
+}
+
+function renderLatex(value: string) {
+  return renderToString(normalizeLatex(value), katexOptions);
+}
+
+function shouldRenderMathRun(value: string) {
+  return /[A-Za-z0-9]/.test(value)
+    && /(\^|=|<=|>=|≤|≥|<|>|≈|\/|\+|-|\*|→|->|₂|%|\bxor\b|\bmod\b)/i
+      .test(value);
+}
+
+function renderMathText(value: string) {
+  const pattern = /[A-Za-z0-9][A-Za-z0-9\s+\-*/^=<>≤≥≈().,_₂%→]*[A-Za-z0-9%₂]?/g;
+  let output = "";
+  let cursor = 0;
+
+  for (const match of value.matchAll(pattern)) {
+    const raw = match[0];
+    const index = match.index ?? 0;
+    output += escapeHtml(value.slice(cursor, index));
+
+    const leading = raw.match(/^\s*/)?.[0] ?? "";
+    const trailing = raw.match(/\s*$/)?.[0] ?? "";
+    const core = raw.trim();
+    output += escapeHtml(leading);
+    if (core && shouldRenderMathRun(core)) {
+      output += renderLatex(core);
+    } else {
+      output += escapeHtml(core);
+    }
+    output += escapeHtml(trailing);
+    cursor = index + raw.length;
+  }
+
+  output += escapeHtml(value.slice(cursor));
+  return output;
+}
+
+function renderFrames(frames: DemoFrame[]) {
+  return frames.map((frame) => ({
+    ...frame,
+    titleHtml: renderMathText(frame.title),
+    bodyHtml: renderMathText(frame.body),
+    metricHtml: renderMathText(frame.metric),
+    tokens: frame.tokens.map((token) => ({
+      ...token,
+      labelHtml: renderMathText(token.label),
+      detailHtml: token.detail ? renderMathText(token.detail) : "",
+    })),
+  }));
+}
 ---
 
 <BaseLayout
@@ -2193,7 +2276,7 @@ function searchBlob(puzzle: Puzzle) {
           >
             <span class="iq-index-number">IQ{String(puzzle.number).padStart(3, "0")}</span>
             <strong>{puzzle.title}</strong>
-            <em>{puzzle.answer}</em>
+            <em set:html={renderMathText(puzzle.answer)} />
             <span>{puzzle.category} · {puzzle.difficulty}</span>
           </a>
         ))}
@@ -2223,36 +2306,44 @@ function searchBlob(puzzle: Puzzle) {
 
           <div class="iq-answer-strip">
             <strong>答案</strong>
-            <span>{puzzle.answer}</span>
+            <span set:html={renderMathText(puzzle.answer)} />
           </div>
 
           <div class="iq-puzzle-grid">
             <div class="iq-reading">
               <section>
                 <h3>题面</h3>
-                {puzzle.problem.map((paragraph) => <p>{paragraph}</p>)}
+                {puzzle.problem.map((paragraph) => (
+                  <p set:html={renderMathText(paragraph)} />
+                ))}
               </section>
               <section>
                 <h3>第一原则</h3>
-                <p>{puzzle.principle}</p>
+                <p set:html={renderMathText(puzzle.principle)} />
               </section>
               <section>
                 <h3>详细解法</h3>
                 <ol>
-                  {puzzle.solution.map((step) => <li>{step}</li>)}
+                  {puzzle.solution.map((step) => (
+                    <li set:html={renderMathText(step)} />
+                  ))}
                 </ol>
               </section>
               <section class="iq-note-grid">
                 <div>
                   <h3>常见误区</h3>
                   <ul>
-                    {puzzle.pitfalls.map((item) => <li>{item}</li>)}
+                    {puzzle.pitfalls.map((item) => (
+                      <li set:html={renderMathText(item)} />
+                    ))}
                   </ul>
                 </div>
                 <div>
                   <h3>变体</h3>
                   <ul>
-                    {puzzle.variants.map((item) => <li>{item}</li>)}
+                    {puzzle.variants.map((item) => (
+                      <li set:html={renderMathText(item)} />
+                    ))}
                   </ul>
                 </div>
               </section>
@@ -2262,22 +2353,27 @@ function searchBlob(puzzle: Puzzle) {
               class="iq-demo"
               aria-label={`${puzzle.title} 交互演示`}
               data-iq-demo
-              data-frames={JSON.stringify(puzzle.demo.frames)}
+              data-frames={JSON.stringify(renderFrames(puzzle.demo.frames))}
             >
               <div class="iq-demo-top">
                 <p>{puzzle.demo.title}</p>
-                <h3 data-iq-demo-title>{puzzle.demo.frames[0].title}</h3>
+                <h3
+                  data-iq-demo-title
+                  set:html={renderMathText(puzzle.demo.frames[0].title)}
+                />
                 <span data-iq-demo-step>
                   1 / {puzzle.demo.frames.length}
                 </span>
               </div>
-              <p class="iq-demo-lead">{puzzle.demo.lead}</p>
+              <p class="iq-demo-lead" set:html={renderMathText(puzzle.demo.lead)} />
               <div class="iq-demo-stage" data-iq-demo-stage></div>
-              <p class="iq-demo-body" data-iq-demo-body>
-                {puzzle.demo.frames[0].body}
-              </p>
+              <p
+                class="iq-demo-body"
+                data-iq-demo-body
+                set:html={renderMathText(puzzle.demo.frames[0].body)}
+              />
               <div class="iq-demo-metric" data-iq-demo-metric>
-                {puzzle.demo.frames[0].metric}
+                <Fragment set:html={renderMathText(puzzle.demo.frames[0].metric)} />
               </div>
               <div class="iq-demo-controls">
                 <button type="button" data-iq-demo-prev aria-label="上一帧">
@@ -2415,9 +2511,9 @@ function searchBlob(puzzle: Puzzle) {
         const item = document.createElement("span");
         item.className = `iq-token is-${token.state || "neutral"}`;
         const label = document.createElement("strong");
-        label.textContent = token.label;
+        label.innerHTML = token.labelHtml || token.label;
         const detail = document.createElement("em");
-        detail.textContent = token.detail || "";
+        detail.innerHTML = token.detailHtml || token.detail || "";
         item.append(label, detail);
         if (typeof token.value === "number" && typeof token.max === "number") {
           const bar = document.createElement("i");
@@ -2431,10 +2527,10 @@ function searchBlob(puzzle: Puzzle) {
       function render() {
         const frame = frames[index];
         if (!frame) return;
-        if (title) title.textContent = frame.title;
+        if (title) title.innerHTML = frame.titleHtml || frame.title;
         if (step) step.textContent = `${index + 1} / ${frames.length}`;
-        if (body) body.textContent = frame.body;
-        if (metric) metric.textContent = frame.metric;
+        if (body) body.innerHTML = frame.bodyHtml || frame.body;
+        if (metric) metric.innerHTML = frame.metricHtml || frame.metric;
         if (stage) {
           stage.replaceChildren(...frame.tokens.map(tokenNode));
         }
@@ -2480,6 +2576,9 @@ function searchBlob(puzzle: Puzzle) {
 
 <style>
   .iq-page {
+    --iq-page-font: "PingFang SC", "PingFang TC", "PingFang HK",
+      -apple-system, BlinkMacSystemFont, "Hiragino Sans GB",
+      "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
     --iq-panel: rgb(255 255 255 / 54%);
     --iq-panel-strong: rgb(255 255 255 / 72%);
     --iq-ink: var(--color-charcoal);
@@ -2492,6 +2591,13 @@ function searchBlob(puzzle: Puzzle) {
     max-width: 1180px;
     margin: 0 auto;
     padding: 2.2rem 1rem 5rem;
+    font-family: var(--iq-page-font);
+  }
+
+  :global(body:has(.iq-page)) {
+    font-family: "PingFang SC", "PingFang TC", "PingFang HK", -apple-system,
+      BlinkMacSystemFont, "Hiragino Sans GB", "Microsoft YaHei",
+      "Noto Sans CJK SC", sans-serif;
   }
 
   html.dark .iq-page {
@@ -2524,7 +2630,7 @@ function searchBlob(puzzle: Puzzle) {
   .iq-demo-top p {
     margin: 0 0 0.45rem;
     color: var(--color-terracotta);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -2564,7 +2670,7 @@ function searchBlob(puzzle: Puzzle) {
     gap: 0.4rem;
     min-height: 2.55rem;
     border-radius: 8px;
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.82rem;
     font-weight: 700;
     text-decoration: none;
@@ -2612,7 +2718,7 @@ function searchBlob(puzzle: Puzzle) {
   .iq-hero-board span {
     display: block;
     color: var(--color-terracotta);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: clamp(2.4rem, 7vw, 4.5rem);
     font-weight: 800;
     line-height: 1;
@@ -2747,7 +2853,7 @@ function searchBlob(puzzle: Puzzle) {
 
   .iq-index-number {
     color: var(--color-terracotta);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.78rem;
     font-weight: 800;
   }
@@ -2770,7 +2876,7 @@ function searchBlob(puzzle: Puzzle) {
     margin-top: auto;
     padding-top: 0.75rem;
     color: var(--iq-blue);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.75rem;
     font-weight: 700;
   }
@@ -2813,7 +2919,7 @@ function searchBlob(puzzle: Puzzle) {
     border: 1px solid rgb(30 111 143 / 34%);
     border-radius: 999px;
     color: var(--iq-blue);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.75rem;
     font-weight: 800;
     padding: 0.35rem 0.6rem;
@@ -2832,7 +2938,7 @@ function searchBlob(puzzle: Puzzle) {
   .iq-answer-strip strong {
     flex: 0 0 auto;
     color: var(--color-terracotta);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.8rem;
   }
 
@@ -2927,7 +3033,7 @@ function searchBlob(puzzle: Puzzle) {
     border-radius: 999px;
     background: rgb(30 111 143 / 12%);
     color: var(--iq-blue);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.75rem;
     font-weight: 800;
     padding: 0.3rem 0.5rem;
@@ -3033,7 +3139,7 @@ function searchBlob(puzzle: Puzzle) {
     border: 1px dashed var(--iq-line);
     border-radius: 8px;
     color: var(--iq-ink);
-    font-family: var(--font-mono);
+    font-family: var(--iq-page-font);
     font-size: 0.85rem;
     font-weight: 800;
     line-height: 1.5;
