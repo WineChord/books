@@ -155,7 +155,7 @@ const toolbarHintText = {
     ? "状态：未熟练。显示尚未标记为熟练的题。"
     : "State: unmastered. Show problems not marked mastered.",
   flowMode: isZh
-    ? "沉浸流：控制刷题跳转模式。开启后可以按顺序流或推荐流连续练题。"
+    ? "顺序流：控制刷题跳转模式。开启后可以按顺序流或推荐流连续练题。"
     : "Flow mode: controls practice routing. Turn it on to move through list or suggested flow.",
   skipSql: isZh
     ? "跳过 SQL：开启时，顺序跳转、推荐流和 Option+↑/↓ 会避开数据库题。"
@@ -164,13 +164,13 @@ const toolbarHintText = {
     ? "跳过前端：开启时，顺序跳转、推荐流和 Option+↑/↓ 会避开纯前端题。"
     : "Skip frontend: when on, list flow, suggested flow, and Option+Up/Down avoid pure FE problems.",
   resetSession: isZh
-    ? "重本次：清空本次会话计时和本次 AC 统计，不删除历史记录。"
+    ? "重开本次：清空本次会话计时和本次 AC 统计，不删除历史记录。"
     : "Reset session: clear this session timer and accepted count without deleting history.",
   restartProblem: isZh
-    ? "重本题：把当前展开题目的计时重新从 0 开始。"
+    ? "重开本题：把当前展开题目的计时重新从 0 开始。"
     : "Restart problem: reset the timer for the currently opened problem.",
   clearRecord: isZh
-    ? "清记录：只清当前题的 PB 和上次 AC 记录，不回滚每日统计。"
+    ? "清本题记录：只清当前题的 PB 和上次 AC 记录，不回滚每日统计。"
     : "Clear record: remove only this problem's PB and last Accepted record.",
   pageSize: isZh
     ? "每页个数：控制这一页显示多少道题。选自定义后可以输入具体数量。"
@@ -532,7 +532,7 @@ const shortcutRows = [
   },
   {
     keys: "Option+4-8",
-    zh: "字节筛选：全部 / 30天 / 3月 / 6月 / 6月前",
+    zh: "字节筛选：全部 / 近30天 / 近3月 / 近6月 / 6月前",
     en: "ByteDance filters: all / 30d / 3m / 6m / old",
   },
   {
@@ -712,37 +712,37 @@ const shortcutRows = [
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
               <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all} data-ui-tip={toolbarHintText.scopeAll}>{isZh ? "全部" : "All"}</button>
               <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100} data-ui-tip={toolbarHintText.scopeHot100}>Hot100</button>
-              <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps} data-ui-tip={toolbarHintText.scopeFollowUps}>{isZh ? "追问" : "Follow"}</button>
+              <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps} data-ui-tip={toolbarHintText.scopeFollowUps}>{isZh ? "公司追问" : "Follow"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "字节" : "ByteDance"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "字节筛选" : "ByteDance filters"}>
               <button type="button" data-filter="bytedanceAll" aria-label={filterShortcutTitles.bytedanceAll} data-ui-tip={toolbarHintText.bytedanceAll}>{isZh ? "全部" : "All"}</button>
-              <button type="button" data-filter="bytedanceThirtyDays" aria-label={filterShortcutTitles.bytedanceThirtyDays} data-ui-tip={toolbarHintText.bytedanceThirtyDays}>{isZh ? "30天" : "30d"}</button>
-              <button type="button" data-filter="bytedanceThreeMonths" aria-label={filterShortcutTitles.bytedanceThreeMonths} data-ui-tip={toolbarHintText.bytedanceThreeMonths}>{isZh ? "3月" : "3m"}</button>
-              <button type="button" data-filter="bytedanceSixMonths" aria-label={filterShortcutTitles.bytedanceSixMonths} data-ui-tip={toolbarHintText.bytedanceSixMonths}>{isZh ? "6月" : "6m"}</button>
-              <button type="button" data-filter="bytedanceMoreThanSixMonths" aria-label={filterShortcutTitles.bytedanceMoreThanSixMonths} data-ui-tip={toolbarHintText.bytedanceOld}>{isZh ? "旧" : "Old"}</button>
+              <button type="button" data-filter="bytedanceThirtyDays" aria-label={filterShortcutTitles.bytedanceThirtyDays} data-ui-tip={toolbarHintText.bytedanceThirtyDays}>{isZh ? "近30天" : "30d"}</button>
+              <button type="button" data-filter="bytedanceThreeMonths" aria-label={filterShortcutTitles.bytedanceThreeMonths} data-ui-tip={toolbarHintText.bytedanceThreeMonths}>{isZh ? "近3月" : "3m"}</button>
+              <button type="button" data-filter="bytedanceSixMonths" aria-label={filterShortcutTitles.bytedanceSixMonths} data-ui-tip={toolbarHintText.bytedanceSixMonths}>{isZh ? "近6月" : "6m"}</button>
+              <button type="button" data-filter="bytedanceMoreThanSixMonths" aria-label={filterShortcutTitles.bytedanceMoreThanSixMonths} data-ui-tip={toolbarHintText.bytedanceOld}>{isZh ? "6月前" : "Old"}</button>
             </div>
           </div>
           <div class="leetcode-filter-cluster">
             <span>{isZh ? "状态" : "State"}</span>
             <div class="leetcode-filter-group" role="group" aria-label={isZh ? "状态筛选" : "State filters"}>
               <button type="button" data-filter="unsolved" aria-label={filterShortcutTitles.unsolved} data-ui-tip={toolbarHintText.stateUnsolved}>{isZh ? "未做" : "Unsolved"}</button>
-              <button type="button" data-filter="review" aria-label={filterShortcutTitles.review} data-ui-tip={toolbarHintText.stateReview}>{isZh ? "思考" : "Review"}</button>
-              <button type="button" data-filter="unmastered" aria-label={filterShortcutTitles.unmastered} data-ui-tip={toolbarHintText.stateUnmastered}>{isZh ? "未熟" : "Unmastered"}</button>
+              <button type="button" data-filter="review" aria-label={filterShortcutTitles.review} data-ui-tip={toolbarHintText.stateReview}>{isZh ? "需思考" : "Review"}</button>
+              <button type="button" data-filter="unmastered" aria-label={filterShortcutTitles.unmastered} data-ui-tip={toolbarHintText.stateUnmastered}>{isZh ? "未熟练" : "Unmastered"}</button>
             </div>
           </div>
         </div>
 
         <div class="leetcode-toolbar-utilities">
           <div class="leetcode-session-actions" aria-label={isZh ? "刷题操作" : "Practice actions"}>
-            <button type="button" data-flow-mode-toggle aria-pressed="false" aria-label={flowModeTitle} data-ui-tip={toolbarHintText.flowMode}>{isZh ? "流：关" : "Flow off"}</button>
-            <button type="button" data-flow-skip-sql aria-pressed="true" aria-label={skipSqlFlowTitle} data-ui-tip={toolbarHintText.skipSql}>{isZh ? "SQL：开" : "SQL on"}</button>
-            <button type="button" data-flow-skip-frontend aria-pressed="true" aria-label={skipFrontendFlowTitle} data-ui-tip={toolbarHintText.skipFrontend}>{isZh ? "前端：开" : "FE on"}</button>
-            <button type="button" data-timing-action="reset-session" aria-label={resetSessionTitle} data-ui-tip={toolbarHintText.resetSession}>{isZh ? "本次" : "Reset"}</button>
-            <button type="button" data-timing-action="restart-problem" aria-label={restartProblemTimerTitle} data-ui-tip={toolbarHintText.restartProblem}>{isZh ? "本题" : "Restart"}</button>
-            <button type="button" class="is-subtle" data-timing-action="clear-problem-record" aria-label={clearProblemRecordTitle} data-ui-tip={toolbarHintText.clearRecord}>{isZh ? "清记录" : "Clear"}</button>
+            <button type="button" data-flow-mode-toggle aria-pressed="false" aria-label={flowModeTitle} data-ui-tip={toolbarHintText.flowMode}>{isZh ? "顺序流：关" : "Flow off"}</button>
+            <button type="button" data-flow-skip-sql aria-pressed="true" aria-label={skipSqlFlowTitle} data-ui-tip={toolbarHintText.skipSql}>{isZh ? "跳过 SQL：开" : "SQL on"}</button>
+            <button type="button" data-flow-skip-frontend aria-pressed="true" aria-label={skipFrontendFlowTitle} data-ui-tip={toolbarHintText.skipFrontend}>{isZh ? "跳过前端：开" : "FE on"}</button>
+            <button type="button" data-timing-action="reset-session" aria-label={resetSessionTitle} data-ui-tip={toolbarHintText.resetSession}>{isZh ? "重开本次" : "Reset"}</button>
+            <button type="button" data-timing-action="restart-problem" aria-label={restartProblemTimerTitle} data-ui-tip={toolbarHintText.restartProblem}>{isZh ? "重开本题" : "Restart"}</button>
+            <button type="button" class="is-subtle" data-timing-action="clear-problem-record" aria-label={clearProblemRecordTitle} data-ui-tip={toolbarHintText.clearRecord}>{isZh ? "清本题记录" : "Clear"}</button>
           </div>
         </div>
       </div>
@@ -2586,12 +2586,12 @@ const shortcutRows = [
 
     function flowModeLabel() {
       if (flowMode === flowModeInsight) {
-        return isChinesePage ? "推荐：开" : "Pick on";
+        return isChinesePage ? "推荐流：开" : "Pick on";
       }
       if (flowMode === flowModeList) {
-        return isChinesePage ? "顺序：开" : "List on";
+        return isChinesePage ? "顺序流：开" : "List on";
       }
-      return isChinesePage ? "流：关" : "Flow off";
+      return isChinesePage ? "顺序流：关" : "Flow off";
     }
 
     function flowModeEnabled() {
@@ -2621,14 +2621,14 @@ const shortcutRows = [
 
     function flowSkipSqlLabel() {
       return flowSkipSql
-        ? (isChinesePage ? "SQL：开" : "SQL on")
-        : (isChinesePage ? "SQL：关" : "SQL off");
+        ? (isChinesePage ? "跳过 SQL：开" : "SQL on")
+        : (isChinesePage ? "跳过 SQL：关" : "SQL off");
     }
 
     function flowSkipFrontendLabel() {
       return flowSkipFrontend
-        ? (isChinesePage ? "前端：开" : "FE on")
-        : (isChinesePage ? "前端：关" : "FE off");
+        ? (isChinesePage ? "跳过前端：开" : "FE on")
+        : (isChinesePage ? "跳过前端：关" : "FE off");
     }
 
     function flowSkipStatus() {
@@ -10946,8 +10946,7 @@ const shortcutRows = [
     }
 
     .leetcode-toolbar .leetcode-search label,
-    .leetcode-toolbar .leetcode-page-size label,
-    .leetcode-toolbar .leetcode-filter-cluster > span {
+    .leetcode-toolbar .leetcode-page-size label {
       position: absolute;
       overflow: hidden;
       width: 1px;
@@ -10976,7 +10975,7 @@ const shortcutRows = [
       font-family: var(--leetcode-page-font);
       font-size: 0.5rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0;
       text-transform: uppercase;
     }
 
