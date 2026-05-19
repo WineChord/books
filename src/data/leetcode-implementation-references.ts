@@ -58,6 +58,34 @@ export const leetcodeImplementationReferences = ({
       "code": "class Solution {\npublic:\n    int trap(vector<int>& a) {\n        int n = a.size(), res = 0;\n        vector<int> s;\n        for(int i = 0; i < n; i++) {\n            while(s.size() && a[i] > a[s.back()]) {\n                int idx = s.back(); s.pop_back();\n                int b = a[idx];\n                if(s.empty()) break;\n                int k = s.back();\n                res += (i-k-1) * (min(a[k], a[i]) - b);\n            }\n            s.push_back(i);\n        }\n        return res;\n    }\n};"
     }
   ],
+  "jump-game-ii": [
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "optimized",
+      "approachTitle": "Greedy BFS Layer",
+      "complexity": "Time $O(n)$ / Space $O(1)$",
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "45. 跳跃游戏 II greedy study reference",
+      "sourceUrl": "https://leetcode.cn/problems/jump-game-ii/description/",
+      "code": "class Solution {\npublic:\n    int jump(vector<int>& nums) {\n        int n = nums.size();\n        int jumps = 0;\n        int currentEnd = 0;\n        int farthest = 0;\n\n        for (int i = 0; i + 1 < n; ++i) {\n            farthest = max(farthest, i + nums[i]);\n            if (i == currentEnd) {\n                ++jumps;\n                currentEnd = farthest;\n            }\n        }\n\n        return jumps;\n    }\n};"
+    },
+    {
+      "language": "C++",
+      "status": "Reference",
+      "provenance": "generated-reference",
+      "approachTitle": "DP Baseline",
+      "complexity": "Time $O(n^2)$ / Space $O(n)$",
+      "submittedAt": null,
+      "runtime": null,
+      "memory": null,
+      "sourceTitle": "45. 跳跃游戏 II DP baseline reference",
+      "sourceUrl": "https://leetcode.cn/problems/jump-game-ii/description/",
+      "code": "class Solution {\npublic:\n    int jump(vector<int>& nums) {\n        int n = nums.size();\n        const int unreachable = n + 1;\n        vector<int> dp(n, unreachable);\n        dp[0] = 0;\n\n        for (int i = 0; i < n; ++i) {\n            for (int step = 1; step <= nums[i] && i + step < n; ++step) {\n                dp[i + step] = min(dp[i + step], dp[i] + 1);\n            }\n        }\n\n        return dp[n - 1];\n    }\n};"
+    }
+  ],
   "group-anagrams": [
     {
       "language": "C++",

@@ -122,6 +122,20 @@ Each included follow-up stores a concise answer, the company name, and the
 source link. If no public source was found for a problem, the page says so
 rather than assigning a company by inference.
 
+Problem study content must explain the individual problem first, not merely
+combine tag-level templates. `approachPreview` needs to name the problem's own
+state, invariant, boundaries, and correctness reason; when the key idea is a
+compression from a simpler solution to the optimal one, such as dynamic
+programming compressed into greedy boundaries, that compression must be stated.
+`followUps` must be concrete variants or pitfalls that naturally belong to the
+problem, with short answers usable in an interview. `implementationReferences`
+must include at least one submit-ready primary solution; for high-frequency
+problems that are easy to misunderstand, add a baseline solution, path
+reconstruction, unreachable-case handling, or another reference that explains
+the tradeoff behind the primary solution. Generic prompts such as boundary
+cases, complexity, or space compression may supplement the entry, but they must
+not replace problem-specific content.
+
 ## Page Contract
 
 The page does not show the global site header. The title area uses a compact
