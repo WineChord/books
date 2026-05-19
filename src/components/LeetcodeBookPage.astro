@@ -1555,8 +1555,11 @@ const shortcutRows = [
     const oneShotHashPrime = 16777619;
     const oneShotRewardParticleMin = 90;
     const oneShotRewardParticleMax = 520;
+    const oneShotRewardGlyphMin = 7;
+    const oneShotRewardGlyphMax = 22;
     const oneShotRewardDurationMs = 4200;
     const oneShotRewardReducedMotionMs = 2600;
+    const oneShotComboPulseMs = 1500;
     const oneShotRecordPulseMs = 2600;
     const flowModeOff = "off";
     const flowModeList = "list";
@@ -3608,34 +3611,59 @@ const shortcutRows = [
 
     function rareOneShotLine(streak, isRecord) {
       const rareZh = [
+        [3, "三连 AC，节奏开始有内味了。"],
+        [5, "五连到手，手感已经接管方向盘。"],
         [7, "七连斩，节奏已经进后台常驻。"],
         [8, "八题连过，今天的手感开始发烫。"],
         [10, "十连 AC，这不是运气，是稳定输出。"],
         [13, "十三连，连击表开始有传说感了。"],
+        [16, "十六连，状态像开了倍速但不丢精度。"],
         [21, "二十一连，斐波那契都要让你先走。"],
+        [24, "二十四连，今天的题目已经排队上分。"],
+        [32, "三十二连，位运算看了都说严谨。"],
         [42, "四十二连，答案不是风，是你刚写出来的。"],
+        [50, "五十连，半百成就解锁，牌面拉满。"],
         [64, "六十四连，缓存命中率拉满。"],
+        [66, "六十六连，六六大顺，AC 也讲究排面。"],
+        [77, "七十七连，今天这波属于丝滑连招。"],
         [88, "八十八连，纪录墙开始发光。"],
+        [99, "九十九连，就差一脚踢开百连大门。"],
         [100, "百连 AC，今天这页应该给你让路。"],
+        [128, "一百二十八连，连击已经按位扩容。"],
       ];
       const rareEn = [
+        [3, "Three straight; the rhythm is warming up."],
+        [5, "Five clean accepts; the flow has taken the wheel."],
         [7, "Seven straight; the rhythm is resident now."],
         [8, "Eight clean accepts; the keyboard is warming up."],
         [10, "Ten-shot AC. That is not luck, that is control."],
         [13, "Thirteen straight; the combo board feels legendary."],
+        [16, "Sixteen straight; faster without losing precision."],
         [21, "Twenty-one straight; even Fibonacci yields the lane."],
+        [24, "Twenty-four straight; the queue is moving cleanly."],
+        [32, "Thirty-two straight; even bit math looks orderly."],
         [42, "Forty-two straight; the answer was in your editor."],
+        [50, "Fifty straight; the half-century badge is lit."],
         [64, "Sixty-four straight; cache hit rate maxed out."],
+        [66, "Sixty-six straight; the board is fully aligned."],
+        [77, "Seventy-seven straight; this chain is silky."],
         [88, "Eighty-eight straight; the record wall is glowing."],
+        [99, "Ninety-nine straight; the hundred gate is next."],
         [100, "One hundred straight; the page should make room."],
+        [128, "One hundred twenty-eight straight; combo capacity doubled."],
       ];
       const rare = isChinesePage ? rareZh : rareEn;
       const exact = rare.find(([value]) => value === streak);
       if (exact) return exact[1];
       if (isRecord && streak > 1 && streak % 11 === 0) {
         return isChinesePage
-          ? `${streak} 连击，新纪录还带隐藏刻度。`
+          ? `${streak} 连击，新纪录还带隐藏刻度，太顶了。`
           : `${streak} combo, a hidden record marker unlocked.`;
+      }
+      if (streak > 1 && streak % 9 === 0) {
+        return isChinesePage
+          ? `${streak} 连击，九九归一，最后都归到 AC。`
+          : `${streak} combo; everything resolves to AC.`;
       }
       return "";
     }
@@ -3671,6 +3699,25 @@ const shortcutRows = [
           "这题被你写成了顺手题",
           "验算到位，提交到位",
           "从模板到 AC，一气呵成",
+          "这波直接拿捏",
+          "芜湖起飞，但代码很稳",
+          "丝滑，像提前知道判题机答案",
+          "题目刚开口，你已经 AC",
+          "这题的防线被你写穿了",
+          "脑回路在线，边界也在线",
+          "一提交就绿，舒服了",
+          "这把属于教科书级收工",
+          "不愧是你，细节拉满",
+          "判题机点头，连击条加班",
+          "这题：我先老实了",
+          "又快又准，尊嘟很稳",
+          "这波属于 AC 爽文展开",
+          "代码没有废话，结果也没有悬念",
+          "今天的你有点太会过了",
+          "这一下把手感焊住了",
+          "直接过，主打一个干脆",
+          "思路不卡壳，提交不绕路",
+          "这一把给连击续上了电",
         ],
         legend: [
           "连击已经进入高能区",
@@ -3681,6 +3728,16 @@ const shortcutRows = [
           "越写越稳，越稳越快",
           "这是连续命中的声音",
           "高能连击，保持推进",
+          "连击条已经开始烫手",
+          "题库压力给到了",
+          "今天这波有点降维打击",
+          "手感像开了导航，弯都不拐错",
+          "这不是连击，这是持续输出",
+          "判题机已经熟悉你的节奏",
+          "越过越丝滑，越写越有谱",
+          "这串 AC 有种遥遥领先的味道",
+          "稳定得像写了证明再提交",
+          "今天这手速和脑速都在线",
         ],
         milestone: [
           "小里程碑达成",
@@ -3689,6 +3746,12 @@ const shortcutRows = [
           "这一档连击值得放大庆祝",
           "继续，记录正在变厚",
           "连击阶梯又上一层",
+          "阶段性胜利，先把排面拉满",
+          "节点到了，烟花也该懂事了",
+          "这一档有说法，继续冲",
+          "连击齿轮咔哒一声又上锁",
+          "今天的进度条肉眼可见地变强",
+          "这个节点值得多看一眼",
         ],
         record: [
           "新纪录，你太牛逼了",
@@ -3699,6 +3762,16 @@ const shortcutRows = [
           "最高连击改写成功",
           "你把自己的纪录打穿了",
           "新纪录诞生，烟花全开",
+          "新纪录，直接封神这一小段",
+          "这波刷新很硬，含金量拉满",
+          "历史最高被你按在地上改写",
+          "纪录墙新增你的签名",
+          "天花板又被你往上顶了一格",
+          "这一刻属于新的最高连击",
+          "今天的你，强得很具体",
+          "新纪录到手，牌面必须给足",
+          "这谁顶得住，最高连击又涨了",
+          "纪录线：我还能再高一点",
         ],
       };
       const en = {
@@ -3715,6 +3788,13 @@ const shortcutRows = [
           "Direct hit.",
           "Clean reasoning, clean submit.",
           "Accepted on arrival.",
+          "No wasted motion.",
+          "The judge agreed immediately.",
+          "Sharp idea, sharp finish.",
+          "The edge cases stayed quiet.",
+          "That submit landed exactly where it should.",
+          "A clean AC added to the chain.",
+          "The answer path was straight.",
         ],
         legend: [
           "The combo is in high-energy territory.",
@@ -3723,6 +3803,11 @@ const shortcutRows = [
           "The streak is stacking into a tower.",
           "This run is becoming hard to ignore.",
           "Steadier, faster, sharper.",
+          "The combo bar is running hot.",
+          "The judge has learned the rhythm.",
+          "This is sustained output.",
+          "The chain is getting serious.",
+          "The pace is controlled and bright.",
         ],
         milestone: [
           "Milestone lit.",
@@ -3730,6 +3815,10 @@ const shortcutRows = [
           "The streak staircase moved up.",
           "This tier deserves a bigger burst.",
           "The record line is getting thicker.",
+          "Checkpoint cleared.",
+          "Another combo notch clicked in.",
+          "This level deserves the extra sparks.",
+          "The progress bar looks stronger now.",
         ],
         record: [
           "New record. Brutally strong.",
@@ -3739,6 +3828,11 @@ const shortcutRows = [
           "That one belongs on the wall.",
           "Record rewritten.",
           "Full fireworks for a new best.",
+          "The record wall just changed.",
+          "New best, with authority.",
+          "The ceiling moved again.",
+          "That record has your signature now.",
+          "A sharper personal best landed.",
         ],
       };
       const copy = isChinesePage ? zh : en;
@@ -3755,6 +3849,14 @@ const shortcutRows = [
             "没有样例失误，没有提交返工",
             "这次奖励不会打断你的节奏",
             "继续推进，下一题已经在等你",
+            "从默认模板出发，第一次提交直接命中",
+            "连击没有玄学，都是你刚写出来的确定性",
+            "判题机这次没有犹豫，直接给绿",
+            "手感正热，适合继续把题单往前推",
+            "边界处理到位，这一题收得很漂亮",
+            "当前状态：越写越顺，越顺越稳",
+            "这波 AC 已加入今日高光片段",
+            "下一题不用仪式感，保持这个节奏",
           ]
         : [
             `${title} · AC combo x${result.streak}`,
@@ -3767,12 +3869,153 @@ const shortcutRows = [
             "No sample miss, no submit repair.",
             "The reward will not interrupt your flow.",
             "Keep going; the next problem is ready.",
+            "Started from the default template, first submit landed.",
+            "No mystery here; that was clear reasoning.",
+            "The judge did not hesitate.",
+            "The flow is warm; keep the queue moving.",
+            "Edges handled, finish clean.",
+            "This AC joined today's highlight reel.",
           ];
       return {
         headline,
         subtitle: randomItem(subtitlePool),
         tier,
       };
+    }
+
+    function oneShotRewardGlyphPool(result, tier) {
+      const commonZh = [
+        "AC",
+        "+1",
+        `x${result.streak}`,
+        "一发入魂",
+        "拿捏",
+        "太顶了",
+        "芜湖起飞",
+        "丝滑",
+        "细节拉满",
+        "稳住",
+        "不愧是你",
+        "这波不亏",
+        "直接过",
+        "舒服了",
+        "有内味了",
+        "尊嘟很稳",
+        "代码会自己过",
+        "题目已老实",
+        "爽文展开",
+        "判题机点头",
+        "边界拿下",
+        "节奏在线",
+        "手感发烫",
+        "继续上分",
+      ];
+      const recordZh = [
+        "新纪录",
+        "封神一刻",
+        "天花板上移",
+        "纪录墙发光",
+        "全场最佳",
+        "这谁顶得住",
+        "牌面拉满",
+        "历史最高",
+      ];
+      const legendZh = [
+        "高能区",
+        "遥遥领先",
+        "降维打击",
+        "持续输出",
+        "连击烫手",
+        "越写越稳",
+        "状态爆表",
+      ];
+      const commonEn = [
+        "AC",
+        "+1",
+        `x${result.streak}`,
+        "Clean",
+        "Locked",
+        "Direct hit",
+        "No detour",
+        "Sharp",
+        "Flow",
+        "First try",
+        "Edges handled",
+        "Judge agreed",
+      ];
+      const recordEn = [
+        "New record",
+        "Best combo",
+        "Ceiling moved",
+        "Wall updated",
+        "Peak raised",
+      ];
+      const legendEn = [
+        "High energy",
+        "Sustained",
+        "Running hot",
+        "Chain grows",
+        "Serious pace",
+      ];
+      if (!isChinesePage) {
+        if (tier === "record") return commonEn.concat(recordEn, legendEn);
+        if (tier === "legend") return commonEn.concat(legendEn);
+        return commonEn;
+      }
+      if (tier === "record") return commonZh.concat(recordZh, legendZh);
+      if (tier === "legend") return commonZh.concat(legendZh);
+      if (tier === "milestone") return commonZh.concat(["节点点亮", "奖励加码"]);
+      return commonZh;
+    }
+
+    function oneShotRewardGlyphCount(tier) {
+      const ranges = {
+        combo: [oneShotRewardGlyphMin, 12],
+        legend: [13, 18],
+        milestone: [10, 15],
+        record: [16, oneShotRewardGlyphMax],
+      };
+      const range = ranges[tier] || ranges.combo;
+      return randomInteger(range[0], range[1]);
+    }
+
+    function renderOneShotRewardGlyphs(glyphs, result, tier, palette) {
+      if (!(glyphs instanceof HTMLElement)) return;
+      glyphs.replaceChildren();
+      const pool = oneShotRewardGlyphPool(result, tier);
+      const fragment = document.createDocumentFragment();
+      const count = oneShotRewardGlyphCount(tier);
+      for (let index = 0; index < count; index += 1) {
+        const glyph = document.createElement("span");
+        const yMax = tier === "record" ? 72 : 76;
+        glyph.className = "leetcode-one-shot-reward-glyph";
+        glyph.textContent = randomItem(pool);
+        glyph.style.setProperty("--reward-glyph-color", randomItem(palette));
+        glyph.style.setProperty(
+          "--reward-glyph-x",
+          `${randomBetween(7, 93).toFixed(2)}vw`,
+        );
+        glyph.style.setProperty(
+          "--reward-glyph-y",
+          `${randomBetween(14, yMax).toFixed(2)}vh`,
+        );
+        glyph.style.setProperty(
+          "--reward-glyph-tx",
+          `${randomBetween(-7, 7).toFixed(2)}rem`,
+        );
+        glyph.style.setProperty(
+          "--reward-glyph-ty",
+          `${randomBetween(-5.8, -1.4).toFixed(2)}rem`,
+        );
+        glyph.style.setProperty(
+          "--reward-glyph-rotate",
+          `${randomBetween(-18, 18).toFixed(2)}deg`,
+        );
+        glyph.style.animationDelay = `${randomBetween(0, 0.52).toFixed(2)}s`;
+        glyph.dataset.variant = Math.random() > 0.72 ? "solid" : "outline";
+        fragment.append(glyph);
+      }
+      glyphs.append(fragment);
     }
 
     let oneShotRewardAnimation = 0;
@@ -3782,18 +4025,21 @@ const shortcutRows = [
       if (oneShotRewardLayer) return oneShotRewardLayer;
       const layer = document.createElement("div");
       const canvas = document.createElement("canvas");
+      const glyphs = document.createElement("div");
       const message = document.createElement("div");
       const headline = document.createElement("strong");
       const subtitle = document.createElement("span");
       layer.className = "leetcode-one-shot-reward";
       canvas.setAttribute("aria-hidden", "true");
+      glyphs.className = "leetcode-one-shot-reward-glyphs";
+      glyphs.setAttribute("aria-hidden", "true");
       message.className = "leetcode-one-shot-reward-message";
       headline.dataset.oneShotRewardHeadline = "true";
       subtitle.dataset.oneShotRewardSubtitle = "true";
       message.append(headline, subtitle);
-      layer.append(canvas, message);
+      layer.append(canvas, glyphs, message);
       (leetcodeShell || document.body).append(layer);
-      oneShotRewardLayer = { canvas, headline, layer, message, subtitle };
+      oneShotRewardLayer = { canvas, glyphs, headline, layer, message, subtitle };
       return oneShotRewardLayer;
     }
 
@@ -3804,21 +4050,28 @@ const shortcutRows = [
           ["#f97316", "#facc15", "#22c55e", "#38bdf8"],
           ["#fb7185", "#fbbf24", "#60a5fa", "#34d399"],
           ["#f59e0b", "#ef4444", "#14b8a6", "#8b5cf6"],
+          ["#fef08a", "#fb7185", "#2dd4bf", "#818cf8"],
+          ["#fdba74", "#bef264", "#67e8f9", "#f0abfc"],
         ],
         legend: [
           ["#facc15", "#fb923c", "#ec4899", "#38bdf8", "#a78bfa"],
           ["#fde047", "#f97316", "#22d3ee", "#84cc16", "#f472b6"],
           ["#fbbf24", "#ef4444", "#06b6d4", "#10b981", "#c084fc"],
+          ["#fef3c7", "#f97316", "#14b8a6", "#6366f1", "#f43f5e"],
+          ["#d9f99d", "#22c55e", "#38bdf8", "#facc15", "#fb7185"],
         ],
         milestone: [
           ["#fde68a", "#f97316", "#38bdf8", "#22c55e"],
           ["#f9a8d4", "#facc15", "#2dd4bf", "#60a5fa"],
           ["#fed7aa", "#fb7185", "#a78bfa", "#34d399"],
+          ["#fde047", "#fb923c", "#67e8f9", "#c084fc"],
         ],
         record: [
           ["#fff7ad", "#ffd166", "#ff5c8a", "#7dd3fc", "#c084fc"],
           ["#fef08a", "#fb923c", "#f43f5e", "#22d3ee", "#a3e635"],
           ["#fde68a", "#f59e0b", "#ec4899", "#60a5fa", "#34d399"],
+          ["#ffffff", "#facc15", "#fb7185", "#38bdf8", "#a78bfa"],
+          ["#fef9c3", "#f97316", "#e879f9", "#2dd4bf", "#84cc16"],
         ],
       };
       return randomItem(palettes[tier] || palettes.combo);
@@ -3841,31 +4094,92 @@ const shortcutRows = [
         : tier === "legend"
           ? randomInteger(5, 8)
           : randomInteger(3, 6);
+      const burstMode = randomItem(
+        tier === "record"
+          ? ["radial", "crown", "side", "sky"]
+          : ["radial", "crown", "side"],
+      );
       const centers = Array.from({ length: burstCount }, () => ({
         x: randomBetween(width * 0.16, width * 0.84),
         y: randomBetween(height * 0.16, height * 0.58),
       }));
       const count = oneShotParticleCount(tier);
       for (let index = 0; index < count; index += 1) {
-        const center = centers[index % centers.length];
-        const angle = randomBetween(0, Math.PI * 2);
+        const center = oneShotParticleCenter(
+          centers,
+          index,
+          burstMode,
+          width,
+          height,
+        );
+        const angle = oneShotParticleAngle(center, burstMode, width);
         const speed = randomBetween(1.6, tier === "record" ? 9.2 : 6.4);
         const drift = randomBetween(-0.012, 0.012);
+        const verticalVelocity = burstMode === "sky"
+          ? Math.abs(Math.sin(angle) * speed)
+          : Math.sin(angle) * speed - randomBetween(0.4, 2.2);
         particles.push({
           alpha: randomBetween(0.78, 1),
           color: randomItem(palette),
           life: randomBetween(720, tier === "record" ? 1850 : 1450),
           rotation: randomBetween(0, Math.PI),
-          shape: randomItem(["circle", "diamond", "spark", "ring"]),
+          shape: randomItem([
+            "circle",
+            "diamond",
+            "spark",
+            "ring",
+            "slash",
+            "square",
+            "star",
+            "ribbon",
+          ]),
           size: randomBetween(1.4, tier === "record" ? 5.8 : 4.4),
           spin: randomBetween(-0.18, 0.18),
           vx: Math.cos(angle) * speed + drift * width,
-          vy: Math.sin(angle) * speed - randomBetween(0.4, 2.2),
+          vy: verticalVelocity,
           x: center.x,
           y: center.y,
         });
       }
       return particles;
+    }
+
+    function oneShotParticleCenter(centers, index, mode, width, height) {
+      if (mode === "sky") {
+        return {
+          x: randomBetween(width * 0.08, width * 0.92),
+          y: randomBetween(-height * 0.08, height * 0.18),
+        };
+      }
+      if (mode === "side") {
+        const leftSide = index % 2 === 0;
+        return {
+          x: leftSide
+            ? randomBetween(-width * 0.03, width * 0.16)
+            : randomBetween(width * 0.84, width * 1.03),
+          y: randomBetween(height * 0.24, height * 0.68),
+        };
+      }
+      if (mode === "crown") {
+        return {
+          x: randomBetween(width * 0.22, width * 0.78),
+          y: randomBetween(height * 0.42, height * 0.68),
+        };
+      }
+      return centers[index % centers.length];
+    }
+
+    function oneShotParticleAngle(center, mode, width) {
+      if (mode === "sky") return randomBetween(Math.PI * 0.18, Math.PI * 0.82);
+      if (mode === "crown") {
+        return randomBetween(Math.PI * 1.08, Math.PI * 1.92);
+      }
+      if (mode === "side") {
+        return center.x < width / 2
+          ? randomBetween(-Math.PI * 0.24, Math.PI * 0.24)
+          : randomBetween(Math.PI * 0.76, Math.PI * 1.24);
+      }
+      return randomBetween(0, Math.PI * 2);
     }
 
     function drawOneShotParticle(context, particle) {
@@ -3885,6 +4199,18 @@ const shortcutRows = [
         context.lineTo(-size, 0);
         context.closePath();
         context.fill();
+      } else if (particle.shape === "star") {
+        context.beginPath();
+        for (let point = 0; point < 10; point += 1) {
+          const radius = point % 2 === 0 ? size * 1.75 : size * 0.62;
+          const angle = -Math.PI / 2 + point * Math.PI / 5;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          if (point === 0) context.moveTo(x, y);
+          else context.lineTo(x, y);
+        }
+        context.closePath();
+        context.fill();
       } else if (particle.shape === "spark") {
         context.beginPath();
         context.moveTo(-size * 1.8, 0);
@@ -3892,6 +4218,15 @@ const shortcutRows = [
         context.moveTo(0, -size * 1.8);
         context.lineTo(0, size * 1.8);
         context.stroke();
+      } else if (particle.shape === "slash") {
+        context.beginPath();
+        context.moveTo(-size * 2.4, size * 0.72);
+        context.lineTo(size * 2.4, -size * 0.72);
+        context.stroke();
+      } else if (particle.shape === "ribbon") {
+        context.fillRect(-size * 1.9, -size * 0.42, size * 3.8, size * 0.84);
+      } else if (particle.shape === "square") {
+        context.fillRect(-size, -size, size * 2, size * 2);
       } else if (particle.shape === "ring") {
         context.beginPath();
         context.arc(0, 0, size, 0, Math.PI * 2);
@@ -3941,10 +4276,21 @@ const shortcutRows = [
           return;
         }
         layer.layer.classList.remove("is-visible", "is-record");
+        layer.glyphs?.replaceChildren();
         context.clearRect(0, 0, width, height);
       }
 
       oneShotRewardAnimation = window.requestAnimationFrame(frame);
+    }
+
+    function pulseOneShotMetric(selector, className, durationMs) {
+      document.querySelectorAll(selector).forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        node.classList.add(className);
+        window.setTimeout(() => {
+          node.classList.remove(className);
+        }, durationMs);
+      });
     }
 
     function celebrateOneShotAccepted(result, problem) {
@@ -3963,23 +4309,33 @@ const shortcutRows = [
       layer.layer.classList.add("is-visible");
       layer.layer.classList.toggle("is-record", copy.tier === "record");
       if (reducedMotion) {
+        window.cancelAnimationFrame(oneShotRewardAnimation);
+        layer.canvas.getContext("2d")?.clearRect(
+          0,
+          0,
+          layer.canvas.width,
+          layer.canvas.height,
+        );
+        layer.glyphs.replaceChildren();
         window.clearTimeout(layer.hideTimer);
         layer.hideTimer = window.setTimeout(() => {
           layer.layer.classList.remove("is-visible", "is-record");
         }, oneShotRewardReducedMotionMs);
         return;
       }
+      pulseOneShotMetric(
+        ".leetcode-session-metric.is-combo",
+        "is-combo-pulse",
+        oneShotComboPulseMs,
+      );
+      renderOneShotRewardGlyphs(layer.glyphs, result, copy.tier, palette);
       animateOneShotReward(layer, copy.tier, palette);
       if (result.isRecord) {
-        document
-          .querySelectorAll(".leetcode-session-metric.is-record")
-          .forEach((node) => {
-            if (!(node instanceof HTMLElement)) return;
-            node.classList.add("is-record-pulse");
-            window.setTimeout(() => {
-              node.classList.remove("is-record-pulse");
-            }, oneShotRecordPulseMs);
-          });
+        pulseOneShotMetric(
+          ".leetcode-session-metric.is-record",
+          "is-record-pulse",
+          oneShotRecordPulseMs,
+        );
       }
     }
 
@@ -10159,7 +10515,36 @@ const shortcutRows = [
       transition: opacity 240ms ease;
     }
 
+    .leetcode-one-shot-reward::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, rgb(0 0 0 / 24%), transparent 46%),
+        conic-gradient(
+          from 210deg at 50% 44%,
+          transparent,
+          color-mix(
+            in srgb,
+            var(--one-shot-accent, #facc15) 18%,
+            transparent
+          ),
+          color-mix(
+            in srgb,
+            var(--one-shot-accent-2, #fb7185) 14%,
+            transparent
+          ),
+          transparent
+        );
+      opacity: 0;
+      transition: opacity 260ms ease;
+    }
+
     .leetcode-one-shot-reward.is-visible {
+      opacity: 1;
+    }
+
+    .leetcode-one-shot-reward.is-visible::before {
       opacity: 1;
     }
 
@@ -10168,6 +10553,56 @@ const shortcutRows = [
       inset: 0;
       width: 100%;
       height: 100%;
+    }
+
+    .leetcode-one-shot-reward-glyphs {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .leetcode-one-shot-reward-glyph {
+      position: absolute;
+      left: var(--reward-glyph-x, 50vw);
+      top: var(--reward-glyph-y, 50vh);
+      border: 1px solid color-mix(
+        in srgb,
+        var(--reward-glyph-color, #facc15) 62%,
+        white 16%
+      );
+      border-radius: 999px;
+      background: rgb(20 20 19 / 68%);
+      box-shadow:
+        0 0.55rem 1.2rem rgb(0 0 0 / 22%),
+        0 0 1.4rem color-mix(
+          in srgb,
+          var(--reward-glyph-color, #facc15) 38%,
+          transparent
+        );
+      color: white;
+      font-size: clamp(0.62rem, 1.5vw, 0.98rem);
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1;
+      padding: 0.32rem 0.52rem;
+      text-shadow: 0 0.08rem 0.45rem rgb(0 0 0 / 32%);
+      transform: translate(-50%, -50%)
+        rotate(var(--reward-glyph-rotate, 0deg))
+        scale(0.72);
+      opacity: 0;
+      animation: leetcode-reward-glyph 1.72s cubic-bezier(0.16, 1, 0.3, 1)
+        forwards;
+      white-space: nowrap;
+    }
+
+    .leetcode-one-shot-reward-glyph[data-variant="solid"] {
+      background: color-mix(
+        in srgb,
+        var(--reward-glyph-color, #facc15) 78%,
+        white 8%
+      );
+      color: rgb(20 20 19);
+      text-shadow: none;
     }
 
     .leetcode-one-shot-reward-message {
@@ -10243,6 +10678,36 @@ const shortcutRows = [
       font-weight: 700;
       letter-spacing: 0;
       line-height: 1.28;
+    }
+
+    @keyframes leetcode-reward-glyph {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%)
+          rotate(var(--reward-glyph-rotate, 0deg))
+          scale(0.72);
+      }
+
+      14% {
+        opacity: 1;
+        transform: translate(-50%, -50%)
+          rotate(var(--reward-glyph-rotate, 0deg))
+          scale(1);
+      }
+
+      72% {
+        opacity: 0.86;
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(
+            calc(-50% + var(--reward-glyph-tx, 0rem)),
+            calc(-50% + var(--reward-glyph-ty, -4rem))
+          )
+          rotate(calc(var(--reward-glyph-rotate, 0deg) + 12deg))
+          scale(1.08);
+      }
     }
 
     .leetcode-shell[data-editor-theme="cursor-dark"] {
@@ -10660,6 +11125,10 @@ const shortcutRows = [
       );
     }
 
+    .leetcode-session-metric.is-combo-pulse {
+      animation: leetcode-combo-pulse 0.72s ease-out 2;
+    }
+
     .leetcode-session-metric.is-record {
       background: linear-gradient(
         135deg,
@@ -10706,6 +11175,39 @@ const shortcutRows = [
       100% {
         box-shadow: 0 0 0 0 rgb(250 204 21 / 0%);
         transform: translateY(0);
+      }
+    }
+
+    @keyframes leetcode-combo-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgb(56 189 248 / 42%);
+        transform: translateY(0) scale(1);
+      }
+
+      48% {
+        box-shadow:
+          0 0 0 0.3rem rgb(56 189 248 / 0%),
+          0 0.38rem 1.1rem rgb(250 204 21 / 18%);
+        transform: translateY(-1px) scale(1.025);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgb(56 189 248 / 0%);
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .leetcode-one-shot-reward,
+      .leetcode-one-shot-reward::before,
+      .leetcode-one-shot-reward-message {
+        transition: none;
+      }
+
+      .leetcode-one-shot-reward-glyph,
+      .leetcode-session-metric.is-combo-pulse,
+      .leetcode-session-metric.is-record-pulse {
+        animation: none;
       }
     }
 
