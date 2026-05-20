@@ -778,6 +778,34 @@ const shortcutRows = [
               aria-label={searchShortcutTitle}
             />
           </div>
+          <span
+            class="leetcode-achievement-tip"
+            data-achievement-hub
+            tabindex="0"
+            aria-label={isZh ? "查看真实 AC 成就墙" : "View real Accepted badges"}
+          >
+            <button
+              type="button"
+              data-achievement-open
+              aria-label={isZh ? "查看真实 AC 成就墙" : "View real Accepted badges"}
+            >
+              <b data-achievement-count>0/--</b>
+              <span>{isZh ? "成就" : "Badges"}</span>
+            </button>
+            <span class="leetcode-achievement-popover" role="tooltip">
+              <strong data-achievement-summary>
+                {isZh ? "真实 AC 成就墙" : "Real Accepted badge wall"}
+              </strong>
+              <span class="leetcode-achievement-rule">
+                {isZh
+                  ? "只统计从本页提交到力扣并返回 Accepted 的题；手动状态不计入。隐藏成就未解锁前显示为 ???。"
+                  : "Only LeetCode Accepted submits from this page count. Manual state does not count. Hidden badges stay ??? until unlocked."}
+              </span>
+              <span class="leetcode-achievement-wall" data-achievement-list>
+                <span>{isZh ? "正在读取本地成就。" : "Reading local badges."}</span>
+              </span>
+            </span>
+          </span>
         </div>
         <nav
           class="leetcode-pagination leetcode-pagination-top"
@@ -1355,6 +1383,7 @@ const shortcutRows = [
     const editorDailyResetKey = "leetcode-book-editor-daily-reset-v1";
     const editorHeightModeKey = "leetcode-book-editor-height-mode-v1";
     const editorStatementPanelKey = "leetcode-book-editor-statement-panel-v1";
+    const manualRunCaseOpenKey = "leetcode-book-manual-case-open-v1";
     const flowModeKey = "leetcode-book-flow-mode-v1";
     const flowSkipSqlKey = "leetcode-book-flow-skip-sql-v1";
     const flowSkipFrontendKey = "leetcode-book-flow-skip-frontend-v1";
@@ -1363,6 +1392,7 @@ const shortcutRows = [
     const timingKey = "leetcode-book-timing-v1";
     const submissionStatsKey = "leetcode-book-submission-stats-v1";
     const oneShotStreakKey = "leetcode-book-one-shot-streak-v1";
+    const achievementKey = "leetcode-book-achievements-v1";
     const viewStateKey = "leetcode-book-view-state-v1";
     const practiceDbName = "leetcode-book-practice-v1";
     const practiceDbVersion = 1;
@@ -1384,12 +1414,16 @@ const shortcutRows = [
     const practiceEventOneShotRunFailed = "one-shot-run-failed";
     const practiceEventOneShotSubmitFailed = "one-shot-submit-failed";
     const practiceEventOneShotAccepted = "one-shot-accepted";
+    const practiceEventAchievementUnlocked = "achievement-unlocked";
     const practiceLegacyProgressEventId = "legacy:progress:v1";
     const practiceLegacyTimingEventId = "legacy:timing:v1";
     const practiceLegacySubmissionStatsEventId =
       "legacy:submission-stats:v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
+    const problemBySlug = new Map(
+      problems.map((problem) => [problem.titleSlug, problem]),
+    );
     const maxPageSize = problems.length || 20;
     const list = document.getElementById("leetcode-problem-list");
     const searchInput = document.getElementById("leetcode-search");
@@ -1441,6 +1475,11 @@ const shortcutRows = [
       document.querySelectorAll("[data-insight-flow-note]"),
     );
     const insightList = document.querySelector("[data-insight-list]");
+    const achievementHub = document.querySelector("[data-achievement-hub]");
+    const achievementOpen = document.querySelector("[data-achievement-open]");
+    const achievementCount = document.querySelector("[data-achievement-count]");
+    const achievementSummary = document.querySelector("[data-achievement-summary]");
+    const achievementList = document.querySelector("[data-achievement-list]");
     const fallbackLanguages = [
       ["cpp", "C++"],
       ["python3", "Python3"],
@@ -1479,6 +1518,9 @@ const shortcutRows = [
     const extensionExtraRunTestcasesCapability = "extra-run-testcases";
     const extensionGroupedRunTestcasesCapability = "grouped-run-testcases";
     const extensionRunOutputDetailsCapability = "run-output-details";
+    const directProblemParamName = "problem";
+    const directProblemSlugParamName = "slug";
+    const directProblemIdParamName = "id";
     const standardOutputPayloadKeys = [
       "std_output_list",
       "std_output",
@@ -1945,8 +1987,31 @@ const shortcutRows = [
       };
     }
 
+    function normalizedAchievementRecord(record, id = "") {
+      return {
+        id: String(record?.id || record?.achievementId || id || ""),
+        progress: Number(record?.progress || 0),
+        sourceSlug: String(record?.sourceSlug || ""),
+        target: Number(record?.target || 0),
+        unlockedAt: String(record?.unlockedAt || record?.createdAt || ""),
+      };
+    }
+
+    function normalizedAchievementSnapshot(value) {
+      const source = value && typeof value === "object" ? value : {};
+      return Object.fromEntries(
+        Object.entries(source)
+          .filter(([id]) => Boolean(id))
+          .map(([id, record]) => [
+            id,
+            normalizedAchievementRecord(record, id),
+          ]),
+      );
+    }
+
     function emptyPracticeProjection() {
       return {
+        achievements: normalizedAchievementSnapshot({}),
         oneShot: normalizedOneShotSnapshot({}),
         progress: {},
         submissionStats: { problems: {} },
@@ -2270,9 +2335,22 @@ const shortcutRows = [
           }
           if (event.type === practiceEventOneShotAccepted) {
             applyOneShotAcceptedEvent(projection.oneShot, event);
+            return;
+          }
+          if (event.type === practiceEventAchievementUnlocked) {
+            const achievementId = event.payload?.achievementId || "";
+            if (achievementId) {
+              projection.achievements[achievementId] =
+                normalizedAchievementRecord({
+                  ...event.payload,
+                  createdAt: event.createdAt,
+                  id: achievementId,
+                });
+            }
           }
         });
       return {
+        achievements: normalizedAchievementSnapshot(projection.achievements),
         oneShot: normalizedOneShotSnapshot(projection.oneShot),
         progress: normalizedProgressSnapshot(projection.progress),
         submissionStats: normalizedSubmissionStatsSnapshot(
@@ -2468,6 +2546,7 @@ const shortcutRows = [
       localStorage.setItem(timingKey, JSON.stringify(timing));
       localStorage.setItem(submissionStatsKey, JSON.stringify(submissionStats));
       localStorage.setItem(oneShotStreakKey, JSON.stringify(oneShotStreak));
+      localStorage.setItem(achievementKey, JSON.stringify(achievements));
     }
 
     function syncVisibleProgressButtons(slug) {
@@ -2499,6 +2578,7 @@ const shortcutRows = [
       syncTimingUi();
       syncSubmissionInsightUi();
       syncOneShotUi();
+      syncAchievementState({ quiet: true });
     }
 
     function applyPracticeProjection(projection, options = {}) {
@@ -2508,6 +2588,7 @@ const shortcutRows = [
         projection.submissionStats,
       );
       oneShotStreak = normalizedOneShotSnapshot(projection.oneShot);
+      achievements = normalizedAchievementSnapshot(projection.achievements);
       writePracticeProjectionCache();
       if (options.updateUi) syncVisiblePracticeProjectionUi();
     }
@@ -2582,6 +2663,8 @@ const shortcutRows = [
     let editorAutoGrow = localStorage.getItem(editorHeightModeKey) !== "fixed";
     let editorStatementPanelVisible =
       localStorage.getItem(editorStatementPanelKey) !== "off";
+    let manualRunCaseOpenSlug =
+      sessionStorage.getItem(manualRunCaseOpenKey) || "";
     let suppressNextEditorFocusRevealSlug = "";
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
     let flowSkipSql = savedFlowSkipEnabled(flowSkipSqlKey);
@@ -2592,6 +2675,9 @@ const shortcutRows = [
     );
     let oneShotStreak = normalizedOneShotSnapshot(
       readJson(oneShotStreakKey, {}),
+    );
+    let achievements = normalizedAchievementSnapshot(
+      readJson(achievementKey, {}),
     );
     const sessionTiming = {
       acceptedDurations: [],
@@ -2914,6 +3000,21 @@ const shortcutRows = [
       return Boolean(slug && problems.some((item) => item.titleSlug === slug));
     }
 
+    function normalizedDirectProblemValue(value) {
+      return String(value || "").trim();
+    }
+
+    function directProblemByValue(value) {
+      const normalized = normalizedDirectProblemValue(value);
+      if (!normalized) return null;
+      const slug = normalized.toLowerCase();
+      return problems.find((problem) => (
+        problem.titleSlug === normalized ||
+        problem.titleSlug === slug ||
+        String(problem.frontendId) === normalized
+      )) || null;
+    }
+
     function defaultFilterState() {
       return {
         scope: "all",
@@ -3172,6 +3273,40 @@ const shortcutRows = [
           Number.MAX_SAFE_INTEGER,
         );
         window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
+      });
+    }
+
+    function directProblemLinkTarget() {
+      const params = new URLSearchParams(window.location.search);
+      return (
+        directProblemByValue(params.get(directProblemParamName)) ||
+        directProblemByValue(params.get(directProblemSlugParamName)) ||
+        directProblemByValue(params.get(directProblemIdParamName))
+      );
+    }
+
+    function applyDirectProblemLinkTarget() {
+      const target = directProblemLinkTarget();
+      if (!target) return "";
+      if (searchInput instanceof HTMLInputElement) searchInput.value = "";
+      state.query = "";
+      state.filters = defaultFilterState();
+      syncFilterButtons();
+
+      state.pageSize = pageSize();
+      const items = orderedProblems();
+      const index = items.findIndex((item) => item.titleSlug === target.titleSlug);
+      if (index === -1) return "";
+      state.expandedSlug = target.titleSlug;
+      state.totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      state.page = Math.floor(index / state.pageSize) + 1;
+      return target.titleSlug;
+    }
+
+    function focusDirectProblemLinkTarget(slug) {
+      window.requestAnimationFrame(() => {
+        focusEditorForSlug(slug, { frameContext: true });
+        scheduleViewStateWrite();
       });
     }
 
@@ -4697,6 +4832,11 @@ const shortcutRows = [
       return extraRunCaseList(problem.titleSlug).join("\n");
     }
 
+    function extraRunCaseCountText(slug) {
+      const count = extraRunCaseList(slug).length;
+      return isChinesePage ? `补充 ${count}` : `${count} extra`;
+    }
+
     function normalizedExtraRunCase(testcase) {
       return String(testcase || "")
         .split(/\r?\n/)
@@ -4719,6 +4859,28 @@ const shortcutRows = [
       return true;
     }
 
+    function removeExtraRunCase(slug, index) {
+      const cases = extraRunCaseList(slug);
+      if (!Number.isInteger(index) || index < 0 || index >= cases.length) {
+        return false;
+      }
+      cases.splice(index, 1);
+      if (cases.length) {
+        extraRunCases[slug] = cases;
+      } else {
+        delete extraRunCases[slug];
+      }
+      writeExtraRunCases();
+      return true;
+    }
+
+    function clearExtraRunCases(slug) {
+      if (!extraRunCaseList(slug).length) return false;
+      delete extraRunCases[slug];
+      writeExtraRunCases();
+      return true;
+    }
+
     function rollEditorDraftsForToday() {
       rollOneShotStreakForToday({ sync: false });
       const todayKey = localDateKey();
@@ -4737,6 +4899,7 @@ const shortcutRows = [
       const extraCasesReset = rollExtraRunCasesForToday();
       if (!rollEditorDraftsForToday()) {
         if (extraCasesReset || oneShotReset) {
+          if (extraCasesReset) syncManualRunCaseUi();
           syncOneShotUi();
           scheduleViewStateWrite();
         }
@@ -5433,6 +5596,1021 @@ const shortcutRows = [
 
     function totalErrorCount(record) {
       return Number(record?.errorCount || 0) + Number(record?.runErrorCount || 0);
+    }
+
+    function achievementLabel(zh, en) {
+      return { en, zh };
+    }
+
+    function achievementDefinition(
+      id,
+      group,
+      tier,
+      target,
+      title,
+      description,
+      progress,
+      options = {},
+    ) {
+      return {
+        description,
+        group,
+        hidden: Boolean(options.hidden),
+        id,
+        locked:
+          options.locked ||
+          achievementLabel(
+            "继续用本页提交到力扣并拿到真实 AC。",
+            "Keep submitting from this page and getting real Accepted results.",
+          ),
+        progress,
+        target,
+        tier,
+        title,
+      };
+    }
+
+    const achievementGroupLabels = {
+      daily: achievementLabel("日记录", "Day"),
+      difficulty: achievementLabel("难度", "Level"),
+      hidden: achievementLabel("隐藏", "Hidden"),
+      hot100: achievementLabel("Hot100", "Hot100"),
+      main: achievementLabel("主线", "Main"),
+      oneShot: achievementLabel("一遍过", "One-shot"),
+      route: achievementLabel("题单", "List"),
+      streak: achievementLabel("连续", "Streak"),
+      tag: achievementLabel("专项", "Topic"),
+    };
+
+    const achievementDefinitions = [
+      achievementDefinition(
+        "accepted-1",
+        "main",
+        "bronze",
+        1,
+        achievementLabel("第一枚 AC", "First AC"),
+        achievementLabel(
+          "从本页提交到力扣，并拿到第一道 Accepted。",
+          "Submit from this page and get the first Accepted result.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "accepted-5",
+        "main",
+        "bronze",
+        5,
+        achievementLabel("五题开局", "Five clean starts"),
+        achievementLabel(
+          "累计 5 道真实 AC 题。",
+          "Reach 5 unique real Accepted problems.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "accepted-25",
+        "main",
+        "silver",
+        25,
+        achievementLabel("题感成型", "Practice shape"),
+        achievementLabel(
+          "累计 25 道真实 AC 题。",
+          "Reach 25 unique real Accepted problems.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "accepted-50",
+        "main",
+        "silver",
+        50,
+        achievementLabel("半百推进", "Fifty pushed"),
+        achievementLabel(
+          "累计 50 道真实 AC 题。",
+          "Reach 50 unique real Accepted problems.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "accepted-100",
+        "main",
+        "gold",
+        100,
+        achievementLabel("百题墙", "Century wall"),
+        achievementLabel(
+          "累计 100 道真实 AC 题。",
+          "Reach 100 unique real Accepted problems.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "accepted-200",
+        "main",
+        "mythic",
+        200,
+        achievementLabel("刷题主线推进器", "Mainline engine"),
+        achievementLabel(
+          "累计 200 道真实 AC 题。",
+          "Reach 200 unique real Accepted problems.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "hot100-1",
+        "hot100",
+        "bronze",
+        1,
+        achievementLabel("Hot100 点火", "Hot100 ignition"),
+        achievementLabel(
+          "真实 AC 1 道 Hot100 题。",
+          "Get 1 real Accepted Hot100 problem.",
+        ),
+        (context) => context.hot100AcceptedCount,
+      ),
+      achievementDefinition(
+        "hot100-10",
+        "hot100",
+        "silver",
+        10,
+        achievementLabel("Hot100 十连路标", "Hot100 ten mark"),
+        achievementLabel(
+          "真实 AC 10 道 Hot100 题。",
+          "Get 10 real Accepted Hot100 problems.",
+        ),
+        (context) => context.hot100AcceptedCount,
+      ),
+      achievementDefinition(
+        "hot100-25",
+        "hot100",
+        "silver",
+        25,
+        achievementLabel("Hot100 骨架", "Hot100 frame"),
+        achievementLabel(
+          "真实 AC 25 道 Hot100 题。",
+          "Get 25 real Accepted Hot100 problems.",
+        ),
+        (context) => context.hot100AcceptedCount,
+      ),
+      achievementDefinition(
+        "hot100-50",
+        "hot100",
+        "gold",
+        50,
+        achievementLabel("Hot100 半壁江山", "Hot100 half wall"),
+        achievementLabel(
+          "真实 AC 50 道 Hot100 题。",
+          "Get 50 real Accepted Hot100 problems.",
+        ),
+        (context) => context.hot100AcceptedCount,
+      ),
+      achievementDefinition(
+        "hot100-100",
+        "hot100",
+        "mythic",
+        100,
+        achievementLabel("Hot100 全图鉴", "Hot100 complete"),
+        achievementLabel(
+          "真实 AC 全部 100 道 Hot100 题。",
+          "Get real Accepted results for all 100 Hot100 problems.",
+        ),
+        (context) => context.hot100AcceptedCount,
+      ),
+      achievementDefinition(
+        "bytedance-1",
+        "route",
+        "bronze",
+        1,
+        achievementLabel("字节题库入场", "ByteDance entry"),
+        achievementLabel(
+          "真实 AC 1 道字节题库题。",
+          "Get 1 real Accepted ByteDance problem.",
+        ),
+        (context) => context.byteDanceAcceptedCount,
+      ),
+      achievementDefinition(
+        "bytedance-10",
+        "route",
+        "silver",
+        10,
+        achievementLabel("字节十题热身", "ByteDance ten"),
+        achievementLabel(
+          "真实 AC 10 道字节题库题。",
+          "Get 10 real Accepted ByteDance problems.",
+        ),
+        (context) => context.byteDanceAcceptedCount,
+      ),
+      achievementDefinition(
+        "bytedance-50",
+        "route",
+        "gold",
+        50,
+        achievementLabel("字节高频推进", "ByteDance high freq"),
+        achievementLabel(
+          "真实 AC 50 道字节题库题。",
+          "Get 50 real Accepted ByteDance problems.",
+        ),
+        (context) => context.byteDanceAcceptedCount,
+      ),
+      achievementDefinition(
+        "bytedance-100",
+        "route",
+        "mythic",
+        100,
+        achievementLabel("字节题库压舱石", "ByteDance anchor"),
+        achievementLabel(
+          "真实 AC 100 道字节题库题。",
+          "Get 100 real Accepted ByteDance problems.",
+        ),
+        (context) => context.byteDanceAcceptedCount,
+      ),
+      achievementDefinition(
+        "day-3",
+        "daily",
+        "bronze",
+        3,
+        achievementLabel("三题日", "Three-problem day"),
+        achievementLabel(
+          "单个北京时间自然日真实 AC 3 道不同题。",
+          "Get 3 unique real Accepted problems in one Beijing day.",
+        ),
+        (context) => context.bestDayUnique,
+      ),
+      achievementDefinition(
+        "day-8",
+        "daily",
+        "silver",
+        8,
+        achievementLabel("八题节奏", "Eight-problem rhythm"),
+        achievementLabel(
+          "单个北京时间自然日真实 AC 8 道不同题。",
+          "Get 8 unique real Accepted problems in one Beijing day.",
+        ),
+        (context) => context.bestDayUnique,
+      ),
+      achievementDefinition(
+        "day-16",
+        "daily",
+        "gold",
+        16,
+        achievementLabel("十六题工作台", "Sixteen-problem desk"),
+        achievementLabel(
+          "单个北京时间自然日真实 AC 16 道不同题。",
+          "Get 16 unique real Accepted problems in one Beijing day.",
+        ),
+        (context) => context.bestDayUnique,
+      ),
+      achievementDefinition(
+        "day-32",
+        "daily",
+        "mythic",
+        32,
+        achievementLabel("三十二题爆发", "Thirty-two burst"),
+        achievementLabel(
+          "单个北京时间自然日真实 AC 32 道不同题。",
+          "Get 32 unique real Accepted problems in one Beijing day.",
+        ),
+        (context) => context.bestDayUnique,
+      ),
+      achievementDefinition(
+        "streak-3",
+        "streak",
+        "bronze",
+        3,
+        achievementLabel("三天不断线", "Three-day line"),
+        achievementLabel(
+          "连续 3 个北京时间自然日都有真实 AC。",
+          "Get at least one real Accepted result for 3 Beijing days in a row.",
+        ),
+        (context) => context.dayStreak,
+      ),
+      achievementDefinition(
+        "streak-7",
+        "streak",
+        "silver",
+        7,
+        achievementLabel("七日刷题链", "Seven-day chain"),
+        achievementLabel(
+          "连续 7 个北京时间自然日都有真实 AC。",
+          "Get at least one real Accepted result for 7 Beijing days in a row.",
+        ),
+        (context) => context.dayStreak,
+      ),
+      achievementDefinition(
+        "streak-14",
+        "streak",
+        "gold",
+        14,
+        achievementLabel("两周不断档", "Two-week line"),
+        achievementLabel(
+          "连续 14 个北京时间自然日都有真实 AC。",
+          "Get at least one real Accepted result for 14 Beijing days in a row.",
+        ),
+        (context) => context.dayStreak,
+      ),
+      achievementDefinition(
+        "streak-30",
+        "streak",
+        "mythic",
+        30,
+        achievementLabel("三十日引擎", "Thirty-day engine"),
+        achievementLabel(
+          "连续 30 个北京时间自然日都有真实 AC。",
+          "Get at least one real Accepted result for 30 Beijing days in a row.",
+        ),
+        (context) => context.dayStreak,
+      ),
+      achievementDefinition(
+        "one-shot-3",
+        "oneShot",
+        "bronze",
+        3,
+        achievementLabel("一遍过三连", "One-shot triple"),
+        achievementLabel(
+          "北京时间当日或历史最高一遍过 AC 连击达到 3。",
+          "Reach a best one-shot Accepted combo of 3.",
+        ),
+        (context) => context.oneShotBest,
+      ),
+      achievementDefinition(
+        "one-shot-5",
+        "oneShot",
+        "silver",
+        5,
+        achievementLabel("一遍过五连", "One-shot five"),
+        achievementLabel(
+          "北京时间当日或历史最高一遍过 AC 连击达到 5。",
+          "Reach a best one-shot Accepted combo of 5.",
+        ),
+        (context) => context.oneShotBest,
+      ),
+      achievementDefinition(
+        "one-shot-10",
+        "oneShot",
+        "gold",
+        10,
+        achievementLabel("一遍过十连", "One-shot ten"),
+        achievementLabel(
+          "北京时间当日或历史最高一遍过 AC 连击达到 10。",
+          "Reach a best one-shot Accepted combo of 10.",
+        ),
+        (context) => context.oneShotBest,
+      ),
+      achievementDefinition(
+        "one-shot-20",
+        "oneShot",
+        "mythic",
+        20,
+        achievementLabel("一遍过高能区", "One-shot high energy"),
+        achievementLabel(
+          "北京时间当日或历史最高一遍过 AC 连击达到 20。",
+          "Reach a best one-shot Accepted combo of 20.",
+        ),
+        (context) => context.oneShotBest,
+      ),
+      achievementDefinition(
+        "one-shot-50",
+        "oneShot",
+        "mythic",
+        50,
+        achievementLabel("一遍过纪录墙", "One-shot record wall"),
+        achievementLabel(
+          "北京时间当日或历史最高一遍过 AC 连击达到 50。",
+          "Reach a best one-shot Accepted combo of 50.",
+        ),
+        (context) => context.oneShotBest,
+      ),
+      achievementDefinition(
+        "easy-10",
+        "difficulty",
+        "bronze",
+        10,
+        achievementLabel("简单题铺路", "Easy road"),
+        achievementLabel(
+          "真实 AC 10 道简单题。",
+          "Get 10 real Accepted Easy problems.",
+        ),
+        (context) => context.easyAcceptedCount,
+      ),
+      achievementDefinition(
+        "medium-25",
+        "difficulty",
+        "silver",
+        25,
+        achievementLabel("中等题主场", "Medium ground"),
+        achievementLabel(
+          "真实 AC 25 道中等题。",
+          "Get 25 real Accepted Medium problems.",
+        ),
+        (context) => context.mediumAcceptedCount,
+      ),
+      achievementDefinition(
+        "medium-50",
+        "difficulty",
+        "gold",
+        50,
+        achievementLabel("中等题厚度", "Medium depth"),
+        achievementLabel(
+          "真实 AC 50 道中等题。",
+          "Get 50 real Accepted Medium problems.",
+        ),
+        (context) => context.mediumAcceptedCount,
+      ),
+      achievementDefinition(
+        "hard-5",
+        "difficulty",
+        "gold",
+        5,
+        achievementLabel("困难题破冰", "Hard breaker"),
+        achievementLabel(
+          "真实 AC 5 道困难题。",
+          "Get 5 real Accepted Hard problems.",
+        ),
+        (context) => context.hardAcceptedCount,
+      ),
+      achievementDefinition(
+        "hard-20",
+        "difficulty",
+        "mythic",
+        20,
+        achievementLabel("困难题墙面", "Hard wall"),
+        achievementLabel(
+          "真实 AC 20 道困难题。",
+          "Get 20 real Accepted Hard problems.",
+        ),
+        (context) => context.hardAcceptedCount,
+      ),
+      achievementDefinition(
+        "tag-dp-5",
+        "tag",
+        "bronze",
+        5,
+        achievementLabel("DP 起手式", "DP starter"),
+        achievementLabel(
+          "真实 AC 5 道动态规划题。",
+          "Get 5 real Accepted dynamic programming problems.",
+        ),
+        (context) => context.tagAcceptedCounts.get("dynamic-programming") || 0,
+      ),
+      achievementDefinition(
+        "tag-dp-15",
+        "tag",
+        "gold",
+        15,
+        achievementLabel("DP 状态表", "DP table"),
+        achievementLabel(
+          "真实 AC 15 道动态规划题。",
+          "Get 15 real Accepted dynamic programming problems.",
+        ),
+        (context) => context.tagAcceptedCounts.get("dynamic-programming") || 0,
+      ),
+      achievementDefinition(
+        "tag-graph-5",
+        "tag",
+        "bronze",
+        5,
+        achievementLabel("图论开图", "Graph opened"),
+        achievementLabel(
+          "真实 AC 5 道图相关题。",
+          "Get 5 real Accepted graph-related problems.",
+        ),
+        (context) => Math.max(
+          context.tagAcceptedCounts.get("graph") || 0,
+          context.tagAcceptedCounts.get("depth-first-search") || 0,
+          context.tagAcceptedCounts.get("breadth-first-search") || 0,
+        ),
+      ),
+      achievementDefinition(
+        "tag-graph-15",
+        "tag",
+        "gold",
+        15,
+        achievementLabel("图论路线", "Graph route"),
+        achievementLabel(
+          "真实 AC 15 道图相关题。",
+          "Get 15 real Accepted graph-related problems.",
+        ),
+        (context) => Math.max(
+          context.tagAcceptedCounts.get("graph") || 0,
+          context.tagAcceptedCounts.get("depth-first-search") || 0,
+          context.tagAcceptedCounts.get("breadth-first-search") || 0,
+        ),
+      ),
+      achievementDefinition(
+        "tag-tree-5",
+        "tag",
+        "bronze",
+        5,
+        achievementLabel("树上热身", "Tree warmup"),
+        achievementLabel(
+          "真实 AC 5 道树相关题。",
+          "Get 5 real Accepted tree-related problems.",
+        ),
+        (context) => Math.max(
+          context.tagAcceptedCounts.get("tree") || 0,
+          context.tagAcceptedCounts.get("binary-tree") || 0,
+        ),
+      ),
+      achievementDefinition(
+        "tag-tree-15",
+        "tag",
+        "gold",
+        15,
+        achievementLabel("树形视野", "Tree vision"),
+        achievementLabel(
+          "真实 AC 15 道树相关题。",
+          "Get 15 real Accepted tree-related problems.",
+        ),
+        (context) => Math.max(
+          context.tagAcceptedCounts.get("tree") || 0,
+          context.tagAcceptedCounts.get("binary-tree") || 0,
+        ),
+      ),
+      achievementDefinition(
+        "tag-binary-search-5",
+        "tag",
+        "bronze",
+        5,
+        achievementLabel("二分边界", "Binary edge"),
+        achievementLabel(
+          "真实 AC 5 道二分题。",
+          "Get 5 real Accepted binary search problems.",
+        ),
+        (context) => context.tagAcceptedCounts.get("binary-search") || 0,
+      ),
+      achievementDefinition(
+        "tag-binary-search-15",
+        "tag",
+        "gold",
+        15,
+        achievementLabel("二分刻度", "Binary scale"),
+        achievementLabel(
+          "真实 AC 15 道二分题。",
+          "Get 15 real Accepted binary search problems.",
+        ),
+        (context) => context.tagAcceptedCounts.get("binary-search") || 0,
+      ),
+      achievementDefinition(
+        "tag-sliding-window-5",
+        "tag",
+        "bronze",
+        5,
+        achievementLabel("窗口滑动", "Window slides"),
+        achievementLabel(
+          "真实 AC 5 道滑动窗口题。",
+          "Get 5 real Accepted sliding window problems.",
+        ),
+        (context) => context.tagAcceptedCounts.get("sliding-window") || 0,
+      ),
+      achievementDefinition(
+        "tag-two-pointers-10",
+        "tag",
+        "silver",
+        10,
+        achievementLabel("双指针同步", "Two pointers synced"),
+        achievementLabel(
+          "真实 AC 10 道双指针题。",
+          "Get 10 real Accepted two-pointers problems.",
+        ),
+        (context) => context.tagAcceptedCounts.get("two-pointers") || 0,
+      ),
+      achievementDefinition(
+        "secret-first-one-shot",
+        "hidden",
+        "secret",
+        1,
+        achievementLabel("隐藏：一发入魂", "Secret: first-shot lock"),
+        achievementLabel(
+          "从默认模板开始，第一次完整提交就真实 AC。",
+          "Start from the default template and land a real Accepted first submit.",
+        ),
+        (context) => context.oneShotBest,
+        {
+          hidden: true,
+          locked: achievementLabel(
+            "??? 从默认模板开始，打一场干净的提交。",
+            "??? Start from the default template and finish clean.",
+          ),
+        },
+      ),
+      achievementDefinition(
+        "secret-first-hard",
+        "hidden",
+        "secret",
+        1,
+        achievementLabel("隐藏：困难题开门", "Secret: hard door"),
+        achievementLabel(
+          "真实 AC 第一道困难题。",
+          "Get your first real Accepted Hard problem.",
+        ),
+        (context) => context.hardAcceptedCount,
+        {
+          hidden: true,
+          locked: achievementLabel(
+            "??? 有一扇门需要困难题打开。",
+            "??? One door opens only with a Hard problem.",
+          ),
+        },
+      ),
+      achievementDefinition(
+        "secret-all-levels",
+        "hidden",
+        "secret",
+        3,
+        achievementLabel("隐藏：三色难度盘", "Secret: all levels"),
+        achievementLabel(
+          "简单、中等、困难题都至少真实 AC 1 道。",
+          "Get at least one real Accepted problem at every difficulty.",
+        ),
+        (context) =>
+          Number(context.easyAcceptedCount > 0) +
+          Number(context.mediumAcceptedCount > 0) +
+          Number(context.hardAcceptedCount > 0),
+        {
+          hidden: true,
+          locked: achievementLabel(
+            "??? 三种难度都要点亮。",
+            "??? Light all three difficulty levels.",
+          ),
+        },
+      ),
+      achievementDefinition(
+        "secret-polyglot",
+        "hidden",
+        "secret",
+        3,
+        achievementLabel("隐藏：多语言徽章", "Secret: polyglot badge"),
+        achievementLabel(
+          "使用 3 种不同语言提交并真实 AC。",
+          "Get real Accepted results in 3 different languages.",
+        ),
+        (context) => context.acceptedLanguageCount,
+        {
+          hidden: true,
+          locked: achievementLabel(
+            "??? 换几种语言拿 AC。",
+            "??? Earn AC in more than one language.",
+          ),
+        },
+      ),
+      achievementDefinition(
+        "secret-recovery",
+        "hidden",
+        "secret",
+        1,
+        achievementLabel("隐藏：返工后也绿", "Secret: repaired green"),
+        achievementLabel(
+          "某题经历提交或样例失败后，最终真实 AC。",
+          "After a failed submit or sample run on a problem, still land Accepted.",
+        ),
+        (context) => context.acceptedAfterFailureCount,
+        {
+          hidden: true,
+          locked: achievementLabel(
+            "??? 失败记录不是终点。",
+            "??? A failed run is not the end.",
+          ),
+        },
+      ),
+      achievementDefinition(
+        "secret-fast-ac",
+        "hidden",
+        "secret",
+        1,
+        achievementLabel("隐藏：十分钟内收工", "Secret: under ten"),
+        achievementLabel(
+          "某次真实 AC 的本题计时不超过 10 分钟。",
+          "Land a real Accepted result with problem timing under 10 minutes.",
+        ),
+        (context) => Number(
+          context.fastestAcceptedMs > 0 && context.fastestAcceptedMs <= 600000,
+        ),
+        {
+          hidden: true,
+          locked: achievementLabel(
+            "??? 有一题会被很快收下。",
+            "??? One problem can be finished fast.",
+          ),
+        },
+      ),
+      achievementDefinition(
+        "secret-hot-byte",
+        "hidden",
+        "secret",
+        1,
+        achievementLabel("隐藏：热门交叉点", "Secret: hot overlap"),
+        achievementLabel(
+          "真实 AC 1 道同时属于 Hot100 和字节题库的题。",
+          "Get a real Accepted problem that belongs to both Hot100 and ByteDance.",
+        ),
+        (context) => context.hotByteDanceAcceptedCount,
+        {
+          hidden: true,
+          locked: achievementLabel(
+            "??? 找到两个题单的交叉点。",
+            "??? Find the overlap between two lists.",
+          ),
+        },
+      ),
+    ];
+
+    function localizedAchievementText(value) {
+      if (!value || typeof value !== "object") return String(value || "");
+      return isChinesePage ? value.zh : value.en;
+    }
+
+    function achievementGroupLabel(group) {
+      return localizedAchievementText(
+        achievementGroupLabels[group] || achievementGroupLabels.main,
+      );
+    }
+
+    function achievementContext() {
+      const acceptedProblemSlugs = new Set();
+      const acceptedEvents = [];
+      const acceptedLanguageSlugs = new Set();
+      const tagAcceptedCounts = new Map();
+      let acceptedSubmitCount = 0;
+      let acceptedAfterFailureCount = 0;
+      let byteDanceAcceptedCount = 0;
+      let easyAcceptedCount = 0;
+      let fastestAcceptedMs = 0;
+      let hardAcceptedCount = 0;
+      let hot100AcceptedCount = 0;
+      let hotByteDanceAcceptedCount = 0;
+      let mediumAcceptedCount = 0;
+
+      Object.entries(submissionStats.problems || {}).forEach(([slug, record]) => {
+        const acceptedCount = Number(record?.acceptedCount || 0);
+        if (acceptedCount <= 0) return;
+        acceptedProblemSlugs.add(slug);
+        acceptedSubmitCount += acceptedCount;
+        if (totalErrorCount(record) > 0) acceptedAfterFailureCount += 1;
+        const bestMs = Number(record?.bestMs || 0);
+        if (bestMs > 0 && (!fastestAcceptedMs || bestMs < fastestAcceptedMs)) {
+          fastestAcceptedMs = bestMs;
+        }
+        acceptedSubmissionEvents(record).forEach((event) => {
+          const langSlug = event?.langSlug || "";
+          if (langSlug) acceptedLanguageSlugs.add(langSlug);
+          acceptedEvents.push({ ...event, slug });
+        });
+      });
+
+      acceptedProblemSlugs.forEach((slug) => {
+        const problem = problemBySlug.get(slug);
+        if (!problem) return;
+        if (problem.hot100) hot100AcceptedCount += 1;
+        if (problem.bytedance) byteDanceAcceptedCount += 1;
+        if (problem.hot100 && problem.bytedance) hotByteDanceAcceptedCount += 1;
+        const difficulty = difficultyIndex(problem);
+        if (difficulty === 0) easyAcceptedCount += 1;
+        if (difficulty === 1) mediumAcceptedCount += 1;
+        if (difficulty === 2) hardAcceptedCount += 1;
+        (problem.tags || []).forEach((tag) => {
+          const slug = tag?.slug || "";
+          if (!slug) return;
+          tagAcceptedCounts.set(slug, (tagAcceptedCounts.get(slug) || 0) + 1);
+        });
+      });
+
+      const overview = timingOverview();
+      return {
+        acceptedAfterFailureCount,
+        acceptedEvents,
+        acceptedLanguageCount: acceptedLanguageSlugs.size,
+        acceptedProblemCount: acceptedProblemSlugs.size,
+        acceptedProblemSlugs,
+        acceptedSubmitCount,
+        bestDayUnique: overview.bestDay.unique,
+        byteDanceAcceptedCount,
+        dayStreak: overview.streak.count,
+        easyAcceptedCount,
+        fastestAcceptedMs,
+        hardAcceptedCount,
+        hot100AcceptedCount,
+        hotByteDanceAcceptedCount,
+        mediumAcceptedCount,
+        oneShotBest: Number(oneShotStreak.best || 0),
+        oneShotCurrent: Number(oneShotStreak.current || 0),
+        recentUnique: overview.recent.unique,
+        tagAcceptedCounts,
+        todayUnique: overview.todayUnique,
+      };
+    }
+
+    function achievementProgress(definition, context) {
+      try {
+        return Math.max(0, Math.floor(Number(definition.progress(context) || 0)));
+      } catch {
+        return 0;
+      }
+    }
+
+    function achievementStates(context = achievementContext()) {
+      return achievementDefinitions
+        .map((definition) => {
+          const progress = achievementProgress(definition, context);
+          const unlocked = achievements[definition.id] || null;
+          return {
+            complete: progress >= definition.target,
+            definition,
+            progress,
+            ratio: definition.target
+              ? Math.min(1, progress / definition.target)
+              : 0,
+            unlocked,
+          };
+        })
+        .sort((left, right) => {
+          const leftUnlocked = Boolean(left.unlocked);
+          const rightUnlocked = Boolean(right.unlocked);
+          if (leftUnlocked !== rightUnlocked) return Number(rightUnlocked) - Number(leftUnlocked);
+          if (leftUnlocked && rightUnlocked) {
+            return String(right.unlocked.unlockedAt).localeCompare(
+              String(left.unlocked.unlockedAt),
+            );
+          }
+          if (left.definition.hidden !== right.definition.hidden) {
+            return Number(left.definition.hidden) - Number(right.definition.hidden);
+          }
+          return right.ratio - left.ratio ||
+            left.definition.target - right.definition.target;
+        });
+    }
+
+    function writeAchievements() {
+      achievements = normalizedAchievementSnapshot(achievements);
+      localStorage.setItem(achievementKey, JSON.stringify(achievements));
+    }
+
+    function unlockAchievement(definition, state, sourceSlug = "") {
+      const nowIso = new Date().toISOString();
+      achievements[definition.id] = normalizedAchievementRecord({
+        id: definition.id,
+        progress: state.progress,
+        sourceSlug,
+        target: definition.target,
+        unlockedAt: nowIso,
+      });
+      writeAchievements();
+      appendPracticeEvent(
+        practiceEventAchievementUnlocked,
+        {
+          achievementId: definition.id,
+          progress: state.progress,
+          sourceSlug,
+          target: definition.target,
+          unlockedAt: nowIso,
+        },
+        nowIso,
+      );
+      return { ...state, unlocked: achievements[definition.id] };
+    }
+
+    function syncAchievementState(options = {}) {
+      const context = achievementContext();
+      const newlyUnlocked = [];
+      achievementStates(context).forEach((state) => {
+        if (!state.complete || achievements[state.definition.id]) return;
+        newlyUnlocked.push(
+          unlockAchievement(state.definition, state, options.sourceSlug || ""),
+        );
+      });
+      syncAchievementUi(context);
+      if (newlyUnlocked.length && !options.quiet) {
+        showAchievementUnlockToast(newlyUnlocked);
+      }
+      return newlyUnlocked;
+    }
+
+    function achievementProgressText(state) {
+      const progress = Math.min(state.progress, state.definition.target);
+      return `${progress}/${state.definition.target}`;
+    }
+
+    function renderAchievementCard(state) {
+      const definition = state.definition;
+      const unlocked = Boolean(state.unlocked);
+      const hiddenLocked = definition.hidden && !unlocked;
+      const title = hiddenLocked
+        ? "???"
+        : localizedAchievementText(definition.title);
+      const description = hiddenLocked
+        ? localizedAchievementText(definition.locked)
+        : localizedAchievementText(definition.description);
+      const groupLabel = hiddenLocked
+        ? achievementGroupLabel("hidden")
+        : achievementGroupLabel(definition.group);
+      const status = unlocked
+        ? (isChinesePage ? "已解锁" : "Unlocked")
+        : (hiddenLocked ? "???" : achievementProgressText(state));
+      const percent = hiddenLocked ? 0 : Math.round(state.ratio * 100);
+      const classes = [
+        "leetcode-achievement-card",
+        unlocked ? "is-unlocked" : "is-locked",
+        hiddenLocked ? "is-hidden" : "",
+      ].filter(Boolean).join(" ");
+      return `
+        <span
+          class="${classes}"
+          data-tier="${escapeHtml(definition.tier)}"
+          style="--achievement-progress:${percent}%"
+        >
+          <small>${escapeHtml(groupLabel)} · ${escapeHtml(status)}</small>
+          <b>${escapeHtml(title)}</b>
+          <em>${escapeHtml(description)}</em>
+          <span class="leetcode-achievement-bar" aria-hidden="true">
+            <i></i>
+          </span>
+        </span>
+      `;
+    }
+
+    function syncAchievementUi(context = achievementContext()) {
+      const states = achievementStates(context);
+      const unlockedCount = states.filter((state) => state.unlocked).length;
+      const totalCount = achievementDefinitions.length;
+      const countText = `${unlockedCount}/${totalCount}`;
+      const nextState = states.find(
+        (state) => !state.unlocked && !state.definition.hidden,
+      ) || states.find((state) => !state.unlocked);
+      if (achievementCount instanceof HTMLElement) {
+        achievementCount.textContent = countText;
+      }
+      if (achievementOpen instanceof HTMLElement) {
+        achievementOpen.setAttribute(
+          "aria-label",
+          isChinesePage
+            ? `真实 AC 成就墙，已解锁 ${countText}`
+            : `Real Accepted badge wall, ${countText} unlocked`,
+        );
+      }
+      if (achievementSummary instanceof HTMLElement) {
+        const nextText = nextState
+          ? (nextState.definition.hidden && !nextState.unlocked
+            ? (isChinesePage ? "下一个隐藏成就仍是 ???" : "Next hidden badge is still ???")
+            : `${localizedAchievementText(nextState.definition.title)} ${achievementProgressText(nextState)}`)
+          : (isChinesePage ? "成就墙已全部点亮" : "All badges unlocked");
+        achievementSummary.textContent = isChinesePage
+          ? `真实 AC 成就 ${countText} · ${nextText}`
+          : `Real AC badges ${countText} · ${nextText}`;
+      }
+      if (achievementList instanceof HTMLElement) {
+        achievementList.innerHTML = states.length
+          ? states.map(renderAchievementCard).join("")
+          : `<span>${isChinesePage ? "暂无成就定义。" : "No badges defined."}</span>`;
+      }
+    }
+
+    function closeAchievementHub() {
+      if (achievementHub instanceof HTMLElement) {
+        achievementHub.classList.remove("is-open");
+      }
+    }
+
+    function pulseAchievementHub() {
+      if (!(achievementHub instanceof HTMLElement)) return;
+      achievementHub.classList.add("is-pulse");
+      window.setTimeout(() => {
+        achievementHub.classList.remove("is-pulse");
+      }, 1800);
+    }
+
+    let achievementToastLayer = null;
+
+    function ensureAchievementToastLayer() {
+      if (achievementToastLayer) return achievementToastLayer;
+      const layer = document.createElement("div");
+      layer.className = "leetcode-achievement-toast";
+      layer.setAttribute("aria-live", "polite");
+      (leetcodeShell || document.body).append(layer);
+      achievementToastLayer = layer;
+      return layer;
+    }
+
+    function showAchievementUnlockToast(states) {
+      const layer = ensureAchievementToastLayer();
+      const visibleStates = states.slice(-3).reverse();
+      const headline = visibleStates.length > 1
+        ? (isChinesePage
+          ? `成就解锁 x${visibleStates.length}`
+          : `Badges unlocked x${visibleStates.length}`)
+        : (isChinesePage ? "成就解锁" : "Badge unlocked");
+      layer.innerHTML = `
+        <strong>${escapeHtml(headline)}</strong>
+        ${visibleStates.map((state) => `
+          <span data-tier="${escapeHtml(state.definition.tier)}">
+            <b>${escapeHtml(localizedAchievementText(state.definition.title))}</b>
+            <em>${escapeHtml(achievementGroupLabel(state.definition.group))} · ${escapeHtml(achievementProgressText(state))}</em>
+          </span>
+        `).join("")}
+      `;
+      window.clearTimeout(layer.hideTimer);
+      layer.classList.add("is-visible");
+      pulseAchievementHub();
+      layer.hideTimer = window.setTimeout(() => {
+        layer.classList.remove("is-visible");
+      }, 4200);
     }
 
     function elapsedPerTenLinesMs(elapsedMs, nonBlankLines) {
@@ -8411,11 +9589,452 @@ const shortcutRows = [
       }, 1200);
     }
 
+    function fallbackCopyText(text) {
+      const activeElement = document.activeElement;
+      const textarea = document.createElement("textarea");
+      textarea.value = String(text || "");
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.top = "-1000px";
+      textarea.style.left = "-1000px";
+      document.body.append(textarea);
+      textarea.select();
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } catch {
+        copied = false;
+      }
+      textarea.remove();
+      if (activeElement instanceof HTMLElement) {
+        activeElement.focus({ preventScroll: true });
+      }
+      return copied;
+    }
+
+    function copyTextToClipboard(text) {
+      const fallbackCopied = fallbackCopyText(text);
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(String(text || "")).catch(() => {});
+        return true;
+      }
+      return fallbackCopied;
+    }
+
     function copyEditorCode(textarea, actionButton = null) {
       if (!(textarea instanceof HTMLTextAreaElement)) return false;
-      navigator.clipboard?.writeText(textarea.value);
+      copyTextToClipboard(textarea.value);
       flashCopyButton(actionButton);
       return true;
+    }
+
+    function directProblemUrl(problem) {
+      const url = new URL(window.location.href);
+      url.hash = "";
+      url.search = "";
+      url.searchParams.set(directProblemParamName, problem.titleSlug);
+      return url.toString();
+    }
+
+    function problemShareTitle(problem) {
+      return `${problem.frontendId}. ${problem.titleCn}`;
+    }
+
+    const problemInviteRecentStyleLimit = 3;
+    let recentProblemInviteStyles = [];
+
+    function zhProblemInviteGroups(problem, url) {
+      const title = problemShareTitle(problem);
+      return [
+        {
+          style: "teach",
+          copies: [
+            `这题我越看越觉得有意思，但手已经不会写代码了。你点开教我一手：\n${url}`,
+            `${title} 我是真的喜欢，也是真的写不出来。求你来当一下人类题解：\n${url}`,
+            `我宣布 ${title} 很有趣，但目前只停留在宣布阶段。后面靠你了：\n${url}`,
+            `这道 ${title} 把我卡得很礼貌。你来给我上一课：\n${url}`,
+            `我已经读懂 ${title} 的中文了，剩下的算法部分想请你代读：\n${url}`,
+            `${title} 现在只差一个懂的人点开。很巧，我觉得你懂：\n${url}`,
+            `这题我会欣赏，不会写。你点开让我欣赏一下你的解法：\n${url}`,
+            `求你了，把 ${title} 写给我看一眼，我想知道这题在人类手里长什么样：\n${url}`,
+            `${title} 对我来说像一道开放题：开放地不会。你来收口：\n${url}`,
+            `我和 ${title} 对视了三分钟，它赢了。你来替我复仇顺便教学：\n${url}`,
+            `这题我感觉很妙，但妙在哪里我说不出来。你点开讲给我听：\n${url}`,
+            `${title} 已经把我问安静了。你来把它问明白：\n${url}`,
+          ],
+        },
+        {
+          style: "beg",
+          copies: [
+            `求求了，${title} 就差一个会写的人出现。那个人我决定是你：\n${url}`,
+            `帮我看看 ${title}，我现在的状态是：差点就会，差得有点多：\n${url}`,
+            `我把 ${title} 发给你，不是因为我懒，是因为我相信奇迹会点链接：\n${url}`,
+            `${title} 太好玩了，好玩到我决定先请外援。你来：\n${url}`,
+            `救一下，${title} 现在像一扇门，我负责敲门，你负责开门：\n${url}`,
+            `我真的只需要你点开 ${title}，然后假装随手写出来给我看：\n${url}`,
+            `拜托拜托，${title} 我写不动了，你写出来我负责夸：\n${url}`,
+            `${title} 这题如果你会，我今天就把“会算法”三个字让给你：\n${url}`,
+            `我已经把 ${title} 供起来了，现在缺一个人把它 AC 掉：\n${url}`,
+            `你能不能看一眼 ${title}？我需要确认它不是专门针对我的：\n${url}`,
+            `我在 ${title} 这里需要一点朋友的智慧，最好是能直接运行的那种：\n${url}`,
+            `${title} 把我整不会了。你来整会一下：\n${url}`,
+          ],
+        },
+        {
+          style: "trap",
+          copies: [
+            `给你发个链接，不是坑你，是邀请你一起掉进 ${title}：\n${url}`,
+            `我发现一道很适合发给朋友的题：${title}。具体多适合，你点开就懂：\n${url}`,
+            `${title} 这题不发给你，我的分享欲会憋坏：\n${url}`,
+            `这不是普通题目链接，这是我精心挑选的友情小测：${title}\n${url}`,
+            `我已经被 ${title} 逗到了，现在轮到你接受这份快乐：\n${url}`,
+            `好东西要分享，比如 ${title}；难东西也要分享，还是 ${title}：\n${url}`,
+            `我把 ${title} 发给你，是因为真正的朋友就该一起怀疑人生：\n${url}`,
+            `点开 ${title}，我们今天就从普通聊天升级成高质量互相折磨：\n${url}`,
+            `这题我一个人看太浪费了，必须拉你进来提高观赏性：${title}\n${url}`,
+            `${title} 这题有一种“发给朋友就舒服了”的美：\n${url}`,
+            `我刚看到 ${title}，第一反应不是写，是发给你：\n${url}`,
+            `请收下这份小小的刷题恶作剧：${title}\n${url}`,
+          ],
+        },
+        {
+          style: "provoke",
+          copies: [
+            `你平时不是很会吗，${title} 来了。别只会发“简单”：\n${url}`,
+            `我不信你能优雅拿下 ${title}。当然，你可以用 AC 打我的脸：\n${url}`,
+            `${title} 这题看起来在等一个嘴硬的人。你很合适：\n${url}`,
+            `别装没看到，${title} 已经点名你了：\n${url}`,
+            `你要是能把 ${title} 秒了，我承认你今天比咖啡还提神：\n${url}`,
+            `${title} 放这了。真正的高手会点开，假的高手会说等会儿：\n${url}`,
+            `你不是说最近刷题有手感吗？${title} 正好检查一下手感还在不在：\n${url}`,
+            `我觉得 ${title} 难不倒你。主要是想看看你会不会被它难倒：\n${url}`,
+            `来，给 ${title} 一个机会，让它见识一下你到底是不是传说中的会写：\n${url}`,
+            `这题不一定难，但很适合验证谁在群里最会吹。${title}\n${url}`,
+            `${title} 正在等一个人点开，然后说“也就这样”。你敢不敢：\n${url}`,
+            `如果你今天需要一点挑战感，${title} 已经送到门口了：\n${url}`,
+          ],
+        },
+        {
+          style: "reverse",
+          copies: [
+            `${title} 一点都不难，我只是暂时不想表现得太聪明。你先表现：\n${url}`,
+            `我不是不会 ${title}，我是把展示机会让给你：\n${url}`,
+            `这题我已经会了一半：会打开。剩下那半你来：${title}\n${url}`,
+            `${title} 我差点就写出来了，差的可能只是一个完整解法：\n${url}`,
+            `我对 ${title} 的思路非常清晰：先发给你：\n${url}`,
+            `这题我不是写不出来，我是在测试分享功能。顺便你写一下 ${title}：\n${url}`,
+            `${title} 我本来可以自己做，但做人要给朋友一些高光时刻：\n${url}`,
+            `我决定不独占 ${title} 的快乐，所以把不会的部分分享给你：\n${url}`,
+            `${title} 这种题我通常不急着写，先看朋友怎么写：\n${url}`,
+            `我已经完成 ${title} 的第一步：意识到需要你：\n${url}`,
+            `${title} 我不是卡住了，我是在等待一个更帅的解法出现：\n${url}`,
+            `这题很简单，简单到我想看看你能不能简单地写出来：${title}\n${url}`,
+          ],
+        },
+        {
+          style: "story",
+          copies: [
+            `事情是这样的：我点开 ${title}，它没动，我也没动：\n${url}`,
+            `我本来只是路过 ${title}，结果它把我叫住了，还不让我走：\n${url}`,
+            `刚才我和 ${title} 进行了一场无声交流，目前看是它交流赢了：\n${url}`,
+            `剧情发展到 ${title} 这里，需要一个关键人物登场。别看了，就是你：\n${url}`,
+            `我点开 ${title} 前很轻松，点开后开始认真反省基础是否扎实：\n${url}`,
+            `${title} 像一封算法界的请柬，我已经打开了，你也别想跑：\n${url}`,
+            `我和 ${title} 的故事讲到这里，就差你点开写个结局：\n${url}`,
+            `今天的转折点出现了：${title}。你点开，我们进入下一集：\n${url}`,
+            `我本来只是想刷一题，没想到 ${title} 开始刷我：\n${url}`,
+            `${title} 把我从“我可以”带到了“你可以吗”：\n${url}`,
+            `这题有剧情，有反转，有我不会。现在缺你：${title}\n${url}`,
+            `我已经在 ${title} 门口站了一会儿了，你来按门铃：\n${url}`,
+          ],
+        },
+        {
+          style: "ac",
+          copies: [
+            `帮我把 ${title} AC 一下，我想看看这题被通过时是什么表情：\n${url}`,
+            `${title} 现在离 AC 只差一个你。听起来是不是很合理：\n${url}`,
+            `我需要一份 ${title} 的 AC 现场录像，链接已经给你布置好了：\n${url}`,
+            `来给 ${title} 一个绿色的结局，我负责在旁边说漂亮：\n${url}`,
+            `${title} 已经准备好被 AC 了，问题是我还没准备好。你准备一下：\n${url}`,
+            `这题如果能 AC，我今天就相信世界是有秩序的。${title}\n${url}`,
+            `请你点开 ${title}，让它体验一下被正确代码支配的感觉：\n${url}`,
+            `${title} 的 Accept 按钮在等一个有缘人，我替它邀请你：\n${url}`,
+            `我想看 ${title} 从疑难杂症变成 Accepted。你来演示：\n${url}`,
+            `给 ${title} 一个体面的 AC 吧，它看起来已经等很久了：\n${url}`,
+            `${title} 目前还没有被我 AC，但我相信它可以被你 AC：\n${url}`,
+            `帮忙点开 ${title}，我想蹭一口你的 AC 运气：\n${url}`,
+          ],
+        },
+        {
+          style: "editor",
+          copies: [
+            `点开就是 ${title} 的编辑器，不用找题，不用翻页，直接开写：\n${url}`,
+            `${title} 已经替你摆好编辑器了，你只需要负责突然变强：\n${url}`,
+            `这个链接会直接把你送到 ${title}，少一步犹豫，多一分 AC：\n${url}`,
+            `别做心理建设了，点开就能写 ${title}。先写了再说：\n${url}`,
+            `${title} 的编辑器已经打开姿势准备好了，就差你输入第一行：\n${url}`,
+            `我给你把 ${title} 的门都推开了，你进去写两行看看：\n${url}`,
+            `这不是普通链接，是 ${title} 的直达通道，点开就没有借口了：\n${url}`,
+            `点一下，${title} 直接到脸上。适合不想给自己退路的人：\n${url}`,
+            `${title} 已经定位好了，编辑器也在等。你再不点就显得它很尴尬：\n${url}`,
+            `我把 ${title} 发成了直达链接，意思是：别找了，写吧：\n${url}`,
+            `这个链接的含金量在于，它会直接把你带到 ${title} 的战斗现场：\n${url}`,
+            `点开 ${title}，编辑器会自己出现，剩下就看你的手速和脑速了：\n${url}`,
+          ],
+        },
+        {
+          style: "together",
+          copies: [
+            `来一起看 ${title}，写不出来就一起沉默，写出来就互相装懂：\n${url}`,
+            `${title} 我想找个人一起做。一个人卡住叫痛苦，两个人卡住叫讨论：\n${url}`,
+            `一起写 ${title} 吧，谁先 AC 谁就负责讲得像很简单：\n${url}`,
+            `今天的共同话题我选好了：${title}。你点开，我们开始认真胡说：\n${url}`,
+            `${title} 适合两个人一起看，一个负责思路，一个负责说“等等”：\n${url}`,
+            `来做 ${title}，我们各写一版，然后假装这是一次学术交流：\n${url}`,
+            `我想和你对一下 ${title}，主要是想看看你怎么绕过我绕不过去的地方：\n${url}`,
+            `${title} 发你了。你先写，我随后用“我也是这么想的”加入：\n${url}`,
+            `一起挑战 ${title}，别让这题以为我们没人：\n${url}`,
+            `我需要一个刷题搭子打开 ${title}。你看起来很像：\n${url}`,
+            `${title} 很适合一起做，至少卡住的时候有个人可以互相甩锅：\n${url}`,
+            `来同步一题 ${title}，写完我们再决定谁更像会算法的人：\n${url}`,
+          ],
+        },
+        {
+          style: "strange",
+          copies: [
+            `我怀疑 ${title} 是一道披着题目外衣的性格测试。你测一下：\n${url}`,
+            `${title} 有点像算法界的盲盒，点开之前谁也不知道会不会破防：\n${url}`,
+            `这题的气质很怪：它看起来需要被你点开。${title}\n${url}`,
+            `${title} 让我产生一种错觉：我应该会，但代码不同意：\n${url}`,
+            `我感觉 ${title} 在屏幕里小声说“你朋友会吗”。我替你接了：\n${url}`,
+            `${title} 像那种越看越熟，越写越陌生的题。你验证一下：\n${url}`,
+            `这题有一种魔力：我看懂了每个字，但它们组合起来不太听话。${title}\n${url}`,
+            `${title} 需要一点玄学，也需要一点你：\n${url}`,
+            `我看 ${title} 的时候突然悟了：悟到应该发给你：\n${url}`,
+            `这题很神奇，能让人从自信切到复制链接。${title}\n${url}`,
+            `${title} 的难点可能不在题里，在我这里。你点开排查一下：\n${url}`,
+            `我觉得 ${title} 今天和你有缘，主要是它刚刚和我无缘：\n${url}`,
+          ],
+        },
+        {
+          style: "short",
+          copies: [
+            `${title}，别问，点开救我：\n${url}`,
+            `来，${title}，证明你比我会：\n${url}`,
+            `今日求教入口：${title}\n${url}`,
+            `${title}，这题有点香，也有点卡：\n${url}`,
+            `点开 ${title}，我想看你操作：\n${url}`,
+            `${title}，我先不会为敬：\n${url}`,
+            `速来，${title} 需要一个会写的人：\n${url}`,
+            `${title}，给你一个装高手的机会：\n${url}`,
+            `别划走，${title} 真有意思：\n${url}`,
+            `${title}，写出来你就是今天的老师：\n${url}`,
+            `来救场，题是 ${title}：\n${url}`,
+            `${title}，你点开，我闭嘴：\n${url}`,
+          ],
+        },
+      ];
+    }
+
+    function enProblemInviteCopies(problem, url) {
+      const title = problemShareTitle(problem);
+      return [
+        `I am inviting you to challenge ${title}. It looks harmless, which is exactly how it gets you:\n${url}`,
+        `I got stuck on ${title}. Open this and show me what clean thinking looks like:\n${url}`,
+        `${title} is annoyingly fun. I could use a rescue solution from someone dangerous:\n${url}`,
+        `Quick brain duel: ${title}. The editor opens right on the problem:\n${url}`,
+        `${title} says you might not solve it. I think you should prove it wrong:\n${url}`,
+        `I found a problem built for bothering smart friends: ${title}. Your editor is one click away:\n${url}`,
+      ];
+    }
+
+    function problemInviteCopy(problem) {
+      const url = directProblemUrl(problem);
+      if (!isChinesePage) return randomItem(enProblemInviteCopies(problem, url));
+      const groups = zhProblemInviteGroups(problem, url)
+        .filter((group) => group.copies.length);
+      const freshGroups = groups.filter(
+        (group) => !recentProblemInviteStyles.includes(group.style),
+      );
+      const group = randomItem(freshGroups.length ? freshGroups : groups);
+      recentProblemInviteStyles = [
+        group.style,
+        ...recentProblemInviteStyles.filter((style) => style !== group.style),
+      ].slice(0, problemInviteRecentStyleLimit);
+      return randomItem(group.copies);
+    }
+
+    let problemShareToastLayer = null;
+    const problemShareToastAnchorGapPx = 8;
+    const problemShareToastDurationMs = 4200;
+    const problemShareToastViewportPaddingPx = 16;
+    const problemShareToastArrowMarginPx = 18;
+
+    function hideProblemShareToast() {
+      const layer = problemShareToastLayer;
+      if (!(layer instanceof HTMLElement)) return;
+      window.clearTimeout(layer.hideTimer);
+      layer.classList.remove("is-visible");
+      layer.hidden = true;
+    }
+
+    function hideVisibleProblemShareToast() {
+      const layer = problemShareToastLayer;
+      if (!(layer instanceof HTMLElement) || layer.hidden) return;
+      hideProblemShareToast();
+    }
+
+    function ensureProblemShareToastLayer() {
+      if (problemShareToastLayer instanceof HTMLElement) {
+        return problemShareToastLayer;
+      }
+      const layer = document.createElement("section");
+      layer.className = "leetcode-share-toast";
+      layer.setAttribute("aria-live", "polite");
+      layer.setAttribute("aria-label", isChinesePage
+        ? "已复制的挑战邀请"
+        : "Copied challenge invite");
+      layer.hidden = true;
+      (leetcodeShell || document.body).append(layer);
+      problemShareToastLayer = layer;
+      return layer;
+    }
+
+    function positionProblemShareToast(layer, anchor) {
+      if (!(anchor instanceof HTMLElement)) {
+        layer.dataset.placement = "fallback";
+        layer.style.removeProperty("left");
+        layer.style.removeProperty("top");
+        layer.style.removeProperty("right");
+        layer.style.removeProperty("bottom");
+        layer.style.removeProperty("--share-toast-arrow-left");
+        return;
+      }
+
+      const anchorRect = anchor.getBoundingClientRect();
+      const layerRect = layer.getBoundingClientRect();
+      const viewportWidth = window.innerWidth ||
+        document.documentElement.clientWidth;
+      const viewportHeight = window.innerHeight ||
+        document.documentElement.clientHeight;
+      const maxLeft = Math.max(
+        problemShareToastViewportPaddingPx,
+        viewportWidth - layerRect.width - problemShareToastViewportPaddingPx,
+      );
+      const preferredLeft = anchorRect.left +
+        (anchorRect.width / 2) -
+        (layerRect.width / 2);
+      const left = Math.min(
+        Math.max(preferredLeft, problemShareToastViewportPaddingPx),
+        maxLeft,
+      );
+      const belowTop = anchorRect.bottom + problemShareToastAnchorGapPx;
+      const aboveTop = anchorRect.top -
+        layerRect.height -
+        problemShareToastAnchorGapPx;
+      const fitsBelow = belowTop + layerRect.height <=
+        viewportHeight - problemShareToastViewportPaddingPx;
+      const maxTop = Math.max(
+        problemShareToastViewportPaddingPx,
+        viewportHeight - layerRect.height - problemShareToastViewportPaddingPx,
+      );
+      const top = fitsBelow || aboveTop < problemShareToastViewportPaddingPx
+        ? Math.min(Math.max(belowTop, problemShareToastViewportPaddingPx), maxTop)
+        : Math.min(Math.max(aboveTop, problemShareToastViewportPaddingPx), maxTop);
+      const anchorCenter = anchorRect.left + (anchorRect.width / 2);
+      const arrowLeft = Math.min(
+        Math.max(
+          anchorCenter - left,
+          problemShareToastArrowMarginPx,
+        ),
+        Math.max(
+          problemShareToastArrowMarginPx,
+          layerRect.width - problemShareToastArrowMarginPx,
+        ),
+      );
+
+      layer.dataset.placement =
+        fitsBelow || aboveTop < problemShareToastViewportPaddingPx
+          ? "below"
+          : "above";
+      layer.style.left = `${Math.round(left)}px`;
+      layer.style.top = `${Math.round(top)}px`;
+      layer.style.right = "auto";
+      layer.style.bottom = "auto";
+      layer.style.setProperty(
+        "--share-toast-arrow-left",
+        `${Math.round(arrowLeft)}px`,
+      );
+    }
+
+    function showProblemShareToast(problem, copiedText, anchor = null) {
+      const layer = ensureProblemShareToastLayer();
+      const headline = isChinesePage
+        ? "挑战邀请已复制"
+        : "Challenge invite copied";
+      layer.innerHTML = `
+        <div class="leetcode-share-toast-head">
+          <strong>${escapeHtml(headline)}</strong>
+          <em>${escapeHtml(problemShareTitle(problem))}</em>
+        </div>
+        <pre>${escapeHtml(copiedText)}</pre>
+      `;
+      layer.hidden = false;
+      layer.classList.remove("is-visible");
+      positionProblemShareToast(layer, anchor);
+      window.clearTimeout(layer.hideTimer);
+      window.requestAnimationFrame(() => {
+        positionProblemShareToast(layer, anchor);
+        layer.classList.add("is-visible");
+      });
+      layer.hideTimer = window.setTimeout(
+        hideProblemShareToast,
+        problemShareToastDurationMs,
+      );
+    }
+
+    function copyProblemInvite(
+      problem,
+      panel,
+      actionButton = null,
+      options = {},
+    ) {
+      if (!problem) return false;
+      const copiedText = problemInviteCopy(problem);
+      copyTextToClipboard(copiedText);
+      if (options.flashButton !== false) {
+        flashCopyButton(actionButton);
+      }
+      if (panel instanceof HTMLElement) {
+        setSubmitStatus(
+          panel,
+          isChinesePage
+            ? `挑战邀请已复制：${problemShareTitle(problem)}`
+            : `Challenge invite copied: ${problemShareTitle(problem)}`,
+          "success",
+        );
+      }
+      showProblemShareStatus(problem.titleSlug);
+      showProblemShareToast(problem, copiedText, actionButton);
+      return true;
+    }
+
+    function showProblemShareStatus(slug) {
+      const message = isChinesePage ? "已复制" : "Copied";
+      const token = String(Date.now());
+      document.querySelectorAll("[data-share-status]")
+        .forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          if (node.dataset.shareStatus !== slug) return;
+          node.dataset.shareToken = token;
+          node.textContent = message;
+          node.hidden = false;
+          window.setTimeout(() => {
+            if (node.dataset.shareToken !== token) return;
+            node.hidden = true;
+            node.textContent = "";
+          }, 1600);
+        });
     }
 
     function copyCurrentEditorCode() {
@@ -9365,6 +10984,199 @@ const shortcutRows = [
       return addExtraRunCase(problem.titleSlug, testcase);
     }
 
+    function manualRunCasePlaceholder() {
+      return isChinesePage
+        ? "按力扣输入格式粘贴用例；多参数题每个参数占一行。"
+        : "Paste LeetCode input; one line per parameter for multi-arg problems.";
+    }
+
+    function manualRunCaseStatusIdle(slug) {
+      const count = extraRunCaseList(slug).length;
+      return count
+        ? (isChinesePage
+            ? `下次运行样例会追加 ${count} 个补充用例。`
+            : `The next sample run will include ${count} extra case(s).`)
+        : (isChinesePage
+            ? "暂无补充用例。"
+            : "No extra cases saved.");
+    }
+
+    function renderExtraRunCaseList(problem) {
+      const slug = problem.titleSlug;
+      const cases = extraRunCaseList(slug);
+      if (!cases.length) {
+        return `<p class="leetcode-manual-case-empty">${
+          isChinesePage
+            ? "保存后会和官方样例一起运行。"
+            : "Saved cases run together with the official examples."
+        }</p>`;
+      }
+      return cases
+        .map((testcase, index) => `
+          <div class="leetcode-manual-case-item">
+            <pre>${escapeHtml(testcase)}</pre>
+            <button
+              type="button"
+              data-editor-action="remove-extra-run-case"
+              data-slug="${escapeHtml(slug)}"
+              data-case-index="${index}"
+              aria-label="${
+                isChinesePage ? "删除这个补充用例" : "Remove this extra case"
+              }"
+            >${isChinesePage ? "删除" : "Remove"}</button>
+          </div>
+        `)
+        .join("");
+    }
+
+    function renderManualRunCasePanel(problem) {
+      const slug = escapeHtml(problem.titleSlug);
+      const hidden = manualRunCaseOpenSlug === problem.titleSlug
+        ? ""
+        : " hidden";
+      return `
+        <div class="leetcode-manual-cases" data-manual-case-panel${hidden}>
+          <div class="leetcode-manual-case-head">
+            <b>${isChinesePage ? "补充用例" : "Extra cases"}</b>
+            <span data-extra-case-count="${slug}">
+              ${escapeHtml(extraRunCaseCountText(problem.titleSlug))}
+            </span>
+          </div>
+          <textarea
+            data-manual-case-input="${slug}"
+            rows="3"
+            spellcheck="false"
+            aria-label="${
+              isChinesePage ? "输入补充测试用例" : "Extra testcase input"
+            }"
+            placeholder="${escapeHtml(manualRunCasePlaceholder())}"
+          ></textarea>
+          <div class="leetcode-manual-case-actions">
+            <button
+              type="button"
+              data-editor-action="save-manual-case"
+              data-slug="${slug}"
+            >${isChinesePage ? "保存用例" : "Save case"}</button>
+            <button
+              type="button"
+              data-editor-action="clear-manual-case-input"
+              data-slug="${slug}"
+            >${isChinesePage ? "清空输入" : "Clear input"}</button>
+            <button
+              type="button"
+              data-editor-action="clear-extra-run-cases"
+              data-slug="${slug}"
+            >${isChinesePage ? "清空补充" : "Clear extra"}</button>
+          </div>
+          <p
+            class="leetcode-manual-case-status"
+            data-manual-case-status
+            data-tone=""
+          >${escapeHtml(manualRunCaseStatusIdle(problem.titleSlug))}</p>
+          <div
+            class="leetcode-manual-case-list"
+            data-extra-case-list="${slug}"
+          >
+            ${renderExtraRunCaseList(problem)}
+          </div>
+        </div>
+      `;
+    }
+
+    function setManualRunCaseStatus(panel, message, tone = "") {
+      const status = panel?.querySelector("[data-manual-case-status]");
+      if (!(status instanceof HTMLElement)) return;
+      status.textContent = message;
+      status.dataset.tone = tone;
+    }
+
+    function manualRunCaseInput(panel) {
+      const input = panel?.querySelector("[data-manual-case-input]");
+      return input instanceof HTMLTextAreaElement ? input : null;
+    }
+
+    function setManualRunCaseOpenSlug(slug) {
+      manualRunCaseOpenSlug = slug;
+      if (slug) {
+        sessionStorage.setItem(manualRunCaseOpenKey, slug);
+        return;
+      }
+      sessionStorage.removeItem(manualRunCaseOpenKey);
+    }
+
+    function toggleManualRunCasePanel(panel, problem) {
+      const target = panel?.querySelector("[data-manual-case-panel]");
+      if (!(target instanceof HTMLElement)) return;
+      const shouldOpen = target.hidden;
+      setManualRunCaseOpenSlug(shouldOpen ? problem.titleSlug : "");
+      target.hidden = !shouldOpen;
+      if (!shouldOpen) return;
+      syncManualRunCaseUi(problem.titleSlug);
+      manualRunCaseInput(panel)?.focus({ preventScroll: true });
+    }
+
+    function syncManualRunCaseUi(slug = "") {
+      list?.querySelectorAll("[data-extra-case-count]").forEach((element) => {
+        if (!(element instanceof HTMLElement)) return;
+        const elementSlug = element.dataset.extraCaseCount || "";
+        if (slug && elementSlug !== slug) return;
+        element.textContent = extraRunCaseCountText(elementSlug);
+      });
+      list?.querySelectorAll("[data-extra-case-list]").forEach((element) => {
+        if (!(element instanceof HTMLElement)) return;
+        const elementSlug = element.dataset.extraCaseList || "";
+        if (slug && elementSlug !== slug) return;
+        const problem = problems.find((item) => item.titleSlug === elementSlug);
+        if (!problem) return;
+        element.innerHTML = renderExtraRunCaseList(problem);
+      });
+      list?.querySelectorAll("[data-manual-case-status]").forEach((element) => {
+        if (!(element instanceof HTMLElement)) return;
+        const panel = element.closest(".leetcode-practice-panel");
+        const input = panel?.querySelector("[data-manual-case-input]");
+        if (!(input instanceof HTMLTextAreaElement)) return;
+        const elementSlug = input.dataset.manualCaseInput || "";
+        if (slug && elementSlug !== slug) return;
+        if (!slug) element.dataset.tone = "";
+        if (element.dataset.tone) return;
+        element.textContent = manualRunCaseStatusIdle(elementSlug);
+      });
+    }
+
+    function saveManualRunCase(problem, panel) {
+      const input = manualRunCaseInput(panel);
+      if (!input) return false;
+      const normalized = normalizedExtraRunCase(input.value);
+      if (!normalized) {
+        setManualRunCaseStatus(
+          panel,
+          isChinesePage ? "先输入一个用例。" : "Enter a case first.",
+          "error",
+        );
+        input.focus({ preventScroll: true });
+        return false;
+      }
+      const saved = addExtraRunCase(problem.titleSlug, normalized);
+      syncManualRunCaseUi(problem.titleSlug);
+      if (!saved) {
+        setManualRunCaseStatus(
+          panel,
+          isChinesePage ? "这个用例已经保存过。" : "That case is already saved.",
+          "pending",
+        );
+        return false;
+      }
+      input.value = "";
+      setManualRunCaseStatus(
+        panel,
+        isChinesePage
+          ? `已保存；最多保留最近 ${maxExtraRunCasesPerProblem} 个。`
+          : `Saved; keeping the latest ${maxExtraRunCasesPerProblem}.`,
+        "success",
+      );
+      return true;
+    }
+
     function appendSubmissionDetailRow(container, label, value) {
       const row = document.createElement("div");
       const labelElement = document.createElement("span");
@@ -9599,12 +11411,23 @@ const shortcutRows = [
       );
     }
 
+    function runLeetcodeActionLabel(problem) {
+      const extraCount = extraRunCaseList(problem.titleSlug).length;
+      if (!extraCount) {
+        return isChinesePage ? "正在运行官方样例" : "Running official examples";
+      }
+      return isChinesePage
+        ? `正在运行官方样例和 ${extraCount} 个补充用例`
+        : `Running official examples and ${extraCount} extra case(s)`;
+    }
+
     async function runLeetcode(panel, actionButton, problem, textarea) {
       setActionBusy(actionButton, true);
       setPanelLeetcodeActionBusy(panel, true);
       try {
         await ensureLeetcodeReady(panel);
-        setSubmitStatus(panel, "正在运行官方示例...", "pending");
+        const runLabel = runLeetcodeActionLabel(problem);
+        setSubmitStatus(panel, `${runLabel}...`, "pending");
         const extraTestcases = extraRunTestcasesFor(problem);
         const response = await extensionRequest(
           extensionRunRequestType,
@@ -9621,7 +11444,7 @@ const shortcutRows = [
         if (testcaseRows.length) {
           setSubmitStatus(
             panel,
-            "正在运行官方示例...",
+            `${runLabel}...`,
             "pending",
             null,
             testcaseRows,
@@ -9631,7 +11454,7 @@ const shortcutRows = [
           panel,
           response,
           extensionRunRequestType,
-          "正在运行官方示例",
+          runLabel,
           runPollAttempts,
           testcaseRows,
         );
@@ -9703,6 +11526,14 @@ const shortcutRows = [
             ? ` · ${timingResult.milestone}`
             : "";
           const oneShotSummary = oneShotSubmitSummary(oneShotResult);
+          const achievementUnlocks = syncAchievementState({
+            sourceSlug: problem.titleSlug,
+          });
+          const achievementSummary = achievementUnlocks.length
+            ? (isChinesePage
+              ? ` · 成就 +${achievementUnlocks.length}`
+              : ` · badges +${achievementUnlocks.length}`)
+            : "";
           progress[problem.titleSlug] = {
             ...rowState(problem.titleSlug),
             done: true,
@@ -9717,7 +11548,7 @@ const shortcutRows = [
           }
           setSubmitStatus(
             panel,
-            `${summary || "Accepted"} · ${timingSummary}${milestoneSummary}${oneShotSummary}`,
+            `${summary || "Accepted"} · ${timingSummary}${milestoneSummary}${oneShotSummary}${achievementSummary}`,
             "success",
           );
           celebrateOneShotAccepted(oneShotResult, problem);
@@ -9731,6 +11562,7 @@ const shortcutRows = [
         });
         markOneShotFailure(problem, textarea, "submit");
         const savedCase = saveFailedSubmissionCase(problem, result);
+        if (savedCase) syncManualRunCaseUi(problem.titleSlug);
         const savedMessage = savedCase
           ? (isChinesePage ? " · 已加入下次运行样例" : " · Added to next run")
           : "";
@@ -10116,6 +11948,7 @@ const shortcutRows = [
               <button type="button" data-editor-action="copy" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "复制当前题代码（Cmd+Option+C）" : "Copy current problem code (Cmd+Option+C)"}">复制</button>
               <button type="button" data-editor-action="reset" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "重置当前题草稿（Cmd+Option+R）" : "Reset current problem draft (Cmd+Option+R)"}">重置</button>
               <button type="button" data-editor-action="height-mode" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "切换编辑器高度（Cmd+Option+H）" : "Toggle editor height (Cmd+Option+H)"}">高度：${editorAutoGrow ? "自适应" : "固定"}</button>
+              <button type="button" data-editor-action="manual-case-panel" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "手动添加补充测试用例" : "Add extra testcases manually"}">${isChinesePage ? "加用例" : "Cases"} <em data-extra-case-count="${escapeHtml(problem.titleSlug)}">${escapeHtml(extraRunCaseCountText(problem.titleSlug))}</em></button>
               <button type="button" data-editor-action="run-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "运行官方样例（Cmd+'）" : "Run official examples (Cmd+')"}">运行样例</button>
               <button type="button" data-editor-action="submit-leetcode" data-slug="${escapeHtml(problem.titleSlug)}" aria-label="${isChinesePage ? "提交到力扣（Cmd+Enter）" : "Submit to LeetCode (Cmd+Enter)"}">提交力扣</button>
               <a href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" aria-label="${isChinesePage ? "打开当前题力扣页（Cmd+Shift+L）" : "Open current LeetCode problem (Cmd+Shift+L)"}" data-link-slug="${escapeHtml(problem.titleSlug)}">打开力扣</a>
@@ -10128,6 +11961,7 @@ const shortcutRows = [
               <a href="#leetcode-extension-guide" data-extension-guide-link>${isChinesePage ? "安装方法" : "Install steps"}</a>
             </div>
             <div class="leetcode-submit-meta">${escapeHtml(templateStatus)}</div>
+            ${renderManualRunCasePanel(problem)}
             <div class="leetcode-submit-detail" data-submit-detail hidden></div>
           </div>
         </section>
@@ -10187,6 +12021,24 @@ const shortcutRows = [
                   ${renderRelatedQuestions(problem)}
                 </span>
               </span>
+              <button
+                type="button"
+                class="leetcode-share-control"
+                data-copy-problem-invite="${escapeHtml(problem.titleSlug)}"
+                aria-label="${isChinesePage ? `分享 ${problem.frontendId}. ${problem.titleCn} 的挑战邀请` : `Share challenge invite for ${problem.frontendId}. ${problem.titleCn}`}"
+              >
+                <svg
+                  class="leetcode-share-icon"
+                  viewBox="0 0 48 48"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M4 41C7 28 17 19 32 19"></path>
+                  <path d="M30 7 44 21 30 35"></path>
+                  <path d="M44 21H31"></path>
+                </svg>
+              </button>
+              <span class="leetcode-share-status" data-share-status="${escapeHtml(problem.titleSlug)}" hidden></span>
               ${submissionCompactSignal(problem)}
             </span>
           </div>
@@ -10238,10 +12090,12 @@ const shortcutRows = [
       syncStatementPanels();
       syncRenderedEditors();
       syncRenderedExtensionStatus();
+      syncManualRunCaseUi();
       syncActivePracticeTimerAfterRender();
       pageItems.forEach((problem) => syncSubmissionStatsUi(problem.titleSlug));
       syncSubmissionInsightUi();
       syncOneShotUi();
+      syncAchievementUi();
     }
 
     searchInput?.addEventListener("input", (event) => {
@@ -10344,11 +12198,26 @@ const shortcutRows = [
       syncRenderedEditors();
     });
 
+    document.addEventListener("pointerdown", hideVisibleProblemShareToast, {
+      capture: true,
+    });
+
     document.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
       if (!target.closest("[data-preview]")) {
         closePreviewPopovers();
+      }
+      if (!target.closest("[data-achievement-hub]")) {
+        closeAchievementHub();
+      }
+      const achievementTarget = target.closest("[data-achievement-open]");
+      if (achievementTarget instanceof HTMLElement) {
+        if (achievementHub instanceof HTMLElement) {
+          achievementHub.classList.toggle("is-open");
+          syncAchievementUi();
+        }
+        return;
       }
       const insightFlowTarget = target.closest("[data-insight-flow]");
       if (insightFlowTarget instanceof HTMLElement) {
@@ -10442,6 +12311,15 @@ const shortcutRows = [
         return;
       }
       if (target.closest(".leetcode-related-item")) return;
+      const shareButton = target.closest("[data-copy-problem-invite]");
+      if (shareButton instanceof HTMLElement) {
+        const slug = shareButton.dataset.copyProblemInvite || "";
+        const problem = problems.find((item) => item.titleSlug === slug);
+        if (!problem) return;
+        const panel = editorPanelForSlug(slug);
+        copyProblemInvite(problem, panel, shareButton, { flashButton: false });
+        return;
+      }
       if (target.closest(".leetcode-practice-panel")) {
         const testcaseTab = target.closest("[data-testcase-tab]");
         if (testcaseTab instanceof HTMLElement) {
@@ -10463,12 +12341,53 @@ const shortcutRows = [
           const panel = actionButton.closest(".leetcode-practice-panel");
           const textarea = panel?.querySelector("[data-editor-code]");
           if (!(textarea instanceof HTMLTextAreaElement)) return;
+          const problem = problems.find((item) => item.titleSlug === slug);
+          if (!problem) return;
           if (editorAction === "copy") {
             copyEditorCode(textarea, actionButton);
           }
+          if (editorAction === "copy-problem-link") {
+            copyProblemInvite(problem, panel, actionButton);
+          }
+          if (editorAction === "manual-case-panel") {
+            toggleManualRunCasePanel(panel, problem);
+          }
+          if (editorAction === "save-manual-case") {
+            saveManualRunCase(problem, panel);
+          }
+          if (editorAction === "clear-manual-case-input") {
+            const input = manualRunCaseInput(panel);
+            if (input) input.value = "";
+            setManualRunCaseStatus(
+              panel,
+              manualRunCaseStatusIdle(problem.titleSlug),
+              "",
+            );
+          }
+          if (editorAction === "clear-extra-run-cases") {
+            const cleared = clearExtraRunCases(problem.titleSlug);
+            syncManualRunCaseUi(problem.titleSlug);
+            setManualRunCaseStatus(
+              panel,
+              cleared
+                ? (isChinesePage ? "补充用例已清空。" : "Extra cases cleared.")
+                : manualRunCaseStatusIdle(problem.titleSlug),
+              cleared ? "success" : "",
+            );
+          }
+          if (editorAction === "remove-extra-run-case") {
+            const index = Number.parseInt(actionButton.dataset.caseIndex, 10);
+            const removed = removeExtraRunCase(problem.titleSlug, index);
+            syncManualRunCaseUi(problem.titleSlug);
+            setManualRunCaseStatus(
+              panel,
+              removed
+                ? (isChinesePage ? "补充用例已删除。" : "Extra case removed.")
+                : manualRunCaseStatusIdle(problem.titleSlug),
+              removed ? "success" : "",
+            );
+          }
           if (editorAction === "reset") {
-            const problem = problems.find((item) => item.titleSlug === slug);
-            if (!problem) return;
             const select = panel?.querySelector("[data-editor-lang]");
             const lang =
               select instanceof HTMLSelectElement
@@ -10480,13 +12399,9 @@ const shortcutRows = [
             toggleEditorHeightMode();
           }
           if (editorAction === "run-leetcode") {
-            const problem = problems.find((item) => item.titleSlug === slug);
-            if (!problem) return;
             runLeetcode(panel, actionButton, problem, textarea);
           }
           if (editorAction === "submit-leetcode") {
-            const problem = problems.find((item) => item.titleSlug === slug);
-            if (!problem) return;
             submitLeetcode(panel, actionButton, problem, textarea);
           }
         }
@@ -10518,6 +12433,9 @@ const shortcutRows = [
       if (!(row instanceof HTMLElement)) return;
       const slug = row.dataset.slug || "";
       const shouldOpen = state.expandedSlug !== slug;
+      if (!shouldOpen && manualRunCaseOpenSlug === slug) {
+        setManualRunCaseOpenSlug("");
+      }
       state.expandedSlug = shouldOpen ? slug : "";
       render();
       scheduleViewStateWrite();
@@ -10569,20 +12487,26 @@ const shortcutRows = [
 
     list?.addEventListener("input", (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLTextAreaElement)) return;
+      if (!(target instanceof HTMLTextAreaElement) || !target.dataset.editorCode) {
+        return;
+      }
       persistEditorTextarea(target);
     });
 
     list?.addEventListener("keyup", (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLTextAreaElement)) return;
+      if (!(target instanceof HTMLTextAreaElement) || !target.dataset.editorCode) {
+        return;
+      }
       scheduleViewStateWrite();
       scheduleEditorCaretReveal(target);
     });
 
     list?.addEventListener("focusin", (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLTextAreaElement)) return;
+      if (!(target instanceof HTMLTextAreaElement) || !target.dataset.editorCode) {
+        return;
+      }
       scheduleViewStateWrite();
       const slug = target.dataset.editorCode || "";
       if (slug && suppressNextEditorFocusRevealSlug === slug) {
@@ -10594,7 +12518,9 @@ const shortcutRows = [
 
     list?.addEventListener("mouseup", (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLTextAreaElement)) return;
+      if (!(target instanceof HTMLTextAreaElement) || !target.dataset.editorCode) {
+        return;
+      }
       scheduleViewStateWrite();
       scheduleEditorCaretReveal(target);
     });
@@ -10603,7 +12529,9 @@ const shortcutRows = [
       "scroll",
       (event) => {
         const target = event.target;
-        if (!(target instanceof HTMLTextAreaElement)) return;
+        if (!(target instanceof HTMLTextAreaElement) || !target.dataset.editorCode) {
+          return;
+        }
         const slug = target.dataset.editorCode || "";
         const panel = target.closest(".leetcode-practice-panel");
         const select = panel?.querySelector("[data-editor-lang]");
@@ -10621,7 +12549,11 @@ const shortcutRows = [
 
     list?.addEventListener("keydown", (event) => {
       const target = event.target;
-      if (target instanceof HTMLTextAreaElement && handleEditorKeydown(event, target)) {
+      if (
+        target instanceof HTMLTextAreaElement &&
+        target.dataset.editorCode &&
+        handleEditorKeydown(event, target)
+      ) {
         return;
       }
       if (!(target instanceof HTMLElement)) return;
@@ -10639,6 +12571,8 @@ const shortcutRows = [
       if (event.key === "Escape") {
         closePreviewPopovers();
         closeShortcutHelp();
+        closeAchievementHub();
+        hideProblemShareToast();
         return;
       }
       if (isSuggestedFlowShortcut(event)) {
@@ -10764,9 +12698,14 @@ const shortcutRows = [
     });
 
     restoreViewStateControls();
+    const directProblemSlug = applyDirectProblemLinkTarget();
     render();
     hydratePracticeEventStore();
-    restoreViewStateAfterRender();
+    if (directProblemSlug) {
+      focusDirectProblemLinkTarget(directProblemSlug);
+    } else {
+      restoreViewStateAfterRender();
+    }
     window.addEventListener("scroll", scheduleViewStateWrite, { passive: true });
     window.setInterval(syncTimingUi, 1000);
     window.setInterval(syncEditorDraftDay, editorDraftDayCheckIntervalMs);
@@ -12259,6 +14198,392 @@ const shortcutRows = [
       max-width: 9.2rem;
     }
 
+    .leetcode-achievement-tip {
+      position: relative;
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      min-width: 0;
+      outline: none;
+    }
+
+    .leetcode-achievement-tip > button {
+      display: inline-grid;
+      grid-template-columns: auto auto;
+      gap: 0.22rem;
+      align-items: center;
+      box-sizing: border-box;
+      min-height: var(--leetcode-page-control-height, 1.52rem);
+      border: 1px solid rgb(217 119 87 / 46%);
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
+      background:
+        linear-gradient(135deg, rgb(250 204 21 / 16%), rgb(76 201 240 / 8%)),
+        rgb(255 255 255 / 28%);
+      color: var(--color-secondary);
+      cursor: pointer;
+      font: inherit;
+      font-size: var(--leetcode-meta-font-size, 0.66rem);
+      line-height: 1;
+      padding: 0 var(--leetcode-meta-pad-x, 0.36rem);
+      transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+      white-space: nowrap;
+    }
+
+    .leetcode-achievement-tip > button:hover,
+    .leetcode-achievement-tip:focus-visible > button,
+    .leetcode-achievement-tip.is-open > button {
+      border-color: var(--color-terracotta);
+      box-shadow: 0 0.35rem 1rem rgb(217 119 87 / 12%);
+      color: var(--color-terracotta);
+      transform: translateY(-1px);
+    }
+
+    .leetcode-achievement-tip > button b {
+      color: var(--color-charcoal);
+      font-size: 0.68rem;
+      font-weight: 850;
+    }
+
+    .leetcode-achievement-tip > button span {
+      color: inherit;
+      font-size: 0.62rem;
+      font-weight: 700;
+    }
+
+    .leetcode-achievement-tip::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 29;
+      display: none;
+      width: min(43rem, calc(100vw - 2rem));
+      height: 0.42rem;
+    }
+
+    .leetcode-achievement-popover {
+      position: absolute;
+      top: calc(100% + 0.36rem);
+      left: 0;
+      z-index: 30;
+      display: none;
+      width: min(43rem, calc(100vw - 2rem));
+      max-height: min(34rem, 76vh);
+      overflow: auto;
+      border: 1px solid rgb(194 192 182 / 88%);
+      border-radius: 0.58rem;
+      background:
+        linear-gradient(135deg, rgb(255 252 242 / 98%), rgb(250 247 236 / 98%));
+      box-shadow: 0 1.1rem 2.7rem rgb(58 44 30 / 18%);
+      color: var(--color-charcoal);
+      padding: 0.5rem;
+    }
+
+    .leetcode-achievement-tip:hover .leetcode-achievement-popover,
+    .leetcode-achievement-tip:focus-within .leetcode-achievement-popover,
+    .leetcode-achievement-tip.is-open .leetcode-achievement-popover,
+    .leetcode-achievement-tip:hover::after,
+    .leetcode-achievement-tip:focus-within::after,
+    .leetcode-achievement-tip.is-open::after {
+      display: block;
+    }
+
+    .leetcode-achievement-popover > strong {
+      display: block;
+      overflow: hidden;
+      margin: 0 0 0.26rem;
+      color: var(--color-charcoal);
+      font-size: 0.78rem;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-achievement-rule {
+      display: block;
+      margin: 0 0 0.4rem;
+      color: var(--color-muted);
+      font-size: 0.62rem;
+      line-height: 1.35;
+    }
+
+    .leetcode-achievement-wall {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(10.2rem, 1fr));
+      gap: 0.32rem;
+    }
+
+    .leetcode-achievement-wall > span:not(.leetcode-achievement-card) {
+      color: var(--color-muted);
+      font-size: 0.66rem;
+      padding: 0.2rem;
+    }
+
+    .leetcode-achievement-card {
+      --achievement-accent: #d97706;
+      --achievement-accent-soft: rgb(217 119 6 / 12%);
+      display: grid;
+      gap: 0.16rem;
+      min-width: 0;
+      min-height: 6.1rem;
+      border: 1px solid color-mix(
+        in srgb,
+        var(--achievement-accent) 42%,
+        rgb(194 192 182)
+      );
+      border-radius: 0.5rem;
+      background:
+        radial-gradient(
+          circle at 14% 16%,
+          color-mix(in srgb, var(--achievement-accent) 28%, transparent),
+          transparent 34%
+        ),
+        linear-gradient(145deg, var(--achievement-accent-soft), rgb(255 255 255 / 36%));
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 34%);
+      color: var(--color-secondary);
+      padding: 0.42rem;
+    }
+
+    .leetcode-achievement-card[data-tier="bronze"] {
+      --achievement-accent: #b97942;
+      --achievement-accent-soft: rgb(185 121 66 / 14%);
+    }
+
+    .leetcode-achievement-card[data-tier="silver"] {
+      --achievement-accent: #64748b;
+      --achievement-accent-soft: rgb(100 116 139 / 13%);
+    }
+
+    .leetcode-achievement-card[data-tier="gold"] {
+      --achievement-accent: #d97706;
+      --achievement-accent-soft: rgb(217 119 6 / 15%);
+    }
+
+    .leetcode-achievement-card[data-tier="mythic"] {
+      --achievement-accent: #7c3aed;
+      --achievement-accent-soft: rgb(124 58 237 / 13%);
+    }
+
+    .leetcode-achievement-card[data-tier="secret"] {
+      --achievement-accent: #0f766e;
+      --achievement-accent-soft: rgb(15 118 110 / 13%);
+    }
+
+    .leetcode-achievement-card.is-locked {
+      filter: saturate(0.72);
+      opacity: 0.76;
+    }
+
+    .leetcode-achievement-card.is-hidden {
+      --achievement-accent: #334155;
+      --achievement-accent-soft: rgb(51 65 85 / 12%);
+      background:
+        linear-gradient(135deg, rgb(20 20 19 / 7%), transparent),
+        repeating-linear-gradient(
+          135deg,
+          rgb(51 65 85 / 8%) 0,
+          rgb(51 65 85 / 8%) 0.34rem,
+          transparent 0.34rem,
+          transparent 0.72rem
+        ),
+        rgb(255 255 255 / 30%);
+    }
+
+    .leetcode-achievement-card small,
+    .leetcode-achievement-card b,
+    .leetcode-achievement-card em {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .leetcode-achievement-card small {
+      color: color-mix(in srgb, var(--achievement-accent) 72%, var(--color-muted));
+      font-size: 0.56rem;
+      font-weight: 850;
+      line-height: 1.1;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .leetcode-achievement-card b {
+      color: var(--color-charcoal);
+      font-size: 0.8rem;
+      font-weight: 900;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .leetcode-achievement-card em {
+      display: -webkit-box;
+      color: var(--color-secondary);
+      font-size: 0.62rem;
+      font-style: normal;
+      line-height: 1.25;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .leetcode-achievement-bar {
+      display: block;
+      align-self: end;
+      overflow: hidden;
+      height: 0.32rem;
+      border-radius: 999px;
+      background: rgb(20 20 19 / 8%);
+    }
+
+    .leetcode-achievement-bar i {
+      display: block;
+      width: var(--achievement-progress, 0%);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(
+        90deg,
+        var(--achievement-accent),
+        color-mix(in srgb, var(--achievement-accent) 62%, #38bdf8)
+      );
+    }
+
+    .leetcode-achievement-card.is-unlocked .leetcode-achievement-bar {
+      background: color-mix(in srgb, var(--achievement-accent) 18%, transparent);
+    }
+
+    .leetcode-achievement-card.is-hidden .leetcode-achievement-bar i {
+      width: 18%;
+      background: rgb(51 65 85 / 42%);
+    }
+
+    .leetcode-achievement-tip.is-pulse > button {
+      animation: leetcode-achievement-pulse 0.72s ease-out 2;
+    }
+
+    .leetcode-achievement-toast {
+      position: fixed;
+      top: 0.9rem;
+      right: 0.9rem;
+      z-index: 9998;
+      display: grid;
+      gap: 0.34rem;
+      width: min(21rem, calc(100vw - 1.8rem));
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-0.45rem);
+      transition:
+        opacity 180ms ease,
+        transform 180ms ease;
+    }
+
+    .leetcode-achievement-toast.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .leetcode-achievement-toast > strong,
+    .leetcode-achievement-toast > span {
+      border: 1px solid rgb(250 204 21 / 48%);
+      border-radius: 0.56rem;
+      background:
+        radial-gradient(circle at 12% 12%, rgb(250 204 21 / 20%), transparent 36%),
+        linear-gradient(135deg, rgb(20 20 19 / 88%), rgb(58 44 30 / 82%));
+      box-shadow: 0 0.9rem 2rem rgb(20 20 19 / 22%);
+      color: white;
+      font-family: var(--leetcode-page-font);
+    }
+
+    .leetcode-achievement-toast > strong {
+      justify-self: end;
+      font-size: 0.72rem;
+      font-weight: 900;
+      line-height: 1;
+      padding: 0.34rem 0.52rem;
+    }
+
+    .leetcode-achievement-toast > span {
+      display: grid;
+      gap: 0.12rem;
+      justify-self: stretch;
+      border-color: color-mix(
+        in srgb,
+        var(--achievement-accent, #facc15) 64%,
+        transparent
+      );
+      padding: 0.48rem 0.58rem;
+    }
+
+    .leetcode-achievement-toast > span[data-tier="bronze"] {
+      --achievement-accent: #b97942;
+    }
+
+    .leetcode-achievement-toast > span[data-tier="silver"] {
+      --achievement-accent: #94a3b8;
+    }
+
+    .leetcode-achievement-toast > span[data-tier="gold"] {
+      --achievement-accent: #f59e0b;
+    }
+
+    .leetcode-achievement-toast > span[data-tier="mythic"] {
+      --achievement-accent: #a78bfa;
+    }
+
+    .leetcode-achievement-toast > span[data-tier="secret"] {
+      --achievement-accent: #2dd4bf;
+    }
+
+    .leetcode-achievement-toast b,
+    .leetcode-achievement-toast em {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-achievement-toast b {
+      font-size: 0.82rem;
+      font-weight: 900;
+      line-height: 1.15;
+    }
+
+    .leetcode-achievement-toast em {
+      color: rgb(255 255 255 / 76%);
+      font-size: 0.62rem;
+      font-style: normal;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    @keyframes leetcode-achievement-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgb(250 204 21 / 44%);
+        transform: translateY(0) scale(1);
+      }
+
+      52% {
+        box-shadow:
+          0 0 0 0.38rem rgb(250 204 21 / 0%),
+          0 0.42rem 1.1rem rgb(217 119 87 / 16%);
+        transform: translateY(-1px) scale(1.035);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgb(250 204 21 / 0%);
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .leetcode-achievement-tip.is-pulse > button {
+        animation: none;
+      }
+
+      .leetcode-achievement-toast {
+        transition: none;
+      }
+    }
+
     .leetcode-toolbar .leetcode-search label,
     .leetcode-list-search label,
     .leetcode-toolbar .leetcode-page-size label {
@@ -12304,6 +14629,7 @@ const shortcutRows = [
     .leetcode-filter-group button,
     .leetcode-status button,
     .leetcode-preview-control,
+    .leetcode-share-control,
     .leetcode-pagination button {
       border: 1px solid var(--color-border);
       border-radius: 0.45rem;
@@ -13303,7 +15629,7 @@ const shortcutRows = [
 
     .leetcode-editor-highlight,
     .leetcode-editor-lines,
-    .leetcode-practice-panel textarea {
+    .leetcode-practice-panel textarea[data-editor-code] {
       box-sizing: border-box;
       height: 100%;
       min-height: 100%;
@@ -13347,7 +15673,7 @@ const shortcutRows = [
       color: var(--leetcode-editor-foreground);
     }
 
-    .leetcode-practice-panel textarea {
+    .leetcode-practice-panel textarea[data-editor-code] {
       position: relative;
       display: block;
       border: 0;
@@ -13369,7 +15695,7 @@ const shortcutRows = [
       resize: vertical;
     }
 
-    .leetcode-practice-panel textarea::selection {
+    .leetcode-practice-panel textarea[data-editor-code]::selection {
       background: var(--leetcode-editor-selection);
       color: var(--leetcode-editor-selection-foreground);
     }
@@ -13412,6 +15738,150 @@ const shortcutRows = [
       color: rgb(114 86 60 / 68%);
       font-size: 0.68rem;
       line-height: 1.35;
+    }
+
+    .leetcode-practice-actions button em {
+      color: var(--color-muted);
+      font-style: normal;
+      font-size: 0.64rem;
+    }
+
+    .leetcode-manual-cases {
+      display: grid;
+      gap: 0.44rem;
+      margin-top: 0.52rem;
+      border-top: 1px solid rgb(194 192 182 / 42%);
+      padding-top: 0.52rem;
+    }
+
+    .leetcode-manual-cases[hidden] {
+      display: none;
+    }
+
+    .leetcode-manual-case-head,
+    .leetcode-manual-case-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.32rem;
+    }
+
+    .leetcode-manual-case-head {
+      justify-content: space-between;
+    }
+
+    .leetcode-manual-case-head b {
+      color: #72563c;
+      font-size: 0.74rem;
+    }
+
+    .leetcode-manual-case-head span {
+      border: 1px solid rgb(217 119 87 / 28%);
+      border-radius: 999px;
+      color: var(--color-terracotta);
+      font-size: 0.64rem;
+      font-weight: 750;
+      padding: 0.06rem 0.34rem;
+    }
+
+    .leetcode-manual-cases textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 4.8rem;
+      border: 1px solid var(--leetcode-editor-border);
+      border-radius: 6px;
+      background: rgb(255 255 255 / 58%);
+      color: var(--leetcode-editor-foreground);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.76rem;
+      line-height: 1.5;
+      outline: 0;
+      padding: 0.58rem 0.68rem;
+      resize: vertical;
+      tab-size: 4;
+      white-space: pre;
+    }
+
+    .leetcode-manual-cases textarea:focus {
+      border-color: var(--leetcode-editor-focus);
+      box-shadow: 0 0 0 1px var(--leetcode-editor-focus);
+    }
+
+    .leetcode-manual-case-actions button,
+    .leetcode-manual-case-item button {
+      border: 1px solid var(--color-border);
+      border-radius: 0.38rem;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.68rem;
+      padding: 0.16rem 0.36rem;
+    }
+
+    .leetcode-manual-case-actions button:hover,
+    .leetcode-manual-case-item button:hover {
+      border-color: var(--color-terracotta);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-manual-case-status {
+      color: var(--color-muted);
+      font-size: 0.68rem;
+    }
+
+    .leetcode-manual-case-status[data-tone="success"] {
+      color: #168a77;
+      font-weight: 650;
+    }
+
+    .leetcode-manual-case-status[data-tone="error"] {
+      color: #d64242;
+      font-weight: 650;
+    }
+
+    .leetcode-manual-case-status[data-tone="pending"] {
+      color: #b77b00;
+      font-weight: 650;
+    }
+
+    .leetcode-manual-case-list {
+      display: grid;
+      gap: 0.36rem;
+    }
+
+    .leetcode-manual-case-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 0.36rem;
+    }
+
+    .leetcode-manual-case-empty {
+      color: var(--color-muted);
+      font-size: 0.68rem;
+    }
+
+    .leetcode-manual-case-item pre {
+      max-height: 7rem;
+      overflow: auto;
+      overflow-wrap: anywhere;
+      border: 1px solid var(--leetcode-editor-border);
+      border-radius: 6px;
+      background: rgb(255 255 255 / 58%);
+      color: var(--leetcode-editor-foreground);
+      font-family: var(--leetcode-code-font);
+      font-size: 0.74rem;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0.5rem 0.6rem;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 36rem) {
+      .leetcode-manual-case-item {
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
 
     .leetcode-submit-note [data-extension-download-link],
@@ -13626,6 +16096,25 @@ const shortcutRows = [
       color: var(--color-muted);
     }
 
+    html.dark .leetcode-manual-cases {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-manual-case-head b {
+      color: #d6b48c;
+    }
+
+    html.dark .leetcode-manual-cases textarea,
+    html.dark .leetcode-manual-case-item pre {
+      background: rgb(21 21 20 / 72%);
+    }
+
+    html.dark .leetcode-manual-case-actions button,
+    html.dark .leetcode-manual-case-item button {
+      border-color: #333;
+      background: rgb(255 255 255 / 4%);
+    }
+
     html.dark .leetcode-submit-detail-label {
       color: #d6b48c;
     }
@@ -13703,6 +16192,55 @@ const shortcutRows = [
     html.dark .leetcode-insight-popover > strong,
     html.dark .leetcode-insight-item b {
       color: var(--color-cream);
+    }
+
+    html.dark .leetcode-achievement-tip > button {
+      border-color: #333;
+      background:
+        linear-gradient(135deg, rgb(250 204 21 / 10%), rgb(76 201 240 / 7%)),
+        rgb(255 255 255 / 4%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-achievement-tip > button b,
+    html.dark .leetcode-achievement-popover > strong,
+    html.dark .leetcode-achievement-card b {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-achievement-popover {
+      border-color: #333;
+      background:
+        linear-gradient(135deg, rgb(22 22 20 / 98%), rgb(30 30 28 / 98%));
+      box-shadow: 0 1rem 2.4rem rgb(0 0 0 / 30%);
+    }
+
+    html.dark .leetcode-achievement-card {
+      background:
+        radial-gradient(
+          circle at 14% 16%,
+          color-mix(in srgb, var(--achievement-accent) 18%, transparent),
+          transparent 34%
+        ),
+        linear-gradient(145deg, var(--achievement-accent-soft), rgb(255 255 255 / 4%));
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+    }
+
+    html.dark .leetcode-achievement-card.is-hidden {
+      background:
+        linear-gradient(135deg, rgb(255 255 255 / 4%), transparent),
+        repeating-linear-gradient(
+          135deg,
+          rgb(148 163 184 / 7%) 0,
+          rgb(148 163 184 / 7%) 0.34rem,
+          transparent 0.34rem,
+          transparent 0.72rem
+        ),
+        rgb(255 255 255 / 3%);
+    }
+
+    html.dark .leetcode-achievement-bar {
+      background: rgb(255 255 255 / 10%);
     }
 
     html.dark .leetcode-session-metric {
@@ -13909,16 +16447,152 @@ const shortcutRows = [
     }
 
     .leetcode-status button,
-    .leetcode-preview-control {
+    .leetcode-preview-control,
+    .leetcode-share-control {
       font-size: 0.72rem;
       padding: 0.22rem 0.3rem;
     }
 
-    .leetcode-preview-control {
+    .leetcode-preview-control,
+    .leetcode-share-control {
       display: inline-flex;
       align-items: center;
       position: relative;
       line-height: 1.15;
+    }
+
+    .leetcode-share-control {
+      width: 1.34rem;
+      height: 1.08rem;
+      border: 0;
+      border-radius: 0.18rem;
+      background: transparent;
+      justify-content: center;
+      min-width: 1.34rem;
+      color: var(--color-muted);
+      font-weight: 800;
+      padding: 0;
+    }
+
+    .leetcode-share-icon {
+      width: 1.22rem;
+      height: 1rem;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 4;
+      pointer-events: none;
+    }
+
+    .leetcode-share-status {
+      align-self: center;
+      color: var(--color-terracotta);
+      font-family: var(--leetcode-page-font);
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .leetcode-share-control:hover {
+      background: transparent;
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-share-toast {
+      position: fixed;
+      right: max(1rem, calc((100vw - 72rem) / 2 + 1rem));
+      bottom: 1rem;
+      z-index: 80;
+      box-sizing: border-box;
+      width: min(34rem, calc(100vw - 2rem));
+      border: 1px solid rgb(217 119 87 / 36%);
+      border-radius: 0.55rem;
+      background: rgb(255 252 242 / 98%);
+      box-shadow: 0 18px 48px rgb(20 20 19 / 18%);
+      color: var(--color-secondary);
+      opacity: 0;
+      padding: 0.78rem;
+      pointer-events: none;
+      transform: translateY(0.55rem);
+      transition:
+        opacity 150ms ease,
+        transform 150ms ease;
+    }
+
+    .leetcode-share-toast[hidden] {
+      display: none;
+    }
+
+    .leetcode-share-toast::before {
+      content: "";
+      position: absolute;
+      left: var(--share-toast-arrow-left, 1.6rem);
+      top: -0.34rem;
+      width: 0.62rem;
+      height: 0.62rem;
+      border-top: 1px solid rgb(217 119 87 / 36%);
+      border-left: 1px solid rgb(217 119 87 / 36%);
+      background: rgb(255 252 242 / 98%);
+      transform: translateX(-50%) rotate(45deg);
+    }
+
+    .leetcode-share-toast[data-placement="above"] {
+      transform: translateY(-0.55rem);
+    }
+
+    .leetcode-share-toast[data-placement="above"]::before {
+      top: auto;
+      bottom: -0.34rem;
+      border: 0;
+      border-right: 1px solid rgb(217 119 87 / 36%);
+      border-bottom: 1px solid rgb(217 119 87 / 36%);
+    }
+
+    .leetcode-share-toast[data-placement="fallback"]::before {
+      display: none;
+    }
+
+    .leetcode-share-toast.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .leetcode-share-toast-head {
+      display: grid;
+      gap: 0.12rem;
+      margin-bottom: 0.55rem;
+    }
+
+    .leetcode-share-toast-head strong {
+      color: var(--color-terracotta);
+      font-size: 0.82rem;
+      line-height: 1.2;
+    }
+
+    .leetcode-share-toast-head em {
+      color: var(--color-muted);
+      font-size: 0.7rem;
+      font-style: normal;
+      line-height: 1.25;
+    }
+
+    .leetcode-share-toast pre {
+      max-height: min(12rem, 38vh);
+      overflow: auto;
+      border: 1px solid rgb(194 192 182 / 54%);
+      border-radius: 0.42rem;
+      background: rgb(255 255 255 / 62%);
+      color: var(--color-primary);
+      font-family: var(--leetcode-page-font);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      margin: 0;
+      overflow-wrap: anywhere;
+      padding: 0.62rem 0.7rem;
+      white-space: pre-wrap;
     }
 
     .leetcode-preview-control::after,
@@ -14268,7 +16942,8 @@ const shortcutRows = [
       display: block;
     }
 
-    .leetcode-preview-control:focus-visible {
+    .leetcode-preview-control:focus-visible,
+    .leetcode-share-control:focus-visible {
       outline: 2px solid rgb(217 119 87 / 45%);
       outline-offset: 2px;
     }
@@ -14277,6 +16952,24 @@ const shortcutRows = [
       border-color: #333;
       background: var(--color-dark-surface);
       color: var(--color-muted);
+    }
+
+    html.dark .leetcode-share-toast {
+      border-color: #333;
+      background: var(--color-dark-surface);
+      box-shadow: 0 18px 48px rgb(0 0 0 / 36%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-share-toast::before {
+      border-color: #333;
+      background: var(--color-dark-surface);
+    }
+
+    html.dark .leetcode-share-toast pre {
+      border-color: #333;
+      background: rgb(21 21 20 / 72%);
+      color: var(--color-cream);
     }
 
     html.dark .leetcode-popover-section {

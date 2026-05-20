@@ -3,6 +3,22 @@
 This changelog tracks user-facing changes to the LeetCode practice page and
 its Chrome extension workflow.
 
+## 2026-05-20
+
+### Added
+
+- Direct practice links with `problem=<titleSlug>` or `id=<frontendId>`. Opening
+  one clears local filters, jumps to that problem, opens the practice editor,
+  and preserves any existing local draft.
+- A curved-arrow share action beside each problem row's preview controls that
+  copies a randomized challenge invitation plus the direct problem link and
+  shows the full copied text in a temporary notice anchored near the share
+  action. The notice auto-dismisses and also closes on the next page click.
+  The Chinese invitation pool now uses handwritten friend-to-friend copy with
+  recent-tone avoidance.
+- A manual extra-case panel in each open practice editor for saving, reviewing,
+  deleting, and clearing testcases that should run with the official examples.
+
 ## 2026-05-18
 
 ### Added

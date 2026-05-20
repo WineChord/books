@@ -258,6 +258,21 @@ scroll position, editor selection, and editor internal scroll position. If
 synced problem data changes and a saved problem is no longer visible under the
 saved filters, the page falls back to the matching filtered list without
 opening an editor.
+Direct practice links override that saved view. A URL with `?problem=<slug>` or
+`?id=<frontendId>` clears local search and filters, jumps to the matching
+problem's page, opens its practice panel, and focuses the local editor. The
+link never resets or replaces an existing local draft; it only chooses which
+problem to open. If the URL target is unknown, the page keeps the saved local
+view. Each problem row exposes a compact curved-arrow share action beside the
+preview controls. It copies a randomized invitation message plus the
+current-language `problem=<titleSlug>` URL, then shows the full copied text in
+a temporary notice anchored near the share action. The notice disappears after
+a short delay or on the next page click, so the pasted text can invite another
+person to open the same problem directly. The Chinese invitation pool uses
+handwritten, playful friend-to-friend copy across several tones such as asking
+for help, teasing, pretending to be stuck, inviting a shared solve, and asking
+for an AC demo. The picker avoids reusing the most recent tones so repeated
+shares feel less repetitive.
 When a practice editor is open, the cleaned local problem statement is rendered
 as normal page UI directly above the code editor. It is on by default, uses a
 moderate reading size rather than code comments, and can be collapsed or shown
@@ -417,6 +432,20 @@ combo increments, to milestone counts, to very prominent new-record
 celebrations. Reduced-motion users should receive a quieter static cue instead
 of heavy particle animation.
 
+The badge wall counts only full LeetCode submissions initiated from this page,
+and only after LeetCode returns Accepted. Manual Done, Review, and Mastered
+state, passed sample runs, opened problem links, and historical LeetCode
+submissions do not count. Badge unlocks are also written to the same IndexedDB
+event log as `achievement-unlocked` events. The page derives badge progress
+from real submit, timing, topic-tag, and one-shot projections, then appends an
+unlock event for any completed badge that has not been recorded yet. The badge
+entry sits after the search field as a compact button; hover, focus, or click
+opens a game-style badge wall. Ordinary locked badges show their title, progress,
+and condition. Hidden locked badges render as `???` with only a vague hint, and
+show their real title and description only after unlock. Unlock feedback must be
+limited to a non-blocking toast or button pulse; it must not steal editor focus
+or change the problem-list layout.
+
 Full submissions and official-example runs made through this page also append
 to a separate local submission-stat store. The store does not import historical
 LeetCode records; it only records actions initiated from the local editor after
@@ -496,6 +525,11 @@ shows the failing testcase, actual output, expected output, and compile or
 runtime diagnostics below the status line, then stores that testcase as an
 extra run case for the same problem unless the same normalized testcase is
 already saved.
+The open editor also lets the user type an extra testcase manually, inspect the
+saved extra cases for that problem, remove a single saved case, or clear the
+problem's extra cases. Manual cases use the same normalized local store as
+failed-submit cases and are sent only with the next sample run, never with a
+full submit.
 Extra run cases reset on the next Beijing calendar day, so daily practice
 starts from the official examples again.
 The page footer also keeps always-visible links to the GitHub repository,
