@@ -9305,6 +9305,8 @@ const shortcutRows = [
     ) {
       const labels = runResultLabels();
       const includeCaseOutputs = options.includeCaseOutputs !== false;
+      const includeStandardOutput =
+        options.includeStandardOutput !== false;
       const details = [
         [labels.compileError, submissionDetailValue(result?.compileError)],
         [labels.runtimeError, submissionDetailValue(result?.runtimeError)],
@@ -9318,7 +9320,7 @@ const shortcutRows = [
           submissionDetailValue(result?.expectedOutput),
         ]);
       }
-      if (includeCaseOutputs && !consumed.standardOutput) {
+      if (includeStandardOutput && !consumed.standardOutput) {
         details.push([
           labels.standardOutput,
           submissionDetailValue(submissionStandardOutput(result)),
