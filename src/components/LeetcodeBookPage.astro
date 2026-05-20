@@ -3865,7 +3865,9 @@ const shortcutRows = [
 
     function rareOneShotLine(streak, isRecord) {
       const rareZh = [
-        [3, "三连 AC，节奏开始有内味了。"],
+        [1, ["一破！卧龙出山"]],
+        [2, ["二破！一战成名"]],
+        [3, ["三连 AC，节奏开始有内味了。", "三连，举世皆惊"]],
         [5, "五连到手，手感已经接管方向盘。"],
         [7, "七连斩，节奏已经进后台常驻。"],
         [8, "八题连过，今天的手感开始发烫。"],
@@ -3908,7 +3910,12 @@ const shortcutRows = [
       ];
       const rare = isChinesePage ? rareZh : rareEn;
       const exact = rare.find(([value]) => value === streak);
-      if (exact) return exact[1];
+      if (exact) {
+        const [, lineOrLines] = exact;
+        return randomItem(
+          Array.isArray(lineOrLines) ? lineOrLines : [lineOrLines],
+        );
+      }
       if (isRecord && streak > 1 && streak % 11 === 0) {
         return isChinesePage
           ? `${streak} 连击，新纪录还带隐藏刻度，太顶了。`
