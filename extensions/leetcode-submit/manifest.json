@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WineChord Books LeetCode Submit",
   "description": "Submits code from WineChord Books LeetCode pages to leetcode.cn.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "permissions": ["cookies", "declarativeNetRequestWithHostAccess"],
   "host_permissions": [
     "https://leetcode.cn/*",

@@ -26,6 +26,16 @@ const officialTestcaseSource = "official";
 const extraTestcaseSource = "extra";
 const defaultTestcaseParameterName = "input";
 const testcaseParameterPrefix = "arg";
+const stdoutPayloadKeys = [
+  "std_output_list",
+  "std_output",
+  "standard_output",
+  "standardOutput",
+  "stdout",
+  "stdOut",
+  "console_output",
+  "consoleOutput",
+];
 const extensionCapabilities = [
   checkRequestType,
   runRequestType,
@@ -483,6 +493,11 @@ function firstSubmissionDetail(...values) {
   return values.find(hasSubmissionDetail) ?? "";
 }
 
+function firstPayloadDetail(payload, keys) {
+  if (!payload || typeof payload !== "object") return "";
+  return firstSubmissionDetail(...keys.map((key) => payload[key]));
+}
+
 function legacyCorrectAnswerValue(payload) {
   const value = payload?.correct_answer;
   return typeof value === "boolean" ? "" : value;
@@ -491,10 +506,7 @@ function legacyCorrectAnswerValue(payload) {
 function normalizeSubmission(payload, submissionId) {
   const codeAnswer = firstSubmissionDetail(payload?.code_answer);
   const codeOutput = firstSubmissionDetail(payload?.code_output);
-  const stdout = firstSubmissionDetail(
-    payload?.std_output_list,
-    payload?.std_output,
-  );
+  const stdout = firstPayloadDetail(payload, stdoutPayloadKeys);
   return {
     compileError: payload?.compile_error || payload?.full_compile_error || "",
     expectedOutput: firstSubmissionDetail(

@@ -1479,6 +1479,16 @@ const shortcutRows = [
     const extensionExtraRunTestcasesCapability = "extra-run-testcases";
     const extensionGroupedRunTestcasesCapability = "grouped-run-testcases";
     const extensionRunOutputDetailsCapability = "run-output-details";
+    const standardOutputPayloadKeys = [
+      "std_output_list",
+      "std_output",
+      "standard_output",
+      "standardOutput",
+      "stdout",
+      "stdOut",
+      "console_output",
+      "consoleOutput",
+    ];
     const leetcodeRequestTimeoutCode = "leetcode_request_timeout";
     const unsupportedRequestTypeCode = "unsupported_request_type";
     const extensionProbeFailedCode = "extension_probe_failed";
@@ -9053,6 +9063,30 @@ const shortcutRows = [
       return meaningfulSubmissionValue(value);
     }
 
+    function hasSubmissionDetail(value) {
+      if (value === null || value === undefined) return false;
+      if (Array.isArray(value)) return value.some(hasSubmissionDetail);
+      if (typeof value === "string") return value.trim() !== "";
+      return true;
+    }
+
+    function firstSubmissionDetail(...values) {
+      return values.find(hasSubmissionDetail) ?? "";
+    }
+
+    function rawSubmissionDetail(result, keys) {
+      const raw = result?.raw;
+      if (!raw || typeof raw !== "object") return "";
+      return firstSubmissionDetail(...keys.map((key) => raw[key]));
+    }
+
+    function submissionStandardOutput(result) {
+      return firstSubmissionDetail(
+        result?.standardOutput,
+        rawSubmissionDetail(result, standardOutputPayloadKeys),
+      );
+    }
+
     function submissionFailureDetails(result) {
       const labels = isChinesePage
         ? {
@@ -9077,7 +9111,10 @@ const shortcutRows = [
         [labels.input, submissionDetailValue(result?.input)],
         [labels.output, submissionDetailValue(result?.output)],
         [labels.expectedOutput, submissionDetailValue(result?.expectedOutput)],
-        [labels.standardOutput, submissionDetailValue(result?.standardOutput)],
+        [
+          labels.standardOutput,
+          submissionDetailValue(submissionStandardOutput(result)),
+        ],
       ].filter(([, value]) => value);
     }
 
@@ -9207,7 +9244,10 @@ const shortcutRows = [
       const caseCount = cases.length;
       const outputs = detailValuesForCases(result?.output, caseCount);
       const expectedOutputs = detailValuesForCases(result?.expectedOutput, caseCount);
-      const standardOutputs = detailValuesForCases(result?.standardOutput, caseCount);
+      const standardOutputs = detailValuesForCases(
+        submissionStandardOutput(result),
+        caseCount,
+      );
       const consumed = {
         expectedOutput: expectedOutputs.length === caseCount,
         output: outputs.length === caseCount,
@@ -9281,7 +9321,7 @@ const shortcutRows = [
       if (includeCaseOutputs && !consumed.standardOutput) {
         details.push([
           labels.standardOutput,
-          submissionDetailValue(result?.standardOutput),
+          submissionDetailValue(submissionStandardOutput(result)),
         ]);
       }
       return details.filter(([, value]) => value);
