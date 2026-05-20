@@ -34,6 +34,10 @@ import {
   leetcodeProblemStatementHtml,
 } from "../data/leetcode-problem-math";
 import {
+  leetcodeProblemStatementAssets,
+  leetcodeProblemStatementAssetStats,
+} from "../data/leetcode-problem-assets";
+import {
   leetcodeRelatedQuestionStats,
   leetcodeRelatedQuestions,
 } from "../data/leetcode-related";
@@ -430,6 +434,8 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
     constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
     statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
+    statementAssets:
+      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -465,6 +471,8 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
     constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
     statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
+    statementAssets:
+      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
     followUps: problem.followUps ?? [],
   }));
 const mergedLeetcodeProblems = [
@@ -1300,6 +1308,11 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeProblemMathStats.mathFragments} 处数学片段已预渲染`
           : `${leetcodeProblemMathStats.mathFragments} math fragments prerendered`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeProblemStatementAssetStats.withAssets} 道题官方图片或表格已同步`
+          : `${leetcodeProblemStatementAssetStats.withAssets} problems with official images or tables synced`}
       </span>
     </div>
 
@@ -11833,10 +11846,32 @@ const shortcutRows = [
       }</p>`;
     }
 
+    function renderProblemStatementAssets(problem) {
+      const assets = Array.isArray(problem.statementAssets)
+        ? problem.statementAssets.filter((asset) => asset?.html)
+        : [];
+      if (!assets.length) return "";
+      return `
+        <div class="leetcode-statement-assets">
+          ${assets
+            .map((asset) => {
+              const type = asset.type === "table" ? "table" : "image";
+              return `
+                <figure class="leetcode-statement-asset is-${type}">
+                  ${asset.html}
+                </figure>
+              `;
+            })
+            .join("")}
+        </div>
+      `;
+    }
+
     function renderProblemStatementPanel(problem) {
       const slug = escapeHtml(problem.titleSlug);
       const hiddenClass = editorStatementPanelVisible ? "" : " is-hidden";
       const body = renderProblemStatementBody(problem);
+      const assets = renderProblemStatementAssets(problem);
       const constraints = renderProblemConstraints(problem);
       return `
         <div class="leetcode-statement-panel${hiddenClass}" data-statement-panel="${slug}">
@@ -11859,6 +11894,7 @@ const shortcutRows = [
             </div>
             <div class="leetcode-statement-body">
               ${body}
+              ${assets}
               ${constraints}
             </div>
           </div>
@@ -15425,6 +15461,55 @@ const shortcutRows = [
       font-size: inherit;
       line-height: inherit;
       margin: 0;
+    }
+
+    .leetcode-statement-assets {
+      display: grid;
+      gap: 0.52rem;
+      margin: 0.1rem 0;
+    }
+
+    .leetcode-statement-asset {
+      margin: 0;
+      min-width: 0;
+    }
+
+    .leetcode-statement-asset.is-image img {
+      display: block;
+      height: auto;
+      max-width: 100%;
+      object-fit: contain;
+    }
+
+    .leetcode-statement-asset.is-table {
+      overflow-x: auto;
+    }
+
+    .leetcode-statement-asset table {
+      min-width: min(100%, 32rem);
+      border-collapse: collapse;
+      color: inherit;
+      font-family: var(--leetcode-page-font);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .leetcode-statement-asset th,
+    .leetcode-statement-asset td {
+      border: 1px solid rgb(194 192 182 / 70%);
+      padding: 0.24rem 0.38rem;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .leetcode-statement-asset th {
+      color: var(--color-charcoal);
+      font-weight: 700;
+    }
+
+    .leetcode-statement-asset code {
+      font-family: var(--leetcode-code-font);
+      font-size: 0.88em;
     }
 
     .leetcode-statement-body .katex,

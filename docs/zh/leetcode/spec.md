@@ -79,6 +79,13 @@ KaTeX 预渲染后的静态 HTML 写入
 页面只读取这份已转义的生成 HTML，并全局引入 KaTeX CSS。
 发布题面或数学相关改动前，`npm run check:leetcode-math` 必须通过。
 
+官方题面视觉片段通过 `npm run sync:leetcode-statement-assets` 生成。脚本读取
+同一份合并后的题目列表，从力扣中国区官方题面 HTML 抽取并清洗图片，以及示例
+或数据范围之前出现的表结构类表格，写入
+`src/data/leetcode-problem-assets.ts`。页面只在展开后的答题区题面里渲染这些
+静态片段；题目标题 hover 预览保持纯文本，页面运行时不向力扣 API 请求题面
+资产元数据。
+
 官方相关题也通过本地同步脚本生成。脚本命令是
 `npm run sync:leetcode-related`，会对 Top888、Hot100 和字节补充题逐题
 读取力扣中国区公开 GraphQL 的 `question.similarQuestions` 字段，并把静态

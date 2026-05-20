@@ -17,6 +17,7 @@
     "sync:leetcode-templates": "node scripts/sync-leetcode-templates.mjs",
     "sync:leetcode-constraints": "node scripts/sync-leetcode-constraints.mjs",
     "sync:leetcode-math": "node scripts/sync-leetcode-math.mjs",
+    "sync:leetcode-statement-assets": "node scripts/sync-leetcode-statement-assets.mjs",
     "sync:leetcode-bytedance": "node scripts/sync-leetcode-bytedance.mjs",
     "sync:leetcode-implementations": "node scripts/sync-leetcode-implementations.mjs",
     "verify": "npm run check:content && npm run check:visual-spec && npm run check:leetcode-math && npm run check:leetcode-implementations && npm run build && npm run check:dist"

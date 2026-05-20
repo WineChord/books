@@ -18,6 +18,9 @@ its Chrome extension workflow.
   recent-tone avoidance.
 - A manual extra-case panel in each open practice editor for saving, reviewing,
   deleting, and clearing testcases that should run with the official examples.
+- Official statement images and pre-example schema tables in the opened local
+  statement panel, synced into static data from LeetCode China's statement
+  HTML.
 
 ## 2026-05-18
 
