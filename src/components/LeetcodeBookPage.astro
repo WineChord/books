@@ -9196,6 +9196,7 @@ const shortcutRows = [
     function runResultLabels() {
       return isChinesePage
         ? {
+            allCaseStandardOutput: "全部用例 stdout",
             compileError: "编译错误",
             expectedOutput: "期望输出",
             output: "实际输出",
@@ -9205,6 +9206,7 @@ const shortcutRows = [
             failed: "未通过",
           }
         : {
+            allCaseStandardOutput: "All cases stdout",
             compileError: "Compile error",
             expectedOutput: "Expected output",
             output: "Actual output",
@@ -9307,6 +9309,9 @@ const shortcutRows = [
       const includeCaseOutputs = options.includeCaseOutputs !== false;
       const includeStandardOutput =
         options.includeStandardOutput !== false;
+      const standardOutputLabel = options.allCaseStandardOutput
+        ? labels.allCaseStandardOutput
+        : labels.standardOutput;
       const details = [
         [labels.compileError, submissionDetailValue(result?.compileError)],
         [labels.runtimeError, submissionDetailValue(result?.runtimeError)],
@@ -9322,7 +9327,7 @@ const shortcutRows = [
       }
       if (includeStandardOutput && !consumed.standardOutput) {
         details.push([
-          labels.standardOutput,
+          standardOutputLabel,
           submissionDetailValue(submissionStandardOutput(result)),
         ]);
       }
@@ -9346,7 +9351,10 @@ const shortcutRows = [
         ...standaloneRunResultDetails(
           result,
           enriched.consumed,
-          { includeCaseOutputs: false },
+          {
+            allCaseStandardOutput: true,
+            includeCaseOutputs: false,
+          },
         ),
       ];
     }
