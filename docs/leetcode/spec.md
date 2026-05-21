@@ -441,19 +441,22 @@ combo increments, to milestone counts, to very prominent new-record
 celebrations. Reduced-motion users should receive a quieter static cue instead
 of heavy particle animation.
 
-The badge wall counts only full LeetCode submissions initiated from this page,
-and only after LeetCode returns Accepted. Manual Done, Review, and Mastered
-state, passed sample runs, opened problem links, and historical LeetCode
-submissions do not count. Badge unlocks are also written to the same IndexedDB
-event log as `achievement-unlocked` events. The page derives badge progress
-from real submit, timing, topic-tag, and one-shot projections, then appends an
-unlock event for any completed badge that has not been recorded yet. The badge
-entry sits after the search field as a compact button; hover, focus, or click
-opens a game-style badge wall. Ordinary locked badges show their title, progress,
-and condition. Hidden locked badges render as `???` with only a vague hint, and
-show their real title and description only after unlock. Unlock feedback must be
-limited to a non-blocking toast or button pulse; it must not steal editor focus
-or change the problem-list layout.
+The badge wall has 99 badges and counts only full LeetCode submissions initiated
+from this page, and only after LeetCode returns Accepted. Manual Done, Review,
+and Mastered state, passed sample runs, opened problem links, and historical
+LeetCode submissions do not count. Badge unlocks are also written to the same
+IndexedDB event log as `achievement-unlocked` events. The page derives badge
+progress from real submit, timing, topic-tag, and one-shot projections, then
+appends an unlock event for any completed badge that has not been recorded yet.
+The badge entry sits after the search field as a compact button; hover, focus,
+or click opens a game-style badge wall. Ordinary locked badges show their title,
+progress, and condition. Hidden locked badges render as `???` with only a vague
+hint, and show their real title and description only after unlock. Unlock
+feedback must be limited to a non-blocking toast or button pulse; it must not
+steal editor focus or change the problem-list layout. Endgame badges should
+cover extremely difficult goals such as every problem Accepted, every difficulty
+completed, a full-year Accepted streak, a hundred-problem day, and complete
+topic tracks.
 
 Full submissions and official-example runs made through this page also append
 to a separate local submission-stat store. The store does not import historical

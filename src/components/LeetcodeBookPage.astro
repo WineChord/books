@@ -5644,6 +5644,7 @@ const shortcutRows = [
             "Keep submitting from this page and getting real Accepted results.",
           ),
         progress,
+        relockWhenIncomplete: Boolean(options.relockWhenIncomplete),
         target,
         tier,
         title,
@@ -5661,6 +5662,57 @@ const shortcutRows = [
       streak: achievementLabel("连续", "Streak"),
       tag: achievementLabel("专项", "Topic"),
     };
+
+    function achievementTagAcceptedCount(context, ...slugs) {
+      const targetSlugs = new Set(slugs);
+      let count = 0;
+      context.acceptedProblemSlugs.forEach((slug) => {
+        const problem = problemBySlug.get(slug);
+        if (!problem) return;
+        const matched = (problem.tags || []).some((tag) => {
+          return targetSlugs.has(tag.slug);
+        });
+        if (matched) count += 1;
+      });
+      return count;
+    }
+
+    function achievementTagProblemTarget(...slugs) {
+      const targetSlugs = new Set(slugs);
+      const count = problems.filter((problem) => {
+        return (problem.tags || []).some((tag) => targetSlugs.has(tag.slug));
+      }).length;
+      return Math.max(1, count);
+    }
+
+    const allProblemAchievementTarget = Math.max(1, maxPageSize);
+    const byteDanceProblemAchievementTarget = Math.max(
+      1,
+      problems.filter((problem) => problem.bytedance).length,
+    );
+    const easyProblemAchievementTarget = Math.max(
+      1,
+      problems.filter((problem) => difficultyIndex(problem) === 0).length,
+    );
+    const mediumProblemAchievementTarget = Math.max(
+      1,
+      problems.filter((problem) => difficultyIndex(problem) === 1).length,
+    );
+    const hardProblemAchievementTarget = Math.max(
+      1,
+      problems.filter((problem) => difficultyIndex(problem) === 2).length,
+    );
+    const arrayTagAchievementTarget = achievementTagProblemTarget("array");
+    const stringTagAchievementTarget = achievementTagProblemTarget("string");
+    const hashTableTagAchievementTarget =
+      achievementTagProblemTarget("hash-table");
+    const greedyTagAchievementTarget = achievementTagProblemTarget("greedy");
+    const sortingTagAchievementTarget = achievementTagProblemTarget("sorting");
+    const stackTagAchievementTarget = achievementTagProblemTarget("stack");
+    const heapTagAchievementTarget =
+      achievementTagProblemTarget("heap-priority-queue");
+    const linkedListTagAchievementTarget =
+      achievementTagProblemTarget("linked-list");
 
     const achievementDefinitions = [
       achievementDefinition(
@@ -5736,6 +5788,43 @@ const shortcutRows = [
         (context) => context.acceptedProblemCount,
       ),
       achievementDefinition(
+        "accepted-300",
+        "main",
+        "mythic",
+        300,
+        achievementLabel("三百题主干", "Three-hundred trunk"),
+        achievementLabel(
+          "累计 300 道真实 AC 题。",
+          "Reach 300 unique real Accepted problems.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "accepted-500",
+        "main",
+        "mythic",
+        500,
+        achievementLabel("五百题长跑", "Five-hundred run"),
+        achievementLabel(
+          "累计 500 道真实 AC 题。",
+          "Reach 500 unique real Accepted problems.",
+        ),
+        (context) => context.acceptedProblemCount,
+      ),
+      achievementDefinition(
+        "accepted-all",
+        "main",
+        "mythic",
+        allProblemAchievementTarget,
+        achievementLabel("题册全 AC", "Whole book accepted"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部题目。",
+          "Get real Accepted results for every problem in this book.",
+        ),
+        (context) => context.acceptedProblemCount,
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
         "hot100-1",
         "hot100",
         "bronze",
@@ -5784,6 +5873,18 @@ const shortcutRows = [
         (context) => context.hot100AcceptedCount,
       ),
       achievementDefinition(
+        "hot100-75",
+        "hot100",
+        "mythic",
+        75,
+        achievementLabel("Hot100 三季", "Hot100 three quarters"),
+        achievementLabel(
+          "真实 AC 75 道 Hot100 题。",
+          "Get 75 real Accepted Hot100 problems.",
+        ),
+        (context) => context.hot100AcceptedCount,
+      ),
+      achievementDefinition(
         "hot100-100",
         "hot100",
         "mythic",
@@ -5820,6 +5921,18 @@ const shortcutRows = [
         (context) => context.byteDanceAcceptedCount,
       ),
       achievementDefinition(
+        "bytedance-25",
+        "route",
+        "silver",
+        25,
+        achievementLabel("字节二十五题", "ByteDance twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道字节题库题。",
+          "Get 25 real Accepted ByteDance problems.",
+        ),
+        (context) => context.byteDanceAcceptedCount,
+      ),
+      achievementDefinition(
         "bytedance-50",
         "route",
         "gold",
@@ -5842,6 +5955,31 @@ const shortcutRows = [
           "Get 100 real Accepted ByteDance problems.",
         ),
         (context) => context.byteDanceAcceptedCount,
+      ),
+      achievementDefinition(
+        "bytedance-200",
+        "route",
+        "mythic",
+        200,
+        achievementLabel("字节两百题", "ByteDance two hundred"),
+        achievementLabel(
+          "真实 AC 200 道字节题库题。",
+          "Get 200 real Accepted ByteDance problems.",
+        ),
+        (context) => context.byteDanceAcceptedCount,
+      ),
+      achievementDefinition(
+        "bytedance-all",
+        "route",
+        "mythic",
+        byteDanceProblemAchievementTarget,
+        achievementLabel("字节题库全 AC", "ByteDance complete"),
+        achievementLabel(
+          "真实 AC 当前题册里全部字节题库题。",
+          "Get real Accepted results for every ByteDance problem in this book.",
+        ),
+        (context) => context.byteDanceAcceptedCount,
+        { relockWhenIncomplete: true },
       ),
       achievementDefinition(
         "day-3",
@@ -5888,6 +6026,42 @@ const shortcutRows = [
         achievementLabel(
           "单个北京时间自然日真实 AC 32 道不同题。",
           "Get 32 unique real Accepted problems in one Beijing day.",
+        ),
+        (context) => context.bestDayUnique,
+      ),
+      achievementDefinition(
+        "day-50",
+        "daily",
+        "mythic",
+        50,
+        achievementLabel("五十题日", "Fifty-problem day"),
+        achievementLabel(
+          "单个北京时间自然日真实 AC 50 道不同题。",
+          "Get 50 unique real Accepted problems in one Beijing day.",
+        ),
+        (context) => context.bestDayUnique,
+      ),
+      achievementDefinition(
+        "day-75",
+        "daily",
+        "mythic",
+        75,
+        achievementLabel("七十五题日", "Seventy-five day"),
+        achievementLabel(
+          "单个北京时间自然日真实 AC 75 道不同题。",
+          "Get 75 unique real Accepted problems in one Beijing day.",
+        ),
+        (context) => context.bestDayUnique,
+      ),
+      achievementDefinition(
+        "day-100",
+        "daily",
+        "mythic",
+        100,
+        achievementLabel("百题单日", "Hundred-problem day"),
+        achievementLabel(
+          "单个北京时间自然日真实 AC 100 道不同题。",
+          "Get 100 unique real Accepted problems in one Beijing day.",
         ),
         (context) => context.bestDayUnique,
       ),
@@ -5940,6 +6114,42 @@ const shortcutRows = [
         (context) => context.dayStreak,
       ),
       achievementDefinition(
+        "streak-60",
+        "streak",
+        "mythic",
+        60,
+        achievementLabel("六十日链路", "Sixty-day line"),
+        achievementLabel(
+          "连续 60 个北京时间自然日都有真实 AC。",
+          "Get at least one real Accepted result for 60 Beijing days in a row.",
+        ),
+        (context) => context.dayStreak,
+      ),
+      achievementDefinition(
+        "streak-100",
+        "streak",
+        "mythic",
+        100,
+        achievementLabel("百日不断线", "Hundred-day line"),
+        achievementLabel(
+          "连续 100 个北京时间自然日都有真实 AC。",
+          "Get at least one real Accepted result for 100 Beijing days in a row.",
+        ),
+        (context) => context.dayStreak,
+      ),
+      achievementDefinition(
+        "streak-365",
+        "streak",
+        "mythic",
+        365,
+        achievementLabel("全年不断档", "Full-year line"),
+        achievementLabel(
+          "连续 365 个北京时间自然日都有真实 AC。",
+          "Get at least one real Accepted result for 365 Beijing days in a row.",
+        ),
+        (context) => context.dayStreak,
+      ),
+      achievementDefinition(
         "one-shot-3",
         "oneShot",
         "bronze",
@@ -5988,6 +6198,18 @@ const shortcutRows = [
         (context) => context.oneShotBest,
       ),
       achievementDefinition(
+        "one-shot-30",
+        "oneShot",
+        "mythic",
+        30,
+        achievementLabel("一遍过三十连", "One-shot thirty"),
+        achievementLabel(
+          "北京时间当日或历史最高一遍过 AC 连击达到 30。",
+          "Reach a best one-shot Accepted combo of 30.",
+        ),
+        (context) => context.oneShotBest,
+      ),
+      achievementDefinition(
         "one-shot-50",
         "oneShot",
         "mythic",
@@ -5996,6 +6218,18 @@ const shortcutRows = [
         achievementLabel(
           "北京时间当日或历史最高一遍过 AC 连击达到 50。",
           "Reach a best one-shot Accepted combo of 50.",
+        ),
+        (context) => context.oneShotBest,
+      ),
+      achievementDefinition(
+        "one-shot-100",
+        "oneShot",
+        "mythic",
+        100,
+        achievementLabel("一遍过百连", "One-shot hundred"),
+        achievementLabel(
+          "北京时间当日或历史最高一遍过 AC 连击达到 100。",
+          "Reach a best one-shot Accepted combo of 100.",
         ),
         (context) => context.oneShotBest,
       ),
@@ -6010,6 +6244,43 @@ const shortcutRows = [
           "Get 10 real Accepted Easy problems.",
         ),
         (context) => context.easyAcceptedCount,
+      ),
+      achievementDefinition(
+        "easy-25",
+        "difficulty",
+        "silver",
+        25,
+        achievementLabel("简单题二十五", "Easy twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道简单题。",
+          "Get 25 real Accepted Easy problems.",
+        ),
+        (context) => context.easyAcceptedCount,
+      ),
+      achievementDefinition(
+        "easy-100",
+        "difficulty",
+        "gold",
+        100,
+        achievementLabel("简单题百题", "Easy hundred"),
+        achievementLabel(
+          "真实 AC 100 道简单题。",
+          "Get 100 real Accepted Easy problems.",
+        ),
+        (context) => context.easyAcceptedCount,
+      ),
+      achievementDefinition(
+        "easy-all",
+        "difficulty",
+        "mythic",
+        easyProblemAchievementTarget,
+        achievementLabel("简单题全 AC", "Easy complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部简单题。",
+          "Get real Accepted results for every Easy problem in this book.",
+        ),
+        (context) => context.easyAcceptedCount,
+        { relockWhenIncomplete: true },
       ),
       achievementDefinition(
         "medium-25",
@@ -6036,6 +6307,43 @@ const shortcutRows = [
         (context) => context.mediumAcceptedCount,
       ),
       achievementDefinition(
+        "medium-100",
+        "difficulty",
+        "gold",
+        100,
+        achievementLabel("中等题百题", "Medium hundred"),
+        achievementLabel(
+          "真实 AC 100 道中等题。",
+          "Get 100 real Accepted Medium problems.",
+        ),
+        (context) => context.mediumAcceptedCount,
+      ),
+      achievementDefinition(
+        "medium-200",
+        "difficulty",
+        "mythic",
+        200,
+        achievementLabel("中等题两百", "Medium two hundred"),
+        achievementLabel(
+          "真实 AC 200 道中等题。",
+          "Get 200 real Accepted Medium problems.",
+        ),
+        (context) => context.mediumAcceptedCount,
+      ),
+      achievementDefinition(
+        "medium-all",
+        "difficulty",
+        "mythic",
+        mediumProblemAchievementTarget,
+        achievementLabel("中等题全 AC", "Medium complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部中等题。",
+          "Get real Accepted results for every Medium problem in this book.",
+        ),
+        (context) => context.mediumAcceptedCount,
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
         "hard-5",
         "difficulty",
         "gold",
@@ -6058,6 +6366,43 @@ const shortcutRows = [
           "Get 20 real Accepted Hard problems.",
         ),
         (context) => context.hardAcceptedCount,
+      ),
+      achievementDefinition(
+        "hard-50",
+        "difficulty",
+        "mythic",
+        50,
+        achievementLabel("困难题五十", "Hard fifty"),
+        achievementLabel(
+          "真实 AC 50 道困难题。",
+          "Get 50 real Accepted Hard problems.",
+        ),
+        (context) => context.hardAcceptedCount,
+      ),
+      achievementDefinition(
+        "hard-100",
+        "difficulty",
+        "mythic",
+        100,
+        achievementLabel("困难题百题", "Hard hundred"),
+        achievementLabel(
+          "真实 AC 100 道困难题。",
+          "Get 100 real Accepted Hard problems.",
+        ),
+        (context) => context.hardAcceptedCount,
+      ),
+      achievementDefinition(
+        "hard-all",
+        "difficulty",
+        "mythic",
+        hardProblemAchievementTarget,
+        achievementLabel("困难题全 AC", "Hard complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部困难题。",
+          "Get real Accepted results for every Hard problem in this book.",
+        ),
+        (context) => context.hardAcceptedCount,
+        { relockWhenIncomplete: true },
       ),
       achievementDefinition(
         "tag-dp-5",
@@ -6084,6 +6429,18 @@ const shortcutRows = [
         (context) => context.tagAcceptedCounts.get("dynamic-programming") || 0,
       ),
       achievementDefinition(
+        "tag-dp-50",
+        "tag",
+        "mythic",
+        50,
+        achievementLabel("DP 五十格", "DP fifty cells"),
+        achievementLabel(
+          "真实 AC 50 道动态规划题。",
+          "Get 50 real Accepted dynamic programming problems.",
+        ),
+        (context) => context.tagAcceptedCounts.get("dynamic-programming") || 0,
+      ),
+      achievementDefinition(
         "tag-graph-5",
         "tag",
         "bronze",
@@ -6093,10 +6450,11 @@ const shortcutRows = [
           "真实 AC 5 道图相关题。",
           "Get 5 real Accepted graph-related problems.",
         ),
-        (context) => Math.max(
-          context.tagAcceptedCounts.get("graph") || 0,
-          context.tagAcceptedCounts.get("depth-first-search") || 0,
-          context.tagAcceptedCounts.get("breadth-first-search") || 0,
+        (context) => achievementTagAcceptedCount(
+          context,
+          "graph",
+          "depth-first-search",
+          "breadth-first-search",
         ),
       ),
       achievementDefinition(
@@ -6109,10 +6467,28 @@ const shortcutRows = [
           "真实 AC 15 道图相关题。",
           "Get 15 real Accepted graph-related problems.",
         ),
-        (context) => Math.max(
-          context.tagAcceptedCounts.get("graph") || 0,
-          context.tagAcceptedCounts.get("depth-first-search") || 0,
-          context.tagAcceptedCounts.get("breadth-first-search") || 0,
+        (context) => achievementTagAcceptedCount(
+          context,
+          "graph",
+          "depth-first-search",
+          "breadth-first-search",
+        ),
+      ),
+      achievementDefinition(
+        "tag-graph-30",
+        "tag",
+        "mythic",
+        30,
+        achievementLabel("图论三十站", "Graph thirty stops"),
+        achievementLabel(
+          "真实 AC 30 道图相关题。",
+          "Get 30 real Accepted graph-related problems.",
+        ),
+        (context) => achievementTagAcceptedCount(
+          context,
+          "graph",
+          "depth-first-search",
+          "breadth-first-search",
         ),
       ),
       achievementDefinition(
@@ -6125,9 +6501,10 @@ const shortcutRows = [
           "真实 AC 5 道树相关题。",
           "Get 5 real Accepted tree-related problems.",
         ),
-        (context) => Math.max(
-          context.tagAcceptedCounts.get("tree") || 0,
-          context.tagAcceptedCounts.get("binary-tree") || 0,
+        (context) => achievementTagAcceptedCount(
+          context,
+          "tree",
+          "binary-tree",
         ),
       ),
       achievementDefinition(
@@ -6140,9 +6517,26 @@ const shortcutRows = [
           "真实 AC 15 道树相关题。",
           "Get 15 real Accepted tree-related problems.",
         ),
-        (context) => Math.max(
-          context.tagAcceptedCounts.get("tree") || 0,
-          context.tagAcceptedCounts.get("binary-tree") || 0,
+        (context) => achievementTagAcceptedCount(
+          context,
+          "tree",
+          "binary-tree",
+        ),
+      ),
+      achievementDefinition(
+        "tag-tree-30",
+        "tag",
+        "mythic",
+        30,
+        achievementLabel("树形三十层", "Tree thirty layers"),
+        achievementLabel(
+          "真实 AC 30 道树相关题。",
+          "Get 30 real Accepted tree-related problems.",
+        ),
+        (context) => achievementTagAcceptedCount(
+          context,
+          "tree",
+          "binary-tree",
         ),
       ),
       achievementDefinition(
@@ -6192,6 +6586,284 @@ const shortcutRows = [
           "Get 10 real Accepted two-pointers problems.",
         ),
         (context) => context.tagAcceptedCounts.get("two-pointers") || 0,
+      ),
+      achievementDefinition(
+        "tag-array-25",
+        "tag",
+        "silver",
+        25,
+        achievementLabel("数组二十五题", "Array twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道数组题。",
+          "Get 25 real Accepted array problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "array"),
+      ),
+      achievementDefinition(
+        "tag-array-100",
+        "tag",
+        "gold",
+        100,
+        achievementLabel("数组百题", "Array hundred"),
+        achievementLabel(
+          "真实 AC 100 道数组题。",
+          "Get 100 real Accepted array problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "array"),
+      ),
+      achievementDefinition(
+        "tag-array-all",
+        "tag",
+        "mythic",
+        arrayTagAchievementTarget,
+        achievementLabel("数组全 AC", "Array complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部数组题。",
+          "Get real Accepted results for every array problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "array"),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-string-25",
+        "tag",
+        "silver",
+        25,
+        achievementLabel("字符串二十五题", "String twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道字符串题。",
+          "Get 25 real Accepted string problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "string"),
+      ),
+      achievementDefinition(
+        "tag-string-100",
+        "tag",
+        "gold",
+        100,
+        achievementLabel("字符串百题", "String hundred"),
+        achievementLabel(
+          "真实 AC 100 道字符串题。",
+          "Get 100 real Accepted string problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "string"),
+      ),
+      achievementDefinition(
+        "tag-string-all",
+        "tag",
+        "mythic",
+        stringTagAchievementTarget,
+        achievementLabel("字符串全 AC", "String complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部字符串题。",
+          "Get real Accepted results for every string problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "string"),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-hash-table-25",
+        "tag",
+        "silver",
+        25,
+        achievementLabel("哈希表二十五题", "Hash table twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道哈希表题。",
+          "Get 25 real Accepted hash table problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "hash-table"),
+      ),
+      achievementDefinition(
+        "tag-hash-table-100",
+        "tag",
+        "gold",
+        100,
+        achievementLabel("哈希表百题", "Hash table hundred"),
+        achievementLabel(
+          "真实 AC 100 道哈希表题。",
+          "Get 100 real Accepted hash table problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "hash-table"),
+      ),
+      achievementDefinition(
+        "tag-hash-table-all",
+        "tag",
+        "mythic",
+        hashTableTagAchievementTarget,
+        achievementLabel("哈希表全 AC", "Hash table complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部哈希表题。",
+          "Get real Accepted results for every hash table problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "hash-table"),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-math-50",
+        "tag",
+        "gold",
+        50,
+        achievementLabel("数学五十题", "Math fifty"),
+        achievementLabel(
+          "真实 AC 50 道数学题。",
+          "Get 50 real Accepted math problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "math"),
+      ),
+      achievementDefinition(
+        "tag-math-100",
+        "tag",
+        "mythic",
+        100,
+        achievementLabel("数学百题", "Math hundred"),
+        achievementLabel(
+          "真实 AC 100 道数学题。",
+          "Get 100 real Accepted math problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "math"),
+      ),
+      achievementDefinition(
+        "tag-greedy-50",
+        "tag",
+        "gold",
+        50,
+        achievementLabel("贪心五十题", "Greedy fifty"),
+        achievementLabel(
+          "真实 AC 50 道贪心题。",
+          "Get 50 real Accepted greedy problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "greedy"),
+      ),
+      achievementDefinition(
+        "tag-greedy-all",
+        "tag",
+        "mythic",
+        greedyTagAchievementTarget,
+        achievementLabel("贪心全 AC", "Greedy complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部贪心题。",
+          "Get real Accepted results for every greedy problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "greedy"),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-sorting-50",
+        "tag",
+        "gold",
+        50,
+        achievementLabel("排序五十题", "Sorting fifty"),
+        achievementLabel(
+          "真实 AC 50 道排序题。",
+          "Get 50 real Accepted sorting problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "sorting"),
+      ),
+      achievementDefinition(
+        "tag-sorting-all",
+        "tag",
+        "mythic",
+        sortingTagAchievementTarget,
+        achievementLabel("排序全 AC", "Sorting complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部排序题。",
+          "Get real Accepted results for every sorting problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "sorting"),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-stack-25",
+        "tag",
+        "silver",
+        25,
+        achievementLabel("栈二十五题", "Stack twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道栈题。",
+          "Get 25 real Accepted stack problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "stack"),
+      ),
+      achievementDefinition(
+        "tag-stack-all",
+        "tag",
+        "mythic",
+        stackTagAchievementTarget,
+        achievementLabel("栈全 AC", "Stack complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部栈题。",
+          "Get real Accepted results for every stack problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "stack"),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-heap-25",
+        "tag",
+        "silver",
+        25,
+        achievementLabel("堆二十五题", "Heap twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道堆题。",
+          "Get 25 real Accepted heap problems.",
+        ),
+        (context) => achievementTagAcceptedCount(
+          context,
+          "heap-priority-queue",
+        ),
+      ),
+      achievementDefinition(
+        "tag-heap-all",
+        "tag",
+        "mythic",
+        heapTagAchievementTarget,
+        achievementLabel("堆全 AC", "Heap complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部堆题。",
+          "Get real Accepted results for every heap problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(
+          context,
+          "heap-priority-queue",
+        ),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-linked-list-25",
+        "tag",
+        "silver",
+        25,
+        achievementLabel("链表二十五题", "Linked list twenty-five"),
+        achievementLabel(
+          "真实 AC 25 道链表题。",
+          "Get 25 real Accepted linked list problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "linked-list"),
+      ),
+      achievementDefinition(
+        "tag-linked-list-all",
+        "tag",
+        "mythic",
+        linkedListTagAchievementTarget,
+        achievementLabel("链表全 AC", "Linked list complete"),
+        achievementLabel(
+          "真实 AC 当前题册里的全部链表题。",
+          "Get real Accepted results for every linked list problem in this book.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "linked-list"),
+        { relockWhenIncomplete: true },
+      ),
+      achievementDefinition(
+        "tag-backtracking-20",
+        "tag",
+        "gold",
+        20,
+        achievementLabel("回溯二十题", "Backtracking twenty"),
+        achievementLabel(
+          "真实 AC 20 道回溯题。",
+          "Get 20 real Accepted backtracking problems.",
+        ),
+        (context) => achievementTagAcceptedCount(context, "backtracking"),
       ),
       achievementDefinition(
         "secret-first-one-shot",
@@ -6362,6 +7034,7 @@ const shortcutRows = [
       Object.entries(submissionStats.problems || {}).forEach(([slug, record]) => {
         const acceptedCount = Number(record?.acceptedCount || 0);
         if (acceptedCount <= 0) return;
+        if (!problemBySlug.has(slug)) return;
         acceptedProblemSlugs.add(slug);
         acceptedSubmitCount += acceptedCount;
         if (totalErrorCount(record) > 0) acceptedAfterFailureCount += 1;
@@ -6430,9 +7103,14 @@ const shortcutRows = [
       return achievementDefinitions
         .map((definition) => {
           const progress = achievementProgress(definition, context);
-          const unlocked = achievements[definition.id] || null;
+          const complete = progress >= definition.target;
+          const storedUnlocked = achievements[definition.id] || null;
+          const unlocked =
+            definition.relockWhenIncomplete && !complete
+              ? null
+              : storedUnlocked;
           return {
-            complete: progress >= definition.target,
+            complete,
             definition,
             progress,
             ratio: definition.target
