@@ -173,6 +173,7 @@ window.postMessage(
       expectedOutput: ["0"],
       runtimeError: "",
       standardOutput: ["debug line"],
+      standardError: ["debug warning"],
       finished: true,
       raw: {}
     }
@@ -183,11 +184,13 @@ window.postMessage(
 When LeetCode returns run or submit details, `output` contains the submitted
 code answer from LeetCode's `code_answer` run field or `code_output` submit
 field, `expectedOutput` contains the judge expectation from
-`expected_code_answer` or `expected_output`, and `standardOutput` contains
-stdout from `std_output_list` or `std_output` when LeetCode exposes it. Empty
-placeholder fields are skipped so a submit result can still surface the actual
-answer from `code_output`. Runtime and compile diagnostics are exposed through
-`runtimeError` and `compileError`.
+`expected_code_answer` or `expected_output`, `standardOutput` contains stdout
+from `std_output_list` or `std_output`, and `standardError` contains stderr
+from `std_error_list` or `std_error` when LeetCode exposes it. Empty placeholder
+fields are skipped so a submit result can still surface the actual answer from
+`code_output`. Runtime and compile diagnostics are exposed through
+`runtimeError` and `compileError`, preferring LeetCode's full diagnostic fields
+when both short and full forms are present.
 
 Errors use the same envelope and set `ok` to `false`.
 
@@ -241,7 +244,7 @@ extension is current before running or submitting.
       "run-output-details"
     ],
     extensionVersion: "0.5.0",
-    featureVersion: 5,
+    featureVersion: 6,
     isLoggedIn: true,
     hasCsrfToken: true
   }

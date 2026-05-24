@@ -3043,11 +3043,42 @@ const shortcutRows = [
       "console_output",
       "consoleOutput",
     ];
+    const standardErrorPayloadKeys = [
+      "std_error_list",
+      "std_error",
+      "stderr",
+      "stdErr",
+      "standard_error",
+      "standardError",
+      "error_output",
+      "errorOutput",
+    ];
+    const outputPayloadKeys = [
+      "code_answer",
+      "code_output",
+      "actual_output",
+      "actualOutput",
+      "output",
+      "last_answer",
+      "lastAnswer",
+    ];
+    const expectedOutputPayloadKeys = [
+      "expected_code_answer",
+      "expected_output",
+      "expectedOutput",
+    ];
+    const failingInputPayloadKeys = [
+      "input",
+      "last_testcase",
+      "lastTestcase",
+      "testcase",
+      "testCase",
+    ];
     const leetcodeRequestTimeoutCode = "leetcode_request_timeout";
     const unsupportedRequestTypeCode = "unsupported_request_type";
     const extensionProbeFailedCode = "extension_probe_failed";
     const extensionProbeTimeoutCode = "extension_probe_timeout";
-    const extensionRequiredFeatureVersion = 5;
+    const extensionRequiredFeatureVersion = 6;
     const extensionPingTimeoutMs = 2500;
     const extensionProbeCacheMs = 15 * 1000;
     const extensionCheckTimeoutMs = 45000;
@@ -14488,6 +14519,12 @@ const shortcutRows = [
       return true;
     }
 
+    function hasExplicitEmptySubmissionDetail(value) {
+      if (value === "") return true;
+      if (Array.isArray(value)) return value.some(hasExplicitEmptySubmissionDetail);
+      return false;
+    }
+
     function firstSubmissionDetail(...values) {
       return values.find(hasSubmissionDetail) ?? "";
     }
@@ -14498,10 +14535,76 @@ const shortcutRows = [
       return firstSubmissionDetail(...keys.map((key) => raw[key]));
     }
 
+    function rawSubmissionDetailCandidates(result, keys) {
+      const raw = result?.raw;
+      if (!raw || typeof raw !== "object") return [];
+      return keys
+        .filter((key) => Object.prototype.hasOwnProperty.call(raw, key))
+        .map((key) => raw[key]);
+    }
+
+    function emptyOutputText() {
+      return isChinesePage ? "（空输出）" : "(empty output)";
+    }
+
+    function directSubmissionDetailCandidates(value, options = {}) {
+      if (hasSubmissionDetail(value)) return [value];
+      return options.includeExplicitEmpty &&
+        hasExplicitEmptySubmissionDetail(value)
+        ? [value]
+        : [];
+    }
+
+    function firstSubmissionDisplayValue(values, options = {}) {
+      const sawExplicitEmpty = values.some(hasExplicitEmptySubmissionDetail);
+      const value = firstSubmissionDetail(...values);
+      const text = submissionDetailValue(value);
+      if (text) return text;
+      return options.emptyText && sawExplicitEmpty ? options.emptyText : "";
+    }
+
+    function submissionInput(result) {
+      return firstSubmissionDisplayValue([
+        ...directSubmissionDetailCandidates(result?.input),
+        ...rawSubmissionDetailCandidates(result, failingInputPayloadKeys),
+      ]);
+    }
+
+    function submissionActualOutput(result) {
+      return firstSubmissionDisplayValue(
+        [
+          ...directSubmissionDetailCandidates(result?.output, {
+            includeExplicitEmpty: true,
+          }),
+          ...rawSubmissionDetailCandidates(result, outputPayloadKeys),
+        ],
+        { emptyText: emptyOutputText() },
+      );
+    }
+
+    function submissionExpectedOutput(result) {
+      return firstSubmissionDisplayValue(
+        [
+          ...directSubmissionDetailCandidates(result?.expectedOutput, {
+            includeExplicitEmpty: true,
+          }),
+          ...rawSubmissionDetailCandidates(result, expectedOutputPayloadKeys),
+        ],
+        { emptyText: emptyOutputText() },
+      );
+    }
+
     function submissionStandardOutput(result) {
       return firstSubmissionDetail(
         result?.standardOutput,
         rawSubmissionDetail(result, standardOutputPayloadKeys),
+      );
+    }
+
+    function submissionStandardError(result) {
+      return firstSubmissionDetail(
+        result?.standardError,
+        rawSubmissionDetail(result, standardErrorPayloadKeys),
       );
     }
 
@@ -14511,29 +14614,59 @@ const shortcutRows = [
             compileError: "编译错误",
             expectedOutput: "期望输出",
             input: "失败用例",
+            inputField: "input",
             output: "实际输出",
             runtimeError: "运行错误",
+            standardError: "stderr",
             standardOutput: "stdout",
+            testcaseLabel: "用例 1",
           }
         : {
             compileError: "Compile error",
             expectedOutput: "Expected output",
             input: "Failing testcase",
+            inputField: "input",
             output: "Actual output",
             runtimeError: "Runtime error",
+            standardError: "Stderr",
             standardOutput: "Stdout",
+            testcaseLabel: "Case 1",
           };
-      return [
+      const compileRows = [
         [labels.compileError, submissionDetailValue(result?.compileError)],
         [labels.runtimeError, submissionDetailValue(result?.runtimeError)],
-        [labels.input, submissionDetailValue(result?.input)],
-        [labels.output, submissionDetailValue(result?.output)],
-        [labels.expectedOutput, submissionDetailValue(result?.expectedOutput)],
-        [
-          labels.standardOutput,
-          submissionDetailValue(submissionStandardOutput(result)),
-        ],
       ].filter(([, value]) => value);
+      const input = submissionInput(result);
+      const output = submissionActualOutput(result);
+      const expectedOutput = submissionExpectedOutput(result);
+      const standardOutput = submissionDetailValue(submissionStandardOutput(result));
+      const standardError = submissionDetailValue(submissionStandardError(result));
+      if (!input && !output && !expectedOutput && !standardOutput && !standardError) {
+        return compileRows;
+      }
+      const fields = [];
+      appendResultField(fields, labels.inputField, input);
+      appendResultField(fields, labels.output, output, "output");
+      appendResultField(fields, labels.expectedOutput, expectedOutput, "expected");
+      appendResultField(fields, labels.standardOutput, standardOutput, "stdout");
+      appendResultField(fields, labels.standardError, standardError, "stderr");
+      const resultState =
+        output && expectedOutput ? testcaseResultState(output, expectedOutput) : "error";
+      return [
+        ...compileRows,
+        {
+          cases: [
+            {
+              fields,
+              label: labels.testcaseLabel,
+              resultLabel: isChinesePage ? "未通过" : "Failed",
+              resultState: resultState || "error",
+            },
+          ],
+          kind: "testcases",
+          label: labels.input,
+        },
+      ];
     }
 
     function testcaseSourceLabel(source) {
@@ -14615,20 +14748,24 @@ const shortcutRows = [
       return isChinesePage
         ? {
             allCaseStandardOutput: "全部用例 stdout",
+            allCaseStandardError: "全部用例 stderr",
             compileError: "编译错误",
             expectedOutput: "期望输出",
             output: "实际输出",
             runtimeError: "运行错误",
+            standardError: "stderr",
             standardOutput: "stdout",
             passed: "通过",
             failed: "未通过",
           }
         : {
             allCaseStandardOutput: "All cases stdout",
+            allCaseStandardError: "All cases stderr",
             compileError: "Compile error",
             expectedOutput: "Expected output",
             output: "Actual output",
             runtimeError: "Runtime error",
+            standardError: "Stderr",
             standardOutput: "Stdout",
             passed: "Passed",
             failed: "Failed",
@@ -14668,9 +14805,14 @@ const shortcutRows = [
         submissionStandardOutput(result),
         caseCount,
       );
+      const standardErrors = detailValuesForCases(
+        submissionStandardError(result),
+        caseCount,
+      );
       const consumed = {
         expectedOutput: expectedOutputs.length === caseCount,
         output: outputs.length === caseCount,
+        standardError: standardErrors.length === caseCount,
         standardOutput: standardOutputs.length === caseCount,
       };
       const allCasesPassed = allSubmittedTestcasesPassed(result);
@@ -14683,6 +14825,9 @@ const shortcutRows = [
             : "";
           const standardOutput = consumed.standardOutput
             ? standardOutputs[index]
+            : "";
+          const standardError = consumed.standardError
+            ? standardErrors[index]
             : "";
           if (output) {
             appendResultField(fields, labels.output, output, "output");
@@ -14701,6 +14846,14 @@ const shortcutRows = [
               labels.standardOutput,
               standardOutput,
               "stdout",
+            );
+          }
+          if (standardError) {
+            appendResultField(
+              fields,
+              labels.standardError,
+              standardError,
+              "stderr",
             );
           }
           const resultState = allCasesPassed
@@ -14727,9 +14880,14 @@ const shortcutRows = [
       const includeCaseOutputs = options.includeCaseOutputs !== false;
       const includeStandardOutput =
         options.includeStandardOutput !== false;
+      const includeStandardError =
+        options.includeStandardError !== false;
       const standardOutputLabel = options.allCaseStandardOutput
         ? labels.allCaseStandardOutput
         : labels.standardOutput;
+      const standardErrorLabel = options.allCaseStandardError
+        ? labels.allCaseStandardError
+        : labels.standardError;
       const details = [
         [labels.compileError, submissionDetailValue(result?.compileError)],
         [labels.runtimeError, submissionDetailValue(result?.runtimeError)],
@@ -14747,6 +14905,12 @@ const shortcutRows = [
         details.push([
           standardOutputLabel,
           submissionDetailValue(submissionStandardOutput(result)),
+        ]);
+      }
+      if (includeStandardError && !consumed.standardError) {
+        details.push([
+          standardErrorLabel,
+          submissionDetailValue(submissionStandardError(result)),
         ]);
       }
       return details.filter(([, value]) => value);
@@ -14770,6 +14934,7 @@ const shortcutRows = [
           result,
           enriched.consumed,
           {
+            allCaseStandardError: true,
             allCaseStandardOutput: true,
             includeCaseOutputs: false,
           },
@@ -20782,9 +20947,14 @@ const shortcutRows = [
       border-color: rgb(22 138 119 / 35%);
     }
 
-    .leetcode-testcase-field[data-result-field="stdout"] pre {
+    .leetcode-testcase-field[data-result-field="stdout"] pre,
+    .leetcode-testcase-field[data-result-field="stderr"] pre {
       border-style: dashed;
       color: var(--color-muted);
+    }
+
+    .leetcode-testcase-field[data-result-field="stderr"] pre {
+      border-color: rgb(214 66 66 / 38%);
     }
 
     .leetcode-submit-detail pre {

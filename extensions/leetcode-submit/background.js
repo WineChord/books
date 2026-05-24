@@ -1,7 +1,7 @@
 const pageMessageSource = "books-leetcode-page";
 const extensionMessageSource = "books-leetcode-extension";
 const protocolVersion = 1;
-const featureVersion = 5;
+const featureVersion = 6;
 const leetcodeOrigin = "https://leetcode.cn";
 const leetcodeUrlFilter = "||leetcode.cn/";
 const leetcodeHeaderRuleId = 1;
@@ -35,6 +35,37 @@ const stdoutPayloadKeys = [
   "stdOut",
   "console_output",
   "consoleOutput",
+];
+const stderrPayloadKeys = [
+  "std_error_list",
+  "std_error",
+  "stderr",
+  "stdErr",
+  "standard_error",
+  "standardError",
+  "error_output",
+  "errorOutput",
+];
+const outputPayloadKeys = [
+  "code_answer",
+  "code_output",
+  "actual_output",
+  "actualOutput",
+  "output",
+  "last_answer",
+  "lastAnswer",
+];
+const expectedOutputPayloadKeys = [
+  "expected_code_answer",
+  "expected_output",
+  "expectedOutput",
+];
+const failingInputPayloadKeys = [
+  "input",
+  "last_testcase",
+  "lastTestcase",
+  "testcase",
+  "testCase",
 ];
 const extensionCapabilities = [
   checkRequestType,
@@ -503,23 +534,37 @@ function legacyCorrectAnswerValue(payload) {
   return typeof value === "boolean" ? "" : value;
 }
 
+function diagnosticDetail(primary, full) {
+  return firstSubmissionDetail(full, primary);
+}
+
 function normalizeSubmission(payload, submissionId) {
   const codeAnswer = firstSubmissionDetail(payload?.code_answer);
   const codeOutput = firstSubmissionDetail(payload?.code_output);
   const stdout = firstPayloadDetail(payload, stdoutPayloadKeys);
+  const stderr = firstPayloadDetail(payload, stderrPayloadKeys);
   return {
-    compileError: payload?.compile_error || payload?.full_compile_error || "",
+    compileError: diagnosticDetail(
+      payload?.compile_error,
+      payload?.full_compile_error,
+    ),
     expectedOutput: firstSubmissionDetail(
-      payload?.expected_code_answer,
-      payload?.expected_output,
+      firstPayloadDetail(payload, expectedOutputPayloadKeys),
       legacyCorrectAnswerValue(payload),
     ),
     finished: isFinishedSubmission(payload),
-    input: firstSubmissionDetail(payload?.input, payload?.last_testcase),
+    input: firstPayloadDetail(payload, failingInputPayloadKeys),
     memory: payload?.memory || "",
-    output: firstSubmissionDetail(codeAnswer, codeOutput),
+    output: firstSubmissionDetail(
+      codeAnswer,
+      codeOutput,
+      firstPayloadDetail(payload, outputPayloadKeys),
+    ),
     runSuccess: Boolean(payload?.run_success),
-    runtimeError: payload?.runtime_error || payload?.full_runtime_error || "",
+    runtimeError: diagnosticDetail(
+      payload?.runtime_error,
+      payload?.full_runtime_error,
+    ),
     state: payload?.state || "",
     statusCode: payload?.status_code ?? null,
     statusMessage: payload?.status_msg || "",
@@ -527,6 +572,7 @@ function normalizeSubmission(payload, submissionId) {
       stdout,
       codeAnswer ? codeOutput : "",
     ),
+    standardError: stderr,
     submissionId,
     totalCorrect: payload?.total_correct ?? null,
     totalTestcases: payload?.total_testcases ?? null,
