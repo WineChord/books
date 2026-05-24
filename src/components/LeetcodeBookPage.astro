@@ -57,6 +57,7 @@ const base = import.meta.env.BASE_URL;
 const book = leetcodeBook;
 const isZh = lang === "zh";
 const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
+const detailBaseUrl = `${base.replace(/\/$/, "")}/leetcode/data/`;
 const title = isZh ? book.zhTitle : book.title;
 const description = isZh ? book.zhDescription : book.description;
 const initialTimingMilestone = isZh
@@ -1062,6 +1063,64 @@ const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => (
     ],
   relatedQuestions: buildRelatedQuestions(problem),
 }));
+function detailSearchText(problem) {
+  return [
+    ...(problem.implementationReferences || []).flatMap((item) => [
+      item.language,
+      item.provenance,
+      item.approachTitle,
+      item.complexity,
+      item.license,
+      item.sourceTitle,
+    ]),
+    ...(problem.relatedQuestions?.series || []).flatMap((item) => [
+      item.frontendId,
+      item.titleCn,
+      item.title,
+      item.titleSlug,
+    ]),
+    ...(problem.relatedQuestions?.official || []).flatMap((item) => [
+      item.frontendId,
+      item.titleCn,
+      item.title,
+      item.titleSlug,
+    ]),
+    ...(problem.relatedQuestions?.topicPeers || []).flatMap((item) => [
+      item.frontendId,
+      item.titleCn,
+      item.title,
+      item.titleSlug,
+      ...(item.sharedTags || []).map((tag) => tag.name),
+    ]),
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+function codeTemplateLanguages(codeTemplates) {
+  return codeTemplates.map((template) => ({
+    lang: template.lang,
+    langSlug: template.langSlug,
+  }));
+}
+const leetcodeProblemSummaries = leetcodeProblemsWithReferences.map((problem) => {
+  const {
+    codeTemplates,
+    constraintHtml,
+    implementationReferences,
+    relatedQuestions,
+    statementAssets,
+    statementHtml,
+    ...summary
+  } = problem;
+  return {
+    ...summary,
+    codeTemplateLanguages: codeTemplateLanguages(codeTemplates),
+    hasCodeTemplates: codeTemplates.length > 0,
+    hasStatementAssets: statementAssets.length > 0,
+    hasStatementHtml: Boolean(statementHtml),
+    implementationReferenceCount: implementationReferences.length,
+    relatedQuestionCount: relatedQuestions.total ?? 0,
+    searchText: detailSearchText({ implementationReferences, relatedQuestions }),
+  };
+});
 const leetcodeReferenceCount =
   leetcodeImplementationStats.references +
   leetcodeGeneratedImplementationStats.references;
@@ -1273,6 +1332,7 @@ const shortcutRows = [
   <main
     class="leetcode-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10"
     data-extension-download-url={extensionReleaseDownloadUrl}
+    data-problem-detail-base-url={detailBaseUrl}
   >
     <section class="leetcode-hero">
       <div>
@@ -2120,7 +2180,7 @@ const shortcutRows = [
 
   </main>
 
-  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemsWithReferences)}></script>
+  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemSummaries)}></script>
   <script type="application/json" id="leetcode-series-data" set:html={JSON.stringify(leetcodeSeriesFilterOptions)}></script>
   <script type="application/json" id="leetcode-category-data" set:html={JSON.stringify(leetcodePracticeCategoryOptions)}></script>
 
@@ -2239,6 +2299,10 @@ const shortcutRows = [
     const editorSizeSelect = document.getElementById("leetcode-editor-size");
     const editorLeadingSelect = document.getElementById("leetcode-editor-leading");
     const leetcodeShell = document.querySelector(".leetcode-shell");
+    const problemDetailBaseUrl =
+      leetcodeShell?.dataset.problemDetailBaseUrl || "/books/leetcode/data/";
+    const problemDetailPromises = new Map();
+    const problemDetailPrefetchLimit = 20;
     const extensionReleaseDownloadUrl =
       leetcodeShell?.dataset.extensionDownloadUrl ||
       "https://github.com/WineChord/books/releases/latest/download/leetcode-submit.zip";
@@ -3482,8 +3546,118 @@ const shortcutRows = [
       return flowSkipDefaultEnabled;
     }
 
+    function problemDetailUrl(slug) {
+      return `${problemDetailBaseUrl}${encodeURIComponent(slug)}.json`;
+    }
+
+    function isProblemDetailLoaded(problem) {
+      return Boolean(problem?.detailsLoaded);
+    }
+
+    function markProblemDetailFailed(problem) {
+      problem.detailLoadFailed = true;
+      problem.detailsLoaded = true;
+    }
+
+    async function ensureProblemDetails(slug) {
+      const problem = problemBySlug.get(slug);
+      if (!problem) return null;
+      if (isProblemDetailLoaded(problem)) return problem;
+      if (problemDetailPromises.has(slug)) return problemDetailPromises.get(slug);
+      const promise = fetch(problemDetailUrl(slug), {
+        headers: { accept: "application/json" },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Problem detail request failed: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((detail) => {
+          Object.assign(problem, detail, { detailsLoaded: true });
+          syncLazyProblemDetails(slug);
+          if (state.expandedSlug === slug) {
+            render();
+            focusEditorForSlug(slug, { frameContext: true });
+          }
+          return problem;
+        })
+        .catch((error) => {
+          console.warn("Could not load LeetCode problem detail", slug, error);
+          markProblemDetailFailed(problem);
+          syncLazyProblemDetails(slug);
+          if (state.expandedSlug === slug) render();
+          return problem;
+        })
+        .finally(() => {
+          problemDetailPromises.delete(slug);
+        });
+      problemDetailPromises.set(slug, promise);
+      return promise;
+    }
+
+    function scheduleProblemDetailsPrefetch(items) {
+      const slugs = items
+        .map((problem) => problem.titleSlug)
+        .filter((slug) => {
+          const problem = problemBySlug.get(slug);
+          return (
+            problem &&
+            !isProblemDetailLoaded(problem) &&
+            !problem.detailLoadFailed &&
+            !problemDetailPromises.has(slug)
+          );
+        })
+        .slice(0, problemDetailPrefetchLimit);
+      if (!slugs.length) return;
+      const run = () => {
+        slugs.reduce(
+          (chain, slug) => chain.then(() => ensureProblemDetails(slug)),
+          Promise.resolve(),
+        );
+      };
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(run, { timeout: 1500 });
+        return;
+      }
+      window.setTimeout(run, 250);
+    }
+
+    function lazyDetailShell(slug, target, message, body = "") {
+      return `
+        <span
+          class="leetcode-lazy-detail"
+          data-lazy-detail="${escapeHtml(slug)}"
+          data-lazy-detail-target="${escapeHtml(target)}"
+        >
+          <span class="leetcode-popover-muted">${escapeHtml(message)}</span>
+          ${body}
+        </span>
+      `;
+    }
+
+    function syncLazyProblemDetails(slug) {
+      const problem = problemBySlug.get(slug);
+      if (!problem) return;
+      document.querySelectorAll("[data-lazy-detail]").forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        if (node.dataset.lazyDetail !== slug) return;
+        const target = node.dataset.lazyDetailTarget || "";
+        if (target === "implementation") {
+          node.outerHTML = renderImplementationReference(problem);
+        }
+        if (target === "related") {
+          node.outerHTML = renderRelatedQuestions(problem);
+        }
+      });
+    }
+
     function problemCodeTemplates(problem) {
-      return Array.isArray(problem?.codeTemplates) ? problem.codeTemplates : [];
+      if (Array.isArray(problem?.codeTemplates)) return problem.codeTemplates;
+      if (Array.isArray(problem?.codeTemplateLanguages)) {
+        return problem.codeTemplateLanguages;
+      }
+      return [];
     }
 
     function isSqlProblem(problem) {
@@ -9550,6 +9724,7 @@ const shortcutRows = [
           item.titleSlug,
           ...(item.sharedTags || []).map((tag) => tag.name),
         ]),
+        problem.searchText || "",
       ].join(" ").toLowerCase();
       return haystack.includes(state.query.toLowerCase());
     }
@@ -9965,7 +10140,7 @@ const shortcutRows = [
           ${problem.seriesSupplement ? `<span>${isChinesePage ? "系列补充" : "Series supplement"}</span>` : ""}
           ${(problem.seriesTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
           ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
-          ${problem.implementationReferences?.length ? `<span>实现参考 ${escapeHtml(problem.implementationReferences.length)}</span>` : ""}
+          ${problem.implementationReferenceCount ? `<span>实现参考 ${escapeHtml(problem.implementationReferenceCount)}</span>` : ""}
           ${renderByteDanceMeta(problem)}
           ${renderTags(problem)}
         </span>
@@ -10048,6 +10223,22 @@ const shortcutRows = [
     }
 
     function renderRelatedQuestions(problem) {
+      if (!problem.relatedQuestions) {
+        if (problem.detailLoadFailed) {
+          return `<span class="leetcode-popover-muted">${
+            isChinesePage
+              ? "相关题明细加载失败，可刷新页面重试。"
+              : "Related problem details failed to load; refresh to retry."
+          }</span>`;
+        }
+        const count = problem.relatedQuestionCount || 0;
+        const message = count
+          ? (isChinesePage
+              ? `相关题 ${count} 道，正在加载明细。`
+              : `${count} related problems; loading details.`)
+          : (isChinesePage ? "暂无已同步的相关题。" : "No synced related problems yet.");
+        return lazyDetailShell(problem.titleSlug, "related", message);
+      }
       const related = problem.relatedQuestions || {};
       if (!related.total) {
         return '<span class="leetcode-popover-muted">暂无已同步的相关题。</span>';
@@ -10127,6 +10318,43 @@ const shortcutRows = [
 
     function renderImplementationReference(problem) {
       const tracks = implementationTracks(problem);
+      if (!problem.implementationReferences) {
+        if (problem.detailLoadFailed) {
+          return `<span class="leetcode-popover-muted">${
+            isChinesePage
+              ? "参考实现加载失败，可刷新页面重试。"
+              : "Reference implementations failed to load; refresh to retry."
+          }</span>`;
+        }
+        const count = problem.implementationReferenceCount || 0;
+        const message = count
+          ? (isChinesePage
+              ? `参考实现 ${count} 份，正在加载代码。`
+              : `${count} reference implementations; loading code.`)
+          : (isChinesePage
+              ? "Reference implementation 待同步最近提交。"
+              : "Reference implementation pending.");
+        return lazyDetailShell(
+          problem.titleSlug,
+          "implementation",
+          message,
+          `
+            <span class="leetcode-popover-section">
+              <strong>建议展开顺序</strong>
+              ${tracks
+                .map(
+                  ([name, detail], index) => `
+                    <span class="leetcode-check">
+                      <em>${index + 1}. ${escapeHtml(name)}</em>
+                      <span>${escapeHtml(detail)}</span>
+                    </span>
+                  `,
+                )
+                .join("")}
+            </span>
+          `,
+        );
+      }
       const references = implementationReferencesForDisplay(problem);
       const allReferences = problem.implementationReferences || [];
       const cppReferences = allReferences.filter(isCppReference);
@@ -10176,7 +10404,7 @@ const shortcutRows = [
     }
 
     function editorLanguages(problem) {
-      const templates = problem.codeTemplates || [];
+      const templates = problemCodeTemplates(problem);
       if (!templates.length) return fallbackLanguages;
       const seen = new Set();
       return templates
@@ -13532,7 +13760,26 @@ const shortcutRows = [
       syncStatementPanels();
     }
 
+    function renderPracticeLoadingPanel(problem) {
+      return `
+        <section class="leetcode-practice-panel is-loading" data-practice-loading="${escapeHtml(problem.titleSlug)}">
+          <div class="leetcode-practice-loading">
+            <strong>${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</strong>
+            <span>${
+              isChinesePage
+                ? "正在加载题面、模板和参考实现。"
+                : "Loading statement, templates, and reference implementations."
+            }</span>
+          </div>
+        </section>
+      `;
+    }
+
     function renderPracticePanel(problem) {
+      if (!isProblemDetailLoaded(problem)) {
+        ensureProblemDetails(problem.titleSlug);
+        return renderPracticeLoadingPanel(problem);
+      }
       const draft = draftFor(problem);
       const lang = preferredLang(problem, draft.lang);
       const code = draft.code || defaultTemplate(problem, lang);
@@ -13752,6 +13999,7 @@ const shortcutRows = [
       syncSubmissionInsightUi();
       syncOneShotUi();
       syncAchievementUi();
+      scheduleProblemDetailsPrefetch(pageItems);
     }
 
     searchInput?.addEventListener("input", (event) => {
@@ -14088,6 +14336,10 @@ const shortcutRows = [
       }
       const previewButton = target.closest("[data-preview]");
       if (previewButton instanceof HTMLElement) {
+        const row = previewButton.closest(".leetcode-row");
+        if (row instanceof HTMLElement && previewButton.querySelector("[data-lazy-detail]")) {
+          ensureProblemDetails(row.dataset.slug || "");
+        }
         const isOpen = previewButton.classList.contains("is-open");
         closePreviewPopovers(previewButton);
         previewButton.classList.toggle("is-open", !isOpen);
@@ -14126,6 +14378,10 @@ const shortcutRows = [
       if (!(target instanceof HTMLElement)) return;
       const previewButton = target.closest("[data-preview]");
       if (!(previewButton instanceof HTMLElement)) return;
+      const row = previewButton.closest(".leetcode-row");
+      if (row instanceof HTMLElement && previewButton.querySelector("[data-lazy-detail]")) {
+        ensureProblemDetails(row.dataset.slug || "");
+      }
       keepPreviewHoverOpen(previewButton);
     });
 
@@ -17219,6 +17475,20 @@ const shortcutRows = [
       border-top: 1px solid rgb(217 119 87 / 30%);
       background: rgb(255 255 255 / 34%);
       padding: 0.56rem 0.72rem 0.62rem;
+    }
+
+    .leetcode-practice-loading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.36rem 0.64rem;
+      color: #72563c;
+      font-size: 0.74rem;
+      line-height: 1.35;
+    }
+
+    .leetcode-practice-loading strong {
+      color: var(--color-heading);
     }
 
     .leetcode-statement-panel {
