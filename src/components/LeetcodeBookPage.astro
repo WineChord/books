@@ -11619,6 +11619,56 @@ const shortcutRows = [
       `;
     }
 
+    function relatedSeriesPracticeActions(items) {
+      const seen = new Set();
+      return (items || [])
+        .map((item) => ({
+          key: item.seriesKey || "",
+          title: item.seriesTitle || "",
+        }))
+        .filter((item) => {
+          if (!item.key || seen.has(item.key)) return false;
+          seen.add(item.key);
+          return true;
+        });
+    }
+
+    function renderRelatedSeriesAction(action) {
+      const title = action.title || (isChinesePage ? "这个系列" : "this series");
+      return `
+        <button
+          type="button"
+          class="leetcode-related-flow"
+          data-series-practice="${escapeHtml(action.key)}"
+          aria-label="${
+            isChinesePage
+              ? `按${escapeHtml(title)}顺序练习`
+              : `Practice ${escapeHtml(title)} in order`
+          }"
+        >
+          ${isChinesePage ? "练这类" : "Practice series"}
+        </button>
+      `;
+    }
+
+    function renderRelatedSeriesSection(title, items) {
+      if (!items?.length) return "";
+      const actions = relatedSeriesPracticeActions(items);
+      return `
+        <span class="leetcode-popover-section">
+          <span class="leetcode-related-section-head">
+            <strong>${escapeHtml(title)}</strong>
+            <span class="leetcode-related-actions">
+              ${actions.map(renderRelatedSeriesAction).join("")}
+            </span>
+          </span>
+          <span class="leetcode-related-list">
+            ${items.map(renderRelatedItem).join("")}
+          </span>
+        </span>
+      `;
+    }
+
     function renderRelatedQuestions(problem) {
       if (!problem.relatedQuestions) {
         if (problem.detailLoadFailed) {
@@ -11646,7 +11696,7 @@ const shortcutRows = [
             ? "优先看同系列题，再看力扣官方相关题，最后用同路线高频题补齐模式。"
             : "Start with the same series, then official related problems, then high-frequency peers on the same track."}
         </span>
-        ${renderRelatedSection(isChinesePage ? "系列题目" : "Series", related.series)}
+        ${renderRelatedSeriesSection(isChinesePage ? "系列题目" : "Series", related.series)}
         ${renderRelatedSection(isChinesePage ? "力扣相关" : "LeetCode related", related.official)}
         ${renderRelatedSection(isChinesePage ? "同路线高频" : "Same-track high frequency", related.topicPeers)}
       `;
@@ -15741,6 +15791,12 @@ const shortcutRows = [
         openRelatedProblem(relatedButton.dataset.openRelated || "");
         return;
       }
+      const seriesPracticeButton = target.closest("[data-series-practice]");
+      if (seriesPracticeButton instanceof HTMLElement) {
+        event.stopPropagation();
+        startSeriesPractice(seriesPracticeButton.dataset.seriesPractice || "");
+        return;
+      }
       if (target.closest(".leetcode-related-item")) return;
       const shareButton = target.closest("[data-copy-problem-invite]");
       if (shareButton instanceof HTMLElement) {
@@ -15997,6 +16053,7 @@ const shortcutRows = [
       }
       if (!(target instanceof HTMLElement)) return;
       if (target.closest(".leetcode-related-item")) return;
+      if (target.closest("[data-series-practice]")) return;
       if (target.closest(".leetcode-title-preview")) return;
       const previewButton = target.closest("[data-preview]");
       if (!(previewButton instanceof HTMLElement)) return;
@@ -20676,6 +20733,45 @@ const shortcutRows = [
     .leetcode-related-list {
       display: grid;
       gap: 0.36rem;
+    }
+
+    .leetcode-related-section-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.34rem 0.54rem;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+    }
+
+    .leetcode-related-actions {
+      display: inline-flex;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      gap: 0.24rem;
+      align-items: center;
+    }
+
+    .leetcode-related-flow {
+      min-height: 1.42rem;
+      border: 1px solid rgb(217 119 87 / 46%);
+      border-radius: 0.36rem;
+      background: rgb(217 119 87 / 9%);
+      color: var(--color-terracotta);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 760;
+      line-height: 1;
+      padding: 0 0.44rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-related-flow:hover,
+    .leetcode-related-flow:focus-visible {
+      background: rgb(217 119 87 / 15%);
+      color: var(--color-terracotta);
+      outline: none;
     }
 
     .leetcode-related-item {

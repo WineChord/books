@@ -185,9 +185,10 @@ implementation. Moving one more small step to Tags shows topic tags and
 supplemental badges. The Related preview shows same-series problems first,
 then official LeetCode related problems, then a compact same-track high
 frequency set. In-book related problems open directly in the local practice
-panel; related problems outside the book open on LeetCode China and keep their
-paid-only marker when LeetCode reports one. These preview targets stay compact
-and must not increase the normal row height.
+panel; the same-series section also offers a compact action that starts list
+flow for that series. Related problems outside the book open on LeetCode China
+and keep their paid-only marker when LeetCode reports one. These preview
+targets stay compact and must not increase the normal row height.
 
 Hover details for the title, approach, implementation, tags, related problems,
 suggested practice, shortcut help, and daily stats must use the page's own warm

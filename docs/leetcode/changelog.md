@@ -13,6 +13,8 @@ its Chrome extension workflow.
 - LingShen problems not already present in Top 888, ByteDance, or series data
   now enter the local list as LingShen supplements, with search, opened
   practice panels, local state, full-list flow, and per-topic group flow.
+- The Related preview's same-series section now includes a compact practice
+  action that starts list flow for that series.
 
 ## 2026-05-20
 
