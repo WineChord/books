@@ -8,6 +8,7 @@ const defaultBackoffMs = 1200;
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const seriesPath = new URL("src/data/leetcode-series.ts", repoRoot);
 const outputPath = new URL("src/data/leetcode-related.ts", repoRoot);
 const leetcodeCookie = process.env.LEETCODE_CN_COOKIE || "";
 
@@ -62,6 +63,16 @@ function extractByteDanceProblems(source) {
   return JSON.parse(match[1]);
 }
 
+function extractSeriesProblems(source) {
+  const match = source.match(
+    /export const leetcodeSeriesProblems = \(([\s\S]*?\n\])\) satisfies/,
+  );
+  if (!match) {
+    throw new Error("Could not find leetcodeSeriesProblems array");
+  }
+  return JSON.parse(match[1]);
+}
+
 function extractExistingRelated(source) {
   const match = source.match(
     /export const leetcodeRelatedQuestions = \(([\s\S]*?)\) satisfies Record/,
@@ -81,10 +92,10 @@ async function readExistingRelated() {
   }
 }
 
-function buildCandidates(problems, bytedanceProblems) {
+function buildCandidates(problems, bytedanceProblems, seriesProblems) {
   const seen = new Set();
   const candidates = [];
-  for (const problem of [...problems, ...bytedanceProblems]) {
+  for (const problem of [...problems, ...bytedanceProblems, ...seriesProblems]) {
     if (!problem.titleSlug || seen.has(problem.titleSlug)) continue;
     seen.add(problem.titleSlug);
     candidates.push(problem);
@@ -249,7 +260,12 @@ async function main() {
   const bytedanceProblems = extractByteDanceProblems(
     await readFile(bytedancePath, "utf8"),
   );
-  const candidates = buildCandidates(problems, bytedanceProblems).slice(0, limit);
+  const seriesProblems = extractSeriesProblems(await readFile(seriesPath, "utf8"));
+  const candidates = buildCandidates(
+    problems,
+    bytedanceProblems,
+    seriesProblems,
+  ).slice(0, limit);
   const relatedBySlug = mergeExisting ? await readExistingRelated() : {};
   const fetchProblems = missingOnly
     ? candidates.filter((problem) => !relatedBySlug[problem.titleSlug])

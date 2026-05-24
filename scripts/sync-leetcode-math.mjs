@@ -10,6 +10,7 @@ const katexPackage = require("katex/package.json");
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const problemDataPath = join(rootDir, "src/data/leetcode-problems.ts");
 const byteDanceDataPath = join(rootDir, "src/data/leetcode-bytedance.ts");
+const seriesDataPath = join(rootDir, "src/data/leetcode-series.ts");
 const constraintDataPath = join(
   rootDir,
   "src/data/leetcode-problem-constraints.ts",
@@ -52,6 +53,12 @@ const statementPreviewOverrides = {
     "已知一个长度为 n 的数组，预先按照升序排列，经由 1 到 n 次旋转后，得到输入数组。注意，数组 [a[0], a[1], a[2], ..., a[n-1]] 旋转一次的结果为数组 [a[n-1], a[0], a[1], a[2], ..., a[n-2]]。给你一个元素值互不相同的数组 nums，它原来是一个升序排列的数组，并按上述情形进行了多次旋转。请你找出并返回数组中的最小元素。你必须设计一个时间复杂度为 O(log n) 的算法解决此问题。",
   "beautiful-arrangement-ii":
     "给你两个整数 n 和 k，请你构造一个答案列表 answer，该列表应当包含从 1 到 n 的 n 个不同正整数，并同时满足下述条件：假设该列表是 answer = [a_1, a_2, a_3, ..., a_n]，那么列表 [|a_1 - a_2|, |a_2 - a_3|, |a_3 - a_4|, ..., |a_n-1 - a_n|] 中应该有且仅有 k 个不同整数。返回列表 answer。如果存在多种答案，只需返回其中任意一种。",
+  "minimum-operations-to-equalize-subarrays":
+    "给定整数数组 nums 和整数 k。一次操作可以选择 nums 中某个元素，恰好增加 k 或减少 k。还给定 queries，其中 queries[i] = [left_i, right_i]。对每个查询，求把连续子数组 nums[left_i 到 right_i] 中所有元素变成相等所需的最少操作次数；如果不可能，答案为 -1。返回每个查询的答案数组。约束：1 <= n == nums.length <= 4 * 10^4，1 <= nums[i] <= 10^9，1 <= k <= 10^9，1 <= queries.length <= 4 * 10^4，0 <= left_i <= right_i < n。",
+  "paint-house-iii":
+    "在一个小城市里，有 m 个房子排成一排，你需要给每个房子涂上 n 种颜色之一，颜色编号为 1 到 n。有的房子已经涂过颜色，不可以被重新涂色。连续相同颜色尽可能多的房子称为一个街区。给你数组 houses、m x n 的矩阵 cost 和整数 target，其中 houses[i] 是第 i 个房子的颜色，0 表示这个房子还没有被涂色；cost[i][j] 是将第 i 个房子涂成颜色 j + 1 的花费。请返回房子涂色方案的最小总花费，使得每个房子都被涂色后恰好组成 target 个街区；如果没有可用方案，返回 -1。",
+  "count-substrings-that-satisfy-k-constraint-ii":
+    "给你一个二进制字符串 s 和一个整数 k。另给你一个二维整数数组 queries，其中 queries[i] = [l_i, r_i]。如果一个二进制字符串中 0 的数量最多为 k，或者 1 的数量最多为 k，则认为该字符串满足 k 约束。返回 answer，其中 answer[i] 表示 s 从 l_i 到 r_i 这一段中满足 k 约束的子字符串数量。",
   "longest-mountain-in-array":
     "把符合下列属性的数组 arr 称为山脉数组：arr.length >= 3；存在下标 i（0 < i < arr.length - 1），满足 arr[0] < arr[1] < ... < arr[i - 1] < arr[i] 且 arr[i] > arr[i + 1] > ... > arr[arr.length - 1]。给出一个整数数组 arr，返回最长山脉子数组的长度。如果不存在山脉子数组，返回 0。",
   "find-minimum-in-rotated-sorted-array-ii":
@@ -688,12 +695,14 @@ function statementHtml(problem) {
 
 const problemSource = readFileSync(problemDataPath, "utf8");
 const byteDanceSource = readFileSync(byteDanceDataPath, "utf8");
+const seriesSource = readFileSync(seriesDataPath, "utf8");
 const constraintSource = readFileSync(constraintDataPath, "utf8");
 const problems = extractJsonExport(problemSource, "leetcodeProblems");
 const byteDanceProblems = extractJsonExport(
   byteDanceSource,
   "leetcodeByteDanceProblems",
 );
+const seriesProblems = extractJsonExport(seriesSource, "leetcodeSeriesProblems");
 const constraintsBySlug = extractJsonExport(
   constraintSource,
   "leetcodeProblemConstraints",
@@ -706,7 +715,13 @@ const supplements = byteDanceProblems
     ...problem,
     statementPreview: problem.statementPreview || supplementStatement,
   }));
-const bookProblems = [...problems, ...supplements];
+const seenSlugs = new Set([...problems, ...supplements].map((problem) => problem.titleSlug));
+const seriesSupplements = seriesProblems.filter((problem) => {
+  if (seenSlugs.has(problem.titleSlug)) return false;
+  seenSlugs.add(problem.titleSlug);
+  return true;
+});
+const bookProblems = [...problems, ...supplements, ...seriesSupplements];
 
 const statementHtmlBySlug = {};
 const constraintHtmlBySlug = {};

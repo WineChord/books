@@ -2191,13 +2191,296 @@ export const leetcodeProblemStatementAssets = {
       "source": "leetcode-cn",
       "html": "<img src=\"https://pic.leetcode.cn/1626420320-YUiulT-image.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 320px\" />"
     }
+  ],
+  "jump-game-v": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1300-1399/1340.Jump%20Game%20V/images/meta-chart.jpeg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 419px; width: 633px\" />"
+    }
+  ],
+  "two-sum-iv-input-is-a-bst": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0600-0699/0653.Two%20Sum%20IV%20-%20Input%20is%20a%20BST/images/sum_tree_1.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 229px; width: 400px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0600-0699/0653.Two%20Sum%20IV%20-%20Input%20is%20a%20BST/images/sum_tree_2.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 229px; width: 400px\" />"
+    }
+  ],
+  "check-if-there-is-a-valid-parentheses-string-path": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/2200-2299/2267.Check%20if%20There%20Is%20a%20Valid%20Parentheses%20String%20Path/images/example1drawio.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 521px; height: 300px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/2200-2299/2267.Check%20if%20There%20Is%20a%20Valid%20Parentheses%20String%20Path/images/example2drawio.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 165px; height: 165px\" />"
+    }
+  ],
+  "island-perimeter": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0400-0499/0463.Island%20Perimeter/images/island.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" />"
+    }
+  ],
+  "max-area-of-island": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0600-0699/0695.Max%20Area%20of%20Island/images/maxarea1-grid.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 500px; height: 310px\" />"
+    }
+  ],
+  "number-of-enclaves": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1000-1099/1020.Number%20of%20Enclaves/images/enclaves1.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 200px; width: 200px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1000-1099/1020.Number%20of%20Enclaves/images/enclaves2.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 200px; width: 200px\" />"
+    }
+  ],
+  "number-of-closed-islands": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1200-1299/1254.Number%20of%20Closed%20Islands/images/sample_3_1610.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 151px; width: 240px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1200-1299/1254.Number%20of%20Closed%20Islands/images/sample_4_1610.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 98px; width: 160px\" />"
+    }
+  ],
+  "minimum-number-of-days-to-disconnect-island": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1500-1599/1568.Minimum%20Number%20of%20Days%20to%20Disconnect%20Island/images/land1.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 500px; height: 169px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1500-1599/1568.Minimum%20Number%20of%20Days%20to%20Disconnect%20Island/images/land2.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 404px; height: 85px\" />"
+    }
+  ],
+  "count-islands-with-total-value-divisible-by-k": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/3600-3699/3619.Count%20Islands%20With%20Total%20Value%20Divisible%20by%20K/images/example1griddrawio-1.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 200px; height: 200px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/3600-3699/3619.Count%20Islands%20With%20Total%20Value%20Divisible%20by%20K/images/example2griddrawio.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 200px; height: 150px\" />"
+    }
+  ],
+  "course-schedule-iv": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1400-1499/1462.Course%20Schedule%20IV/images/courses4-1-graph.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1400-1499/1462.Course%20Schedule%20IV/images/courses4-3-graph.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" />"
+    }
+  ],
+  "binary-search-tree-iterator": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0100-0199/0173.Binary%20Search%20Tree%20Iterator/images/bst-tree.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 189px; height: 178px\" />"
+    }
+  ],
+  "reverse-nodes-in-even-length-groups": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/2000-2099/2074.Reverse%20Nodes%20in%20Even%20Length%20Groups/images/eg1.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 699px; height: 124px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/2000-2099/2074.Reverse%20Nodes%20in%20Even%20Length%20Groups/images/eg2.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 284px; height: 114px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/2000-2099/2074.Reverse%20Nodes%20in%20Even%20Length%20Groups/images/eg3.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 139px; height: 114px\" />"
+    }
+  ],
+  "find-a-peak-element-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1900-1999/1901.Find%20a%20Peak%20Element%20II/images/1.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 206px; height: 209px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1900-1999/1901.Find%20a%20Peak%20Element%20II/images/3.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 254px; height: 257px\" />"
+    }
+  ],
+  "diagonal-traverse-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1400-1499/1424.Diagonal%20Traverse%20II/images/sample_1_1784.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 143px; width: 158px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1400-1499/1424.Diagonal%20Traverse%20II/images/sample_2_1784.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 177px; width: 230px\" />"
+    }
+  ],
+  "maximum-binary-tree-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0900-0999/0998.Maximum%20Binary%20Tree%20II/images/maximum-binary-tree-1-1.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 160px; width: 159px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0900-0999/0998.Maximum%20Binary%20Tree%20II/images/maximum-binary-tree-1-2.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 160px; width: 169px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0900-0999/0998.Maximum%20Binary%20Tree%20II/images/maximum-binary-tree-2-1.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 160px; width: 180px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0900-0999/0998.Maximum%20Binary%20Tree%20II/images/maximum-binary-tree-2-2.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 160px; width: 214px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0900-0999/0998.Maximum%20Binary%20Tree%20II/images/maximum-binary-tree-3-1.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 160px; width: 180px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0900-0999/0998.Maximum%20Binary%20Tree%20II/images/maximum-binary-tree-3-2.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 160px; width: 201px\" />"
+    }
+  ],
+  "maximum-number-of-events-that-can-be-attended-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1700-1799/1751.Maximum%20Number%20of%20Events%20That%20Can%20Be%20Attended%20II/images/screenshot-2021-01-11-at-60048-pm.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 400px; height: 103px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1700-1799/1751.Maximum%20Number%20of%20Events%20That%20Can%20Be%20Attended%20II/images/screenshot-2021-01-11-at-60150-pm.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 400px; height: 103px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1700-1799/1751.Maximum%20Number%20of%20Events%20That%20Can%20Be%20Attended%20II/images/screenshot-2021-01-11-at-60703-pm.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 400px; height: 126px\" />"
+    }
+  ],
+  "minimum-falling-path-sum-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1200-1299/1289.Minimum%20Falling%20Path%20Sum%20II/images/falling-grid.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 244px; height: 245px\" />"
+    }
+  ],
+  "pascals-triangle-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0100-0199/0119.Pascal%27s%20Triangle%20II/images/1626927345-DZmfxB-PascalTriangleAnimated2.gif\" alt=\"\" loading=\"lazy\" decoding=\"async\" />"
+    }
+  ],
+  "populating-next-right-pointers-in-each-node-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0100-0199/0117.Populating%20Next%20Right%20Pointers%20in%20Each%20Node%20II/images/117_sample.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 500px; height: 171px\" />"
+    }
+  ],
+  "redundant-connection-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0600-0699/0685.Redundant%20Connection%20II/images/graph1.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 222px; height: 222px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0600-0699/0685.Redundant%20Connection%20II/images/graph2.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 222px; height: 382px\" />"
+    }
+  ],
+  "reschedule-meetings-for-maximum-free-time-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/3400-3499/3440.Reschedule%20Meetings%20for%20Maximum%20Free%20Time%20II/images/example0_rescheduled.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 375px; height: 123px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/3400-3499/3440.Reschedule%20Meetings%20for%20Maximum%20Free%20Time%20II/images/rescheduled_example0.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 375px; height: 125px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/3400-3499/3440.Reschedule%20Meetings%20for%20Maximum%20Free%20Time%20II/images/image3.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 375px; height: 125px\" />"
+    }
+  ],
+  "spiral-matrix-iv": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/2300-2399/2326.Spiral%20Matrix%20IV/images/ex1new.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 240px; height: 150px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/2300-2399/2326.Spiral%20Matrix%20IV/images/ex2.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 221px; height: 60px\" />"
+    }
+  ],
+  "strange-printer-ii": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1500-1599/1591.Strange%20Printer%20II/images/sample_1_1929.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 138px; width: 483px\" />"
+    },
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/1500-1599/1591.Strange%20Printer%20II/images/sample_2_1929.png\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"height: 290px; width: 483px\" />"
+    }
+  ],
+  "bulb-switcher": [
+    {
+      "type": "image",
+      "source": "leetcode-cn",
+      "html": "<img src=\"https://fastly.jsdelivr.net/gh/doocs/leetcode@main/solution/0300-0399/0319.Bulb%20Switcher/images/bulb.jpg\" alt=\"\" loading=\"lazy\" decoding=\"async\" style=\"width: 421px; height: 321px\" />"
+    }
   ]
 } satisfies Record<string, LeetcodeProblemStatementAsset[]>;
 
 export const leetcodeProblemStatementAssetStats = {
-  "problems": 872,
-  "withAssets": 202,
-  "images": 353,
+  "problems": 226,
+  "withAssets": 226,
+  "images": 400,
   "tables": 3,
   "failed": 0
 };

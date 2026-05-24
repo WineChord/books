@@ -1,15 +1,17 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const problemDataPath = join(rootDir, "src/data/leetcode-problems.ts");
 const byteDanceDataPath = join(rootDir, "src/data/leetcode-bytedance.ts");
+const seriesDataPath = join(rootDir, "src/data/leetcode-series.ts");
 const outputPath = join(rootDir, "src/data/leetcode-problem-assets.ts");
 
 const graphqlUrl = "https://leetcode.cn/graphql/";
-const requestLimit = 5;
-const requestDelayMs = 120;
+const defaultRequestLimit = 1;
+const defaultRequestDelayMs = 450;
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/125.0 Safari/537.36";
@@ -51,7 +53,7 @@ const allowedTableTags = new Set([
   "br",
 ]);
 const allowedImageHostPattern =
-  /(^|\.)leetcode\.cn$|(^|\.)leetcode\.com$|^assets\.leetcode\.com$/iu;
+  /(^|\.)leetcode\.cn$|(^|\.)leetcode\.com$|^assets\.leetcode\.com$|^fastly\.jsdelivr\.net$/iu;
 
 function extractJsonExport(source, exportName) {
   const marker = `export const ${exportName} = `;
@@ -69,6 +71,28 @@ function extractJsonExport(source, exportName) {
   const close = open === "[" ? "]" : "}";
   const end = balancedEnd(source, start, open, close);
   return JSON.parse(source.slice(start, end + 1));
+}
+
+function optionValue(name, fallback) {
+  const prefix = `--${name}=`;
+  const option = process.argv.find((item) => item.startsWith(prefix));
+  if (!option) return fallback;
+  return option.slice(prefix.length);
+}
+
+function numberOption(name, fallback) {
+  const value = Number(optionValue(name, fallback));
+  return Number.isFinite(value) && value > 0 ? Math.trunc(value) : fallback;
+}
+
+function selectedSlugSet() {
+  const value = optionValue("slugs", "");
+  if (!value) return null;
+  const slugs = value
+    .split(",")
+    .map((slug) => slug.trim())
+    .filter(Boolean);
+  return slugs.length ? new Set(slugs) : null;
 }
 
 function balancedEnd(source, start, open, close) {
@@ -109,11 +133,20 @@ function readBookProblems() {
     readFileSync(byteDanceDataPath, "utf8"),
     "leetcodeByteDanceProblems",
   );
-  const seen = new Set(problems.map((problem) => problem.titleSlug));
-  return [
-    ...problems,
-    ...byteDanceProblems.filter((problem) => !seen.has(problem.titleSlug)),
-  ];
+  const seriesProblems = extractJsonExport(
+    readFileSync(seriesDataPath, "utf8"),
+    "leetcodeSeriesProblems",
+  );
+  const seen = new Set();
+  const result = [];
+  for (const problem of [...problems, ...byteDanceProblems, ...seriesProblems]) {
+    if (seen.has(problem.titleSlug)) continue;
+    seen.add(problem.titleSlug);
+    result.push(problem);
+  }
+  const slugs = selectedSlugSet();
+  if (!slugs) return [...result];
+  return result.filter((problem) => slugs.has(problem.titleSlug));
 }
 
 function sleep(ms) {
@@ -287,6 +320,8 @@ async function collectProblemAssets(problem, index, total) {
 async function collectAllAssets(problems) {
   const results = [];
   let nextIndex = 0;
+  const requestLimit = numberOption("concurrency", defaultRequestLimit);
+  const requestDelayMs = numberOption("delay-ms", defaultRequestDelayMs);
 
   async function worker() {
     while (nextIndex < problems.length) {
@@ -309,19 +344,54 @@ async function collectAllAssets(problems) {
   return results;
 }
 
-function buildOutput(results) {
-  const assetMap = {};
+function readExistingAssets() {
+  if (!existsSync(outputPath)) return {};
+  return extractJsonExport(
+    readFileSync(outputPath, "utf8"),
+    "leetcodeProblemStatementAssets",
+  );
+}
+
+function readHeadAssets() {
+  try {
+    return extractJsonExport(
+      execFileSync("git", [
+        "show",
+        "HEAD:src/data/leetcode-problem-assets.ts",
+      ], {
+        cwd: rootDir,
+        encoding: "utf8",
+      }),
+      "leetcodeProblemStatementAssets",
+    );
+  } catch (_error) {
+    return {};
+  }
+}
+
+function buildOutput(results, existingAssets = {}) {
+  const assetMap = { ...existingAssets };
   const stats = { ...emptyStats, problems: results.length };
 
   for (const result of results) {
-    if (result.failed) stats.failed += 1;
-    if (!result.assets.length) continue;
+    if (result.failed) {
+      stats.failed += 1;
+      continue;
+    }
+    if (!result.assets.length) {
+      delete assetMap[result.problem.titleSlug];
+      continue;
+    }
+    assetMap[result.problem.titleSlug] = result.assets;
+  }
+
+  for (const assets of Object.values(assetMap)) {
+    if (!assets.length) continue;
     stats.withAssets += 1;
-    for (const asset of result.assets) {
+    for (const asset of assets) {
       if (asset.type === "image") stats.images += 1;
       if (asset.type === "table") stats.tables += 1;
     }
-    assetMap[result.problem.titleSlug] = result.assets;
   }
 
   return `// Generated by scripts/sync-leetcode-statement-assets.mjs.
@@ -349,20 +419,13 @@ export const leetcodeProblemStatementAssetStats = ${JSON.stringify(
 
 const problems = readBookProblems();
 const results = await collectAllAssets(problems);
-writeFileSync(outputPath, buildOutput(results));
-const stats = results.reduce(
-  (accumulator, result) => {
-    if (result.failed) accumulator.failed += 1;
-    if (!result.assets.length) return accumulator;
-    accumulator.withAssets += 1;
-    for (const asset of result.assets) {
-      if (asset.type === "image") accumulator.images += 1;
-      if (asset.type === "table") accumulator.tables += 1;
-    }
-    return accumulator;
-  },
-  { ...emptyStats, problems: results.length },
-);
+const existingAssets = {
+  ...readHeadAssets(),
+  ...readExistingAssets(),
+};
+const output = buildOutput(results, existingAssets);
+writeFileSync(outputPath, output);
+const stats = extractJsonExport(output, "leetcodeProblemStatementAssetStats");
 console.log(
   `Wrote ${stats.withAssets} asset-bearing problems ` +
     `(${stats.images} images, ${stats.tables} tables) to ${outputPath}`,

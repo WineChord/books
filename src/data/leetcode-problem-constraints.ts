@@ -4298,15 +4298,1180 @@ export const leetcodeProblemConstraints = ({
   "wtcaE1": [
     "0 <= s.length <= 5 * 10^4",
     "s 由英文字母、数字、符号和空格组成"
+  ],
+  "jump-game-iii": [
+    "1 <= arr.length <= 5 * 10^4",
+    "0 <= arr[i] < arr.length",
+    "0 <= start < arr.length"
+  ],
+  "jump-game-v": [
+    "1 <= arr.length <= 1000",
+    "1 <= arr[i] <= 10^5",
+    "1 <= d <= arr.length"
+  ],
+  "jump-game-iv": [
+    "1 <= arr.length <= 5 * 10^4",
+    "-10^8 <= arr[i] <= 10^8"
+  ],
+  "jump-game-vi": [
+    "1 <= nums.length, k <= 10^5",
+    "-10^4 <= nums[i] <= 10^4"
+  ],
+  "jump-game-viii": [
+    "n == nums.length == costs.length",
+    "1 <= n <= 10^5",
+    "0 <= nums[i], costs[i] <= 10^5"
+  ],
+  "jump-game-ix": [
+    "1 <= nums.length <= 10^5",
+    "1 <= nums[i] <= 10^9"
+  ],
+  "maximum-profit-from-trading-stocks": [
+    "n == present.length == future.length",
+    "1 <= n <= 1000",
+    "0 <= present[i], future[i] <= 100",
+    "0 <= budget <= 1000"
+  ],
+  "best-time-to-buy-and-sell-stock-using-strategy": [
+    "2 <= prices.length == strategy.length <= 10^5",
+    "1 <= prices[i] <= 10^5",
+    "-1 <= strategy[i] <= 1",
+    "2 <= k <= prices.length",
+    "k 是偶数"
+  ],
+  "house-robber-v": [
+    "1 <= n == nums.length == colors.length <= 10^5",
+    "1 <= nums[i], colors[i] <= 10^5"
+  ],
+  "paint-house": [
+    "costs.length == n",
+    "costs[i].length == 3",
+    "1 <= n <= 100",
+    "1 <= costs[i][j] <= 20"
+  ],
+  "paint-house-ii": [
+    "costs.length == n",
+    "costs[i].length == k",
+    "1 <= n <= 100",
+    "2 <= k <= 20",
+    "1 <= costs[i][j] <= 20"
+  ],
+  "paint-house-iii": [
+    "m == houses.length == cost.length",
+    "n == cost[i].length",
+    "1 <= m <= 100",
+    "1 <= n <= 20",
+    "1 <= target <= m",
+    "0 <= houses[i] <= n",
+    "1 <= cost[i][j] <= 10^4"
+  ],
+  "paint-house-iv": [
+    "2 <= n <= 10^5",
+    "n 是偶数。",
+    "cost.length == n",
+    "cost[i].length == 3",
+    "0 <= cost[i][j] <= 10^5"
+  ],
+  "two-sum-iii-data-structure-design": [
+    "-10^5 <= number <= 10^5",
+    "-2^31 <= value <= 2^31 - 1",
+    "最多调用 10^4 次 add 和 find"
+  ],
+  "3sum-smaller": [
+    "n == nums.length",
+    "0 <= n <= 3500",
+    "-100 <= nums[i] <= 100",
+    "-100 <= target <= 100",
+    "输入保证答案小于或等于 10^9。"
+  ],
+  "two-sum-iv-input-is-a-bst": [
+    "二叉树的节点个数的范围是 [1, 10^4].",
+    "-10^4 <= Node.val <= 10^4",
+    "题目数据保证，输入的 root 是一棵 有效 的二叉搜索树",
+    "-10^5 <= k <= 10^5"
+  ],
+  "two-sum-less-than-k": [
+    "1 <= nums.length <= 100",
+    "1 <= nums[i] <= 1000",
+    "1 <= k <= 2000"
+  ],
+  "two-sum-bsts": [
+    "每棵树上节点数在 [1, 5000] 范围内。",
+    "-10^9 <= Node.val, target <= 10^9"
+  ],
+  "max-number-of-k-sum-pairs": [
+    "1 <= nums.length <= 10^5",
+    "1 <= nums[i] <= 10^9",
+    "1 <= k <= 10^9"
+  ],
+  "find-the-k-sum-of-an-array": [
+    "n == nums.length",
+    "1 <= n <= 10^5",
+    "-10^9 <= nums[i] <= 10^9",
+    "1 <= k <= min(2000, 2^n)"
+  ],
+  "maximum-size-subarray-sum-equals-k": [
+    "1 <= nums.length <= 2 * 10^5",
+    "-10^4 <= nums[i] <= 10^4",
+    "-10^9 <= k <= 10^9"
+  ],
+  "binary-subarrays-with-sum": [
+    "1 <= nums.length <= 3 * 10^4",
+    "nums[i] 不是 0 就是 1",
+    "0 <= goal <= nums.length"
+  ],
+  "maximum-subarray-sum-with-one-deletion": [
+    "1 <= arr.length <= 10^5",
+    "-10^4 <= arr[i] <= 10^4"
+  ],
+  "number-of-sub-arrays-with-odd-sum": [
+    "1 <= arr.length <= 10^5",
+    "1 <= arr[i] <= 100"
+  ],
+  "maximum-number-of-non-overlapping-subarrays-with-sum-equals-target": [
+    "1 <= nums.length <= 10^5",
+    "-10^4 <= nums[i] <= 10^4",
+    "0 <= target <= 10^6"
+  ],
+  "maximum-good-subarray-sum": [
+    "2 <= nums.length <= 10^5",
+    "-10^9 <= nums[i] <= 10^9",
+    "1 <= k <= 10^9"
+  ],
+  "minimum-positive-sum-subarray": [
+    "1 <= nums.length <= 100",
+    "1 <= l <= r <= nums.length",
+    "-1000 <= nums[i] <= 1000"
+  ],
+  "longest-substring-with-at-most-two-distinct-characters": [
+    "1 <= s.length <= 10^5",
+    "s 由英文字母组成"
+  ],
+  "longest-substring-with-at-most-k-distinct-characters": [
+    "1 <= s.length <= 5 * 10^4",
+    "0 <= k <= 50"
+  ],
+  "maximum-number-of-non-overlapping-substrings": [
+    "1 <= s.length <= 10^5",
+    "s 只包含小写英文字母。"
+  ],
+  "find-longest-awesome-substring": [
+    "1 <= s.length <= 10^5",
+    "s 仅由数字组成"
+  ],
+  "number-of-wonderful-substrings": [
+    "1 <= word.length <= 10^5",
+    "word 由从 'a' 到 'j' 的小写英文字母组成"
+  ],
+  "count-substrings-that-satisfy-k-constraint-i": [
+    "1 <= s.length <= 50",
+    "1 <= k <= s.length",
+    "s[i] 是 '0' 或 '1'。"
+  ],
+  "count-substrings-that-satisfy-k-constraint-ii": [
+    "1 <= s.length <= 10^5",
+    "s[i] 是 '0' 或 '1'",
+    "1 <= k <= s.length",
+    "1 <= queries.length <= 10^5",
+    "queries[i] == [l_i, r_i]",
+    "0 <= l_i <= r_i < s.length",
+    "所有查询互不相同"
+  ],
+  "minimum-add-to-make-parentheses-valid": [
+    "1 <= s.length <= 1000",
+    "s 只包含 '(' 和 ')' 字符。"
+  ],
+  "remove-outermost-parentheses": [
+    "1 <= s.length <= 10^5",
+    "s[i] 为 '(' 或 ')'",
+    "s 是一个有效括号字符串"
+  ],
+  "maximum-nesting-depth-of-two-valid-parentheses-strings": [
+    "1 < seq.size <= 10000"
+  ],
+  "minimum-remove-to-make-valid-parentheses": [
+    "1 <= s.length <= 10^5",
+    "s[i] 可能是 '('、')' 或英文小写字母"
+  ],
+  "minimum-insertions-to-balance-a-parentheses-string": [
+    "1 <= s.length <= 10^5",
+    "s 只包含 '(' 和 ')'。"
+  ],
+  "maximum-nesting-depth-of-the-parentheses": [
+    "1 <= s.length <= 100",
+    "s 由数字 0-9 和字符 '+'、'-'、'*'、'/'、'('、')' 组成",
+    "题目数据保证括号字符串 s 是 有效的括号字符串"
+  ],
+  "minimize-result-by-adding-parentheses-to-expression": [
+    "3 <= expression.length <= 10",
+    "expression 仅由数字 '1' 到 '9' 和 '+' 组成",
+    "expression 由数字开始和结束",
+    "expression 恰好仅含有一个 '+'.",
+    "expression 的原始值和添加满足要求的任一对括号之后 expression 的值，都符合 32-bit 带符号整数范围"
+  ],
+  "check-if-there-is-a-valid-parentheses-string-path": [
+    "m == grid.length",
+    "n == grid[i].length",
+    "1 <= m, n <= 100",
+    "grid[i][j] 要么是 '('，要么是 ')'。"
+  ],
+  "number-of-islands-ii": [
+    "1 <= m, n, positions.length <= 10^4",
+    "1 <= m * n <= 10^4",
+    "positions[i].length == 2",
+    "0 <= r_i < m",
+    "0 <= c_i < n"
+  ],
+  "island-perimeter": [
+    "row == grid.length",
+    "col == grid[i].length",
+    "1 <= row, col <= 100",
+    "grid[i][j] 为 0 或 1"
+  ],
+  "max-area-of-island": [
+    "m == grid.length",
+    "n == grid[i].length",
+    "1 <= m, n <= 50",
+    "grid[i][j] 为 0 或 1"
+  ],
+  "number-of-distinct-islands-ii": [
+    "m == grid.length",
+    "n == grid[i].length",
+    "1 <= m, n <= 50",
+    "grid[i][j] 不是 0 就是 1."
+  ],
+  "making-a-large-island": [
+    "n == grid.length",
+    "n == grid[i].length",
+    "1 <= n <= 500",
+    "grid[i][j] 为 0 或 1"
+  ],
+  "number-of-enclaves": [
+    "m == grid.length",
+    "n == grid[i].length",
+    "1 <= m, n <= 500",
+    "grid[i][j] 的值为 0 或 1"
+  ],
+  "number-of-closed-islands": [
+    "1 <= grid.length, grid[0].length <= 100",
+    "0 <= grid[i][j] <=1"
+  ],
+  "minimum-number-of-days-to-disconnect-island": [
+    "m == grid.length",
+    "n == grid[i].length",
+    "1 <= m, n <= 30",
+    "grid[i][j] 为 0 或 1"
+  ],
+  "count-islands-with-total-value-divisible-by-k": [
+    "m == grid.length",
+    "n == grid[i].length",
+    "1 <= m, n <= 1000",
+    "1 <= m * n <= 10^5",
+    "0 <= grid[i][j] <= 10^6",
+    "1 <= k < = 10^6"
+  ],
+  "range-sum-query-mutable": [
+    "1 <= nums.length <= 3 * 10^4",
+    "-100 <= nums[i] <= 100",
+    "0 <= index < nums.length",
+    "-100 <= val <= 100",
+    "0 <= left <= right < nums.length",
+    "调用 update 和 sumRange 方法次数不大于 3 * 10^4"
+  ],
+  "range-sum-query-2d-mutable": [
+    "m == matrix.length",
+    "n == matrix[i].length",
+    "1 <= m, n <= 200",
+    "-10 00 00",
+    "0 <= row < m",
+    "0 <= col < n",
+    "-10 00 00",
+    "0 <= row1 <= row2 < m",
+    "0 <= col1 <= col2 < n",
+    "最多调用5000 次 sumRegion 和 update 方法"
+  ],
+  "course-schedule-iv": [
+    "2 <= numCourses <= 100",
+    "0 <= prerequisites.length <= (numCourses * (numCourses - 1) / 2)",
+    "prerequisites[i].length == 2",
+    "0 <= a_i, b_i <= numCourses - 1",
+    "a_i != b_i",
+    "每一对 [a_i, b_i] 都 不同",
+    "先修课程图中没有环。",
+    "1 <= queries.length <= 10^4",
+    "0 <= u_i, v_i <= numCourses - 1",
+    "u_i != v_i"
+  ],
+  "meeting-rooms": [
+    "0 <= intervals.length <= 10^4",
+    "intervals[i].length == 2",
+    "0 <= start_i < end_i <= 10^6"
+  ],
+  "concatenated-words": [
+    "1 <= words.length <= 10^4",
+    "1 <= words[i].length <= 30",
+    "words[i] 仅由小写英文字母组成。",
+    "words 中的所有字符串都是 唯一 的。",
+    "1 <= sum(words[i].length) <= 10^5"
+  ],
+  "extra-characters-in-a-string": [
+    "1 <= s.length <= 50",
+    "1 <= dictionary.length <= 50",
+    "1 <= dictionary[i].length <= 50",
+    "dictionary[i] 和 s 只包含小写英文字母。",
+    "dictionary 中的单词互不相同。"
+  ],
+  "inverse-coin-change": [
+    "1 <= numWays.length <= 100",
+    "0 <= numWays[i] <= 2 * 10^8"
+  ],
+  "profitable-schemes": [
+    "1 <= n <= 100",
+    "0 <= minProfit <= 100",
+    "1 <= group.length <= 100",
+    "1 <= group[i] <= 100",
+    "profit.length == group.length",
+    "0 <= profit[i] <= 100"
+  ],
+  "number-of-ways-to-earn-points": [
+    "比如说，如果有 3 道同类型题目，那么解答第 1 和第 2 道题目与解答第 1 和第 3 道题目或者第 2 和第 3 道题目是相同的。"
+  ],
+  "ways-to-express-an-integer-as-sum-of-powers": [
+    "1 <= n <= 300",
+    "1 <= x <= 5"
+  ],
+  "shortest-common-supersequence": [
+    "1 <= str1.length, str2.length <= 1000",
+    "str1 和 str2 都由小写英文字母组成。"
+  ],
+  "design-add-and-search-words-data-structure": [
+    "1 <= word.length <= 25",
+    "addWord 中的 word 由小写英文字母组成",
+    "search 中的 word 由 '.' 或小写英文字母组成",
+    "最多调用 10^4 次 addWord 和 search"
+  ],
+  "binary-search-tree-iterator": [
+    "树中节点的数目在范围 [1, 10^5] 内",
+    "0 <= Node.val <= 10^6",
+    "最多调用 10^5 次 hasNext 和 next 操作"
+  ],
+  "binary-search-tree-iterator-ii": [
+    "树中节点个数的范围是 [1, 10^5]。",
+    "0 <= Node.val <= 10^6",
+    "最多调用 10^5 次 hasNext、 next、 hasPrev 和 prev。"
+  ],
+  "reverse-nodes-in-even-length-groups": [
+    "链表中节点数目范围是 [1, 10^5]",
+    "0 <= Node.val <= 10^5"
+  ],
+  "find-a-peak-element-ii": [
+    "m == mat.length",
+    "n == mat[i].length",
+    "1 <= m, n <= 500",
+    "1 <= mat[i][j] <= 10^5",
+    "任意两个相邻元素均不相等."
+  ],
+  "word-squares": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "replace-words": [
+    "1 <= dictionary.length <= 1000",
+    "1 <= dictionary[i].length <= 100",
+    "dictionary[i] 仅由小写字母组成。",
+    "1 <= sentence.length <= 10^6",
+    "sentence 仅由小写字母和空格组成。",
+    "sentence 中单词的总量在范围 [1, 1000] 内。",
+    "sentence 中每个单词的长度在范围 [1, 1000] 内。",
+    "sentence 中单词之间由一个空格隔开。",
+    "sentence 没有前导或尾随空格。"
+  ],
+  "word-squares-ii": [
+    "4 <= words.length <= 15",
+    "words[i].length == 4",
+    "words[i] 仅由小写英文字母组成。",
+    "所有 words[i] 都 互不相同。"
+  ],
+  "mini-parser": [
+    "1 <= s.length <= 5 * 10^4",
+    "s 由数字、方括号 \"[]\"、负号 '-'、逗号 ','组成",
+    "用例保证 s 是可解析的 NestedInteger",
+    "输入中的所有值的范围是 [-10^6, 10^6]"
+  ],
+  "parse-lisp-expression": [
+    "1 <= expression.length <= 2000",
+    "exprssion 中不含前导和尾随空格",
+    "expressoin 中的不同部分（token）之间用单个空格进行分隔",
+    "答案和所有中间计算结果都符合 32-bit 整数范围",
+    "测试用例中的表达式均为合法的且最终结果为整数"
+  ],
+  "basic-calculator-iv": [
+    "1 <= expression.length <= 250",
+    "expression 由小写英文字母，数字 '+', '-', '*', '(', ')', ' ' 组成",
+    "expression 不包含任何前空格或后空格",
+    "expression 中的所有符号都用一个空格隔开",
+    "0 <= evalvars.length <= 100",
+    "1 <= evalvars[i].length <= 20",
+    "evalvars[i] 由小写英文字母组成",
+    "evalints.length == evalvars.length",
+    "-100 <= evalints[i] <= 100"
+  ],
+  "basic-calculator-iii": [
+    "1 <= s <= 10^4",
+    "s 由整数、'+'、'-'、'*'、'/'、'(' 和 ')' 组成",
+    "s 是一个 有效的 表达式"
+  ],
+  "insert-delete-getrandom-o1-duplicates-allowed": [
+    "-2^31 <= val <= 2^31 - 1",
+    "insert, remove 和 getRandom 最多 总共 被调用 2 * 10^5 次",
+    "当调用 getRandom 时，数据结构中 至少有一个 元素"
+  ],
+  "linked-list-random-node": [
+    "链表中的节点数在范围 [1, 10^4] 内",
+    "-10^4 <= Node.val <= 10^4",
+    "至多调用 getRandom 方法 10^4 次"
+  ],
+  "shuffle-an-array": [
+    "1 <= nums.length <= 50",
+    "-10^6 <= nums[i] <= 10^6",
+    "nums 中的所有元素都是 唯一的",
+    "最多可以调用 10^4 次 reset 和 shuffle"
+  ],
+  "random-pick-index": [
+    "1 <= nums.length <= 2 * 10^4",
+    "-2^31 <= nums[i] <= 2^31 - 1",
+    "target 是 nums 中的一个整数",
+    "最多调用 pick 函数 10^4 次"
+  ],
+  "generate-random-point-in-a-circle": [
+    "0 < radius <= 10^8",
+    "-10^7 <= x_center, y_center <= 10^7",
+    "randPoint 最多被调用 3 * 10^4 次"
+  ],
+  "random-point-in-non-overlapping-rectangles": [
+    "1 <= rects.length <= 100",
+    "rects[i].length == 4",
+    "-10^9 <= a_i < x_i <= 10^9",
+    "-10^9 <= b_i < y_i <= 10^9",
+    "x_i - a_i <= 2000",
+    "y_i - b_i <= 2000",
+    "所有的矩形不重叠。",
+    "pick 最多被调用 10^4 次。"
+  ],
+  "random-flip-matrix": [
+    "1 <= m, n <= 10^4",
+    "每次调用flip 时，矩阵中至少存在一个值为 0 的格子。",
+    "最多调用 1000 次 flip 和 reset 方法。"
+  ],
+  "random-pick-with-blacklist": [
+    "1 <= n <= 10^9",
+    "0 <= blacklist.length <= min(10^5, n - 1)",
+    "0 <= blacklist[i] < n",
+    "blacklist 中所有值都 不同",
+    "pick 最多被调用 2 * 10^4 次"
+  ],
+  "cache-with-time-limit": [
+    "0 <= key, value <= 10^9",
+    "0 <= duration <= 1000",
+    "1 <= actions.length <= 100",
+    "actions.length === values.length",
+    "actions.length === timeDelays.length",
+    "0 <= timeDelays[i] <= 1450",
+    "actions[i] 是 \"TimeLimitedCache\"、\"set\"、\"get\" 和 \"count\" 中的一个。",
+    "第一个操作始终是 \"TimeLimitedCache\" 而且一定会以 0 毫秒的延迟立即执行"
+  ],
+  "maximum-frequency-stack": [
+    "0 <= val <= 10^9",
+    "push 和 pop 的操作数不大于 2 * 10^4。",
+    "输入保证在调用 pop 之前堆栈中至少有一个元素。"
+  ],
+  "dinner-plate-stacks": [
+    "1 <= capacity <= 20000",
+    "1 <= val <= 20000",
+    "0 <= index <= 100000",
+    "最多会对 push，pop，和 popAtStack 进行 200000 次调用。"
+  ],
+  "design-bounded-blocking-queue": [
+    "1 <= Number of Prdoucers <= 8",
+    "1 <= Number of Consumers <= 8",
+    "1 <= size <= 30",
+    "0 <= element <= 20",
+    "enqueue的调用次数 大于等于 dequeue 的调用次数。",
+    "enque, deque 和 size 最多被调用 40 次"
+  ],
+  "design-front-middle-back-queue": [
+    "1 <= val <= 10^9",
+    "最多调用 1000 次 pushFront， pushMiddle， pushBack， popFront， popMiddle 和 popBack。"
+  ],
+  "design-most-recently-used-queue": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "all-oone-data-structure": [
+    "1 <= key.length <= 10",
+    "key 由小写英文字母组成",
+    "测试用例保证：在每次调用 dec 时，数据结构中总存在 key",
+    "最多调用 inc、dec、getMaxKey 和 getMinKey 方法 5 * 10^4 次"
+  ],
+  "design-hashmap": [
+    "0 <= key, value <= 10^6",
+    "最多调用 10^4 次 put、get 和 remove 方法"
+  ],
+  "time-based-key-value-store": [
+    "1 <= key.length, value.length <= 100",
+    "key 和 value 由小写英文字母和数字组成",
+    "1 <= timestamp <= 10^7",
+    "set 操作中的时间戳 timestamp 都是严格递增的",
+    "最多调用 set 和 get 操作 2 * 10^5 次"
+  ],
+  "design-a-number-container-system": [
+    "1 <= index, number <= 10^9",
+    "调用 change 和 find 的 总次数 不超过 10^5 次。"
+  ],
+  "frequency-tracker": [
+    "1 <= number <= 10^5",
+    "1 <= frequency <= 10^5",
+    "最多调用 add、deleteOne 和 hasFrequency 共计 2 * 10^5 次"
+  ],
+  "most-frequent-ids": [
+    "1 <= nums.length == freq.length <= 10^5",
+    "1 <= nums[i] <= 10^5",
+    "-10^5 <= freq[i] <= 10^5",
+    "freq[i] != 0",
+    "输入保证任何操作后，集合中的元素出现次数不会为负数。"
+  ],
+  "sort-characters-by-frequency": [
+    "1 <= s.length <= 5 * 10^5",
+    "s 由大小写英文字母和数字组成"
+  ],
+  "most-frequent-subtree-sum": [
+    "节点数在 [1, 10^4] 范围内",
+    "-10^5 <= Node.val <= 10^5"
+  ],
+  "sort-array-by-increasing-frequency": [
+    "1 <= nums.length <= 100",
+    "-100 <= nums[i] <= 100"
+  ],
+  "kth-largest-element-in-a-stream": [
+    "0 <= nums.length <= 10^4",
+    "1 <= k <= nums.length + 1",
+    "-10^4 <= nums[i] <= 10^4",
+    "-10^4 <= val <= 10^4",
+    "最多调用 add 方法 10^4 次"
+  ],
+  "k-closest-points-to-origin": [
+    "1 <= k <= points.length <= 10^4",
+    "-10^4 < x_i, y_i < 10^4"
+  ],
+  "the-k-weakest-rows-in-a-matrix": [
+    "m == mat.length",
+    "n == mat[i].length",
+    "2 <= n, m <= 100",
+    "1 <= k <= m",
+    "matrix[i][j] 不是 0 就是 1"
+  ],
+  "the-k-strongest-values-in-an-array": [
+    "1 <= arr.length <= 10^5",
+    "-10^5 <= arr[i] <= 10^5",
+    "1 <= k <= arr.length"
+  ],
+  "find-the-kth-largest-integer-in-the-array": [
+    "1 <= k <= nums.length <= 10^4",
+    "1 <= nums[i].length <= 100",
+    "nums[i] 仅由数字组成",
+    "nums[i] 不含任何前导零"
+  ],
+  "find-subsequence-of-length-k-with-the-largest-sum": [
+    "1 <= nums.length <= 1000",
+    "-10^5 <= nums[i] <= 10^5",
+    "1 <= k <= nums.length"
+  ],
+  "kth-smallest-number-in-multiplication-table": [
+    "1 <= m, n <= 3 * 10^4",
+    "1 <= k <= m * n"
+  ],
+  "k-th-smallest-prime-fraction": [
+    "2 <= arr.length <= 1000",
+    "1 <= arr[i] <= 3 * 10^4",
+    "arr[0] == 1",
+    "arr[i] 是一个 质数，i > 0",
+    "arr 中的所有数字 互不相同，且按 严格递增 排序",
+    "1 <= k <= arr.length * (arr.length - 1) / 2"
+  ],
+  "find-kth-largest-xor-coordinate-value": [
+    "m == matrix.length",
+    "n == matrix[i].length",
+    "1 <= m, n <= 1000",
+    "0 <= matrix[i][j] <= 10^6",
+    "1 <= k <= m * n"
+  ],
+  "kth-smallest-subarray-sum": [
+    "n == nums.length",
+    "1 <= n <= 2 * 10^4",
+    "1 <= nums[i] <= 5 * 10^4",
+    "1 <= k <= n * (n + 1) / 2"
+  ],
+  "kth-smallest-product-of-two-sorted-arrays": [
+    "1 <= nums1.length, nums2.length <= 5 * 10^4",
+    "-10^5 <= nums1[i], nums2[j] <= 10^5",
+    "1 <= k <= nums1.length * nums2.length",
+    "nums1 和 nums2 都是从小到大排好序的。"
+  ],
+  "kth-largest-sum-in-a-binary-tree": [
+    "树中的节点数为 n",
+    "2 <= n <= 10^5",
+    "1 <= Node.val <= 10^6",
+    "1 <= k <= n"
+  ],
+  "kth-smallest-amount-with-single-denomination-combination": [
+    "1 <= coins.length <= 15",
+    "1 <= coins[i] <= 25",
+    "1 <= k <= 2 * 10^9",
+    "coins 包含两两不同的整数。"
+  ],
+  "median-employee-salary": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "find-median-given-frequency-of-numbers": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "count-subarrays-with-median-k": [
+    "数组的中位数是按 递增 顺序排列后位于 中间 的那个元素，如果数组长度为偶数，则中位数是位于中间靠 左 的那个元素。 例如，[2,3,1,4] 的中位数是 2，[8,4,3,5,1] 的中位数是 4。"
+  ],
+  "find-the-median-of-the-uniqueness-array": [
+    "1 <= nums.length <= 10^5",
+    "1 <= nums[i] <= 10^5"
+  ],
+  "median-of-a-binary-search-tree-level": [
+    "树中节点的数量在 [1, 2 * 10^5] 范围内。",
+    "1 <= Node.val <= 10^6",
+    "0 <= level <= 2 * 10^​​​​​​​5"
+  ],
+  "moving-average-from-data-stream": [
+    "1 <= size <= 1000",
+    "-10^5 <= val <= 10^5",
+    "最多调用 next 方法 10^4 次"
+  ],
+  "data-stream-as-disjoint-intervals": [
+    "0 <= value <= 10^4",
+    "最多会调用 addNum 和 getIntervals 方法 3 * 10^4 次。",
+    "最多会调用 getIntervals 方法 10^2 次。"
+  ],
+  "design-hit-counter": [
+    "1 <= timestamp <= 2 * 10^9",
+    "所有对系统的调用都是按时间顺序进行的（即 timestamp 是单调递增的）",
+    "hit and getHits 最多被调用 300 次"
+  ],
+  "product-of-the-last-k-numbers": [
+    "0 <= num <= 100",
+    "1 <= k <= 4 * 10^4",
+    "add 和 getProduct 最多被调用 4 * 10^4 次。",
+    "在任何时间点流的乘积都在 32 位整数范围内。"
+  ],
+  "find-consecutive-integers-from-a-data-stream": [
+    "1 <= value, num <= 10^9",
+    "1 <= k <= 10^5",
+    "至多调用 consec 次数为 10^5 次。"
+  ],
+  "logger-rate-limiter": [
+    "0 <= timestamp <= 10^9",
+    "每个 timestamp 都将按非递减顺序（时间顺序）传递",
+    "1 <= message.length <= 30",
+    "最多调用 10^4 次 shouldPrintMessage 方法"
+  ],
+  "design-authentication-manager": [
+    "1 <= timeToLive <= 10^8",
+    "1 <= currentTime <= 10^8",
+    "1 <= tokenId.length <= 5",
+    "tokenId 只包含小写英文字母。",
+    "所有 generate 函数的调用都会包含独一无二的 tokenId 值。",
+    "所有函数调用中，currentTime 的值 严格递增。",
+    "所有函数的调用次数总共不超过 2000 次。"
+  ],
+  "contains-duplicate-iii": [
+    "2 <= nums.length <= 10^5",
+    "-10^9 <= nums[i] <= 10^9",
+    "1 <= indexDiff <= nums.length",
+    "0 <= valueDiff <= 10^9"
+  ],
+  "minimum-index-sum-of-two-lists": [
+    "1 <= list1.length, list2.length <= 1000",
+    "1 <= list1[i].length, list2[i].length <= 30",
+    "list1[i] 和 list2[i] 由空格 ' ' 和英文字母组成。",
+    "list1 的所有字符串都是 唯一 的。",
+    "list2 中的所有字符串都是 唯一 的。"
+  ],
+  "find-duplicate-file-in-system": [
+    "1 <= paths.length <= 2 * 10^4",
+    "1 <= paths[i].length <= 3000",
+    "1 <= sum(paths[i].length) <= 5 * 10^5",
+    "paths[i] 由英文字母、数字、字符 '/'、'.'、'('、')' 和 ' ' 组成",
+    "你可以假设在同一目录中没有任何文件或目录共享相同的名称。",
+    "你可以假设每个给定的目录信息代表一个唯一的目录。目录路径和文件信息用单个空格分隔。"
+  ],
+  "interval-list-intersections": [
+    "0 <= firstList.length, secondList.length <= 1000",
+    "firstList.length + secondList.length >= 1",
+    "0 <= start_i < end_i <= 10^9",
+    "end_i < start_i+1",
+    "0 <= start_j < end_j <= 10^9",
+    "end_j < start_j+1"
+  ],
+  "intersection-of-three-sorted-arrays": [
+    "1 <= arr1.length, arr2.length, arr3.length <= 1000",
+    "1 <= arr1[i], arr2[i], arr3[i] <= 2000"
+  ],
+  "intersection-of-multiple-arrays": [
+    "1 <= nums.length <= 1000",
+    "1 <= sum(nums[i].length) <= 1000",
+    "1 <= nums[i][j] <= 1000",
+    "nums[i] 中的所有值 互不相同"
+  ],
+  "serialize-and-deserialize-n-ary-tree": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "serialize-and-deserialize-bst": [
+    "树中节点数范围是 [0, 10^4]",
+    "0 <= Node.val <= 10^4",
+    "题目数据 保证 输入的树是一棵二叉搜索树。"
+  ],
+  "flatten-2d-vector": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "verifying-an-alien-dictionary": [
+    "1 <= words.length <= 100",
+    "1 <= words[i].length <= 20",
+    "order.length == 26",
+    "在 words[i] 和 order 中的所有字符都是英文小写字母。"
+  ],
+  "game-play-analysis-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "game-play-analysis-iii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "game-play-analysis-v": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "product-sales-analysis-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "product-sales-analysis-iii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "product-sales-analysis-iv": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "product-sales-analysis-v": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "sales-analysis-i": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "sales-analysis-iii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "article-views-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "immediate-food-delivery-i": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "immediate-food-delivery-iii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "monthly-transactions-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "user-activity-for-the-past-30-days-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "invalid-tweets-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "second-highest-salary-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "friend-requests-i-overall-acceptance-rate": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "beautiful-arrangement": [
+    "1 <= n <= 15"
+  ],
+  "bulb-switcher": [
+    "0 <= n <= 10^9"
+  ],
+  "car-fleet": [
+    "n == position.length == speed.length",
+    "1 <= n <= 10^5",
+    "0 < target <= 10^6",
+    "0 <= position[i] < target",
+    "position 中每个值都 不同",
+    "0 < speed[i] <= 10^6"
+  ],
+  "check-if-strings-can-be-made-equal-with-operations-i": [
+    "s1.length == s2.length == 4",
+    "s1 和 s2 只包含小写英文字母。"
+  ],
+  "construct-the-minimum-bitwise-array-ii": [
+    "1 <= nums.length <= 100",
+    "2 <= nums[i] <= 10^9",
+    "nums[i] 是一个质数。"
+  ],
+  "decode-ways-ii": [
+    "1 <= s.length <= 10^5",
+    "s[i] 是 0 - 9 中的一位数字或字符 '*'"
+  ],
+  "delete-columns-to-make-sorted": [
+    "n == strs.length",
+    "1 <= n <= 100",
+    "1 <= strs[i].length <= 1000",
+    "strs[i] 由小写英文字母组成"
+  ],
+  "delete-columns-to-make-sorted-ii": [
+    "n == strs.length",
+    "1 <= n <= 100",
+    "1 <= strs[i].length <= 100",
+    "strs[i] 由小写英文字母组成"
+  ],
+  "diagonal-traverse-ii": [
+    "1 <= nums.length <= 10^5",
+    "1 <= nums[i].length <= 10^5",
+    "1 <= nums[i][j] <= 10^9",
+    "nums 中最多有 10^5 个数字。"
+  ],
+  "find-the-k-th-character-in-string-game-ii": [
+    "将 \"a\" 附加到 \"a\"，word 变为 \"aa\"。",
+    "将 \"aa\" 附加到 \"aa\"，word 变为 \"aaaa\"。",
+    "将 \"aaaa\" 附加到 \"aaaa\"，word 变为 \"aaaaaaaa\"。"
+  ],
+  "h-index-ii": [
+    "n == citations.length",
+    "1 <= n <= 10^5",
+    "0 <= citations[i] <= 1000",
+    "citations 按 升序排列"
+  ],
+  "last-stone-weight": [
+    "1 <= stones.length <= 30",
+    "1 <= stones[i] <= 1000"
+  ],
+  "longest-balanced-substring-i": [
+    "1 <= s.length <= 1000",
+    "s 仅由小写英文字母组成。"
+  ],
+  "longest-increasing-subsequence-ii": [
+    "1 <= nums.length <= 10^5",
+    "1 <= nums[i], k <= 10^5"
+  ],
+  "longest-palindromic-subsequence-ii": [
+    "1 <= s.length <= 250",
+    "s 包含小写英文字母。"
+  ],
+  "lowest-common-ancestor-of-a-binary-tree-ii": [
+    "树中节点个数的范围是 [1, 10^4]",
+    "-10^9 <= Node.val <= 10^9",
+    "所有节点的值 Node.val 互不相同",
+    "p != q"
+  ],
+  "lowest-common-ancestor-of-a-binary-tree-iii": [
+    "树中节点个数的范围是 [2, 10^5]。",
+    "-10^9 <= Node.val <= 10^9",
+    "所有的 Node.val 都是互不相同的。",
+    "p != q",
+    "p 和 q 存在于树中。"
+  ],
+  "lowest-common-ancestor-of-a-binary-tree-iv": [
+    "树中节点个数的范围是 [1, 10^4]。",
+    "-10^9 <= Node.val <= 10^9",
+    "所有的 Node.val 都是互不相同的。",
+    "所有的 nodes[i] 都存在于该树中。",
+    "所有的 nodes[i] 都是互不相同的。"
+  ],
+  "majority-element-ii": [
+    "1 <= nums.length <= 5 * 10^4",
+    "-10^9 <= nums[i] <= 10^9"
+  ],
+  "max-consecutive-ones-ii": [
+    "1 <= nums.length <= 10^5",
+    "nums[i] 不是 0 就是 1."
+  ],
+  "maximum-array-hopping-score-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "maximum-average-subarray-ii": [
+    "官方题面未单列数据范围；以题面中的输入说明或表结构为准。"
+  ],
+  "maximum-binary-tree-ii": [
+    "树中节点数目在范围 [1, 100] 内",
+    "1 <= Node.val <= 100",
+    "树中的所有值 互不相同",
+    "1 <= val <= 100"
+  ],
+  "maximum-number-of-events-that-can-be-attended-ii": [
+    "1 <= k <= events.length",
+    "1 <= k * events.length <= 10^6",
+    "1 <= startDay_i <= endDay_i <= 10^9",
+    "1 <= value_i <= 10^6"
+  ],
+  "minimize-malware-spread": [
+    "n == graph.length",
+    "n == graph[i].length",
+    "2 <= n <= 300",
+    "graph[i][j] == 0 或 1.",
+    "graph[i][j] == graph[j][i]",
+    "graph[i][i] == 1",
+    "1 <= initial.length <= n",
+    "0 <= initial[i] <= n - 1",
+    "initial 中所有整数均不重复"
+  ],
+  "minimum-cost-to-convert-string-i": [
+    "1 <= source.length == target.length <= 10^5",
+    "source、target 均由小写英文字母组成",
+    "1 <= cost.length== original.length == changed.length <= 2000",
+    "original[i]、changed[i] 是小写英文字母",
+    "1 <= cost[i] <= 10^6",
+    "original[i] != changed[i]"
+  ],
+  "minimum-falling-path-sum-ii": [
+    "n == grid.length == grid[i].length",
+    "1 <= n <= 200",
+    "-99 <= grid[i][j] <= 99"
+  ],
+  "minimum-operations-to-make-binary-array-elements-equal-to-one-ii": [
+    "1 <= nums.length <= 10^5",
+    "0 <= nums[i] <= 1"
+  ],
+  "minimum-partition-score-ii": [
+    "1 <= nums.length <= 5 * 10^4",
+    "1 <= nums[i] <= 10^3",
+    "1 <= k <= nums.length"
+  ],
+  "next-greater-element-i": [
+    "1 <= nums1.length <= nums2.length <= 1000",
+    "0 <= nums1[i], nums2[i] <= 10^4",
+    "nums1和nums2中所有整数 互不相同",
+    "nums1 中的所有整数同样出现在 nums2 中"
+  ],
+  "next-greater-element-iv": [
+    "1 <= nums.length <= 10^5",
+    "0 <= nums[i] <= 10^9"
+  ],
+  "number-of-unique-xor-triplets-ii": [
+    "1 <= nums.length <= 1500",
+    "1 <= nums[i] <= 1500"
+  ],
+  "palindrome-partitioning-iii": [
+    "1 <= k <= s.length <= 100",
+    "s 中只含有小写英文字母。"
+  ],
+  "palindrome-partitioning-iv": [
+    "3 <= s.length <= 2000",
+    "s​​​​​​ 只包含小写英文字母。"
+  ],
+  "parallel-courses": [
+    "1 <= n <= 5000",
+    "1 <= relations.length <= 5000",
+    "relations[i].length == 2",
+    "1 <= prevCourse_i, nextCourse_i <= n",
+    "prevCourse_i != nextCourse_i",
+    "所有 [prevCourse_i, nextCourse_i] 互不相同"
+  ],
+  "pascals-triangle-ii": [
+    "0 <= rowIndex <= 33"
+  ],
+  "path-sum-iv": [
+    "1 <= nums.length <= 15",
+    "110 <= nums[i] <= 489",
+    "nums 表示深度小于 5 的有效二叉树",
+    "nums 以升序排序。"
+  ],
+  "populating-next-right-pointers-in-each-node-ii": [
+    "树中的节点数在范围 [0, 6000] 内",
+    "-100 <= Node.val <= 100"
+  ],
+  "redundant-connection-ii": [
+    "n == edges.length",
+    "3 <= n <= 1000",
+    "edges[i].length == 2",
+    "1 <= u_i, v_i <= n"
+  ],
+  "remove-all-adjacent-duplicates-in-string-ii": [
+    "1 <= s.length <= 10^5",
+    "2 <= k <= 10^4",
+    "s 中只含有小写英文字母。"
+  ],
+  "reschedule-meetings-for-maximum-free-time-ii": [
+    "1 <= eventTime <= 10^9",
+    "n == startTime.length == endTime.length",
+    "2 <= n <= 10^5",
+    "0 <= startTime[i] < endTime[i] <= eventTime",
+    "endTime[i] <= startTime[i + 1] 其中 i 在范围 [0, n - 2] 之间。"
+  ],
+  "reverse-words-in-a-string-ii": [
+    "1 <= s.length <= 10^5",
+    "s[i] 可以是一个英文字母（大写或小写）、数字、或是空格 ' '。",
+    "s 中至少存在一个单词",
+    "s 不含前导或尾随空格",
+    "题目数据保证：s 中的每个单词都由单个空格分隔"
+  ],
+  "reverse-words-in-a-string-iii": [
+    "1 <= s.length <= 5 * 10^4",
+    "s 包含可打印的 ASCII 字符。",
+    "s 不包含任何开头或结尾空格。",
+    "s 里 至少 有一个词。",
+    "s 中的所有单词都用一个空格隔开。"
+  ],
+  "sentence-similarity": [
+    "1 <= sentence1.length, sentence2.length <= 1000",
+    "1 <= sentence1[i].length, sentence2[i].length <= 20",
+    "sentence1[i] 和 sentence2[i] 只包含大小写英文字母",
+    "0 <= similarPairs.length <= 2000",
+    "similarPairs[i].length == 2",
+    "1 <= x_i.length, y_i.length <= 20",
+    "所有对 (xi, yi) 都是 不同 的"
+  ],
+  "sentence-similarity-ii": [
+    "1 <= sentence1.length, sentence2.length <= 1000",
+    "1 <= sentence1[i].length, sentence2[i].length <= 20",
+    "sentence1[i] 和 sentence2[i] 只包含大小写英文字母",
+    "0 <= similarPairs.length <= 2000",
+    "similarPairs[i].length == 2",
+    "1 <= x_i.length, y_i.length <= 20",
+    "x_i 和 y_i 只含英文字母"
+  ],
+  "shortest-subarray-with-or-at-least-k-i": [
+    "1 <= nums.length <= 50",
+    "0 <= nums[i] <= 50",
+    "0 <= k < 64"
+  ],
+  "sort-array-by-parity": [
+    "1 <= nums.length <= 5000",
+    "0 <= nums[i] <= 5000"
+  ],
+  "spiral-matrix-iv": [
+    "1 <= m, n <= 10^5",
+    "1 <= m * n <= 10^5",
+    "链表中节点数目在范围 [1, m * n] 内",
+    "0 <= Node.val <= 1000"
+  ],
+  "stone-game": [
+    "2 <= piles.length <= 500",
+    "piles.length 是 偶数",
+    "1 <= piles[i] <= 500",
+    "sum(piles[i]) 是 奇数"
+  ],
+  "stone-game-ii": [
+    "1 <= piles.length <= 100",
+    "1 <= piles[i] <= 10^4"
+  ],
+  "stone-game-v": [
+    "1 <= stoneValue.length <= 500",
+    "1 <= stoneValue[i] <= 10^6"
+  ],
+  "stone-game-vi": [
+    "n == aliceValues.length == bobValues.length",
+    "1 <= n <= 10^5",
+    "1 <= aliceValues[i], bobValues[i] <= 100"
+  ],
+  "stone-game-vii": [
+    "n == stones.length",
+    "2 <= n <= 1000",
+    "1 <= stones[i] <= 1000"
+  ],
+  "stone-game-viii": [
+    "n == stones.length",
+    "2 <= n <= 10^5",
+    "-10^4 <= stones[i] <= 10^4"
+  ],
+  "stone-game-ix": [
+    "1 <= stones.length <= 10^5",
+    "1 <= stones[i] <= 10^4"
+  ],
+  "strange-printer-ii": [
+    "m == targetGrid.length",
+    "n == targetGrid[i].length",
+    "1 <= m, n <= 60",
+    "1 <= targetGrid[row][col] <= 60"
+  ],
+  "string-compression-ii": [
+    "1 <= s.length <= 100",
+    "0 <= k <= s.length",
+    "s 仅包含小写英文字母"
+  ],
+  "string-compression-iii": [
+    "1 <= word.length <= 2 * 10^5",
+    "word 仅由小写英文字母组成。"
+  ],
+  "student-attendance-record-i": [
+    "1 <= s.length <= 1000",
+    "s[i] 为 'A'、'L' 或 'P'"
+  ],
+  "task-scheduler-ii": [
+    "1 <= tasks.length <= 10^5",
+    "1 <= tasks[i] <= 10^9",
+    "1 <= space <= tasks.length"
+  ],
+  "the-maze-ii": [
+    "m == maze.length",
+    "n == maze[i].length",
+    "1 <= m, n <= 100",
+    "maze[i][j] 是 0 或 1.",
+    "start.length == 2",
+    "destination.length == 2",
+    "0 <= start_row, destination_row < m",
+    "0 <= start_col, destination_col < n",
+    "球和目的地都存在于一个空地中，它们最初不会处于相同的位置。",
+    "迷宫至少包含两个空地。"
+  ],
+  "trionic-array-i": [
+    "3 <= n <= 100",
+    "-1000 <= nums[i] <= 1000"
+  ],
+  "ugly-number-iii": [
+    "1 <= n, a, b, c <= 10^9",
+    "1 <= a * b * c <= 10^18",
+    "本题结果在 [1, 2 * 10^9] 的范围内"
+  ],
+  "unique-paths-iii": [
+    "1 <= grid.length * grid[0].length <= 20"
+  ],
+  "valid-palindrome-ii": [
+    "1 <= s.length <= 10^5",
+    "s 由小写英文字母组成"
+  ],
+  "valid-palindrome-iii": [
+    "1 <= s.length <= 1000",
+    "s 中只含有小写英文字母",
+    "1 <= k <= s.length"
+  ],
+  "valid-palindrome-iv": [
+    "1 <= s.length <= 10^5",
+    "s 仅由小写英文字母组成"
+  ],
+  "wiggle-sort-ii": [
+    "1 <= nums.length <= 5 * 10^4",
+    "0 <= nums[i] <= 5000",
+    "题目数据保证，对于给定的输入 nums，总能产生满足题目要求的结果"
+  ],
+  "word-pattern-ii": [
+    "1 <= pattern.length, s.length <= 20",
+    "pattern 和 s 由小写英文字母组成"
+  ],
+  "xor-after-range-multiplication-queries-i": [
+    "1 <= n == nums.length <= 10^3",
+    "1 <= nums[i] <= 10^9",
+    "1 <= q == queries.length <= 10^3",
+    "queries[i] = [l_i, r_i, k_i, v_i]",
+    "0 <= l_i <= r_i < n",
+    "1 <= k_i <= n",
+    "1 <= v_i <= 10^5"
   ]
 }) satisfies Record<string, string[]>;
 
 export const leetcodeProblemConstraintStats = {
-  "problems": 872,
-  "constraints": 2556,
-  "leetcodeSource": 761,
-  "doocsSource": 24,
-  "fallback": 87,
+  "problems": 1091,
+  "constraints": 3283,
+  "leetcodeSource": 916,
+  "doocsSource": 63,
+  "fallback": 112,
   "fallbackSlugs": [
     "combine-two-tables",
     "employees-earning-more-than-their-managers",
@@ -4394,6 +5559,31 @@ export const leetcodeProblemConstraintStats = {
     "power-set-lcci",
     "report-contiguous-dates",
     "users-with-two-purchases-within-seven-days",
-    "robot-in-a-grid-lcci"
+    "robot-in-a-grid-lcci",
+    "word-squares",
+    "design-most-recently-used-queue",
+    "median-employee-salary",
+    "find-median-given-frequency-of-numbers",
+    "serialize-and-deserialize-n-ary-tree",
+    "flatten-2d-vector",
+    "game-play-analysis-ii",
+    "game-play-analysis-iii",
+    "game-play-analysis-v",
+    "product-sales-analysis-ii",
+    "product-sales-analysis-iii",
+    "product-sales-analysis-iv",
+    "product-sales-analysis-v",
+    "sales-analysis-i",
+    "sales-analysis-iii",
+    "article-views-ii",
+    "immediate-food-delivery-i",
+    "immediate-food-delivery-iii",
+    "monthly-transactions-ii",
+    "user-activity-for-the-past-30-days-ii",
+    "invalid-tweets-ii",
+    "second-highest-salary-ii",
+    "friend-requests-i-overall-acceptance-rate",
+    "maximum-array-hopping-score-ii",
+    "maximum-average-subarray-ii"
   ]
 } as const;

@@ -8,6 +8,7 @@ const defaultBackoffMs = 1200;
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const seriesPath = new URL("src/data/leetcode-series.ts", repoRoot);
 const personalReferencesPath = new URL(
   "src/data/leetcode-implementation-references.ts",
   repoRoot,
@@ -80,12 +81,15 @@ function extractConstraintStats(source) {
   return JSON.parse(match[1]);
 }
 
-function buildBookProblems(problems, bytedanceProblems) {
-  const existingSlugs = new Set(problems.map((problem) => problem.titleSlug));
-  const supplements = bytedanceProblems.filter(
-    (problem) => !existingSlugs.has(problem.titleSlug),
-  );
-  return [...problems, ...supplements];
+function buildBookProblems(problems, bytedanceProblems, seriesProblems) {
+  const seen = new Set();
+  const result = [];
+  for (const problem of [...problems, ...bytedanceProblems, ...seriesProblems]) {
+    if (seen.has(problem.titleSlug)) continue;
+    seen.add(problem.titleSlug);
+    result.push(problem);
+  }
+  return result;
 }
 
 function csrfToken(cookie) {
@@ -381,11 +385,13 @@ const options = {
 const [
   problemsSource,
   bytedanceSource,
+  seriesSource,
   personalReferencesSource,
   generatedReferencesSource,
 ] = await Promise.all([
   readFile(problemsPath, "utf8"),
   readFile(bytedancePath, "utf8"),
+  readFile(seriesPath, "utf8"),
   readFile(personalReferencesPath, "utf8"),
   readFile(generatedReferencesPath, "utf8"),
 ]);
@@ -400,6 +406,11 @@ const leetcodeByteDanceProblems = extractJsonArray(
   "leetcodeByteDanceProblems",
   "satisfies LeetcodeByteDanceProblem\\[\\];",
 );
+const leetcodeSeriesProblems = extractJsonArray(
+  seriesSource,
+  "leetcodeSeriesProblems",
+  "satisfies LeetcodeSeriesProblem\\[\\];",
+);
 const personalReferences = extractJsonObject(
   personalReferencesSource,
   "leetcodeImplementationReferences",
@@ -409,7 +420,11 @@ const generatedReferences = extractJsonObject(
   "leetcodeGeneratedImplementationReferences",
 );
 const doocsUrls = buildDoocsUrlBySlug([personalReferences, generatedReferences]);
-const bookProblems = buildBookProblems(leetcodeProblems, leetcodeByteDanceProblems);
+const bookProblems = buildBookProblems(
+  leetcodeProblems,
+  leetcodeByteDanceProblems,
+  leetcodeSeriesProblems,
+);
 
 if (hasFlag("normalize-only")) {
   const existing = await readExistingOutput();
@@ -438,13 +453,15 @@ if (hasFlag("normalize-only")) {
   process.exit(0);
 }
 
-const existingOutput = hasFlag("fallback-only")
+const existingOutput = hasFlag("fallback-only") || hasFlag("missing-only")
   ? await readExistingOutput()
   : { constraints: {}, stats: null };
 const fallbackTargets = new Set(existingOutput.stats?.fallbackSlugs ?? []);
 const targetProblems = hasFlag("fallback-only")
   ? bookProblems.filter((problem) => fallbackTargets.has(problem.titleSlug))
-  : bookProblems;
+  : hasFlag("missing-only")
+    ? bookProblems.filter((problem) => !existingOutput.constraints[problem.titleSlug])
+    : bookProblems;
 const constraintsBySlug = { ...existingOutput.constraints };
 const sourceCounts = new Map();
 if (existingOutput.stats) {

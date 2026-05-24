@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const problemDataPath = join(rootDir, "src/data/leetcode-problems.ts");
 const byteDanceDataPath = join(rootDir, "src/data/leetcode-bytedance.ts");
+const seriesDataPath = join(rootDir, "src/data/leetcode-series.ts");
 const mathDataPath = join(rootDir, "src/data/leetcode-problem-math.ts");
 
-const expectedProblems = 872;
 const badPlainTextPatterns = [
   { label: "plain n 2", regex: /\bn 2\b/ },
   { label: "plain n 3", regex: /\bn 3\b/ },
@@ -159,12 +159,14 @@ function assertIncludes(value, expected, label) {
 
 const problemSource = readFileSync(problemDataPath, "utf8");
 const byteDanceSource = readFileSync(byteDanceDataPath, "utf8");
+const seriesSource = readFileSync(seriesDataPath, "utf8");
 const mathSource = readFileSync(mathDataPath, "utf8");
 const problems = extractJsonExport(problemSource, "leetcodeProblems");
 const byteDanceProblems = extractJsonExport(
   byteDanceSource,
   "leetcodeByteDanceProblems",
 );
+const seriesProblems = extractJsonExport(seriesSource, "leetcodeSeriesProblems");
 const statements = extractJsonExport(mathSource, "leetcodeProblemStatementHtml");
 const constraints = extractJsonExport(
   mathSource,
@@ -173,12 +175,9 @@ const constraints = extractJsonExport(
 const stats = extractJsonExport(mathSource, "leetcodeProblemMathStats");
 const mergedSlugs = new Set(problems.map((problem) => problem.titleSlug));
 byteDanceProblems.forEach((problem) => mergedSlugs.add(problem.titleSlug));
+seriesProblems.forEach((problem) => mergedSlugs.add(problem.titleSlug));
+const expectedProblems = mergedSlugs.size;
 
-if (mergedSlugs.size !== expectedProblems) {
-  throw new Error(
-    `Expected ${expectedProblems} merged problems, got ${mergedSlugs.size}`,
-  );
-}
 if (Object.keys(statements).length !== expectedProblems) {
   throw new Error(
     `Expected ${expectedProblems} statement rows, got ${
@@ -266,12 +265,12 @@ assertIncludes(
 );
 assertIncludes(
   statements["bulb-switcher-ii"],
-  "恰好按压开关",
+  "你必须恰好按",
   "Bulb Switcher II statement",
 );
 assertIncludes(
   statements["bulb-switcher-ii"],
-  "；开关 2",
+  "墙上有 4 个开关",
   "Bulb Switcher II statement",
 );
 assertIncludes(

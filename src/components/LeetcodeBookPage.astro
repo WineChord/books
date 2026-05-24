@@ -41,6 +41,11 @@ import {
   leetcodeRelatedQuestionStats,
   leetcodeRelatedQuestions,
 } from "../data/leetcode-related";
+import {
+  leetcodeSeriesDefinitions,
+  leetcodeSeriesProblems,
+  leetcodeSeriesStats,
+} from "../data/leetcode-series";
 import { pageUrl } from "../urls";
 
 interface Props {
@@ -102,9 +107,6 @@ const resetAllDraftsTitle = isZh
 const filterShortcutTitles = {
   all: isZh ? "范围：全部（Option+1）" : "Scope: all (Option+1)",
   hot100: isZh ? "范围：Hot100（Option+2）" : "Scope: Hot100 (Option+2)",
-  companyFollowUps: isZh
-    ? "范围：公司追问（Option+3）"
-    : "Scope: follow-ups (Option+3)",
   bytedanceAll: isZh ? "字节：全部（Option+4）" : "ByteDance: all (Option+4)",
   bytedanceThirtyDays: isZh
     ? "字节：近 30 天（Option+5）"
@@ -134,9 +136,6 @@ const toolbarHintText = {
   scopeHot100: isZh
     ? "范围：Hot100。只显示 LeetCode Hot 100 题单内的题。"
     : "Scope: Hot100. Show only problems from the LeetCode Hot 100 list.",
-  scopeFollowUps: isZh
-    ? "范围：公司追问。只显示收录了公开公司追问来源的题。"
-    : "Scope: follow-ups. Show only problems with sourced company follow-ups.",
   bytedanceAll: isZh
     ? "字节：全部。只看字节企业题库里所有时间段的题。"
     : "ByteDance: all. Show every ByteDance-tagged problem.",
@@ -201,6 +200,7 @@ const seriesRomanTokenValues = new Map([
   ["ix", 9],
   ["x", 10],
 ]);
+const missingFrequencyRank = 999999;
 const strongRelatedTagSlugs = new Set([
   "backtracking",
   "binary-search",
@@ -276,43 +276,86 @@ function seriesOrderValue(slug, seriesKey) {
   return seriesRomanTokenValues.get(suffix) ?? Number.MAX_SAFE_INTEGER;
 }
 
-function buildSeriesGroups(catalogProblems) {
+function problemFrequencyOrder(problem) {
+  return problem.topRank ?? problem.frequencyRank ?? missingFrequencyRank;
+}
+
+function problemFrontendOrder(problem) {
+  const id = Number(problem.frontendId);
+  return Number.isFinite(id) ? id : missingFrequencyRank;
+}
+
+function compareProblemsByFrequency(left, right) {
+  return (
+    problemFrequencyOrder(left) - problemFrequencyOrder(right) ||
+    (left.hotRank ?? missingFrequencyRank) - (right.hotRank ?? missingFrequencyRank) ||
+    problemFrontendOrder(left) - problemFrontendOrder(right) ||
+    left.titleSlug.localeCompare(right.titleSlug)
+  );
+}
+
+function seriesFrequencyProfile(group) {
+  const ranked = group.members
+    .map(problemFrequencyOrder)
+    .sort((left, right) => left - right);
+  const leadRanks = ranked.slice(0, 3);
+  const leadAverage = leadRanks.length
+    ? leadRanks.reduce((sum, rank) => sum + rank, 0) / leadRanks.length
+    : missingFrequencyRank;
+  return {
+    best: ranked[0] ?? missingFrequencyRank,
+    leadAverage,
+    top888Count: ranked.filter((rank) => rank <= leetcodeTargetLimit).length,
+    hotCount: group.members.filter((member) => member.hot100).length,
+    memberCount: group.members.length,
+  };
+}
+
+function compareSeriesByFrequency(left, right) {
+  const leftProfile = seriesFrequencyProfile(left);
+  const rightProfile = seriesFrequencyProfile(right);
+  return (
+    leftProfile.best - rightProfile.best ||
+    leftProfile.leadAverage - rightProfile.leadAverage ||
+    rightProfile.top888Count - leftProfile.top888Count ||
+    rightProfile.hotCount - leftProfile.hotCount ||
+    rightProfile.memberCount - leftProfile.memberCount ||
+    left.title.localeCompare(right.title)
+  );
+}
+
+function buildSeriesCatalog(catalogProblems, seriesDefinitions) {
   const bySlug = new Map(catalogProblems.map((problem) => [
     problem.titleSlug,
     problem,
   ]));
-  const membersByKey = new Map();
-  for (const problem of catalogProblems) {
-    for (const key of seriesCandidateKeys(problem.titleSlug)) {
-      if (!membersByKey.has(key)) membersByKey.set(key, new Map());
-      membersByKey.get(key).set(problem.titleSlug, problem);
-    }
-  }
-  for (const [key, members] of membersByKey) {
-    const baseProblem = bySlug.get(key);
-    if (baseProblem) members.set(baseProblem.titleSlug, baseProblem);
-  }
+  const groups = [];
   const groupsBySlug = new Map();
-  for (const [key, memberMap] of membersByKey) {
-    const members = [...memberMap.values()];
+  for (const definition of seriesDefinitions) {
+    const members = definition.memberSlugs
+      .map((slug) => bySlug.get(slug))
+      .filter(Boolean);
     if (members.length < 2) continue;
     members.sort((left, right) => {
-      const leftOrder = seriesOrderValue(left.titleSlug, key);
-      const rightOrder = seriesOrderValue(right.titleSlug, key);
+      const leftOrder = seriesOrderValue(left.titleSlug, definition.key);
+      const rightOrder = seriesOrderValue(right.titleSlug, definition.key);
       return (
-        leftOrder - rightOrder ||
-        (left.topRank ?? left.frequencyRank ?? 999999) -
-          (right.topRank ?? right.frequencyRank ?? 999999)
+        compareProblemsByFrequency(left, right) ||
+        leftOrder - rightOrder
       );
     });
+    const group = {
+      ...definition,
+      members,
+    };
+    groups.push(group);
     for (const member of members) {
-      const existing = groupsBySlug.get(member.titleSlug);
-      if (!existing || members.length > existing.length) {
-        groupsBySlug.set(member.titleSlug, members);
-      }
+      if (!groupsBySlug.has(member.titleSlug)) groupsBySlug.set(member.titleSlug, []);
+      groupsBySlug.get(member.titleSlug).push(group);
     }
   }
-  return groupsBySlug;
+  groups.sort(compareSeriesByFrequency);
+  return { groups, groupsBySlug };
 }
 
 function relatedQuestionUrl(slug) {
@@ -331,6 +374,8 @@ function relatedSummary(question, catalogBySlug, currentSlug) {
     hotRank: bookProblem?.hotRank ?? null,
     inBook: Boolean(bookProblem),
     paidOnly: Boolean(question.isPaidOnly || bookProblem?.paidOnly),
+    seriesKey: question.seriesKey ?? "",
+    seriesTitle: question.seriesTitle ?? "",
     sharedTags: question.sharedTags ?? [],
     title: question.title ?? "",
     titleCn:
@@ -416,6 +461,31 @@ function buildTopicPeers(problem, catalogProblems, catalogBySlug, excludedSlugs)
 const byteDanceStatusLabel = byteDanceSourceStatusLabel(
   leetcodeByteDanceStats.sourceStatus,
 );
+const leetcodeSeriesProblemBySlug = new Map(
+  leetcodeSeriesProblems.map((problem) => [problem.titleSlug, problem]),
+);
+const leetcodeSeriesDefinitionByKey = new Map(
+  leetcodeSeriesDefinitions.map((definition) => [definition.key, definition]),
+);
+const leetcodeSeriesKeysBySlug = new Map();
+for (const definition of leetcodeSeriesDefinitions) {
+  for (const slug of definition.memberSlugs) {
+    if (!leetcodeSeriesKeysBySlug.has(slug)) leetcodeSeriesKeysBySlug.set(slug, []);
+    leetcodeSeriesKeysBySlug.get(slug).push(definition.key);
+  }
+}
+
+function seriesKeysFor(slug) {
+  return leetcodeSeriesProblemBySlug.get(slug)?.seriesKeys ??
+    leetcodeSeriesKeysBySlug.get(slug) ??
+    [];
+}
+
+function seriesTitlesFor(slug) {
+  return seriesKeysFor(slug)
+    .map((key) => leetcodeSeriesDefinitionByKey.get(key)?.title)
+    .filter(Boolean);
+}
 
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
@@ -436,6 +506,10 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
     statementAssets:
       leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
+    seriesKeys: seriesKeysFor(problem.titleSlug),
+    seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
+      ?.seriesPrimaryKey ?? "",
+    seriesTitles: seriesTitlesFor(problem.titleSlug),
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -474,20 +548,97 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     statementAssets:
       leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
     followUps: problem.followUps ?? [],
+    seriesKeys: seriesKeysFor(problem.titleSlug),
+    seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
+      ?.seriesPrimaryKey ?? "",
+    seriesTitles: seriesTitlesFor(problem.titleSlug),
+  }));
+const existingWithByteDanceSlugs = new Set([
+  ...leetcodeProblems.map((problem) => problem.titleSlug),
+  ...leetcodeByteDanceSupplements.map((problem) => problem.titleSlug),
+]);
+const leetcodeSeriesSupplements = leetcodeSeriesProblems
+  .filter((problem) => !existingWithByteDanceSlugs.has(problem.titleSlug))
+  .map((problem, index) => ({
+    topRank: null,
+    frequencyRank:
+      leetcodeTargetLimit + leetcodeByteDanceSupplements.length + index + 1,
+    hotRank: null,
+    frontendId: problem.frontendId,
+    titleCn: problem.titleCn,
+    titleSlug: problem.titleSlug,
+    url: problem.url,
+    difficulty: problem.difficulty,
+    acRate: problem.acRate,
+    frequency: "系列补充",
+    bytedance: false,
+    bytedanceVerified: false,
+    bytedancePeriods: {
+      past3Months: null,
+      past6Months: null,
+      before6Months: null,
+    },
+    bytedanceBuckets: {
+      all: null,
+      thirtyDays: null,
+      threeMonths: null,
+      sixMonths: null,
+      moreThanSixMonths: null,
+    },
+    bytedanceBucketSources: {},
+    bytedanceRank: null,
+    bytedanceSource: null,
+    hot100: false,
+    paidOnly: problem.paidOnly,
+    tags: problem.tags,
+    statementPreview: problem.statementPreview,
+    approachPreview: problem.approachPreview,
+    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
+    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
+    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
+    statementAssets:
+      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
+    followUps: problem.followUps ?? [],
+    seriesKeys: problem.seriesKeys,
+    seriesPrimaryKey: problem.seriesPrimaryKey,
+    seriesTitles: seriesTitlesFor(problem.titleSlug),
+    seriesSupplement: true,
   }));
 const mergedLeetcodeProblems = [
   ...leetcodeProblemsWithByteDance,
   ...leetcodeByteDanceSupplements,
+  ...leetcodeSeriesSupplements,
 ];
 const leetcodeProblemCatalogBySlug = new Map(
   mergedLeetcodeProblems.map((problem) => [problem.titleSlug, problem]),
 );
-const leetcodeSeriesGroupsBySlug = buildSeriesGroups(mergedLeetcodeProblems);
+const leetcodeSeriesCatalog = buildSeriesCatalog(
+  mergedLeetcodeProblems,
+  leetcodeSeriesDefinitions,
+);
+const leetcodeSeriesGroups = leetcodeSeriesCatalog.groups;
+const leetcodeSeriesGroupsBySlug = leetcodeSeriesCatalog.groupsBySlug;
 function buildRelatedQuestions(problem) {
+  const seenSeriesSlugs = new Set();
   const series = (leetcodeSeriesGroupsBySlug.get(problem.titleSlug) ?? [])
-    .map((item) =>
+    .flatMap((group) =>
+      group.members.map((item) => ({
+        item,
+        group,
+      })),
+    )
+    .filter(({ item }) => {
+      if (seenSeriesSlugs.has(item.titleSlug)) return false;
+      seenSeriesSlugs.add(item.titleSlug);
+      return true;
+    })
+    .map(({ item, group }) =>
       relatedSummary(
-        bookRelatedQuestion(item),
+        {
+          ...bookRelatedQuestion(item),
+          seriesKey: group.key,
+          seriesTitle: group.title,
+        },
         leetcodeProblemCatalogBySlug,
         problem.titleSlug,
       ),
@@ -530,6 +681,33 @@ const leetcodeReferenceCount =
   leetcodeImplementationStats.references +
   leetcodeGeneratedImplementationStats.references;
 const totalProblemCount = leetcodeProblemsWithReferences.length;
+const leetcodeSeriesOverview = leetcodeSeriesGroups.map((group) => ({
+  key: group.key,
+  title: group.title,
+  titleEn: group.titleEn,
+  description: group.description,
+  paidOnly: group.members.filter((member) => member.paidOnly).length,
+  supplements: group.members.filter((member) => member.seriesSupplement).length,
+  members: group.members.map((member) =>
+    relatedSummary(
+      {
+        ...bookRelatedQuestion(member),
+        seriesKey: group.key,
+        seriesTitle: group.title,
+      },
+      leetcodeProblemCatalogBySlug,
+      "",
+    ),
+  ),
+}));
+const leetcodeSeriesFilterOptions = leetcodeSeriesOverview.map((series) => ({
+  key: series.key,
+  title: series.title,
+  titleEn: series.titleEn,
+  count: series.members.length,
+  supplements: series.supplements,
+  members: series.members.map((member) => member.titleSlug),
+}));
 const shortcutRows = [
   {
     keys: "/",
@@ -537,9 +715,9 @@ const shortcutRows = [
     en: "Focus search",
   },
   {
-    keys: "Option+1 / 2 / 3",
-    zh: "范围筛选：全部 / Hot100 / 公司追问",
-    en: "Scope filters: all / Hot100 / follow-ups",
+    keys: "Option+1 / 2",
+    zh: "范围筛选：全部 / Hot100",
+    en: "Scope filters: all / Hot100",
   },
   {
     keys: "Option+4-8",
@@ -773,7 +951,6 @@ const shortcutRows = [
               <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
                 <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all} data-ui-tip={toolbarHintText.scopeAll}>{isZh ? "全部" : "All"}</button>
                 <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100} data-ui-tip={toolbarHintText.scopeHot100}>Hot100</button>
-                <button type="button" data-filter="companyFollowUps" aria-label={filterShortcutTitles.companyFollowUps} data-ui-tip={toolbarHintText.scopeFollowUps}>{isZh ? "公司追问" : "Follow"}</button>
               </div>
             </div>
           </div>
@@ -909,7 +1086,20 @@ const shortcutRows = [
           <span>Top</span>
           <span>Hot</span>
           <span>BD</span>
-          <span>{isZh ? "题目" : "Problem"}</span>
+          <span class="leetcode-problem-head">
+            <span>{isZh ? "题目" : "Problem"}</span>
+            <label class="leetcode-series-filter leetcode-series-filter-head" data-ui-tip={isZh ? "系列筛选：只显示同一系列题。开启顺序流后会按该系列顺序练完。" : "Series filter: show one problem family. List flow then follows that family order."}>
+              <span>{isZh ? "系列" : "Series"}</span>
+              <select id="leetcode-series-filter" data-series-filter-select aria-label={isZh ? "筛选系列题单" : "Filter problem series"}>
+                <option value="">{isZh ? "全部系列" : "All series"}</option>
+                {leetcodeSeriesFilterOptions.map((series) => (
+                  <option value={series.key}>
+                    {isZh ? series.title : series.titleEn} · {series.count}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </span>
           <span>{isZh ? "难度" : "Level"}</span>
           <span>{isZh ? "频率" : "Freq"}</span>
           <span class="leetcode-byte-filter-head">
@@ -984,6 +1174,75 @@ const shortcutRows = [
       </div>
 
       <div class="leetcode-collapse-stack">
+        <details class="leetcode-series-guide">
+          <summary>
+            {isZh
+              ? `系列题单总览：${leetcodeSeriesStats.series} 组，补充 ${leetcodeSeriesSupplements.length} 道系列题`
+              : `Series map: ${leetcodeSeriesStats.series} groups, ${leetcodeSeriesSupplements.length} series extras`}
+          </summary>
+          <div class="leetcode-series-overview">
+            <p>
+              {isZh
+                ? "同一组内按基础题、编号变体和强关联变体组织；点击书内题可直接打开本页练习面板，付费题会保留标记。"
+                : "Groups are ordered by base problem, numbered variants, and strongly related variants. In-book items open the local practice panel; paid items keep their marker."}
+            </p>
+            <div class="leetcode-series-grid">
+              {leetcodeSeriesOverview.map((series) => (
+                <section class="leetcode-series-group">
+                  <header>
+                    <h3>{isZh ? series.title : series.titleEn}</h3>
+                    <div>
+                      <span>
+                        {series.members.length}
+                        {series.supplements > 0
+                          ? isZh
+                            ? ` / 补 ${series.supplements}`
+                            : ` / +${series.supplements}`
+                          : ""}
+                      </span>
+                      <button type="button" data-series-practice={series.key}>
+                        {isZh ? "练这组" : "Practice"}
+                      </button>
+                    </div>
+                  </header>
+                  <p>{series.description}</p>
+                  <div class="leetcode-series-members">
+                    {series.members.map((member) => (
+                      member.inBook ? (
+                        <button
+                          type="button"
+                          data-open-related={member.titleSlug}
+                          class:list={[
+                            "leetcode-series-member",
+                            member.paidOnly && "is-paid",
+                            member.inBook && "is-in-book",
+                          ]}
+                        >
+                          <span>{member.frontendId}. {member.titleCn}</span>
+                          <em>{member.difficulty}{member.paidOnly ? (isZh ? " · 付费" : " · Paid") : ""}</em>
+                        </button>
+                      ) : (
+                        <a
+                          href={member.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class:list={[
+                            "leetcode-series-member",
+                            member.paidOnly && "is-paid",
+                          ]}
+                        >
+                          <span>{member.frontendId}. {member.titleCn}</span>
+                          <em>{member.difficulty}{member.paidOnly ? (isZh ? " · 付费" : " · Paid") : ""}</em>
+                        </a>
+                      )
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </details>
+
         {
           leetcodeDuplicateAudit.length > 0 && (
             <details class="leetcode-duplicate-audit">
@@ -1274,6 +1533,10 @@ const shortcutRows = [
         <span>{leetcodeByteDanceStats.syncedAll}/{leetcodeByteDanceStats.targetAll}</span>
         <p>{isZh ? "字节题库" : "ByteDance"}</p>
       </div>
+      <div>
+        <span>{leetcodeSeriesStats.series}/{leetcodeSeriesSupplements.length}</span>
+        <p>{isZh ? "系列/补题" : "Series/extras"}</p>
+      </div>
     </section>
 
     <div class="leetcode-summary leetcode-footer-meta">
@@ -1298,6 +1561,11 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeRelatedQuestionStats.questions} 条官方相关题已同步`
           : `${leetcodeRelatedQuestionStats.questions} official related problems synced`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeSeriesStats.series} 组系列题、${leetcodeSeriesSupplements.length} 道系列补充已纳入刷题列表`
+          : `${leetcodeSeriesStats.series} series and ${leetcodeSeriesSupplements.length} series supplements included`}
       </span>
       <span>
         {isZh
@@ -1386,6 +1654,7 @@ const shortcutRows = [
   </main>
 
   <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemsWithReferences)}></script>
+  <script type="application/json" id="leetcode-series-data" set:html={JSON.stringify(leetcodeSeriesFilterOptions)}></script>
 
   <script>
     const progressKey = "leetcode-book-progress-v1";
@@ -1434,6 +1703,17 @@ const shortcutRows = [
       "legacy:submission-stats:v1";
     const dataNode = document.getElementById("leetcode-data");
     const problems = JSON.parse(dataNode?.textContent || "[]");
+    const seriesDataNode = document.getElementById("leetcode-series-data");
+    const seriesOptions = JSON.parse(seriesDataNode?.textContent || "[]");
+    const seriesByKey = new Map(
+      seriesOptions.map((series) => [series.key, series]),
+    );
+    const seriesOrderByKey = new Map(
+      seriesOptions.map((series) => [
+        series.key,
+        new Map((series.members || []).map((slug, index) => [slug, index])),
+      ]),
+    );
     const problemBySlug = new Map(
       problems.map((problem) => [problem.titleSlug, problem]),
     );
@@ -1447,6 +1727,7 @@ const shortcutRows = [
     const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
     const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const seriesFilterSelect = document.querySelector("[data-series-filter-select]");
     const byteDanceFilterCurrent = document.querySelector(
       "[data-bytedance-filter-current]",
     );
@@ -1514,6 +1795,7 @@ const shortcutRows = [
         scope: "all",
         bytedance: "",
         status: "",
+        series: "",
       },
       page: 1,
       pageSize: 20,
@@ -1589,7 +1871,6 @@ const shortcutRows = [
     const filterShortcutByCode = {
       Digit1: "all",
       Digit2: "hot100",
-      Digit3: "companyFollowUps",
       Digit4: "bytedanceAll",
       Digit5: "bytedanceThirtyDays",
       Digit6: "bytedanceThreeMonths",
@@ -1599,7 +1880,7 @@ const shortcutRows = [
       Digit0: "review",
       Minus: "unmastered",
     };
-    const scopeFilterValues = new Set(["all", "hot100", "companyFollowUps"]);
+    const scopeFilterValues = new Set(["all", "hot100"]);
     const byteDanceFilterValues = new Set([
       "bytedanceAll",
       "bytedanceThirtyDays",
@@ -2740,6 +3021,7 @@ const shortcutRows = [
     }
 
     function shouldSkipRouteProblem(problem) {
+      if (state.filters.series) return false;
       return (
         (flowSkipSql && isSqlProblem(problem)) ||
         (flowSkipFrontend && isPureFrontendProblem(problem))
@@ -3033,6 +3315,7 @@ const shortcutRows = [
         scope: "all",
         bytedance: "",
         status: "",
+        series: "",
       };
     }
 
@@ -3067,7 +3350,9 @@ const shortcutRows = [
       const nextFilters = defaultFilterState();
       Object.keys(nextFilters).forEach((group) => {
         const value = String(filters[group] || "");
-        if (filterGroupFor(value) === group) {
+        if (group === "series") {
+          if (seriesByKey.has(value)) nextFilters.series = value;
+        } else if (filterGroupFor(value) === group) {
           nextFilters[group] = value;
         }
       });
@@ -3127,8 +3412,17 @@ const shortcutRows = [
             ? (isChinesePage
               ? `状态筛选：${statusLabel}`
               : `State filter: ${statusLabel}`)
-            : (isChinesePage ? "筛选状态" : "Filter state"),
+          : (isChinesePage ? "筛选状态" : "Filter state"),
         );
+      }
+      if (seriesFilterSelect instanceof HTMLSelectElement) {
+        const value = seriesByKey.has(state.filters.series)
+          ? state.filters.series
+          : "";
+        if (seriesFilterSelect.value !== value) {
+          seriesFilterSelect.value = value;
+        }
+        seriesFilterSelect.classList.toggle("is-active", Boolean(value));
       }
     }
 
@@ -8579,6 +8873,41 @@ const shortcutRows = [
       return true;
     }
 
+    function applySeriesFilter(seriesKey, options = {}) {
+      const key = seriesByKey.has(seriesKey) ? seriesKey : "";
+      if (state.filters.series === key && !options.force) return false;
+      state.filters.series = key;
+      syncFilterButtons();
+      state.page = 1;
+      render();
+      scheduleViewStateWrite();
+      return true;
+    }
+
+    function startSeriesPractice(seriesKey) {
+      const key = seriesByKey.has(seriesKey) ? seriesKey : "";
+      if (!key) return false;
+      applySeriesFilter(key, { force: true });
+      setFlowMode(flowModeList);
+      const items = orderedProblems();
+      if (!items.length) {
+        timingMilestone = isChinesePage
+          ? "当前系列没有可练题目"
+          : "No problem is visible in this series";
+        syncTimingUi();
+        return false;
+      }
+      const routeTarget = practiceRouteTarget(items, -1, 1);
+      const index = routeTarget?.index ?? 0;
+      const problem = items[index];
+      timingMilestone = isChinesePage
+        ? `系列顺序流已进入 ${problem.frontendId}. ${problem.titleCn}`
+        : `Series list flow opened ${problem.frontendId}. ${problem.titleCn}`;
+      openPracticeAtIndex(items, index);
+      syncTimingUi();
+      return true;
+    }
+
     function resetAllFilters() {
       state.filters = defaultFilterState();
       syncFilterButtons();
@@ -8594,8 +8923,14 @@ const shortcutRows = [
       const scopeFilter = state.filters.scope;
       const byteDanceFilter = state.filters.bytedance;
       const statusFilter = state.filters.status;
+      const seriesFilter = state.filters.series;
+      if (
+        seriesFilter &&
+        !(problem.seriesKeys || []).includes(seriesFilter)
+      ) {
+        return false;
+      }
       if (scopeFilter === "hot100" && !problem.hot100) return false;
-      if (scopeFilter === "companyFollowUps" && !problem.companyFollowUps?.length) return false;
       if (byteDanceFilter === "bytedanceAll" && !byteDance.all) return false;
       if (byteDanceFilter === "bytedanceThirtyDays" && !byteDance.thirtyDays) return false;
       if (byteDanceFilter === "bytedanceThreeMonths" && !byteDance.threeMonths) return false;
@@ -8611,6 +8946,9 @@ const shortcutRows = [
         problem.titleSlug,
         problem.difficulty,
         problem.bytedance ? "字节跳动 bytedance" : "",
+        problem.seriesSupplement ? "系列补充 series supplement" : "",
+        ...(problem.seriesTitles || []),
+        ...(problem.seriesKeys || []),
         problem.bytedanceRank ? `bd ${problem.bytedanceRank}` : "",
         byteDance.thirtyDays ? `字节近30天 ${byteDance.thirtyDays}` : "",
         byteDance.threeMonths ? `字节近3月 ${byteDance.threeMonths}` : "",
@@ -8661,8 +8999,25 @@ const shortcutRows = [
 
     function orderedProblems() {
       const filtered = problems.filter(matchesFilter);
+      const seriesFilter = state.filters.series;
       const scopeFilter = state.filters.scope;
       const byteDanceFilter = state.filters.bytedance;
+      if (seriesFilter) {
+        const seriesOrder = seriesOrderByKey.get(seriesFilter) || new Map();
+        return filtered.sort((a, b) => {
+          const left = seriesOrder.has(a.titleSlug)
+            ? seriesOrder.get(a.titleSlug)
+            : Number.MAX_SAFE_INTEGER;
+          const right = seriesOrder.has(b.titleSlug)
+            ? seriesOrder.get(b.titleSlug)
+            : Number.MAX_SAFE_INTEGER;
+          return (
+            (a.topRank ?? a.frequencyRank ?? 999999) -
+              (b.topRank ?? b.frequencyRank ?? 999999) ||
+            left - right
+          );
+        });
+      }
       if (byteDanceFilter) {
         return filtered.sort((a, b) => {
           const left = byteDanceRankFor(a, byteDanceFilter) || Number.MAX_SAFE_INTEGER;
@@ -9033,6 +9388,8 @@ const shortcutRows = [
           ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
           ${problem.hot100 ? "<span>Hot100</span>" : ""}
           ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
+          ${problem.seriesSupplement ? `<span>${isChinesePage ? "系列补充" : "Series supplement"}</span>` : ""}
+          ${(problem.seriesTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
           ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
           ${problem.implementationReferences?.length ? `<span>实现参考 ${escapeHtml(problem.implementationReferences.length)}</span>` : ""}
           ${renderByteDanceMeta(problem)}
@@ -9057,6 +9414,7 @@ const shortcutRows = [
       const chips = [
         relatedRankLabel(item),
         item.difficulty,
+        item.seriesTitle,
         item.hot100 ? "Hot100" : "",
         item.paidOnly ? (isChinesePage ? "付费" : "Paid") : "",
         ...(item.sharedTags || []).map((tag) => tag.name),
@@ -12845,6 +13203,11 @@ const shortcutRows = [
       });
     });
 
+    seriesFilterSelect?.addEventListener("change", () => {
+      if (!(seriesFilterSelect instanceof HTMLSelectElement)) return;
+      applySeriesFilter(seriesFilterSelect.value, { force: true });
+    });
+
     pageActionButtons.forEach((button) => {
       button.addEventListener("click", () => {
         if (!(button instanceof HTMLElement)) return;
@@ -12978,6 +13341,19 @@ const shortcutRows = [
       const flowSkipFrontendToggle = target.closest("[data-flow-skip-frontend]");
       if (flowSkipFrontendToggle instanceof HTMLElement) {
         toggleFlowSkipFrontend();
+        return;
+      }
+      const seriesPracticeButton = target.closest("[data-series-practice]");
+      if (seriesPracticeButton instanceof HTMLElement) {
+        startSeriesPractice(seriesPracticeButton.dataset.seriesPractice || "");
+        return;
+      }
+      const globalRelatedButton = target.closest("[data-open-related]");
+      if (
+        globalRelatedButton instanceof HTMLElement &&
+        !globalRelatedButton.closest("#leetcode-problem-list")
+      ) {
+        openRelatedProblem(globalRelatedButton.dataset.openRelated || "");
         return;
       }
       const actionButton = target.closest("[data-timing-action]");
@@ -13958,6 +14334,7 @@ const shortcutRows = [
     .leetcode-filter-panel,
     .leetcode-filter-cluster,
     .leetcode-filter-group,
+    .leetcode-series-filter,
     .leetcode-list-controls,
     .leetcode-list-primary-controls,
     .leetcode-list-scope-controls,
@@ -15347,6 +15724,70 @@ const shortcutRows = [
       justify-content: flex-start;
     }
 
+    .leetcode-series-filter {
+      min-width: min(18rem, 100%);
+      flex: 1 1 16rem;
+      gap: 0.08rem;
+    }
+
+    .leetcode-series-filter-head {
+      min-width: 0;
+      max-width: min(24rem, 100%);
+      flex: 0 1 24rem;
+      margin-left: auto;
+      text-transform: none;
+    }
+
+    .leetcode-series-filter > span {
+      color: var(--color-muted);
+      font-family: var(--leetcode-page-font);
+      font-size: var(--leetcode-meta-label-font-size, 0.66rem);
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .leetcode-series-filter select {
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 0;
+      height: var(--leetcode-page-control-height, 1.52rem);
+      min-height: var(--leetcode-page-control-height, 1.52rem);
+      border: 1px solid var(--color-border);
+      border-radius: var(--leetcode-meta-radius, 0.42rem);
+      background: rgb(255 255 255 / 48%);
+      color: var(--color-charcoal);
+      cursor: pointer;
+      font-family: var(--leetcode-page-font);
+      font-size: 0.78rem;
+      font-weight: 560;
+      line-height: 1.12;
+      padding: 0 0.3rem;
+    }
+
+    .leetcode-series-filter-head select {
+      height: 1.34rem;
+      min-height: 1.34rem;
+      background: rgb(255 255 255 / 34%);
+      font-size: 0.74rem;
+      padding: 0 0.24rem;
+      text-transform: none;
+    }
+
+    .leetcode-series-filter select option {
+      font-family: var(--leetcode-page-font);
+      font-size: 0.8rem;
+      line-height: 1.18;
+    }
+
+    .leetcode-series-filter select.is-active {
+      border-color: var(--color-terracotta);
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-terracotta);
+      font-weight: 650;
+    }
+
     .leetcode-filter-group button,
     .leetcode-status button,
     .leetcode-preview-control,
@@ -15544,13 +15985,15 @@ const shortcutRows = [
 
     .leetcode-collapse-stack > .leetcode-duplicate-audit,
     .leetcode-collapse-stack > .leetcode-extension-guide,
-    .leetcode-collapse-stack > .leetcode-insight-guide {
+    .leetcode-collapse-stack > .leetcode-insight-guide,
+    .leetcode-collapse-stack > .leetcode-series-guide {
       margin: 0;
     }
 
     .leetcode-duplicate-audit,
     .leetcode-extension-guide,
-    .leetcode-insight-guide {
+    .leetcode-insight-guide,
+    .leetcode-series-guide {
       margin: var(--leetcode-stack-gap) 0 0;
       border: 1px solid rgb(194 192 182 / 58%);
       border-radius: 0.5rem;
@@ -15566,7 +16009,8 @@ const shortcutRows = [
 
     .leetcode-duplicate-audit summary,
     .leetcode-extension-guide summary,
-    .leetcode-insight-guide summary {
+    .leetcode-insight-guide summary,
+    .leetcode-series-guide summary {
       cursor: pointer;
       font-family: var(--leetcode-system-font);
       font-size: inherit;
@@ -15576,7 +16020,8 @@ const shortcutRows = [
     }
 
     .leetcode-extension-guide > div,
-    .leetcode-insight-guide > div {
+    .leetcode-insight-guide > div,
+    .leetcode-series-guide > div {
       display: grid;
       gap: 0.52rem;
       border-top: 1px solid rgb(194 192 182 / 48%);
@@ -15586,7 +16031,8 @@ const shortcutRows = [
     .leetcode-extension-guide p,
     .leetcode-extension-guide ol,
     .leetcode-insight-guide p,
-    .leetcode-insight-guide ol {
+    .leetcode-insight-guide ol,
+    .leetcode-series-guide p {
       margin: 0;
     }
 
@@ -15628,6 +16074,136 @@ const shortcutRows = [
       background: rgb(20 20 19 / 6%);
       font-size: 0.72rem;
       padding: 0.05rem 0.22rem;
+    }
+
+    .leetcode-series-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+      gap: 0.62rem;
+      max-height: 32rem;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding-right: 0.1rem;
+    }
+
+    .leetcode-series-group {
+      display: grid;
+      gap: 0.42rem;
+      align-content: start;
+      min-width: 0;
+      border: 1px solid rgb(194 192 182 / 52%);
+      border-radius: 0.48rem;
+      background: rgb(255 255 255 / 32%);
+      padding: 0.58rem;
+    }
+
+    .leetcode-series-group header {
+      display: flex;
+      gap: 0.45rem;
+      align-items: baseline;
+      justify-content: space-between;
+      min-width: 0;
+    }
+
+    .leetcode-series-group h3 {
+      min-width: 0;
+      margin: 0;
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-system-font);
+      font-size: 0.86rem;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .leetcode-series-group header div {
+      display: flex;
+      flex: 0 0 auto;
+      gap: 0.28rem;
+      align-items: center;
+    }
+
+    .leetcode-series-group header span {
+      color: var(--color-terracotta);
+      font-size: 0.68rem;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .leetcode-series-group header button {
+      min-height: 1.35rem;
+      border: 1px solid rgb(217 119 87 / 46%);
+      border-radius: 0.36rem;
+      background: rgb(217 119 87 / 9%);
+      color: var(--color-terracotta);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.66rem;
+      font-weight: 750;
+      line-height: 1;
+      padding: 0 0.36rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-series-group p {
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .leetcode-series-members {
+      display: grid;
+      gap: 0.2rem;
+      min-width: 0;
+    }
+
+    .leetcode-series-member {
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.45rem;
+      align-items: baseline;
+      max-width: 100%;
+      min-width: 0;
+      width: 100%;
+      border: 1px solid rgb(194 192 182 / 46%);
+      border-radius: 0.38rem;
+      background: rgb(255 255 255 / 42%);
+      color: var(--color-charcoal);
+      cursor: pointer;
+      font: inherit;
+      line-height: 1.28;
+      padding: 0.28rem 0.38rem;
+      text-align: left;
+      text-decoration: none;
+    }
+
+    .leetcode-series-member:hover,
+    .leetcode-series-member:focus-visible {
+      border-color: rgb(217 119 87 / 54%);
+      background: rgb(217 119 87 / 10%);
+      color: var(--color-terracotta);
+      outline: none;
+    }
+
+    .leetcode-series-member span {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .leetcode-series-member em {
+      flex: 0 0 auto;
+      color: var(--color-muted);
+      font-style: normal;
+      font-size: 0.66rem;
+    }
+
+    .leetcode-series-member.is-paid em {
+      color: #a15c25;
+      font-weight: 700;
     }
 
     .leetcode-extension-guide a {
@@ -15746,6 +16322,18 @@ const shortcutRows = [
       font-weight: 700;
       padding: 0.28rem 0.25rem;
       text-transform: uppercase;
+    }
+
+    .leetcode-problem-head {
+      display: flex;
+      min-width: 0;
+      gap: 0.45rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .leetcode-problem-head > span {
+      flex: 0 0 auto;
     }
 
     .leetcode-table-head > span:nth-child(1),
@@ -17070,6 +17658,7 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-search input,
+    html.dark .leetcode-series-filter select,
     html.dark .leetcode-toolbar .leetcode-filter-group button,
     html.dark .leetcode-session-actions button,
     html.dark .leetcode-route-skip-controls button {
@@ -17077,7 +17666,8 @@ const shortcutRows = [
       background: transparent;
     }
 
-    html.dark .leetcode-search input:focus {
+    html.dark .leetcode-search input:focus,
+    html.dark .leetcode-series-filter select:focus {
       border-color: rgb(217 119 87 / 58%);
     }
 
@@ -17090,6 +17680,7 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-toolbar .leetcode-filter-group button.is-active,
+    html.dark .leetcode-series-filter select.is-active,
     html.dark .leetcode-session-actions button.is-on,
     html.dark .leetcode-route-skip-controls button.is-on {
       border-color: rgb(217 119 87 / 68%);
@@ -17130,6 +17721,7 @@ const shortcutRows = [
     html.dark .leetcode-footer-settings,
     html.dark .leetcode-extension-guide,
     html.dark .leetcode-insight-guide,
+    html.dark .leetcode-series-guide,
     html.dark .leetcode-footer-links {
       border-color: #333;
     }
@@ -17146,13 +17738,15 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-extension-guide,
-    html.dark .leetcode-insight-guide {
+    html.dark .leetcode-insight-guide,
+    html.dark .leetcode-series-guide {
       background: rgb(30 30 28 / 38%);
       color: var(--color-muted);
     }
 
     html.dark .leetcode-extension-guide > div,
-    html.dark .leetcode-insight-guide > div {
+    html.dark .leetcode-insight-guide > div,
+    html.dark .leetcode-series-guide > div {
       border-top-color: #333;
     }
 
@@ -17166,6 +17760,30 @@ const shortcutRows = [
       border-color: rgb(105 201 183 / 36%);
       background: rgb(105 201 183 / 10%);
       color: #69c9b7;
+    }
+
+    html.dark .leetcode-series-group,
+    html.dark .leetcode-series-member {
+      border-color: #333;
+      background: rgb(30 30 28 / 34%);
+    }
+
+    html.dark .leetcode-series-group header button {
+      border-color: rgb(226 149 120 / 42%);
+      background: rgb(226 149 120 / 11%);
+      color: #e29578;
+    }
+
+    html.dark .leetcode-series-group h3,
+    html.dark .leetcode-series-member {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-series-member:hover,
+    html.dark .leetcode-series-member:focus-visible {
+      border-color: rgb(226 149 120 / 48%);
+      background: rgb(226 149 120 / 12%);
+      color: #e29578;
     }
 
     html.dark .leetcode-editor-shell {
@@ -17980,6 +18598,11 @@ const shortcutRows = [
 
       .leetcode-list-primary-controls {
         flex-wrap: wrap;
+      }
+
+      .leetcode-series-filter {
+        flex: 1 1 100%;
+        width: min(100%, 32rem);
       }
 
       .leetcode-pagination-bottom,

@@ -9,6 +9,7 @@ const defaultBackoffMs = 1200;
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const seriesPath = new URL("src/data/leetcode-series.ts", repoRoot);
 const outputPath = new URL("src/data/leetcode-code-templates.ts", repoRoot);
 const leetcodeCookie = process.env.LEETCODE_CN_COOKIE || "";
 const leetcodeGlobalCookie = process.env.LEETCODE_COOKIE || "";
@@ -79,10 +80,10 @@ async function readExistingTemplates() {
   }
 }
 
-function buildBookProblems(problems, bytedanceProblems) {
+function buildBookProblems(problems, bytedanceProblems, seriesProblems) {
   const seen = new Set();
   const result = [];
-  for (const problem of [...problems, ...bytedanceProblems]) {
+  for (const problem of [...problems, ...bytedanceProblems, ...seriesProblems]) {
     if (seen.has(problem.titleSlug)) continue;
     seen.add(problem.titleSlug);
     result.push(problem);
@@ -269,9 +270,10 @@ async function main() {
   }
   const mergeExisting = !hasFlag("fresh");
   const missingOnly = hasFlag("missing-only");
-  const [source, bytedanceSource] = await Promise.all([
+  const [source, bytedanceSource, seriesSource] = await Promise.all([
     readFile(problemsPath, "utf8"),
     readFile(bytedancePath, "utf8"),
+    readFile(seriesPath, "utf8"),
   ]);
   const problems = buildBookProblems(
     extractJsonArray(
@@ -283,6 +285,11 @@ async function main() {
       bytedanceSource,
       "leetcodeByteDanceProblems",
       "satisfies LeetcodeByteDanceProblem\\[\\];",
+    ),
+    extractJsonArray(
+      seriesSource,
+      "leetcodeSeriesProblems",
+      "satisfies LeetcodeSeriesProblem\\[\\];",
     ),
   ).slice(0, limit);
   const templatesBySlug = mergeExisting ? await readExistingTemplates() : {};

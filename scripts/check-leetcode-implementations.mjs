@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const seriesPath = new URL("src/data/leetcode-series.ts", repoRoot);
 const codeTemplatesPath = new URL("src/data/leetcode-code-templates.ts", repoRoot);
 const personalReferencesPath = new URL(
   "src/data/leetcode-implementation-references.ts",
@@ -50,6 +51,11 @@ const leetcodeByteDanceProblems = extractJsonArray(
   "leetcodeByteDanceProblems",
   "satisfies LeetcodeByteDanceProblem\\[\\];",
 );
+const leetcodeSeriesProblems = extractJsonArray(
+  await readFile(seriesPath, "utf8"),
+  "leetcodeSeriesProblems",
+  "satisfies LeetcodeSeriesProblem\\[\\];",
+);
 const leetcodeCodeTemplates = extractJsonObject(
   await readFile(codeTemplatesPath, "utf8"),
   "leetcodeCodeTemplates",
@@ -71,7 +77,11 @@ const leetcodeGeneratedImplementationStats = extractConstObject(
 function targetProblems() {
   const result = [];
   const seen = new Set();
-  for (const problem of [...leetcodeProblems, ...leetcodeByteDanceProblems]) {
+  for (const problem of [
+    ...leetcodeProblems,
+    ...leetcodeByteDanceProblems,
+    ...leetcodeSeriesProblems,
+  ]) {
     if (seen.has(problem.titleSlug)) continue;
     seen.add(problem.titleSlug);
     result.push(problem);

@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const seriesPath = new URL("src/data/leetcode-series.ts", repoRoot);
 const constraintsPath = new URL(
   "src/data/leetcode-problem-constraints.ts",
   repoRoot,
@@ -60,7 +61,7 @@ function frequencyLabel(frequency) {
   return `${frequency}%`;
 }
 
-function buildCandidates(problems, bytedanceProblems) {
+function buildCandidates(problems, bytedanceProblems, seriesProblems) {
   const existingSlugs = new Set(problems.map((problem) => problem.titleSlug));
   const baseProblems = problems.map((problem) => ({
     ...problem,
@@ -89,7 +90,27 @@ function buildCandidates(problems, bytedanceProblems) {
       followUps: problem.followUps ?? [],
       sourceGroup: "bytedanceSupplement",
     }));
-  return [...baseProblems, ...supplements];
+  const seenSlugs = new Set([
+    ...baseProblems.map((problem) => problem.titleSlug),
+    ...supplements.map((problem) => problem.titleSlug),
+  ]);
+  const seriesSupplements = seriesProblems
+    .filter((problem) => !seenSlugs.has(problem.titleSlug))
+    .map((problem, index) => {
+      seenSlugs.add(problem.titleSlug);
+      return {
+        topRank: null,
+        frequencyRank: problems.length + supplements.length + index + 1,
+        hotRank: null,
+        bytedance: false,
+        bytedanceVerified: false,
+        frequency: "系列补充",
+        hot100: false,
+        ...problem,
+        sourceGroup: "seriesSupplement",
+      };
+    });
+  return [...baseProblems, ...supplements, ...seriesSupplements];
 }
 
 function isBlank(value) {
@@ -326,6 +347,7 @@ function printIssueSection(title, issues, limit) {
 const [
   problemsSource,
   bytedanceSource,
+  seriesSource,
   constraintsSource,
   codeTemplatesSource,
   personalReferencesSource,
@@ -333,6 +355,7 @@ const [
 ] = await Promise.all([
   readFile(problemsPath, "utf8"),
   readFile(bytedancePath, "utf8"),
+  readFile(seriesPath, "utf8"),
   readFile(constraintsPath, "utf8"),
   readFile(codeTemplatesPath, "utf8"),
   readFile(personalReferencesPath, "utf8"),
@@ -348,6 +371,11 @@ const leetcodeByteDanceProblems = extractJsonArray(
   bytedanceSource,
   "leetcodeByteDanceProblems",
   "satisfies LeetcodeByteDanceProblem\\[\\];",
+);
+const leetcodeSeriesProblems = extractJsonArray(
+  seriesSource,
+  "leetcodeSeriesProblems",
+  "satisfies LeetcodeSeriesProblem\\[\\];",
 );
 const leetcodeProblemConstraints = extractJsonObject(
   constraintsSource,
@@ -366,7 +394,11 @@ const leetcodeGeneratedImplementationReferences = extractJsonObject(
   "leetcodeGeneratedImplementationReferences",
 );
 
-const candidates = buildCandidates(leetcodeProblems, leetcodeByteDanceProblems);
+const candidates = buildCandidates(
+  leetcodeProblems,
+  leetcodeByteDanceProblems,
+  leetcodeSeriesProblems,
+);
 const issues = [];
 let implementationReferenceCount = 0;
 let cppReferenceProblemCount = 0;

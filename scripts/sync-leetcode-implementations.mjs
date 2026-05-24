@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
+const seriesPath = new URL("src/data/leetcode-series.ts", repoRoot);
 const outputPath = new URL(
   "src/data/leetcode-implementation-generated.ts",
   repoRoot,
@@ -106,9 +107,14 @@ async function targetProblems() {
     "leetcodeByteDanceProblems",
     "satisfies LeetcodeByteDanceProblem\\[\\];",
   );
+  const seriesProblems = extractJsonArray(
+    await readFile(seriesPath, "utf8"),
+    "leetcodeSeriesProblems",
+    "satisfies LeetcodeSeriesProblem\\[\\];",
+  );
   const result = [];
   const seen = new Set();
-  for (const problem of [...problems, ...bytedanceProblems]) {
+  for (const problem of [...problems, ...bytedanceProblems, ...seriesProblems]) {
     if (seen.has(problem.titleSlug)) continue;
     seen.add(problem.titleSlug);
     result.push(problem);
@@ -180,8 +186,18 @@ function complexityFromSection(sectionBody) {
   const space =
     normalized.match(/(?:space complexity|空间复杂度)[：:\s]*([^。.;<\n]{1,80})/i)?.[1] ||
     "";
-  if (!time && !space) return null;
-  return [time && `Time ${time.trim()}`, space && `Space ${space.trim()}`]
+  const validComplexity = (value) => {
+    const trimmed = value.trim();
+    if (!/^[$`\\\s]*(?:O|\\mathcal\{?O\}?)/i.test(trimmed)) return "";
+    return /O\s*\(/i.test(trimmed) ? trimmed : "";
+  };
+  const normalizedTime = validComplexity(time);
+  const normalizedSpace = validComplexity(space);
+  if (!normalizedTime && !normalizedSpace) return null;
+  return [
+    normalizedTime && `Time ${normalizedTime}`,
+    normalizedSpace && `Space ${normalizedSpace}`,
+  ]
     .filter(Boolean)
     .join(" / ");
 }
