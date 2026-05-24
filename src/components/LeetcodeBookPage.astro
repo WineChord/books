@@ -1159,6 +1159,9 @@ const leetcodeSeriesFilterOptions = leetcodeSeriesOverview.map((series) => ({
   supplements: series.supplements,
   members: series.members.map((member) => member.titleSlug),
 }));
+const leetcodeSeriesDistinctCount = new Set(
+  leetcodeSeriesFilterOptions.flatMap((series) => series.members),
+).size;
 const leetcodePracticeCategoryCollections = [
   buildPracticeCategoryCollection({
     key: "hot100",
@@ -1674,6 +1677,21 @@ const shortcutRows = [
                 ? "同一组内按基础题、编号变体和强关联变体组织；点击书内题可直接打开本页练习面板，付费题会保留标记。"
                 : "Groups are ordered by base problem, numbered variants, and strongly related variants. In-book items open the local practice panel; paid items keep their marker."}
             </p>
+            <div class="leetcode-list-practice-actions">
+              <span>
+                {isZh
+                  ? `${leetcodeSeriesDistinctCount} 道题按组序串联`
+                  : `${leetcodeSeriesDistinctCount} problems in group order`}
+              </span>
+              <button
+                type="button"
+                data-list-practice="series"
+                aria-pressed="false"
+                aria-label={isZh ? "按系列题单整体顺序练习" : "Practice the full series list in order"}
+              >
+                {isZh ? "按题单顺序练" : "Practice full list"}
+              </button>
+            </div>
             <div class="leetcode-series-grid">
               {leetcodeSeriesOverview.map((series) => (
                 <section class="leetcode-series-group">
@@ -1756,6 +1774,23 @@ const shortcutRows = [
             </summary>
             <div class="leetcode-series-overview leetcode-category-overview">
               <p>{isZh ? collection.description : collection.descriptionEn}</p>
+              <div class="leetcode-list-practice-actions">
+                <span>
+                  {isZh
+                    ? `${collection.distinctCount} 道题按分类序串联`
+                    : `${collection.distinctCount} problems in category order`}
+                </span>
+                <button
+                  type="button"
+                  data-list-practice={collection.key}
+                  aria-pressed="false"
+                  aria-label={isZh
+                    ? `按${collection.title}整体顺序练习`
+                    : `Practice the full ${collection.titleEn} in order`}
+                >
+                  {isZh ? "按题单顺序练" : "Practice full list"}
+                </button>
+              </div>
               <div class="leetcode-series-grid leetcode-category-grid">
                 {collection.categories.map((category) => (
                   <section class="leetcode-series-group leetcode-category-group">
@@ -2275,6 +2310,61 @@ const shortcutRows = [
     );
     const categoryDataNode = document.getElementById("leetcode-category-data");
     const categoryOptions = JSON.parse(categoryDataNode?.textContent || "[]");
+    const practiceListKindSeries = "series";
+    const practiceListKindHot100 = "hot100";
+    const practiceListKindByteDance = "bytedance";
+
+    function uniqueProblemSlugs(slugs) {
+      const seen = new Set();
+      return slugs.filter((slug) => {
+        if (!slug || seen.has(slug)) return false;
+        seen.add(slug);
+        return true;
+      });
+    }
+
+    function practiceListMembersFor(kind) {
+      if (kind === practiceListKindSeries) {
+        return uniqueProblemSlugs(
+          seriesOptions.flatMap((series) => series.members || []),
+        );
+      }
+      return uniqueProblemSlugs(
+        categoryOptions
+          .filter((category) => category.collectionKey === kind)
+          .flatMap((category) => category.members || []),
+      );
+    }
+
+    const practiceListOptions = [
+      {
+        key: practiceListKindSeries,
+        title: "系列题单总览",
+        titleEn: "Series map",
+        members: practiceListMembersFor(practiceListKindSeries),
+      },
+      {
+        key: practiceListKindHot100,
+        title: "Hot100 分类刷题单",
+        titleEn: "Hot 100 Topic List",
+        members: practiceListMembersFor(practiceListKindHot100),
+      },
+      {
+        key: practiceListKindByteDance,
+        title: "字节分类刷题单",
+        titleEn: "ByteDance Topic List",
+        members: practiceListMembersFor(practiceListKindByteDance),
+      },
+    ];
+    const practiceListByKey = new Map(
+      practiceListOptions.map((listOption) => [listOption.key, listOption]),
+    );
+    const practiceListOrderByKey = new Map(
+      practiceListOptions.map((listOption) => [
+        listOption.key,
+        new Map((listOption.members || []).map((slug, index) => [slug, index])),
+      ]),
+    );
     const categoryById = new Map(
       categoryOptions.map((category) => [category.id, category]),
     );
@@ -2297,6 +2387,9 @@ const shortcutRows = [
     const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
     const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const listPracticeButtons = Array.from(
+      document.querySelectorAll("[data-list-practice]"),
+    );
     const categoryPracticeButtons = Array.from(
       document.querySelectorAll("[data-category-practice]"),
     );
@@ -2374,6 +2467,7 @@ const shortcutRows = [
         status: "",
         series: "",
         category: "",
+        list: "",
       },
       page: 1,
       pageSize: 20,
@@ -4005,6 +4099,7 @@ const shortcutRows = [
         status: "",
         series: "",
         category: "",
+        list: "",
       };
     }
 
@@ -4043,6 +4138,8 @@ const shortcutRows = [
           if (seriesByKey.has(value)) nextFilters.series = value;
         } else if (group === "category") {
           if (categoryById.has(value)) nextFilters.category = value;
+        } else if (group === "list") {
+          if (practiceListByKey.has(value)) nextFilters.list = value;
         } else if (filterGroupFor(value) === group) {
           nextFilters[group] = value;
         }
@@ -4115,6 +4212,13 @@ const shortcutRows = [
         }
         seriesFilterSelect.classList.toggle("is-active", Boolean(value));
       }
+      listPracticeButtons.forEach((button) => {
+        if (!(button instanceof HTMLElement)) return;
+        const key = button.dataset.listPractice || "";
+        const isActive = Boolean(key) && key === state.filters.list;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
       categoryPracticeButtons.forEach((button) => {
         if (!(button instanceof HTMLElement)) return;
         const id = button.dataset.categoryPractice || "";
@@ -9566,6 +9670,7 @@ const shortcutRows = [
       state.filters[group] = nextFilter;
       if (group !== "status") {
         state.filters.category = "";
+        state.filters.list = "";
       }
       syncFilterButtons();
       state.page = 1;
@@ -9578,7 +9683,10 @@ const shortcutRows = [
       const key = seriesByKey.has(seriesKey) ? seriesKey : "";
       if (state.filters.series === key && !options.force) return false;
       state.filters.series = key;
-      if (key) state.filters.category = "";
+      if (key) {
+        state.filters.category = "";
+        state.filters.list = "";
+      }
       syncFilterButtons();
       state.page = 1;
       render();
@@ -9605,6 +9713,56 @@ const shortcutRows = [
       timingMilestone = isChinesePage
         ? `系列顺序流已进入 ${problem.frontendId}. ${problem.titleCn}`
         : `Series list flow opened ${problem.frontendId}. ${problem.titleCn}`;
+      openPracticeAtIndex(items, index);
+      syncTimingUi();
+      return true;
+    }
+
+    function applyPracticeListFilter(kind, options = {}) {
+      const listOption = practiceListByKey.get(kind);
+      if (!listOption) return null;
+      if (state.filters.list === listOption.key && !options.force) {
+        return listOption;
+      }
+      state.filters = {
+        ...defaultFilterState(),
+        status: state.filters.status,
+        list: listOption.key,
+      };
+      if (listOption.key === practiceListKindHot100) {
+        state.filters.scope = "hot100";
+      }
+      syncFilterButtons();
+      state.page = 1;
+      render();
+      scheduleViewStateWrite();
+      return listOption;
+    }
+
+    function practiceListLabel(listOption) {
+      if (!listOption) return "";
+      return isChinesePage ? listOption.title : listOption.titleEn;
+    }
+
+    function startPracticeList(kind) {
+      const listOption = applyPracticeListFilter(kind, { force: true });
+      if (!listOption) return false;
+      setFlowMode(flowModeList);
+      const items = orderedProblems();
+      if (!items.length) {
+        timingMilestone = isChinesePage
+          ? "当前题单没有可练题目"
+          : "No problem is visible in this list";
+        syncTimingUi();
+        return false;
+      }
+      const routeTarget = practiceRouteTarget(items, -1, 1);
+      const index = routeTarget?.index ?? 0;
+      const problem = items[index];
+      const label = practiceListLabel(listOption);
+      timingMilestone = isChinesePage
+        ? `${label} 整体顺序流已进入 ${problem.frontendId}. ${problem.titleCn}`
+        : `${label} full-list flow opened ${problem.frontendId}. ${problem.titleCn}`;
       openPracticeAtIndex(items, index);
       syncTimingUi();
       return true;
@@ -9682,8 +9840,15 @@ const shortcutRows = [
       const statusFilter = state.filters.status;
       const seriesFilter = state.filters.series;
       const categoryFilter = state.filters.category;
+      const listFilter = state.filters.list;
       const categoryOrder = categoryOrderById.get(categoryFilter);
       if (categoryFilter && !categoryOrder?.has(problem.titleSlug)) {
+        return false;
+      }
+      if (
+        listFilter &&
+        !practiceListOrderByKey.get(listFilter)?.has(problem.titleSlug)
+      ) {
         return false;
       }
       if (
@@ -9764,6 +9929,7 @@ const shortcutRows = [
       const filtered = problems.filter(matchesFilter);
       const categoryFilter = state.filters.category;
       const seriesFilter = state.filters.series;
+      const listFilter = state.filters.list;
       const scopeFilter = state.filters.scope;
       const byteDanceFilter = state.filters.bytedance;
       if (categoryFilter) {
@@ -9795,6 +9961,22 @@ const shortcutRows = [
             (a.topRank ?? a.frequencyRank ?? 999999) -
               (b.topRank ?? b.frequencyRank ?? 999999) ||
             left - right
+          );
+        });
+      }
+      if (listFilter) {
+        const listOrder = practiceListOrderByKey.get(listFilter) || new Map();
+        return filtered.sort((a, b) => {
+          const left = listOrder.has(a.titleSlug)
+            ? listOrder.get(a.titleSlug)
+            : Number.MAX_SAFE_INTEGER;
+          const right = listOrder.has(b.titleSlug)
+            ? listOrder.get(b.titleSlug)
+            : Number.MAX_SAFE_INTEGER;
+          return (
+            left - right ||
+            (a.topRank ?? a.frequencyRank ?? 999999) -
+              (b.topRank ?? b.frequencyRank ?? 999999)
           );
         });
       }
@@ -14028,8 +14210,11 @@ const shortcutRows = [
       if (list) list.innerHTML = pageItems.map(renderProblemBundle).join("");
       if (resultCount) {
         const category = categoryById.get(state.filters.category);
+        const listOption = practiceListByKey.get(state.filters.list);
         resultCount.textContent = category
           ? `${categoryPracticeLabel(category)}：${items.length} 道题`
+          : listOption
+            ? `${practiceListLabel(listOption)}：${items.length} 道题`
           : `${items.length} 道题`;
       }
       syncPagination();
@@ -14209,6 +14394,11 @@ const shortcutRows = [
       const flowSkipFrontendToggle = target.closest("[data-flow-skip-frontend]");
       if (flowSkipFrontendToggle instanceof HTMLElement) {
         toggleFlowSkipFrontend();
+        return;
+      }
+      const listPracticeButton = target.closest("[data-list-practice]");
+      if (listPracticeButton instanceof HTMLElement) {
+        startPracticeList(listPracticeButton.dataset.listPractice || "");
         return;
       }
       const categoryPracticeButton = target.closest("[data-category-practice]");
@@ -17040,6 +17230,49 @@ const shortcutRows = [
       overflow-wrap: anywhere;
     }
 
+    .leetcode-list-practice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 0.48rem;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+      border: 1px solid rgb(217 119 87 / 20%);
+      border-radius: 0.44rem;
+      background: rgb(217 119 87 / 5%);
+      padding: 0.38rem 0.48rem;
+    }
+
+    .leetcode-list-practice-actions span {
+      min-width: 0;
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      line-height: 1.25;
+    }
+
+    .leetcode-list-practice-actions button {
+      min-height: 1.48rem;
+      border: 1px solid rgb(217 119 87 / 46%);
+      border-radius: 0.38rem;
+      background: rgb(217 119 87 / 9%);
+      color: var(--color-terracotta);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 760;
+      line-height: 1;
+      padding: 0 0.44rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-list-practice-actions button:hover,
+    .leetcode-list-practice-actions button:focus-visible,
+    .leetcode-list-practice-actions button.is-active {
+      background: rgb(217 119 87 / 15%);
+      color: var(--color-terracotta);
+      outline: none;
+    }
+
     .leetcode-series-members {
       display: grid;
       gap: 0.2rem;
@@ -18683,6 +18916,24 @@ const shortcutRows = [
     html.dark .leetcode-series-group header button {
       border-color: rgb(226 149 120 / 42%);
       background: rgb(226 149 120 / 11%);
+      color: #e29578;
+    }
+
+    html.dark .leetcode-list-practice-actions {
+      border-color: rgb(226 149 120 / 24%);
+      background: rgb(226 149 120 / 8%);
+    }
+
+    html.dark .leetcode-list-practice-actions button {
+      border-color: rgb(226 149 120 / 42%);
+      background: rgb(226 149 120 / 11%);
+      color: #e29578;
+    }
+
+    html.dark .leetcode-list-practice-actions button:hover,
+    html.dark .leetcode-list-practice-actions button:focus-visible,
+    html.dark .leetcode-list-practice-actions button.is-active {
+      background: rgb(226 149 120 / 16%);
       color: #e29578;
     }
 
