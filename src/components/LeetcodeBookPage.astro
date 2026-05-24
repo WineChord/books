@@ -690,6 +690,90 @@ function sortProblemsBySequentialOrder(problems) {
   );
 }
 
+function compactIdeaText(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function clippedIdeaText(text, limit = 96) {
+  const compact = compactIdeaText(text);
+  if (compact.length <= limit) return compact;
+  return `${compact.slice(0, limit).replace(/[，。；、\s]+$/u, "")}…`;
+}
+
+function problemIdeaFallback(problem) {
+  const tags = (problem.tags || []).slice(0, 3).map((tag) => tag.name);
+  if (tags.length > 0) {
+    return `从 ${tags.join("、")} 入手，先确定状态、窗口或数据结构，再补齐边界。`;
+  }
+  return "先拆输入规模、状态和边界，再选择可验证的最小策略。";
+}
+
+function problemIdeaText(problem) {
+  return clippedIdeaText(
+    problem.approachPreview ||
+      problem.statementPreview ||
+      problemIdeaFallback(problem),
+  );
+}
+
+function groupIdeaTags(members) {
+  const tagCounts = new Map();
+  for (const member of members) {
+    for (const tag of member.tags || []) {
+      const current = tagCounts.get(tag.slug) || {
+        count: 0,
+        name: tag.name,
+        slug: tag.slug,
+      };
+      current.count += 1;
+      tagCounts.set(tag.slug, current);
+    }
+  }
+  return Array.from(tagCounts.values())
+    .sort((left, right) =>
+      right.count - left.count || left.name.localeCompare(right.name),
+    )
+    .slice(0, 4)
+    .map((tag) => tag.name);
+}
+
+function groupReviewPrompts(members) {
+  const prompts = [];
+  const seen = new Set();
+  for (const member of members) {
+    for (const followUp of member.followUps || []) {
+      const prompt = clippedIdeaText(followUp.question, 82);
+      if (!prompt || seen.has(prompt)) continue;
+      seen.add(prompt);
+      prompts.push(prompt);
+      if (prompts.length >= 2) return prompts;
+    }
+  }
+  return prompts;
+}
+
+function groupIdeaProfile(group, members) {
+  return {
+    lead: group.description,
+    leadEn: group.descriptionEn || group.description,
+    reviewPrompts: groupReviewPrompts(members),
+    rows: members.map((member, index) => ({
+      difficulty: member.difficulty,
+      frontendId: member.frontendId,
+      paidOnly: Boolean(member.paidOnly),
+      step: index + 1,
+      text: problemIdeaText(member),
+      titleCn: member.titleCn,
+      titleSlug: member.titleSlug,
+    })),
+    tags: groupIdeaTags(members),
+  };
+}
+
+function groupIdeaDomId(prefix, key) {
+  return `leetcode-${prefix}-idea-${String(key).replace(/[^a-z0-9_-]+/gi, "-")}`;
+}
+
 function seriesFrequencyProfile(group) {
   const ranked = group.members
     .map(problemFrequencyOrder)
@@ -827,10 +911,14 @@ function buildPracticeCategoryCollection({
   const categories = Array.from(categoryByKey.values())
     .filter((category) => category.members.length > 0)
     .sort((left, right) => comparePracticeCategories(left, right, key))
-    .map((category) => ({
-      ...category,
-      members: sortProblemsBySequentialOrder(category.members),
-    }));
+    .map((category) => {
+      const members = sortProblemsBySequentialOrder(category.members);
+      return {
+        ...category,
+        idea: groupIdeaProfile(category, members),
+        members,
+      };
+    });
   const distinctCount = new Set(sortedProblems.map((problem) => problem.titleSlug))
     .size;
   return {
@@ -854,17 +942,21 @@ function buildOrderedPracticeGroupCollection({
   catalogBySlug,
 }) {
   const categories = groups
-    .map((group) => ({
-      description: group.description,
-      descriptionEn: group.descriptionEn,
-      id: `${key}:${group.key}`,
-      key: group.key,
-      members: group.memberSlugs
+    .map((group) => {
+      const members = group.memberSlugs
         .map((slug) => catalogBySlug.get(slug))
-        .filter(Boolean),
-      title: group.title,
-      titleEn: group.titleEn,
-    }))
+        .filter(Boolean);
+      return {
+        description: group.description,
+        descriptionEn: group.descriptionEn,
+        id: `${key}:${group.key}`,
+        idea: groupIdeaProfile(group, members),
+        key: group.key,
+        members,
+        title: group.title,
+        titleEn: group.titleEn,
+      };
+    })
     .filter((group) => group.members.length > 0);
   const distinctCount = new Set(
     categories.flatMap((category) =>
@@ -1385,6 +1477,7 @@ const leetcodeSeriesOverview = leetcodeSeriesGroups.map((group) => ({
   title: group.title,
   titleEn: group.titleEn,
   description: group.description,
+  idea: groupIdeaProfile(group, group.members),
   paidOnly: group.members.filter((member) => member.paidOnly).length,
   supplements: group.members.filter((member) => member.seriesSupplement).length,
   members: group.members.map((member) =>
@@ -1968,6 +2061,62 @@ const shortcutRows = [
                             : ` / +${series.supplements}`
                           : ""}
                       </span>
+                      <span class="leetcode-group-idea">
+                        <button
+                          type="button"
+                          class="leetcode-group-idea-trigger"
+                          aria-controls={groupIdeaDomId("series", series.key)}
+                          aria-expanded="false"
+                          aria-label={isZh
+                            ? `查看${series.title}的思路演进`
+                            : `View approach path for ${series.titleEn}`}
+                          data-group-idea-trigger
+                        >
+                          {isZh ? "思路" : "Ideas"}
+                        </button>
+                        <span
+                          id={groupIdeaDomId("series", series.key)}
+                          class="leetcode-group-idea-popover"
+                          role="tooltip"
+                        >
+                          <strong>{isZh ? "思路演进" : "Approach Path"}</strong>
+                          <span class="leetcode-group-idea-lead">
+                            {isZh ? series.idea.lead : series.idea.leadEn}
+                          </span>
+                          {series.idea.tags.length > 0 && (
+                            <span class="leetcode-group-idea-tags">
+                              {series.idea.tags.map((tag) => <em>{tag}</em>)}
+                            </span>
+                          )}
+                          <span class="leetcode-group-idea-list">
+                            {series.idea.rows.map((row) => (
+                              <span class="leetcode-group-idea-row">
+                                <span class="leetcode-group-idea-row-head">
+                                  <b>{row.step}. {row.frontendId}. {row.titleCn}</b>
+                                  <span class="leetcode-group-idea-row-meta">
+                                    <em class:list={[
+                                      "leetcode-difficulty",
+                                      difficultyBadgeClass(row.difficulty),
+                                    ]}>{row.difficulty}</em>
+                                    {row.paidOnly && (
+                                      <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
+                                    )}
+                                  </span>
+                                </span>
+                                <span>{row.text}</span>
+                              </span>
+                            ))}
+                          </span>
+                          {series.idea.reviewPrompts.length > 0 && (
+                            <span class="leetcode-group-idea-review">
+                              <b>{isZh ? "复盘重点" : "Review"}</b>
+                              {series.idea.reviewPrompts.map((prompt) => (
+                                <span>{prompt}</span>
+                              ))}
+                            </span>
+                          )}
+                        </span>
+                      </span>
                       <button type="button" data-series-practice={series.key}>
                         {isZh ? "练这组" : "Practice"}
                       </button>
@@ -2060,6 +2209,62 @@ const shortcutRows = [
                       <h3>{isZh ? category.title : category.titleEn}</h3>
                       <div>
                         <span>{category.members.length}</span>
+                        <span class="leetcode-group-idea">
+                          <button
+                            type="button"
+                            class="leetcode-group-idea-trigger"
+                            aria-controls={groupIdeaDomId("category", category.id)}
+                            aria-expanded="false"
+                            aria-label={isZh
+                              ? `查看${category.title}的思路演进`
+                              : `View approach path for ${category.titleEn}`}
+                            data-group-idea-trigger
+                          >
+                            {isZh ? "思路" : "Ideas"}
+                          </button>
+                          <span
+                            id={groupIdeaDomId("category", category.id)}
+                            class="leetcode-group-idea-popover"
+                            role="tooltip"
+                          >
+                            <strong>{isZh ? "思路演进" : "Approach Path"}</strong>
+                            <span class="leetcode-group-idea-lead">
+                              {isZh ? category.idea.lead : category.idea.leadEn}
+                            </span>
+                            {category.idea.tags.length > 0 && (
+                              <span class="leetcode-group-idea-tags">
+                                {category.idea.tags.map((tag) => <em>{tag}</em>)}
+                              </span>
+                            )}
+                            <span class="leetcode-group-idea-list">
+                              {category.idea.rows.map((row) => (
+                                <span class="leetcode-group-idea-row">
+                                  <span class="leetcode-group-idea-row-head">
+                                    <b>{row.step}. {row.frontendId}. {row.titleCn}</b>
+                                    <span class="leetcode-group-idea-row-meta">
+                                      <em class:list={[
+                                        "leetcode-difficulty",
+                                        difficultyBadgeClass(row.difficulty),
+                                      ]}>{row.difficulty}</em>
+                                      {row.paidOnly && (
+                                        <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
+                                      )}
+                                    </span>
+                                  </span>
+                                  <span>{row.text}</span>
+                                </span>
+                              ))}
+                            </span>
+                            {category.idea.reviewPrompts.length > 0 && (
+                              <span class="leetcode-group-idea-review">
+                                <b>{isZh ? "复盘重点" : "Review"}</b>
+                                {category.idea.reviewPrompts.map((prompt) => (
+                                  <span>{prompt}</span>
+                                ))}
+                              </span>
+                            )}
+                          </span>
+                        </span>
                         <button type="button" data-category-practice={category.id}>
                           {isZh ? "练这类" : "Practice"}
                         </button>
@@ -12613,6 +12818,21 @@ const shortcutRows = [
       }
     }
 
+    function setGroupIdeaOpen(groupIdea, open) {
+      groupIdea.classList.toggle("is-open", open);
+      const trigger = groupIdea.querySelector("[data-group-idea-trigger]");
+      if (trigger instanceof HTMLElement) {
+        trigger.setAttribute("aria-expanded", String(open));
+      }
+    }
+
+    function closeGroupIdeaPopovers(except = null) {
+      document.querySelectorAll(".leetcode-group-idea.is-open").forEach((item) => {
+        if (!(item instanceof HTMLElement) || item === except) return;
+        setGroupIdeaOpen(item, false);
+      });
+    }
+
     function placePreviewPopover(previewButton) {
       const popover = previewButton.querySelector(".leetcode-popover");
       if (!(popover instanceof HTMLElement)) return;
@@ -14636,6 +14856,20 @@ const shortcutRows = [
     document.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+      const groupIdeaTrigger = target.closest("[data-group-idea-trigger]");
+      if (groupIdeaTrigger instanceof HTMLElement) {
+        const groupIdea = groupIdeaTrigger.closest(".leetcode-group-idea");
+        if (groupIdea instanceof HTMLElement) {
+          const shouldOpen = !groupIdea.classList.contains("is-open");
+          closeGroupIdeaPopovers(groupIdea);
+          setGroupIdeaOpen(groupIdea, shouldOpen);
+          if (!shouldOpen) groupIdeaTrigger.blur();
+        }
+        return;
+      }
+      if (!target.closest(".leetcode-group-idea")) {
+        closeGroupIdeaPopovers();
+      }
       if (!target.closest("[data-preview]")) {
         closePreviewPopovers();
       }
@@ -15032,6 +15266,7 @@ const shortcutRows = [
       if (event.defaultPrevented) return;
       if (event.key === "Escape") {
         closePreviewPopovers();
+        closeGroupIdeaPopovers();
         closeShortcutHelp();
         closeAchievementHub();
         hideProblemShareToast();
@@ -17463,6 +17698,7 @@ const shortcutRows = [
     }
 
     .leetcode-series-group header {
+      position: relative;
       display: flex;
       gap: 0.45rem;
       align-items: baseline;
@@ -17487,7 +17723,7 @@ const shortcutRows = [
       align-items: center;
     }
 
-    .leetcode-series-group header span {
+    .leetcode-series-group header > div > span:not(.leetcode-group-idea) {
       color: var(--color-terracotta);
       font-size: 0.68rem;
       font-weight: 760;
@@ -17515,6 +17751,149 @@ const shortcutRows = [
       background: rgb(217 119 87 / 15%);
       color: var(--color-terracotta);
       outline: none;
+    }
+
+    .leetcode-group-idea {
+      display: inline-flex;
+      min-width: 0;
+    }
+
+    .leetcode-group-idea-popover {
+      position: absolute;
+      top: calc(100% + 0.34rem);
+      right: 0;
+      z-index: 26;
+      display: none;
+      width: min(24rem, 100%);
+      max-height: min(28rem, 72vh);
+      overflow: auto;
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      background: rgb(255 252 242 / 98%);
+      box-shadow: 0 18px 45px rgb(20 20 19 / 18%);
+      color: var(--color-secondary);
+      font-size: 0.78rem;
+      line-height: 1.48;
+      padding: 0.72rem;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .leetcode-group-idea:hover .leetcode-group-idea-popover,
+    .leetcode-group-idea.is-open .leetcode-group-idea-popover {
+      display: grid;
+      gap: 0.48rem;
+    }
+
+    .leetcode-group-idea-popover > strong,
+    .leetcode-group-idea-lead,
+    .leetcode-group-idea-tags,
+    .leetcode-group-idea-list,
+    .leetcode-group-idea-row,
+    .leetcode-group-idea-row-head,
+    .leetcode-group-idea-row-meta,
+    .leetcode-group-idea-review {
+      min-width: 0;
+    }
+
+    .leetcode-group-idea-popover > strong {
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-page-font);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    .leetcode-group-idea-lead {
+      display: block;
+      color: var(--color-secondary);
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .leetcode-group-idea-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.24rem;
+    }
+
+    .leetcode-group-idea-tags em,
+    .leetcode-group-idea-row-meta em {
+      display: inline-flex;
+      border-radius: 999px;
+      background: rgb(217 119 87 / 9%);
+      color: var(--color-muted);
+      font-style: normal;
+      line-height: 1.2;
+      padding: 0.08rem 0.34rem;
+    }
+
+    .leetcode-group-idea-list {
+      display: grid;
+      gap: 0.34rem;
+      border-top: 1px solid rgb(194 192 182 / 52%);
+      padding-top: 0.46rem;
+    }
+
+    .leetcode-group-idea-row {
+      display: grid;
+      gap: 0.16rem;
+      color: var(--color-muted);
+      line-height: 1.48;
+    }
+
+    .leetcode-group-idea-row + .leetcode-group-idea-row {
+      border-top: 1px solid rgb(194 192 182 / 32%);
+      padding-top: 0.34rem;
+    }
+
+    .leetcode-group-idea-row-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.24rem 0.4rem;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .leetcode-group-idea-row-head b {
+      min-width: 0;
+      color: var(--color-charcoal);
+      font-weight: 730;
+      overflow-wrap: anywhere;
+    }
+
+    .leetcode-group-idea-row-meta {
+      display: inline-flex;
+      flex: 0 0 auto;
+      gap: 0.2rem;
+      align-items: center;
+    }
+
+    .leetcode-group-idea-row-meta .leetcode-difficulty {
+      font-size: 0.64rem;
+      font-weight: 750;
+    }
+
+    .leetcode-group-idea-row-meta .leetcode-paid-label {
+      color: #a15c25;
+      font-weight: 700;
+    }
+
+    .leetcode-group-idea-review {
+      display: grid;
+      gap: 0.2rem;
+      border-top: 1px solid rgb(217 119 87 / 20%);
+      color: var(--color-muted);
+      padding-top: 0.44rem;
+    }
+
+    .leetcode-group-idea-review b {
+      color: var(--color-terracotta);
+      font-family: var(--leetcode-page-font);
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     .leetcode-series-group p {
@@ -19210,6 +19589,38 @@ const shortcutRows = [
     html.dark .leetcode-series-group header button {
       border-color: rgb(226 149 120 / 42%);
       background: rgb(226 149 120 / 11%);
+      color: #e29578;
+    }
+
+    html.dark .leetcode-group-idea-popover {
+      border-color: #333;
+      background: var(--color-dark-surface);
+      box-shadow: 0 18px 48px rgb(0 0 0 / 36%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-group-idea-popover > strong,
+    html.dark .leetcode-group-idea-row-head b {
+      color: var(--color-cream);
+    }
+
+    html.dark .leetcode-group-idea-lead {
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-group-idea-list,
+    html.dark .leetcode-group-idea-review,
+    html.dark .leetcode-group-idea-row + .leetcode-group-idea-row {
+      border-color: #333;
+    }
+
+    html.dark .leetcode-group-idea-tags em,
+    html.dark .leetcode-group-idea-row-meta em {
+      background: rgb(226 149 120 / 12%);
+      color: var(--color-muted);
+    }
+
+    html.dark .leetcode-group-idea-row-meta .leetcode-paid-label {
       color: #e29578;
     }
 
