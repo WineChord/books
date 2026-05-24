@@ -3,6 +3,17 @@
 This changelog tracks user-facing changes to the LeetCode practice page and
 its Chrome extension workflow.
 
+## 2026-05-24
+
+### Added
+
+- Added the LingShen topic list from 灵茶山艾府's "How to practice
+  scientifically" route, preserving the 12 source topics, source order, and
+  ratings.
+- LingShen problems not already present in Top 888, ByteDance, or series data
+  now enter the local list as LingShen supplements, with search, opened
+  practice panels, local state, full-list flow, and per-topic group flow.
+
 ## 2026-05-20
 
 ### Added

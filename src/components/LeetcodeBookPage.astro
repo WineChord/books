@@ -46,6 +46,11 @@ import {
   leetcodeSeriesProblems,
   leetcodeSeriesStats,
 } from "../data/leetcode-series";
+import {
+  leetcodeLingShenGroups,
+  leetcodeLingShenProblems,
+  leetcodeLingShenStats,
+} from "../data/leetcode-lingshen";
 import { pageUrl } from "../urls";
 
 interface Props {
@@ -201,6 +206,22 @@ const seriesRomanTokenValues = new Map([
   ["ix", 9],
   ["x", 10],
 ]);
+const leetcodeSeriesDefinitionByKey = new Map(
+  leetcodeSeriesDefinitions.map((definition) => [definition.key, definition]),
+);
+const lingShenBySlug = new Map(
+  leetcodeLingShenProblems.map((problem) => [problem.titleSlug, problem]),
+);
+const lingShenGroupByKey = new Map(
+  leetcodeLingShenGroups.map((group) => [group.key, group]),
+);
+const leetcodeSeriesDefinitionOrderByKey = new Map(
+  leetcodeSeriesDefinitions.map((definition) => [
+    definition.key,
+    new Map(definition.memberSlugs.map((slug, index) => [slug, index])),
+  ]),
+);
+const explicitlySequentialSeriesKeys = new Set(["n-sum"]);
 const missingFrequencyRank = 999999;
 const strongRelatedTagSlugs = new Set([
   "backtracking",
@@ -823,6 +844,44 @@ function buildPracticeCategoryCollection({
   };
 }
 
+function buildOrderedPracticeGroupCollection({
+  key,
+  title,
+  titleEn,
+  description,
+  descriptionEn,
+  groups,
+  catalogBySlug,
+}) {
+  const categories = groups
+    .map((group) => ({
+      description: group.description,
+      descriptionEn: group.descriptionEn,
+      id: `${key}:${group.key}`,
+      key: group.key,
+      members: group.memberSlugs
+        .map((slug) => catalogBySlug.get(slug))
+        .filter(Boolean),
+      title: group.title,
+      titleEn: group.titleEn,
+    }))
+    .filter((group) => group.members.length > 0);
+  const distinctCount = new Set(
+    categories.flatMap((category) =>
+      category.members.map((member) => member.titleSlug),
+    ),
+  ).size;
+  return {
+    categories,
+    description,
+    descriptionEn,
+    distinctCount,
+    key,
+    title,
+    titleEn,
+  };
+}
+
 function buildSeriesCatalog(catalogProblems, seriesDefinitions) {
   const bySlug = new Map(catalogProblems.map((problem) => [
     problem.titleSlug,
@@ -958,16 +1017,6 @@ const byteDanceStatusLabel = byteDanceSourceStatusLabel(
 const leetcodeSeriesProblemBySlug = new Map(
   leetcodeSeriesProblems.map((problem) => [problem.titleSlug, problem]),
 );
-const leetcodeSeriesDefinitionByKey = new Map(
-  leetcodeSeriesDefinitions.map((definition) => [definition.key, definition]),
-);
-const leetcodeSeriesDefinitionOrderByKey = new Map(
-  leetcodeSeriesDefinitions.map((definition) => [
-    definition.key,
-    new Map(definition.memberSlugs.map((slug, index) => [slug, index])),
-  ]),
-);
-const explicitlySequentialSeriesKeys = new Set(["n-sum"]);
 const leetcodeSeriesKeysBySlug = new Map();
 for (const definition of leetcodeSeriesDefinitions) {
   for (const slug of definition.memberSlugs) {
@@ -988,8 +1037,15 @@ function seriesTitlesFor(slug) {
     .filter(Boolean);
 }
 
+function lingShenGroupTitlesFor(slug) {
+  return (lingShenBySlug.get(slug)?.groupKeys ?? [])
+    .map((key) => lingShenGroupByKey.get(key)?.title)
+    .filter(Boolean);
+}
+
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
+  const lingShen = lingShenBySlug.get(problem.titleSlug);
   const bucketSourceValues = Object.values(entry?.bucketSources || {});
   const hasVerifiedByteDanceBucket = bucketSourceValues.some(
     (source) => source === "companyFavorite" || source === "companyRendered",
@@ -1011,12 +1067,19 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
       ?.seriesPrimaryKey ?? "",
     seriesTitles: seriesTitlesFor(problem.titleSlug),
+    lingShen: Boolean(lingShen),
+    lingShenGroupKeys: lingShen?.groupKeys ?? [],
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
+    lingShenRank: lingShen?.lingshenRank ?? null,
+    lingShenRating: lingShen?.rating ?? null,
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
 const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
   .filter((problem) => !existingSlugs.has(problem.titleSlug))
-  .map((problem, index) => ({
+  .map((problem, index) => {
+    const lingShen = lingShenBySlug.get(problem.titleSlug);
+    return {
     topRank: null,
     frequencyRank: leetcodeTargetLimit + index + 1,
     hotRank: null,
@@ -1053,14 +1116,22 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
       ?.seriesPrimaryKey ?? "",
     seriesTitles: seriesTitlesFor(problem.titleSlug),
-  }));
+    lingShen: Boolean(lingShen),
+    lingShenGroupKeys: lingShen?.groupKeys ?? [],
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
+    lingShenRank: lingShen?.lingshenRank ?? null,
+    lingShenRating: lingShen?.rating ?? null,
+  };
+  });
 const existingWithByteDanceSlugs = new Set([
   ...leetcodeProblems.map((problem) => problem.titleSlug),
   ...leetcodeByteDanceSupplements.map((problem) => problem.titleSlug),
 ]);
 const leetcodeSeriesSupplements = leetcodeSeriesProblems
   .filter((problem) => !existingWithByteDanceSlugs.has(problem.titleSlug))
-  .map((problem, index) => ({
+  .map((problem, index) => {
+    const lingShen = lingShenBySlug.get(problem.titleSlug);
+    return {
     topRank: null,
     frequencyRank:
       leetcodeTargetLimit + leetcodeByteDanceSupplements.length + index + 1,
@@ -1104,11 +1175,80 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     seriesPrimaryKey: problem.seriesPrimaryKey,
     seriesTitles: seriesTitlesFor(problem.titleSlug),
     seriesSupplement: true,
+    lingShen: Boolean(lingShen),
+    lingShenGroupKeys: lingShen?.groupKeys ?? [],
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
+    lingShenRank: lingShen?.lingshenRank ?? null,
+    lingShenRating: lingShen?.rating ?? null,
+  };
+  });
+const existingWithSeriesSlugs = new Set([
+  ...existingWithByteDanceSlugs,
+  ...leetcodeSeriesSupplements.map((problem) => problem.titleSlug),
+]);
+const leetcodeLingShenSupplements = leetcodeLingShenProblems
+  .filter((problem) => !existingWithSeriesSlugs.has(problem.titleSlug))
+  .map((problem, index) => ({
+    topRank: null,
+    frequencyRank:
+      leetcodeTargetLimit +
+      leetcodeByteDanceSupplements.length +
+      leetcodeSeriesSupplements.length +
+      index +
+      1,
+    hotRank: null,
+    frontendId: problem.frontendId,
+    titleCn: problem.titleCn,
+    titleSlug: problem.titleSlug,
+    url: problem.url,
+    difficulty: problem.difficulty,
+    acRate: problem.acRate,
+    frequency: "灵神补充",
+    bytedance: false,
+    bytedanceVerified: false,
+    bytedancePeriods: {
+      past3Months: null,
+      past6Months: null,
+      before6Months: null,
+    },
+    bytedanceBuckets: {
+      all: null,
+      thirtyDays: null,
+      threeMonths: null,
+      sixMonths: null,
+      moreThanSixMonths: null,
+    },
+    bytedanceBucketSources: {},
+    bytedanceRank: null,
+    bytedanceSource: null,
+    hot100: false,
+    paidOnly: problem.paidOnly,
+    tags: problem.tags,
+    statementPreview: problem.statementPreview,
+    approachPreview: problem.approachPreview,
+    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
+    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
+    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
+    statementAssets:
+      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
+    followUps: problem.followUps ?? [],
+    seriesKeys: seriesKeysFor(problem.titleSlug),
+    seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
+      ?.seriesPrimaryKey ?? "",
+    seriesTitles: seriesTitlesFor(problem.titleSlug),
+    seriesSupplement: false,
+    lingShen: true,
+    lingShenGroupKeys: problem.groupKeys,
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
+    lingShenRank: problem.lingshenRank,
+    lingShenRating: problem.rating,
+    lingShenSupplement: true,
   }));
 const mergedLeetcodeProblems = [
   ...leetcodeProblemsWithByteDance,
   ...leetcodeByteDanceSupplements,
   ...leetcodeSeriesSupplements,
+  ...leetcodeLingShenSupplements,
 ];
 const leetcodeProblemCatalogBySlug = new Map(
   mergedLeetcodeProblems.map((problem) => [problem.titleSlug, problem]),
@@ -1270,6 +1410,9 @@ const leetcodeSeriesFilterOptions = leetcodeSeriesOverview.map((series) => ({
 const leetcodeSeriesDistinctCount = new Set(
   leetcodeSeriesFilterOptions.flatMap((series) => series.members),
 ).size;
+const leetcodeProblemsWithReferencesBySlug = new Map(
+  leetcodeProblemsWithReferences.map((problem) => [problem.titleSlug, problem]),
+);
 const leetcodePracticeCategoryCollections = [
   buildPracticeCategoryCollection({
     key: "hot100",
@@ -1290,6 +1433,17 @@ const leetcodePracticeCategoryCollections = [
     descriptionEn:
       "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
     problems: leetcodeProblemsWithReferences.filter((problem) => problem.bytedance),
+  }),
+  buildOrderedPracticeGroupCollection({
+    key: "lingshen",
+    title: "灵神题单",
+    titleEn: "LingShen Topic List",
+    description:
+      "按灵神「如何科学刷题」路线的 12 个专题串联，专题内保留原题单顺序和难度分。",
+    descriptionEn:
+      "The 12-topic LingShen practice route, preserving source order and ratings inside each topic.",
+    groups: leetcodeLingShenGroups,
+    catalogBySlug: leetcodeProblemsWithReferencesBySlug,
   }),
 ];
 const leetcodePracticeCategoryOptions = leetcodePracticeCategoryCollections
@@ -1458,8 +1612,8 @@ const shortcutRows = [
         <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
         <p class="leetcode-copy">
           {isZh
-            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、相关题、题意/思路/实现预览、本地状态和扩展提交。"
-            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance lists, related problems, previews, local state, and extension submit."}
+            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、灵神题单、相关题、题意/思路/实现预览、本地状态和扩展提交。"
+            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance lists, LingShen topics, related problems, previews, local state, and extension submit."}
         </p>
         <div class="leetcode-actions">
           <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
@@ -1933,6 +2087,9 @@ const shortcutRows = [
                             {member.paidOnly && (
                               <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
                             )}
+                            {collection.key === "lingshen" && member.lingShenRating && (
+                              <em>{member.lingShenRating}</em>
+                            )}
                           </span>
                         </button>
                       ))}
@@ -2238,6 +2395,10 @@ const shortcutRows = [
         <span>{leetcodeSeriesStats.series}/{leetcodeSeriesSupplements.length}</span>
         <p>{isZh ? "系列/补题" : "Series/extras"}</p>
       </div>
+      <div>
+        <span>{leetcodeLingShenStats.groups}/{leetcodeLingShenSupplements.length}</span>
+        <p>{isZh ? "灵神/补题" : "LingShen/extras"}</p>
+      </div>
     </section>
 
     <div class="leetcode-summary leetcode-footer-meta">
@@ -2267,6 +2428,11 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeSeriesStats.series} 组系列题、${leetcodeSeriesSupplements.length} 道系列补充已纳入刷题列表`
           : `${leetcodeSeriesStats.series} series and ${leetcodeSeriesSupplements.length} series supplements included`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeLingShenStats.groups} 组灵神题单、${leetcodeLingShenSupplements.length} 道灵神补充已纳入刷题列表`
+          : `${leetcodeLingShenStats.groups} LingShen groups and ${leetcodeLingShenSupplements.length} LingShen supplements included`}
       </span>
       <span>
         {isZh
@@ -2421,6 +2587,7 @@ const shortcutRows = [
     const practiceListKindSeries = "series";
     const practiceListKindHot100 = "hot100";
     const practiceListKindByteDance = "bytedance";
+    const practiceListKindLingShen = "lingshen";
 
     function uniqueProblemSlugs(slugs) {
       const seen = new Set();
@@ -2462,6 +2629,12 @@ const shortcutRows = [
         title: "字节分类刷题单",
         titleEn: "ByteDance Topic List",
         members: practiceListMembersFor(practiceListKindByteDance),
+      },
+      {
+        key: practiceListKindLingShen,
+        title: "灵神题单",
+        titleEn: "LingShen Topic List",
+        members: practiceListMembersFor(practiceListKindLingShen),
       },
     ];
     const practiceListByKey = new Map(
@@ -9840,6 +10013,9 @@ const shortcutRows = [
       if (listOption.key === practiceListKindHot100) {
         state.filters.scope = "hot100";
       }
+      if (listOption.key === practiceListKindByteDance) {
+        state.filters.bytedance = "bytedanceAll";
+      }
       syncFilterButtons();
       state.page = 1;
       render();
@@ -9982,8 +10158,14 @@ const shortcutRows = [
         problem.difficulty,
         problem.bytedance ? "字节跳动 bytedance" : "",
         problem.seriesSupplement ? "系列补充 series supplement" : "",
+        problem.lingShen ? "灵神题单 lingshen ling shen" : "",
+        problem.lingShenSupplement ? "灵神补充 lingshen supplement" : "",
         ...(problem.seriesTitles || []),
         ...(problem.seriesKeys || []),
+        ...(problem.lingShenGroupTitles || []),
+        ...(problem.lingShenGroupKeys || []),
+        problem.lingShenRank ? `灵神 ${problem.lingShenRank}` : "",
+        problem.lingShenRating ? `难度分 ${problem.lingShenRating}` : "",
         problem.bytedanceRank ? `bd ${problem.bytedanceRank}` : "",
         byteDance.thirtyDays ? `字节近30天 ${byteDance.thirtyDays}` : "",
         byteDance.threeMonths ? `字节近3月 ${byteDance.threeMonths}` : "",
@@ -10460,7 +10642,11 @@ const shortcutRows = [
           ${problem.hot100 ? "<span>Hot100</span>" : ""}
           ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
           ${problem.seriesSupplement ? `<span>${isChinesePage ? "系列补充" : "Series supplement"}</span>` : ""}
+          ${problem.lingShen ? `<span>${isChinesePage ? "灵神题单" : "LingShen"}</span>` : ""}
+          ${problem.lingShenSupplement ? `<span>${isChinesePage ? "灵神补充" : "LingShen supplement"}</span>` : ""}
+          ${problem.lingShenRating ? `<span>${isChinesePage ? "难度分" : "Rating"} ${escapeHtml(problem.lingShenRating)}</span>` : ""}
           ${(problem.seriesTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
+          ${(problem.lingShenGroupTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
           ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
           ${problem.implementationReferenceCount ? `<span>实现参考 ${escapeHtml(problem.implementationReferenceCount)}</span>` : ""}
           ${renderByteDanceMeta(problem)}

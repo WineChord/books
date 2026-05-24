@@ -13,6 +13,7 @@ import {
   leetcodeSeriesDefinitions,
   leetcodeSeriesProblems,
 } from "./leetcode-series";
+import { leetcodeLingShenProblems } from "./leetcode-lingshen";
 
 const leetcodeTargetLimit = 888;
 const relatedTopicPeerLimit = 6;
@@ -268,6 +269,9 @@ function buildTopicPeers(problem, catalogProblems, catalogBySlug, excludedSlugs)
 const leetcodeSeriesProblemBySlug = new Map(
   leetcodeSeriesProblems.map((problem) => [problem.titleSlug, problem]),
 );
+const lingShenBySlug = new Map(
+  leetcodeLingShenProblems.map((problem) => [problem.titleSlug, problem]),
+);
 const leetcodeSeriesDefinitionByKey = new Map(
   leetcodeSeriesDefinitions.map((definition) => [definition.key, definition]),
 );
@@ -297,6 +301,7 @@ function seriesTitlesFor(slug) {
 
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
+  const lingShen = lingShenBySlug.get(problem.titleSlug);
   const bucketSourceValues = Object.values(entry?.bucketSources || {});
   const hasVerifiedByteDanceBucket = bucketSourceValues.some(
     (source) => source === "companyFavorite" || source === "companyRendered",
@@ -313,6 +318,10 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     seriesPrimaryKey:
       leetcodeSeriesProblemBySlug.get(problem.titleSlug)?.seriesPrimaryKey ?? "",
     seriesTitles: seriesTitlesFor(problem.titleSlug),
+    lingShen: Boolean(lingShen),
+    lingShenGroupKeys: lingShen?.groupKeys ?? [],
+    lingShenRank: lingShen?.lingshenRank ?? null,
+    lingShenRating: lingShen?.rating ?? null,
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -343,6 +352,10 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     hot100: false,
     paidOnly: problem.paidOnly,
     tags: problem.tags,
+    lingShen: Boolean(lingShenBySlug.get(problem.titleSlug)),
+    lingShenGroupKeys: lingShenBySlug.get(problem.titleSlug)?.groupKeys ?? [],
+    lingShenRank: lingShenBySlug.get(problem.titleSlug)?.lingshenRank ?? null,
+    lingShenRating: lingShenBySlug.get(problem.titleSlug)?.rating ?? null,
     statementPreview: problem.statementPreview ?? "",
     approachPreview: problem.approachPreview ?? "",
     followUps: problem.followUps ?? [],
@@ -389,6 +402,10 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     hot100: false,
     paidOnly: problem.paidOnly,
     tags: problem.tags,
+    lingShen: Boolean(lingShenBySlug.get(problem.titleSlug)),
+    lingShenGroupKeys: lingShenBySlug.get(problem.titleSlug)?.groupKeys ?? [],
+    lingShenRank: lingShenBySlug.get(problem.titleSlug)?.lingshenRank ?? null,
+    lingShenRating: lingShenBySlug.get(problem.titleSlug)?.rating ?? null,
     statementPreview: problem.statementPreview,
     approachPreview: problem.approachPreview,
     followUps: problem.followUps ?? [],
@@ -397,10 +414,66 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     seriesTitles: seriesTitlesFor(problem.titleSlug),
     seriesSupplement: true,
   }));
+const existingWithSeriesSlugs = new Set([
+  ...existingWithByteDanceSlugs,
+  ...leetcodeSeriesSupplements.map((problem) => problem.titleSlug),
+]);
+const leetcodeLingShenSupplements = leetcodeLingShenProblems
+  .filter((problem) => !existingWithSeriesSlugs.has(problem.titleSlug))
+  .map((problem, index) => ({
+    topRank: null,
+    frequencyRank:
+      leetcodeTargetLimit +
+      leetcodeByteDanceSupplements.length +
+      leetcodeSeriesSupplements.length +
+      index +
+      1,
+    hotRank: null,
+    frontendId: problem.frontendId,
+    titleCn: problem.titleCn,
+    titleSlug: problem.titleSlug,
+    url: problem.url,
+    difficulty: problem.difficulty,
+    acRate: problem.acRate,
+    frequency: "灵神补充",
+    bytedance: false,
+    bytedanceVerified: false,
+    bytedancePeriods: {
+      past3Months: null,
+      past6Months: null,
+      before6Months: null,
+    },
+    bytedanceBuckets: {
+      all: null,
+      thirtyDays: null,
+      threeMonths: null,
+      sixMonths: null,
+      moreThanSixMonths: null,
+    },
+    bytedanceBucketSources: {},
+    bytedanceRank: null,
+    bytedanceSource: null,
+    hot100: false,
+    paidOnly: problem.paidOnly,
+    tags: problem.tags,
+    lingShen: true,
+    lingShenGroupKeys: problem.groupKeys,
+    lingShenRank: problem.lingshenRank,
+    lingShenRating: problem.rating,
+    statementPreview: problem.statementPreview,
+    approachPreview: problem.approachPreview,
+    followUps: problem.followUps ?? [],
+    seriesKeys: seriesKeysFor(problem.titleSlug),
+    seriesPrimaryKey:
+      leetcodeSeriesProblemBySlug.get(problem.titleSlug)?.seriesPrimaryKey ?? "",
+    seriesTitles: seriesTitlesFor(problem.titleSlug),
+    lingShenSupplement: true,
+  }));
 const mergedLeetcodeProblems = [
   ...leetcodeProblemsWithByteDance,
   ...leetcodeByteDanceSupplements,
   ...leetcodeSeriesSupplements,
+  ...leetcodeLingShenSupplements,
 ];
 const leetcodeProblemCatalogBySlug = new Map(
   mergedLeetcodeProblems.map((problem) => [problem.titleSlug, problem]),

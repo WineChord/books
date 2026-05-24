@@ -7,6 +7,7 @@ const repoRoot = new URL("../", import.meta.url);
 const problemsPath = new URL("src/data/leetcode-problems.ts", repoRoot);
 const bytedancePath = new URL("src/data/leetcode-bytedance.ts", repoRoot);
 const seriesPath = new URL("src/data/leetcode-series.ts", repoRoot);
+const lingshenPath = new URL("src/data/leetcode-lingshen.ts", repoRoot);
 const outputPath = new URL(
   "src/data/leetcode-implementation-generated.ts",
   repoRoot,
@@ -61,6 +62,10 @@ function numberOption(name, fallback) {
   return Number.isFinite(value) && value > 0 ? Math.trunc(value) : fallback;
 }
 
+function hasFlag(name) {
+  return process.argv.includes(`--${name}`);
+}
+
 function languageName(lang) {
   const normalized = String(lang || "").toLowerCase();
   if (normalized === "cpp" || normalized === "c++") return "C++";
@@ -112,9 +117,19 @@ async function targetProblems() {
     "leetcodeSeriesProblems",
     "satisfies LeetcodeSeriesProblem\\[\\];",
   );
+  const lingshenProblems = extractJsonArray(
+    await readFile(lingshenPath, "utf8"),
+    "leetcodeLingShenProblems",
+    "satisfies LeetcodeLingShenProblem\\[\\];",
+  );
   const result = [];
   const seen = new Set();
-  for (const problem of [...problems, ...bytedanceProblems, ...seriesProblems]) {
+  for (const problem of [
+    ...problems,
+    ...bytedanceProblems,
+    ...seriesProblems,
+    ...lingshenProblems,
+  ]) {
     if (seen.has(problem.titleSlug)) continue;
     seen.add(problem.titleSlug);
     result.push(problem);
@@ -637,6 +652,7 @@ async function main() {
     process.env.KAMYU_LEETCODE_DIR || defaultKamyuDir,
   );
   const maxRefs = numberOption("max-refs-per-problem", defaultMaxRefsPerProblem);
+  const allowMissing = hasFlag("allow-missing");
   const problems = await targetProblems();
   const doocs = await doocsReferences(doocsDir);
   const kamyu = await kamyuReferences(kamyuDir);
@@ -678,7 +694,7 @@ async function main() {
   );
   if (missing.length) {
     console.error(`Missing references: ${missing.join(", ")}`);
-    process.exitCode = 1;
+    if (!allowMissing) process.exitCode = 1;
   }
 }
 
