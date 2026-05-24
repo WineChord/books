@@ -200,6 +200,23 @@ only accessible `aria-label` text and the central shortcut list.
 As an acceptance check, the rendered practice page DOM should not leave any
 `title` attributes that would trigger browser-native gray tooltips.
 
+All page-owned hover popovers must be hover-trackable by default. Even when
+there is visual spacing between the trigger and the floating panel, a
+transparent hit-testable bridge or an equivalent delayed-close mechanism must
+connect them so moving the pointer downward or upward from the trigger into the
+panel does not make the popover disappear. The open hover hit area includes the
+trigger, the bridge, and the popover body; the popover may close only after the
+pointer leaves all three. This applies to title, approach, implementation, tags,
+related problems, category or series "Ideas", suggested practice, shortcut help,
+daily stats, achievements, and every future hover detail. Interactive or
+scrollable popovers must not use `pointer-events: none` in a way that makes the
+panel close as soon as the pointer enters it. If a popover flips above the
+trigger because there is not enough space below, the bridge must flip above the
+trigger as well. Acceptance: with a normal mouse path from the trigger center to
+the first line, scrollable area, or internal button of the popover, the popover
+must remain visible without flicker, closing, or requiring the user to pin it
+with a click first.
+
 The duplicate audit appears below the working list in a collapsed details
 section. It lists every removed duplicate, the kept row, and the original
 frequency ranks without taking space before the first visible rows. Long
