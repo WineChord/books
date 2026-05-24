@@ -504,6 +504,13 @@ function frequencyLabel(value) {
   return `${Number(value).toFixed(1)}%`;
 }
 
+function difficultyBadgeClass(difficulty) {
+  const value = String(difficulty || "").toLowerCase();
+  if (value.includes("easy") || value.includes("简单")) return "is-easy";
+  if (value.includes("hard") || value.includes("困难")) return "is-hard";
+  return "is-medium";
+}
+
 function byteDanceSourceStatusLabel(status) {
   if (status === "companyFavorite") return "GraphQL 全量同步";
   if (status === "companyFavoriteWithChromeRenderedBuckets") {
@@ -1699,8 +1706,16 @@ const shortcutRows = [
                             member.inBook && "is-in-book",
                           ]}
                         >
-                          <span>{member.frontendId}. {member.titleCn}</span>
-                          <em>{member.difficulty}{member.paidOnly ? (isZh ? " · 付费" : " · Paid") : ""}</em>
+                          <span class="leetcode-series-member-title">{member.frontendId}. {member.titleCn}</span>
+                          <span class="leetcode-series-member-meta">
+                            <em class:list={[
+                              "leetcode-difficulty",
+                              difficultyBadgeClass(member.difficulty),
+                            ]}>{member.difficulty}</em>
+                            {member.paidOnly && (
+                              <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
+                            )}
+                          </span>
                         </button>
                       ) : (
                         <a
@@ -1712,8 +1727,16 @@ const shortcutRows = [
                             member.paidOnly && "is-paid",
                           ]}
                         >
-                          <span>{member.frontendId}. {member.titleCn}</span>
-                          <em>{member.difficulty}{member.paidOnly ? (isZh ? " · 付费" : " · Paid") : ""}</em>
+                          <span class="leetcode-series-member-title">{member.frontendId}. {member.titleCn}</span>
+                          <span class="leetcode-series-member-meta">
+                            <em class:list={[
+                              "leetcode-difficulty",
+                              difficultyBadgeClass(member.difficulty),
+                            ]}>{member.difficulty}</em>
+                            {member.paidOnly && (
+                              <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
+                            )}
+                          </span>
                         </a>
                       )
                     ))}
@@ -1758,8 +1781,16 @@ const shortcutRows = [
                             "is-in-book",
                           ]}
                         >
-                          <span>{member.frontendId}. {member.titleCn}</span>
-                          <em>{member.difficulty}{member.paidOnly ? (isZh ? " · 付费" : " · Paid") : ""}</em>
+                          <span class="leetcode-series-member-title">{member.frontendId}. {member.titleCn}</span>
+                          <span class="leetcode-series-member-meta">
+                            <em class:list={[
+                              "leetcode-difficulty",
+                              difficultyBadgeClass(member.difficulty),
+                            ]}>{member.difficulty}</em>
+                            {member.paidOnly && (
+                              <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
+                            )}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -10016,8 +10047,9 @@ const shortcutRows = [
     }
 
     function badgeClass(difficulty) {
-      if (difficulty === "简单") return "is-easy";
-      if (difficulty === "困难") return "is-hard";
+      const value = String(difficulty || "").toLowerCase();
+      if (value.includes("easy") || value.includes("简单")) return "is-easy";
+      if (value.includes("hard") || value.includes("困难")) return "is-hard";
       return "is-medium";
     }
 
@@ -10161,15 +10193,26 @@ const shortcutRows = [
 
     function renderRelatedMeta(item) {
       const chips = [
-        relatedRankLabel(item),
-        item.difficulty,
-        item.seriesTitle,
-        item.hot100 ? "Hot100" : "",
-        item.paidOnly ? (isChinesePage ? "付费" : "Paid") : "",
-        ...(item.sharedTags || []).map((tag) => tag.name),
+        { label: relatedRankLabel(item) },
+        item.difficulty
+          ? {
+              className: `leetcode-difficulty ${badgeClass(item.difficulty)}`,
+              label: item.difficulty,
+            }
+          : null,
+        { label: item.seriesTitle },
+        { label: item.hot100 ? "Hot100" : "" },
+        { label: item.paidOnly ? (isChinesePage ? "付费" : "Paid") : "" },
+        ...(item.sharedTags || []).map((tag) => ({ label: tag.name })),
       ].filter(Boolean);
       return chips
-        .map((chip) => `<span>${escapeHtml(chip)}</span>`)
+        .filter((chip) => chip.label)
+        .map((chip) => {
+          const classAttribute = chip.className
+            ? ` class="${escapeHtml(chip.className)}"`
+            : "";
+          return `<span${classAttribute}>${escapeHtml(chip.label)}</span>`;
+        })
         .join("");
     }
 
@@ -17032,7 +17075,7 @@ const shortcutRows = [
       outline: none;
     }
 
-    .leetcode-series-member span {
+    .leetcode-series-member-title {
       display: block;
       min-width: 0;
       overflow: hidden;
@@ -17040,14 +17083,23 @@ const shortcutRows = [
       white-space: nowrap;
     }
 
-    .leetcode-series-member em {
+    .leetcode-series-member-meta {
+      display: inline-flex;
       flex: 0 0 auto;
-      color: var(--color-muted);
-      font-style: normal;
-      font-size: 0.66rem;
+      gap: 0.24rem;
+      align-items: center;
+      justify-self: end;
+      min-width: max-content;
+      white-space: nowrap;
     }
 
-    .leetcode-series-member.is-paid em {
+    .leetcode-series-member-meta em {
+      font-size: 0.66rem;
+      font-style: normal;
+      line-height: 1.2;
+    }
+
+    .leetcode-paid-label {
       color: #a15c25;
       font-weight: 700;
     }
@@ -18671,6 +18723,12 @@ const shortcutRows = [
       color: #d64242;
     }
 
+    .leetcode-series-member-meta .leetcode-difficulty {
+      border-radius: 0;
+      font-size: 0.66rem;
+      padding: 0;
+    }
+
     .leetcode-byte {
       display: flex;
       flex-wrap: wrap;
@@ -18968,6 +19026,22 @@ const shortcutRows = [
       font-size: 0.68rem;
       line-height: 1.2;
       padding: 0.08rem 0.34rem;
+    }
+
+    .leetcode-related-meta .leetcode-difficulty {
+      font-weight: 700;
+    }
+
+    .leetcode-related-meta .leetcode-difficulty.is-easy {
+      color: #168a77;
+    }
+
+    .leetcode-related-meta .leetcode-difficulty.is-medium {
+      color: #b77b00;
+    }
+
+    .leetcode-related-meta .leetcode-difficulty.is-hard {
+      color: #d64242;
     }
 
     .leetcode-implementation-card,
