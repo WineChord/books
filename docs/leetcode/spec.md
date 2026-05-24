@@ -223,11 +223,16 @@ first visual priority and should appear without excessive scrolling.
 Filters are grouped by scope, ByteDance, and practice state. Scope includes all
 problems, Hot 100, and sourced company follow-ups. ByteDance includes all,
 past 30 days, past 3 months, past 6 months, and more than 6 months ago. State
-includes unsolved, needs thought, and not mastered. Text search matches id,
-title, tags, ByteDance buckets, study-check answers, company follow-up answers,
-companies, source titles, related problem titles, related problem slugs, and
-shared related tags. It also matches LingShen list names, topic names, source
-order, and ratings.
+includes unsolved, needs thought, and not mastered. Text search is centered on
+the problem itself: id, Chinese title, and English slug are weighted highest;
+series names, LingShen topic names, and tags are secondary; Hot 100,
+ByteDance, and LingShen collection markers are only low-weight helpers. Search
+results are ordered by relevance first, then by the active filter's normal
+order as a tie-breaker. Study-check answers, company follow-ups,
+implementation sources, and related-problem text no longer pull unrelated
+high-frequency rows ahead of title matches. Matching supports basic fuzziness:
+case and full-width normalization, space/hyphen equivalence, all-token matches,
+prefix/substring matches, and short ordered-character matches.
 
 Clicking a row opens a local practice panel. The panel stores drafts only in
 the current browser's local storage and provides language selection, official

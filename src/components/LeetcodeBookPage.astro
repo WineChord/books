@@ -2813,6 +2813,9 @@ const shortcutRows = [
     const problemBySlug = new Map(
       problems.map((problem) => [problem.titleSlug, problem]),
     );
+    const defaultOrderBySlug = new Map(
+      problems.map((problem, index) => [problem.titleSlug, index]),
+    );
     const maxPageSize = problems.length || 20;
     const list = document.getElementById("leetcode-problem-list");
     const searchInput = document.getElementById("leetcode-search");
@@ -2862,9 +2865,6 @@ const shortcutRows = [
     const problemDetailBaseUrl =
       leetcodeShell?.dataset.problemDetailBaseUrl || "/books/leetcode/data/";
     const problemDataVersion = leetcodeShell?.dataset.problemDataVersion || "";
-    const problemSearchIndexUrl = withProblemDataVersion(
-      `${problemDetailBaseUrl}search.json`,
-    );
     const problemDetailPromises = new Map();
     const problemDetailPrefetchLimit = 0;
     const extensionReleaseDownloadUrl =
@@ -3002,6 +3002,31 @@ const shortcutRows = [
       "bytedanceMoreThanSixMonths",
     ]);
     const statusFilterValues = new Set(["unsolved", "review", "unmastered"]);
+    const searchFieldWeights = {
+      collection: 180,
+      difficulty: 120,
+      id: 1200,
+      series: 460,
+      slug: 760,
+      tag: 420,
+      title: 1000,
+    };
+    const searchTagAliasesBySlug = new Map([
+      ["binary-search", ["二分", "二分查找"]],
+      ["binary-search-tree", ["bst"]],
+      ["breadth-first-search", ["bfs", "广搜"]],
+      ["depth-first-search", ["dfs", "深搜"]],
+      ["dynamic-programming", ["dp"]],
+      ["hash-table", ["哈希"]],
+      ["heap-priority-queue", ["堆", "优先队列"]],
+      ["linked-list", ["链表"]],
+      ["monotonic-queue", ["单调队列"]],
+      ["monotonic-stack", ["单调栈"]],
+      ["prefix-sum", ["前缀和"]],
+      ["sliding-window", ["滑窗"]],
+      ["two-pointers", ["双指针"]],
+      ["union-find", ["并查集"]],
+    ]);
     const editorDefaultTheme = "cursor-light";
     const editorDefaultFont = "cursor";
     const editorDefaultSize = "compact";
@@ -4094,10 +4119,9 @@ const shortcutRows = [
       startedAt: isPracticeTimingActive() ? Date.now() : 0,
     };
     let activePracticeTimer = { elapsedMs: 0, slug: "", startedAt: 0 };
-    let problemSearchIndexLoaded = false;
-    let problemSearchIndexPromise = null;
     let timingMilestone = "";
-    const problemSearchTextBySlug = new Map();
+    let searchQueryCache = { raw: null, profile: null };
+    const problemSearchScoreCache = new Map();
 
     function dailyEditorResetEnabled() {
       return localStorage.getItem(editorDailyResetKey) !== "off";
@@ -4126,47 +4150,6 @@ const shortcutRows = [
       if (!problemDataVersion) return url;
       const separator = url.includes("?") ? "&" : "?";
       return `${url}${separator}v=${encodeURIComponent(problemDataVersion)}`;
-    }
-
-    async function ensureProblemSearchIndex() {
-      if (problemSearchIndexLoaded) return true;
-      if (problemSearchIndexPromise) return problemSearchIndexPromise;
-      problemSearchIndexPromise = fetch(problemSearchIndexUrl, {
-        headers: { accept: "application/json" },
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Problem search index request failed: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then((entries) => {
-          if (!Array.isArray(entries)) return false;
-          entries.forEach((entry) => {
-            const slug = Array.isArray(entry) ? entry[0] : entry?.titleSlug;
-            const text = Array.isArray(entry) ? entry[1] : entry?.searchText;
-            if (slug && text) {
-              problemSearchTextBySlug.set(slug, String(text).toLowerCase());
-            }
-          });
-          problemSearchIndexLoaded = true;
-          return true;
-        })
-        .catch((error) => {
-          console.warn("Could not load LeetCode search index", error);
-          return false;
-        })
-        .finally(() => {
-          problemSearchIndexPromise = null;
-        });
-      return problemSearchIndexPromise;
-    }
-
-    function scheduleProblemSearchIndexLoad() {
-      if (!state.query || problemSearchIndexLoaded) return;
-      ensureProblemSearchIndex().then((loaded) => {
-        if (loaded && state.query) render();
-      });
     }
 
     function isProblemDetailLoaded(problem) {
@@ -10079,6 +10062,212 @@ const shortcutRows = [
       return "";
     }
 
+    function normalizeSearchText(value) {
+      return String(value ?? "")
+        .normalize("NFKC")
+        .toLowerCase()
+        .replace(/[’‘]/g, "'")
+        .replace(/[“”]/g, '"')
+        .replace(/&/g, " and ")
+        .replace(/[\u3000\s]+/g, " ")
+        .trim();
+    }
+
+    function compactSearchText(value) {
+      return normalizeSearchText(value).replace(
+        /[\s._:/\\|()[\]{}<>，。、《》【】（）［］：；;,.!?！？'"`+*=-]+/gu,
+        "",
+      );
+    }
+
+    function searchTokens(value) {
+      return normalizeSearchText(value)
+        .split(/[^0-9a-z\u4e00-\u9fff]+/u)
+        .map(compactSearchText)
+        .filter(Boolean);
+    }
+
+    function uniqueSearchValues(values) {
+      const seen = new Set();
+      const result = [];
+      values.flat().forEach((value) => {
+        const text = normalizeSearchText(value);
+        if (!text || seen.has(text)) return;
+        seen.add(text);
+        result.push(text);
+      });
+      return result;
+    }
+
+    function searchField(value, weight) {
+      const normalized = normalizeSearchText(value);
+      const compact = compactSearchText(normalized);
+      if (!compact) return null;
+      return {
+        compact,
+        normalized,
+        tokens: searchTokens(normalized),
+        weight,
+      };
+    }
+
+    function problemCollectionSearchValues(problem) {
+      const values = [];
+      if (problem.hot100) values.push("hot100", "hot 100");
+      if (problem.bytedance) values.push("字节", "字节跳动", "bytedance", "bd");
+      if (problem.seriesSupplement) values.push("系列补充", "series supplement");
+      if (problem.lingShen) values.push("灵神", "灵神题单", "lingshen", "ling shen");
+      if (problem.lingShenSupplement) {
+        values.push("灵神补充", "lingshen supplement");
+      }
+      return values;
+    }
+
+    function problemSearchFields(problem) {
+      if (problem.searchFields) return problem.searchFields;
+      const tagFields = (problem.tags || []).flatMap((tag) => [
+        tag.name,
+        tag.slug,
+        String(tag.slug || "").replace(/-/g, " "),
+        ...(searchTagAliasesBySlug.get(tag.slug) || []),
+      ]);
+      const fieldGroups = [
+        {
+          values: [problem.frontendId],
+          weight: searchFieldWeights.id,
+        },
+        {
+          values: [problem.titleCn],
+          weight: searchFieldWeights.title,
+        },
+        {
+          values: [
+            problem.titleSlug,
+            String(problem.titleSlug || "").replace(/-/g, " "),
+          ],
+          weight: searchFieldWeights.slug,
+        },
+        {
+          values: [
+            ...(problem.seriesTitles || []),
+            ...(problem.seriesKeys || []),
+            ...(problem.lingShenGroupTitles || []),
+            ...(problem.lingShenGroupKeys || []),
+          ],
+          weight: searchFieldWeights.series,
+        },
+        {
+          values: tagFields,
+          weight: searchFieldWeights.tag,
+        },
+        {
+          values: problemCollectionSearchValues(problem),
+          weight: searchFieldWeights.collection,
+        },
+        {
+          values: [problem.difficulty],
+          weight: searchFieldWeights.difficulty,
+        },
+      ];
+      problem.searchFields = fieldGroups.flatMap((group) =>
+        uniqueSearchValues(group.values)
+          .map((value) => searchField(value, group.weight))
+          .filter(Boolean),
+      );
+      return problem.searchFields;
+    }
+
+    function searchQueryProfile(rawQuery) {
+      const normalized = normalizeSearchText(rawQuery);
+      const compact = compactSearchText(normalized);
+      if (!compact) return null;
+      return {
+        cjk: /[\u4e00-\u9fff]/u.test(compact),
+        compact,
+        normalized,
+        numeric: /^\d+$/.test(compact),
+        raw: rawQuery,
+        tokens: [...new Set(searchTokens(normalized))],
+      };
+    }
+
+    function activeSearchQuery() {
+      const raw = String(state.query || "").trim();
+      if (searchQueryCache.raw === raw) return searchQueryCache.profile;
+      searchQueryCache = { raw, profile: searchQueryProfile(raw) };
+      return searchQueryCache.profile;
+    }
+
+    function tokenMatchesField(token, field) {
+      return (
+        field.compact.includes(token) ||
+        field.tokens.some((fieldToken) => (
+          fieldToken === token ||
+          fieldToken.startsWith(token) ||
+          token.startsWith(fieldToken)
+        ))
+      );
+    }
+
+    function orderedCharactersMatch(needle, haystack) {
+      if (needle.length < 2 || haystack.length < needle.length) return false;
+      let needleIndex = 0;
+      for (let index = 0; index < haystack.length; index += 1) {
+        if (haystack[index] !== needle[needleIndex]) continue;
+        needleIndex += 1;
+        if (needleIndex === needle.length) return true;
+      }
+      return false;
+    }
+
+    function compactGapPenalty(needle, haystack) {
+      const gap = Math.max(0, haystack.length - needle.length);
+      const ratio = gap / Math.max(needle.length, 1);
+      return Math.max(0.58, 1 - ratio * 0.08);
+    }
+
+    function searchFieldScore(field, query) {
+      if (query.numeric && field.weight === searchFieldWeights.id) {
+        if (field.compact === query.compact) return field.weight + 320;
+        if (field.compact.startsWith(query.compact)) return field.weight * 0.62;
+        return 0;
+      }
+      if (field.compact === query.compact) return field.weight + 240;
+      if (field.normalized === query.normalized) return field.weight + 220;
+      if (field.compact.startsWith(query.compact)) return field.weight * 0.9;
+      if (field.compact.includes(query.compact)) {
+        return field.weight * 0.78 * compactGapPenalty(query.compact, field.compact);
+      }
+      if (query.tokens.length > 1 && query.tokens.every((token) =>
+        tokenMatchesField(token, field)
+      )) {
+        return field.weight * 0.68;
+      }
+      if (
+        (query.compact.length >= 3 || (query.cjk && query.compact.length >= 2)) &&
+        orderedCharactersMatch(query.compact, field.compact)
+      ) {
+        return field.weight * 0.42 * compactGapPenalty(query.compact, field.compact);
+      }
+      return 0;
+    }
+
+    function searchScoreForProblem(problem) {
+      const query = activeSearchQuery();
+      if (!query) return 0;
+      const cacheKey = `${query.normalized}\u0000${problem.titleSlug}`;
+      if (problemSearchScoreCache.has(cacheKey)) {
+        return problemSearchScoreCache.get(cacheKey);
+      }
+      const score = Math.max(
+        0,
+        ...problemSearchFields(problem).map((field) => searchFieldScore(field, query)),
+      );
+      const roundedScore = Math.round(score);
+      problemSearchScoreCache.set(cacheKey, roundedScore);
+      return roundedScore;
+    }
+
     function byteDanceRankFor(problem, filter = "bytedanceAll") {
       const buckets = byteDanceBuckets(problem);
       if (filter === "bytedanceThirtyDays") return buckets.thirtyDays;
@@ -10379,73 +10568,17 @@ const shortcutRows = [
       if (statusFilter === "review" && !status.review) return false;
       if (statusFilter === "unmastered" && status.mastered) return false;
       if (!state.query) return true;
-      const haystack = [
-        problem.frontendId,
-        problem.titleCn,
-        problem.titleSlug,
-        problem.difficulty,
-        problem.bytedance ? "字节跳动 bytedance" : "",
-        problem.seriesSupplement ? "系列补充 series supplement" : "",
-        problem.lingShen ? "灵神题单 lingshen ling shen" : "",
-        problem.lingShenSupplement ? "灵神补充 lingshen supplement" : "",
-        ...(problem.seriesTitles || []),
-        ...(problem.seriesKeys || []),
-        ...(problem.lingShenGroupTitles || []),
-        ...(problem.lingShenGroupKeys || []),
-        problem.lingShenRank ? `灵神 ${problem.lingShenRank}` : "",
-        problem.lingShenRating ? `难度分 ${problem.lingShenRating}` : "",
-        problem.bytedanceRank ? `bd ${problem.bytedanceRank}` : "",
-        byteDance.thirtyDays ? `字节近30天 ${byteDance.thirtyDays}` : "",
-        byteDance.threeMonths ? `字节近3月 ${byteDance.threeMonths}` : "",
-        byteDance.sixMonths ? `字节近6月 ${byteDance.sixMonths}` : "",
-        byteDance.moreThanSixMonths ? `字节6月前 ${byteDance.moreThanSixMonths}` : "",
-        ...Object.entries(byteDanceBucketSources(problem)).map(
-          ([key, source]) => `字节${key} ${byteDanceSourceLabel(source)}`,
-        ),
-        ...problem.tags.map((tag) => tag.name),
-        ...(problem.constraints || []),
-        ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
-        ...(problem.companyFollowUps || []).flatMap((item) => [
-          item.question,
-          item.answer,
-          item.company,
-          item.sourceTitle,
-        ]),
-        ...(problem.implementationReferences || []).flatMap((item) => [
-          item.language,
-          item.provenance,
-          item.approachTitle,
-          item.complexity,
-          item.license,
-          item.sourceTitle,
-        ]),
-        ...(problem.relatedQuestions?.series || []).flatMap((item) => [
-          item.frontendId,
-          item.titleCn,
-          item.title,
-          item.titleSlug,
-        ]),
-        ...(problem.relatedQuestions?.official || []).flatMap((item) => [
-          item.frontendId,
-          item.titleCn,
-          item.title,
-          item.titleSlug,
-        ]),
-        ...(problem.relatedQuestions?.topicPeers || []).flatMap((item) => [
-          item.frontendId,
-          item.titleCn,
-          item.title,
-          item.titleSlug,
-          ...(item.sharedTags || []).map((tag) => tag.name),
-        ]),
-        problemSearchTextBySlug.get(problem.titleSlug) || "",
-        problem.searchText || "",
-      ].join(" ").toLowerCase();
-      return haystack.includes(state.query.toLowerCase());
+      return searchScoreForProblem(problem) > 0;
     }
 
-    function orderedProblems() {
-      const filtered = problems.filter(matchesFilter);
+    function compareProblemsByOriginalOrder(a, b) {
+      return (
+        (defaultOrderBySlug.get(a.titleSlug) ?? Number.MAX_SAFE_INTEGER) -
+        (defaultOrderBySlug.get(b.titleSlug) ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+
+    function activeProblemOrderComparator() {
       const categoryFilter = state.filters.category;
       const seriesFilter = state.filters.series;
       const listFilter = state.filters.list;
@@ -10453,7 +10586,7 @@ const shortcutRows = [
       const byteDanceFilter = state.filters.bytedance;
       if (categoryFilter) {
         const categoryOrder = categoryOrderById.get(categoryFilter) || new Map();
-        return filtered.sort((a, b) => {
+        return (a, b) => {
           const left = categoryOrder.has(a.titleSlug)
             ? categoryOrder.get(a.titleSlug)
             : Number.MAX_SAFE_INTEGER;
@@ -10465,11 +10598,11 @@ const shortcutRows = [
             (a.topRank ?? a.frequencyRank ?? 999999) -
               (b.topRank ?? b.frequencyRank ?? 999999)
           );
-        });
+        };
       }
       if (seriesFilter) {
         const seriesOrder = seriesOrderByKey.get(seriesFilter) || new Map();
-        return filtered.sort((a, b) => {
+        return (a, b) => {
           const left = seriesOrder.has(a.titleSlug)
             ? seriesOrder.get(a.titleSlug)
             : Number.MAX_SAFE_INTEGER;
@@ -10481,11 +10614,11 @@ const shortcutRows = [
               (b.topRank ?? b.frequencyRank ?? 999999) ||
             left - right
           );
-        });
+        };
       }
       if (listFilter) {
         const listOrder = practiceListOrderByKey.get(listFilter) || new Map();
-        return filtered.sort((a, b) => {
+        return (a, b) => {
           const left = listOrder.has(a.titleSlug)
             ? listOrder.get(a.titleSlug)
             : Number.MAX_SAFE_INTEGER;
@@ -10497,19 +10630,29 @@ const shortcutRows = [
             (a.topRank ?? a.frequencyRank ?? 999999) -
               (b.topRank ?? b.frequencyRank ?? 999999)
           );
-        });
+        };
       }
       if (byteDanceFilter) {
-        return filtered.sort((a, b) => {
+        return (a, b) => {
           const left = byteDanceRankFor(a, byteDanceFilter) || Number.MAX_SAFE_INTEGER;
           const right = byteDanceRankFor(b, byteDanceFilter) || Number.MAX_SAFE_INTEGER;
           return left - right || (a.frequencyRank || 999999) - (b.frequencyRank || 999999);
-        });
+        };
       }
       if (scopeFilter === "hot100") {
-        return filtered.sort((a, b) => (a.hotRank || 999) - (b.hotRank || 999));
+        return (a, b) => (a.hotRank || 999) - (b.hotRank || 999);
       }
-      return filtered;
+      return compareProblemsByOriginalOrder;
+    }
+
+    function orderedProblems() {
+      const filtered = problems.filter(matchesFilter);
+      const orderComparator = activeProblemOrderComparator();
+      if (!state.query) return filtered.sort(orderComparator);
+      return filtered.sort((a, b) =>
+        searchScoreForProblem(b) - searchScoreForProblem(a) ||
+        orderComparator(a, b),
+      );
     }
 
     function editorPanelForSlug(slug) {
@@ -14886,7 +15029,6 @@ const shortcutRows = [
     function renderSearchResults() {
       state.page = 1;
       render();
-      scheduleProblemSearchIndexLoad();
       scheduleViewStateWrite();
     }
 
@@ -15557,7 +15699,6 @@ const shortcutRows = [
     restoreViewStateControls();
     const directProblemSlug = applyDirectProblemLinkTarget();
     render();
-    scheduleProblemSearchIndexLoad();
     hydratePracticeEventStore();
     if (directProblemSlug) {
       focusDirectProblemLinkTarget(directProblemSlug);
