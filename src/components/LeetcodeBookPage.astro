@@ -11724,6 +11724,8 @@ const shortcutRows = [
       body.dataset.lazyGuideRendered = "true";
     }
 
+    const lingShenDeckProblemPreviewCount = 4;
+    const lingShenHtmlIdUnsafePattern = /[^A-Za-z0-9_-]/g;
     const lingShenInitialVisibleSections = 8;
 
     function lingShenLocalizedTitle(item) {
@@ -11823,7 +11825,76 @@ const shortcutRows = [
         .join("");
     }
 
-    function renderLingShenDeck(deck) {
+    function lingShenDeckMemberPanelId(deckId) {
+      return `leetcode-${String(deckId || "").replace(lingShenHtmlIdUnsafePattern, "-")}-members`;
+    }
+
+    function renderLingShenDeckMembers(deck, options = {}) {
+      const members = Array.isArray(deck?.members) ? deck.members : [];
+      const expanded = Boolean(options.expanded);
+      const panelId = lingShenDeckMemberPanelId(deck?.id);
+      const visibleMembers = expanded
+        ? members
+        : members.slice(0, lingShenDeckProblemPreviewCount);
+      const items = visibleMembers
+        .map((slug) =>
+          renderLazyMemberItem(problemBySlug.get(slug), {
+            category: true,
+            showRating: true,
+          }),
+        )
+        .filter(Boolean)
+        .join("");
+      const canToggle = members.length > lingShenDeckProblemPreviewCount;
+      const toggleLabel = expanded
+        ? (isChinesePage ? "收起题目" : "Collapse problems")
+        : (isChinesePage
+          ? `展开全部 ${members.length} 题`
+          : `Show all ${members.length} problems`);
+      return `
+        ${
+          items ||
+          `<span class="leetcode-popover-muted">${
+            isChinesePage ? "暂无可在本页打开的题目。" : "No local members available."
+          }</span>`
+        }
+        ${
+          canToggle
+            ? `<button
+                type="button"
+                class="leetcode-lingshen-member-toggle"
+                data-lingshen-deck-members-toggle="${escapeHtml(deck.id)}"
+                aria-controls="${escapeHtml(panelId)}"
+                aria-expanded="${expanded ? "true" : "false"}"
+              >
+                ${escapeHtml(toggleLabel)}
+              </button>`
+            : ""
+        }
+      `;
+    }
+
+    function renderLingShenDeckMemberPanel(deck, options = {}) {
+      const renderPreview = options.renderPreview !== false;
+      return `
+        <div
+          id="${escapeHtml(lingShenDeckMemberPanelId(deck.id))}"
+          class="leetcode-lingshen-members leetcode-series-members"
+          data-lingshen-deck-members="${escapeHtml(deck.id)}"
+          data-lingshen-deck-members-rendered="${renderPreview ? "true" : "false"}"
+        >
+          ${
+            renderPreview
+              ? renderLingShenDeckMembers(deck)
+              : `<span class="leetcode-popover-muted">${
+                  isChinesePage ? "展开小节后加载本组题目。" : "Members load when this section opens."
+                }</span>`
+          }
+        </div>
+      `;
+    }
+
+    function renderLingShenDeck(deck, options = {}) {
       const title = lingShenLocalizedTitle(deck);
       const statusLabel = statusFilterLabels.review;
       return `
@@ -11838,6 +11909,9 @@ const shortcutRows = [
             })}
           </div>
           ${renderLingShenProgress("deck", deck.id, deck.members)}
+          ${renderLingShenDeckMemberPanel(deck, {
+            renderPreview: options.renderPreview,
+          })}
           <div class="leetcode-lingshen-deck-actions">
             <button
               type="button"
@@ -11858,6 +11932,24 @@ const shortcutRows = [
           </div>
         </article>
       `;
+    }
+
+    function renderLingShenDeckMemberContainer(container, deck, options = {}) {
+      container.innerHTML = renderLingShenDeckMembers(deck, options);
+      container.dataset.lingshenDeckMembersRendered = "true";
+    }
+
+    function renderLingShenDeckMemberContainers(scope = document) {
+      scope.querySelectorAll('[data-lingshen-deck-members-rendered="false"]').forEach(
+        (container) => {
+          if (!(container instanceof HTMLElement)) return;
+          const deck = lingShenDeckById.get(
+            container.dataset.lingshenDeckMembers || "",
+          );
+          if (!deck) return;
+          renderLingShenDeckMemberContainer(container, deck);
+        },
+      );
     }
 
     function renderLingShenSection(section, index) {
@@ -11881,7 +11973,11 @@ const shortcutRows = [
             ${renderLingShenProgress("section", section.id, section.members)}
           </header>
           <div class="leetcode-lingshen-decks">
-            ${(section.decks || []).map(renderLingShenDeck).join("")}
+            ${(section.decks || [])
+              .map((deck) =>
+                renderLingShenDeck(deck, { renderPreview: !isExtra }),
+              )
+              .join("")}
           </div>
         </section>
       `;
@@ -16521,10 +16617,38 @@ const shortcutRows = [
             if (section instanceof HTMLElement) section.hidden = expanded;
           },
         );
+        if (!expanded && topic instanceof HTMLElement) {
+          renderLingShenDeckMemberContainers(topic);
+        }
         lingShenTopicToggle.setAttribute("aria-expanded", String(!expanded));
         lingShenTopicToggle.textContent = expanded
           ? (lingShenTopicToggle.dataset.collapsedLabel || "")
           : (lingShenTopicToggle.dataset.expandedLabel || "");
+        return;
+      }
+      const lingShenDeckMembersToggle = target.closest(
+        "[data-lingshen-deck-members-toggle]",
+      );
+      if (lingShenDeckMembersToggle instanceof HTMLElement) {
+        const deck = lingShenDeckById.get(
+          lingShenDeckMembersToggle.dataset.lingshenDeckMembersToggle || "",
+        );
+        const container = lingShenDeckMembersToggle.closest(
+          "[data-lingshen-deck-members]",
+        );
+        if (deck && container instanceof HTMLElement) {
+          const expanded =
+            lingShenDeckMembersToggle.getAttribute("aria-expanded") === "true";
+          renderLingShenDeckMemberContainer(container, deck, {
+            expanded: !expanded,
+          });
+          const nextToggle = container.querySelector(
+            "[data-lingshen-deck-members-toggle]",
+          );
+          if (nextToggle instanceof HTMLElement) {
+            nextToggle.focus({ preventScroll: true });
+          }
+        }
         return;
       }
       const lingShenDeckPracticeButton = target.closest(
@@ -17020,10 +17144,17 @@ const shortcutRows = [
     const restoredDeckFilter = state.filters.deck;
     if (restoredDeckFilter) {
       ensureLingShenRoadmap().then((loaded) => {
-        if (loaded && state.filters.deck === restoredDeckFilter) {
+        if (state.filters.deck !== restoredDeckFilter) return;
+        if (!loaded) {
           syncFilterButtons();
-          render();
+          return;
         }
+        if (!lingShenDeckById.has(restoredDeckFilter)) {
+          state.filters.deck = "";
+          scheduleViewStateWrite();
+        }
+        syncFilterButtons();
+        render();
       });
     }
     const directProblemSlug = applyDirectProblemLinkTarget();
@@ -19704,6 +19835,7 @@ const shortcutRows = [
 
     .leetcode-lingshen-topic-actions button,
     .leetcode-lingshen-deck-actions button,
+    .leetcode-lingshen-member-toggle,
     .leetcode-lingshen-topic-toggle {
       min-height: 1.42rem;
       border: 1px solid rgb(217 119 87 / 42%);
@@ -19723,6 +19855,8 @@ const shortcutRows = [
     .leetcode-lingshen-deck-actions button:hover,
     .leetcode-lingshen-deck-actions button:focus-visible,
     .leetcode-lingshen-deck-actions button.is-active,
+    .leetcode-lingshen-member-toggle:hover,
+    .leetcode-lingshen-member-toggle:focus-visible,
     .leetcode-lingshen-topic-toggle:hover,
     .leetcode-lingshen-topic-toggle:focus-visible {
       background: rgb(217 119 87 / 14%);
@@ -19804,6 +19938,31 @@ const shortcutRows = [
       font-weight: 690;
       line-height: 1.26;
       overflow-wrap: anywhere;
+    }
+
+    .leetcode-lingshen-members {
+      gap: 0.18rem;
+    }
+
+    .leetcode-lingshen-members .leetcode-series-member {
+      grid-template-columns: minmax(0, 1fr) auto;
+      border-color: rgb(194 192 182 / 38%);
+      background: rgb(255 255 255 / 28%);
+      font-size: 0.68rem;
+      padding: 0.22rem 0.32rem;
+    }
+
+    .leetcode-lingshen-members .leetcode-series-member-title {
+      white-space: normal;
+    }
+
+    .leetcode-lingshen-member-toggle {
+      justify-self: start;
+      margin-top: 0.04rem;
+    }
+
+    .leetcode-lingshen-member-toggle:focus-visible {
+      box-shadow: 0 0 0 0.16rem rgb(217 119 87 / 18%);
     }
 
     .leetcode-lingshen-deck-actions {
@@ -21585,6 +21744,7 @@ const shortcutRows = [
     html.dark .leetcode-lingshen-topic-index,
     html.dark .leetcode-lingshen-topic-actions button,
     html.dark .leetcode-lingshen-deck-actions button,
+    html.dark .leetcode-lingshen-member-toggle,
     html.dark .leetcode-lingshen-topic-toggle {
       border-color: rgb(226 149 120 / 42%);
       background: rgb(226 149 120 / 11%);
@@ -21596,6 +21756,8 @@ const shortcutRows = [
     html.dark .leetcode-lingshen-deck-actions button:hover,
     html.dark .leetcode-lingshen-deck-actions button:focus-visible,
     html.dark .leetcode-lingshen-deck-actions button.is-active,
+    html.dark .leetcode-lingshen-member-toggle:hover,
+    html.dark .leetcode-lingshen-member-toggle:focus-visible,
     html.dark .leetcode-lingshen-topic-toggle:hover,
     html.dark .leetcode-lingshen-topic-toggle:focus-visible {
       background: rgb(226 149 120 / 16%);
@@ -21613,6 +21775,15 @@ const shortcutRows = [
 
     html.dark .leetcode-lingshen-deck {
       border-color: #333;
+    }
+
+    html.dark .leetcode-lingshen-members .leetcode-series-member {
+      border-color: #333;
+      background: rgb(255 255 255 / 5%);
+    }
+
+    html.dark .leetcode-lingshen-member-toggle:focus-visible {
+      box-shadow: 0 0 0 0.16rem rgb(226 149 120 / 22%);
     }
 
     html.dark .leetcode-series-group h3,
