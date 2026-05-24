@@ -2,6 +2,15 @@
 
 这本书是一个面向力扣中国区面试刷题的紧凑练习页面。
 
+## 字体与数学排版契约
+
+本书继承 `BOOK_STYLE.md` 的全站书籍样式契约：正文、标题、导航、
+控件、表格、图注和普通 UI 文本默认使用苹方字体栈；代码块、行内代码、
+终端片段和代码编辑器默认使用 Cursor/LeetCode 代码字体栈
+`Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+SFMono-Regular, Menlo, monospace`。题面约束、变量、数组、矩阵、复杂度、数值范围
+和指标能用 LaTeX/KaTeX 表达时必须优先使用 LaTeX。
+
 ## 数据契约
 
 目标排名来自 2026 年 5 月 16 日力扣题库按“出题频率”排序后的结果。页面

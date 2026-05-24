@@ -3,6 +3,17 @@
 This book is a compact practice surface for LeetCode China interview
 preparation.
 
+## Typography and Math Contract
+
+This book inherits the repository-wide book style contract in
+`BOOK_STYLE.md`: all prose, headings, controls, tables, captions, and
+ordinary UI text must default to PingFang. Code blocks, inline code, terminal
+snippets, and code editors use the Cursor/LeetCode stack
+`Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+SFMono-Regular, Menlo, monospace`. Problem constraints, variables, arrays,
+matrices, complexity, numeric bounds, and benchmark-style metrics should use
+LaTeX/KaTeX whenever possible.
+
 ## Data Contract
 
 The target ranking starts from the LeetCode China problemset sorted by

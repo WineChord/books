@@ -1,0 +1,39 @@
+DeepSeek V4 技术书单页规格
+
+目标
+在 /books/deepseek/ 提供一页中文为主的 DeepSeek V4 技术书稿，面向初学者解释公开技术报告与官方模型卡中出现的全部核心技术点。
+
+资料边界
+- 主源：DeepSeek-V4 technical report 与 Hugging Face 官方模型卡/config/encoding。
+- 辅源：Hugging Face Transformers 的 DeepSeek-V4 实现文档，DeepSeek/Tile-AI 官方工程仓库，FlashMLA、3FS、TileLink 等系统实现/系统论文背景，以及技术报告引用的 DeepSeek-V3、DeepSeekMoE、MTP、Muon、mHC 等背景论文。辅源必须标清来源边界，不能把相关工程仓库或系统论文误写成 V4 论文里的架构组件。
+- 本页只覆盖 DeepSeek V4；后续 DeepSeek 全系列书稿可以继续扩展同一目录。
+
+覆盖清单
+- 模型族：Flash-Base、Flash、Pro-Base、Pro。
+- 架构：Transformer 骨架、DeepSeekMoE、MTP、Hash routing、auxiliary-loss-free load balancing、\mathrm{noaux\_tc}、\mathrm{e\_score\_correction\_bias}、sequence-wise balance loss、mHC、CSA、HCA、SWA、Shared \mathbf{K}=\mathbf{V} MQA、attention sink、query/\mathrm{KV} RMSNorm、partial RoPE、grouped output projection、混合 \mathrm{KV} 存储、Flash/Pro 全量架构超参数表、官方 config.json supplement、\mathrm{compress\_ratios} 的 L+1 条目语义以及末尾 MTP module 的 0 条目。
+- 训练：32 \mathrm{T}/33 \mathrm{T} 预训练数据、报告简称 128 \mathrm{K} 词表与 config 精确 \mathrm{vocab\_size}=129280、token splitting、FIM、sample-level mask、官方明确的 agentic mid-training data、数学/代码等 reasoning 信号与后训练塑形边界、Muon + AdamW、hybrid Newton-Schulz、优化器超参数、batch/learning-rate/sequence-length schedule、dense-to-sparse 过渡。
+- 稳定性：Anticipatory Routing、SwiGLU Clamping、auxiliary-loss-free bias update speed 10^{-3}、sequence-wise balance loss weight 10^{-4}、确定性训练、batch-invariant decoding。
+- 系统：fine-grained EP overlap、MegaMoE as a DeepGEMM component、batch-invariant DeepGEMM、TileLang、Host Codegen、Z3/SMT formal integer analysis、ZeRO bucket for Muon、mHC activation checkpointing、contextual parallelism、hybrid \mathrm{KV} cache、on-disk prefix cache、DSec sandbox、3 \mathrm{FS} in DSec layered/on-demand image loading、EROFS/overlaybd/cross-instance sharing、FlashMLA 与 V4 attention kernel 生态的边界、TileLink 作为 compute-communication overlap 背景的成本模型与易错点。
+- 后训练：SFT、GRPO、reasoning modes、Think High、Think Max 特殊 system prompt/instruction 边界、GRM、DSML tool calls、interleaved thinking、Quick Instruction、multi-teacher OPD reverse D_{\mathrm{KL}}、QAT、\mathrm{FP8(E4M3)} 与 \mathrm{FP4(E2M1)} 的尺度/块布局边界、teacher scheduling、fault-tolerant rollout、10^6-token RL、官方 encoding 接入说明。
+- 评测：base model、instruct model、reasoning effort、Non-think/Think High/Think Max、formal reasoning、Lean verifier、Putnam-200、Putnam-2025、\operatorname{Pass@k}、\operatorname{EM}、\operatorname{MMR}、\operatorname{Resolved}、\operatorname{Acc}、MRCR、CorpusQA、LongBench-V2、10^6 context、real-world search/white-collar/code-agent evaluations。
+- 面试考点：按架构、训练、系统、推理、后训练、评测、实用接入列出深度问题与考察核心。
+- 面试考点必须包含 answer skeleton、common pitfalls、followups；覆盖架构、训练、系统、推理缓存、后训练、评测、实用接入。
+- 限制与后续方向：复杂架构、稳定性机理、更多稀疏方向、低延迟、长期 agent、多模态、数据策展；页面必须区分官方明确内容与本文基于工程实现/评测现象的归纳推断。
+
+LaTeX 规则
+- 页面里所有数学符号、模型参数、token 数、上下文长度、数值区间、矩阵/向量、概率分布、复杂度、算子、损失函数、量化精度和评测指标/分数都必须使用 LaTeX/KaTeX 渲染。
+- 不在正文或表格中使用非 LaTeX 的中文大数缩写、上下标、窗口长度、压缩率、稀疏选择、最小公倍数、KL 散度、区间、精度、评测指标或评测分数写法；统一写成 10^6、32 \mathrm{T}、128 \mathrm{K}、n_{\mathrm{hc}}、n_{\mathrm{win}}、m=4、m'=128、\operatorname{TopK}、\operatorname{lcm}(m,m')、D_{\mathrm{KL}}、[-10,10]、\mathrm{FP4}/\mathrm{FP8}、\operatorname{Pass@1}=95.8、\mathrm{MRCR}\ 10^6。
+- 技术名词可以保留英文原文，但其参数、公式和可量化指标必须用 LaTeX 表达；新增章节也要遵守这条规则。
+- 公式必须区分普通 next-token loss 与 MTP extra prediction；OPD 必须写成 multi-teacher 加权 reverse D_{\mathrm{KL}}；CSA indexer 公式不能凭空加入论文没有的 b_{\Delta}。
+
+字体规则
+- 本页以及后续所有 books 新书都继承 BOOK_STYLE.md：正文、标题、侧边栏、表格、图注、流程图、按钮和普通 UI 文本默认使用苹方字体栈。
+- 代码块、行内代码、终端片段和代码编辑器默认使用 Cursor/LeetCode 代码字体栈：Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace；不要把苹方强行套到代码编辑器。
+- 普通语言文字使用苹方；KaTeX 数学表达式保留 KaTeX 自身数学字体。数学数字、模型参数、上下文长度、指标和公式能用 LaTeX 表达时必须优先使用 LaTeX。
+
+交付形态
+- 单页 Web：固定侧边栏目录、正文图表、自绘流程图、PDF 页面截图、文末引用。
+- 不新增框架依赖。
+- 所有图片走 docs/public/deepseek/assets/，避免构建后丢失。
+- 移动端表格必须可横向滚动且不造成页面级横向溢出；中等桌面宽度也不能因为侧边栏和正文宽度相加而横向溢出。
+- 图片 alt 必须描述图中技术知识点，caption 必须说明该图用于解释什么，而不只写“截图”。

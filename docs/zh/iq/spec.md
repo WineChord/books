@@ -11,6 +11,15 @@
 
 默认页和中文镜像内容一致，canonical 指向 `/books/iq/`，避免同一中文内容产生两个主地址。
 
+## 字体与数学排版
+
+本书继承 `BOOK_STYLE.md` 的全站书籍样式契约：正文、标题、导航、
+控件、表格、图注和普通 UI 文本默认使用苹方字体栈；代码块、行内代码、
+终端片段和代码编辑器默认使用 Cursor/LeetCode 代码字体栈
+`Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+SFMono-Regular, Menlo, monospace`。数学符号、状态数、复杂度、概率、约束范围、
+公式和可量化指标能用 LaTeX/KaTeX 表达时必须优先使用 LaTeX。
+
 ## 内容范围
 
 题库收录高频、可教学、适合面试或课堂讲解的经典智力题，覆盖以下类型：

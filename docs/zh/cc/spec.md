@@ -40,6 +40,15 @@ Auto-Compact、摘要 prompt、压缩后接续和面试回答结构。
 3. Astro 的 `base` 是 `/books`，因此公开 URL 是 `/books/cc/`。
 4. 规格页可通过 `/books/cc/spec.html` 和 `/books/zh/cc/spec.html` 访问。
 
+## 字体与数学排版契约
+
+本书继承 `BOOK_STYLE.md` 的全站书籍样式契约：正文、标题、导航、
+控件、表格、图注和普通 UI 文本默认使用苹方字体栈；代码块、行内代码、
+终端片段和代码编辑器默认使用 Cursor/LeetCode 代码字体栈
+`Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+SFMono-Regular, Menlo, monospace`。数学符号、token 数、阈值、复杂度、指标和
+公式能用 LaTeX/KaTeX 表达时必须优先使用 LaTeX。
+
 ## 覆盖契约
 
 页面必须从第一性原理讲清：

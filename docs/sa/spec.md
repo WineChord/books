@@ -15,6 +15,17 @@ the Chinese version at `/books/zh/sa/spec.html`.
 The page links to `/books/lcp/` for LCP and to
 `/books/sa/unique-subarray.html` for the application problem.
 
+## Typography and Math Contract
+
+This book inherits the repository-wide book style contract in
+`BOOK_STYLE.md`: all prose, headings, controls, tables, captions, and
+ordinary UI text must default to PingFang. Code blocks, inline code, terminal
+snippets, and code-editor surfaces use the Cursor/LeetCode stack
+`Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+SFMono-Regular, Menlo, monospace`. Algorithm variables, array indices, ranks,
+string lengths, complexity, constraints, and formulas should use LaTeX/KaTeX
+whenever possible.
+
 ## Teaching Contract
 
 The page assumes a complete beginner and explains:

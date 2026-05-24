@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "@fontsource-variable/source-serif-4";
-@import "@fontsource-variable/jetbrains-mono";
 @import "katex/dist/katex.min.css";
 
 @plugin "@tailwindcss/typography";
@@ -15,8 +14,10 @@
   --color-muted: #87867f;
   --color-border: #c2c0b6;
   --color-highlight: #eda100;
-  --font-serif: "Source Serif 4 Variable", Georgia, serif;
-  --font-mono: "JetBrains Mono Variable", "Fira Code", monospace;
+  --font-book: "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+  --font-sans: var(--font-book);
+  --font-serif: var(--font-book);
+  --font-mono: Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 *,

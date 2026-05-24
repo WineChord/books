@@ -14,6 +14,15 @@
 页面链接到 `/books/lcp/` 学 LCP，链接到
 `/books/sa/unique-subarray.html` 学应用题。
 
+## 字体与数学排版契约
+
+本书继承 `BOOK_STYLE.md` 的全站书籍样式契约：正文、标题、导航、
+控件、表格、图注和普通 UI 文本默认使用苹方字体栈；代码块、行内代码、
+终端片段和代码编辑器默认使用 Cursor/LeetCode 代码字体栈
+`Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+SFMono-Regular, Menlo, monospace`。算法变量、数组下标、rank、字符串长度、复杂度、
+约束范围和公式能用 LaTeX/KaTeX 表达时必须优先使用 LaTeX。
+
 ## 教学契约
 
 页面面向完全初学者，并解释：

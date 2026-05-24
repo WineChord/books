@@ -49,6 +49,17 @@ documentation for subagents, memory, MCP, and slash commands.
 4. The spec page is available at `/books/cc/spec.html` and
    `/books/zh/cc/spec.html`.
 
+## Typography and Math Contract
+
+This book inherits the repository-wide book style contract in
+`BOOK_STYLE.md`: all prose, headings, controls, tables, captions, and
+ordinary UI text must default to PingFang. Code blocks, inline code, terminal
+snippets, and code-editor surfaces use the Cursor/LeetCode stack
+`Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+SFMono-Regular, Menlo, monospace`. Mathematical symbols, token counts,
+thresholds, complexity, metrics, and formulas should use LaTeX/KaTeX whenever
+possible.
+
 ## Coverage Contract
 
 The page must explain these topics from first principles:

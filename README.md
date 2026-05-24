@@ -11,6 +11,15 @@ This repository hosts long-form online books for
 - [Suffix Array Primer](https://www.wineandchord.com/books/sa/)
 - [Claude Code Interview Book](https://www.wineandchord.com/books/cc/)
 
+## Book Style
+
+All book prose and ordinary UI text defaults to the PingFang font stack defined
+by `--font-book` in `src/styles/global.css`. Code blocks and code editors use
+the Cursor/LeetCode stack `Monaco, "Cascadia Code", Consolas, "Courier New",
+ui-monospace, SFMono-Regular, Menlo, monospace`. Mathematical symbols, numeric constraints, algorithms,
+metrics, and formulas should use LaTeX/KaTeX whenever possible; see
+`BOOK_STYLE.md`.
+
 ## Development
 
 ```bash
