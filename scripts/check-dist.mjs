@@ -109,6 +109,22 @@ assert(
   "Claude Code interview book spec page is missing",
 );
 assert(
+  existsSync(path.join(distDir, "design", "index.html")),
+  "System design interview book landing page is missing",
+);
+assert(
+  existsSync(path.join(distDir, "design", "spec.html")),
+  "System design interview book spec page is missing",
+);
+assert(
+  existsSync(path.join(distDir, "zh", "design", "index.html")),
+  "Chinese system design interview book landing page is missing",
+);
+assert(
+  existsSync(path.join(distDir, "zh", "design", "spec.html")),
+  "Chinese system design interview book spec page is missing",
+);
+assert(
   existsSync(path.join(distDir, "iq", "index.html")),
   "Classic brain teasers book landing page is missing",
 );

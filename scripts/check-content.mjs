@@ -35,6 +35,11 @@ const publicBooks = [
     zhDir: join(docsDir, "zh", "cc"),
   },
   {
+    slug: "design",
+    enDir: join(docsDir, "design"),
+    zhDir: join(docsDir, "zh", "design"),
+  },
+  {
     slug: "iq",
     enDir: join(docsDir, "iq"),
     zhDir: join(docsDir, "zh", "iq"),

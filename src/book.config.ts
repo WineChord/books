@@ -305,6 +305,21 @@ const iqPages: PageConfig[] = [
   },
 ];
 
+const designPages: PageConfig[] = [
+  {
+    book: "design",
+    path: "design/spec",
+    zhPath: "zh/design/spec",
+    title: "Spec",
+    zhTitle: "规格说明",
+    description:
+      "The route, coverage, interaction, and QA contract for the system design interview book.",
+    zhDescription:
+      "说明系统设计面试书的路由、覆盖范围、交互和验收契约。",
+    kind: "front",
+  },
+];
+
 export const codexFromSourceBook = makeBook({
   slug: "codex-from-source",
   title: siteTitle,
@@ -436,10 +451,30 @@ export const iqBook = makeBook({
   pages: iqPages,
 });
 
+export const designBook = makeBook({
+  slug: "design",
+  title: "System Design Interview Book",
+  zhTitle: "系统设计面试核心书",
+  shortTitle: "System Design",
+  zhShortTitle: "系统设计",
+  description:
+    "A single-page system design interview book starting with designing ChatGPT end to end.",
+  zhDescription:
+    "一本单页系统设计面试书，先用“设计一个 ChatGPT”完整覆盖端到端产品、后端、推理和安全设计。",
+  coverKicker: "LLM Product, Serving, Agents",
+  zhCoverKicker: "LLM Product, Serving, Agents",
+  coverTitle: "System<br />Design<br />Interviews",
+  coverFooter: "ChatGPT case study",
+  zhCoverFooter: "ChatGPT 系统设计",
+  parts: [],
+  pages: designPages,
+});
+
 export const books = [
   codexFromSourceBook,
   codexContextManagementBook,
   leetcodeBook,
+  designBook,
   iqBook,
   suffixArrayBook,
   lcpBook,

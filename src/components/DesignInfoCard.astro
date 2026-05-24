@@ -1,0 +1,62 @@
+---
+interface Card {
+  title: string;
+  body: string;
+  accent?: string;
+}
+
+interface Props {
+  card: Card;
+}
+
+const { card } = Astro.props;
+---
+
+<section class={`info-card info-card--${card.accent ?? "blue"}`}>
+  <h3>{card.title}</h3>
+  <p>{card.body}</p>
+</section>
+
+<style>
+  .info-card {
+    min-width: 0;
+    border: 1px solid var(--color-border);
+    border-left-width: 0.35rem;
+    border-radius: 0.5rem;
+    background: rgb(255 255 255 / 45%);
+    padding: 1rem;
+  }
+
+  .info-card h3 {
+    margin: 0 0 0.55rem;
+    color: var(--color-charcoal);
+    font-size: 1.05rem;
+    line-height: 1.35;
+  }
+
+  .info-card p {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .info-card--blue { border-left-color: var(--design-blue); }
+  .info-card--green { border-left-color: var(--design-green); }
+  .info-card--violet { border-left-color: var(--design-violet); }
+  .info-card--rose { border-left-color: var(--design-rose); }
+  .info-card--amber { border-left-color: var(--design-amber); }
+
+  :global(html.dark) .info-card {
+    border-color: #333;
+    background: var(--color-dark-surface);
+  }
+
+  :global(html.dark) .info-card h3 {
+    color: var(--color-cream);
+  }
+
+  :global(html.dark) .info-card p {
+    color: var(--color-muted);
+  }
+</style>
