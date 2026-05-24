@@ -225,6 +225,265 @@ const strongRelatedTagSlugs = new Set([
   "two-pointers",
   "union-find",
 ]);
+const leetcodePracticeCategoryDefinitions = [
+  {
+    key: "dynamic-programming",
+    title: "动态规划",
+    titleEn: "Dynamic Programming",
+    description: "状态定义、转移、记忆化搜索、背包和区间/序列 DP 放在一起练。",
+    descriptionEn:
+      "State design, transitions, memoization, knapsack, and sequence/interval DP.",
+    tagSlugs: [
+      "dynamic-programming",
+      "memoization",
+      "counting",
+      "combinatorics",
+    ],
+  },
+  {
+    key: "tree",
+    title: "树与二叉树",
+    titleEn: "Trees",
+    description: "二叉树、BST、递归分治、树上遍历和树形状态题。",
+    descriptionEn:
+      "Binary trees, BSTs, recursive divide-and-conquer, traversals, and tree states.",
+    tagSlugs: [
+      "tree",
+      "binary-tree",
+      "binary-search-tree",
+      "divide-and-conquer",
+    ],
+  },
+  {
+    key: "graph-search",
+    title: "图论与搜索",
+    titleEn: "Graphs & Search",
+    description: "图建模、BFS/DFS、拓扑排序、并查集和最短路题。",
+    descriptionEn:
+      "Graph modeling, BFS/DFS, topological sorting, union-find, and shortest paths.",
+    tagSlugs: [
+      "graph",
+      "breadth-first-search",
+      "depth-first-search",
+      "topological-sort",
+      "union-find",
+      "shortest-path",
+    ],
+  },
+  {
+    key: "backtracking",
+    title: "回溯枚举",
+    titleEn: "Backtracking",
+    description: "排列组合、子集、棋盘搜索和剪枝枚举集中练。",
+    descriptionEn:
+      "Permutations, combinations, subsets, board search, and pruning.",
+    tagSlugs: ["backtracking"],
+  },
+  {
+    key: "two-pointers-window",
+    title: "双指针与滑窗",
+    titleEn: "Two Pointers & Window",
+    description: "左右指针、快慢指针、定长/变长窗口和原地收缩题。",
+    descriptionEn:
+      "Left/right pointers, fast/slow pointers, fixed and variable windows.",
+    tagSlugs: ["two-pointers", "sliding-window"],
+  },
+  {
+    key: "stack-queue",
+    title: "栈、队列与单调结构",
+    titleEn: "Stack & Queue",
+    description: "栈、队列、单调栈、单调队列和括号/表达式类题。",
+    descriptionEn:
+      "Stacks, queues, monotonic structures, parentheses, and expression problems.",
+    tagSlugs: [
+      "stack",
+      "queue",
+      "monotonic-stack",
+      "monotonic-queue",
+      "recursion",
+    ],
+  },
+  {
+    key: "heap-topk",
+    title: "堆与 TopK",
+    titleEn: "Heap & TopK",
+    description: "优先队列、TopK、合并有序结构和数据流排名题。",
+    descriptionEn:
+      "Priority queues, TopK, merging sorted structures, and stream ranking.",
+    tagSlugs: ["heap-priority-queue"],
+  },
+  {
+    key: "binary-search-sort",
+    title: "二分、排序与有序结构",
+    titleEn: "Binary Search & Order",
+    description: "二分答案、旋转数组、有序集合、排序和扫描线题。",
+    descriptionEn:
+      "Binary search on values, rotated arrays, ordered sets, sorting, and sweep line.",
+    tagSlugs: [
+      "binary-search",
+      "sorting",
+      "ordered-set",
+      "merge-sort",
+      "quickselect",
+      "bucket-sort",
+      "radix-sort",
+      "counting-sort",
+      "line-sweep",
+    ],
+  },
+  {
+    key: "linked-list",
+    title: "链表",
+    titleEn: "Linked List",
+    description: "反转、合并、快慢指针、环、相交和链表原地修改题。",
+    descriptionEn:
+      "Reversal, merge, fast/slow pointers, cycles, intersections, and in-place edits.",
+    tagSlugs: ["linked-list", "doubly-linked-list"],
+  },
+  {
+    key: "string-trie",
+    title: "字符串与 Trie",
+    titleEn: "String & Trie",
+    description: "字符串解析、匹配、哈希、Trie、字典和文本扫描题。",
+    descriptionEn:
+      "Parsing, matching, hashing, tries, dictionaries, and text scanning.",
+    tagSlugs: [
+      "string",
+      "string-matching",
+      "trie",
+      "rolling-hash",
+      "hash-function",
+      "suffix-array",
+    ],
+  },
+  {
+    key: "greedy",
+    title: "贪心",
+    titleEn: "Greedy",
+    description: "局部最优、区间选择、调度、构造和交换论证题。",
+    descriptionEn:
+      "Local optimal choices, interval selection, scheduling, construction, and exchange arguments.",
+    tagSlugs: ["greedy"],
+  },
+  {
+    key: "array-hash-prefix",
+    title: "数组、哈希与前缀",
+    titleEn: "Array, Hash & Prefix",
+    description: "数组遍历、哈希表、前缀和、差分、矩阵和计数题。",
+    descriptionEn:
+      "Array scans, hash tables, prefix sums, difference arrays, matrices, and counting.",
+    tagSlugs: [
+      "array",
+      "hash-table",
+      "prefix-sum",
+      "matrix",
+      "simulation",
+      "enumeration",
+    ],
+  },
+  {
+    key: "design-structure",
+    title: "设计与数据结构",
+    titleEn: "Design & Data Structure",
+    description: "缓存、迭代器、随机化结构、数据流和手写结构类题。",
+    descriptionEn:
+      "Caches, iterators, randomized structures, streams, and hand-built structures.",
+    tagSlugs: [
+      "design",
+      "data-stream",
+      "iterator",
+      "randomized",
+      "reservoir-sampling",
+      "rejection-sampling",
+    ],
+  },
+  {
+    key: "sql-frontend-concurrency",
+    title: "SQL、并发与前端",
+    titleEn: "SQL, Concurrency & Frontend",
+    description: "数据库 SQL、多线程、Promise 和偏前端 API 题集中处理。",
+    descriptionEn:
+      "Database SQL, concurrency, Promise, and frontend-leaning API problems.",
+    tagSlugs: ["database", "concurrency", "javascript"],
+    slugIncludes: [
+      "array-prototype",
+      "calculator-with-method-chaining",
+      "curry",
+      "debounce",
+      "event-emitter",
+      "function-composition",
+      "memoize",
+      "promise",
+      "sleep",
+      "throttle",
+      "word-frequency",
+    ],
+  },
+  {
+    key: "math-bit",
+    title: "数学与位运算",
+    titleEn: "Math & Bit",
+    description: "数论、概率、几何、位运算和公式推导题。",
+    descriptionEn:
+      "Number theory, probability, geometry, bit manipulation, and formula derivation.",
+    tagSlugs: [
+      "math",
+      "bit-manipulation",
+      "number-theory",
+      "geometry",
+      "probability-and-statistics",
+      "randomized",
+      "rejection-sampling",
+    ],
+  },
+];
+const leetcodePracticeUncategorized = {
+  key: "mixed",
+  title: "综合补齐",
+  titleEn: "Mixed",
+  description: "暂未落入主分类的题，作为兜底补齐，保证题单覆盖完整。",
+  descriptionEn:
+    "Fallback bucket for complete coverage when no primary category tag matches.",
+  tagSlugs: [],
+};
+const leetcodePracticeCategoryTagWeights = new Map([
+  ["tree", 18],
+  ["binary-tree", 18],
+  ["binary-search-tree", 18],
+  ["graph", 18],
+  ["topological-sort", 18],
+  ["union-find", 18],
+  ["shortest-path", 18],
+  ["dynamic-programming", 17],
+  ["memoization", 17],
+  ["backtracking", 16],
+  ["trie", 16],
+  ["heap-priority-queue", 15],
+  ["sliding-window", 15],
+  ["monotonic-stack", 15],
+  ["monotonic-queue", 15],
+  ["design", 15],
+  ["data-stream", 15],
+  ["binary-search", 14],
+  ["linked-list", 14],
+  ["doubly-linked-list", 14],
+  ["two-pointers", 13],
+  ["stack", 13],
+  ["queue", 13],
+  ["string-matching", 13],
+  ["rolling-hash", 13],
+  ["greedy", 12],
+  ["bit-manipulation", 12],
+  ["math", 11],
+  ["prefix-sum", 11],
+  ["matrix", 10],
+  ["database", 16],
+  ["concurrency", 16],
+  ["javascript", 16],
+  ["hash-table", 9],
+  ["string", 8],
+  ["array", 7],
+]);
 
 function mergedByteDanceBuckets(problem) {
   const entry = byteDanceBySlug.get(problem.titleSlug);
@@ -322,6 +581,132 @@ function compareSeriesByFrequency(left, right) {
     rightProfile.memberCount - leftProfile.memberCount ||
     left.title.localeCompare(right.title)
   );
+}
+
+function practiceProblemRank(problem, collectionKey) {
+  if (collectionKey === "hot100") {
+    return problem.hotRank ?? problemFrequencyOrder(problem);
+  }
+  if (collectionKey === "bytedance") {
+    return (
+      problem.bytedanceRank ??
+      problem.bytedanceBuckets?.all ??
+      problem.frequencyRank ??
+      missingFrequencyRank
+    );
+  }
+  return problemFrequencyOrder(problem);
+}
+
+function comparePracticeProblems(left, right, collectionKey) {
+  return (
+    practiceProblemRank(left, collectionKey) -
+      practiceProblemRank(right, collectionKey) ||
+    problemFrequencyOrder(left) - problemFrequencyOrder(right) ||
+    problemFrontendOrder(left) - problemFrontendOrder(right) ||
+    left.titleSlug.localeCompare(right.titleSlug)
+  );
+}
+
+function practiceCategoryScore(problem, category) {
+  const tagSlugs = new Set((problem.tags || []).map((tag) => tag.slug));
+  const tagScore = category.tagSlugs.reduce((score, tagSlug) => {
+    if (!tagSlugs.has(tagSlug)) return score;
+    return score + (leetcodePracticeCategoryTagWeights.get(tagSlug) ?? 6);
+  }, 0);
+  const slugScore = (category.slugIncludes || []).some((keyword) =>
+    problem.titleSlug.includes(keyword),
+  )
+    ? 16
+    : 0;
+  return tagScore + slugScore;
+}
+
+function primaryPracticeCategory(problem) {
+  let bestCategory = leetcodePracticeUncategorized;
+  let bestScore = 0;
+  for (const category of leetcodePracticeCategoryDefinitions) {
+    const score = practiceCategoryScore(problem, category);
+    if (score > bestScore) {
+      bestCategory = category;
+      bestScore = score;
+    }
+  }
+  return bestCategory;
+}
+
+function practiceCategoryFrequencyProfile(category, collectionKey) {
+  const ranks = category.members
+    .map((member) => practiceProblemRank(member, collectionKey))
+    .sort((left, right) => left - right);
+  const leadRanks = ranks.slice(0, 3);
+  const leadAverage = leadRanks.length
+    ? leadRanks.reduce((sum, rank) => sum + rank, 0) / leadRanks.length
+    : missingFrequencyRank;
+  return {
+    best: ranks[0] ?? missingFrequencyRank,
+    leadAverage,
+    memberCount: category.members.length,
+  };
+}
+
+function comparePracticeCategories(left, right, collectionKey) {
+  const leftProfile = practiceCategoryFrequencyProfile(left, collectionKey);
+  const rightProfile = practiceCategoryFrequencyProfile(right, collectionKey);
+  return (
+    leftProfile.best - rightProfile.best ||
+    leftProfile.leadAverage - rightProfile.leadAverage ||
+    rightProfile.memberCount - leftProfile.memberCount ||
+    left.title.localeCompare(right.title)
+  );
+}
+
+function buildPracticeCategoryCollection({
+  key,
+  title,
+  titleEn,
+  description,
+  descriptionEn,
+  problems,
+}) {
+  const categoryByKey = new Map(
+    [...leetcodePracticeCategoryDefinitions, leetcodePracticeUncategorized]
+      .map((category) => [
+        category.key,
+        {
+          ...category,
+          id: `${key}:${category.key}`,
+          members: [],
+        },
+      ]),
+  );
+  const sortedProblems = [...problems].sort((left, right) =>
+    comparePracticeProblems(left, right, key),
+  );
+  for (const problem of sortedProblems) {
+    const category = primaryPracticeCategory(problem);
+    categoryByKey.get(category.key)?.members.push(problem);
+  }
+  const categories = Array.from(categoryByKey.values())
+    .filter((category) => category.members.length > 0)
+    .sort((left, right) => comparePracticeCategories(left, right, key))
+    .map((category) => ({
+      ...category,
+      members: [...category.members].sort((left, right) =>
+        comparePracticeProblems(left, right, key),
+      ),
+    }));
+  const distinctCount = new Set(sortedProblems.map((problem) => problem.titleSlug))
+    .size;
+  return {
+    categories,
+    description,
+    descriptionEn,
+    distinctCount,
+    key,
+    title,
+    titleEn,
+  };
 }
 
 function buildSeriesCatalog(catalogProblems, seriesDefinitions) {
@@ -708,6 +1093,42 @@ const leetcodeSeriesFilterOptions = leetcodeSeriesOverview.map((series) => ({
   supplements: series.supplements,
   members: series.members.map((member) => member.titleSlug),
 }));
+const leetcodePracticeCategoryCollections = [
+  buildPracticeCategoryCollection({
+    key: "hot100",
+    title: "Hot100 分类刷题单",
+    titleEn: "Hot 100 Topic List",
+    description:
+      "按主算法标签把 Hot100 拆成可连续练的小题单，分类和分类内题目都按高频优先排序。",
+    descriptionEn:
+      "Hot 100 split by primary algorithm tag, with groups and problems ordered by frequency.",
+    problems: leetcodeProblemsWithReferences.filter((problem) => problem.hot100),
+  }),
+  buildPracticeCategoryCollection({
+    key: "bytedance",
+    title: "字节分类刷题单",
+    titleEn: "ByteDance Topic List",
+    description:
+      "按字节题库全量排名和主算法标签拆分，适合先按公司高频类别逐组刷完。",
+    descriptionEn:
+      "ByteDance problems split by company rank and primary algorithm tag for focused practice.",
+    problems: leetcodeProblemsWithReferences.filter((problem) => problem.bytedance),
+  }),
+];
+const leetcodePracticeCategoryOptions = leetcodePracticeCategoryCollections
+  .flatMap((collection) =>
+    collection.categories.map((category) => ({
+      collectionKey: collection.key,
+      collectionTitle: collection.title,
+      collectionTitleEn: collection.titleEn,
+      count: category.members.length,
+      id: category.id,
+      key: category.key,
+      members: category.members.map((member) => member.titleSlug),
+      title: category.title,
+      titleEn: category.titleEn,
+    })),
+  );
 const shortcutRows = [
   {
     keys: "/",
@@ -1243,6 +1664,52 @@ const shortcutRows = [
           </div>
         </details>
 
+        {leetcodePracticeCategoryCollections.map((collection) => (
+          <details class="leetcode-series-guide leetcode-category-guide">
+            <summary>
+              {isZh
+                ? `${collection.title}：${collection.categories.length} 类，${collection.distinctCount} 道题`
+                : `${collection.titleEn}: ${collection.categories.length} categories, ${collection.distinctCount} problems`}
+            </summary>
+            <div class="leetcode-series-overview leetcode-category-overview">
+              <p>{isZh ? collection.description : collection.descriptionEn}</p>
+              <div class="leetcode-series-grid leetcode-category-grid">
+                {collection.categories.map((category) => (
+                  <section class="leetcode-series-group leetcode-category-group">
+                    <header>
+                      <h3>{isZh ? category.title : category.titleEn}</h3>
+                      <div>
+                        <span>{category.members.length}</span>
+                        <button type="button" data-category-practice={category.id}>
+                          {isZh ? "练这类" : "Practice"}
+                        </button>
+                      </div>
+                    </header>
+                    <p>{isZh ? category.description : category.descriptionEn}</p>
+                    <div class="leetcode-series-members leetcode-category-members">
+                      {category.members.map((member) => (
+                        <button
+                          type="button"
+                          data-open-related={member.titleSlug}
+                          class:list={[
+                            "leetcode-series-member",
+                            "leetcode-category-member",
+                            member.paidOnly && "is-paid",
+                            "is-in-book",
+                          ]}
+                        >
+                          <span>{member.frontendId}. {member.titleCn}</span>
+                          <em>{member.difficulty}{member.paidOnly ? (isZh ? " · 付费" : " · Paid") : ""}</em>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </div>
+          </details>
+        ))}
+
         {
           leetcodeDuplicateAudit.length > 0 && (
             <details class="leetcode-duplicate-audit">
@@ -1655,6 +2122,7 @@ const shortcutRows = [
 
   <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemsWithReferences)}></script>
   <script type="application/json" id="leetcode-series-data" set:html={JSON.stringify(leetcodeSeriesFilterOptions)}></script>
+  <script type="application/json" id="leetcode-category-data" set:html={JSON.stringify(leetcodePracticeCategoryOptions)}></script>
 
   <script>
     const progressKey = "leetcode-book-progress-v1";
@@ -1714,6 +2182,17 @@ const shortcutRows = [
         new Map((series.members || []).map((slug, index) => [slug, index])),
       ]),
     );
+    const categoryDataNode = document.getElementById("leetcode-category-data");
+    const categoryOptions = JSON.parse(categoryDataNode?.textContent || "[]");
+    const categoryById = new Map(
+      categoryOptions.map((category) => [category.id, category]),
+    );
+    const categoryOrderById = new Map(
+      categoryOptions.map((category) => [
+        category.id,
+        new Map((category.members || []).map((slug, index) => [slug, index])),
+      ]),
+    );
     const problemBySlug = new Map(
       problems.map((problem) => [problem.titleSlug, problem]),
     );
@@ -1727,6 +2206,9 @@ const shortcutRows = [
     const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
     const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
+    const categoryPracticeButtons = Array.from(
+      document.querySelectorAll("[data-category-practice]"),
+    );
     const seriesFilterSelect = document.querySelector("[data-series-filter-select]");
     const byteDanceFilterCurrent = document.querySelector(
       "[data-bytedance-filter-current]",
@@ -1796,6 +2278,7 @@ const shortcutRows = [
         bytedance: "",
         status: "",
         series: "",
+        category: "",
       },
       page: 1,
       pageSize: 20,
@@ -3316,6 +3799,7 @@ const shortcutRows = [
         bytedance: "",
         status: "",
         series: "",
+        category: "",
       };
     }
 
@@ -3352,6 +3836,8 @@ const shortcutRows = [
         const value = String(filters[group] || "");
         if (group === "series") {
           if (seriesByKey.has(value)) nextFilters.series = value;
+        } else if (group === "category") {
+          if (categoryById.has(value)) nextFilters.category = value;
         } else if (filterGroupFor(value) === group) {
           nextFilters[group] = value;
         }
@@ -3424,6 +3910,13 @@ const shortcutRows = [
         }
         seriesFilterSelect.classList.toggle("is-active", Boolean(value));
       }
+      categoryPracticeButtons.forEach((button) => {
+        if (!(button instanceof HTMLElement)) return;
+        const id = button.dataset.categoryPractice || "";
+        const isActive = Boolean(id) && id === state.filters.category;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
     }
 
     function savedEditorStateFor(slug) {
@@ -8866,6 +9359,9 @@ const shortcutRows = [
           ? defaultFilterForGroup(group)
           : requestedFilter;
       state.filters[group] = nextFilter;
+      if (group !== "status") {
+        state.filters.category = "";
+      }
       syncFilterButtons();
       state.page = 1;
       render();
@@ -8877,6 +9373,7 @@ const shortcutRows = [
       const key = seriesByKey.has(seriesKey) ? seriesKey : "";
       if (state.filters.series === key && !options.force) return false;
       state.filters.series = key;
+      if (key) state.filters.category = "";
       syncFilterButtons();
       state.page = 1;
       render();
@@ -8908,6 +9405,61 @@ const shortcutRows = [
       return true;
     }
 
+    function applyCategoryPracticeFilter(categoryId, options = {}) {
+      const category = categoryById.get(categoryId);
+      if (!category) return null;
+      if (state.filters.category === category.id && !options.force) {
+        return category;
+      }
+      state.filters = {
+        ...defaultFilterState(),
+        status: state.filters.status,
+        category: category.id,
+      };
+      if (category.collectionKey === "hot100") {
+        state.filters.scope = "hot100";
+      }
+      if (category.collectionKey === "bytedance") {
+        state.filters.bytedance = "bytedanceAll";
+      }
+      syncFilterButtons();
+      state.page = 1;
+      render();
+      scheduleViewStateWrite();
+      return category;
+    }
+
+    function categoryPracticeLabel(category) {
+      if (!category) return "";
+      return isChinesePage
+        ? `${category.collectionTitle} · ${category.title}`
+        : `${category.collectionTitleEn} · ${category.titleEn}`;
+    }
+
+    function startCategoryPractice(categoryId) {
+      const category = applyCategoryPracticeFilter(categoryId, { force: true });
+      if (!category) return false;
+      setFlowMode(flowModeList);
+      const items = orderedProblems();
+      if (!items.length) {
+        timingMilestone = isChinesePage
+          ? "当前分类没有可练题目"
+          : "No problem is visible in this category";
+        syncTimingUi();
+        return false;
+      }
+      const routeTarget = practiceRouteTarget(items, -1, 1);
+      const index = routeTarget?.index ?? 0;
+      const problem = items[index];
+      const label = categoryPracticeLabel(category);
+      timingMilestone = isChinesePage
+        ? `${label} 顺序流已进入 ${problem.frontendId}. ${problem.titleCn}`
+        : `${label} list flow opened ${problem.frontendId}. ${problem.titleCn}`;
+      openPracticeAtIndex(items, index);
+      syncTimingUi();
+      return true;
+    }
+
     function resetAllFilters() {
       state.filters = defaultFilterState();
       syncFilterButtons();
@@ -8924,6 +9476,11 @@ const shortcutRows = [
       const byteDanceFilter = state.filters.bytedance;
       const statusFilter = state.filters.status;
       const seriesFilter = state.filters.series;
+      const categoryFilter = state.filters.category;
+      const categoryOrder = categoryOrderById.get(categoryFilter);
+      if (categoryFilter && !categoryOrder?.has(problem.titleSlug)) {
+        return false;
+      }
       if (
         seriesFilter &&
         !(problem.seriesKeys || []).includes(seriesFilter)
@@ -8999,9 +9556,26 @@ const shortcutRows = [
 
     function orderedProblems() {
       const filtered = problems.filter(matchesFilter);
+      const categoryFilter = state.filters.category;
       const seriesFilter = state.filters.series;
       const scopeFilter = state.filters.scope;
       const byteDanceFilter = state.filters.bytedance;
+      if (categoryFilter) {
+        const categoryOrder = categoryOrderById.get(categoryFilter) || new Map();
+        return filtered.sort((a, b) => {
+          const left = categoryOrder.has(a.titleSlug)
+            ? categoryOrder.get(a.titleSlug)
+            : Number.MAX_SAFE_INTEGER;
+          const right = categoryOrder.has(b.titleSlug)
+            ? categoryOrder.get(b.titleSlug)
+            : Number.MAX_SAFE_INTEGER;
+          return (
+            left - right ||
+            (a.topRank ?? a.frequencyRank ?? 999999) -
+              (b.topRank ?? b.frequencyRank ?? 999999)
+          );
+        });
+      }
       if (seriesFilter) {
         const seriesOrder = seriesOrderByKey.get(seriesFilter) || new Map();
         return filtered.sort((a, b) => {
@@ -13163,7 +13737,10 @@ const shortcutRows = [
       const pageItems = items.slice(start, start + state.pageSize);
       if (list) list.innerHTML = pageItems.map(renderProblemBundle).join("");
       if (resultCount) {
-        resultCount.textContent = `${items.length} 道题`;
+        const category = categoryById.get(state.filters.category);
+        resultCount.textContent = category
+          ? `${categoryPracticeLabel(category)}：${items.length} 道题`
+          : `${items.length} 道题`;
       }
       syncPagination();
       syncStatementPanels();
@@ -13341,6 +13918,11 @@ const shortcutRows = [
       const flowSkipFrontendToggle = target.closest("[data-flow-skip-frontend]");
       if (flowSkipFrontendToggle instanceof HTMLElement) {
         toggleFlowSkipFrontend();
+        return;
+      }
+      const categoryPracticeButton = target.closest("[data-category-practice]");
+      if (categoryPracticeButton instanceof HTMLElement) {
+        startCategoryPractice(categoryPracticeButton.dataset.categoryPractice || "");
         return;
       }
       const seriesPracticeButton = target.closest("[data-series-practice]");
@@ -16142,6 +16724,14 @@ const shortcutRows = [
       line-height: 1;
       padding: 0 0.36rem;
       white-space: nowrap;
+    }
+
+    .leetcode-series-group header button:hover,
+    .leetcode-series-group header button:focus-visible,
+    .leetcode-series-group header button.is-active {
+      background: rgb(217 119 87 / 15%);
+      color: var(--color-terracotta);
+      outline: none;
     }
 
     .leetcode-series-group p {
