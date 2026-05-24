@@ -6,6 +6,12 @@ export interface LeetcodeLingShenGroup {
   descriptionEn: string;
   sourceUrl: string;
   memberSlugs: string[];
+  sections: Array<{
+    key: string;
+    title: string;
+    titleEn: string;
+    memberSlugs: string[];
+  }>;
 }
 
 export interface LeetcodeLingShenProblem {
@@ -300,6 +306,470 @@ export const leetcodeLingShenGroups = ([
       "minimum-split-into-subarrays-with-gcd-greater-than-one",
       "linked-list-frequency"
     ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、定长滑动窗口",
+        "titleEn": "一、定长滑动窗口",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "§1.1 基础",
+        "titleEn": "§1.1 基础",
+        "memberSlugs": [
+          "maximum-number-of-vowels-in-a-substring-of-given-length",
+          "maximum-average-subarray-i",
+          "number-of-sub-arrays-of-size-k-and-average-greater-than-or-equal-to-threshold",
+          "k-radius-subarray-averages",
+          "minimum-recolors-to-get-k-consecutive-black-blocks",
+          "maximum-sum-of-almost-unique-subarray",
+          "maximum-sum-of-distinct-subarrays-with-length-k",
+          "maximum-points-you-can-obtain-from-cards",
+          "diet-plan-performance",
+          "find-k-length-substrings-with-no-repeated-characters",
+          "distinct-numbers-in-each-subarray",
+          "minimum-swaps-to-group-all-1s-together",
+          "number-of-unique-flavors-after-sharing-k-candies"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "§1.2 进阶（选做）",
+        "titleEn": "§1.2 进阶（选做）",
+        "memberSlugs": [
+          "grumpy-bookstore-owner",
+          "minimum-discards-to-balance-inventory",
+          "reschedule-meetings-for-maximum-free-time-i",
+          "distinct-points-reachable-after-substring-removal",
+          "minimum-swaps-to-group-all-1s-together-ii",
+          "defuse-the-bomb",
+          "maximum-number-of-occurrences-of-a-substring",
+          "best-time-to-buy-and-sell-stock-using-strategy",
+          "permutation-in-string",
+          "find-all-anagrams-in-a-string",
+          "substring-with-concatenation-of-all-words",
+          "minimum-number-of-flips-to-make-the-binary-string-alternating",
+          "find-substring-with-given-hash-value",
+          "count-complete-substrings",
+          "sum-of-weighted-modes-in-subarrays",
+          "number-of-equal-count-substrings",
+          "maximum-frequency-score-of-a-subarray",
+          "find-all-k-distant-indices-in-an-array",
+          "check-if-a-string-contains-all-binary-codes-of-size-k",
+          "binary-string-with-substrings-representing-1-to-n",
+          "sliding-subarray-beauty"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "二、不定长滑动窗口",
+        "titleEn": "二、不定长滑动窗口",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-5",
+        "title": "§2.1 越短越合法/求最长/最大",
+        "titleEn": "§2.1 越短越合法/求最长/最大",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-6",
+        "title": "§2.1.1 基础",
+        "titleEn": "§2.1.1 基础",
+        "memberSlugs": [
+          "longest-substring-without-repeating-characters",
+          "maximum-length-substring-with-two-occurrences",
+          "longest-subarray-of-1s-after-deleting-one-element",
+          "minimum-removals-to-balance-array",
+          "get-equal-substrings-within-budget",
+          "fruit-into-baskets",
+          "maximum-erasure-value",
+          "length-of-longest-subarray-with-at-most-k-frequency",
+          "maximize-the-confusion-of-an-exam",
+          "max-consecutive-ones-iii",
+          "longest-semi-repeating-subarray"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "§2.1.2 进阶（选做）",
+        "titleEn": "§2.1.2 进阶（选做）",
+        "memberSlugs": [
+          "find-the-longest-semi-repetitive-substring",
+          "maximum-beauty-of-an-array-after-applying-operation",
+          "minimum-operations-to-reduce-x-to-zero",
+          "frequency-of-the-most-frequent-element",
+          "take-k-of-each-character-from-left-and-right",
+          "find-the-longest-equal-subarray",
+          "maximum-white-tiles-covered-by-a-carpet",
+          "maximum-fruits-harvested-after-at-most-k-steps",
+          "maximize-win-from-two-segments",
+          "minimum-number-of-operations-to-make-array-continuous",
+          "maximum-number-of-visible-points",
+          "length-of-the-longest-valid-substring",
+          "maximum-subarray-with-equal-products",
+          "maximum-coins-from-k-consecutive-bags",
+          "longest-substring-with-at-least-k-repeating-characters",
+          "longest-nice-substring",
+          "apply-operations-to-maximize-frequency-score",
+          "moving-stones-until-consecutive-ii",
+          "max-consecutive-ones-ii",
+          "longest-substring-with-at-most-two-distinct-characters",
+          "longest-substring-with-at-most-k-distinct-characters"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "§2.2 越长越合法/求最短/最小",
+        "titleEn": "§2.2 越长越合法/求最短/最小",
+        "memberSlugs": [
+          "minimum-size-subarray-sum",
+          "minimum-subarray-length-with-distinct-sum-at-least-k",
+          "shortest-and-lexicographically-smallest-beautiful-string",
+          "replace-the-substring-for-balanced-string",
+          "minimum-size-subarray-in-infinite-array",
+          "minimum-window-substring",
+          "smallest-range-covering-elements-from-k-lists"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "§2.3 求子数组个数",
+        "titleEn": "§2.3 求子数组个数",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-10",
+        "title": "§2.3.1 越短越合法",
+        "titleEn": "§2.3.1 越短越合法",
+        "memberSlugs": [
+          "subarray-product-less-than-k",
+          "count-substrings-that-satisfy-k-constraint-i",
+          "count-subarrays-with-score-less-than-k",
+          "continuous-subarrays",
+          "1GxJYY",
+          "count-substrings-without-repeating-character",
+          "find-the-median-of-the-uniqueness-array",
+          "count-substrings-that-satisfy-k-constraint-ii"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "§2.3.2 越长越合法",
+        "titleEn": "§2.3.2 越长越合法",
+        "memberSlugs": [
+          "number-of-substrings-containing-all-three-characters",
+          "count-subarrays-where-max-element-appears-at-least-k-times",
+          "count-substrings-with-k-frequency-characters-i",
+          "count-vowel-substrings-of-a-string",
+          "count-complete-subarrays-in-an-array",
+          "count-the-number-of-good-subarrays",
+          "count-substrings-that-can-be-rearranged-to-contain-a-string-ii",
+          "number-of-subarrays-having-even-product"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "§2.3.3 恰好型滑动窗口",
+        "titleEn": "§2.3.3 恰好型滑动窗口",
+        "memberSlugs": [
+          "binary-subarrays-with-sum",
+          "count-number-of-nice-subarrays",
+          "count-of-substrings-containing-every-vowel-and-k-consonants-ii",
+          "subarrays-with-k-different-integers",
+          "count-subarrays-with-k-distinct-integers"
+        ]
+      },
+      {
+        "key": "section-13",
+        "title": "§2.4 其他（选做）",
+        "titleEn": "§2.4 其他（选做）",
+        "memberSlugs": [
+          "friends-of-appropriate-ages",
+          "longest-nice-subarray",
+          "swap-for-longest-repeated-character-substring",
+          "longest-repeating-character-replacement",
+          "find-all-anagrams-in-a-string",
+          "ways-to-split-array-into-three-subarrays",
+          "he-wei-sde-lian-xu-zheng-shu-xu-lie-lcof",
+          "kth-smallest-subarray-sum"
+        ]
+      },
+      {
+        "key": "section-14",
+        "title": "⚠ 滑窗的内容到这里就结束了，可以去刷下一个题单。",
+        "titleEn": "⚠ 滑窗的内容到这里就结束了，可以去刷下一个题单。",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-15",
+        "title": "三、单序列双指针",
+        "titleEn": "三、单序列双指针",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-16",
+        "title": "§3.1 反转字符串",
+        "titleEn": "§3.1 反转字符串",
+        "memberSlugs": [
+          "reverse-string",
+          "reverse-string-prefix",
+          "reverse-prefix-of-word",
+          "flip-square-submatrix-vertically",
+          "flipping-an-image",
+          "reverse-letters-then-special-characters-in-a-string",
+          "reverse-string-ii",
+          "reverse-words-in-a-string-iii",
+          "reverse-words-in-a-string",
+          "reverse-words-with-same-vowel-count",
+          "reverse-only-letters",
+          "reverse-vowels-of-a-string",
+          "reverse-k-subarrays",
+          "reverse-words-in-a-string-ii"
+        ]
+      },
+      {
+        "key": "section-17",
+        "title": "§3.2 相向双指针",
+        "titleEn": "§3.2 相向双指针",
+        "memberSlugs": [
+          "lexicographically-smallest-palindrome",
+          "valid-palindrome",
+          "minimum-length-of-string-after-deleting-similar-ends",
+          "watering-plants-ii",
+          "squares-of-a-sorted-array",
+          "find-k-closest-elements",
+          "the-k-strongest-values-in-an-array",
+          "two-sum-ii-input-array-is-sorted",
+          "sum-of-square-numbers",
+          "count-pairs-whose-sum-is-less-than-target",
+          "4xy4Wx",
+          "3sum-closest",
+          "3sum",
+          "4sum",
+          "number-of-ways-where-square-of-number-is-equal-to-product-of-two-numbers",
+          "find-the-smallest-balanced-index",
+          "valid-triangle-number",
+          "3sum-with-multiplicity",
+          "count-the-number-of-fair-pairs",
+          "bag-of-tokens",
+          "container-with-most-water",
+          "trapping-rain-water",
+          "split-two-strings-to-make-palindrome",
+          "number-of-subsequences-that-satisfy-the-given-sum-condition",
+          "count-pairs-of-nodes",
+          "two-sum-less-than-k",
+          "sort-transformed-array",
+          "merge-operations-to-turn-array-into-a-palindrome",
+          "3sum-smaller",
+          "number-of-ways-to-paint-sheets",
+          "rotating-the-box",
+          "maximum-capacity-within-budget"
+        ]
+      },
+      {
+        "key": "section-18",
+        "title": "§3.3 同向双指针",
+        "titleEn": "§3.3 同向双指针",
+        "memberSlugs": [
+          "find-all-k-distant-indices-in-an-array",
+          "valid-triangle-number",
+          "number-of-perfect-pairs",
+          "shortest-subarray-to-be-removed-to-make-array-sorted",
+          "count-the-number-of-incremovable-subarrays-ii",
+          "recover-the-original-array",
+          "maximum-total-beauty-of-the-gardens",
+          "maximum-number-of-people-that-can-be-caught-in-tag",
+          "minimize-connected-groups-by-inserting-interval",
+          "shortest-unsorted-continuous-subarray",
+          "smallest-subarray-to-sort-in-every-sliding-window"
+        ]
+      },
+      {
+        "key": "section-19",
+        "title": "§3.4 背向双指针",
+        "titleEn": "§3.4 背向双指针",
+        "memberSlugs": [
+          "maximum-score-of-a-good-subarray",
+          "largest-perimeter-triangle"
+        ]
+      },
+      {
+        "key": "section-20",
+        "title": "§3.5 原地修改",
+        "titleEn": "§3.5 原地修改",
+        "memberSlugs": [
+          "remove-element",
+          "remove-duplicates-from-sorted-array",
+          "remove-duplicates-from-sorted-array-ii",
+          "find-resultant-array-after-removing-anagrams",
+          "maximize-sum-of-at-most-k-distinct-elements",
+          "move-zeroes",
+          "sort-array-by-parity",
+          "sort-array-by-parity-ii",
+          "transform-array-by-parity",
+          "apply-operations-to-an-array",
+          "duplicate-zeros",
+          "sort-colors",
+          "build-array-from-permutation",
+          "find-all-duplicates-in-an-array",
+          "find-all-numbers-disappeared-in-an-array",
+          "first-missing-positive",
+          "check-if-array-is-good"
+        ]
+      },
+      {
+        "key": "section-21",
+        "title": "§3.6 矩阵上的双指针",
+        "titleEn": "§3.6 矩阵上的双指针",
+        "memberSlugs": [
+          "search-a-2d-matrix-ii",
+          "count-negative-numbers-in-a-sorted-matrix"
+        ]
+      },
+      {
+        "key": "section-22",
+        "title": "四、双序列双指针",
+        "titleEn": "四、双序列双指针",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-23",
+        "title": "§4.1 双指针",
+        "titleEn": "§4.1 双指针",
+        "memberSlugs": [
+          "adding-spaces-to-a-string",
+          "minimum-common-value",
+          "merge-sorted-array",
+          "merge-two-2d-arrays-by-summing-values",
+          "intersection-of-two-arrays-ii",
+          "2vYnGI",
+          "maximum-distance-between-a-pair-of-values",
+          "find-the-distance-value-between-two-arrays",
+          "long-pressed-name",
+          "expressive-words",
+          "move-pieces-to-obtain-a-string",
+          "swap-adjacent-in-lr-string",
+          "backspace-string-compare",
+          "interval-list-intersections",
+          "smallest-difference-lcci",
+          "heaters",
+          "get-the-maximum-score",
+          "shortest-word-distance-ii",
+          "maximum-coins-heroes-can-collect",
+          "meeting-scheduler",
+          "dot-product-of-two-sparse-vectors",
+          "product-of-two-run-length-encoded-arrays"
+        ]
+      },
+      {
+        "key": "section-24",
+        "title": "§4.2 判断子序列",
+        "titleEn": "§4.2 判断子序列",
+        "memberSlugs": [
+          "is-subsequence",
+          "longest-word-in-dictionary-through-deleting",
+          "append-characters-to-string-to-make-subsequence",
+          "make-string-a-subsequence-using-cyclic-increments",
+          "camelcase-matching",
+          "find-the-integer-added-to-array-ii",
+          "longest-uncommon-subsequence-ii",
+          "faulty-sensor",
+          "maximum-number-of-removable-characters",
+          "subsequence-with-the-minimum-score",
+          "find-the-lexicographically-smallest-valid-sequence"
+        ]
+      },
+      {
+        "key": "section-25",
+        "title": "五、三指针",
+        "titleEn": "五、三指针",
+        "memberSlugs": [
+          "number-of-arithmetic-triplets",
+          "count-the-number-of-fair-pairs",
+          "number-of-subarrays-with-bounded-maximum",
+          "count-subarrays-with-fixed-bounds",
+          "maximum-frequency-of-an-element-after-performing-operations-ii",
+          "intersection-of-three-sorted-arrays",
+          "maximize-the-distance-between-points-on-a-square"
+        ]
+      },
+      {
+        "key": "section-26",
+        "title": "六、分组循环",
+        "titleEn": "六、分组循环",
+        "memberSlugs": [
+          "longest-even-odd-subarray-with-threshold",
+          "max-consecutive-ones",
+          "consecutive-characters",
+          "longer-contiguous-segments-of-ones-than-zeros",
+          "length-of-the-longest-alphabetical-continuous-substring",
+          "find-special-substring-of-length-k",
+          "positions-of-large-groups",
+          "find-resultant-array-after-removing-anagrams",
+          "largest-3-same-digit-number-in-string",
+          "number-of-zero-filled-subarrays",
+          "number-of-substrings-with-only-1s",
+          "delete-characters-to-make-fancy-string",
+          "longest-continuous-increasing-subsequence",
+          "longest-fibonacci-subarray",
+          "count-binary-substrings",
+          "longest-turbulent-subarray",
+          "number-of-smooth-descent-periods-of-a-stock",
+          "summary-ranges",
+          "reduction-operations-to-make-the-array-elements-equal",
+          "longest-mountain-in-array",
+          "remove-colored-pieces-if-both-neighbors-are-the-same-color",
+          "longest-unequal-adjacent-groups-subsequence-i",
+          "count-number-of-homogenous-substrings",
+          "find-if-array-can-be-sorted",
+          "rotating-the-box",
+          "minimum-time-to-make-rope-colorful",
+          "longest-substring-of-all-vowels-in-order",
+          "longest-alternating-subarray",
+          "find-the-power-of-k-size-subarrays-ii",
+          "adjacent-increasing-subarrays-detection-ii",
+          "longest-strictly-increasing-or-strictly-decreasing-subarray",
+          "push-dominoes",
+          "unique-substrings-in-wraparound-string",
+          "maximize-active-section-with-trade-i",
+          "arithmetic-slices",
+          "longest-non-decreasing-subarray-after-replacing-at-most-one-element",
+          "number-of-ways-to-divide-a-long-corridor",
+          "find-score-of-an-array-after-marking-all-elements",
+          "text-justification",
+          "candy",
+          "longest-arithmetic-sequence-after-changing-at-most-one-element",
+          "make-lexicographically-smallest-array-by-swapping-elements",
+          "longest-alternating-subarray-after-removing-at-most-one-element",
+          "trionic-array-ii",
+          "count-strictly-increasing-subarrays",
+          "maximum-number-of-equal-length-runs",
+          "minimum-split-into-subarrays-with-gcd-greater-than-one",
+          "number-of-subarrays-having-even-product",
+          "linked-list-frequency"
+        ]
+      },
+      {
+        "key": "section-27",
+        "title": "思考",
+        "titleEn": "思考",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-28",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-29",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
+    ],
     "sourceUrl": "https://leetcode.cn/discuss/post/0viNMK/",
     "title": "滑动窗口与双指针",
     "titleEn": "Sliding Window & Two Pointers"
@@ -444,6 +914,242 @@ export const leetcodeLingShenGroups = ([
       "median-of-a-row-wise-sorted-matrix",
       "smallest-rectangle-enclosing-black-pixels"
     ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、二分查找",
+        "titleEn": "一、二分查找",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "§1.1 基础",
+        "titleEn": "§1.1 基础",
+        "memberSlugs": [
+          "find-first-and-last-position-of-element-in-sorted-array",
+          "search-insert-position",
+          "binary-search",
+          "find-smallest-letter-greater-than-target",
+          "maximum-count-of-positive-integer-and-negative-integer"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "§1.2 进阶",
+        "titleEn": "§1.2 进阶",
+        "memberSlugs": [
+          "find-the-distance-value-between-two-arrays",
+          "compare-strings-by-frequency-of-the-smallest-character",
+          "successful-pairs-of-spells-and-potions",
+          "longest-subsequence-with-limited-sum",
+          "range-frequency-queries",
+          "closest-equal-element-queries",
+          "count-the-number-of-fair-pairs",
+          "snapshot-array",
+          "time-based-key-value-store",
+          "implement-router",
+          "find-k-closest-elements",
+          "minimum-absolute-sum-difference",
+          "online-election",
+          "ju-qing-hong-fa-shi-jian",
+          "shortest-distance-to-target-color",
+          "maximum-team-size-with-overlapping-intervals",
+          "minimum-relative-loss-after-buying-chocolates",
+          "element-appearing-more-than-25-in-sorted-array",
+          "closest-nodes-queries-in-a-binary-search-tree",
+          "most-beautiful-item-for-each-query",
+          "check-if-a-number-is-majority-element-in-a-sorted-array"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "二、二分答案",
+        "titleEn": "二、二分答案",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-5",
+        "title": "§2.1 求最小",
+        "titleEn": "§2.1 求最小",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-6",
+        "title": "答疑",
+        "titleEn": "答疑",
+        "memberSlugs": [
+          "find-the-smallest-divisor-given-a-threshold",
+          "minimum-time-to-complete-trips",
+          "capacity-to-ship-packages-within-d-days",
+          "koko-eating-bananas",
+          "minimum-number-of-seconds-to-make-mountain-height-zero",
+          "minimum-time-to-activate-string",
+          "heaters",
+          "minimum-time-to-repair-cars",
+          "minimum-number-of-days-to-make-m-bouquets",
+          "earliest-second-to-mark-indices-i",
+          "minimum-cost-to-repair-edges-to-traverse-a-graph",
+          "minimum-time-to-eat-all-grains",
+          "minimum-operations-to-make-numbers-non-positive",
+          "minimum-k-to-reduce-array-within-limit",
+          "minimum-speed-to-arrive-on-time",
+          "separate-squares-i"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "§2.2 求最大",
+        "titleEn": "§2.2 求最大",
+        "memberSlugs": [
+          "h-index-ii",
+          "maximum-candies-allocated-to-k-children",
+          "find-longest-special-substring-that-occurs-thrice-ii",
+          "find-the-maximum-number-of-marked-indices",
+          "maximum-number-of-removable-characters",
+          "maximum-value-at-a-given-index-in-a-bounded-array",
+          "furthest-building-you-can-reach",
+          "maximum-number-of-alloys",
+          "maximum-number-that-sum-of-the-prices-is-less-than-or-equal-to-k",
+          "maximum-running-time-of-n-computers",
+          "escape-the-spreading-fire",
+          "maximum-number-of-tasks-you-can-assign",
+          "Nsibyl",
+          "maximum-font-to-fit-a-sentence-in-a-screen",
+          "cutting-ribbons",
+          "pour-water-between-buckets-to-make-water-levels-equal",
+          "maximum-sized-array",
+          "maximum-average-subarray-ii"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "§2.3 二分间接值",
+        "titleEn": "§2.3 二分间接值",
+        "memberSlugs": [
+          "maximum-points-inside-the-square",
+          "sell-diminishing-valued-colored-balls"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "§2.4 最小化最大值",
+        "titleEn": "§2.4 最小化最大值",
+        "memberSlugs": [
+          "split-array-largest-sum",
+          "minimized-maximum-of-products-distributed-to-any-store",
+          "minimize-maximum-component-cost",
+          "minimum-limit-of-balls-in-a-bag",
+          "path-with-minimum-effort",
+          "minimize-maximum-of-array",
+          "house-robber-iv",
+          "swim-in-rising-water",
+          "minimize-the-maximum-difference-of-pairs",
+          "minimize-the-maximum-edge-weight-of-graph",
+          "minimize-the-maximum-of-two-arrays",
+          "minimum-time-to-complete-all-deliveries",
+          "smallest-substring-with-identical-characters-ii",
+          "minimum-stability-factor-of-array",
+          "xiao-zhang-shua-ti-ji-hua",
+          "minimize-max-distance-to-gas-station"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "§2.5 最大化最小值",
+        "titleEn": "§2.5 最大化最小值",
+        "memberSlugs": [
+          "maximize-score-of-numbers-in-ranges",
+          "network-recovery-pathways",
+          "maximum-tastiness-of-candy-basket",
+          "magnetic-force-between-two-balls",
+          "maximum-partition-factor",
+          "find-the-safest-path-in-a-grid",
+          "maximize-the-minimum-powered-city",
+          "maximize-spanning-tree-stability-with-upgrades",
+          "maximize-the-minimum-game-score",
+          "maximize-the-distance-between-points-on-a-square",
+          "path-with-maximum-minimum-value",
+          "divide-chocolate"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "§2.6 第 K 小/大",
+        "titleEn": "§2.6 第 K 小/大",
+        "memberSlugs": [
+          "kth-smallest-number-in-multiplication-table",
+          "kth-smallest-element-in-a-sorted-matrix",
+          "find-k-th-smallest-pair-distance",
+          "nth-magical-number",
+          "ugly-number-iii",
+          "preimage-size-of-factorial-zeroes-function",
+          "find-k-pairs-with-smallest-sums",
+          "find-the-kth-smallest-sum-of-a-matrix-with-sorted-rows",
+          "k-th-smallest-prime-fraction",
+          "kth-smallest-amount-with-single-denomination-combination",
+          "find-the-median-of-the-uniqueness-array",
+          "kth-smallest-product-of-two-sorted-arrays",
+          "find-the-k-sum-of-an-array",
+          "range-sum-of-sorted-subarray-sums",
+          "maximum-total-subarray-value-ii",
+          "minimum-threshold-for-inversion-pairs-count",
+          "kth-smallest-subarray-sum"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "三、三分法",
+        "titleEn": "三、三分法",
+        "memberSlugs": [
+          "best-position-for-a-service-centre"
+        ]
+      },
+      {
+        "key": "section-13",
+        "title": "四、其他",
+        "titleEn": "四、其他",
+        "memberSlugs": [
+          "sqrtx",
+          "search-a-2d-matrix",
+          "first-bad-version",
+          "guess-number-higher-or-lower",
+          "find-peak-element",
+          "find-a-peak-element-ii",
+          "peak-index-in-a-mountain-array",
+          "find-in-mountain-array",
+          "find-minimum-in-rotated-sorted-array",
+          "find-minimum-in-rotated-sorted-array-ii",
+          "search-in-rotated-sorted-array",
+          "search-in-rotated-sorted-array-ii",
+          "count-complete-tree-nodes",
+          "kth-missing-positive-number",
+          "k-th-smallest-remaining-even-integer-in-subarray-queries",
+          "single-element-in-a-sorted-array",
+          "median-of-two-sorted-arrays",
+          "fixed-point",
+          "search-in-a-sorted-array-of-unknown-size",
+          "number-of-equal-numbers-blocks",
+          "missing-element-in-sorted-array",
+          "find-smallest-common-element-in-all-rows",
+          "leftmost-column-with-at-least-a-one",
+          "find-the-index-of-the-large-integer",
+          "median-of-a-row-wise-sorted-matrix",
+          "smallest-rectangle-enclosing-black-pixels"
+        ]
+      },
+      {
+        "key": "section-14",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-15",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
+    ],
     "sourceUrl": "https://leetcode.cn/discuss/post/SqopEo/",
     "title": "二分算法",
     "titleEn": "Binary Search"
@@ -515,6 +1221,123 @@ export const leetcodeLingShenGroups = ([
       "lexicographically-smallest-string-after-deleting-duplicate-characters",
       "create-maximum-number",
       "smallest-k-length-subsequence-with-occurrences-of-a-letter"
+    ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、单调栈",
+        "titleEn": "一、单调栈",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "§1.1 基础",
+        "titleEn": "§1.1 基础",
+        "memberSlugs": [
+          "daily-temperatures",
+          "final-prices-with-a-special-discount-in-a-shop",
+          "next-greater-element-i",
+          "next-greater-element-ii",
+          "online-stock-span",
+          "car-fleet"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "§1.2 进阶",
+        "titleEn": "§1.2 进阶",
+        "memberSlugs": [
+          "next-greater-node-in-linked-list",
+          "maximum-binary-tree",
+          "max-chunks-to-make-sorted-ii",
+          "maximum-capacity-within-budget",
+          "count-bowl-subarrays",
+          "two-best-non-overlapping-events",
+          "132-pattern",
+          "find-the-number-of-subarrays-where-boundary-elements-are-maximum",
+          "beautiful-towers-ii",
+          "odd-even-jump",
+          "number-of-visible-people-in-a-queue",
+          "next-greater-element-iv",
+          "minimum-cost-tree-from-leaf-values",
+          "steps-to-make-array-non-decreasing",
+          "car-fleet-ii",
+          "maximum-sum-queries",
+          "count-non-decreasing-subarrays-after-k-operations",
+          "maximum-array-hopping-score-ii",
+          "binary-searchable-numbers-in-an-unsorted-array",
+          "maximal-range-that-each-element-is-maximum-in-it",
+          "number-of-valid-subarrays",
+          "maximum-of-minimum-values-in-all-subarrays",
+          "number-of-people-that-can-be-seen-in-a-grid",
+          "smallest-subarray-to-sort-in-every-sliding-window",
+          "maximum-number-of-books-you-can-take",
+          "maximum-width-ramp",
+          "minimum-operations-to-convert-all-elements-to-zero",
+          "longest-well-performing-interval",
+          "jump-game-v",
+          "maximum-length-of-semi-decreasing-subarrays"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "二、矩形",
+        "titleEn": "二、矩形",
+        "memberSlugs": [
+          "largest-rectangle-in-histogram",
+          "maximum-score-of-a-good-subarray",
+          "maximal-rectangle",
+          "maximal-square",
+          "trapping-rain-water",
+          "count-submatrices-with-all-ones",
+          "count-square-submatrices-with-all-ones",
+          "pour-water",
+          "largest-submatrix-with-rearrangements"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "三、贡献法",
+        "titleEn": "三、贡献法",
+        "memberSlugs": [
+          "sum-of-subarray-minimums",
+          "sum-of-subarray-ranges",
+          "maximum-subarray-min-product",
+          "count-good-subarrays",
+          "apply-operations-to-maximize-score",
+          "sum-of-total-strength-of-wizards",
+          "maximum-and-minimum-sums-of-at-most-size-k-subarrays",
+          "find-sorted-submatrices-with-maximum-element-at-most-k",
+          "subarray-with-elements-greater-than-varying-threshold",
+          "count-subarrays-where-max-element-appears-at-least-k-times"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "四、最小字典序",
+        "titleEn": "四、最小字典序",
+        "memberSlugs": [
+          "remove-k-digits",
+          "find-the-most-competitive-subsequence",
+          "remove-duplicate-letters",
+          "smallest-subsequence-of-distinct-characters",
+          "lexicographically-smallest-string-after-deleting-duplicate-characters",
+          "create-maximum-number",
+          "smallest-k-length-subsequence-with-occurrences-of-a-letter"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-8",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
     ],
     "sourceUrl": "https://leetcode.cn/discuss/post/9oZFK9/",
     "title": "单调栈",
@@ -597,6 +1420,126 @@ export const leetcodeLingShenGroups = ([
       "number-of-distinct-islands",
       "number-of-distinct-islands-ii",
       "path-with-maximum-minimum-value"
+    ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、网格图 DFS",
+        "titleEn": "一、网格图 DFS",
+        "memberSlugs": [
+          "number-of-islands",
+          "max-area-of-island",
+          "count-islands-with-total-value-divisible-by-k",
+          "maximum-number-of-fish-in-a-grid",
+          "pond-sizes-lcci",
+          "YesdPw",
+          "island-perimeter",
+          "surface-area-of-3d-shapes",
+          "flood-fill",
+          "coloring-a-border",
+          "number-of-enclaves",
+          "maximum-number-of-moves-in-a-grid",
+          "number-of-closed-islands",
+          "surrounded-regions",
+          "count-sub-islands",
+          "check-if-there-is-a-valid-path-in-a-grid",
+          "pacific-atlantic-water-flow",
+          "minesweeper",
+          "detect-cycles-in-2d-grid",
+          "making-a-large-island",
+          "EXvqDp",
+          "number-of-islands-ii",
+          "number-of-spaces-cleaning-robot-cleaned",
+          "sum-of-remoteness-of-all-cells",
+          "robot-room-cleaner",
+          "last-day-where-you-can-still-cross"
+        ]
+      },
+      {
+        "key": "section-2",
+        "title": "二、网格图 BFS",
+        "titleEn": "二、网格图 BFS",
+        "memberSlugs": [
+          "nearest-exit-from-entrance-in-maze",
+          "shortest-path-in-binary-matrix",
+          "as-far-from-land-as-possible",
+          "01-matrix",
+          "rotting-oranges",
+          "map-of-highest-peak",
+          "shortest-bridge",
+          "k-highest-ranked-items-within-a-price-range",
+          "shortest-path-in-a-grid-with-obstacles-elimination",
+          "snakes-and-ladders",
+          "minimum-moves-to-reach-target-with-rotations",
+          "cut-off-trees-for-golf-event",
+          "find-the-safest-path-in-a-grid",
+          "contain-virus",
+          "shortest-path-to-get-food",
+          "walls-and-gates",
+          "the-maze",
+          "the-maze-ii",
+          "the-maze-iii",
+          "shortest-distance-from-all-buildings",
+          "minimum-time-takes-to-reach-destination-without-drowning"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "三、网格图 0-1 BFS",
+        "titleEn": "三、网格图 0-1 BFS",
+        "memberSlugs": [
+          "find-a-safe-walk-through-a-grid",
+          "minimum-obstacle-removal-to-reach-corner",
+          "minimum-cost-to-make-at-least-one-valid-path-in-a-grid",
+          "grid-teleportation-traversal",
+          "minimum-sideway-jumps",
+          "6UEx57"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "四、网格图 Dijkstra",
+        "titleEn": "四、网格图 Dijkstra",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-5",
+        "title": "五、综合应用",
+        "titleEn": "五、综合应用",
+        "memberSlugs": [
+          "path-with-minimum-effort",
+          "swim-in-rising-water",
+          "longest-increasing-path-in-a-matrix",
+          "minimum-moves-to-clean-the-classroom",
+          "escape-a-large-maze",
+          "shortest-path-to-get-all-keys",
+          "minimum-moves-to-move-a-box-to-their-target-location",
+          "escape-the-spreading-fire",
+          "disconnect-path-in-a-binary-matrix-by-at-most-one-flip",
+          "minimum-time-to-visit-a-cell-in-a-grid",
+          "minimum-number-of-visited-cells-in-a-grid",
+          "xun-bao",
+          "Db3wC1",
+          "kplEvH",
+          "rdmXM7",
+          "shortest-path-in-a-hidden-grid",
+          "number-of-distinct-islands",
+          "number-of-distinct-islands-ii",
+          "path-with-maximum-minimum-value"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "思考题",
+        "titleEn": "思考题",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-7",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
     ],
     "sourceUrl": "https://leetcode.cn/discuss/post/YiXPXW/",
     "title": "网格图",
@@ -728,6 +1671,219 @@ export const leetcodeLingShenGroups = ([
       "ip-to-cidr",
       "once-twice",
       "maximum-hamming-distances"
+    ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、基础题",
+        "titleEn": "一、基础题",
+        "memberSlugs": [
+          "smallest-number-with-all-set-bits",
+          "count-monobit-integers",
+          "number-of-bit-changes-to-make-two-integers-equal",
+          "sort-integers-by-the-number-of-1-bits",
+          "hamming-distance",
+          "minimum-bit-flips-to-convert-number",
+          "number-of-steps-to-reduce-a-number-to-zero",
+          "number-complement",
+          "complement-of-base-10-integer",
+          "binary-gap",
+          "find-the-k-or-of-an-array",
+          "binary-number-with-alternating-bits",
+          "find-the-prefix-common-array-of-two-arrays",
+          "insert-into-bits-lcci",
+          "power-of-two",
+          "power-of-four",
+          "number-of-1-bits",
+          "counting-bits",
+          "number-of-even-and-odd-bits",
+          "keep-multiplying-found-values-by-two",
+          "generate-binary-strings-without-adjacent-zeros",
+          "split-and-merge-array-transformation",
+          "reverse-bits",
+          "minimum-number-of-flips-to-reverse-binary-string",
+          "sort-integers-by-binary-reflection"
+        ]
+      },
+      {
+        "key": "section-2",
+        "title": "二、异或（XOR）的性质",
+        "titleEn": "二、异或（XOR）的性质",
+        "memberSlugs": [
+          "xor-operation-in-an-array",
+          "decode-xored-array",
+          "find-the-original-array-of-prefix-xor",
+          "xor-queries-of-a-subarray",
+          "longest-subsequence-with-non-zero-bitwise-xor",
+          "neighboring-bitwise-xor",
+          "maximum-xor-for-each-query",
+          "minimum-number-of-operations-to-make-array-xor-equal-to-k",
+          "count-triplets-that-can-form-two-arrays-of-equal-xor",
+          "minimize-xor",
+          "find-xor-beauty-of-array",
+          "maximum-xor-after-operations",
+          "count-the-number-of-beautiful-subarrays",
+          "substring-xor-queries",
+          "decode-xored-permutation",
+          "count-pairs-of-points-with-distance-k",
+          "count-pairs-with-xor-in-a-range",
+          "count-triplets-with-even-xor-set-bits-ii"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "三、与或（AND/OR）的性质",
+        "titleEn": "三、与或（AND/OR）的性质",
+        "memberSlugs": [
+          "check-if-bitwise-or-has-trailing-zeros",
+          "minimum-flips-to-make-a-or-b-equal-to-c",
+          "longest-subarray-with-maximum-bitwise-and",
+          "split-array-into-maximum-number-of-subarrays",
+          "longest-nice-subarray",
+          "maximum-or",
+          "minimum-array-end",
+          "minimum-cost-walk-in-weighted-graph",
+          "minimum-sum-of-values-by-dividing-array",
+          "maximum-number-that-makes-result-of-bitwise-and-zero"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "AND/OR LogTrick",
+        "titleEn": "AND/OR LogTrick",
+        "memberSlugs": [
+          "remove-duplicates-from-sorted-array",
+          "find-subarray-with-bitwise-or-closest-to-k",
+          "find-a-value-of-a-mysterious-function-closest-to-target",
+          "shortest-subarray-with-or-at-least-k-ii",
+          "smallest-subarrays-with-maximum-bitwise-or",
+          "number-of-subarrays-with-and-value-of-k",
+          "bitwise-ors-of-subarrays"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "GCD LogTrick",
+        "titleEn": "GCD LogTrick",
+        "memberSlugs": [
+          "number-of-subarrays-with-gcd-equal-to-k",
+          "minimum-number-of-operations-to-make-all-array-elements-equal-to-1",
+          "minimum-stability-factor-of-array",
+          "maximize-subarray-gcd-score",
+          "maximum-gcd-sum-of-a-subarray"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "四、拆位 / 贡献法",
+        "titleEn": "四、拆位 / 贡献法",
+        "memberSlugs": [
+          "total-hamming-distance",
+          "sum-of-all-subset-xor-totals",
+          "bitwise-xor-of-all-pairings",
+          "largest-combination-with-bitwise-and-greater-than-zero",
+          "find-xor-sum-of-all-pairs-bitwise-and",
+          "bitwise-or-of-even-numbers-in-an-array",
+          "bitwise-or-of-all-subsequence-sums",
+          "sum-of-digit-differences-of-all-pairs"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "五、试填法",
+        "titleEn": "五、试填法",
+        "memberSlugs": [
+          "maximum-xor-of-two-numbers-in-an-array",
+          "maximum-bitwise-and-after-increment-operations",
+          "maximum-strong-pair-xor-ii",
+          "maximum-number-that-sum-of-the-prices-is-less-than-or-equal-to-k",
+          "find-products-of-elements-of-big-array",
+          "minimize-or-of-remaining-elements-using-operations",
+          "find-the-maximum-sequence-value-of-array",
+          "maximum-sized-array"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "六、恒等式",
+        "titleEn": "六、恒等式",
+        "memberSlugs": [
+          "find-xor-sum-of-all-pairs-bitwise-and",
+          "number-of-excellent-pairs"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "七、线性基",
+        "titleEn": "七、线性基",
+        "memberSlugs": [
+          "maximum-xor-of-subsequences",
+          "partition-array-for-maximum-xor-and-and"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "八、思维题",
+        "titleEn": "八、思维题",
+        "memberSlugs": [
+          "apply-bitwise-operations-to-make-strings-equal",
+          "minimum-numbers-of-function-calls-to-make-target-array",
+          "minimum-operations-to-reduce-an-integer-to-0",
+          "construct-the-minimum-bitwise-array-ii",
+          "minimum-impossible-or",
+          "maximum-k-to-sort-a-permutation",
+          "cycle-length-queries-in-a-tree",
+          "maximum-xor-product",
+          "minimum-operations-to-make-the-integer-zero",
+          "minimum-operations-to-form-subsequence-with-target-sum",
+          "apply-operations-on-array-to-maximize-sum-of-squares",
+          "chalkboard-xor-game",
+          "guess-the-number-using-bitwise-questions-i",
+          "guess-the-number-using-bitwise-questions-ii"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "九、其他",
+        "titleEn": "九、其他",
+        "memberSlugs": [
+          "single-number",
+          "single-number-iii",
+          "find-missing-and-repeated-values",
+          "single-number-ii",
+          "set-mismatch",
+          "sum-of-two-integers",
+          "bitwise-and-of-numbers-range",
+          "range-product-queries-of-powers",
+          "concatenation-of-consecutive-binary-numbers",
+          "find-elements-in-a-contaminated-binary-tree",
+          "gray-code",
+          "circular-permutation-in-binary-representation",
+          "minimum-operations-to-make-binary-palindrome",
+          "last-remaining-integer-after-alternating-deletion-operations",
+          "elimination-game",
+          "triples-with-bitwise-and-equal-to-zero",
+          "find-the-k-th-character-in-string-game-ii",
+          "minimum-one-bit-operations-to-make-integers-zero",
+          "number-of-unique-xor-triplets-ii",
+          "ryfUiz",
+          "ip-to-cidr",
+          "once-twice",
+          "maximum-hamming-distances"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-13",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
     ],
     "sourceUrl": "https://leetcode.cn/discuss/post/dHn9Vk/",
     "title": "位运算",
@@ -910,6 +2066,317 @@ export const leetcodeLingShenGroups = ([
       "checking-existence-of-edge-length-limited-paths-ii",
       "paths-in-maze-that-lead-to-same-room",
       "determine-if-a-simple-graph-exists"
+    ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、图的遍历",
+        "titleEn": "一、图的遍历",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "§1.1 深度优先搜索（DFS）",
+        "titleEn": "§1.1 深度优先搜索（DFS）",
+        "memberSlugs": [
+          "number-of-provinces",
+          "find-if-path-exists-in-graph",
+          "all-paths-from-source-to-target",
+          "jump-game-iii",
+          "keys-and-rooms",
+          "count-unreachable-pairs-of-nodes-in-an-undirected-graph",
+          "number-of-operations-to-make-network-connected",
+          "minimum-score-of-a-path-between-two-cities",
+          "remove-methods-from-project",
+          "count-the-number-of-complete-components",
+          "all-ancestors-of-a-node-in-a-directed-acyclic-graph",
+          "maximize-amount-after-two-days-of-conversions",
+          "minimize-malware-spread",
+          "detonate-the-maximum-bombs",
+          "accounts-merge",
+          "course-schedule",
+          "find-eventual-safe-states",
+          "maximize-alternating-sum-using-swaps",
+          "minimize-malware-spread-ii",
+          "find-all-people-with-secret",
+          "minimum-cost-walk-in-weighted-graph",
+          "chuan-di-xin-xi",
+          "graph-valid-tree",
+          "number-of-connected-components-in-an-undirected-graph",
+          "maximum-candies-you-can-get-from-boxes"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "§1.2 广度优先搜索（BFS）",
+        "titleEn": "§1.2 广度优先搜索（BFS）",
+        "memberSlugs": [
+          "shortest-distance-after-road-addition-queries-i",
+          "get-watched-videos-by-your-friends",
+          "count-the-number-of-houses-at-a-certain-distance-i",
+          "shortest-path-with-alternating-colors",
+          "the-time-when-the-network-becomes-idle",
+          "shortest-cycle-in-a-graph",
+          "bus-routes",
+          "minimum-cost-to-repair-edges-to-traverse-a-graph"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "§1.3 图论建模 + BFS 最短路",
+        "titleEn": "§1.3 图论建模 + BFS 最短路",
+        "memberSlugs": [
+          "minimum-genetic-mutation",
+          "minimum-number-of-flips-to-convert-binary-matrix-to-zero-matrix",
+          "sliding-puzzle",
+          "open-the-lock",
+          "split-and-merge-array-transformation",
+          "remove-invalid-parentheses",
+          "freedom-trail",
+          "shortest-path-visiting-all-nodes",
+          "k-similar-strings",
+          "word-ladder",
+          "zuma-game",
+          "minimum-knight-moves",
+          "maximum-hamming-distances",
+          "minimum-number-of-operations-to-make-x-and-y-equal",
+          "jump-game-iv",
+          "minimum-operations-to-convert-number",
+          "minimum-jumps-to-reach-home",
+          "minimum-jumps-to-reach-end-via-prime-teleportation",
+          "zui-xiao-tiao-yue-ci-shu"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "二、拓扑排序",
+        "titleEn": "二、拓扑排序",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-6",
+        "title": "§2.1 拓扑排序",
+        "titleEn": "§2.1 拓扑排序",
+        "memberSlugs": [
+          "minimum-number-of-vertices-to-reach-all-nodes",
+          "course-schedule-ii",
+          "find-all-possible-recipes-from-given-supplies",
+          "build-a-matrix-with-conditions",
+          "find-eventual-safe-states",
+          "strange-printer-ii",
+          "sort-items-by-groups-respecting-dependencies",
+          "rank-transform-of-a-matrix",
+          "collect-coins-in-a-tree",
+          "Jf1JuT",
+          "sequence-reconstruction",
+          "apply-substitutions",
+          "alien-dictionary",
+          "minimize-maximum-value-in-a-grid",
+          "minimum-height-trees",
+          "validate-binary-tree-nodes"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "§2.2 在拓扑序上 DP",
+        "titleEn": "§2.2 在拓扑序上 DP",
+        "memberSlugs": [
+          "loud-and-rich",
+          "parallel-courses-iii",
+          "network-recovery-pathways",
+          "largest-color-value-in-a-directed-graph",
+          "parallel-courses"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "§2.3 基环树",
+        "titleEn": "§2.3 基环树",
+        "memberSlugs": [
+          "maximum-employees-to-be-invited-to-a-meeting",
+          "find-closest-node-to-given-two-nodes",
+          "longest-cycle-in-a-graph",
+          "redundant-connection",
+          "redundant-connection-ii",
+          "count-visited-nodes-in-a-directed-graph",
+          "maximize-value-of-function-in-a-ball-passing-game",
+          "Za25hA",
+          "distance-to-a-cycle-in-undirected-graph",
+          "find-the-duplicate-number"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "三、最短路",
+        "titleEn": "三、最短路",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-10",
+        "title": "§3.1 单源最短路：Dijkstra 算法",
+        "titleEn": "§3.1 单源最短路：Dijkstra 算法",
+        "memberSlugs": [
+          "network-delay-time",
+          "find-minimum-time-to-reach-last-room-i",
+          "minimum-time-to-visit-disappearing-nodes",
+          "design-graph-with-shortest-path-calculator",
+          "minimum-time-to-reach-destination-in-directed-graph",
+          "path-with-maximum-probability",
+          "minimum-cost-path-with-edge-reversals",
+          "find-minimum-time-to-reach-last-room-ii",
+          "path-with-minimum-effort",
+          "number-of-restricted-paths-from-first-to-last-node",
+          "find-edges-in-shortest-paths",
+          "number-of-ways-to-arrive-at-destination",
+          "swim-in-rising-water",
+          "minimum-cost-of-a-path-with-special-roads",
+          "digit-operations-to-make-two-integers-equal",
+          "second-minimum-time-to-reach-destination",
+          "minimize-the-maximum-edge-weight-of-graph",
+          "reachable-nodes-in-subdivided-graph",
+          "minimum-weighted-subgraph-with-the-required-paths",
+          "minimum-time-to-visit-a-cell-in-a-grid",
+          "race-car",
+          "minimum-cost-to-reach-destination-in-time",
+          "cheapest-flights-within-k-stops",
+          "modify-graph-edge-weights",
+          "minimum-path-cost-in-a-hidden-grid",
+          "minimum-cost-to-reach-city-with-discounts",
+          "minimum-cost-to-buy-apples",
+          "find-the-closest-marked-node",
+          "DFPeFJ",
+          "partition-array-to-minimize-xor",
+          "minimum-time-to-transport-all-individuals",
+          "minimum-distance-excluding-one-maximum-weighted-edge",
+          "find-shortest-path-with-k-hops",
+          "minimum-time-to-complete-all-tasks"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "§3.2 全源最短路：Floyd 算法",
+        "titleEn": "§3.2 全源最短路：Floyd 算法",
+        "memberSlugs": [
+          "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance",
+          "design-graph-with-shortest-path-calculator",
+          "minimum-cost-to-convert-string-i",
+          "number-of-possible-sets-of-closing-branches",
+          "minimum-cost-to-convert-string-ii",
+          "course-schedule-iv",
+          "detonate-the-maximum-bombs"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "四、最小生成树",
+        "titleEn": "四、最小生成树",
+        "memberSlugs": [
+          "min-cost-to-connect-all-points",
+          "maximize-spanning-tree-stability-with-upgrades",
+          "find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree",
+          "connecting-cities-with-minimum-cost",
+          "optimize-water-distribution-in-a-village",
+          "minimum-cost-for-cutting-cake-ii"
+        ]
+      },
+      {
+        "key": "section-13",
+        "title": "五、欧拉路径/欧拉回路",
+        "titleEn": "五、欧拉路径/欧拉回路",
+        "memberSlugs": [
+          "reconstruct-itinerary",
+          "cracking-the-safe",
+          "valid-arrangement-of-pairs"
+        ]
+      },
+      {
+        "key": "section-14",
+        "title": "六、强连通分量/双连通分量",
+        "titleEn": "六、强连通分量/双连通分量",
+        "memberSlugs": [
+          "critical-connections-in-a-network",
+          "minimum-number-of-days-to-disconnect-island",
+          "s5kipK",
+          "minimum-runes-to-add-to-cast-spell"
+        ]
+      },
+      {
+        "key": "section-15",
+        "title": "七、二分图染色",
+        "titleEn": "七、二分图染色",
+        "memberSlugs": [
+          "is-graph-bipartite",
+          "possible-bipartition",
+          "maximum-partition-factor"
+        ]
+      },
+      {
+        "key": "section-16",
+        "title": "八、网络流",
+        "titleEn": "八、网络流",
+        "memberSlugs": [
+          "maximum-compatibility-score-sum",
+          "minimum-time-to-break-locks-i",
+          "minimum-moves-to-spread-stones-over-grid",
+          "minimum-xor-sum-of-two-arrays",
+          "maximum-students-taking-exam",
+          "maximum-and-sum-of-array",
+          "select-cells-in-grid-with-maximum-score",
+          "minimum-cost-to-connect-two-groups-of-points",
+          "maximum-value-sum-by-placing-three-rooks-ii",
+          "broken-board-dominoes",
+          "7rLGCR",
+          "maximum-number-of-accepted-invitations",
+          "minimum-time-to-kill-all-monsters",
+          "minimum-time-to-break-locks-ii",
+          "campus-bikes-ii",
+          "minimum-operations-to-remove-adjacent-ones-in-matrix",
+          "minimum-total-distance-traveled"
+        ]
+      },
+      {
+        "key": "section-17",
+        "title": "九、其他",
+        "titleEn": "九、其他",
+        "memberSlugs": [
+          "flower-planting-with-no-adjacent",
+          "minimum-degree-of-a-connected-trio-in-a-graph",
+          "add-edges-to-make-degrees-of-all-nodes-even",
+          "remove-max-number-of-edges-to-keep-graph-fully-traversable",
+          "maximum-path-quality-of-a-graph",
+          "checking-existence-of-edge-length-limited-paths",
+          "maximum-score-of-a-node-sequence",
+          "divide-nodes-into-the-maximum-number-of-groups",
+          "count-pairs-of-nodes",
+          "minimum-operations-to-equalize-binary-string",
+          "minimum-reverse-operations",
+          "frequencies-of-shortest-supersequences",
+          "count-the-repetitions",
+          "you-le-yuan-de-you-lan-ji-hua",
+          "find-the-celebrity",
+          "checking-existence-of-edge-length-limited-paths-ii",
+          "paths-in-maze-that-lead-to-same-room",
+          "determine-if-a-simple-graph-exists"
+        ]
+      },
+      {
+        "key": "section-18",
+        "title": "十、树上算法",
+        "titleEn": "十、树上算法",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-19",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-20",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
     ],
     "sourceUrl": "https://leetcode.cn/discuss/post/01LUak/",
     "title": "图论算法",
@@ -1534,6 +3001,1253 @@ export const leetcodeLingShenGroups = ([
       "number-of-strings-which-can-be-rearranged-to-contain-substring",
       "minimum-cost-to-change-the-final-value-of-expression"
     ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "前言",
+        "titleEn": "前言",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "一、入门 DP",
+        "titleEn": "一、入门 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-3",
+        "title": "§1.1 爬楼梯",
+        "titleEn": "§1.1 爬楼梯",
+        "memberSlugs": [
+          "climbing-stairs",
+          "min-cost-climbing-stairs",
+          "climbing-stairs-ii",
+          "combination-sum-iv",
+          "count-ways-to-build-good-strings",
+          "count-number-of-texts",
+          "number-of-good-binary-strings"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "§1.2 打家劫舍",
+        "titleEn": "§1.2 打家劫舍",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-5",
+        "title": "答疑",
+        "titleEn": "答疑",
+        "memberSlugs": [
+          "house-robber",
+          "house-robber-ii",
+          "count-number-of-ways-to-place-houses",
+          "house-robber-v",
+          "delete-and-earn",
+          "maximum-total-damage-with-spell-casting",
+          "solving-questions-with-brainpower"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "§1.3 最大子数组和（最大子段和）",
+        "titleEn": "§1.3 最大子数组和（最大子段和）",
+        "memberSlugs": [
+          "range-sum-query-immutable",
+          "best-time-to-buy-and-sell-stock",
+          "maximum-subarray",
+          "find-the-substring-with-maximum-cost",
+          "maximum-absolute-sum-of-any-subarray",
+          "k-concatenation-maximum-sum",
+          "maximum-sum-circular-subarray",
+          "maximum-score-of-spliced-array",
+          "maximum-product-subarray",
+          "maximum-subarray-sum-with-one-deletion",
+          "maximum-subarray-sum-with-length-divisible-by-k"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "思考题",
+        "titleEn": "思考题",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-8",
+        "title": "二、网格图 DP",
+        "titleEn": "二、网格图 DP",
+        "memberSlugs": [
+          "minimum-path-sum"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "§2.1 基础",
+        "titleEn": "§2.1 基础",
+        "memberSlugs": [
+          "minimum-path-sum",
+          "unique-paths",
+          "unique-paths-ii",
+          "triangle",
+          "count-paths-with-the-given-xor-value",
+          "minimum-falling-path-sum",
+          "minimum-cost-path-with-alternating-directions-ii",
+          "minimum-path-cost-in-a-grid",
+          "minimum-falling-path-sum-ii",
+          "minimum-xor-path-in-a-grid",
+          "maximum-amount-of-money-robot-can-earn",
+          "maximum-path-score-in-a-grid",
+          "maximum-number-of-moves-in-a-grid",
+          "minimum-sideway-jumps"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "§2.2 进阶",
+        "titleEn": "§2.2 进阶",
+        "memberSlugs": [
+          "maximum-non-negative-product-in-a-matrix",
+          "number-of-paths-with-max-score",
+          "twisted-mirror-path-count",
+          "paths-in-matrix-whose-sum-is-divisible-by-k",
+          "dungeon-game",
+          "longest-increasing-path-in-a-matrix",
+          "number-of-increasing-paths-in-a-grid",
+          "check-if-there-is-a-valid-parentheses-string-path",
+          "maximum-number-of-points-with-cost",
+          "find-the-maximum-number-of-fruits-collected",
+          "cherry-pickup-ii",
+          "cherry-pickup",
+          "length-of-longest-v-shaped-diagonal-segment",
+          "check-if-there-is-a-path-with-equal-number-of-0s-and-1s"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "三、背包",
+        "titleEn": "三、背包",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-12",
+        "title": "§3.1 0-1 背包",
+        "titleEn": "§3.1 0-1 背包",
+        "memberSlugs": [
+          "partition-equal-subset-sum",
+          "target-sum",
+          "length-of-the-longest-subsequence-that-sums-to-target",
+          "minimum-removals-to-achieve-target-xor",
+          "ways-to-express-an-integer-as-sum-of-powers",
+          "maximum-total-reward-using-operations-i",
+          "ones-and-zeroes",
+          "zero-array-transformation-iv",
+          "closest-dessert-cost",
+          "subsequence-sum-after-capping-elements",
+          "last-stone-weight-ii",
+          "profitable-schemes",
+          "find-the-sum-of-the-power-of-all-subsequences",
+          "tallest-billboard",
+          "number-of-great-partitions",
+          "painting-the-walls",
+          "find-the-maximum-sequence-value-of-array",
+          "maximum-total-reward-using-operations-ii",
+          "oPs9Bm",
+          "maximum-profit-from-trading-stocks",
+          "maximize-total-tastiness-of-purchased-fruits",
+          "maximum-weight-in-two-bags",
+          "number-of-ways-to-build-house-of-cards"
+        ]
+      },
+      {
+        "key": "section-13",
+        "title": "§3.2 完全背包",
+        "titleEn": "§3.2 完全背包",
+        "memberSlugs": [
+          "coin-change",
+          "coin-change-ii",
+          "perfect-squares",
+          "minimum-number-of-primes-to-sum-to-target",
+          "the-number-of-ways-to-make-the-sum",
+          "inverse-coin-change",
+          "form-largest-integer-with-digits-that-add-up-to-target"
+        ]
+      },
+      {
+        "key": "section-14",
+        "title": "§3.3 多重背包（选做）",
+        "titleEn": "§3.3 多重背包（选做）",
+        "memberSlugs": [
+          "count-of-sub-multisets-with-bounded-sum",
+          "number-of-ways-to-earn-points",
+          "find-the-original-typed-string-ii",
+          "zero-array-transformation-iv"
+        ]
+      },
+      {
+        "key": "section-15",
+        "title": "§3.4 分组背包",
+        "titleEn": "§3.4 分组背包",
+        "memberSlugs": [
+          "number-of-dice-rolls-with-target-sum",
+          "minimize-the-difference-between-target-and-chosen-elements",
+          "maximum-value-of-k-coins-from-piles"
+        ]
+      },
+      {
+        "key": "section-16",
+        "title": "§3.5 树形背包（选做）",
+        "titleEn": "§3.5 树形背包（选做）",
+        "memberSlugs": [
+          "maximum-profit-from-trading-stocks-with-discounts"
+        ]
+      },
+      {
+        "key": "section-17",
+        "title": "四、经典线性 DP",
+        "titleEn": "四、经典线性 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-18",
+        "title": "§4.1 最长公共子序列（LCS）",
+        "titleEn": "§4.1 最长公共子序列（LCS）",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-19",
+        "title": "§4.1.1 基础",
+        "titleEn": "§4.1.1 基础",
+        "memberSlugs": [
+          "longest-common-subsequence",
+          "delete-operation-for-two-strings",
+          "minimum-ascii-delete-sum-for-two-strings",
+          "edit-distance",
+          "uncrossed-lines",
+          "max-dot-product-of-two-subsequences",
+          "maximum-score-using-exactly-k-pairs",
+          "maximum-length-of-repeated-subarray"
+        ]
+      },
+      {
+        "key": "section-20",
+        "title": "§4.1.2 进阶",
+        "titleEn": "§4.1.2 进阶",
+        "memberSlugs": [
+          "maximum-multiplication-score",
+          "distinct-subsequences",
+          "maximum-number-of-subsequences-after-one-inserting",
+          "find-maximum-removals-from-source-string",
+          "number-of-ways-to-form-a-target-string-given-a-dictionary",
+          "interleaving-string",
+          "shortest-common-supersequence",
+          "wildcard-matching",
+          "regular-expression-matching",
+          "maximize-number-of-subsequences-in-a-string"
+        ]
+      },
+      {
+        "key": "section-21",
+        "title": "§4.2 最长递增子序列（LIS）",
+        "titleEn": "§4.2 最长递增子序列（LIS）",
+        "memberSlugs": [
+          "longest-increasing-subsequence-ii"
+        ]
+      },
+      {
+        "key": "section-22",
+        "title": "§4.2.1 基础",
+        "titleEn": "§4.2.1 基础",
+        "memberSlugs": [
+          "longest-increasing-subsequence",
+          "increasing-triplet-subsequence",
+          "sorting-three-groups",
+          "find-the-longest-valid-obstacle-course-at-each-position",
+          "minimum-operations-to-make-the-array-k-increasing"
+        ]
+      },
+      {
+        "key": "section-23",
+        "title": "§4.2.2 进阶",
+        "titleEn": "§4.2.2 进阶",
+        "memberSlugs": [
+          "longest-strictly-increasing-subsequence-with-non-zero-bitwise-and",
+          "minimum-number-of-removals-to-make-mountain-array",
+          "russian-doll-envelopes",
+          "best-team-with-no-conflicts",
+          "maximum-height-by-stacking-cuboids",
+          "delete-columns-to-make-sorted-iii",
+          "maximize-fixed-points-after-deletions",
+          "longest-increasing-subsequence-ii",
+          "number-of-longest-increasing-subsequence",
+          "make-array-strictly-increasing",
+          "minimum-operations-to-make-a-subsequence",
+          "length-of-the-longest-increasing-path",
+          "largest-divisible-subset",
+          "longest-unequal-adjacent-groups-subsequence-ii"
+        ]
+      },
+      {
+        "key": "section-24",
+        "title": "五、划分型 DP",
+        "titleEn": "五、划分型 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-25",
+        "title": "§5.1 判定能否划分",
+        "titleEn": "§5.1 判定能否划分",
+        "memberSlugs": [
+          "check-if-there-is-a-valid-partition-for-the-array",
+          "word-break"
+        ]
+      },
+      {
+        "key": "section-26",
+        "title": "§5.2 最优划分",
+        "titleEn": "§5.2 最优划分",
+        "memberSlugs": [
+          "palindrome-partitioning-ii",
+          "extra-characters-in-a-string",
+          "maximize-total-cost-of-alternating-subarrays",
+          "partition-string-into-minimum-beautiful-substrings",
+          "decode-ways",
+          "decode-ways-ii",
+          "ba-shu-zi-fan-yi-cheng-zi-fu-chuan-lcof",
+          "partition-array-for-maximum-sum",
+          "minimum-substring-partition-of-equal-character-frequency",
+          "restore-the-array",
+          "maximum-number-of-non-overlapping-palindrome-substrings",
+          "filling-bookcase-shelves",
+          "minimum-cost-to-split-an-array",
+          "count-partitions-with-max-min-difference-at-most-k",
+          "maximum-deletions-on-a-string",
+          "minimum-total-distance-traveled",
+          "minimum-steps-to-convert-string-with-operations",
+          "minimum-cost-to-divide-array-into-subarrays",
+          "minimum-cost-to-convert-string-ii",
+          "minimum-cost-good-caption",
+          "minimum-cost-to-separate-sentence-into-rows",
+          "minimum-subarrays-in-a-valid-split"
+        ]
+      },
+      {
+        "key": "section-27",
+        "title": "§5.3 约束划分个数",
+        "titleEn": "§5.3 约束划分个数",
+        "memberSlugs": [
+          "largest-sum-of-averages",
+          "partition-array-to-minimize-xor",
+          "split-array-largest-sum",
+          "palindrome-partitioning-iii",
+          "palindrome-partitioning-iv",
+          "minimum-difficulty-of-a-job-schedule",
+          "paint-house-iii",
+          "minimum-white-tiles-after-covering-with-carpets",
+          "allocate-mailboxes",
+          "sum-of-k-subarrays-with-length-at-least-m",
+          "minimum-total-space-wasted-with-k-resizing-operations",
+          "number-of-beautiful-partitions",
+          "merge-operations-for-minimum-travel-time",
+          "minimum-operations-to-make-elements-within-k-subarrays-equal",
+          "maximum-strength-of-k-disjoint-subarrays",
+          "minimum-changes-to-make-k-semi-palindromes",
+          "minimum-sum-of-values-by-dividing-array"
+        ]
+      },
+      {
+        "key": "section-28",
+        "title": "六、状态机 DP",
+        "titleEn": "六、状态机 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-29",
+        "title": "§6.1 买卖股票",
+        "titleEn": "§6.1 买卖股票",
+        "memberSlugs": [
+          "best-time-to-buy-and-sell-stock",
+          "best-time-to-buy-and-sell-stock-ii",
+          "best-time-to-buy-and-sell-stock-iii",
+          "best-time-to-buy-and-sell-stock-iv",
+          "best-time-to-buy-and-sell-stock-v",
+          "best-time-to-buy-and-sell-stock-with-cooldown",
+          "best-time-to-buy-and-sell-stock-with-transaction-fee"
+        ]
+      },
+      {
+        "key": "section-30",
+        "title": "§6.2 基础",
+        "titleEn": "§6.2 基础",
+        "memberSlugs": [
+          "maximum-energy-boost-from-two-drinks",
+          "number-of-ways-to-select-buildings",
+          "maximum-strength-of-a-group",
+          "maximum-length-of-subarray-with-positive-product",
+          "visit-array-positions-to-maximize-score",
+          "maximum-alternating-subsequence-sum",
+          "wiggle-subsequence",
+          "maximum-coin-collection"
+        ]
+      },
+      {
+        "key": "section-31",
+        "title": "§6.3 进阶",
+        "titleEn": "§6.3 进阶",
+        "memberSlugs": [
+          "maximum-number-of-subsequences-after-one-inserting",
+          "longest-non-decreasing-subarray-from-two-arrays",
+          "maximum-subarray-sum-with-one-deletion",
+          "maximum-non-negative-product-in-a-matrix",
+          "longest-non-decreasing-subarray-after-replacing-at-most-one-element",
+          "maximize-total-cost-of-alternating-subarrays",
+          "knight-dialer",
+          "minimum-increase-to-maximize-special-indices",
+          "get-the-maximum-score",
+          "number-of-alternating-xor-partitions",
+          "minimum-increment-operations-to-make-array-beautiful",
+          "longest-arithmetic-sequence-after-changing-at-most-one-element",
+          "minimum-swaps-to-make-sequences-increasing",
+          "maximum-frequency-after-subarray-operation",
+          "count-number-of-special-subsequences",
+          "longest-alternating-subarray-after-removing-at-most-one-element",
+          "find-the-maximum-sum-of-node-values",
+          "trionic-array-ii",
+          "substring-with-largest-variance",
+          "maximum-walls-destroyed-by-robots",
+          "maximum-strength-of-k-disjoint-subarrays",
+          "maximize-cyclic-partition-score",
+          "UlBDOe",
+          "paint-fence",
+          "maximum-subarray-sum-after-one-operation",
+          "maximum-alternating-subarray-sum",
+          "minimum-costs-using-the-train-line",
+          "constructing-two-increasing-arrays"
+        ]
+      },
+      {
+        "key": "section-32",
+        "title": "七、其他线性 DP",
+        "titleEn": "七、其他线性 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-33",
+        "title": "§7.1 一维 DP",
+        "titleEn": "§7.1 一维 DP",
+        "memberSlugs": [
+          "taking-maximum-energy-from-the-mystic-dungeon",
+          "minimum-number-of-coins-for-fruits",
+          "solving-questions-with-brainpower",
+          "minimum-cost-for-tickets",
+          "largest-divisible-subset",
+          "longest-unequal-adjacent-groups-subsequence-ii",
+          "2-keys-keyboard",
+          "minimum-number-of-refueling-stops",
+          "longest-valid-parentheses",
+          "minimum-time-to-remove-all-cars-containing-illegal-goods",
+          "minimum-time-to-finish-the-race",
+          "apply-operations-to-make-two-strings-equal",
+          "race-car",
+          "minimum-operations-to-make-character-frequencies-equal",
+          "maximize-the-distance-between-points-on-a-square",
+          "maximum-array-hopping-score-i",
+          "handshakes-that-dont-cross",
+          "the-number-of-beautiful-subsets",
+          "count-the-number-of-k-free-subsets"
+        ]
+      },
+      {
+        "key": "section-34",
+        "title": "§7.2 不相交区间",
+        "titleEn": "§7.2 不相交区间",
+        "memberSlugs": [
+          "maximize-the-profit-as-the-salesman",
+          "maximum-earnings-from-taxi",
+          "two-best-non-overlapping-events",
+          "maximum-profit-in-job-scheduling",
+          "maximum-number-of-events-that-can-be-attended-ii",
+          "maximum-score-of-non-overlapping-intervals"
+        ]
+      },
+      {
+        "key": "section-35",
+        "title": "§7.3 子数组 DP",
+        "titleEn": "§7.3 子数组 DP",
+        "memberSlugs": [
+          "maximum-subarray",
+          "maximum-product-subarray",
+          "maximum-subarray-sum-with-one-deletion",
+          "longest-non-decreasing-subarray-after-replacing-at-most-one-element",
+          "find-x-value-of-array-i",
+          "longest-arithmetic-sequence-after-changing-at-most-one-element",
+          "longest-alternating-subarray-after-removing-at-most-one-element",
+          "count-substrings-divisible-by-last-digit",
+          "total-appeal-of-a-string",
+          "count-unique-characters-of-all-substrings-of-a-given-string",
+          "unique-substrings-in-wraparound-string"
+        ]
+      },
+      {
+        "key": "section-36",
+        "title": "§7.4 合法子序列 DP",
+        "titleEn": "§7.4 合法子序列 DP",
+        "memberSlugs": [
+          "longest-square-streak-in-an-array",
+          "longest-arithmetic-subsequence-of-given-difference",
+          "sorting-three-groups",
+          "longest-arithmetic-subsequence",
+          "longest-ideal-subsequence",
+          "length-of-longest-fibonacci-subsequence",
+          "number-of-stable-subsequences",
+          "find-the-maximum-length-of-valid-subsequence-ii",
+          "arithmetic-slices-ii-subsequence",
+          "number-of-alternating-xor-partitions",
+          "sum-of-good-subsequences",
+          "maximize-consecutive-elements-in-an-array-after-modification",
+          "longest-subsequence-with-decreasing-adjacent-difference",
+          "find-the-sum-of-subsequence-powers",
+          "longest-unequal-adjacent-groups-subsequence-ii",
+          "sum-of-consecutive-subsequences",
+          "longest-string-chain",
+          "distinct-subsequences-ii",
+          "number-of-unique-good-subsequences",
+          "count-different-palindromic-subsequences"
+        ]
+      },
+      {
+        "key": "section-37",
+        "title": "§7.5 子矩形 DP",
+        "titleEn": "§7.5 子矩形 DP",
+        "memberSlugs": [
+          "maximum-difference-score-in-a-grid",
+          "maximal-square",
+          "count-square-submatrices-with-all-ones",
+          "count-fertile-pyramids-in-a-land",
+          "find-the-minimum-area-to-cover-all-ones-ii"
+        ]
+      },
+      {
+        "key": "section-38",
+        "title": "§7.6 多维 DP",
+        "titleEn": "§7.6 多维 DP",
+        "memberSlugs": [
+          "number-of-ways-to-select-buildings",
+          "sorting-three-groups",
+          "number-of-ways-to-reach-a-position-after-exactly-k-steps",
+          "greatest-sum-divisible-by-three",
+          "maximum-sum-of-three-numbers-divisible-by-three",
+          "maximum-points-tourist-can-earn",
+          "find-the-maximum-length-of-a-good-subsequence-i",
+          "number-of-ways-to-stay-in-the-same-place-after-some-steps",
+          "find-the-count-of-monotonic-pairs-i",
+          "minimum-cost-for-cutting-cake-i",
+          "minimum-number-of-operations-to-satisfy-conditions",
+          "out-of-boundary-paths",
+          "frog-jump",
+          "count-sequences-to-k",
+          "count-ways-to-choose-coprime-integers-from-rows",
+          "dice-roll-simulation",
+          "minimum-distance-to-type-a-word-using-two-fingers",
+          "minimum-array-sum",
+          "count-all-possible-routes",
+          "find-number-of-ways-to-reach-the-k-th-stair",
+          "number-of-distinct-roll-sequences",
+          "find-minimum-cost-to-remove-array-elements",
+          "decremental-string-concatenation",
+          "number-of-ways-of-cutting-a-pizza",
+          "count-the-number-of-winning-sequences",
+          "paint-house-iv",
+          "apply-operations-to-make-two-strings-equal",
+          "build-array-where-you-can-find-the-maximum-exactly-k-comparisons",
+          "count-the-number-of-inversions",
+          "minimum-operations-to-achieve-at-least-k-peaks",
+          "selling-pieces-of-wood",
+          "find-the-maximum-length-of-a-good-subsequence-ii",
+          "egg-drop-with-2-eggs-and-n-floors",
+          "super-egg-drop",
+          "number-of-music-playlists",
+          "freedom-trail",
+          "find-the-number-of-subsequences-with-equal-gcd",
+          "pizza-with-3n-slices",
+          "valid-permutations-for-di-sequence",
+          "the-earliest-and-latest-rounds-where-players-compete",
+          "string-compression-ii",
+          "minimum-skips-to-arrive-at-meeting-on-time",
+          "least-operators-to-express-number",
+          "make-the-xor-of-all-segments-equal-to-zero",
+          "maximum-product-of-subsequences-with-an-alternating-sum-equal-to-k",
+          "minimum-cost-good-caption",
+          "check-if-an-original-string-exists-given-two-encoded-strings",
+          "minimum-time-to-make-array-sum-at-most-x",
+          "maximize-the-number-of-partitions-after-operations",
+          "maximum-score-from-grid-operations",
+          "ZbAuEH",
+          "Y1VbOX",
+          "3aqs1c",
+          "Up5XYM",
+          "7rLGCR",
+          "paint-house",
+          "paint-house-ii",
+          "find-the-number-of-k-even-arrays",
+          "maximum-vacation-days",
+          "count-ways-to-distribute-candies",
+          "choose-numbers-from-two-arrays-in-range",
+          "constructing-two-increasing-arrays",
+          "shopping-offers"
+        ]
+      },
+      {
+        "key": "section-39",
+        "title": "§7.7 计数 DP",
+        "titleEn": "§7.7 计数 DP",
+        "memberSlugs": [
+          "letter-tile-possibilities",
+          "number-of-ways-to-rearrange-sticks-with-k-sticks-visible",
+          "find-the-number-of-possible-ways-for-an-event",
+          "count-number-of-balanced-permutations",
+          "find-sum-of-array-product-of-magical-sequences"
+        ]
+      },
+      {
+        "key": "section-40",
+        "title": "八、区间 DP",
+        "titleEn": "八、区间 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-41",
+        "title": "§8.1 最长回文子序列",
+        "titleEn": "§8.1 最长回文子序列",
+        "memberSlugs": [
+          "longest-palindromic-subsequence",
+          "minimum-insertion-steps-to-make-a-string-palindrome",
+          "longest-palindromic-subsequence-after-at-most-k-operations",
+          "maximize-palindrome-length-from-subsequences",
+          "count-different-palindromic-subsequences",
+          "longest-palindromic-subsequence-ii",
+          "valid-palindrome-iii",
+          "palindrome-removal"
+        ]
+      },
+      {
+        "key": "section-42",
+        "title": "§8.2 区间 DP",
+        "titleEn": "§8.2 区间 DP",
+        "memberSlugs": [
+          "longest-palindromic-substring",
+          "palindromic-substrings",
+          "maximum-number-of-operations-with-the-same-score-ii",
+          "minimum-cost-tree-from-leaf-values",
+          "unique-binary-search-trees",
+          "guess-number-higher-or-lower-ii",
+          "maximum-score-from-performing-multiplication-operations",
+          "minimum-cost-to-cut-a-stick",
+          "minimum-score-triangulation-of-polygon",
+          "minimum-cost-to-merge-stones",
+          "the-score-of-students-solving-math-expression",
+          "boolean-evaluation-lcci",
+          "lexicographically-smallest-string-after-adjacent-removals",
+          "maximum-xor-score-subarray-queries",
+          "scramble-string",
+          "burst-balloons",
+          "strange-printer",
+          "remove-boxes",
+          "encode-string-with-shortest-length",
+          "maximum-number-of-removal-queries-that-can-be-processed-i"
+        ]
+      },
+      {
+        "key": "section-43",
+        "title": "九、状态压缩 DP（状压 DP）",
+        "titleEn": "九、状态压缩 DP（状压 DP）",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-44",
+        "title": "§9.1 排列型状压 DP ① 相邻无关",
+        "titleEn": "§9.1 排列型状压 DP ① 相邻无关",
+        "memberSlugs": [
+          "beautiful-arrangement",
+          "minimum-time-to-break-locks-i",
+          "minimum-xor-sum-of-two-arrays",
+          "minimum-moves-to-spread-stones-over-grid",
+          "maximum-compatibility-score-sum",
+          "maximize-score-after-n-operations",
+          "concatenated-divisibility",
+          "maximum-profit-from-valid-topological-order-in-dag",
+          "maximum-and-sum-of-array",
+          "number-of-self-divisible-permutations",
+          "minimum-time-to-kill-all-monsters",
+          "campus-bikes-ii"
+        ]
+      },
+      {
+        "key": "section-45",
+        "title": "§9.2 排列型状压 DP ② 相邻相关",
+        "titleEn": "§9.2 排列型状压 DP ② 相邻相关",
+        "memberSlugs": [
+          "special-permutations",
+          "number-of-squareful-arrays",
+          "minimum-incompatibility",
+          "longest-palindromic-path-in-graph",
+          "maximum-number-of-moves-to-kill-all-pawns",
+          "find-the-minimum-cost-array-permutation"
+        ]
+      },
+      {
+        "key": "section-46",
+        "title": "§9.3 旅行商问题（TSP）",
+        "titleEn": "§9.3 旅行商问题（TSP）",
+        "memberSlugs": [
+          "find-the-shortest-superstring",
+          "shortest-path-visiting-all-nodes",
+          "xun-bao",
+          "maximum-cost-of-trip-with-k-highways",
+          "minimum-moves-to-clean-the-classroom",
+          "shortest-path-to-get-all-keys"
+        ]
+      },
+      {
+        "key": "section-47",
+        "title": "§9.4 子集状压 DP",
+        "titleEn": "§9.4 子集状压 DP",
+        "memberSlugs": [
+          "fair-distribution-of-cookies",
+          "minimum-number-of-work-sessions-to-finish-the-tasks",
+          "maximum-product-of-two-integers-with-no-common-bits",
+          "find-minimum-time-to-finish-all-jobs",
+          "distribute-repeating-integers",
+          "minimum-increments-for-target-multiples-in-an-array",
+          "maximum-good-subtree-score",
+          "maximum-students-taking-exam",
+          "minimum-incompatibility",
+          "minimum-cost-to-merge-sorted-lists",
+          "count-the-number-of-square-free-subsets",
+          "the-number-of-good-subsets",
+          "parallel-courses-ii",
+          "broken-board-dominoes",
+          "EJvmW4",
+          "optimal-account-balancing",
+          "minimum-number-of-lines-to-cover-points",
+          "minimum-time-to-transport-all-individuals"
+        ]
+      },
+      {
+        "key": "section-48",
+        "title": "§9.5 轮廓线 DP",
+        "titleEn": "§9.5 轮廓线 DP",
+        "memberSlugs": [
+          "number-of-ways-to-paint-n-3-grid",
+          "painting-a-grid-with-three-different-colors",
+          "maximum-students-taking-exam",
+          "maximize-grid-happiness",
+          "unique-paths-iii",
+          "broken-board-dominoes",
+          "1ybDKD",
+          "number-of-ways-to-build-sturdy-brick-wall",
+          "pyramid-transition-matrix"
+        ]
+      },
+      {
+        "key": "section-49",
+        "title": "§9.6 SOS DP",
+        "titleEn": "§9.6 SOS DP",
+        "memberSlugs": [
+          "maximum-product-of-two-integers-with-no-common-bits",
+          "maximum-product-of-the-length-of-two-palindromic-subsequences",
+          "count-number-of-maximum-bitwise-or-subsets",
+          "find-a-good-subset-of-the-matrix",
+          "number-of-effective-subsequences"
+        ]
+      },
+      {
+        "key": "section-50",
+        "title": "§9.7 其他状压 DP",
+        "titleEn": "§9.7 其他状压 DP",
+        "memberSlugs": [
+          "matchsticks-to-square",
+          "partition-to-k-equal-sum-subsets",
+          "smallest-sufficient-team",
+          "number-of-ways-to-wear-different-hats-to-each-other",
+          "can-i-win",
+          "stickers-to-spell-word",
+          "select-cells-in-grid-with-maximum-score",
+          "minimum-cost-to-connect-two-groups-of-points",
+          "maximum-number-of-groups-getting-fresh-donuts",
+          "rMeRt2",
+          "cnHoX6",
+          "android-unlock-patterns"
+        ]
+      },
+      {
+        "key": "section-51",
+        "title": "十、数位 DP",
+        "titleEn": "十、数位 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-52",
+        "title": "§10.1 统计合法元素的数目",
+        "titleEn": "§10.1 统计合法元素的数目",
+        "memberSlugs": [
+          "count-distinct-integers-after-removing-zeros",
+          "count-of-integers",
+          "prime-number-of-set-bits-in-binary-representation",
+          "count-largest-group",
+          "maximum-number-of-balls-in-a-box",
+          "rotated-digits",
+          "numbers-at-most-n-given-digit-set",
+          "non-negative-integers-without-consecutive-ones",
+          "count-special-integers",
+          "count-numbers-with-unique-digits",
+          "number-of-balanced-integers-in-a-range",
+          "count-good-integers-on-a-grid-path",
+          "numbers-with-repeated-digits",
+          "count-numbers-with-non-decreasing-digits",
+          "count-fancy-numbers-in-a-range",
+          "number-of-beautiful-integers-in-the-range",
+          "count-the-number-of-powerful-integers",
+          "count-stepping-numbers-in-range",
+          "count-symmetric-integers",
+          "count-k-reducible-numbers-less-than-n",
+          "number-of-integers-with-popcount-depth-equal-to-k-i",
+          "count-beautiful-numbers",
+          "find-all-good-strings",
+          "stepping-numbers",
+          "digit-count-in-range",
+          "count-numbers-with-unique-digits-ii",
+          "count-no-zero-pairs-that-sum-to-n"
+        ]
+      },
+      {
+        "key": "section-53",
+        "title": "§10.2 统计合法元素的价值总和",
+        "titleEn": "§10.2 统计合法元素的价值总和",
+        "memberSlugs": [
+          "number-of-digit-one",
+          "number-of-2s-in-range-lcci",
+          "count-commas-in-range-ii",
+          "maximum-number-that-sum-of-the-prices-is-less-than-or-equal-to-k",
+          "total-waviness-of-numbers-in-range-ii"
+        ]
+      },
+      {
+        "key": "section-54",
+        "title": "§10.3 其他数位 DP",
+        "titleEn": "§10.3 其他数位 DP",
+        "memberSlugs": [
+          "count-binary-palindromic-numbers",
+          "smallest-divisible-digit-product-ii"
+        ]
+      },
+      {
+        "key": "section-55",
+        "title": "十一、优化 DP",
+        "titleEn": "十一、优化 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-56",
+        "title": "§11.1 前缀和优化 DP",
+        "titleEn": "§11.1 前缀和优化 DP",
+        "memberSlugs": [
+          "jump-game-vii",
+          "number-of-people-aware-of-a-secret",
+          "number-of-zigzag-arrays-i",
+          "count-non-decreasing-arrays-with-given-digit-sums",
+          "first-day-where-you-have-been-in-all-the-rooms",
+          "k-inverse-pairs-array",
+          "count-the-number-of-inversions",
+          "sum-of-k-subarrays-with-length-at-least-m",
+          "find-the-count-of-monotonic-pairs-ii",
+          "number-of-beautiful-partitions",
+          "new-21-game",
+          "count-routes-to-climb-a-rectangular-grid",
+          "maximum-strength-of-k-disjoint-subarrays",
+          "find-the-original-typed-string-ii",
+          "count-of-sub-multisets-with-bounded-sum",
+          "number-of-ways-to-separate-numbers",
+          "find-all-possible-stable-binary-arrays-ii"
+        ]
+      },
+      {
+        "key": "section-57",
+        "title": "§11.2 单调栈优化 DP",
+        "titleEn": "§11.2 单调栈优化 DP",
+        "memberSlugs": [
+          "minimum-difficulty-of-a-job-schedule",
+          "beautiful-towers-ii",
+          "minimum-number-of-visited-cells-in-a-grid",
+          "maximum-number-of-books-you-can-take"
+        ]
+      },
+      {
+        "key": "section-58",
+        "title": "§11.3 单调队列优化 DP",
+        "titleEn": "§11.3 单调队列优化 DP",
+        "memberSlugs": [
+          "minimum-number-of-coins-for-fruits",
+          "jump-game-vi",
+          "constrained-subsequence-sum",
+          "count-partitions-with-max-min-difference-at-most-k",
+          "guess-number-higher-or-lower-ii",
+          "delivering-boxes-from-storage-to-ports",
+          "minimum-total-distance-traveled",
+          "minimum-sum-of-values-by-dividing-array",
+          "find-maximum-non-decreasing-array-length",
+          "minimum-number-of-coins-for-fruits-ii"
+        ]
+      },
+      {
+        "key": "section-59",
+        "title": "§11.4 树状数组/线段树优化 DP",
+        "titleEn": "§11.4 树状数组/线段树优化 DP",
+        "memberSlugs": [
+          "best-team-with-no-conflicts",
+          "longest-increasing-subsequence-ii",
+          "maximum-sum-of-alternating-subsequence-with-distance-at-least-k",
+          "maximum-number-of-jumps-to-reach-the-last-index",
+          "maximum-balanced-subsequence-sum",
+          "minimum-cost-to-split-an-array",
+          "sum-of-beautiful-subsequences",
+          "subarrays-distinct-element-sum-of-squares-ii"
+        ]
+      },
+      {
+        "key": "section-60",
+        "title": "§11.5 字典树优化 DP",
+        "titleEn": "§11.5 字典树优化 DP",
+        "memberSlugs": [
+          "word-break",
+          "extra-characters-in-a-string",
+          "re-space-lcci",
+          "concatenated-words",
+          "minimum-cost-to-convert-string-ii"
+        ]
+      },
+      {
+        "key": "section-61",
+        "title": "§11.6 矩阵快速幂优化 DP",
+        "titleEn": "§11.6 矩阵快速幂优化 DP",
+        "memberSlugs": [
+          "climbing-stairs",
+          "n-th-tribonacci-number",
+          "knight-dialer",
+          "number-of-zigzag-arrays-ii",
+          "fibonacci-number",
+          "count-vowels-permutation",
+          "student-attendance-record-ii",
+          "domino-and-tromino-tiling",
+          "number-of-ways-to-paint-n-3-grid",
+          "painting-a-grid-with-three-different-colors",
+          "total-characters-in-string-after-transformations-ii",
+          "string-transformation",
+          "number-of-ways-to-reach-destination-in-the-grid"
+        ]
+      },
+      {
+        "key": "section-62",
+        "title": "§11.7 斜率优化 DP",
+        "titleEn": "§11.7 斜率优化 DP",
+        "memberSlugs": [
+          "minimum-partition-score",
+          "find-the-minimum-amount-of-time-to-brew-potions",
+          "minimum-cost-to-divide-array-into-subarrays",
+          "climbing-stairs-ii"
+        ]
+      },
+      {
+        "key": "section-63",
+        "title": "§11.8 WQS 二分优化 DP",
+        "titleEn": "§11.8 WQS 二分优化 DP",
+        "memberSlugs": [
+          "best-time-to-buy-and-sell-stock-iv",
+          "best-time-to-buy-and-sell-stock-v",
+          "minimum-white-tiles-after-covering-with-carpets",
+          "minimum-partition-score",
+          "maximize-cyclic-partition-score",
+          "minimum-partition-score-ii"
+        ]
+      },
+      {
+        "key": "section-64",
+        "title": "§11.9 其他优化 DP",
+        "titleEn": "§11.9 其他优化 DP",
+        "memberSlugs": [
+          "minimum-sum-after-divisible-sum-deletions",
+          "maximum-number-of-points-with-cost",
+          "maximum-strictly-increasing-cells-in-a-matrix",
+          "minimum-cost-path-with-teleportations",
+          "number-of-distinct-roll-sequences",
+          "maximum-total-reward-using-operations-ii",
+          "check-if-there-is-a-valid-parentheses-string-path",
+          "construct-string-with-minimum-cost",
+          "minimum-number-of-valid-strings-to-form-target-ii",
+          "maximize-cyclic-partition-score",
+          "qie-fen-shu-zu",
+          "NfY1m5",
+          "make-array-non-decreasing-or-non-increasing",
+          "number-of-zigzag-arrays-iii"
+        ]
+      },
+      {
+        "key": "section-65",
+        "title": "十二、树形 DP",
+        "titleEn": "十二、树形 DP",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-66",
+        "title": "§12.1 树的直径",
+        "titleEn": "§12.1 树的直径",
+        "memberSlugs": [
+          "diameter-of-binary-tree",
+          "longest-univalue-path",
+          "binary-tree-maximum-path-sum",
+          "amount-of-time-for-binary-tree-to-be-infected",
+          "longest-path-with-different-adjacent-characters",
+          "find-minimum-diameter-after-merging-two-trees",
+          "count-subtrees-with-max-distance-between-cities",
+          "difference-between-maximum-and-minimum-price-sum",
+          "diameter-of-n-ary-tree",
+          "tree-diameter",
+          "binary-tree-longest-consecutive-sequence-ii",
+          "maximize-the-number-of-target-nodes-after-connecting-trees-i"
+        ]
+      },
+      {
+        "key": "section-67",
+        "title": "§12.2 树上最大独立集",
+        "titleEn": "§12.2 树上最大独立集",
+        "memberSlugs": [
+          "house-robber-iii",
+          "minimize-the-total-price-of-the-trips",
+          "subtree-inversion-sum",
+          "choose-edges-to-maximize-score-in-a-tree"
+        ]
+      },
+      {
+        "key": "section-68",
+        "title": "§12.3 树上最小支配集",
+        "titleEn": "§12.3 树上最小支配集",
+        "memberSlugs": [
+          "binary-tree-cameras"
+        ]
+      },
+      {
+        "key": "section-69",
+        "title": "§12.4 换根 DP",
+        "titleEn": "§12.4 换根 DP",
+        "memberSlugs": [
+          "sum-of-distances-in-tree",
+          "count-number-of-possible-root-nodes",
+          "maximum-subgraph-score-in-a-tree",
+          "minimum-edge-reversals-so-every-node-is-reachable",
+          "minimum-height-trees",
+          "time-taken-to-mark-all-nodes",
+          "maximize-the-number-of-target-nodes-after-connecting-trees-i"
+        ]
+      },
+      {
+        "key": "section-70",
+        "title": "§12.5 其他树形 DP",
+        "titleEn": "§12.5 其他树形 DP",
+        "memberSlugs": [
+          "maximum-score-after-applying-operations-on-a-tree",
+          "find-the-maximum-sum-of-node-values",
+          "maximum-points-after-collecting-coins-from-all-nodes",
+          "maximum-good-subtree-score",
+          "maximum-profit-from-trading-stocks-with-discounts",
+          "count-ways-to-build-rooms-in-an-ant-colony",
+          "maximize-sum-of-weights-after-edge-removals",
+          "er-cha-shu-ren-wu-diao-du",
+          "er-cha-shu-ran-se-UGC",
+          "U7WvvU",
+          "minimum-flips-in-binary-tree-to-get-result"
+        ]
+      },
+      {
+        "key": "section-71",
+        "title": "十三、图 DP",
+        "titleEn": "十三、图 DP",
+        "memberSlugs": [
+          "shortest-distance-after-road-addition-queries-i",
+          "cheapest-flights-within-k-stops",
+          "number-of-restricted-paths-from-first-to-last-node",
+          "parallel-courses-iii",
+          "network-recovery-pathways",
+          "number-of-ways-to-arrive-at-destination",
+          "maximum-weighted-k-edge-path",
+          "largest-color-value-in-a-directed-graph",
+          "minimum-cost-to-reach-destination-in-time",
+          "cat-and-mouse",
+          "cat-and-mouse-ii",
+          "chuan-di-xin-xi",
+          "the-most-similar-path-in-a-graph"
+        ]
+      },
+      {
+        "key": "section-72",
+        "title": "十四、博弈 DP",
+        "titleEn": "十四、博弈 DP",
+        "memberSlugs": [
+          "divisor-game",
+          "stone-game",
+          "predict-the-winner",
+          "stone-game-iv",
+          "stone-game-vii",
+          "stone-game-iii",
+          "stone-game-ii",
+          "stone-game-v",
+          "can-i-win",
+          "stone-game-viii",
+          "cat-and-mouse",
+          "cat-and-mouse-ii",
+          "flip-game-ii"
+        ]
+      },
+      {
+        "key": "section-73",
+        "title": "十五、概率/期望 DP",
+        "titleEn": "十五、概率/期望 DP",
+        "memberSlugs": [
+          "knight-probability-in-chessboard",
+          "new-21-game",
+          "probability-of-a-two-boxes-having-the-same-number-of-distinct-balls",
+          "soup-servings",
+          "nge-tou-zi-de-dian-shu-lcof",
+          "toss-strange-coins"
+        ]
+      },
+      {
+        "key": "section-74",
+        "title": "专题：输出具体方案（打印方案）",
+        "titleEn": "专题：输出具体方案（打印方案）",
+        "memberSlugs": [
+          "shortest-common-supersequence",
+          "largest-divisible-subset",
+          "largest-multiple-of-three",
+          "form-largest-integer-with-digits-that-add-up-to-target",
+          "find-the-shortest-superstring",
+          "smallest-sufficient-team",
+          "concatenated-divisibility",
+          "find-the-largest-palindrome-divisible-by-k",
+          "find-the-minimum-cost-array-permutation",
+          "minimum-cost-good-caption",
+          "smallest-divisible-digit-product-ii",
+          "coin-path",
+          "encode-string-with-shortest-length"
+        ]
+      },
+      {
+        "key": "section-75",
+        "title": "专题：前后缀分解",
+        "titleEn": "专题：前后缀分解",
+        "memberSlugs": [
+          "find-pivot-index",
+          "find-the-middle-index-in-array",
+          "equal-score-substrings",
+          "valid-elements-in-an-array",
+          "maximum-score-of-a-split",
+          "number-of-ways-to-split-array",
+          "smallest-stable-index-ii",
+          "minimum-average-difference",
+          "maximum-score-after-splitting-a-string",
+          "product-of-array-except-self",
+          "longest-subarray-of-1s-after-deleting-one-element",
+          "longest-mountain-in-array",
+          "sum-of-beauty-in-the-array",
+          "minimum-sum-of-mountain-triplets-ii",
+          "minimum-penalty-for-a-shop",
+          "number-of-good-ways-to-split-a-string",
+          "count-special-triplets",
+          "make-array-elements-equal-to-zero",
+          "unique-length-3-palindromic-subsequences",
+          "minimum-index-of-a-valid-split",
+          "maximum-value-of-an-ordered-triplet-ii",
+          "ways-to-make-a-fair-array",
+          "best-time-to-buy-and-sell-stock-iii",
+          "split-array-with-minimum-difference",
+          "longest-common-prefix-between-adjacent-strings-after-removals",
+          "number-of-ways-to-select-buildings",
+          "maximum-sum-of-two-non-overlapping-subarrays",
+          "maximum-sum-of-3-non-overlapping-subarrays",
+          "find-all-good-indices",
+          "find-the-smallest-balanced-index",
+          "find-good-days-to-rob-the-bank",
+          "flip-string-to-monotone-increasing",
+          "increasing-triplet-subsequence",
+          "minimum-deletions-to-make-string-balanced",
+          "maximum-subarray-sum-with-one-deletion",
+          "longest-non-decreasing-subarray-after-replacing-at-most-one-element",
+          "trapping-rain-water",
+          "difference-of-number-of-distinct-values-on-diagonals",
+          "find-two-non-overlapping-sub-arrays-each-with-target-sum",
+          "maximum-or",
+          "minimum-number-of-removals-to-make-mountain-array",
+          "minimum-increase-to-maximize-special-indices",
+          "longest-arithmetic-sequence-after-changing-at-most-one-element",
+          "construct-product-matrix",
+          "find-the-maximum-factor-score-of-array",
+          "longest-alternating-subarray-after-removing-at-most-one-element",
+          "minimum-time-to-remove-all-cars-containing-illegal-goods",
+          "count-palindromic-subsequences",
+          "minimum-difference-in-sums-after-removal-of-elements",
+          "subsequence-with-the-minimum-score",
+          "count-special-quadruplets",
+          "count-increasing-quadruplets",
+          "find-the-lexicographically-smallest-valid-sequence",
+          "count-special-subsequences",
+          "find-the-occurrence-of-first-almost-equal-substring",
+          "find-the-maximum-sequence-value-of-array",
+          "maximum-value-sum-by-placing-three-rooks-ii",
+          "maximize-subarray-sum-after-removing-all-occurrences-of-one-element",
+          "maximize-the-number-of-partitions-after-operations",
+          "max-consecutive-ones-ii",
+          "maximum-subarray-sum-after-one-operation",
+          "best-time-to-buy-and-sell-stock"
+        ]
+      },
+      {
+        "key": "section-76",
+        "title": "专题：跳跃游戏",
+        "titleEn": "专题：跳跃游戏",
+        "memberSlugs": [
+          "jump-game-iii",
+          "maximum-number-of-jumps-to-reach-the-last-index",
+          "frog-jump",
+          "jump-game-v",
+          "jump-game-vii",
+          "jump-game-vi",
+          "odd-even-jump",
+          "minimum-jumps-to-reach-home",
+          "zui-xiao-tiao-yue-ci-shu",
+          "meChtZ",
+          "coin-path",
+          "jump-game-viii"
+        ]
+      },
+      {
+        "key": "section-77",
+        "title": "其他",
+        "titleEn": "其他",
+        "memberSlugs": [
+          "sort-integers-by-the-power-value",
+          "integer-replacement",
+          "minimum-number-of-operations-to-make-x-and-y-equal",
+          "binary-trees-with-factors",
+          "minimum-number-of-days-to-eat-n-oranges",
+          "number-of-strings-which-can-be-rearranged-to-contain-substring",
+          "minimum-cost-to-change-the-final-value-of-expression"
+        ]
+      },
+      {
+        "key": "section-78",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
+    ],
     "sourceUrl": "https://leetcode.cn/discuss/post/tXLS3i/",
     "title": "动态规划",
     "titleEn": "Dynamic Programming"
@@ -2131,6 +4845,1120 @@ export const leetcodeLingShenGroups = ([
       "1ybDKD",
       "cnHoX6"
     ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "零、常用枚举技巧",
+        "titleEn": "零、常用枚举技巧",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "§0.1 枚举右，维护左",
+        "titleEn": "§0.1 枚举右，维护左",
+        "memberSlugs": [
+          "two-sum"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "§0.1.1 基础",
+        "titleEn": "§0.1.1 基础",
+        "memberSlugs": [
+          "two-sum",
+          "number-of-good-pairs",
+          "largest-positive-integer-that-exists-with-its-negative",
+          "best-time-to-buy-and-sell-stock",
+          "maximum-difference-between-increasing-elements",
+          "maximum-distance-in-arrays",
+          "minimum-absolute-difference-between-two-values",
+          "max-sum-of-a-pair-with-equal-sum-of-digits",
+          "number-of-equivalent-domino-pairs",
+          "max-number-of-k-sum-pairs",
+          "pairs-with-sum-lcci",
+          "contains-duplicate-ii",
+          "minimum-consecutive-cards-to-pick-up",
+          "number-of-pairs-of-interchangeable-rectangles",
+          "max-pair-sum-in-an-array",
+          "count-number-of-trapezoids-i",
+          "count-number-of-bad-pairs",
+          "count-caesar-cipher-pairs",
+          "identify-the-largest-outlier-in-an-array",
+          "minimum-absolute-distance-between-mirror-pairs",
+          "best-sightseeing-pair",
+          "count-nice-pairs-in-an-array",
+          "maximum-product-of-first-and-last-elements-of-a-subsequence",
+          "find-indices-with-index-and-value-difference-ii",
+          "delayed-count-of-equal-elements",
+          "count-smaller-elements-with-opposite-parity"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "§0.1.2 进阶",
+        "titleEn": "§0.1.2 进阶",
+        "memberSlugs": [
+          "pairs-of-songs-with-total-durations-divisible-by-60",
+          "count-pairs-that-form-a-complete-day-ii",
+          "number-of-beautiful-pairs",
+          "count-pairs-of-similar-strings",
+          "maximum-value-of-an-ordered-triplet-ii",
+          "check-if-array-pairs-are-divisible-by-k",
+          "maximum-sum-of-two-non-overlapping-subarrays",
+          "maximize-win-from-two-segments",
+          "count-special-quadruplets",
+          "count-special-subsequences",
+          "count-almost-equal-pairs-ii",
+          "maximize-subarrays-after-removing-one-conflicting-pair",
+          "two-sum-bsts",
+          "number-of-divisible-triplet-sums",
+          "count-indices-with-opposite-parity",
+          "two-furthest-houses-with-different-colors",
+          "4sum-ii",
+          "contains-duplicate-iii",
+          "find-the-number-of-ways-to-place-people-ii",
+          "equal-sum-grid-partition-ii",
+          "longest-balanced-substring-i"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "§0.2 枚举中间",
+        "titleEn": "§0.2 枚举中间",
+        "memberSlugs": [
+          "minimum-sum-of-mountain-triplets-ii",
+          "count-special-triplets",
+          "unique-length-3-palindromic-subsequences",
+          "right-triangles",
+          "maximum-value-of-an-ordered-triplet-ii",
+          "number-of-boomerangs",
+          "132-pattern",
+          "count-pairs-of-connectable-servers-in-a-weighted-tree-network",
+          "count-good-triplets",
+          "shortest-matching-substring",
+          "maximum-score-of-a-node-sequence",
+          "count-valid-paths-in-a-tree",
+          "count-increasing-quadruplets",
+          "maximum-value-sum-by-placing-three-rooks-ii",
+          "maximum-increasing-triplet-value"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "§0.3 遍历对角线",
+        "titleEn": "§0.3 遍历对角线",
+        "memberSlugs": [
+          "sort-matrix-by-diagonals",
+          "difference-of-number-of-distinct-values-on-diagonals",
+          "sort-the-matrix-diagonally",
+          "diagonal-traverse",
+          "max-black-square-lcci",
+          "longest-line-of-consecutive-one-in-matrix"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "一、前缀和",
+        "titleEn": "一、前缀和",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-8",
+        "title": "§1.1 基础",
+        "titleEn": "§1.1 基础",
+        "memberSlugs": [
+          "range-sum-query-immutable",
+          "sum-of-variable-length-subarrays",
+          "count-vowel-strings-in-ranges",
+          "xor-queries-of-a-subarray",
+          "special-array-ii",
+          "maximum-absolute-sum-of-any-subarray",
+          "maximum-subarray",
+          "best-time-to-buy-and-sell-stock-using-strategy",
+          "shift-distance-between-two-strings",
+          "make-a-positive-array",
+          "minimum-time-to-visit-all-houses",
+          "count-odd-numbers-in-an-interval-range",
+          "shifting-letters"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "§1.2 前缀和与哈希表",
+        "titleEn": "§1.2 前缀和与哈希表",
+        "memberSlugs": [
+          "subarray-sum-equals-k",
+          "binary-subarrays-with-sum",
+          "number-of-sub-arrays-with-odd-sum",
+          "subarray-sums-divisible-by-k",
+          "continuous-subarray-sum",
+          "count-the-number-of-beautiful-subarrays",
+          "contiguous-array",
+          "find-longest-subarray-lcci",
+          "find-maximum-balanced-xor-subarray-length",
+          "maximum-good-subarray-sum",
+          "find-two-non-overlapping-sub-arrays-each-with-target-sum",
+          "maximum-number-of-non-overlapping-subarrays-with-sum-equals-target",
+          "longest-well-performing-interval",
+          "stable-subarrays-with-equal-boundary-and-interior-sum",
+          "maximum-subarray-sum-with-length-divisible-by-k",
+          "count-subarrays-with-median-k",
+          "make-sum-divisible-by-p",
+          "count-of-interesting-subarrays",
+          "count-subarrays-with-majority-element-ii",
+          "longest-balanced-substring-after-one-swap",
+          "number-of-submatrices-that-sum-to-target",
+          "count-triplets-that-can-form-two-arrays-of-equal-xor",
+          "longest-balanced-substring-ii",
+          "maximum-number-of-ways-to-partition-an-array",
+          "count-distinct-subarrays-divisible-by-k-in-sorted-array",
+          "count-beautiful-substrings-ii",
+          "maximum-size-subarray-sum-equals-k",
+          "split-array-with-equal-sum",
+          "widest-pair-of-indices-with-equal-range-sum",
+          "number-of-substrings-with-fixed-ratio",
+          "count-subarrays-with-more-ones-than-zeros",
+          "number-of-divisible-substrings",
+          "minimum-positive-sum-subarray",
+          "max-sum-of-rectangle-no-larger-than-k",
+          "path-sum-iii"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "§1.3 距离和",
+        "titleEn": "§1.3 距离和",
+        "memberSlugs": [
+          "minimum-operations-to-make-all-array-elements-equal",
+          "sum-of-absolute-differences-in-a-sorted-array",
+          "sum-of-distances",
+          "apply-operations-to-maximize-frequency-score",
+          "minimum-adjacent-swaps-for-k-consecutive-ones",
+          "minimum-moves-to-pick-k-ones",
+          "minimum-operations-to-make-subarray-elements-equal"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "§1.4 状态压缩前缀和",
+        "titleEn": "§1.4 状态压缩前缀和",
+        "memberSlugs": [
+          "can-make-palindrome-from-substring",
+          "find-the-longest-substring-containing-vowels-in-even-counts",
+          "find-longest-awesome-substring",
+          "number-of-wonderful-substrings",
+          "count-paths-that-can-form-a-palindrome-in-a-tree"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "§1.5 进阶",
+        "titleEn": "§1.5 进阶",
+        "memberSlugs": [
+          "longest-subsequence-with-limited-sum",
+          "design-exam-scores-tracker",
+          "minimum-cost-to-move-between-indices",
+          "largest-magic-square",
+          "plates-between-candles",
+          "can-you-eat-your-favorite-candy-on-your-favorite-day",
+          "get-biggest-three-rhombus-sums-in-a-grid",
+          "concatenate-non-zero-digits-and-multiply-by-sum-ii",
+          "maximum-sum-of-two-non-overlapping-subarrays",
+          "maximum-trailing-zeros-in-a-cornered-path",
+          "ways-to-split-array-into-three-subarrays",
+          "sum-of-floored-pairs",
+          "count-stable-subarrays",
+          "sum-of-total-strength-of-wizards",
+          "maximum-difference-between-even-and-odd-frequency-ii",
+          "palindrome-rearrangement-queries",
+          "number-of-same-end-substrings",
+          "maximize-the-beauty-of-the-garden",
+          "minimum-relative-loss-after-buying-chocolates",
+          "successful-pairs-of-spells-and-potions",
+          "count-good-triplets"
+        ]
+      },
+      {
+        "key": "section-13",
+        "title": "§1.6 二维前缀和",
+        "titleEn": "§1.6 二维前缀和",
+        "memberSlugs": [
+          "range-sum-query-2d-immutable",
+          "matrix-block-sum",
+          "count-submatrices-with-top-left-element-and-sum-less-than-k",
+          "find-kth-largest-xor-coordinate-value",
+          "count-submatrices-with-equal-frequency-of-x-and-y",
+          "maximum-side-length-of-a-square-with-sum-less-than-or-equal-to-threshold",
+          "maximum-difference-score-in-a-grid"
+        ]
+      },
+      {
+        "key": "section-14",
+        "title": "二、差分",
+        "titleEn": "二、差分",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-15",
+        "title": "§2.1 一维差分",
+        "titleEn": "§2.1 一维差分",
+        "memberSlugs": [
+          "car-pooling"
+        ]
+      },
+      {
+        "key": "section-16",
+        "title": "§2.1.1 基础",
+        "titleEn": "§2.1.1 基础",
+        "memberSlugs": [
+          "points-that-intersect-with-cars",
+          "check-if-all-the-integers-in-a-range-are-covered",
+          "maximum-population-year",
+          "living-people-lcci",
+          "count-tested-devices-after-test-operations",
+          "car-pooling",
+          "corporate-flight-bookings",
+          "zero-array-transformation-i",
+          "range-addition"
+        ]
+      },
+      {
+        "key": "section-17",
+        "title": "§2.1.2 进阶",
+        "titleEn": "§2.1.2 进阶",
+        "memberSlugs": [
+          "minimum-operations-to-make-array-non-decreasing",
+          "separate-squares-i",
+          "shifting-letters-ii",
+          "minimum-number-of-k-consecutive-bit-flips",
+          "maximum-sum-obtained-of-any-permutation",
+          "minimum-number-of-increments-on-subarrays-to-form-a-target-array",
+          "zero-array-transformation-ii",
+          "describe-the-painting",
+          "minimum-array-changes-to-make-differences-equal",
+          "number-of-people-aware-of-a-secret",
+          "number-of-flowers-in-full-bloom",
+          "apply-operations-to-make-all-array-elements-equal-to-zero",
+          "minimum-operations-to-make-array-equal-to-target",
+          "count-cells-in-overlapping-horizontal-and-vertical-substrings",
+          "smallest-rotation-with-highest-score",
+          "maximum-frequency-of-an-element-after-performing-operations-ii",
+          "maximize-the-minimum-powered-city",
+          "minimum-moves-to-make-array-complementary",
+          "zero-array-transformation-iii",
+          "xor-after-range-multiplication-queries-ii",
+          "count-the-number-of-houses-at-a-certain-distance-ii",
+          "brightest-position-on-street",
+          "average-height-of-buildings-in-each-segment",
+          "count-positions-on-street-with-required-brightness",
+          "maximum-number-of-intersections-on-the-chart",
+          "maximum-total-area-occupied-by-pistons",
+          "merge-intervals",
+          "insert-interval",
+          "my-calendar-iii",
+          "divide-intervals-into-minimum-number-of-groups",
+          "meeting-rooms-ii",
+          "employee-free-time"
+        ]
+      },
+      {
+        "key": "section-18",
+        "title": "§2.2 二维差分",
+        "titleEn": "§2.2 二维差分",
+        "memberSlugs": [
+          "stamping-the-grid",
+          "increment-submatrices-by-one",
+          "rectangle-area-ii",
+          "xepqZ5",
+          "minimum-operations-to-make-all-grid-elements-equal"
+        ]
+      },
+      {
+        "key": "section-19",
+        "title": "三、栈",
+        "titleEn": "三、栈",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-20",
+        "title": "§3.1 基础",
+        "titleEn": "§3.1 基础",
+        "memberSlugs": [
+          "build-an-array-with-stack-operations",
+          "backspace-string-compare",
+          "baseball-game",
+          "removing-stars-from-a-string",
+          "design-browser-history",
+          "validate-stack-sequences",
+          "find-mirror-score-of-a-string",
+          "simplify-path"
+        ]
+      },
+      {
+        "key": "section-21",
+        "title": "§3.2 进阶",
+        "titleEn": "§3.2 进阶",
+        "memberSlugs": [
+          "lexicographically-minimum-string-after-removing-stars",
+          "min-stack",
+          "design-a-stack-with-increment-operation",
+          "exclusive-time-of-functions",
+          "using-a-robot-to-print-the-lexicographically-smallest-string",
+          "maximum-frequency-stack",
+          "dinner-plate-stacks",
+          "minimum-time-to-complete-all-tasks",
+          "maximum-frequency-score-of-a-subarray",
+          "max-stack"
+        ]
+      },
+      {
+        "key": "section-22",
+        "title": "§3.3 邻项消除",
+        "titleEn": "§3.3 邻项消除",
+        "memberSlugs": [
+          "minimum-string-length-after-removing-substrings",
+          "remove-all-adjacent-duplicates-in-string",
+          "make-the-string-great",
+          "resulting-string-after-adjacent-removals",
+          "check-if-word-is-valid-after-substitutions",
+          "merge-adjacent-equal-elements",
+          "minimum-deletions-to-make-array-beautiful",
+          "remove-all-adjacent-duplicates-in-string-ii",
+          "remove-k-balanced-substrings",
+          "maximum-score-from-removing-substrings",
+          "replace-non-coprime-numbers-in-array",
+          "asteroid-collision",
+          "robot-collisions"
+        ]
+      },
+      {
+        "key": "section-23",
+        "title": "§3.4 合法括号字符串（RBS）",
+        "titleEn": "§3.4 合法括号字符串（RBS）",
+        "memberSlugs": [
+          "valid-parentheses",
+          "minimum-add-to-make-parentheses-valid",
+          "remove-outermost-parentheses",
+          "maximum-nesting-depth-of-the-parentheses",
+          "reverse-substrings-between-each-pair-of-parentheses",
+          "score-of-parentheses",
+          "minimum-remove-to-make-valid-parentheses",
+          "minimum-number-of-swaps-to-make-the-string-balanced",
+          "valid-parenthesis-string",
+          "maximum-nesting-depth-of-two-valid-parentheses-strings",
+          "minimum-insertions-to-balance-a-parentheses-string",
+          "check-if-a-parentheses-string-can-be-valid",
+          "longest-valid-parentheses"
+        ]
+      },
+      {
+        "key": "section-24",
+        "title": "§3.5 表达式解析",
+        "titleEn": "§3.5 表达式解析",
+        "memberSlugs": [
+          "clumsy-factorial",
+          "evaluate-reverse-polish-notation",
+          "decode-string",
+          "string-to-integer-atoi",
+          "basic-calculator",
+          "basic-calculator-ii",
+          "number-of-atoms",
+          "parsing-a-boolean-expression",
+          "tag-validator",
+          "parse-lisp-expression",
+          "brace-expansion-ii",
+          "minimum-cost-to-change-the-final-value-of-expression",
+          "valid-number",
+          "basic-calculator-iv",
+          "ternary-expression-parser",
+          "evaluate-valid-expressions",
+          "basic-calculator-iii",
+          "brace-expansion",
+          "build-binary-expression-tree-from-infix-expression",
+          "design-an-expression-tree-with-evaluate-function"
+        ]
+      },
+      {
+        "key": "section-25",
+        "title": "§3.6 对顶栈",
+        "titleEn": "§3.6 对顶栈",
+        "memberSlugs": [
+          "design-a-text-editor"
+        ]
+      },
+      {
+        "key": "section-26",
+        "title": "§3.7 单调栈",
+        "titleEn": "§3.7 单调栈",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-27",
+        "title": "四、队列",
+        "titleEn": "四、队列",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-28",
+        "title": "§4.1 基础",
+        "titleEn": "§4.1 基础",
+        "memberSlugs": [
+          "number-of-recent-calls",
+          "design-ride-sharing-system",
+          "reveal-cards-in-increasing-order",
+          "dota2-senate",
+          "moving-average-from-data-stream",
+          "design-hit-counter",
+          "maximum-requests-without-violating-the-limit",
+          "design-phone-directory",
+          "first-unique-number",
+          "time-taken-to-cross-the-door"
+        ]
+      },
+      {
+        "key": "section-29",
+        "title": "§4.2 设计",
+        "titleEn": "§4.2 设计",
+        "memberSlugs": [
+          "design-front-middle-back-queue",
+          "implement-router",
+          "implement-stack-using-queues",
+          "implement-queue-using-stacks",
+          "design-circular-queue",
+          "design-circular-deque"
+        ]
+      },
+      {
+        "key": "section-30",
+        "title": "§4.3 双端队列",
+        "titleEn": "§4.3 双端队列",
+        "memberSlugs": [
+          "faulty-keyboard",
+          "maximum-number-of-tasks-you-can-assign"
+        ]
+      },
+      {
+        "key": "section-31",
+        "title": "§4.4 单调队列",
+        "titleEn": "§4.4 单调队列",
+        "memberSlugs": [
+          "sliding-window-maximum",
+          "dui-lie-de-zui-da-zhi-lcof",
+          "longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit",
+          "continuous-subarrays",
+          "count-subarrays-with-cost-less-than-or-equal-to-k",
+          "maximum-number-of-robots-within-budget",
+          "count-prime-gap-balanced-subarrays",
+          "shortest-subarray-with-sum-at-least-k",
+          "max-value-of-equation"
+        ]
+      },
+      {
+        "key": "section-32",
+        "title": "五、堆（优先队列）",
+        "titleEn": "五、堆（优先队列）",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-33",
+        "title": "§5.1 基础",
+        "titleEn": "§5.1 基础",
+        "memberSlugs": [
+          "take-gifts-from-the-richest-pile",
+          "last-stone-weight",
+          "final-array-state-after-k-multiplication-operations-i",
+          "smallest-number-in-infinite-set",
+          "maximal-score-after-applying-k-operations",
+          "minimum-operations-to-exceed-threshold-value-ii",
+          "remove-stones-to-minimize-the-total",
+          "kth-largest-element-in-a-stream",
+          "k-th-nearest-obstacle-queries",
+          "seat-reservation-manager",
+          "minimum-operations-to-halve-array-sum",
+          "maximum-product-after-k-increments",
+          "minimum-number-of-seconds-to-make-mountain-height-zero",
+          "the-number-of-the-smallest-unoccupied-chair",
+          "number-of-orders-in-the-backlog",
+          "divide-intervals-into-minimum-number-of-groups",
+          "choose-k-elements-with-maximum-sum",
+          "total-cost-to-hire-k-workers",
+          "single-threaded-cpu",
+          "maximum-average-pass-ratio",
+          "minimum-cost-to-connect-sticks",
+          "meeting-rooms-ii"
+        ]
+      },
+      {
+        "key": "section-34",
+        "title": "§5.2 进阶",
+        "titleEn": "§5.2 进阶",
+        "memberSlugs": [
+          "merge-k-sorted-lists",
+          "maximum-spending-after-buying-items",
+          "maximum-score-after-binary-swaps",
+          "ipo",
+          "maximum-number-of-eaten-apples",
+          "swim-in-rising-water",
+          "path-with-minimum-effort",
+          "process-tasks-using-servers",
+          "construct-target-array-with-multiple-sums",
+          "maximum-number-of-events-that-can-be-attended",
+          "maximum-profit-in-job-scheduling",
+          "smallest-range-covering-elements-from-k-lists",
+          "maximum-subsequence-score",
+          "maximum-performance-of-a-team",
+          "meeting-rooms-iii",
+          "maximum-number-of-points-from-grid-queries",
+          "minimum-difference-in-sums-after-removal-of-elements",
+          "minimum-cost-to-hire-k-workers",
+          "find-servers-that-handled-most-number-of-requests",
+          "minimum-interval-to-include-each-query",
+          "trapping-rain-water-ii",
+          "find-building-where-alice-and-bob-can-meet",
+          "smallest-substring-with-identical-characters-ii",
+          "final-array-state-after-k-multiplication-operations-ii",
+          "minimize-deviation-in-array",
+          "minimum-number-of-visited-cells-in-a-grid",
+          "time-to-cross-a-bridge",
+          "o8SXZn",
+          "design-a-file-sharing-system",
+          "minimum-time-to-build-blocks",
+          "find-time-required-to-eliminate-bacterial-strains",
+          "tweet-counts-per-frequency",
+          "exam-room",
+          "design-movie-rental-system"
+        ]
+      },
+      {
+        "key": "section-35",
+        "title": "§5.3 第 K 小/大",
+        "titleEn": "§5.3 第 K 小/大",
+        "memberSlugs": [
+          "ugly-number-ii",
+          "kth-smallest-element-in-a-sorted-matrix",
+          "merge-k-sorted-lists",
+          "find-k-pairs-with-smallest-sums",
+          "find-the-kth-smallest-sum-of-a-matrix-with-sorted-rows",
+          "k-th-smallest-prime-fraction",
+          "maximum-total-subarray-value-ii",
+          "find-the-k-sum-of-an-array"
+        ]
+      },
+      {
+        "key": "section-36",
+        "title": "§5.4 重排元素",
+        "titleEn": "§5.4 重排元素",
+        "memberSlugs": [
+          "string-without-aaa-or-bbb",
+          "reorganize-string",
+          "distant-barcodes",
+          "longest-happy-string",
+          "replace-question-marks-in-string-to-minimize-its-value",
+          "task-scheduler",
+          "rearrange-string-k-distance-apart"
+        ]
+      },
+      {
+        "key": "section-37",
+        "title": "§5.5 反悔堆",
+        "titleEn": "§5.5 反悔堆",
+        "memberSlugs": [
+          "p0NxJO",
+          "furthest-building-you-can-reach",
+          "course-schedule-iii",
+          "minimum-number-of-refueling-stops",
+          "zero-array-transformation-iii",
+          "maximum-elegance-of-a-k-length-subsequence",
+          "pizza-with-3n-slices",
+          "minimum-operations-to-achieve-at-least-k-peaks",
+          "earliest-second-to-mark-indices-ii",
+          "maximum-transactions-without-negative-balance",
+          "make-the-prefix-sum-non-negative"
+        ]
+      },
+      {
+        "key": "section-38",
+        "title": "§5.6 懒删除堆",
+        "titleEn": "§5.6 懒删除堆",
+        "memberSlugs": [
+          "design-a-number-container-system",
+          "design-event-manager",
+          "power-grid-maintenance",
+          "design-a-food-rating-system",
+          "most-frequent-ids",
+          "design-task-manager",
+          "stock-price-fluctuation",
+          "design-auction-system",
+          "dinner-plate-stacks",
+          "the-skyline-problem",
+          "minimum-pair-removal-to-sort-array-ii",
+          "sum-of-weighted-modes-in-subarrays",
+          "design-a-3d-binary-matrix-with-efficient-layer-tracking",
+          "max-stack"
+        ]
+      },
+      {
+        "key": "section-39",
+        "title": "§5.7 对顶堆（滑动窗口第 K 小/大）",
+        "titleEn": "§5.7 对顶堆（滑动窗口第 K 小/大）",
+        "memberSlugs": [
+          "find-median-from-data-stream",
+          "sequentially-ordinal-rank-tracker",
+          "sliding-window-median",
+          "sliding-subarray-beauty",
+          "finding-mk-average",
+          "minimum-operations-to-make-elements-within-k-subarrays-equal",
+          "divide-an-array-into-subarrays-with-minimum-cost-ii",
+          "find-x-sum-of-all-k-long-subarrays-ii",
+          "5TxKeK",
+          "design-an-array-statistics-tracker",
+          "minimum-operations-to-make-subarray-elements-equal"
+        ]
+      },
+      {
+        "key": "section-40",
+        "title": "六、字典树（trie）",
+        "titleEn": "六、字典树（trie）",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-41",
+        "title": "§6.1 基础",
+        "titleEn": "§6.1 基础",
+        "memberSlugs": [
+          "implement-trie-prefix-tree",
+          "partition-string",
+          "find-the-length-of-the-longest-common-prefix",
+          "replace-words",
+          "longest-word-in-dictionary",
+          "sum-of-prefix-scores-of-strings",
+          "map-sum-pairs",
+          "search-suggestions-system",
+          "remove-sub-folders-from-the-filesystem",
+          "short-encoding-of-words",
+          "k-divisible-elements-subarrays",
+          "implement-trie-ii-prefix-tree",
+          "unique-substrings-with-equal-digit-frequency"
+        ]
+      },
+      {
+        "key": "section-42",
+        "title": "§6.2 进阶",
+        "titleEn": "§6.2 进阶",
+        "memberSlugs": [
+          "design-add-and-search-words-data-structure",
+          "implement-magic-dictionary",
+          "word-search-ii",
+          "longest-common-suffix-queries",
+          "prefix-and-suffix-search",
+          "count-prefix-and-suffix-pairs-ii",
+          "palindrome-pairs",
+          "delete-duplicate-folders-in-system",
+          "word-squares",
+          "word-abbreviation",
+          "design-in-memory-file-system",
+          "add-bold-tag-in-string",
+          "bold-words-in-string",
+          "design-search-autocomplete-system",
+          "index-pairs-of-a-string",
+          "design-file-system",
+          "longest-word-with-all-prefixes",
+          "k-th-smallest-in-lexicographical-order"
+        ]
+      },
+      {
+        "key": "section-43",
+        "title": "§6.3 字典树优化 DP",
+        "titleEn": "§6.3 字典树优化 DP",
+        "memberSlugs": [
+          "word-break",
+          "word-break-ii",
+          "re-space-lcci",
+          "concatenated-words",
+          "minimum-cost-to-convert-string-ii"
+        ]
+      },
+      {
+        "key": "section-44",
+        "title": "§6.4 0-1 字典树（异或字典树）",
+        "titleEn": "§6.4 0-1 字典树（异或字典树）",
+        "memberSlugs": [
+          "maximum-xor-of-two-numbers-in-an-array",
+          "maximum-strong-pair-xor-ii",
+          "maximum-subarray-xor-with-bounded-range",
+          "maximum-xor-with-an-element-from-array",
+          "count-pairs-with-xor-in-a-range",
+          "maximum-genetic-difference-query",
+          "subarrays-with-xor-at-least-k",
+          "maximum-xor-of-two-non-overlapping-subtrees"
+        ]
+      },
+      {
+        "key": "section-45",
+        "title": "七、并查集",
+        "titleEn": "七、并查集",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-46",
+        "title": "§7.1 基础",
+        "titleEn": "§7.1 基础",
+        "memberSlugs": [
+          "redundant-connection",
+          "properties-graph",
+          "satisfiability-of-equality-equations",
+          "accounts-merge",
+          "path-existence-queries-in-a-graph-i",
+          "sentence-similarity-ii",
+          "the-earliest-moment-when-everyone-become-friends",
+          "synonymous-sentences"
+        ]
+      },
+      {
+        "key": "section-47",
+        "title": "§7.2 进阶",
+        "titleEn": "§7.2 进阶",
+        "memberSlugs": [
+          "minimum-swaps-to-sort-by-digit-sum",
+          "minimum-number-of-operations-to-sort-a-binary-tree-by-level",
+          "smallest-string-with-swaps",
+          "lexicographically-smallest-equivalent-string",
+          "minimize-hamming-distance-after-swap-operations",
+          "minimum-time-for-k-connected-components",
+          "minimize-maximum-component-cost",
+          "swim-in-rising-water",
+          "maximize-alternating-sum-using-swaps",
+          "couples-holding-hands",
+          "find-all-people-with-secret",
+          "similar-string-groups",
+          "redundant-connection-ii",
+          "last-day-where-you-can-still-cross",
+          "process-restricted-friend-requests",
+          "remove-max-number-of-edges-to-keep-graph-fully-traversable",
+          "regions-cut-by-slashes",
+          "find-the-safest-path-in-a-grid",
+          "maximum-number-of-points-from-grid-queries",
+          "maximize-spanning-tree-stability-with-upgrades",
+          "count-valid-paths-in-a-tree",
+          "number-of-good-paths",
+          "groups-of-strings",
+          "bricks-falling-when-hit",
+          "check-if-the-rectangle-corner-is-reachable",
+          "kskhHQ",
+          "sort-array-by-moving-items-to-empty-space"
+        ]
+      },
+      {
+        "key": "section-48",
+        "title": "§7.3 中介并查集",
+        "titleEn": "§7.3 中介并查集",
+        "memberSlugs": [
+          "most-stones-removed-with-same-row-or-column",
+          "maximum-points-activated-with-one-addition",
+          "greatest-common-divisor-traversal",
+          "graph-connectivity-with-threshold",
+          "largest-component-size-by-common-factor",
+          "gcd-sort-of-an-array",
+          "rank-transform-of-a-matrix",
+          "count-connected-components-in-lcm-graph",
+          "minimize-maximum-value-in-a-grid"
+        ]
+      },
+      {
+        "key": "section-49",
+        "title": "§7.4 数组上的并查集",
+        "titleEn": "§7.4 数组上的并查集",
+        "memberSlugs": [
+          "find-latest-group-of-size-m",
+          "avoid-flood-in-the-city",
+          "maximum-number-of-events-that-can-be-attended",
+          "maximum-segment-sum-after-removals",
+          "subarray-with-elements-greater-than-varying-threshold",
+          "minimum-operations-to-equalize-binary-string",
+          "minimum-reverse-operations"
+        ]
+      },
+      {
+        "key": "section-50",
+        "title": "§7.5 区间并查集",
+        "titleEn": "§7.5 区间并查集",
+        "memberSlugs": [
+          "shortest-distance-after-road-addition-queries-ii",
+          "minimum-interval-to-include-each-query",
+          "QO5KpG",
+          "amount-of-new-area-painted-each-day"
+        ]
+      },
+      {
+        "key": "section-51",
+        "title": "§7.6 带权并查集（边权并查集）",
+        "titleEn": "§7.6 带权并查集（边权并查集）",
+        "memberSlugs": [
+          "evaluate-division",
+          "incremental-even-weighted-cycle-queries",
+          "maximum-partition-factor",
+          "check-for-contradictions-in-equations"
+        ]
+      },
+      {
+        "key": "section-52",
+        "title": "八、树状数组和线段树",
+        "titleEn": "八、树状数组和线段树",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-53",
+        "title": "§8.1 树状数组",
+        "titleEn": "§8.1 树状数组",
+        "memberSlugs": [
+          "range-sum-query-mutable",
+          "distribute-elements-into-two-arrays-ii",
+          "number-of-integers-with-popcount-depth-equal-to-k-ii",
+          "peaks-in-array",
+          "minimum-deletions-to-make-alternating-substring",
+          "create-sorted-array-through-instructions",
+          "best-team-with-no-conflicts",
+          "queries-on-a-permutation-with-key",
+          "count-number-of-rectangles-containing-each-point",
+          "count-good-triplets-in-an-array",
+          "count-number-of-teams",
+          "make-array-empty",
+          "maximum-sum-of-alternating-subsequence-with-distance-at-least-k",
+          "sliding-subarray-beauty",
+          "shortest-path-in-a-weighted-tree",
+          "coin-bonus",
+          "minimum-possible-integer-after-at-most-k-adjacent-swaps-on-digits",
+          "palindromic-path-queries-in-a-tree",
+          "maximum-balanced-subsequence-sum",
+          "maximum-sum-queries",
+          "sum-of-beautiful-subsequences",
+          "maximum-area-rectangle-with-point-constraints-ii",
+          "kth-smallest-path-xor-sum",
+          "alternating-groups-iii",
+          "find-the-number-of-ways-to-place-people-ii",
+          "design-most-recently-used-queue",
+          "permutation-sequence",
+          "find-the-index-of-permutation",
+          "count-the-number-of-k-big-indices",
+          "beautiful-pairs",
+          "maximum-profitable-triplets-with-increasing-prices-ii",
+          "range-sum-query-2d-mutable"
+        ]
+      },
+      {
+        "key": "section-54",
+        "title": "§8.2 逆序对",
+        "titleEn": "§8.2 逆序对",
+        "memberSlugs": [
+          "shu-zu-zhong-de-ni-xu-dui-lcof",
+          "count-of-smaller-numbers-after-self",
+          "reverse-pairs",
+          "count-of-range-sum",
+          "number-of-pairs-satisfying-inequality",
+          "minimum-inversion-count-in-subarrays-of-fixed-length",
+          "minimum-adjacent-swaps-to-reach-the-kth-smallest-number",
+          "minimum-number-of-moves-to-make-palindrome",
+          "count-pairs-in-two-arrays"
+        ]
+      },
+      {
+        "key": "section-55",
+        "title": "§8.3 线段树（无区间更新）",
+        "titleEn": "§8.3 线段树（无区间更新）",
+        "memberSlugs": [
+          "maximum-depth-of-binary-tree",
+          "minimum-depth-of-binary-tree",
+          "fruits-into-baskets-iii",
+          "find-building-where-alice-and-bob-can-meet",
+          "booking-concert-tickets-in-groups",
+          "block-placement-queries",
+          "good-subsequence-queries",
+          "longest-substring-of-one-repeating-character",
+          "minimum-deletions-to-make-alternating-substring",
+          "find-x-value-of-array-ii",
+          "maximum-sum-of-subsequence-with-non-adjacent-elements",
+          "maximize-subarray-sum-after-removing-all-occurrences-of-one-element",
+          "maximize-active-section-with-trade-ii",
+          "ryfUiz",
+          "online-majority-element-in-subarray",
+          "longest-increasing-subsequence-ii",
+          "maximum-number-of-jumps-to-reach-the-last-index"
+        ]
+      },
+      {
+        "key": "section-56",
+        "title": "§8.4 Lazy 线段树（有区间更新）",
+        "titleEn": "§8.4 Lazy 线段树（有区间更新）",
+        "memberSlugs": [
+          "handling-sum-queries-after-update",
+          "fancy-sequence",
+          "design-memory-allocator",
+          "minimum-time-to-complete-all-tasks",
+          "minimum-cost-to-split-an-array",
+          "rectangle-area-ii",
+          "separate-squares-ii",
+          "maximize-count-of-distinct-primes-after-split",
+          "longest-balanced-subarray-ii",
+          "subarrays-distinct-element-sum-of-squares-ii",
+          "QO5KpG"
+        ]
+      },
+      {
+        "key": "section-57",
+        "title": "§8.5 动态开点线段树",
+        "titleEn": "§8.5 动态开点线段树",
+        "memberSlugs": [
+          "falling-squares",
+          "range-module",
+          "my-calendar-i",
+          "my-calendar-ii",
+          "my-calendar-iii",
+          "count-integers-in-intervals",
+          "kth-smallest-path-xor-sum"
+        ]
+      },
+      {
+        "key": "section-58",
+        "title": "§8.6 可持久化线段树",
+        "titleEn": "§8.6 可持久化线段树",
+        "memberSlugs": [
+          "minimum-operations-to-equalize-subarrays"
+        ]
+      },
+      {
+        "key": "section-59",
+        "title": "§8.7 ST 表（Sparse Table）",
+        "titleEn": "§8.7 ST 表（Sparse Table）",
+        "memberSlugs": [
+          "maximum-total-subarray-value-ii",
+          "maximize-active-section-with-trade-ii"
+        ]
+      },
+      {
+        "key": "section-60",
+        "title": "九、伸展树（Splay 树）",
+        "titleEn": "九、伸展树（Splay 树）",
+        "memberSlugs": [
+          "design-a-text-editor",
+          "range-xor-queries-with-subarray-reversals"
+        ]
+      },
+      {
+        "key": "section-61",
+        "title": "十、根号算法",
+        "titleEn": "十、根号算法",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-62",
+        "title": "§8.1 根号分解（Sqrt Decomposition）",
+        "titleEn": "§8.1 根号分解（Sqrt Decomposition）",
+        "memberSlugs": [
+          "xor-after-range-multiplication-queries-ii",
+          "you-le-yuan-de-you-lan-ji-hua",
+          "sum-of-special-evenly-spaced-elements-in-array",
+          "maximum-number-of-matching-indices-after-right-shifts"
+        ]
+      },
+      {
+        "key": "section-63",
+        "title": "§8.2 莫队算法",
+        "titleEn": "§8.2 莫队算法",
+        "memberSlugs": [
+          "threshold-majority-queries",
+          "kth-smallest-path-xor-sum"
+        ]
+      },
+      {
+        "key": "section-64",
+        "title": "§8.3 其他",
+        "titleEn": "§8.3 其他",
+        "memberSlugs": [
+          "count-the-number-of-substrings-with-dominant-ones"
+        ]
+      },
+      {
+        "key": "section-65",
+        "title": "专题：离线算法",
+        "titleEn": "专题：离线算法",
+        "memberSlugs": [
+          "query-kth-smallest-trimmed-number",
+          "power-grid-maintenance",
+          "most-beautiful-item-for-each-query",
+          "closest-room",
+          "maximum-number-of-points-from-grid-queries",
+          "minimum-interval-to-include-each-query",
+          "checking-existence-of-edge-length-limited-paths",
+          "find-building-where-alice-and-bob-can-meet",
+          "count-zero-request-servers",
+          "maximum-genetic-difference-query",
+          "maximum-sum-queries",
+          "kth-smallest-path-xor-sum",
+          "maximum-area-rectangle-with-point-constraints-ii"
+        ]
+      },
+      {
+        "key": "section-66",
+        "title": "编程能力强化训练",
+        "titleEn": "编程能力强化训练",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-67",
+        "title": "Part A",
+        "titleEn": "Part A",
+        "memberSlugs": [
+          "integer-to-roman",
+          "roman-to-integer",
+          "integer-to-english-words",
+          "text-justification",
+          "strong-password-checker",
+          "string-to-integer-atoi",
+          "valid-number"
+        ]
+      },
+      {
+        "key": "section-68",
+        "title": "Part B",
+        "titleEn": "Part B",
+        "memberSlugs": [
+          "lru-cache",
+          "lfu-cache",
+          "all-oone-data-structure",
+          "design-skiplist"
+        ]
+      },
+      {
+        "key": "section-69",
+        "title": "Part C",
+        "titleEn": "Part C",
+        "memberSlugs": [
+          "walking-robot-simulation-ii",
+          "find-the-minimum-area-to-cover-all-ones-ii",
+          "time-to-cross-a-bridge",
+          "number-of-valid-move-combinations-on-chessboard",
+          "fsa7oZ",
+          "Za25hA",
+          "De4qBB",
+          "xun-bao",
+          "rMeRt2",
+          "1ybDKD",
+          "cnHoX6"
+        ]
+      },
+      {
+        "key": "section-70",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-71",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
+    ],
     "sourceUrl": "https://leetcode.cn/discuss/post/mOr1u6/",
     "title": "常用数据结构",
     "titleEn": "Data Structures"
@@ -2450,6 +6278,591 @@ export const leetcodeLingShenGroups = ([
       "remove-9",
       "most-expensive-item-that-can-not-be-bought",
       "color-the-triangle-red"
+    ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "前言",
+        "titleEn": "前言",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "一、数论",
+        "titleEn": "一、数论",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-3",
+        "title": "§1.1 判断质数",
+        "titleEn": "§1.1 判断质数",
+        "memberSlugs": [
+          "sum-of-largest-prime-substrings",
+          "maximum-prime-difference",
+          "prime-in-diagonal",
+          "complete-prime-number",
+          "most-frequent-prime",
+          "prime-palindrome"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "§1.2 预处理质数（筛质数）",
+        "titleEn": "§1.2 预处理质数（筛质数）",
+        "memberSlugs": [
+          "count-primes",
+          "split-array-by-prime-indices",
+          "check-if-any-element-has-prime-frequency",
+          "prime-number-of-set-bits-in-binary-representation",
+          "prime-pairs-with-target-sum",
+          "find-the-count-of-numbers-which-are-not-special",
+          "largest-prime-from-consecutive-prime-sum",
+          "closest-prime-numbers-in-range",
+          "prime-subtraction-operation"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "§1.3 质因数分解",
+        "titleEn": "§1.3 质因数分解",
+        "memberSlugs": [
+          "distinct-prime-factors-of-product-of-array",
+          "smallest-value-after-replacing-with-sum-of-prime-factors",
+          "minimum-division-operations-to-make-array-non-decreasing",
+          "minimum-jumps-to-reach-end-via-prime-teleportation",
+          "split-the-array-to-make-coprime-products",
+          "greatest-common-divisor-traversal",
+          "sum-of-perfect-square-ancestors",
+          "maximum-element-sum-of-a-complete-subset-of-indices",
+          "apply-operations-to-maximize-score",
+          "gcd-sort-of-an-array",
+          "count-ways-to-make-array-with-product",
+          "count-the-number-of-ideal-arrays",
+          "qie-fen-shu-zu"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "§1.4 阶乘分解",
+        "titleEn": "§1.4 阶乘分解",
+        "memberSlugs": [
+          "factorial-trailing-zeroes",
+          "preimage-size-of-factorial-zeroes-function"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "§1.5 因子",
+        "titleEn": "§1.5 因子",
+        "memberSlugs": [
+          "number-of-common-factors",
+          "three-divisors",
+          "the-kth-factor-of-n",
+          "perfect-number",
+          "four-divisors",
+          "closest-divisors",
+          "consecutive-numbers-sum",
+          "assign-elements-to-groups-with-constraints",
+          "find-the-number-of-good-pairs-ii",
+          "count-equal-and-divisible-pairs-in-an-array",
+          "count-array-pairs-divisible-by-k",
+          "largest-component-size-by-common-factor",
+          "graph-connectivity-with-threshold",
+          "number-of-single-divisor-triplets",
+          "minimum-factorization",
+          "smallest-number-with-given-digit-product"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "§1.6 最大公约数（GCD）",
+        "titleEn": "§1.6 最大公约数（GCD）",
+        "memberSlugs": [
+          "find-greatest-common-divisor-of-array",
+          "gcd-of-odd-and-even-sums",
+          "count-operations-to-obtain-zero",
+          "x-of-a-kind-in-a-deck-of-cards",
+          "greatest-common-divisor-of-strings",
+          "minimum-deletions-to-make-array-divisible",
+          "water-and-jug-problem",
+          "minimum-number-of-operations-to-make-all-array-elements-equal-to-1",
+          "check-if-it-is-a-good-array",
+          "lexicographically-smallest-string-after-applying-operations",
+          "make-k-subarray-sums-equal",
+          "number-of-subarrays-with-gcd-equal-to-k",
+          "check-if-point-is-reachable",
+          "maximize-subarray-gcd-score",
+          "sorted-gcd-pair-queries",
+          "count-ways-to-choose-coprime-integers-from-rows",
+          "number-of-different-subsequences-gcds",
+          "sum-of-beautiful-subsequences",
+          "minimum-split-into-subarrays-with-gcd-greater-than-one",
+          "minimum-subarrays-in-a-valid-split",
+          "maximum-gcd-sum-of-a-subarray",
+          "insert-greatest-common-divisors-in-linked-list"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "§1.7 最小公倍数（LCM）",
+        "titleEn": "§1.7 最小公倍数（LCM）",
+        "memberSlugs": [
+          "smallest-even-multiple",
+          "find-the-maximum-factor-score-of-array",
+          "mirror-reflection",
+          "replace-non-coprime-numbers-in-array",
+          "number-of-subarrays-with-lcm-equal-to-k"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "§1.8 互质",
+        "titleEn": "§1.8 互质",
+        "memberSlugs": [
+          "number-of-beautiful-pairs",
+          "simplified-fractions",
+          "tree-of-coprimes",
+          "maximum-subarray-with-equal-products"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "§1.9 同余",
+        "titleEn": "§1.9 同余",
+        "memberSlugs": [
+          "destroy-sequential-targets",
+          "smallest-missing-non-negative-integer-after-operations",
+          "make-sum-divisible-by-p"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "§1.10 数论分块",
+        "titleEn": "§1.10 数论分块",
+        "memberSlugs": [
+          "count-square-sum-triples"
+        ]
+      },
+      {
+        "key": "section-13",
+        "title": "§1.11 其他",
+        "titleEn": "§1.11 其他",
+        "memberSlugs": [
+          "binary-prefix-divisible-by-5",
+          "power-of-three",
+          "sort-integers-by-the-power-value",
+          "super-pow",
+          "smallest-integer-divisible-by-k",
+          "smallest-all-ones-multiple",
+          "sum-of-square-numbers",
+          "perfect-squares",
+          "number-of-ways-to-buy-pens-and-pencils"
+        ]
+      },
+      {
+        "key": "section-14",
+        "title": "二、组合数学",
+        "titleEn": "二、组合数学",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-15",
+        "title": "§2.1 乘法原理",
+        "titleEn": "§2.1 乘法原理",
+        "memberSlugs": [
+          "right-triangles",
+          "number-of-ways-to-split-a-string",
+          "ways-to-split-array-into-good-subarrays",
+          "count-unreachable-pairs-of-nodes-in-an-undirected-graph",
+          "count-collisions-of-monkeys-on-a-polygon",
+          "count-good-numbers",
+          "count-pairs-of-connectable-servers-in-a-weighted-tree-network",
+          "number-of-ways-to-divide-a-long-corridor",
+          "count-the-number-of-good-partitions",
+          "naming-a-company",
+          "count-valid-paths-in-a-tree",
+          "count-subtrees-with-max-distance-between-cities",
+          "number-of-distinct-binary-strings-after-applying-operations"
+        ]
+      },
+      {
+        "key": "section-16",
+        "title": "§2.2 组合计数",
+        "titleEn": "§2.2 组合计数",
+        "memberSlugs": [
+          "unique-paths",
+          "count-numbers-with-unique-digits",
+          "prime-arrangements",
+          "find-the-n-th-value-after-k-seconds",
+          "count-all-valid-pickup-and-delivery-options",
+          "number-of-ways-to-reach-a-position-after-exactly-k-steps",
+          "number-of-ways-to-assign-edge-weights-i",
+          "find-nth-smallest-integer-with-k-one-bits",
+          "prime-number-of-set-bits-in-binary-representation",
+          "count-anagrams",
+          "find-number-of-ways-to-reach-the-k-th-stair",
+          "kth-smallest-instructions",
+          "count-k-subsequences-of-a-string-with-maximum-beauty",
+          "find-triangular-sum-of-an-array",
+          "check-if-digits-are-equal-in-string-after-operations-ii",
+          "count-numbers-with-non-decreasing-digits",
+          "number-of-ways-to-reorder-array-to-get-same-bst",
+          "count-the-number-of-arrays-with-k-matching-adjacent-elements",
+          "number-of-ways-to-rearrange-sticks-with-k-sticks-visible",
+          "probability-of-a-two-boxes-having-the-same-number-of-distinct-balls",
+          "smallest-palindromic-rearrangement-ii",
+          "find-the-count-of-good-integers",
+          "find-the-number-of-possible-ways-for-an-event",
+          "permutations-iv",
+          "count-ways-to-build-rooms-in-an-ant-colony",
+          "count-number-of-balanced-permutations",
+          "minimum-number-of-operations-to-make-string-sorted",
+          "count-the-number-of-infection-sequences",
+          "find-sum-of-array-product-of-magical-sequences",
+          "subsequences-with-a-unique-middle-mode-i",
+          "count-all-possible-routes",
+          "find-the-count-of-monotonic-pairs-ii",
+          "Uh984O",
+          "count-the-number-of-good-subsequences",
+          "find-the-derangement-of-an-array",
+          "count-ways-to-distribute-candies"
+        ]
+      },
+      {
+        "key": "section-17",
+        "title": "§2.3 放球问题",
+        "titleEn": "§2.3 放球问题",
+        "memberSlugs": [
+          "count-ways-to-make-array-with-product",
+          "count-sorted-vowel-strings",
+          "number-of-sets-of-k-non-overlapping-line-segments",
+          "count-the-number-of-ideal-arrays",
+          "balanced-k-factor-decomposition"
+        ]
+      },
+      {
+        "key": "section-18",
+        "title": "§2.4 容斥原理",
+        "titleEn": "§2.4 容斥原理",
+        "memberSlugs": [
+          "sum-multiples",
+          "nth-magical-number",
+          "ugly-number-iii",
+          "distribute-candies-among-children-ii",
+          "number-of-strings-which-can-be-rearranged-to-contain-substring",
+          "minimize-the-maximum-of-two-arrays",
+          "minimum-time-to-complete-all-deliveries",
+          "kth-smallest-amount-with-single-denomination-combination",
+          "number-of-effective-subsequences",
+          "find-all-possible-stable-binary-arrays-ii",
+          "number-of-music-playlists",
+          "find-the-number-of-subsequences-with-equal-gcd",
+          "distribute-candies-among-children-iii"
+        ]
+      },
+      {
+        "key": "section-19",
+        "title": "§2.5 生成函数（母函数）",
+        "titleEn": "§2.5 生成函数（母函数）",
+        "memberSlugs": [
+          "number-of-dice-rolls-with-target-sum",
+          "k-inverse-pairs-array",
+          "count-the-number-of-inversions",
+          "find-the-sum-of-the-power-of-all-subsequences",
+          "number-of-great-partitions",
+          "find-the-original-typed-string-ii"
+        ]
+      },
+      {
+        "key": "section-20",
+        "title": "三、概率期望",
+        "titleEn": "三、概率期望",
+        "memberSlugs": [
+          "airplane-seat-assignment-probability",
+          "knight-probability-in-chessboard",
+          "new-21-game",
+          "probability-of-a-two-boxes-having-the-same-number-of-distinct-balls",
+          "soup-servings",
+          "nge-tou-zi-de-dian-shu-lcof",
+          "qi-wang-ge-shu-tong-ji",
+          "toss-strange-coins",
+          "find-the-minimum-amount-of-time-to-brew-potions"
+        ]
+      },
+      {
+        "key": "section-21",
+        "title": "四、博弈论",
+        "titleEn": "四、博弈论",
+        "memberSlugs": [
+          "nim-game",
+          "divisor-game",
+          "vowels-game-in-a-string",
+          "remove-colored-pieces-if-both-neighbors-are-the-same-color",
+          "stone-game",
+          "final-element-after-subarray-deletions",
+          "stone-game-iv",
+          "predict-the-winner",
+          "stone-game-vii",
+          "stone-game-vi",
+          "sum-game",
+          "stone-game-iii",
+          "stone-game-ii",
+          "stone-game-v",
+          "can-i-win",
+          "stone-game-ix",
+          "chalkboard-xor-game",
+          "stone-game-viii",
+          "cat-and-mouse",
+          "cat-and-mouse-ii",
+          "fsa7oZ",
+          "flip-game-ii",
+          "game-of-nim",
+          "subtree-removal-game-with-fibonacci-tree",
+          "the-wording-game"
+        ]
+      },
+      {
+        "key": "section-22",
+        "title": "五、计算几何",
+        "titleEn": "五、计算几何",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-23",
+        "title": "§5.1 点、线",
+        "titleEn": "§5.1 点、线",
+        "memberSlugs": [
+          "check-if-it-is-a-straight-line",
+          "minimum-lines-to-represent-a-line-chart",
+          "maximum-number-of-visible-points",
+          "intersection-lcci",
+          "bisect-squares-lcci",
+          "best-line-lcci",
+          "zui-xiao-ju-xing-mian-ji",
+          "minimum-number-of-lines-to-cover-points"
+        ]
+      },
+      {
+        "key": "section-24",
+        "title": "§5.2 圆",
+        "titleEn": "§5.2 圆",
+        "memberSlugs": [
+          "circle-and-rectangle-overlapping",
+          "maximum-number-of-darts-inside-of-a-circular-dartboard",
+          "vFjcfV",
+          "check-if-the-rectangle-corner-is-reachable",
+          "erect-the-fence-ii"
+        ]
+      },
+      {
+        "key": "section-25",
+        "title": "§5.3 矩形、多边形",
+        "titleEn": "§5.3 矩形、多边形",
+        "memberSlugs": [
+          "rectangle-overlap",
+          "rectangle-area",
+          "valid-square",
+          "minimum-area-rectangle",
+          "minimum-area-rectangle-ii",
+          "count-number-of-trapezoids-ii",
+          "convex-polygon"
+        ]
+      },
+      {
+        "key": "section-26",
+        "title": "§5.4 凸包",
+        "titleEn": "§5.4 凸包",
+        "memberSlugs": [
+          "erect-the-fence",
+          "largest-triangle-area",
+          "you-le-yuan-de-mi-gong"
+        ]
+      },
+      {
+        "key": "section-27",
+        "title": "六、随机算法",
+        "titleEn": "六、随机算法",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-28",
+        "title": "§6.1 随机数",
+        "titleEn": "§6.1 随机数",
+        "memberSlugs": [
+          "random-pick-index",
+          "linked-list-random-node",
+          "shuffle-an-array",
+          "insert-delete-getrandom-o1",
+          "insert-delete-getrandom-o1-duplicates-allowed",
+          "random-pick-with-weight",
+          "implement-rand10-using-rand7",
+          "random-pick-with-blacklist",
+          "generate-random-point-in-a-circle",
+          "random-point-in-non-overlapping-rectangles",
+          "random-flip-matrix"
+        ]
+      },
+      {
+        "key": "section-29",
+        "title": "§6.2 随机化技巧",
+        "titleEn": "§6.2 随机化技巧",
+        "memberSlugs": [
+          "n-repeated-element-in-size-2n-array",
+          "convert-integer-to-the-sum-of-two-no-zero-integers",
+          "array-with-elements-not-equal-to-average-of-neighbors",
+          "online-majority-element-in-subarray",
+          "generate-schedule"
+        ]
+      },
+      {
+        "key": "section-30",
+        "title": "七、杂项",
+        "titleEn": "七、杂项",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-31",
+        "title": "§7.1 回文数",
+        "titleEn": "§7.1 回文数",
+        "memberSlugs": [
+          "palindrome-number",
+          "strictly-palindromic-number",
+          "find-palindrome-with-fixed-length",
+          "prime-palindrome",
+          "minimum-operations-to-make-binary-palindrome",
+          "find-the-closest-palindrome",
+          "minimum-cost-to-make-array-equalindromic",
+          "super-palindromes",
+          "sum-of-k-mirror-numbers",
+          "count-binary-palindromic-numbers",
+          "find-the-largest-palindrome-divisible-by-k",
+          "find-the-count-of-good-integers",
+          "next-special-palindrome-number",
+          "largest-palindrome-product"
+        ]
+      },
+      {
+        "key": "section-32",
+        "title": "§7.2 整数拆分",
+        "titleEn": "§7.2 整数拆分",
+        "memberSlugs": [
+          "integer-break",
+          "maximize-number-of-nice-divisors"
+        ]
+      },
+      {
+        "key": "section-33",
+        "title": "§7.3 曼哈顿距离与切比雪夫距离",
+        "titleEn": "§7.3 曼哈顿距离与切比雪夫距离",
+        "memberSlugs": [
+          "minimum-time-visiting-all-points",
+          "maximum-manhattan-distance-after-k-changes",
+          "maximum-of-absolute-value-expression",
+          "minimize-manhattan-distances",
+          "reverse-subarray-to-maximize-array-value",
+          "maximize-the-distance-between-points-on-a-square",
+          "minimum-time-for-k-virus-variants-to-spread",
+          "beautiful-pairs"
+        ]
+      },
+      {
+        "key": "section-34",
+        "title": "§7.4 多项式",
+        "titleEn": "§7.4 多项式",
+        "memberSlugs": [
+          "valid-triangle-number",
+          "3sum-with-multiplicity",
+          "image-overlap",
+          "multiply-two-polynomials",
+          "3sum-smaller",
+          "match-alphanumerical-pattern-in-matrix-i",
+          "maximum-number-of-matching-indices-after-right-shifts"
+        ]
+      },
+      {
+        "key": "section-35",
+        "title": "§7.5 快速沃尔什变换（FWT）",
+        "titleEn": "§7.5 快速沃尔什变换（FWT）",
+        "memberSlugs": [
+          "number-of-unique-xor-triplets-ii",
+          "find-minimum-time-to-finish-all-jobs"
+        ]
+      },
+      {
+        "key": "section-36",
+        "title": "§7.6 线性基",
+        "titleEn": "§7.6 线性基",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-37",
+        "title": "§7.7 摩尔投票法",
+        "titleEn": "§7.7 摩尔投票法",
+        "memberSlugs": [
+          "majority-element",
+          "n-repeated-element-in-size-2n-array",
+          "minimum-index-of-a-valid-split",
+          "majority-element-ii",
+          "online-majority-element-in-subarray"
+        ]
+      },
+      {
+        "key": "section-38",
+        "title": "§7.8 其他",
+        "titleEn": "§7.8 其他",
+        "memberSlugs": [
+          "count-odd-numbers-in-an-interval-range",
+          "calculate-money-in-leetcode-bank",
+          "determine-the-minimum-sum-of-a-k-avoiding-array",
+          "count-total-number-of-colored-cells",
+          "minimum-sensors-to-cover-grid",
+          "find-the-minimum-possible-sum-of-a-beautiful-array",
+          "find-the-minimum-number-of-fibonacci-numbers-whose-sum-is-k",
+          "bulb-switcher",
+          "check-if-number-is-a-sum-of-powers-of-three",
+          "apply-operations-to-make-sum-of-array-greater-than-or-equal-to-k",
+          "find-the-number-of-copy-arrays",
+          "sum-of-numbers-with-units-digit-k",
+          "count-the-hidden-sequences",
+          "minimum-operations-to-make-array-equal-ii",
+          "can-make-arithmetic-progression-from-sequence",
+          "append-k-integers-with-minimal-sum",
+          "minimum-addition-to-make-integer-beautiful",
+          "convert-to-base-2",
+          "number-of-perfect-pairs",
+          "minimum-garden-perimeter-to-collect-enough-apples",
+          "adding-two-negabinary-numbers",
+          "find-the-winner-of-the-circular-game",
+          "fraction-to-recurring-decimal",
+          "minimize-length-of-array-using-operations",
+          "smallest-good-base",
+          "last-remaining-integer-after-alternating-deletion-operations",
+          "elimination-game",
+          "equal-rational-numbers",
+          "best-position-for-a-service-centre",
+          "sum-of-floored-pairs",
+          "building-boxes",
+          "sum-of-number-and-its-reverse",
+          "minimum-number-of-operations-to-reinitialize-a-permutation",
+          "poor-pigs",
+          "permutation-sequence",
+          "abbreviating-the-product-of-a-range",
+          "minimum-operations-to-equalize-binary-string",
+          "deep-dark-fraction",
+          "SNJvJP",
+          "05ZEDJ",
+          "similar-rgb-color",
+          "remove-9",
+          "most-expensive-item-that-can-not-be-bought",
+          "color-the-triangle-red"
+        ]
+      },
+      {
+        "key": "section-39",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
     ],
     "sourceUrl": "https://leetcode.cn/discuss/post/IYT3ss/",
     "title": "数学算法",
@@ -2960,6 +7373,830 @@ export const leetcodeLingShenGroups = ([
       "longest-common-prefix-after-at-most-one-removal",
       "count-houses-in-a-circular-street-ii"
     ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "前言",
+        "titleEn": "前言",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "一、贪心策略",
+        "titleEn": "一、贪心策略",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-3",
+        "title": "§1.1 从最小/最大开始贪心",
+        "titleEn": "§1.1 从最小/最大开始贪心",
+        "memberSlugs": [
+          "apple-redistribution-into-boxes",
+          "minimum-deletions-for-at-most-k-distinct-characters",
+          "maximize-expression-of-three-elements",
+          "maximum-bags-with-full-capacity-of-rocks",
+          "maximum-ice-cream-bars",
+          "maximize-sum-of-array-after-k-negations",
+          "least-number-of-unique-integers-after-k-removals",
+          "minimum-subsequence-in-non-increasing-order",
+          "divide-an-array-into-subarrays-with-minimum-cost-i",
+          "reduce-array-size-to-the-half",
+          "maximum-units-on-a-truck",
+          "maximize-happiness-of-selected-children",
+          "maximum-number-of-integers-to-choose-from-a-range-i",
+          "destroying-asteroids",
+          "rearrange-array-to-maximize-prefix-score",
+          "largest-perimeter-triangle",
+          "maximum-number-of-coins-you-can-get",
+          "maximum-median-sum-of-subsequences-of-size-3",
+          "maximum-sum-with-at-most-k-elements",
+          "find-subsequence-of-length-k-with-the-largest-sum",
+          "maximize-the-total-height-of-unique-towers",
+          "minimum-increment-to-make-array-unique",
+          "maximum-element-after-decreasing-and-rearranging",
+          "maximum-alternating-sum-of-squares",
+          "minimum-deletions-to-make-character-frequencies-unique",
+          "find-polygon-with-the-largest-perimeter",
+          "maximum-split-of-positive-even-integers",
+          "minimum-time-to-make-rope-colorful",
+          "minimum-score-by-changing-two-elements",
+          "minimum-difference-between-largest-and-smallest-value-in-three-moves",
+          "mice-and-cheese",
+          "maximum-number-of-distinct-elements-after-operations",
+          "eat-pizzas",
+          "maximize-points-after-choosing-k-tasks",
+          "uOAnQW",
+          "greatest-sum-divisible-by-three",
+          "bag-of-tokens",
+          "equal-sum-arrays-with-minimum-number-of-operations",
+          "minimum-sum-of-squared-difference",
+          "maximum-total-from-optimal-activation-order",
+          "maximum-running-time-of-n-computers",
+          "how-many-apples-can-you-put-into-the-basket",
+          "minimum-health-to-beat-game",
+          "maximum-total-sum-with-threshold-constraints",
+          "maximum-calories-burnt-from-jumps",
+          "maximize-profit-from-task-assignment",
+          "subsequence-of-size-k-with-the-largest-even-sum",
+          "maximum-price-to-fill-a-bag",
+          "maximum-number-of-potholes-that-can-be-fixed",
+          "maximum-number-of-integers-to-choose-from-a-range-ii",
+          "WqXACV",
+          "minimum-difference-between-highest-and-lowest-of-k-scores",
+          "maximum-distance-in-arrays",
+          "smallest-range-ii",
+          "minimum-operations-to-form-subsequence-with-target-sum",
+          "minimum-array-sum"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "§1.2 单序列配对",
+        "titleEn": "§1.2 单序列配对",
+        "memberSlugs": [
+          "minimum-cost-of-buying-candies-with-discount",
+          "array-partition",
+          "minimize-maximum-pair-sum-in-array",
+          "boats-to-save-people",
+          "maximize-greatness-of-an-array",
+          "find-the-maximum-number-of-marked-indices"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "§1.3 双序列配对",
+        "titleEn": "§1.3 双序列配对",
+        "memberSlugs": [
+          "minimum-number-of-moves-to-seat-everyone",
+          "assign-cookies",
+          "maximum-matching-of-players-with-trainers",
+          "check-if-a-string-can-break-another-string",
+          "advantage-shuffle",
+          "most-profit-assigning-work",
+          "minimum-number-of-operations-to-make-arrays-similar",
+          "minimum-space-wasted-from-packaging",
+          "rearranging-fruits",
+          "maximum-number-of-tasks-you-can-assign",
+          "find-minimum-time-to-finish-all-jobs-ii"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "§1.4 从最左/最右开始贪心",
+        "titleEn": "§1.4 从最左/最右开始贪心",
+        "memberSlugs": [
+          "minimum-operations-to-make-columns-strictly-increasing",
+          "minimum-operations-to-make-binary-array-elements-equal-to-one-i",
+          "minimum-operations-to-make-the-array-increasing",
+          "minimum-moves-to-convert-string",
+          "can-place-flowers",
+          "minimum-rectangles-to-cover-points",
+          "remove-adjacent-almost-equal-characters",
+          "minimum-operations-to-make-binary-array-elements-equal-to-one-ii",
+          "minimum-suffix-flips",
+          "largest-element-in-an-array-after-merge-operations",
+          "transform-array-to-all-equal-elements",
+          "maximum-bitwise-xor-after-rearrangement",
+          "decrease-elements-to-make-array-zigzag",
+          "maximum-number-of-operations-to-move-ones-to-the-end",
+          "minimum-number-of-food-buckets-to-feed-the-hamsters",
+          "minimum-operations-to-reduce-an-integer-to-0",
+          "minimum-moves-to-balance-circular-array",
+          "score-after-flipping-matrix",
+          "minimum-division-operations-to-make-array-non-decreasing",
+          "delete-columns-to-make-sorted-ii",
+          "minimum-swaps-to-arrange-a-binary-grid",
+          "make-costs-of-paths-equal-in-a-binary-tree",
+          "avoid-flood-in-the-city",
+          "minimum-replacements-to-sort-the-array",
+          "maximize-the-minimum-powered-city",
+          "maximize-the-minimum-game-score",
+          "merge-operations-to-turn-array-into-a-palindrome"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "§1.5 划分型贪心",
+        "titleEn": "§1.5 划分型贪心",
+        "memberSlugs": [
+          "split-a-string-in-balanced-strings",
+          "optimal-partition-of-string",
+          "partition-array-such-that-maximum-difference-is-k",
+          "maximum-number-of-groups-entering-a-competition",
+          "partition-string-into-substrings-with-values-at-most-k",
+          "find-maximum-number-of-non-intersecting-substrings",
+          "maximum-number-of-non-overlapping-subarrays-with-sum-equals-target",
+          "minimum-split-into-subarrays-with-gcd-greater-than-one",
+          "minimizing-array-after-replacing-pairs-with-their-product"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "§1.6 先枚举，再贪心",
+        "titleEn": "§1.6 先枚举，再贪心",
+        "memberSlugs": [
+          "removing-minimum-number-of-magic-beans",
+          "minimum-deletions-to-make-string-k-special",
+          "largest-submatrix-with-rearrangements",
+          "minimum-operations-to-make-the-integer-zero",
+          "minimum-number-of-groups-to-create-a-valid-assignment",
+          "maximum-total-beauty-of-the-gardens"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "§1.7 交换论证法",
+        "titleEn": "§1.7 交换论证法",
+        "memberSlugs": [
+          "minimum-processing-time",
+          "minimize-maximum-pair-sum-in-array",
+          "eat-pizzas",
+          "minimum-initial-energy-to-finish-tasks",
+          "minimum-amount-of-damage-dealt-to-bob",
+          "earliest-possible-day-of-full-bloom",
+          "rearranging-fruits",
+          "largest-number",
+          "maximum-possible-number-by-binary-concatenation",
+          "minimum-money-required-before-transactions"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "§1.8 相邻不同",
+        "titleEn": "§1.8 相邻不同",
+        "memberSlugs": [
+          "minimum-amount-of-time-to-fill-cups",
+          "partition-array-into-k-distinct-groups",
+          "maximum-score-from-removing-stones",
+          "reorganize-string",
+          "distant-barcodes",
+          "minimum-array-length-after-pair-removals",
+          "maximum-number-of-weeks-for-which-you-can-work",
+          "minimum-swaps-to-avoid-forbidden-values",
+          "two-letter-card-game",
+          "minimum-operations-to-make-array-elements-zero",
+          "minimum-cost-to-equalize-array",
+          "task-scheduler",
+          "rearrange-string-k-distance-apart",
+          "string-without-aaa-or-bbb",
+          "longest-happy-string"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "§1.9 反悔贪心",
+        "titleEn": "§1.9 反悔贪心",
+        "memberSlugs": [
+          "p0NxJO",
+          "furthest-building-you-can-reach",
+          "course-schedule-iii",
+          "minimum-number-of-refueling-stops",
+          "zero-array-transformation-iii",
+          "maximum-elegance-of-a-k-length-subsequence",
+          "earliest-second-to-mark-indices-ii",
+          "maximum-transactions-without-negative-balance",
+          "make-the-prefix-sum-non-negative"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "二、区间贪心",
+        "titleEn": "二、区间贪心",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-13",
+        "title": "§2.1 不相交区间",
+        "titleEn": "§2.1 不相交区间",
+        "memberSlugs": [
+          "non-overlapping-intervals",
+          "maximum-length-of-pair-chain",
+          "maximum-number-of-non-overlapping-substrings",
+          "select-k-disjoint-special-substrings"
+        ]
+      },
+      {
+        "key": "section-14",
+        "title": "§2.2 区间分组",
+        "titleEn": "§2.2 区间分组",
+        "memberSlugs": [
+          "divide-intervals-into-minimum-number-of-groups",
+          "meeting-rooms-ii"
+        ]
+      },
+      {
+        "key": "section-15",
+        "title": "§2.3 区间选点",
+        "titleEn": "§2.3 区间选点",
+        "memberSlugs": [
+          "minimum-number-of-arrows-to-burst-balloons",
+          "set-intersection-size-at-least-two",
+          "minimum-time-to-complete-all-tasks",
+          "t3fKg1"
+        ]
+      },
+      {
+        "key": "section-16",
+        "title": "§2.4 区间覆盖",
+        "titleEn": "§2.4 区间覆盖",
+        "memberSlugs": [
+          "jump-game-ii",
+          "video-stitching",
+          "minimum-number-of-taps-to-open-to-water-a-garden"
+        ]
+      },
+      {
+        "key": "section-17",
+        "title": "§2.5 合并区间",
+        "titleEn": "§2.5 合并区间",
+        "memberSlugs": [
+          "merge-intervals",
+          "insert-interval",
+          "points-that-intersect-with-cars",
+          "jump-game",
+          "partition-labels",
+          "count-days-without-meetings",
+          "count-ways-to-group-overlapping-ranges",
+          "check-if-grid-can-be-cut-into-sections",
+          "count-the-number-of-good-partitions",
+          "split-the-array-to-make-coprime-products",
+          "add-bold-tag-in-string",
+          "bold-words-in-string",
+          "minimize-connected-groups-by-inserting-interval",
+          "employee-free-time",
+          "find-maximal-uncovered-ranges"
+        ]
+      },
+      {
+        "key": "section-18",
+        "title": "§2.6 其他区间贪心",
+        "titleEn": "§2.6 其他区间贪心",
+        "memberSlugs": [
+          "remove-covered-intervals",
+          "two-best-non-overlapping-events",
+          "maximum-number-of-eaten-apples",
+          "maximum-number-of-events-that-can-be-attended"
+        ]
+      },
+      {
+        "key": "section-19",
+        "title": "三、字符串贪心",
+        "titleEn": "三、字符串贪心",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-20",
+        "title": "§3.1 字典序最小/最大",
+        "titleEn": "§3.1 字典序最小/最大",
+        "memberSlugs": [
+          "maximum-69-number",
+          "lexicographically-smallest-string-after-a-swap",
+          "lexicographically-smallest-palindrome",
+          "smallest-palindromic-rearrangement-i",
+          "maximum-value-after-insertion",
+          "lexicographically-smallest-string-after-substring-operation",
+          "max-difference-you-can-get-from-changing-an-integer",
+          "largest-number-after-mutating-substring",
+          "smallest-string-with-a-given-numeric-value",
+          "break-a-palindrome",
+          "remove-digit-from-number-to-maximize-result",
+          "maximum-difference-by-remapping-a-digit",
+          "maximum-swap",
+          "lexicographically-smallest-string-after-operations-with-constraint",
+          "maximize-sum-of-squares-of-digits",
+          "previous-permutation-with-one-swap",
+          "construct-smallest-number-from-di-string",
+          "construct-string-with-repeat-limit",
+          "monotone-increasing-digits",
+          "find-the-lexicographically-largest-string-from-the-box-i",
+          "lexicographically-minimum-string-after-removing-stars",
+          "largest-multiple-of-three",
+          "lexicographically-smallest-negated-permutation-that-sums-to-target",
+          "largest-merge-of-two-strings",
+          "smallest-string-with-swaps",
+          "using-a-robot-to-print-the-lexicographically-smallest-string",
+          "make-lexicographically-smallest-array-by-swapping-elements",
+          "minimum-possible-integer-after-at-most-k-adjacent-swaps-on-digits",
+          "lexicographically-smallest-generated-string",
+          "split-concatenated-strings",
+          "make-string-anti-palindrome",
+          "lexicographically-smallest-permutation-greater-than-target",
+          "lexicographically-smallest-palindromic-permutation-greater-than-target",
+          "lexicographically-smallest-beautiful-string",
+          "next-greater-numerically-balanced-number",
+          "next-special-palindrome-number",
+          "smallest-divisible-digit-product-ii"
+        ]
+      },
+      {
+        "key": "section-21",
+        "title": "§3.2 回文串贪心",
+        "titleEn": "§3.2 回文串贪心",
+        "memberSlugs": [
+          "longest-palindrome",
+          "lexicographically-smallest-palindrome",
+          "smallest-palindromic-rearrangement-i",
+          "valid-palindrome-ii",
+          "break-a-palindrome",
+          "construct-k-palindrome-strings",
+          "longest-palindrome-by-concatenating-two-letter-words",
+          "largest-palindromic-number",
+          "maximum-palindromes-after-operations",
+          "split-two-strings-to-make-palindrome",
+          "longest-chunked-palindrome-decomposition",
+          "minimum-number-of-moves-to-make-palindrome",
+          "lexicographically-smallest-palindromic-permutation-greater-than-target",
+          "next-special-palindrome-number",
+          "palindrome-permutation",
+          "merge-operations-to-turn-array-into-a-palindrome",
+          "next-palindrome-using-same-digits",
+          "make-string-anti-palindrome"
+        ]
+      },
+      {
+        "key": "section-22",
+        "title": "§3.3 合法括号字符串",
+        "titleEn": "§3.3 合法括号字符串",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-23",
+        "title": "四、数学贪心",
+        "titleEn": "四、数学贪心",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-24",
+        "title": "§4.1 基础",
+        "titleEn": "§4.1 基础",
+        "memberSlugs": [
+          "minimum-sum-of-four-digit-number-after-splitting-digits",
+          "split-with-minimum-sum",
+          "minimum-rounds-to-complete-all-tasks",
+          "minimum-number-of-operations-to-make-array-empty",
+          "minimum-cost-to-move-chips-to-the-same-position",
+          "apply-operations-to-make-sum-of-array-greater-than-or-equal-to-k",
+          "Ju9Xwi",
+          "integer-replacement"
+        ]
+      },
+      {
+        "key": "section-25",
+        "title": "§4.2 乘积贪心",
+        "titleEn": "§4.2 乘积贪心",
+        "memberSlugs": [
+          "maximum-product-of-three-numbers",
+          "maximum-product-of-three-elements-after-one-replacement",
+          "maximum-length-of-subarray-with-positive-product"
+        ]
+      },
+      {
+        "key": "section-26",
+        "title": "§4.3 排序不等式",
+        "titleEn": "§4.3 排序不等式",
+        "memberSlugs": [
+          "maximum-total-importance-of-roads",
+          "minimum-number-of-pushes-to-type-word-ii",
+          "reducing-dishes",
+          "maximum-spending-after-buying-items",
+          "maximum-sum-obtained-of-any-permutation",
+          "minimize-product-sum-of-two-arrays",
+          "minimum-number-of-keypresses",
+          "rearranging-fruits",
+          "maximum-sum-of-edge-values-in-a-graph"
+        ]
+      },
+      {
+        "key": "section-27",
+        "title": "§4.4 均值不等式",
+        "titleEn": "§4.4 均值不等式",
+        "memberSlugs": [
+          "replace-question-marks-in-string-to-minimize-its-value",
+          "minimum-non-zero-product-of-the-array-elements",
+          "maximum-xor-product",
+          "maximize-sum-of-squares-of-digits",
+          "apply-operations-on-array-to-maximize-sum-of-squares"
+        ]
+      },
+      {
+        "key": "section-28",
+        "title": "§4.5 中位数贪心",
+        "titleEn": "§4.5 中位数贪心",
+        "memberSlugs": [
+          "minimum-moves-to-equal-array-elements-ii",
+          "minimum-operations-to-make-a-uni-value-grid",
+          "minimum-cost-to-make-array-equal",
+          "make-k-subarray-sums-equal",
+          "minimum-cost-to-make-array-equalindromic",
+          "allocate-mailboxes",
+          "apply-operations-to-maximize-frequency-score",
+          "minimum-adjacent-swaps-for-k-consecutive-ones",
+          "minimum-operations-to-equalize-subarrays",
+          "minimum-moves-to-pick-k-ones",
+          "5TxKeK",
+          "minimum-cost-good-caption",
+          "best-meeting-point"
+        ]
+      },
+      {
+        "key": "section-29",
+        "title": "§4.6 归纳法",
+        "titleEn": "§4.6 归纳法",
+        "memberSlugs": [
+          "minimum-number-of-coins-to-be-added",
+          "patching-array",
+          "maximum-number-of-consecutive-values-you-can-make"
+        ]
+      },
+      {
+        "key": "section-30",
+        "title": "§4.7 其他数学贪心",
+        "titleEn": "§4.7 其他数学贪心",
+        "memberSlugs": [
+          "find-the-minimum-number-of-fibonacci-numbers-whose-sum-is-k",
+          "minimum-operations-to-make-median-of-array-equal-to-k",
+          "reach-a-number",
+          "minimize-rounding-error-to-meet-target"
+        ]
+      },
+      {
+        "key": "section-31",
+        "title": "五、思维题",
+        "titleEn": "五、思维题",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-32",
+        "title": "§5.1 从特殊到一般",
+        "titleEn": "§5.1 从特殊到一般",
+        "memberSlugs": [
+          "construct-the-longest-new-string",
+          "mice-and-cheese",
+          "two-city-scheduling",
+          "minimum-additions-to-make-valid-string",
+          "maximize-the-topmost-element-after-k-moves",
+          "minimum-impossible-or",
+          "maximum-binary-string-after-change",
+          "minimize-length-of-array-using-operations",
+          "shortest-impossible-sequence-of-rolls",
+          "jump-game-ix",
+          "super-washing-machines",
+          "minimum-total-cost-to-make-arrays-unequal",
+          "minimize-the-maximum-adjacent-element-difference",
+          "minimum-unlocked-indices-to-sort-nums"
+        ]
+      },
+      {
+        "key": "section-33",
+        "title": "§5.2 脑筋急转弯",
+        "titleEn": "§5.2 脑筋急转弯",
+        "memberSlugs": [
+          "neither-minimum-nor-maximum",
+          "count-partitions-with-even-sum-difference",
+          "construct-uniform-parity-array-i",
+          "largest-odd-number-in-string",
+          "count-distinct-numbers-on-board",
+          "minimum-string-length-after-balanced-removals",
+          "strictly-palindromic-number",
+          "partitioning-into-minimum-number-of-deci-binary-numbers",
+          "maximum-substrings-with-distinct-start",
+          "minimum-operations-to-equalize-array",
+          "maximum-total-subarray-value-i",
+          "range-addition-ii",
+          "longest-uncommon-subsequence-i",
+          "minimum-operations-to-transform-string",
+          "vowels-game-in-a-string",
+          "maximum-balanced-shipments",
+          "longest-subsequence-with-non-zero-bitwise-xor",
+          "minimum-operations-to-reach-target-array",
+          "longest-subarray-with-maximum-bitwise-and",
+          "minimum-cost-to-make-arrays-identical",
+          "find-all-groups-of-farmland",
+          "minimum-domino-rotations-for-equal-row",
+          "check-if-it-is-possible-to-split-array",
+          "island-perimeter",
+          "count-collisions-on-a-road",
+          "stone-game",
+          "maximum-points-after-enemy-battles",
+          "final-element-after-subarray-deletions",
+          "find-the-largest-almost-missing-integer",
+          "apply-bitwise-operations-to-make-strings-equal",
+          "last-moment-before-all-ants-fall-out-of-a-plank",
+          "happy-students",
+          "remove-palindromic-subsequences",
+          "maximum-matrix-sum",
+          "binary-tree-coloring-game",
+          "minimum-cost-homecoming-of-a-robot-in-a-grid",
+          "maximum-number-of-occurrences-of-a-substring",
+          "count-the-number-of-computer-unlocking-permutations",
+          "reach-end-of-array-with-max-score",
+          "maximum-k-to-sort-a-permutation",
+          "minimum-cost-to-make-all-characters-equal",
+          "maximum-difference-score-in-a-grid",
+          "longest-binary-subsequence-less-than-or-equal-to-k",
+          "the-latest-time-to-catch-a-bus",
+          "maximum-or",
+          "movement-of-robots",
+          "disconnect-path-in-a-binary-matrix-by-at-most-one-flip",
+          "minimum-total-operations",
+          "largest-subarray-length-k",
+          "minimum-cost-path-with-alternating-directions-i",
+          "maximize-score-after-pair-deletions",
+          "maximum-number-that-makes-result-of-bitwise-and-zero",
+          "count-pairs-of-equal-substrings-with-minimum-difference"
+        ]
+      },
+      {
+        "key": "section-34",
+        "title": "§5.3 等价转化",
+        "titleEn": "§5.3 等价转化",
+        "memberSlugs": [
+          "minimum-moves-to-equal-array-elements",
+          "minimum-operations-to-make-array-values-equal-to-k",
+          "check-if-strings-can-be-made-equal-with-operations-ii",
+          "minimum-number-of-changes-to-make-binary-string-beautiful",
+          "rearrange-k-substrings-to-form-target-string",
+          "determine-if-two-strings-are-close",
+          "minimum-cost-to-equalize-arrays-using-swaps",
+          "minimum-cost-to-split-into-ones",
+          "put-marbles-in-bags",
+          "perfect-rectangle",
+          "check-if-string-is-transformable-with-substring-sort-operations",
+          "moving-stones-until-consecutive-ii",
+          "fancy-sequence",
+          "group-shifted-strings",
+          "group-anagrams",
+          "maximum-number-of-ones"
+        ]
+      },
+      {
+        "key": "section-35",
+        "title": "§5.4 逆向思维",
+        "titleEn": "§5.4 逆向思维",
+        "memberSlugs": [
+          "minimum-moves-to-reach-target-score",
+          "minimum-number-of-operations-to-have-distinct-elements",
+          "minimum-number-of-operations-to-make-elements-in-array-distinct",
+          "taking-maximum-energy-from-the-mystic-dungeon",
+          "reordered-power-of-2",
+          "minimum-numbers-of-function-calls-to-make-target-array",
+          "brick-wall",
+          "reaching-points",
+          "pacific-atlantic-water-flow",
+          "broken-calculator",
+          "encrypt-and-decrypt-strings",
+          "construct-target-array-with-multiple-sums",
+          "check-if-point-is-reachable",
+          "find-the-k-th-character-in-string-game-ii",
+          "process-string-with-special-operations-ii",
+          "minimize-the-maximum-edge-weight-of-graph",
+          "minimum-one-bit-operations-to-make-integers-zero",
+          "minimum-moves-to-reach-target-in-grid",
+          "stamping-the-sequence",
+          "transform-to-chessboard",
+          "k-empty-slots",
+          "maximum-hamming-distances",
+          "power-grid-maintenance",
+          "sum-of-matrix-after-queries",
+          "minimum-time-to-activate-string",
+          "last-day-where-you-can-still-cross",
+          "maximum-segment-sum-after-removals",
+          "bricks-falling-when-hit"
+        ]
+      },
+      {
+        "key": "section-36",
+        "title": "§5.5 贡献法",
+        "titleEn": "§5.5 贡献法",
+        "memberSlugs": [
+          "count-commas-in-range-ii",
+          "vowels-of-all-substrings",
+          "distribute-coins-in-binary-tree",
+          "sum-of-all-odd-length-subarrays",
+          "total-score-of-dungeon-runs",
+          "minimum-fuel-cost-to-report-to-the-capital",
+          "power-of-heroes",
+          "sum-of-k-digit-numbers-in-a-range",
+          "total-sum-of-interaction-cost-in-tree-groups",
+          "sum-of-subsequence-widths",
+          "maximum-and-minimum-sums-of-at-most-size-k-subsequences",
+          "manhattan-distances-of-all-arrangements-of-pieces",
+          "sum-of-imbalance-numbers-of-all-subarrays"
+        ]
+      },
+      {
+        "key": "section-37",
+        "title": "§5.6 两次扫描",
+        "titleEn": "§5.6 两次扫描",
+        "memberSlugs": [
+          "candy",
+          "find-maximum-value-in-a-constrained-sequence",
+          "find-the-minimum-amount-of-time-to-brew-potions",
+          "maximum-building-height"
+        ]
+      },
+      {
+        "key": "section-38",
+        "title": "§5.7 分类讨论",
+        "titleEn": "§5.7 分类讨论",
+        "memberSlugs": [
+          "categorize-box-according-to-criteria",
+          "lemonade-change",
+          "smallest-value-of-the-rearranged-number",
+          "removing-minimum-and-maximum-from-array",
+          "two-furthest-houses-with-different-colors",
+          "moving-stones-until-consecutive",
+          "construct-uniform-parity-array-ii",
+          "minimum-equal-sum-of-two-arrays-after-replacing-zeros",
+          "distribute-money-to-maximum-children",
+          "longest-palindrome-by-concatenating-two-letter-words",
+          "minimum-cost-to-acquire-required-items",
+          "minimum-operations-to-make-a-special-number",
+          "minimum-swaps-to-make-strings-equal",
+          "push-dominoes",
+          "minimum-operations-to-make-the-array-alternating",
+          "maximize-the-topmost-element-after-k-moves",
+          "find-longest-special-substring-that-occurs-thrice-ii",
+          "minimum-operations-to-transform-array",
+          "minimum-moves-to-capture-the-queen",
+          "remove-letter-to-equalize-frequency",
+          "minimum-operations-to-maximize-last-elements-in-arrays",
+          "minimum-cost-to-make-two-binary-strings-equal",
+          "minimum-cost-to-set-cooking-time",
+          "minimum-operations-to-sort-a-string",
+          "reschedule-meetings-for-maximum-free-time-ii",
+          "sum-of-sortable-integers",
+          "add-edges-to-make-degrees-of-all-nodes-even",
+          "minimum-number-of-flips-to-make-binary-grid-palindromic-ii",
+          "minimum-operations-to-make-array-parity-alternating",
+          "equal-sum-grid-partition-ii",
+          "split-message-based-on-limit",
+          "strong-password-checker",
+          "minimum-moves-to-reach-target-in-grid",
+          "moving-stones-until-consecutive-ii",
+          "self-crossing",
+          "reverse-subarray-to-maximize-array-value",
+          "find-the-minimum-area-to-cover-all-ones-ii",
+          "minimum-array-sum",
+          "minimum-total-cost-to-make-arrays-unequal",
+          "construct-2d-grid-matching-graph-layout",
+          "minimum-cost-to-equalize-array",
+          "count-the-number-of-houses-at-a-certain-distance-ii",
+          "palindrome-rearrangement-queries",
+          "subsequences-with-a-unique-middle-mode-i",
+          "minimize-the-maximum-adjacent-element-difference",
+          "the-earliest-and-latest-rounds-where-players-compete",
+          "fsa7oZ",
+          "Za25hA"
+        ]
+      },
+      {
+        "key": "section-39",
+        "title": "六、构造题",
+        "titleEn": "六、构造题",
+        "memberSlugs": [
+          "find-n-unique-integers-sum-up-to-zero",
+          "di-string-match",
+          "array-with-elements-not-equal-to-average-of-neighbors",
+          "reconstruct-a-2-row-binary-matrix",
+          "convert-integer-to-the-sum-of-two-no-zero-integers",
+          "number-of-unique-xor-triplets-i",
+          "construct-string-with-repeat-limit",
+          "inverse-coin-change",
+          "pancake-sorting",
+          "queue-reconstruction-by-height",
+          "find-valid-matrix-given-row-and-column-sums",
+          "construct-smallest-number-from-di-string",
+          "wiggle-sort-ii",
+          "beautiful-arrangement-ii",
+          "recover-the-original-array",
+          "find-unique-binary-string",
+          "generate-schedule",
+          "beautiful-array",
+          "maximum-number-of-groups-with-increasing-length",
+          "construct-2d-grid-matching-graph-layout",
+          "find-the-string-with-lcp",
+          "find-array-given-subset-sums",
+          "wiggle-sort",
+          "find-permutation"
+        ]
+      },
+      {
+        "key": "section-40",
+        "title": "七、交互题",
+        "titleEn": "七、交互题",
+        "memberSlugs": [
+          "first-bad-version",
+          "guess-number-higher-or-lower",
+          "find-positive-integer-solution-for-a-given-equation",
+          "find-in-mountain-array",
+          "guess-the-word",
+          "count-houses-in-a-circular-street",
+          "find-the-celebrity",
+          "number-of-unique-categories",
+          "guess-the-number-using-bitwise-questions-i",
+          "guess-the-number-using-bitwise-questions-ii",
+          "leftmost-column-with-at-least-a-one",
+          "search-in-a-sorted-array-of-unknown-size",
+          "find-the-index-of-the-large-integer",
+          "number-of-equal-numbers-blocks",
+          "maximum-font-to-fit-a-sentence-in-a-screen",
+          "guess-the-majority-in-a-hidden-array",
+          "robot-room-cleaner",
+          "shortest-path-in-a-hidden-grid",
+          "minimum-path-cost-in-a-hidden-grid",
+          "number-of-ships-in-a-rectangle"
+        ]
+      },
+      {
+        "key": "section-41",
+        "title": "八、其他",
+        "titleEn": "八、其他",
+        "memberSlugs": [
+          "find-the-value-of-the-partition",
+          "matrix-similarity-after-cyclic-shifts",
+          "make-array-non-decreasing",
+          "rabbits-in-forest",
+          "robot-bounded-in-circle",
+          "minimum-adjacent-swaps-to-alternate-parity",
+          "minimum-number-of-swaps-to-make-the-binary-string-alternating",
+          "merge-triplets-to-form-target-triplet",
+          "frog-jump-ii",
+          "gas-station",
+          "maximum-manhattan-distance-after-k-changes",
+          "earliest-finish-time-for-land-and-water-rides-ii",
+          "maximum-size-of-a-set-after-removals",
+          "minimum-number-of-people-to-teach",
+          "split-array-into-consecutive-subsequences",
+          "find-a-good-subset-of-the-matrix",
+          "lexicographically-smallest-generated-string",
+          "programmable-robot",
+          "hSRGyL",
+          "XxZZjK",
+          "minimum-adjacent-swaps-to-make-a-valid-array",
+          "longest-common-prefix-after-at-most-one-removal",
+          "count-houses-in-a-circular-street-ii"
+        ]
+      },
+      {
+        "key": "section-42",
+        "title": "答疑",
+        "titleEn": "答疑",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-43",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-44",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
+    ],
     "sourceUrl": "https://leetcode.cn/discuss/post/g6KTKL/",
     "title": "贪心与思维",
     "titleEn": "Greedy & Thinking"
@@ -3379,6 +8616,805 @@ export const leetcodeLingShenGroups = ([
       "process-string-with-special-operations-ii",
       "beautiful-array"
     ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、链表",
+        "titleEn": "一、链表",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-2",
+        "title": "§1.1 遍历链表",
+        "titleEn": "§1.1 遍历链表",
+        "memberSlugs": [
+          "convert-binary-number-in-a-linked-list-to-integer",
+          "find-the-minimum-and-maximum-number-of-nodes-between-critical-points",
+          "merge-nodes-in-between-zeros",
+          "split-linked-list-in-parts",
+          "linked-list-components",
+          "convert-doubly-linked-list-to-array-i",
+          "convert-doubly-linked-list-to-array-ii",
+          "winner-of-the-linked-list-game",
+          "linked-list-frequency"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "§1.2 删除节点",
+        "titleEn": "§1.2 删除节点",
+        "memberSlugs": [
+          "remove-linked-list-elements",
+          "delete-nodes-from-linked-list-present-in-array",
+          "remove-duplicates-from-sorted-list",
+          "remove-duplicates-from-sorted-list-ii",
+          "delete-node-in-a-linked-list",
+          "merge-in-between-linked-lists",
+          "remove-nodes-from-linked-list",
+          "remove-duplicates-from-an-unsorted-linked-list"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "§1.3 插入节点",
+        "titleEn": "§1.3 插入节点",
+        "memberSlugs": [
+          "insert-greatest-common-divisors-in-linked-list",
+          "insertion-sort-list",
+          "4ueAj6",
+          "insert-into-a-sorted-circular-linked-list",
+          "sort-linked-list-already-sorted-using-absolute-values"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "§1.4 反转链表",
+        "titleEn": "§1.4 反转链表",
+        "memberSlugs": [
+          "reverse-linked-list",
+          "reverse-linked-list-ii",
+          "swap-nodes-in-pairs",
+          "reverse-nodes-in-k-group",
+          "reverse-nodes-in-even-length-groups"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "§1.5 前后指针",
+        "titleEn": "§1.5 前后指针",
+        "memberSlugs": [
+          "remove-nth-node-from-end-of-list",
+          "rotate-list",
+          "swapping-nodes-in-a-linked-list",
+          "delete-n-nodes-after-m-nodes-of-a-linked-list"
+        ]
+      },
+      {
+        "key": "section-7",
+        "title": "§1.6 快慢指针",
+        "titleEn": "§1.6 快慢指针",
+        "memberSlugs": [
+          "middle-of-the-linked-list",
+          "delete-the-middle-node-of-a-linked-list",
+          "palindrome-linked-list",
+          "maximum-twin-sum-of-a-linked-list",
+          "reorder-list",
+          "linked-list-cycle",
+          "linked-list-cycle-ii",
+          "circular-array-loop",
+          "split-a-circular-linked-list",
+          "find-the-duplicate-number",
+          "smallest-integer-divisible-by-k",
+          "smallest-all-ones-multiple"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "§1.7 双指针",
+        "titleEn": "§1.7 双指针",
+        "memberSlugs": [
+          "odd-even-linked-list",
+          "partition-list",
+          "intersection-of-two-linked-lists"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "§1.8 合并链表",
+        "titleEn": "§1.8 合并链表",
+        "memberSlugs": [
+          "add-two-numbers",
+          "add-two-numbers-ii",
+          "double-a-number-represented-as-a-linked-list",
+          "merge-two-sorted-lists",
+          "plus-one-linked-list",
+          "add-two-polynomials-represented-as-linked-lists"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "§1.9 分治",
+        "titleEn": "§1.9 分治",
+        "memberSlugs": [
+          "merge-k-sorted-lists",
+          "sort-list"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "§1.10 综合应用",
+        "titleEn": "§1.10 综合应用",
+        "memberSlugs": [
+          "next-greater-node-in-linked-list",
+          "remove-zero-sum-consecutive-nodes-from-linked-list",
+          "design-linked-list",
+          "lru-cache",
+          "lfu-cache",
+          "all-oone-data-structure",
+          "design-skiplist"
+        ]
+      },
+      {
+        "key": "section-12",
+        "title": "§1.11 其他",
+        "titleEn": "§1.11 其他",
+        "memberSlugs": [
+          "copy-list-with-random-pointer",
+          "linked-list-random-node",
+          "flatten-a-multilevel-doubly-linked-list",
+          "print-immutable-linked-list-in-reverse"
+        ]
+      },
+      {
+        "key": "section-13",
+        "title": "二、二叉树",
+        "titleEn": "二、二叉树",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-14",
+        "title": "§2.1 遍历二叉树",
+        "titleEn": "§2.1 遍历二叉树",
+        "memberSlugs": [
+          "binary-tree-preorder-traversal",
+          "binary-tree-inorder-traversal",
+          "binary-tree-postorder-traversal",
+          "leaf-similar-trees",
+          "sZ59z6",
+          "sum-of-left-leaves",
+          "second-minimum-node-in-a-binary-tree",
+          "find-all-the-lonely-nodes",
+          "two-sum-bsts",
+          "is-array-a-preorder-of-some-binary-tree"
+        ]
+      },
+      {
+        "key": "section-15",
+        "title": "§2.2 自顶向下 DFS（先序遍历）",
+        "titleEn": "§2.2 自顶向下 DFS（先序遍历）",
+        "memberSlugs": [
+          "maximum-depth-of-binary-tree",
+          "minimum-depth-of-binary-tree",
+          "path-sum",
+          "sum-root-to-leaf-numbers",
+          "binary-tree-right-side-view",
+          "count-good-nodes-in-binary-tree",
+          "sum-of-nodes-with-even-valued-grandparent",
+          "smallest-string-starting-from-leaf",
+          "maximum-difference-between-node-and-ancestor",
+          "sum-of-root-to-leaf-binary-numbers",
+          "add-one-row-to-tree",
+          "longest-zigzag-path-in-a-binary-tree",
+          "flip-binary-tree-to-match-preorder-traversal",
+          "extract-kth-character-from-the-rope-tree",
+          "binary-tree-longest-consecutive-sequence",
+          "check-if-a-string-is-a-valid-sequence-from-root-to-leaves-path-in-a-binary-tree",
+          "boundary-of-binary-tree"
+        ]
+      },
+      {
+        "key": "section-16",
+        "title": "§2.3 自底向上 DFS（后序遍历）",
+        "titleEn": "§2.3 自底向上 DFS（后序遍历）",
+        "memberSlugs": [
+          "maximum-depth-of-binary-tree",
+          "minimum-depth-of-binary-tree",
+          "univalued-binary-tree",
+          "same-tree",
+          "symmetric-tree",
+          "flip-equivalent-binary-trees",
+          "find-a-corresponding-node-of-a-binary-tree-in-a-clone-of-that-tree",
+          "balanced-binary-tree",
+          "invert-binary-tree",
+          "merge-two-binary-trees",
+          "evaluate-boolean-binary-tree",
+          "most-frequent-subtree-sum",
+          "binary-tree-tilt",
+          "construct-string-from-binary-tree",
+          "count-nodes-equal-to-average-of-subtree",
+          "maximum-difference-between-node-and-ancestor",
+          "k-th-largest-perfect-subtree-size-in-binary-tree",
+          "maximum-product-of-splitted-binary-tree",
+          "longest-zigzag-path-in-a-binary-tree",
+          "binary-tree-coloring-game",
+          "subtree-of-another-tree",
+          "number-of-good-leaf-nodes-pairs",
+          "KnLfVT",
+          "binary-tree-longest-consecutive-sequence",
+          "count-univalue-subtrees",
+          "count-nodes-equal-to-sum-of-descendants",
+          "equal-tree-partition",
+          "maximum-average-subtree",
+          "count-nodes-that-are-great-enough",
+          "largest-bst-subtree",
+          "find-leaves-of-binary-tree",
+          "binary-tree-upside-down",
+          "check-if-two-expression-trees-are-equivalent"
+        ]
+      },
+      {
+        "key": "section-17",
+        "title": "§2.4 自底向上 DFS：删点",
+        "titleEn": "§2.4 自底向上 DFS：删点",
+        "memberSlugs": [
+          "binary-tree-pruning",
+          "delete-leaves-with-a-given-value",
+          "delete-nodes-and-return-forest"
+        ]
+      },
+      {
+        "key": "section-18",
+        "title": "§2.5 有递有归",
+        "titleEn": "§2.5 有递有归",
+        "memberSlugs": [
+          "convert-bst-to-greater-tree",
+          "binary-search-tree-to-greater-sum-tree",
+          "smallest-subtree-with-all-the-deepest-nodes",
+          "insufficient-nodes-in-root-to-leaf-paths"
+        ]
+      },
+      {
+        "key": "section-19",
+        "title": "§2.6 二叉树的直径",
+        "titleEn": "§2.6 二叉树的直径",
+        "memberSlugs": [
+          "diameter-of-binary-tree",
+          "longest-univalue-path",
+          "binary-tree-maximum-path-sum",
+          "amount-of-time-for-binary-tree-to-be-infected",
+          "binary-tree-longest-consecutive-sequence-ii"
+        ]
+      },
+      {
+        "key": "section-20",
+        "title": "§2.7 回溯",
+        "titleEn": "§2.7 回溯",
+        "memberSlugs": [
+          "binary-tree-paths",
+          "path-sum-ii",
+          "pseudo-palindromic-paths-in-a-binary-tree",
+          "path-sum-iii"
+        ]
+      },
+      {
+        "key": "section-21",
+        "title": "§2.8 最近公共祖先",
+        "titleEn": "§2.8 最近公共祖先",
+        "memberSlugs": [
+          "lowest-common-ancestor-of-a-binary-search-tree",
+          "lowest-common-ancestor-of-a-binary-tree",
+          "lowest-common-ancestor-of-deepest-leaves",
+          "step-by-step-directions-from-a-binary-tree-node-to-another",
+          "find-distance-in-a-binary-tree",
+          "lowest-common-ancestor-of-a-binary-tree-ii",
+          "lowest-common-ancestor-of-a-binary-tree-iii",
+          "lowest-common-ancestor-of-a-binary-tree-iv"
+        ]
+      },
+      {
+        "key": "section-22",
+        "title": "§2.9 二叉搜索树",
+        "titleEn": "§2.9 二叉搜索树",
+        "memberSlugs": [
+          "search-in-a-binary-search-tree",
+          "minimum-absolute-difference-in-bst",
+          "minimum-distance-between-bst-nodes",
+          "range-sum-of-bst",
+          "find-mode-in-binary-search-tree",
+          "kth-smallest-element-in-a-bst",
+          "validate-binary-search-tree",
+          "all-elements-in-two-binary-search-trees",
+          "recover-binary-search-tree",
+          "increasing-order-search-tree",
+          "closest-nodes-queries-in-a-binary-search-tree",
+          "two-sum-iv-input-is-a-bst",
+          "maximum-sum-bst-in-binary-tree",
+          "merge-bsts-to-create-single-bst",
+          "inorder-successor-in-bst",
+          "inorder-successor-in-bst-ii",
+          "closest-binary-search-tree-value",
+          "closest-binary-search-tree-value-ii",
+          "verify-preorder-sequence-in-binary-search-tree",
+          "depth-of-bst-given-insertion-order"
+        ]
+      },
+      {
+        "key": "section-23",
+        "title": "§2.10 创建二叉树",
+        "titleEn": "§2.10 创建二叉树",
+        "memberSlugs": [
+          "convert-sorted-array-to-binary-search-tree",
+          "maximum-binary-tree",
+          "maximum-binary-tree-ii",
+          "construct-binary-search-tree-from-preorder-traversal",
+          "balance-a-binary-search-tree",
+          "create-binary-tree-from-descriptions",
+          "construct-binary-tree-from-preorder-and-inorder-traversal",
+          "construct-binary-tree-from-inorder-and-postorder-traversal",
+          "construct-binary-tree-from-preorder-and-postorder-traversal",
+          "recover-a-tree-from-preorder-traversal",
+          "construct-binary-tree-from-string",
+          "design-an-expression-tree-with-evaluate-function",
+          "build-binary-expression-tree-from-infix-expression"
+        ]
+      },
+      {
+        "key": "section-24",
+        "title": "§2.11 插入/删除节点",
+        "titleEn": "§2.11 插入/删除节点",
+        "memberSlugs": [
+          "insert-into-a-binary-search-tree",
+          "delete-node-in-a-bst",
+          "trim-a-binary-search-tree",
+          "split-bst",
+          "change-the-root-of-a-binary-tree"
+        ]
+      },
+      {
+        "key": "section-25",
+        "title": "§2.12 树形 DP",
+        "titleEn": "§2.12 树形 DP",
+        "memberSlugs": [
+          "house-robber-iii",
+          "binary-tree-cameras",
+          "er-cha-shu-ren-wu-diao-du",
+          "er-cha-shu-ran-se-UGC",
+          "U7WvvU",
+          "minimum-flips-in-binary-tree-to-get-result"
+        ]
+      },
+      {
+        "key": "section-26",
+        "title": "§2.13 二叉树 BFS",
+        "titleEn": "§2.13 二叉树 BFS",
+        "memberSlugs": [
+          "binary-tree-level-order-traversal",
+          "binary-tree-zigzag-level-order-traversal",
+          "binary-tree-level-order-traversal-ii",
+          "binary-tree-right-side-view",
+          "find-bottom-left-tree-value",
+          "find-largest-value-in-each-tree-row",
+          "average-of-levels-in-binary-tree",
+          "maximum-level-sum-of-a-binary-tree",
+          "cousins-in-binary-tree",
+          "kth-largest-sum-in-a-binary-tree",
+          "deepest-leaves-sum",
+          "reverse-odd-levels-of-binary-tree",
+          "even-odd-tree",
+          "add-one-row-to-tree",
+          "minimum-number-of-operations-to-sort-a-binary-tree-by-level",
+          "cousins-in-binary-tree-ii",
+          "complete-binary-tree-inserter",
+          "check-completeness-of-a-binary-tree",
+          "all-nodes-distance-k-in-binary-tree",
+          "maximum-width-of-binary-tree",
+          "find-the-level-of-tree-with-minimum-sum",
+          "median-of-a-binary-search-tree-level",
+          "find-nearest-right-node-in-binary-tree",
+          "closest-leaf-in-a-binary-tree",
+          "correct-a-binary-tree"
+        ]
+      },
+      {
+        "key": "section-27",
+        "title": "§2.14 链表+二叉树",
+        "titleEn": "§2.14 链表+二叉树",
+        "memberSlugs": [
+          "flatten-binary-tree-to-linked-list",
+          "linked-list-in-binary-tree",
+          "convert-sorted-list-to-binary-search-tree",
+          "populating-next-right-pointers-in-each-node",
+          "populating-next-right-pointers-in-each-node-ii",
+          "convert-binary-search-tree-to-sorted-doubly-linked-list"
+        ]
+      },
+      {
+        "key": "section-28",
+        "title": "§2.15 N 叉树",
+        "titleEn": "§2.15 N 叉树",
+        "memberSlugs": [
+          "n-ary-tree-preorder-traversal",
+          "n-ary-tree-postorder-traversal",
+          "maximum-depth-of-n-ary-tree",
+          "n-ary-tree-level-order-traversal",
+          "construct-quad-tree",
+          "logical-or-of-two-binary-grids-represented-as-quad-trees",
+          "serialize-and-deserialize-n-ary-tree",
+          "clone-n-ary-tree",
+          "find-root-of-n-ary-tree",
+          "diameter-of-n-ary-tree",
+          "move-sub-tree-of-n-ary-tree"
+        ]
+      },
+      {
+        "key": "section-29",
+        "title": "§2.16 其他",
+        "titleEn": "§2.16 其他",
+        "memberSlugs": [
+          "find-elements-in-a-contaminated-binary-tree",
+          "path-in-zigzag-labelled-binary-tree",
+          "vertical-order-traversal-of-a-binary-tree",
+          "print-binary-tree",
+          "distribute-coins-in-binary-tree",
+          "count-complete-tree-nodes",
+          "serialize-and-deserialize-binary-tree",
+          "serialize-and-deserialize-bst",
+          "verify-preorder-serialization-of-a-binary-tree",
+          "find-duplicate-subtrees",
+          "binary-search-tree-iterator",
+          "count-nodes-with-the-highest-score",
+          "make-costs-of-paths-equal-in-a-binary-tree",
+          "cycle-length-queries-in-a-tree",
+          "height-of-binary-tree-after-subtree-removal-queries",
+          "hSRGyL",
+          "WInSav",
+          "binary-tree-vertical-order-traversal",
+          "path-sum-iv",
+          "binary-search-tree-iterator-ii",
+          "height-of-special-binary-tree",
+          "clone-binary-tree-with-random-pointer",
+          "number-of-nodes-with-value-one",
+          "encode-n-ary-tree-to-binary-tree",
+          "subtree-removal-game-with-fibonacci-tree"
+        ]
+      },
+      {
+        "key": "section-30",
+        "title": "三、一般树",
+        "titleEn": "三、一般树",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-31",
+        "title": "§3.1 遍历",
+        "titleEn": "§3.1 遍历",
+        "memberSlugs": [
+          "reachable-nodes-with-restrictions",
+          "reorder-routes-to-make-all-paths-lead-to-the-city-zero",
+          "kill-process"
+        ]
+      },
+      {
+        "key": "section-32",
+        "title": "§3.2 自顶向下 DFS",
+        "titleEn": "§3.2 自顶向下 DFS",
+        "memberSlugs": [
+          "time-needed-to-inform-all-employees",
+          "unit-conversion-i",
+          "minimum-time-to-collect-all-apples-in-a-tree",
+          "pythagorean-distance-nodes-in-a-tree",
+          "frog-position-after-t-seconds",
+          "count-pairs-of-connectable-servers-in-a-weighted-tree-network",
+          "maximize-the-number-of-target-nodes-after-connecting-trees-i",
+          "most-profitable-path-in-a-tree",
+          "maximize-the-number-of-target-nodes-after-connecting-trees-ii",
+          "tree-of-coprimes",
+          "count-paths-that-can-form-a-palindrome-in-a-tree",
+          "unit-conversion-ii"
+        ]
+      },
+      {
+        "key": "section-33",
+        "title": "§3.3 自底向上 DFS",
+        "titleEn": "§3.3 自底向上 DFS",
+        "memberSlugs": [
+          "employee-importance",
+          "count-the-number-of-good-nodes",
+          "number-of-nodes-in-the-sub-tree-with-the-same-label",
+          "number-of-ways-to-assign-edge-weights-i",
+          "minimum-increments-to-equalize-leaf-paths",
+          "maximum-number-of-k-divisible-components",
+          "minimum-fuel-cost-to-report-to-the-capital",
+          "minimum-edge-toggles-on-a-tree",
+          "find-number-of-coins-to-place-in-tree-nodes",
+          "create-components-with-same-value",
+          "delete-tree-nodes",
+          "maximum-subtree-of-the-same-color"
+        ]
+      },
+      {
+        "key": "section-34",
+        "title": "§3.4 有递有归",
+        "titleEn": "§3.4 有递有归",
+        "memberSlugs": [
+          "minimum-increments-to-equalize-leaf-paths",
+          "find-subtree-sizes-after-changes"
+        ]
+      },
+      {
+        "key": "section-35",
+        "title": "§3.5 树的直径",
+        "titleEn": "§3.5 树的直径",
+        "memberSlugs": [
+          "longest-path-with-different-adjacent-characters",
+          "find-minimum-diameter-after-merging-two-trees",
+          "count-subtrees-with-max-distance-between-cities",
+          "difference-between-maximum-and-minimum-price-sum",
+          "tree-diameter",
+          "find-diameter-endpoints-of-a-tree",
+          "find-the-last-marked-nodes-in-tree"
+        ]
+      },
+      {
+        "key": "section-36",
+        "title": "§3.6 树的拓扑排序",
+        "titleEn": "§3.6 树的拓扑排序",
+        "memberSlugs": [
+          "minimum-height-trees",
+          "minimum-edge-toggles-on-a-tree",
+          "collect-coins-in-a-tree"
+        ]
+      },
+      {
+        "key": "section-37",
+        "title": "§3.7 DFS 时间戳",
+        "titleEn": "§3.7 DFS 时间戳",
+        "memberSlugs": [
+          "shortest-path-in-a-weighted-tree",
+          "coin-bonus",
+          "minimum-score-after-removals-on-a-tree",
+          "check-if-dfs-strings-are-palindromes",
+          "kth-smallest-path-xor-sum"
+        ]
+      },
+      {
+        "key": "section-38",
+        "title": "§3.8 最近公共祖先（LCA）、倍增算法",
+        "titleEn": "§3.8 最近公共祖先（LCA）、倍增算法",
+        "memberSlugs": [
+          "kth-ancestor-of-a-tree-node",
+          "number-of-ways-to-assign-edge-weights-ii",
+          "minimum-weighted-subgraph-with-the-required-paths-ii",
+          "find-weighted-median-node-in-tree",
+          "minimum-edge-weight-equilibrium-queries-in-a-tree",
+          "minimize-the-total-price-of-the-trips",
+          "closest-node-to-path-in-tree",
+          "path-existence-queries-in-a-graph-ii",
+          "maximize-value-of-function-in-a-ball-passing-game",
+          "maximize-the-distance-between-points-on-a-square"
+        ]
+      },
+      {
+        "key": "section-39",
+        "title": "§3.9 虚树",
+        "titleEn": "§3.9 虚树",
+        "memberSlugs": [
+          "total-sum-of-interaction-cost-in-tree-groups"
+        ]
+      },
+      {
+        "key": "section-40",
+        "title": "§3.10 树上启发式合并",
+        "titleEn": "§3.10 树上启发式合并",
+        "memberSlugs": [
+          "smallest-missing-genetic-value-in-each-subtree",
+          "kth-smallest-path-xor-sum",
+          "maximum-good-subtree-score"
+        ]
+      },
+      {
+        "key": "section-41",
+        "title": "§3.11 点分治",
+        "titleEn": "§3.11 点分治",
+        "memberSlugs": [
+          "maximize-the-number-of-target-nodes-after-connecting-trees-i"
+        ]
+      },
+      {
+        "key": "section-42",
+        "title": "§3.12 树上滑动窗口",
+        "titleEn": "§3.12 树上滑动窗口",
+        "memberSlugs": [
+          "longest-special-path",
+          "longest-special-path-ii"
+        ]
+      },
+      {
+        "key": "section-43",
+        "title": "§3.13 其他",
+        "titleEn": "§3.13 其他",
+        "memberSlugs": [
+          "count-valid-paths-in-a-tree",
+          "number-of-good-paths",
+          "number-of-ways-to-reconstruct-a-tree",
+          "maximum-xor-of-two-non-overlapping-subtrees"
+        ]
+      },
+      {
+        "key": "section-44",
+        "title": "四、回溯",
+        "titleEn": "四、回溯",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-45",
+        "title": "§4.1 入门回溯",
+        "titleEn": "§4.1 入门回溯",
+        "memberSlugs": [
+          "letter-combinations-of-a-phone-number"
+        ]
+      },
+      {
+        "key": "section-46",
+        "title": "§4.2 子集型回溯",
+        "titleEn": "§4.2 子集型回溯",
+        "memberSlugs": [
+          "subsets",
+          "sum-of-all-subset-xor-totals",
+          "letter-case-permutation",
+          "partition-array-into-two-equal-product-subsets",
+          "count-number-of-maximum-bitwise-or-subsets",
+          "UEcfPD",
+          "maximum-rows-covered-by-columns",
+          "maximum-length-of-a-concatenated-string-with-unique-characters",
+          "maximum-points-in-an-archery-competition",
+          "maximum-score-words-formed-by-letters",
+          "maximum-good-people-based-on-statements",
+          "the-number-of-beautiful-subsets",
+          "number-of-possible-sets-of-closing-branches",
+          "maximum-number-of-achievable-transfer-requests",
+          "count-subtrees-with-max-distance-between-cities",
+          "remove-all-ones-with-row-and-column-flips-ii",
+          "generalized-abbreviation",
+          "factor-combinations",
+          "combination-sum",
+          "maximum-product-of-the-length-of-two-palindromic-subsequences"
+        ]
+      },
+      {
+        "key": "section-47",
+        "title": "§4.3 划分型回溯",
+        "titleEn": "§4.3 划分型回溯",
+        "memberSlugs": [
+          "palindrome-partitioning",
+          "find-the-punishment-number-of-an-integer",
+          "split-a-string-into-the-max-number-of-unique-substrings",
+          "splitting-a-string-into-descending-consecutive-values",
+          "restore-ip-addresses",
+          "word-break-ii",
+          "word-pattern-ii"
+        ]
+      },
+      {
+        "key": "section-48",
+        "title": "§4.4 组合型回溯",
+        "titleEn": "§4.4 组合型回溯",
+        "memberSlugs": [
+          "combinations",
+          "combination-sum-iii",
+          "iterator-for-combination",
+          "generate-parentheses",
+          "remove-invalid-parentheses"
+        ]
+      },
+      {
+        "key": "section-49",
+        "title": "§4.5 排列型回溯",
+        "titleEn": "§4.5 排列型回溯",
+        "memberSlugs": [
+          "permutations",
+          "word-squares-ii",
+          "minimum-time-to-break-locks-i",
+          "n-queens",
+          "n-queens-ii",
+          "minimum-moves-to-spread-stones-over-grid",
+          "construct-the-lexicographically-largest-valid-sequence",
+          "verbal-arithmetic-puzzle",
+          "sudoku-solver",
+          "permutations-iii",
+          "palindrome-permutation-ii"
+        ]
+      },
+      {
+        "key": "section-50",
+        "title": "§4.6 有重复元素的回溯",
+        "titleEn": "§4.6 有重复元素的回溯",
+        "memberSlugs": [
+          "subsets-ii",
+          "combination-sum-ii",
+          "non-decreasing-subsequences",
+          "permutations-ii",
+          "letter-tile-possibilities",
+          "next-special-palindrome-number",
+          "longest-subsequence-repeated-k-times"
+        ]
+      },
+      {
+        "key": "section-51",
+        "title": "§4.7 搜索",
+        "titleEn": "§4.7 搜索",
+        "memberSlugs": [
+          "generate-binary-strings-without-adjacent-zeros",
+          "numbers-with-same-consecutive-differences",
+          "finding-3-digit-even-numbers",
+          "the-k-th-lexicographical-string-of-all-happy-strings-of-length-n",
+          "path-with-maximum-gold",
+          "word-search",
+          "unique-paths-iii",
+          "maximum-product-of-the-length-of-two-palindromic-subsequences",
+          "maximum-score-words-formed-by-letters",
+          "balanced-k-factor-decomposition",
+          "pyramid-transition-matrix",
+          "matchsticks-to-square",
+          "word-search-ii",
+          "shopping-offers",
+          "tiling-a-rectangle-with-the-fewest-squares",
+          "24-game",
+          "expression-add-operators",
+          "word-ladder-ii",
+          "stickers-to-spell-word",
+          "number-of-valid-move-combinations-on-chessboard",
+          "find-the-k-sum-of-an-array",
+          "maximum-product-of-subsequences-with-an-alternating-sum-equal-to-k",
+          "zuma-game",
+          "De4qBB",
+          "word-rectangle-lcci",
+          "the-knights-tour",
+          "sequential-grid-path-cover",
+          "strobogrammatic-number-ii",
+          "strobogrammatic-number-iii",
+          "minimum-unique-word-abbreviation",
+          "confusing-number-ii"
+        ]
+      },
+      {
+        "key": "section-52",
+        "title": "§4.8 折半枚举",
+        "titleEn": "§4.8 折半枚举",
+        "memberSlugs": [
+          "target-sum",
+          "split-array-with-same-average",
+          "partition-array-into-two-equal-product-subsets",
+          "closest-subsequence-sum",
+          "tallest-billboard",
+          "partition-array-into-two-arrays-to-minimize-sum-difference",
+          "minimum-cost-to-merge-sorted-lists",
+          "count-almost-equal-pairs-ii",
+          "cnHoX6"
+        ]
+      },
+      {
+        "key": "section-53",
+        "title": "五、其他递归/分治",
+        "titleEn": "五、其他递归/分治",
+        "memberSlugs": [
+          "fill-a-special-grid",
+          "kth-largest-element-in-an-array",
+          "sort-an-array",
+          "decoded-string-at-index",
+          "find-the-k-th-character-in-string-game-ii",
+          "find-kth-bit-in-nth-binary-string",
+          "process-string-with-special-operations-ii",
+          "beautiful-array"
+        ]
+      },
+      {
+        "key": "section-54",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
+    ],
     "sourceUrl": "https://leetcode.cn/discuss/post/K0n2gO/",
     "title": "链表、树与回溯",
     "titleEn": "Linked List, Trees & Backtracking"
@@ -3467,6 +9503,187 @@ export const leetcodeLingShenGroups = ([
       "longest-common-prefix-of-k-strings-after-removal",
       "count-the-repetitions",
       "phone-number-prefix"
+    ],
+    "sections": [
+      {
+        "key": "section-1",
+        "title": "一、KMP（前缀的后缀）",
+        "titleEn": "一、KMP（前缀的后缀）",
+        "memberSlugs": [
+          "find-the-index-of-the-first-occurrence-in-a-string",
+          "rotate-string",
+          "longest-happy-prefix",
+          "number-of-subarrays-that-match-a-pattern-ii",
+          "form-array-by-concatenating-subarrays-of-another-array",
+          "maximum-repeating-substring",
+          "repeated-substring-pattern",
+          "shortest-string-that-contains-three-strings",
+          "find-beautiful-indices-in-the-given-array-ii",
+          "shortest-palindrome",
+          "count-cells-in-overlapping-horizontal-and-vertical-substrings",
+          "repeated-string-match",
+          "shortest-matching-substring",
+          "find-all-good-strings",
+          "find-pattern-in-infinite-stream-ii",
+          "find-the-shortest-superstring-ii"
+        ]
+      },
+      {
+        "key": "section-2",
+        "title": "二、Z 函数（后缀的前缀）",
+        "titleEn": "二、Z 函数（后缀的前缀）",
+        "memberSlugs": [
+          "find-the-index-of-the-first-occurrence-in-a-string",
+          "sum-of-scores-of-built-strings",
+          "minimum-time-to-revert-word-to-initial-state-ii",
+          "count-prefix-and-suffix-pairs-ii",
+          "find-the-occurrence-of-first-almost-equal-substring",
+          "minimum-number-of-valid-strings-to-form-target-ii",
+          "lexicographically-smallest-generated-string",
+          "maximum-deletions-on-a-string",
+          "count-beautiful-splits-in-an-array",
+          "find-the-string-with-lcp",
+          "number-of-ways-to-separate-numbers"
+        ]
+      },
+      {
+        "key": "section-3",
+        "title": "三、Manacher 算法（回文串）",
+        "titleEn": "三、Manacher 算法（回文串）",
+        "memberSlugs": [
+          "longest-palindromic-substring",
+          "palindromic-substrings",
+          "shortest-palindrome",
+          "check-if-dfs-strings-are-palindromes",
+          "palindrome-partitioning-iv",
+          "maximum-product-of-the-length-of-two-palindromic-substrings",
+          "longest-almost-palindromic-substring",
+          "longest-palindrome-after-substring-concatenation-ii",
+          "maximum-number-of-non-overlapping-palindrome-substrings",
+          "longest-palindromic-path-in-graph",
+          "minimum-steps-to-convert-string-with-operations"
+        ]
+      },
+      {
+        "key": "section-4",
+        "title": "四、字符串哈希",
+        "titleEn": "四、字符串哈希",
+        "memberSlugs": [
+          "find-substring-with-given-hash-value",
+          "concatenate-non-zero-digits-and-multiply-by-sum-ii",
+          "construct-string-with-minimum-cost",
+          "find-the-index-of-the-first-occurrence-in-a-string",
+          "repeated-dna-sequences",
+          "distinct-echo-substrings",
+          "maximum-number-of-occurrences-of-a-substring",
+          "k-divisible-elements-subarrays",
+          "lexicographically-smallest-string-after-reverse",
+          "linked-list-in-binary-tree",
+          "longest-duplicate-substring",
+          "maximum-length-of-repeated-subarray",
+          "longest-common-subpath",
+          "minimum-number-of-valid-strings-to-form-target-ii",
+          "longest-almost-palindromic-substring",
+          "unique-substrings-with-equal-digit-frequency",
+          "strings-differ-by-one-character",
+          "longest-repeating-substring"
+        ]
+      },
+      {
+        "key": "section-5",
+        "title": "五、最小表示法",
+        "titleEn": "五、最小表示法",
+        "memberSlugs": [
+          "last-substring-in-lexicographical-order",
+          "orderly-queue",
+          "find-the-lexicographically-largest-string-from-the-box-i",
+          "lexicographically-smallest-string-after-applying-operations",
+          "find-the-lexicographically-largest-string-from-the-box-ii",
+          "largest-subarray-length-k"
+        ]
+      },
+      {
+        "key": "section-6",
+        "title": "六、字典树",
+        "titleEn": "六、字典树",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-7",
+        "title": "七、AC 自动机",
+        "titleEn": "七、AC 自动机",
+        "memberSlugs": [
+          "stream-of-characters",
+          "multi-search-lcci",
+          "string-matching-in-an-array",
+          "construct-string-with-minimum-cost",
+          "length-of-the-longest-valid-substring",
+          "minimum-number-of-valid-strings-to-form-target-ii",
+          "convert-number-words-to-digits"
+        ]
+      },
+      {
+        "key": "section-8",
+        "title": "八、后缀数组/后缀自动机",
+        "titleEn": "八、后缀数组/后缀自动机",
+        "memberSlugs": [
+          "last-substring-in-lexicographical-order",
+          "largest-merge-of-two-strings",
+          "shortest-and-lexicographically-smallest-beautiful-string",
+          "lexicographically-smallest-string-after-reverse",
+          "construct-string-with-minimum-cost",
+          "longest-duplicate-substring",
+          "maximum-length-of-repeated-subarray",
+          "longest-common-subpath",
+          "string-matching-in-an-array",
+          "count-distinct-subarrays-divisible-by-k-in-sorted-array",
+          "shortest-uncommon-substring-in-an-array",
+          "longest-almost-palindromic-substring",
+          "longest-palindrome-after-substring-concatenation-ii",
+          "distinct-echo-substrings",
+          "count-beautiful-splits-in-an-array",
+          "substring-xor-queries",
+          "pattern-matching-lcci",
+          "number-of-distinct-substrings-in-a-string",
+          "longest-repeating-substring",
+          "equalize-strings-by-adding-or-removing-characters-at-ends"
+        ]
+      },
+      {
+        "key": "section-9",
+        "title": "九、子序列自动机",
+        "titleEn": "九、子序列自动机",
+        "memberSlugs": [
+          "is-subsequence",
+          "number-of-matching-subsequences",
+          "freedom-trail",
+          "longest-subsequence-repeated-k-times",
+          "shortest-way-to-form-string",
+          "minimum-window-subsequence"
+        ]
+      },
+      {
+        "key": "section-10",
+        "title": "十、其他",
+        "titleEn": "十、其他",
+        "memberSlugs": [
+          "longest-common-prefix-of-k-strings-after-removal",
+          "count-the-repetitions",
+          "phone-number-prefix"
+        ]
+      },
+      {
+        "key": "section-11",
+        "title": "关联题单",
+        "titleEn": "关联题单",
+        "memberSlugs": []
+      },
+      {
+        "key": "section-12",
+        "title": "算法题单",
+        "titleEn": "算法题单",
+        "memberSlugs": []
+      }
     ],
     "sourceUrl": "https://leetcode.cn/discuss/post/SJFwQI/",
     "title": "字符串",

@@ -291,19 +291,38 @@ function parsePostProblems(source, content) {
     descriptionEn: source.descriptionEn,
     key: source.key,
     memberSlugs: [],
+    sections: [],
     sourceUrl: postUrl(source.postId),
     title: source.title,
     titleEn: source.titleEn,
   };
   const rows = [];
   const memberSet = new Set();
-  let currentSection = "";
+  const sectionByTitle = new Map();
+  let currentSection = null;
   let orderInGroup = 0;
+
+  function ensureSection(title) {
+    const sectionTitle = title || "未分组";
+    if (!sectionByTitle.has(sectionTitle)) {
+      const section = {
+        key: `section-${group.sections.length + 1}`,
+        title: sectionTitle,
+        titleEn: sectionTitle,
+        memberSlugs: [],
+      };
+      sectionByTitle.set(sectionTitle, section);
+      group.sections.push(section);
+    }
+    return sectionByTitle.get(sectionTitle);
+  }
 
   for (const rawLine of content.split(/\r?\n/)) {
     const heading = rawLine.match(/^#{2,4}\s+(.+)$/u);
     if (heading) {
-      currentSection = plainText(heading[1]).replace(/^#+\s*/u, "");
+      currentSection = ensureSection(
+        plainText(heading[1]).replace(/^#+\s*/u, ""),
+      );
       continue;
     }
 
@@ -319,6 +338,10 @@ function parsePostProblems(source, content) {
         memberSet.add(slug);
         group.memberSlugs.push(slug);
       }
+      const section = currentSection;
+      if (section && !section.memberSlugs.includes(slug)) {
+        section.memberSlugs.push(slug);
+      }
       rows.push({
         frontendId: label.frontendId,
         groupKey: source.key,
@@ -328,7 +351,7 @@ function parsePostProblems(source, content) {
         note: parseNote(rest),
         paidOnlyHint: /会员题/u.test(rest),
         rating: parseRating(rest),
-        sectionTitle: currentSection,
+        sectionTitle: section?.title || "",
         sourceTitle: source.title,
         sourceUrl: postUrl(source.postId),
         titleCn: label.titleCn,
@@ -701,6 +724,12 @@ function renderOutput(groups, problems, stats) {
   descriptionEn: string;
   sourceUrl: string;
   memberSlugs: string[];
+  sections: Array<{
+    key: string;
+    title: string;
+    titleEn: string;
+    memberSlugs: string[];
+  }>;
 }
 
 export interface LeetcodeLingShenProblem {
