@@ -1410,22 +1410,120 @@ const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => (
     ],
   relatedQuestions: buildRelatedQuestions(problem),
 }));
+const leetcodeProblemPayloadIndexBySlug = new Map(
+  leetcodeProblemsWithReferences.map((problem, index) => [problem.titleSlug, index]),
+);
 function codeTemplateLanguageSlugs(codeTemplates) {
   return codeTemplates.map((template) => template.langSlug).filter(Boolean);
+}
+
+const byteDanceBucketPayloadKeys = [
+  "all",
+  "thirtyDays",
+  "threeMonths",
+  "sixMonths",
+  "moreThanSixMonths",
+];
+const codeTemplateLanguagePayloadSlugs = [
+  "bash",
+  "c",
+  "cangjie",
+  "cpp",
+  "csharp",
+  "dart",
+  "elixir",
+  "erlang",
+  "golang",
+  "java",
+  "javascript",
+  "kotlin",
+  "mssql",
+  "mysql",
+  "oraclesql",
+  "php",
+  "postgresql",
+  "python",
+  "python3",
+  "pythondata",
+  "racket",
+  "ruby",
+  "rust",
+  "scala",
+  "swift",
+  "typescript",
+];
+const codeTemplateLanguagePayloadIndexBySlug = new Map(
+  codeTemplateLanguagePayloadSlugs.map((slug, index) => [slug, index]),
+);
+const tagPayload = [];
+const tagPayloadIndexByKey = new Map();
+
+function tagPayloadKey(tag) {
+  return `${tag.slug}\0${tag.name}`;
+}
+
+function packedTags(tags) {
+  return (tags || []).map((tag) => {
+    const key = tagPayloadKey(tag);
+    if (!tagPayloadIndexByKey.has(key)) {
+      tagPayloadIndexByKey.set(key, tagPayload.length);
+      tagPayload.push([tag.slug, tag.name]);
+    }
+    return tagPayloadIndexByKey.get(key);
+  });
+}
+
+function packedCodeTemplateLanguageSlugs(codeTemplates) {
+  return codeTemplates.reduce((mask, template) => {
+    const index = codeTemplateLanguagePayloadIndexBySlug.get(template.langSlug);
+    return index === undefined ? mask : mask | (1 << index);
+  }, 0);
+}
+
+function packedByteDanceBuckets(buckets) {
+  return byteDanceBucketPayloadKeys.map((key) => buckets?.[key] ?? null);
+}
+
+function packedByteDanceBucketSources(sources) {
+  const values = byteDanceBucketPayloadKeys.map((key) => sources?.[key] ?? null);
+  return values.some(Boolean) ? values : null;
 }
 
 function packedRecordPayload(records) {
   const keys = [...new Set(records.flatMap((record) => Object.keys(record)))];
   return {
     keys,
+    tagPayload,
+    codeTemplateLanguagePayloadSlugs,
     rows: records.map((record) =>
       keys.map((key) => record[key] === undefined ? null : record[key]),
     ),
   };
 }
+
+function jsonScriptPayload(value) {
+  return JSON.stringify(value).replaceAll("<", "\\u003c");
+}
+
+function compactGroupIdea(idea) {
+  return {
+    lead: idea.lead,
+    leadEn: idea.leadEn,
+    reviewPrompts: idea.reviewPrompts,
+    tags: idea.tags,
+  };
+}
+
+function packedMemberSlugs(slugs) {
+  return slugs
+    .map((slug) => leetcodeProblemPayloadIndexBySlug.get(slug))
+    .filter(Number.isInteger);
+}
+
 const leetcodeProblemSummaries = leetcodeProblemsWithReferences.map((problem) => {
   const {
     approachPreview,
+    acRate,
     codeTemplates,
     constraintHtml,
     constraints,
@@ -1438,19 +1536,21 @@ const leetcodeProblemSummaries = leetcodeProblemsWithReferences.map((problem) =>
     statementHtml,
     statementPreview,
     url,
+    bytedanceSource,
     bytedancePeriods,
     ...summary
   } = problem;
   return {
     ...summary,
-    codeTemplateLanguageSlugs: codeTemplateLanguageSlugs(codeTemplates),
-    codeTemplateLanguageCount: codeTemplates.length,
+    bytedanceBuckets: packedByteDanceBuckets(summary.bytedanceBuckets),
+    bytedanceBucketSources: packedByteDanceBucketSources(
+      summary.bytedanceBucketSources,
+    ),
+    codeTemplateLanguageSlugs: packedCodeTemplateLanguageSlugs(codeTemplates),
     companyFollowUpCount: (companyFollowUps || []).length,
-    hasCodeTemplates: codeTemplates.length > 0,
-    hasStatementAssets: statementAssets.length > 0,
-    hasStatementHtml: Boolean(statementHtml),
     implementationReferenceCount: implementationReferences.length,
     relatedQuestionCount: relatedQuestions.total ?? 0,
+    tags: packedTags(summary.tags),
   };
 });
 const leetcodeProblemSummaryPayload = packedRecordPayload(leetcodeProblemSummaries);
@@ -1463,6 +1563,7 @@ const leetcodeSeriesOverview = leetcodeSeriesGroups.map((group) => ({
   title: group.title,
   titleEn: group.titleEn,
   description: group.description,
+  descriptionEn: group.descriptionEn || group.description,
   idea: groupIdeaProfile(group, group.members),
   paidOnly: group.members.filter((member) => member.paidOnly).length,
   supplements: group.members.filter((member) => member.seriesSupplement).length,
@@ -1482,9 +1583,12 @@ const leetcodeSeriesFilterOptions = leetcodeSeriesOverview.map((series) => ({
   key: series.key,
   title: series.title,
   titleEn: series.titleEn,
+  description: series.description,
+  descriptionEn: series.descriptionEn || series.description,
   count: series.members.length,
+  idea: compactGroupIdea(series.idea),
   supplements: series.supplements,
-  members: series.members.map((member) => member.titleSlug),
+  members: packedMemberSlugs(series.members.map((member) => member.titleSlug)),
 }));
 const leetcodeSeriesDistinctCount = new Set(
   leetcodeSeriesFilterOptions.flatMap((series) => series.members),
@@ -1534,7 +1638,10 @@ const leetcodePracticeCategoryOptions = leetcodePracticeCategoryCollections
       count: category.members.length,
       id: category.id,
       key: category.key,
-      members: category.members.map((member) => member.titleSlug),
+      description: category.description,
+      descriptionEn: category.descriptionEn,
+      idea: compactGroupIdea(category.idea),
+      members: packedMemberSlugs(category.members.map((member) => member.titleSlug)),
       title: category.title,
       titleEn: category.titleEn,
     })),
@@ -2007,231 +2114,33 @@ const shortcutRows = [
       </div>
 
       <div class="leetcode-collapse-stack">
-        <details class="leetcode-series-guide">
+        <details class="leetcode-series-guide" data-lazy-guide="series">
           <summary>
             {isZh
               ? `系列题单总览：${leetcodeSeriesStats.series} 组，补充 ${leetcodeSeriesSupplements.length} 道系列题`
               : `Series map: ${leetcodeSeriesStats.series} groups, ${leetcodeSeriesSupplements.length} series extras`}
           </summary>
-          <div class="leetcode-series-overview">
-            <p>
-              {isZh
-                ? "同一组内按基础题、编号变体和强关联变体组织；点击书内题可直接打开本页练习面板，付费题会保留标记。"
-                : "Groups are ordered by base problem, numbered variants, and strongly related variants. In-book items open the local practice panel; paid items keep their marker."}
-            </p>
-            <div class="leetcode-list-practice-actions">
-              <span>
-                {isZh
-                  ? `${leetcodeSeriesDistinctCount} 道题按组序串联`
-                  : `${leetcodeSeriesDistinctCount} problems in group order`}
-              </span>
-              <button
-                type="button"
-                data-list-practice="series"
-                aria-pressed="false"
-                aria-label={isZh ? "按系列题单整体顺序练习" : "Practice the full series list in order"}
-              >
-                {isZh ? "按题单顺序练" : "Practice full list"}
-              </button>
-            </div>
-            <div class="leetcode-series-grid">
-              {leetcodeSeriesOverview.map((series) => (
-                <section class="leetcode-series-group">
-                  <header>
-                    <h3>{isZh ? series.title : series.titleEn}</h3>
-                    <div>
-                      <span>
-                        {series.members.length}
-                        {series.supplements > 0
-                          ? isZh
-                            ? ` / 补 ${series.supplements}`
-                            : ` / +${series.supplements}`
-                          : ""}
-                      </span>
-                      <span class="leetcode-group-idea">
-                        <button
-                          type="button"
-                          class="leetcode-group-idea-trigger"
-                          aria-controls={groupIdeaDomId("series", series.key)}
-                          aria-expanded="false"
-                          aria-label={isZh
-                            ? `查看${series.title}的思路演进`
-                            : `View approach path for ${series.titleEn}`}
-                          data-group-idea-trigger
-                        >
-                          {isZh ? "思路" : "Ideas"}
-                        </button>
-                        <span
-                          id={groupIdeaDomId("series", series.key)}
-                          class="leetcode-group-idea-popover"
-                          role="tooltip"
-                        >
-                          <strong>{isZh ? "思路演进" : "Approach Path"}</strong>
-                          <span class="leetcode-group-idea-lead">
-                            {isZh ? series.idea.lead : series.idea.leadEn}
-                          </span>
-                          {series.idea.tags.length > 0 && (
-                            <span class="leetcode-group-idea-tags">
-                              {series.idea.tags.map((tag) => <em>{tag}</em>)}
-                            </span>
-                          )}
-                          <span class="leetcode-group-idea-list">
-                            {series.idea.rows.map((row) => (
-                              <span class="leetcode-group-idea-row">
-                                <span class="leetcode-group-idea-row-head">
-                                  <b>{row.step}. {row.frontendId}. {row.titleCn}</b>
-                                  <span class="leetcode-group-idea-row-meta">
-                                    <em class:list={[
-                                      "leetcode-difficulty",
-                                      difficultyBadgeClass(row.difficulty),
-                                    ]}>{row.difficulty}</em>
-                                    {row.paidOnly && (
-                                      <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
-                                    )}
-                                  </span>
-                                </span>
-                                <span>{row.text}</span>
-                              </span>
-                            ))}
-                          </span>
-                          {series.idea.reviewPrompts.length > 0 && (
-                            <span class="leetcode-group-idea-review">
-                              <b>{isZh ? "复盘重点" : "Review"}</b>
-                              {series.idea.reviewPrompts.map((prompt) => (
-                                <span>{prompt}</span>
-                              ))}
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                      <button type="button" data-series-practice={series.key}>
-                        {isZh ? "练这组" : "Practice"}
-                      </button>
-                    </div>
-                  </header>
-                  <p>{series.description}</p>
-                  <div
-                    class="leetcode-series-members"
-                    data-lazy-member-list="series"
-                    data-member-list-key={series.key}
-                  >
-                    <span class="leetcode-popover-muted">
-                      {isZh ? "展开后加载本组题目。" : "Members load when opened."}
-                    </span>
-                  </div>
-                </section>
-              ))}
-            </div>
+          <div class="leetcode-series-overview" data-lazy-guide-body="series">
+            <p>{isZh ? "展开后加载系列题单。" : "Open to load the series map."}</p>
           </div>
         </details>
 
         {leetcodePracticeCategoryCollections.map((collection) => (
-          <details class="leetcode-series-guide leetcode-category-guide">
+          <details
+            class="leetcode-series-guide leetcode-category-guide"
+            data-lazy-guide="category"
+            data-guide-key={collection.key}
+          >
             <summary>
               {isZh
                 ? `${collection.title}：${collection.categories.length} 类，${collection.distinctCount} 道题`
                 : `${collection.titleEn}: ${collection.categories.length} categories, ${collection.distinctCount} problems`}
             </summary>
-            <div class="leetcode-series-overview leetcode-category-overview">
-              <p>{isZh ? collection.description : collection.descriptionEn}</p>
-              <div class="leetcode-list-practice-actions">
-                <span>
-                  {isZh
-                    ? `${collection.distinctCount} 道题按分类序串联`
-                    : `${collection.distinctCount} problems in category order`}
-                </span>
-                <button
-                  type="button"
-                  data-list-practice={collection.key}
-                  aria-pressed="false"
-                  aria-label={isZh
-                    ? `按${collection.title}整体顺序练习`
-                    : `Practice the full ${collection.titleEn} in order`}
-                >
-                  {isZh ? "按题单顺序练" : "Practice full list"}
-                </button>
-              </div>
-              <div class="leetcode-series-grid leetcode-category-grid">
-                {collection.categories.map((category) => (
-                  <section class="leetcode-series-group leetcode-category-group">
-                    <header>
-                      <h3>{isZh ? category.title : category.titleEn}</h3>
-                      <div>
-                        <span>{category.members.length}</span>
-                        <span class="leetcode-group-idea">
-                          <button
-                            type="button"
-                            class="leetcode-group-idea-trigger"
-                            aria-controls={groupIdeaDomId("category", category.id)}
-                            aria-expanded="false"
-                            aria-label={isZh
-                              ? `查看${category.title}的思路演进`
-                              : `View approach path for ${category.titleEn}`}
-                            data-group-idea-trigger
-                          >
-                            {isZh ? "思路" : "Ideas"}
-                          </button>
-                          <span
-                            id={groupIdeaDomId("category", category.id)}
-                            class="leetcode-group-idea-popover"
-                            role="tooltip"
-                          >
-                            <strong>{isZh ? "思路演进" : "Approach Path"}</strong>
-                            <span class="leetcode-group-idea-lead">
-                              {isZh ? category.idea.lead : category.idea.leadEn}
-                            </span>
-                            {category.idea.tags.length > 0 && (
-                              <span class="leetcode-group-idea-tags">
-                                {category.idea.tags.map((tag) => <em>{tag}</em>)}
-                              </span>
-                            )}
-                            <span class="leetcode-group-idea-list">
-                              {category.idea.rows.map((row) => (
-                                <span class="leetcode-group-idea-row">
-                                  <span class="leetcode-group-idea-row-head">
-                                    <b>{row.step}. {row.frontendId}. {row.titleCn}</b>
-                                    <span class="leetcode-group-idea-row-meta">
-                                      <em class:list={[
-                                        "leetcode-difficulty",
-                                        difficultyBadgeClass(row.difficulty),
-                                      ]}>{row.difficulty}</em>
-                                      {row.paidOnly && (
-                                        <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
-                                      )}
-                                    </span>
-                                  </span>
-                                  <span>{row.text}</span>
-                                </span>
-                              ))}
-                            </span>
-                            {category.idea.reviewPrompts.length > 0 && (
-                              <span class="leetcode-group-idea-review">
-                                <b>{isZh ? "复盘重点" : "Review"}</b>
-                                {category.idea.reviewPrompts.map((prompt) => (
-                                  <span>{prompt}</span>
-                                ))}
-                              </span>
-                            )}
-                          </span>
-                        </span>
-                        <button type="button" data-category-practice={category.id}>
-                          {isZh ? "练这类" : "Practice"}
-                        </button>
-                      </div>
-                    </header>
-                    <p>{isZh ? category.description : category.descriptionEn}</p>
-                    <div
-                      class="leetcode-series-members leetcode-category-members"
-                      data-lazy-member-list="category"
-                      data-member-list-key={category.id}
-                    >
-                      <span class="leetcode-popover-muted">
-                        {isZh ? "展开后加载本类题目。" : "Members load when opened."}
-                      </span>
-                    </div>
-                  </section>
-                ))}
-              </div>
+            <div
+              class="leetcode-series-overview leetcode-category-overview"
+              data-lazy-guide-body="category"
+            >
+              <p>{isZh ? "展开后加载分类题单。" : "Open to load this topic list."}</p>
             </div>
           </details>
         ))}
@@ -2655,9 +2564,9 @@ const shortcutRows = [
 
   </main>
 
-  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemSummaryPayload)}></script>
-  <script type="application/json" id="leetcode-series-data" set:html={JSON.stringify(leetcodeSeriesFilterOptions)}></script>
-  <script type="application/json" id="leetcode-category-data" set:html={JSON.stringify(leetcodePracticeCategoryOptions)}></script>
+  <script type="application/json" id="leetcode-data" set:html={jsonScriptPayload(leetcodeProblemSummaryPayload)}></script>
+  <script type="application/json" id="leetcode-series-data" set:html={jsonScriptPayload(leetcodeSeriesFilterOptions)}></script>
+  <script type="application/json" id="leetcode-category-data" set:html={jsonScriptPayload(leetcodePracticeCategoryOptions)}></script>
 
   <script>
     const progressKey = "leetcode-book-progress-v1";
@@ -2708,8 +2617,66 @@ const shortcutRows = [
       return `https://leetcode.cn/problems/${slug}/description/`;
     }
 
+    const byteDanceBucketPayloadKeys = [
+      "all",
+      "thirtyDays",
+      "threeMonths",
+      "sixMonths",
+      "moreThanSixMonths",
+    ];
+
+    function unpackTagPayload(tag, payloadTags = []) {
+      if (Number.isInteger(tag)) {
+        const payloadTag = payloadTags[tag];
+        return {
+          slug: payloadTag?.[0] || "",
+          name: payloadTag?.[1] || payloadTag?.[0] || "",
+        };
+      }
+      if (Array.isArray(tag)) {
+        return {
+          slug: tag[0] || "",
+          name: tag[1] || tag[0] || "",
+        };
+      }
+      return tag;
+    }
+
+    function unpackByteDancePayload(value, fallback = null) {
+      if (!Array.isArray(value)) return value || fallback;
+      return Object.fromEntries(
+        byteDanceBucketPayloadKeys.map((key, index) => [
+          key,
+          value[index] ?? null,
+        ]),
+      );
+    }
+
+    function unpackLanguagePayload(value, languagePayloadSlugs = []) {
+      if (!Number.isInteger(value)) return value;
+      return languagePayloadSlugs.filter((_, index) => Boolean(value & (1 << index)));
+    }
+
+    function unpackProblemRecord(record, payload = {}) {
+      return {
+        ...record,
+        bytedanceBuckets: unpackByteDancePayload(record.bytedanceBuckets, {}),
+        bytedanceBucketSources: unpackByteDancePayload(
+          record.bytedanceBucketSources,
+          {},
+        ),
+        codeTemplateLanguageSlugs: unpackLanguagePayload(
+          record.codeTemplateLanguageSlugs,
+          payload.codeTemplateLanguagePayloadSlugs || [],
+        ),
+        tags: Array.isArray(record.tags)
+          ? record.tags.map((tag) => unpackTagPayload(tag, payload.tagPayload || []))
+          : [],
+      };
+    }
+
     function unpackRecords(payload) {
-      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload)) return payload.map((record) => unpackProblemRecord(record));
       if (!payload || !Array.isArray(payload.keys) || !Array.isArray(payload.rows)) {
         return [];
       }
@@ -2720,14 +2687,34 @@ const shortcutRows = [
         if (record.titleSlug && !record.url) {
           record.url = leetcodeProblemUrl(record.titleSlug);
         }
-        return record;
+        return unpackProblemRecord(record, payload);
       });
     }
 
     const dataNode = document.getElementById("leetcode-data");
     const problems = unpackRecords(JSON.parse(dataNode?.textContent || "[]"));
+    const problemSlugPayload = problems.map((problem) => problem.titleSlug);
+
+    function unpackMemberSlugs(members) {
+      if (!Array.isArray(members)) return [];
+      return members
+        .map((member) =>
+          Number.isInteger(member) ? problemSlugPayload[member] : member,
+        )
+        .filter(Boolean);
+    }
+
+    function unpackGuideOption(option) {
+      return {
+        ...option,
+        members: unpackMemberSlugs(option.members),
+      };
+    }
+
     const seriesDataNode = document.getElementById("leetcode-series-data");
-    const seriesOptions = JSON.parse(seriesDataNode?.textContent || "[]");
+    const seriesOptions = JSON.parse(seriesDataNode?.textContent || "[]").map(
+      unpackGuideOption,
+    );
     const seriesByKey = new Map(
       seriesOptions.map((series) => [series.key, series]),
     );
@@ -2738,7 +2725,9 @@ const shortcutRows = [
       ]),
     );
     const categoryDataNode = document.getElementById("leetcode-category-data");
-    const categoryOptions = JSON.parse(categoryDataNode?.textContent || "[]");
+    const categoryOptions = JSON.parse(categoryDataNode?.textContent || "[]").map(
+      unpackGuideOption,
+    );
     const practiceListKindSeries = "series";
     const practiceListKindHot100 = "hot100";
     const practiceListKindByteDance = "bytedance";
@@ -2771,24 +2760,40 @@ const shortcutRows = [
         key: practiceListKindSeries,
         title: "系列题单总览",
         titleEn: "Series map",
+        description:
+          "同一组内按基础题、编号变体和强关联变体组织；点击书内题可直接打开本页练习面板，付费题会保留标记。",
+        descriptionEn:
+          "Groups are ordered by base problem, numbered variants, and strongly related variants. In-book items open the local practice panel; paid items keep their marker.",
         members: practiceListMembersFor(practiceListKindSeries),
       },
       {
         key: practiceListKindHot100,
         title: "Hot100 分类刷题单",
         titleEn: "Hot 100 Topic List",
+        description:
+          "按主算法标签把 Hot100 拆成可连续练的小题单，分类按高频优先，组内按题号和系列递进顺序。",
+        descriptionEn:
+          "Hot 100 split by primary algorithm tag, with groups ordered by frequency and each group ordered by problem number and series progression.",
         members: practiceListMembersFor(practiceListKindHot100),
       },
       {
         key: practiceListKindByteDance,
         title: "字节分类刷题单",
         titleEn: "ByteDance Topic List",
+        description:
+          "按字节题库全量排名和主算法标签拆分，分类按高频优先，组内按题号和系列递进顺序。",
+        descriptionEn:
+          "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
         members: practiceListMembersFor(practiceListKindByteDance),
       },
       {
         key: practiceListKindLingShen,
         title: "灵神题单",
         titleEn: "LingShen Topic List",
+        description:
+          "按灵神「如何科学刷题」路线的 12 个专题串联，专题内保留原题单顺序和难度分。",
+        descriptionEn:
+          "The 12-topic LingShen practice route, preserving source order and ratings inside each topic.",
         members: practiceListMembersFor(practiceListKindLingShen),
       },
     ];
@@ -2826,12 +2831,6 @@ const shortcutRows = [
     const pageIndicators = Array.from(document.querySelectorAll("[data-page-indicator]"));
     const pageJumpInputs = Array.from(document.querySelectorAll("[data-page-jump]"));
     const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
-    const listPracticeButtons = Array.from(
-      document.querySelectorAll("[data-list-practice]"),
-    );
-    const categoryPracticeButtons = Array.from(
-      document.querySelectorAll("[data-category-practice]"),
-    );
     const seriesFilterSelect = document.querySelector("[data-series-filter-select]");
     const byteDanceFilterCurrent = document.querySelector(
       "[data-bytedance-filter-current]",
@@ -2865,6 +2864,12 @@ const shortcutRows = [
     const problemDetailBaseUrl =
       leetcodeShell?.dataset.problemDetailBaseUrl || "/books/leetcode/data/";
     const problemDataVersion = leetcodeShell?.dataset.problemDataVersion || "";
+    const problemSearchIndexUrl = withProblemDataVersion(
+      `${problemDetailBaseUrl}search.json`,
+    );
+    const problemGuideIdeasUrl = withProblemDataVersion(
+      `${problemDetailBaseUrl}guide-ideas.json`,
+    );
     const problemDetailPromises = new Map();
     const problemDetailPrefetchLimit = 0;
     const extensionReleaseDownloadUrl =
@@ -3005,7 +3010,9 @@ const shortcutRows = [
     const searchFieldWeights = {
       collection: 180,
       difficulty: 120,
+      fullText: 260,
       id: 1200,
+      metadata: 160,
       series: 460,
       slug: 760,
       tag: 420,
@@ -4098,6 +4105,8 @@ const shortcutRows = [
     let manualRunCaseOpenSlug =
       sessionStorage.getItem(manualRunCaseOpenKey) || "";
     let suppressNextEditorFocusRevealSlug = "";
+    let submissionInsightUiHydrated = false;
+    let submissionInsightUiScheduled = false;
     let searchRenderTimer = 0;
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
     let flowSkipSql = savedFlowSkipEnabled(flowSkipSqlKey);
@@ -4119,9 +4128,15 @@ const shortcutRows = [
       startedAt: isPracticeTimingActive() ? Date.now() : 0,
     };
     let activePracticeTimer = { elapsedMs: 0, slug: "", startedAt: 0 };
+    let problemSearchIndexLoaded = false;
+    let problemSearchIndexPromise = null;
+    let problemGuideIdeasLoaded = false;
+    let problemGuideIdeasPromise = null;
     let timingMilestone = "";
     let searchQueryCache = { raw: null, profile: null };
     const problemSearchScoreCache = new Map();
+    const problemSearchTextBySlug = new Map();
+    const problemGuideIdeaTextBySlug = new Map();
 
     function dailyEditorResetEnabled() {
       return localStorage.getItem(editorDailyResetKey) !== "off";
@@ -4150,6 +4165,82 @@ const shortcutRows = [
       if (!problemDataVersion) return url;
       const separator = url.includes("?") ? "&" : "?";
       return `${url}${separator}v=${encodeURIComponent(problemDataVersion)}`;
+    }
+
+    async function ensureProblemSearchIndex() {
+      if (problemSearchIndexLoaded) return true;
+      if (problemSearchIndexPromise) return problemSearchIndexPromise;
+      problemSearchIndexPromise = fetch(problemSearchIndexUrl, {
+        headers: { accept: "application/json" },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Problem search index request failed: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((entries) => {
+          if (!Array.isArray(entries)) return false;
+          entries.forEach((entry) => {
+            const slug = Array.isArray(entry) ? entry[0] : entry?.titleSlug;
+            const text = Array.isArray(entry) ? entry[1] : entry?.searchText;
+            if (slug && text) {
+              problemSearchTextBySlug.set(slug, normalizeSearchText(text));
+            }
+          });
+          problemSearchIndexLoaded = true;
+          problemSearchScoreCache.clear();
+          return true;
+        })
+        .catch((error) => {
+          console.warn("Could not load LeetCode search index", error);
+          return false;
+        })
+        .finally(() => {
+          problemSearchIndexPromise = null;
+        });
+      return problemSearchIndexPromise;
+    }
+
+    function scheduleProblemSearchIndexLoad() {
+      if (!state.query || problemSearchIndexLoaded) return;
+      ensureProblemSearchIndex().then((loaded) => {
+        if (loaded && state.query) render();
+      });
+    }
+
+    async function ensureProblemGuideIdeas() {
+      if (problemGuideIdeasLoaded) return true;
+      if (problemGuideIdeasPromise) return problemGuideIdeasPromise;
+      problemGuideIdeasPromise = fetch(problemGuideIdeasUrl, {
+        headers: { accept: "application/json" },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Problem guide idea request failed: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((entries) => {
+          if (!Array.isArray(entries)) return false;
+          entries.forEach((entry) => {
+            const slug = Array.isArray(entry) ? entry[0] : entry?.titleSlug;
+            const text = Array.isArray(entry) ? entry[1] : entry?.ideaText;
+            if (slug && text) {
+              problemGuideIdeaTextBySlug.set(slug, String(text));
+            }
+          });
+          problemGuideIdeasLoaded = true;
+          return true;
+        })
+        .catch((error) => {
+          console.warn("Could not load LeetCode guide ideas", error);
+          return false;
+        })
+        .finally(() => {
+          problemGuideIdeasPromise = null;
+        });
+      return problemGuideIdeasPromise;
     }
 
     function isProblemDetailLoaded(problem) {
@@ -4225,6 +4316,14 @@ const shortcutRows = [
         return;
       }
       window.setTimeout(run, 250);
+    }
+
+    function runWhenIdle(callback, timeoutMs = 1500) {
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(callback, { timeout: timeoutMs });
+        return;
+      }
+      window.setTimeout(callback, timeoutMs);
     }
 
     function lazyDetailShell(slug, target, message, body = "") {
@@ -4565,7 +4664,7 @@ const shortcutRows = [
     }
 
     function knownProblemSlug(slug) {
-      return Boolean(slug && problems.some((item) => item.titleSlug === slug));
+      return Boolean(slug && problemBySlug.has(slug));
     }
 
     function normalizedDirectProblemValue(value) {
@@ -4576,11 +4675,10 @@ const shortcutRows = [
       const normalized = normalizedDirectProblemValue(value);
       if (!normalized) return null;
       const slug = normalized.toLowerCase();
-      return problems.find((problem) => (
-        problem.titleSlug === normalized ||
-        problem.titleSlug === slug ||
-        String(problem.frontendId) === normalized
-      )) || null;
+      return problemBySlug.get(normalized) ||
+        problemBySlug.get(slug) ||
+        problems.find((problem) => String(problem.frontendId) === normalized) ||
+        null;
     }
 
     function defaultFilterState() {
@@ -4703,14 +4801,14 @@ const shortcutRows = [
         }
         seriesFilterSelect.classList.toggle("is-active", Boolean(value));
       }
-      listPracticeButtons.forEach((button) => {
+      document.querySelectorAll("[data-list-practice]").forEach((button) => {
         if (!(button instanceof HTMLElement)) return;
         const key = button.dataset.listPractice || "";
         const isActive = Boolean(key) && key === state.filters.list;
         button.classList.toggle("is-active", isActive);
         button.setAttribute("aria-pressed", String(isActive));
       });
-      categoryPracticeButtons.forEach((button) => {
+      document.querySelectorAll("[data-category-practice]").forEach((button) => {
         if (!(button instanceof HTMLElement)) return;
         const id = button.dataset.categoryPractice || "";
         const isActive = Boolean(id) && id === state.filters.category;
@@ -5262,7 +5360,7 @@ const shortcutRows = [
     }
 
     function syncOneShotAttemptUi(slug) {
-      const problem = problems.find((item) => item.titleSlug === slug);
+      const problem = problemBySlug.get(slug);
       if (!problem) return;
       document.querySelectorAll(`[data-one-shot-attempt="${slug}"]`).forEach(
         (node) => {
@@ -9118,7 +9216,7 @@ const shortcutRows = [
 
     function activeInsightProblem() {
       const slug = activePracticeTimer.slug || state.expandedSlug;
-      return problems.find((problem) => problem.titleSlug === slug) || null;
+      return problemBySlug.get(slug) || null;
     }
 
     function currentFitScore(problem) {
@@ -9163,8 +9261,7 @@ const shortcutRows = [
       return tags;
     }
 
-    function tagFatiguePenalty(problem) {
-      const practicedTags = practicedTagSlugs();
+    function tagFatiguePenalty(problem, practicedTags = practicedTagSlugs()) {
       if (!practicedTags.size) return 0;
       const overlap = (problem.tags || [])
         .filter((tag) => practicedTags.has(tag.slug))
@@ -9175,14 +9272,16 @@ const shortcutRows = [
       );
     }
 
-    function fatiguePenalty(problem) {
+    function fatiguePenalty(problem, context = {}) {
       const todayAccepted = todayAcceptedSlugs().includes(problem.titleSlug)
         ? recommendationTodayAcceptedPenalty
         : 0;
       const sessionAccepted = sessionTiming.acceptedSlugs.has(problem.titleSlug)
         ? recommendationSessionAcceptedPenalty
         : 0;
-      return todayAccepted + sessionAccepted + tagFatiguePenalty(problem);
+      return todayAccepted +
+        sessionAccepted +
+        tagFatiguePenalty(problem, context.practicedTags);
     }
 
     function recommendationStabilityDays(item) {
@@ -9221,7 +9320,7 @@ const shortcutRows = [
       return 0;
     }
 
-    function submissionInsightFor(problem) {
+    function submissionInsightFor(problem, context = {}) {
       const record = storedProblemSubmissionStats(problem.titleSlug);
       const attempts = Number(record.attemptCount || 0);
       const runAttempts = Number(record.runAttemptCount || 0);
@@ -9312,7 +9411,7 @@ const shortcutRows = [
             : recommendationColdStartDueScore));
       const valueScore = problemValueScore(problem);
       const fitScore = currentFitScore(problem);
-      const penalty = fatiguePenalty(problem);
+      const penalty = fatiguePenalty(problem, context);
       const score = clampScore(
         dueScore * recommendationDueWeight +
           weaknessScore * recommendationWeaknessWeight +
@@ -9354,8 +9453,9 @@ const shortcutRows = [
     }
 
     function submissionInsightItems() {
+      const context = { practicedTags: practicedTagSlugs() };
       return problems
-        .map(submissionInsightFor)
+        .map((problem) => submissionInsightFor(problem, context))
         .sort((left, right) => (
           Number(isUnacceptedHot100Insight(right)) -
             Number(isUnacceptedHot100Insight(left)) ||
@@ -9524,7 +9624,7 @@ const shortcutRows = [
     }
 
     function syncProblemSignal(slug) {
-      const problem = problems.find((item) => item.titleSlug === slug);
+      const problem = problemBySlug.get(slug);
       const row = Array.from(list?.querySelectorAll(".leetcode-row") || [])
         .find((item) => item instanceof HTMLElement && item.dataset.slug === slug);
       const tools = row?.querySelector(".leetcode-title-tools");
@@ -9578,6 +9678,7 @@ const shortcutRows = [
     }
 
     function syncSubmissionInsightUi() {
+      submissionInsightUiHydrated = true;
       const items = suggestedPracticeItems();
       const pick = items[0];
       if (insightPick instanceof HTMLElement) {
@@ -9608,6 +9709,19 @@ const shortcutRows = [
             }</span>`;
       }
       syncInsightFlowUi(Boolean(pick));
+    }
+
+    function scheduleSubmissionInsightUi() {
+      if (submissionInsightUiHydrated) {
+        syncSubmissionInsightUi();
+        return;
+      }
+      if (submissionInsightUiScheduled) return;
+      submissionInsightUiScheduled = true;
+      runWhenIdle(() => {
+        submissionInsightUiScheduled = false;
+        syncSubmissionInsightUi();
+      }, 2000);
     }
 
     function syncSubmissionStatsUi(slug) {
@@ -10123,6 +10237,48 @@ const shortcutRows = [
       return values;
     }
 
+    function problemMetadataSearchValues(problem) {
+      const values = [];
+      if (problem.lingShenRank) {
+        values.push(
+          `灵神第 ${problem.lingShenRank} 题`,
+          `lingshen rank ${problem.lingShenRank}`,
+        );
+      }
+      if (problem.lingShenRating) {
+        values.push(
+          `灵神难度 ${problem.lingShenRating}`,
+          `lingshen rating ${problem.lingShenRating}`,
+        );
+      }
+      const byteDanceRank = byteDanceRankFor(problem);
+      if (byteDanceRank) {
+        values.push(
+          `字节排名 ${byteDanceRank}`,
+          `bytedance rank ${byteDanceRank}`,
+        );
+      }
+      const buckets = byteDanceBuckets(problem);
+      const bucketSources = byteDanceBucketSources(problem);
+      [
+        ["thirtyDays", "近30天", "30 days"],
+        ["threeMonths", "近3月", "3 months"],
+        ["sixMonths", "近6月", "6 months"],
+        ["moreThanSixMonths", "6月前", "older than 6 months"],
+      ].forEach(([bucketKey, zhLabel, enLabel]) => {
+        const rank = buckets[bucketKey];
+        if (rank) {
+          values.push(
+            `字节${zhLabel} ${rank}`,
+            `bytedance ${enLabel} ${rank}`,
+          );
+        }
+        const sourceLabel = byteDanceSourceLabel(bucketSources[bucketKey]);
+        if (sourceLabel) values.push(sourceLabel);
+      });
+      return values;
+    }
+
     function problemSearchFields(problem) {
       if (problem.searchFields) return problem.searchFields;
       const tagFields = (problem.tags || []).flatMap((tag) => [
@@ -10163,6 +10319,10 @@ const shortcutRows = [
         {
           values: problemCollectionSearchValues(problem),
           weight: searchFieldWeights.collection,
+        },
+        {
+          values: problemMetadataSearchValues(problem),
+          weight: searchFieldWeights.metadata,
         },
         {
           values: [problem.difficulty],
@@ -10252,16 +10412,44 @@ const shortcutRows = [
       return 0;
     }
 
+    function searchTextScore(text, query) {
+      if (!text) return 0;
+      const normalized = normalizeSearchText(text);
+      const compact = compactSearchText(normalized);
+      if (!compact) return 0;
+      if (normalized === query.normalized || compact === query.compact) {
+        return searchFieldWeights.fullText + 180;
+      }
+      if (normalized.includes(query.normalized) || compact.includes(query.compact)) {
+        return searchFieldWeights.fullText *
+          0.72 *
+          compactGapPenalty(query.compact, compact);
+      }
+      if (
+        query.tokens.length > 1 &&
+        query.tokens.every((token) =>
+          normalized.includes(token) || compact.includes(token)
+        )
+      ) {
+        return searchFieldWeights.fullText * 0.58;
+      }
+      return 0;
+    }
+
     function searchScoreForProblem(problem) {
       const query = activeSearchQuery();
       if (!query) return 0;
-      const cacheKey = `${query.normalized}\u0000${problem.titleSlug}`;
+      const cacheKey = `${problemSearchIndexLoaded ? "full" : "base"}\u0000${query.normalized}\u0000${problem.titleSlug}`;
       if (problemSearchScoreCache.has(cacheKey)) {
         return problemSearchScoreCache.get(cacheKey);
       }
-      const score = Math.max(
+      const fieldScore = Math.max(
         0,
         ...problemSearchFields(problem).map((field) => searchFieldScore(field, query)),
+      );
+      const score = Math.max(
+        fieldScore,
+        searchTextScore(problemSearchTextBySlug.get(problem.titleSlug) || "", query),
       );
       const roundedScore = Math.round(score);
       problemSearchScoreCache.set(cacheKey, roundedScore);
@@ -10645,7 +10833,21 @@ const shortcutRows = [
       return compareProblemsByOriginalOrder;
     }
 
+    function hasDefaultProblemFilters() {
+      return (
+        state.filters.scope === "all" &&
+        !state.filters.bytedance &&
+        !state.filters.status &&
+        !state.filters.series &&
+        !state.filters.category &&
+        !state.filters.list
+      );
+    }
+
     function orderedProblems() {
+      if (!state.query && hasDefaultProblemFilters()) {
+        return problems;
+      }
       const filtered = problems.filter(matchesFilter);
       const orderComparator = activeProblemOrderComparator();
       if (!state.query) return filtered.sort(orderComparator);
@@ -10878,7 +11080,7 @@ const shortcutRows = [
       let items = orderedProblems();
       let index = items.findIndex((item) => item.titleSlug === slug);
       if (index === -1) {
-        if (!problems.some((item) => item.titleSlug === slug)) return false;
+        if (!problemBySlug.has(slug)) return false;
         if (searchInput instanceof HTMLInputElement) searchInput.value = "";
         state.query = "";
         resetAllFilters();
@@ -10951,6 +11153,244 @@ const shortcutRows = [
           return `<span>${escapeHtml(label)} #${escapeHtml(count)}${escapeHtml(suffix)}</span>`;
         })
         .join("");
+    }
+
+    function localizedDescription(item) {
+      if (!item) return "";
+      return isChinesePage
+        ? item.description
+        : (item.descriptionEn || item.description);
+    }
+
+    function groupIdeaElementId(prefix, key) {
+      return `leetcode-${prefix}-idea-${String(key).replace(/[^a-z0-9_-]+/gi, "-")}`;
+    }
+
+    function groupIdeaLoadingText() {
+      return isChinesePage ? "思路文本加载中。" : "Idea text is loading.";
+    }
+
+    function renderGroupIdeaRows(item) {
+      const members = Array.isArray(item?.members) ? item.members : [];
+      return members
+        .map((slug, index) => {
+          const problem = problemBySlug.get(slug);
+          if (!problem) return "";
+          const ideaText = problemGuideIdeasLoaded
+            ? (problemGuideIdeaTextBySlug.get(slug) || groupIdeaLoadingText())
+            : groupIdeaLoadingText();
+          return `
+          <span class="leetcode-group-idea-row">
+            <span class="leetcode-group-idea-row-head">
+              <b>${escapeHtml(index + 1)}. ${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</b>
+              <span class="leetcode-group-idea-row-meta">
+                <em class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</em>
+                ${problem.paidOnly ? `<em class="leetcode-paid-label">${isChinesePage ? "付费" : "Paid"}</em>` : ""}
+              </span>
+            </span>
+            <span>${escapeHtml(ideaText)}</span>
+          </span>
+        `;
+        })
+        .filter(Boolean)
+        .join("");
+    }
+
+    function renderGroupIdeaControl(prefix, item) {
+      const idea = item?.idea;
+      if (!idea) return "";
+      const title = isChinesePage ? item.title : item.titleEn;
+      const popoverId = groupIdeaElementId(prefix, item.id || item.key);
+      const lead = isChinesePage ? idea.lead : (idea.leadEn || idea.lead);
+      const tags = Array.isArray(idea.tags) ? idea.tags : [];
+      const reviewPrompts = Array.isArray(idea.reviewPrompts)
+        ? idea.reviewPrompts
+        : [];
+      return `
+        <span class="leetcode-group-idea">
+          <button
+            type="button"
+            class="leetcode-group-idea-trigger"
+            aria-controls="${escapeHtml(popoverId)}"
+            aria-expanded="false"
+            aria-label="${escapeHtml(
+              isChinesePage
+                ? `查看${title}的思路演进`
+                : `View approach path for ${title}`,
+            )}"
+            data-group-idea-trigger
+          >
+            ${isChinesePage ? "思路" : "Ideas"}
+          </button>
+          <span
+            id="${escapeHtml(popoverId)}"
+            class="leetcode-group-idea-popover"
+            role="tooltip"
+          >
+            <strong>${isChinesePage ? "思路演进" : "Approach Path"}</strong>
+            <span class="leetcode-group-idea-lead">${escapeHtml(lead)}</span>
+            ${
+              tags.length
+                ? `<span class="leetcode-group-idea-tags">${tags
+                    .map((tag) => `<em>${escapeHtml(tag)}</em>`)
+                    .join("")}</span>`
+                : ""
+            }
+            <span
+              class="leetcode-group-idea-list"
+              data-group-idea-list="${escapeHtml(prefix)}"
+              data-member-list-key="${escapeHtml(item.id || item.key)}"
+            >
+              ${renderGroupIdeaRows(item)}
+            </span>
+            ${
+              reviewPrompts.length
+                ? `<span class="leetcode-group-idea-review">
+                    <b>${isChinesePage ? "复盘重点" : "Review"}</b>
+                    ${reviewPrompts
+                      .map((prompt) => `<span>${escapeHtml(prompt)}</span>`)
+                      .join("")}
+                  </span>`
+                : ""
+            }
+          </span>
+        </span>
+      `;
+    }
+
+    function refreshGroupIdeaRows(scope = document) {
+      scope.querySelectorAll("[data-group-idea-list]").forEach((container) => {
+        if (!(container instanceof HTMLElement)) return;
+        const kind = container.dataset.groupIdeaList || "";
+        const key = container.dataset.memberListKey || "";
+        const source = kind === "series" ? seriesByKey.get(key) : categoryById.get(key);
+        container.innerHTML = renderGroupIdeaRows(source);
+      });
+    }
+
+    function guidePracticeAction(listOption) {
+      if (!listOption) return "";
+      return `
+        <div class="leetcode-list-practice-actions">
+          <span>${
+            isChinesePage
+              ? `${escapeHtml(listOption.members.length)} 道题按题单序串联`
+              : `${escapeHtml(listOption.members.length)} problems in list order`
+          }</span>
+          <button
+            type="button"
+            data-list-practice="${escapeHtml(listOption.key)}"
+            aria-pressed="false"
+            aria-label="${
+              isChinesePage
+                ? `按${escapeHtml(listOption.title)}整体顺序练习`
+                : `Practice the full ${escapeHtml(listOption.titleEn)} in order`
+            }"
+          >
+            ${isChinesePage ? "按题单顺序练" : "Practice full list"}
+          </button>
+        </div>
+      `;
+    }
+
+    function renderLazySeriesGuide(details) {
+      const body = details.querySelector('[data-lazy-guide-body="series"]');
+      if (!(body instanceof HTMLElement)) return;
+      const listOption = practiceListByKey.get(practiceListKindSeries);
+      body.innerHTML = `
+        <p>${escapeHtml(localizedDescription(listOption))}</p>
+        ${guidePracticeAction(listOption)}
+        <div class="leetcode-series-grid">
+          ${seriesOptions.map((series) => `
+            <section class="leetcode-series-group">
+              <header>
+                <h3>${escapeHtml(isChinesePage ? series.title : series.titleEn)}</h3>
+                <div>
+                  <span>${escapeHtml(series.count)}${
+                    series.supplements > 0
+                      ? escapeHtml(isChinesePage
+                        ? ` / 补 ${series.supplements}`
+                        : ` / +${series.supplements}`)
+                      : ""
+                  }</span>
+                  ${renderGroupIdeaControl("series", series)}
+                  <button type="button" data-series-practice="${escapeHtml(series.key)}">
+                    ${isChinesePage ? "练这组" : "Practice"}
+                  </button>
+                </div>
+              </header>
+              <p>${escapeHtml(localizedDescription(series))}</p>
+              <div
+                class="leetcode-series-members"
+                data-lazy-member-list="series"
+                data-member-list-key="${escapeHtml(series.key)}"
+              >
+                <span class="leetcode-popover-muted">
+                  ${isChinesePage ? "展开后加载本组题目。" : "Members load when opened."}
+                </span>
+              </div>
+            </section>
+          `).join("")}
+        </div>
+      `;
+      body.dataset.lazyGuideRendered = "true";
+    }
+
+    function renderLazyCategoryGuide(details) {
+      const body = details.querySelector('[data-lazy-guide-body="category"]');
+      if (!(body instanceof HTMLElement)) return;
+      const collectionKey = details.dataset.guideKey || "";
+      const listOption = practiceListByKey.get(collectionKey);
+      const categories = categoryOptions.filter(
+        (category) => category.collectionKey === collectionKey,
+      );
+      body.innerHTML = `
+        <p>${escapeHtml(localizedDescription(listOption))}</p>
+        ${guidePracticeAction(listOption)}
+        <div class="leetcode-series-grid leetcode-category-grid">
+          ${categories.map((category) => `
+            <section class="leetcode-series-group leetcode-category-group">
+              <header>
+                <h3>${escapeHtml(isChinesePage ? category.title : category.titleEn)}</h3>
+                <div>
+                  <span>${escapeHtml(category.count)}</span>
+                  ${renderGroupIdeaControl("category", category)}
+                  <button type="button" data-category-practice="${escapeHtml(category.id)}">
+                    ${isChinesePage ? "练这类" : "Practice"}
+                  </button>
+                </div>
+              </header>
+              <p>${escapeHtml(localizedDescription(category))}</p>
+              <div
+                class="leetcode-series-members leetcode-category-members"
+                data-lazy-member-list="category"
+                data-member-list-key="${escapeHtml(category.id)}"
+              >
+                <span class="leetcode-popover-muted">
+                  ${isChinesePage ? "展开后加载本类题目。" : "Members load when opened."}
+                </span>
+              </div>
+            </section>
+          `).join("")}
+        </div>
+      `;
+      body.dataset.lazyGuideRendered = "true";
+    }
+
+    function renderLazyGuide(details) {
+      if (!(details instanceof HTMLElement) || details.tagName !== "DETAILS") return;
+      if (details.dataset.lazyGuideRendered === "true") return;
+      if (details.dataset.lazyGuide === "series") {
+        renderLazySeriesGuide(details);
+      } else if (details.dataset.lazyGuide === "category") {
+        renderLazyCategoryGuide(details);
+      }
+      details.dataset.lazyGuideRendered = "true";
+      renderLazyMemberLists(details);
+      syncFilterButtons();
+      ensureProblemGuideIdeas().then((loaded) => {
+        if (loaded) refreshGroupIdeaRows(details);
+      });
     }
 
     function renderLazyMemberItem(problem, options = {}) {
@@ -11619,7 +12059,7 @@ const shortcutRows = [
       const slug = textarea.dataset.editorCode || "";
       const panel = textarea.closest(".leetcode-practice-panel");
       const select = panel?.querySelector("[data-editor-lang]");
-      const problem = problems.find((item) => item.titleSlug === slug);
+      const problem = problemBySlug.get(slug);
       if (!problem) return null;
       const lang =
         select instanceof HTMLSelectElement
@@ -13956,7 +14396,7 @@ const shortcutRows = [
         if (!(element instanceof HTMLElement)) return;
         const elementSlug = element.dataset.extraCaseList || "";
         if (slug && elementSlug !== slug) return;
-        const problem = problems.find((item) => item.titleSlug === elementSlug);
+        const problem = problemBySlug.get(elementSlug);
         if (!problem) return;
         element.innerHTML = renderExtraRunCaseList(problem);
       });
@@ -15020,7 +15460,7 @@ const shortcutRows = [
       syncManualRunCaseUi();
       syncActivePracticeTimerAfterRender();
       pageItems.forEach((problem) => syncSubmissionStatsUi(problem.titleSlug));
-      syncSubmissionInsightUi();
+      scheduleSubmissionInsightUi();
       syncOneShotUi();
       syncAchievementUi();
       scheduleProblemDetailsPrefetch(pageItems);
@@ -15042,6 +15482,7 @@ const shortcutRows = [
 
     searchInput?.addEventListener("input", (event) => {
       state.query = event.target.value.trim();
+      scheduleProblemSearchIndexLoad();
       scheduleSearchRender();
     });
 
@@ -15148,11 +15589,11 @@ const shortcutRows = [
     });
 
     document.querySelectorAll("details.leetcode-series-guide").forEach((details) => {
-      if (!(details instanceof HTMLDetailsElement)) return;
+      if (!(details instanceof HTMLElement) || details.tagName !== "DETAILS") return;
       details.addEventListener("toggle", () => {
-        if (details.open) renderLazyMemberLists(details);
+        if (details.open) renderLazyGuide(details);
       });
-      if (details.open) renderLazyMemberLists(details);
+      if (details.open) renderLazyGuide(details);
     });
 
     document.addEventListener("click", (event) => {
@@ -15304,7 +15745,7 @@ const shortcutRows = [
       const shareButton = target.closest("[data-copy-problem-invite]");
       if (shareButton instanceof HTMLElement) {
         const slug = shareButton.dataset.copyProblemInvite || "";
-        const problem = problems.find((item) => item.titleSlug === slug);
+        const problem = problemBySlug.get(slug);
         if (!problem) return;
         const panel = editorPanelForSlug(slug);
         copyProblemInvite(problem, panel, shareButton, { flashButton: false });
@@ -15331,7 +15772,7 @@ const shortcutRows = [
           const panel = actionButton.closest(".leetcode-practice-panel");
           const textarea = panel?.querySelector("[data-editor-code]");
           if (!(textarea instanceof HTMLTextAreaElement)) return;
-          const problem = problems.find((item) => item.titleSlug === slug);
+          const problem = problemBySlug.get(slug);
           if (!problem) return;
           if (editorAction === "copy") {
             copyEditorCode(textarea, actionButton);
@@ -15467,7 +15908,7 @@ const shortcutRows = [
       if (!(target instanceof HTMLSelectElement)) return;
       const slug = target.dataset.editorLang || "";
       if (!slug) return;
-      const problem = problems.find((item) => item.titleSlug === slug);
+      const problem = problemBySlug.get(slug);
       if (!problem) return;
       const lang = preferredLang(problem, target.value);
       const code = defaultTemplate(problem, lang);
@@ -15533,7 +15974,7 @@ const shortcutRows = [
         const slug = target.dataset.editorCode || "";
         const panel = target.closest(".leetcode-practice-panel");
         const select = panel?.querySelector("[data-editor-lang]");
-        const problem = problems.find((item) => item.titleSlug === slug);
+        const problem = problemBySlug.get(slug);
         if (!problem) return;
         const lang =
           select instanceof HTMLSelectElement
@@ -15652,7 +16093,7 @@ const shortcutRows = [
       }
       if (isEditorOpenLeetcodeShortcut(event)) {
         const slug = state.expandedSlug || activePracticeTimer.slug;
-        const problem = problems.find((item) => item.titleSlug === slug);
+        const problem = problemBySlug.get(slug);
         if (problem) {
           event.preventDefault();
           openLeetcodeProblem(problem);
@@ -15666,7 +16107,7 @@ const shortcutRows = [
       }
       if (isEditorResetCurrentShortcut(event)) {
         const slug = currentPracticeSlug(state.expandedSlug || activePracticeTimer.slug);
-        const problem = problems.find((item) => item.titleSlug === slug);
+        const problem = problemBySlug.get(slug);
         if (problem) {
           event.preventDefault();
           resetEditorDraft(problem, editorDrafts[slug]?.lang, { focus: true });
@@ -15699,7 +16140,10 @@ const shortcutRows = [
     restoreViewStateControls();
     const directProblemSlug = applyDirectProblemLinkTarget();
     render();
-    hydratePracticeEventStore();
+    scheduleProblemSearchIndexLoad();
+    runWhenIdle(() => {
+      hydratePracticeEventStore();
+    }, 2500);
     if (directProblemSlug) {
       focusDirectProblemLinkTarget(directProblemSlug);
     } else {
