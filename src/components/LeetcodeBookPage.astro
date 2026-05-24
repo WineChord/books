@@ -1410,64 +1410,50 @@ const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => (
     ],
   relatedQuestions: buildRelatedQuestions(problem),
 }));
-function detailSearchText(problem) {
-  return [
-    ...(problem.implementationReferences || []).flatMap((item) => [
-      item.language,
-      item.provenance,
-      item.approachTitle,
-      item.complexity,
-      item.license,
-      item.sourceTitle,
-    ]),
-    ...(problem.relatedQuestions?.series || []).flatMap((item) => [
-      item.frontendId,
-      item.titleCn,
-      item.title,
-      item.titleSlug,
-    ]),
-    ...(problem.relatedQuestions?.official || []).flatMap((item) => [
-      item.frontendId,
-      item.titleCn,
-      item.title,
-      item.titleSlug,
-    ]),
-    ...(problem.relatedQuestions?.topicPeers || []).flatMap((item) => [
-      item.frontendId,
-      item.titleCn,
-      item.title,
-      item.titleSlug,
-      ...(item.sharedTags || []).map((tag) => tag.name),
-    ]),
-  ].filter(Boolean).join(" ").toLowerCase();
+function codeTemplateLanguageSlugs(codeTemplates) {
+  return codeTemplates.map((template) => template.langSlug).filter(Boolean);
 }
-function codeTemplateLanguages(codeTemplates) {
-  return codeTemplates.map((template) => ({
-    lang: template.lang,
-    langSlug: template.langSlug,
-  }));
+
+function packedRecordPayload(records) {
+  const keys = [...new Set(records.flatMap((record) => Object.keys(record)))];
+  return {
+    keys,
+    rows: records.map((record) =>
+      keys.map((key) => record[key] === undefined ? null : record[key]),
+    ),
+  };
 }
 const leetcodeProblemSummaries = leetcodeProblemsWithReferences.map((problem) => {
   const {
+    approachPreview,
     codeTemplates,
     constraintHtml,
+    constraints,
+    companyFollowUps,
+    followUps,
     implementationReferences,
     relatedQuestions,
+    searchText,
     statementAssets,
     statementHtml,
+    statementPreview,
+    url,
+    bytedancePeriods,
     ...summary
   } = problem;
   return {
     ...summary,
-    codeTemplateLanguages: codeTemplateLanguages(codeTemplates),
+    codeTemplateLanguageSlugs: codeTemplateLanguageSlugs(codeTemplates),
+    codeTemplateLanguageCount: codeTemplates.length,
+    companyFollowUpCount: (companyFollowUps || []).length,
     hasCodeTemplates: codeTemplates.length > 0,
     hasStatementAssets: statementAssets.length > 0,
     hasStatementHtml: Boolean(statementHtml),
     implementationReferenceCount: implementationReferences.length,
     relatedQuestionCount: relatedQuestions.total ?? 0,
-    searchText: detailSearchText({ implementationReferences, relatedQuestions }),
   };
 });
+const leetcodeProblemSummaryPayload = packedRecordPayload(leetcodeProblemSummaries);
 const leetcodeReferenceCount =
   leetcodeImplementationStats.references +
   leetcodeGeneratedImplementationStats.references;
@@ -1698,6 +1684,7 @@ const shortcutRows = [
     class="leetcode-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10"
     data-extension-download-url={extensionReleaseDownloadUrl}
     data-problem-detail-base-url={detailBaseUrl}
+    data-problem-data-version={leetcodeDataUpdatedAt}
   >
     <section class="leetcode-hero">
       <div>
@@ -2123,52 +2110,14 @@ const shortcutRows = [
                     </div>
                   </header>
                   <p>{series.description}</p>
-                  <div class="leetcode-series-members">
-                    {series.members.map((member) => (
-                      member.inBook ? (
-                        <button
-                          type="button"
-                          data-open-related={member.titleSlug}
-                          class:list={[
-                            "leetcode-series-member",
-                            member.paidOnly && "is-paid",
-                            member.inBook && "is-in-book",
-                          ]}
-                        >
-                          <span class="leetcode-series-member-title">{member.frontendId}. {member.titleCn}</span>
-                          <span class="leetcode-series-member-meta">
-                            <em class:list={[
-                              "leetcode-difficulty",
-                              difficultyBadgeClass(member.difficulty),
-                            ]}>{member.difficulty}</em>
-                            {member.paidOnly && (
-                              <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
-                            )}
-                          </span>
-                        </button>
-                      ) : (
-                        <a
-                          href={member.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class:list={[
-                            "leetcode-series-member",
-                            member.paidOnly && "is-paid",
-                          ]}
-                        >
-                          <span class="leetcode-series-member-title">{member.frontendId}. {member.titleCn}</span>
-                          <span class="leetcode-series-member-meta">
-                            <em class:list={[
-                              "leetcode-difficulty",
-                              difficultyBadgeClass(member.difficulty),
-                            ]}>{member.difficulty}</em>
-                            {member.paidOnly && (
-                              <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
-                            )}
-                          </span>
-                        </a>
-                      )
-                    ))}
+                  <div
+                    class="leetcode-series-members"
+                    data-lazy-member-list="series"
+                    data-member-list-key={series.key}
+                  >
+                    <span class="leetcode-popover-muted">
+                      {isZh ? "展开后加载本组题目。" : "Members load when opened."}
+                    </span>
                   </div>
                 </section>
               ))}
@@ -2271,33 +2220,14 @@ const shortcutRows = [
                       </div>
                     </header>
                     <p>{isZh ? category.description : category.descriptionEn}</p>
-                    <div class="leetcode-series-members leetcode-category-members">
-                      {category.members.map((member) => (
-                        <button
-                          type="button"
-                          data-open-related={member.titleSlug}
-                          class:list={[
-                            "leetcode-series-member",
-                            "leetcode-category-member",
-                            member.paidOnly && "is-paid",
-                            "is-in-book",
-                          ]}
-                        >
-                          <span class="leetcode-series-member-title">{member.frontendId}. {member.titleCn}</span>
-                          <span class="leetcode-series-member-meta">
-                            <em class:list={[
-                              "leetcode-difficulty",
-                              difficultyBadgeClass(member.difficulty),
-                            ]}>{member.difficulty}</em>
-                            {member.paidOnly && (
-                              <em class="leetcode-paid-label">{isZh ? "付费" : "Paid"}</em>
-                            )}
-                            {collection.key === "lingshen" && member.lingShenRating && (
-                              <em>{member.lingShenRating}</em>
-                            )}
-                          </span>
-                        </button>
-                      ))}
+                    <div
+                      class="leetcode-series-members leetcode-category-members"
+                      data-lazy-member-list="category"
+                      data-member-list-key={category.id}
+                    >
+                      <span class="leetcode-popover-muted">
+                        {isZh ? "展开后加载本类题目。" : "Members load when opened."}
+                      </span>
                     </div>
                   </section>
                 ))}
@@ -2725,7 +2655,7 @@ const shortcutRows = [
 
   </main>
 
-  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemSummaries)}></script>
+  <script type="application/json" id="leetcode-data" set:html={JSON.stringify(leetcodeProblemSummaryPayload)}></script>
   <script type="application/json" id="leetcode-series-data" set:html={JSON.stringify(leetcodeSeriesFilterOptions)}></script>
   <script type="application/json" id="leetcode-category-data" set:html={JSON.stringify(leetcodePracticeCategoryOptions)}></script>
 
@@ -2774,8 +2704,28 @@ const shortcutRows = [
     const practiceLegacyTimingEventId = "legacy:timing:v1";
     const practiceLegacySubmissionStatsEventId =
       "legacy:submission-stats:v1";
+    function leetcodeProblemUrl(slug) {
+      return `https://leetcode.cn/problems/${slug}/description/`;
+    }
+
+    function unpackRecords(payload) {
+      if (Array.isArray(payload)) return payload;
+      if (!payload || !Array.isArray(payload.keys) || !Array.isArray(payload.rows)) {
+        return [];
+      }
+      return payload.rows.map((row) => {
+        const record = Object.fromEntries(
+          payload.keys.map((key, index) => [key, row[index] ?? null]),
+        );
+        if (record.titleSlug && !record.url) {
+          record.url = leetcodeProblemUrl(record.titleSlug);
+        }
+        return record;
+      });
+    }
+
     const dataNode = document.getElementById("leetcode-data");
-    const problems = JSON.parse(dataNode?.textContent || "[]");
+    const problems = unpackRecords(JSON.parse(dataNode?.textContent || "[]"));
     const seriesDataNode = document.getElementById("leetcode-series-data");
     const seriesOptions = JSON.parse(seriesDataNode?.textContent || "[]");
     const seriesByKey = new Map(
@@ -2911,8 +2861,12 @@ const shortcutRows = [
     const leetcodeShell = document.querySelector(".leetcode-shell");
     const problemDetailBaseUrl =
       leetcodeShell?.dataset.problemDetailBaseUrl || "/books/leetcode/data/";
+    const problemDataVersion = leetcodeShell?.dataset.problemDataVersion || "";
+    const problemSearchIndexUrl = withProblemDataVersion(
+      `${problemDetailBaseUrl}search.json`,
+    );
     const problemDetailPromises = new Map();
-    const problemDetailPrefetchLimit = 20;
+    const problemDetailPrefetchLimit = 0;
     const extensionReleaseDownloadUrl =
       leetcodeShell?.dataset.extensionDownloadUrl ||
       "https://github.com/WineChord/books/releases/latest/download/leetcode-submit.zip";
@@ -3026,6 +2980,7 @@ const shortcutRows = [
     const previewHoverCloseDelayMs = 180;
     const focusRevealSuppressClearDelayMs = 0;
     const viewStateWriteDelayMs = 120;
+    const searchRenderDelayMs = 120;
     const filterShortcutByCode = {
       Digit1: "all",
       Digit2: "hot100",
@@ -4118,6 +4073,7 @@ const shortcutRows = [
     let manualRunCaseOpenSlug =
       sessionStorage.getItem(manualRunCaseOpenKey) || "";
     let suppressNextEditorFocusRevealSlug = "";
+    let searchRenderTimer = 0;
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
     let flowSkipSql = savedFlowSkipEnabled(flowSkipSqlKey);
     let flowSkipFrontend = savedFlowSkipEnabled(flowSkipFrontendKey);
@@ -4138,7 +4094,10 @@ const shortcutRows = [
       startedAt: isPracticeTimingActive() ? Date.now() : 0,
     };
     let activePracticeTimer = { elapsedMs: 0, slug: "", startedAt: 0 };
+    let problemSearchIndexLoaded = false;
+    let problemSearchIndexPromise = null;
     let timingMilestone = "";
+    const problemSearchTextBySlug = new Map();
 
     function dailyEditorResetEnabled() {
       return localStorage.getItem(editorDailyResetKey) !== "off";
@@ -4158,7 +4117,56 @@ const shortcutRows = [
     }
 
     function problemDetailUrl(slug) {
-      return `${problemDetailBaseUrl}${encodeURIComponent(slug)}.json`;
+      return withProblemDataVersion(
+        `${problemDetailBaseUrl}${encodeURIComponent(slug)}.json`,
+      );
+    }
+
+    function withProblemDataVersion(url) {
+      if (!problemDataVersion) return url;
+      const separator = url.includes("?") ? "&" : "?";
+      return `${url}${separator}v=${encodeURIComponent(problemDataVersion)}`;
+    }
+
+    async function ensureProblemSearchIndex() {
+      if (problemSearchIndexLoaded) return true;
+      if (problemSearchIndexPromise) return problemSearchIndexPromise;
+      problemSearchIndexPromise = fetch(problemSearchIndexUrl, {
+        headers: { accept: "application/json" },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Problem search index request failed: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((entries) => {
+          if (!Array.isArray(entries)) return false;
+          entries.forEach((entry) => {
+            const slug = Array.isArray(entry) ? entry[0] : entry?.titleSlug;
+            const text = Array.isArray(entry) ? entry[1] : entry?.searchText;
+            if (slug && text) {
+              problemSearchTextBySlug.set(slug, String(text).toLowerCase());
+            }
+          });
+          problemSearchIndexLoaded = true;
+          return true;
+        })
+        .catch((error) => {
+          console.warn("Could not load LeetCode search index", error);
+          return false;
+        })
+        .finally(() => {
+          problemSearchIndexPromise = null;
+        });
+      return problemSearchIndexPromise;
+    }
+
+    function scheduleProblemSearchIndexLoad() {
+      if (!state.query || problemSearchIndexLoaded) return;
+      ensureProblemSearchIndex().then((loaded) => {
+        if (loaded && state.query) render();
+      });
     }
 
     function isProblemDetailLoaded(problem) {
@@ -4208,6 +4216,8 @@ const shortcutRows = [
     }
 
     function scheduleProblemDetailsPrefetch(items) {
+      if (!problemDetailPrefetchLimit) return;
+      if (navigator.connection?.saveData) return;
       const slugs = items
         .map((problem) => problem.titleSlug)
         .filter((slug) => {
@@ -4260,6 +4270,12 @@ const shortcutRows = [
         if (target === "related") {
           node.outerHTML = renderRelatedQuestions(problem);
         }
+        if (target === "statement-preview") {
+          node.outerHTML = renderProblemStatementPreview(problem);
+        }
+        if (target === "approach") {
+          node.outerHTML = renderApproachPreview(problem);
+        }
       });
     }
 
@@ -4267,6 +4283,12 @@ const shortcutRows = [
       if (Array.isArray(problem?.codeTemplates)) return problem.codeTemplates;
       if (Array.isArray(problem?.codeTemplateLanguages)) {
         return problem.codeTemplateLanguages;
+      }
+      if (Array.isArray(problem?.codeTemplateLanguageSlugs)) {
+        return problem.codeTemplateLanguageSlugs.map((langSlug) => ({
+          lang: langSlug,
+          langSlug,
+        }));
       }
       return [];
     }
@@ -9097,7 +9119,8 @@ const shortcutRows = [
             recommendationHotRankValueCap,
           )
         : 0;
-      const followUpScore = problem.companyFollowUps?.length
+      const followUpScore =
+        (problem.companyFollowUpCount || problem.companyFollowUps?.length)
         ? recommendationCompanyFollowUpValue
         : 0;
       return clampScore(
@@ -10415,6 +10438,7 @@ const shortcutRows = [
           item.titleSlug,
           ...(item.sharedTags || []).map((tag) => tag.name),
         ]),
+        problemSearchTextBySlug.get(problem.titleSlug) || "",
         problem.searchText || "",
       ].join(" ").toLowerCase();
       return haystack.includes(state.query.toLowerCase());
@@ -10786,6 +10810,66 @@ const shortcutRows = [
         .join("");
     }
 
+    function renderLazyMemberItem(problem, options = {}) {
+      if (!problem) return "";
+      const classes = [
+        "leetcode-series-member",
+        options.category ? "leetcode-category-member" : "",
+        problem.paidOnly ? "is-paid" : "",
+        "is-in-book",
+      ].filter(Boolean).join(" ");
+      const rating = options.showRating && problem.lingShenRating
+        ? `<em>${escapeHtml(problem.lingShenRating)}</em>`
+        : "";
+      return `
+        <button
+          type="button"
+          data-open-related="${escapeHtml(problem.titleSlug)}"
+          class="${classes}"
+        >
+          <span class="leetcode-series-member-title">${escapeHtml(problem.frontendId)}. ${escapeHtml(problem.titleCn)}</span>
+          <span class="leetcode-series-member-meta">
+            <em class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</em>
+            ${problem.paidOnly ? `<em class="leetcode-paid-label">${isChinesePage ? "付费" : "Paid"}</em>` : ""}
+            ${rating}
+          </span>
+        </button>
+      `;
+    }
+
+    function renderLazyMemberList(container) {
+      if (!(container instanceof HTMLElement)) return;
+      if (container.dataset.lazyMemberRendered === "true") return;
+      const kind = container.dataset.lazyMemberList || "";
+      const key = container.dataset.memberListKey || "";
+      const source = kind === "series" ? seriesByKey.get(key) : categoryById.get(key);
+      const members = Array.isArray(source?.members) ? source.members : [];
+      const showRating =
+        kind === "category" &&
+        source?.collectionKey === practiceListKindLingShen;
+      const items = members
+        .map((slug) =>
+          renderLazyMemberItem(problemBySlug.get(slug), {
+            category: kind === "category",
+            showRating,
+          }),
+        )
+        .filter(Boolean)
+        .join("");
+      container.innerHTML =
+        items ||
+        `<span class="leetcode-popover-muted">${
+          isChinesePage ? "暂无可在本页打开的题目。" : "No local members available."
+        }</span>`;
+      container.dataset.lazyMemberRendered = "true";
+    }
+
+    function renderLazyMemberLists(scope = document) {
+      scope.querySelectorAll("[data-lazy-member-list]").forEach((container) => {
+        renderLazyMemberList(container);
+      });
+    }
+
     function renderStudyChecks(problem) {
       const checks = problem.followUps || [];
       if (!checks.length) return "";
@@ -10852,7 +10936,13 @@ const shortcutRows = [
           ${problem.lingShenRating ? `<span>${isChinesePage ? "难度分" : "Rating"} ${escapeHtml(problem.lingShenRating)}</span>` : ""}
           ${(problem.seriesTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
           ${(problem.lingShenGroupTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
-          ${problem.companyFollowUps?.length ? `<span>公司追问 ${escapeHtml(problem.companyFollowUps.length)}</span>` : ""}
+          ${
+            problem.companyFollowUpCount || problem.companyFollowUps?.length
+              ? `<span>公司追问 ${escapeHtml(
+                  problem.companyFollowUpCount || problem.companyFollowUps.length,
+                )}</span>`
+              : ""
+          }
           ${problem.implementationReferenceCount ? `<span>实现参考 ${escapeHtml(problem.implementationReferenceCount)}</span>` : ""}
           ${renderByteDanceMeta(problem)}
           ${renderTags(problem)}
@@ -14370,6 +14460,29 @@ const shortcutRows = [
     }
 
     function renderProblemStatementPreview(problem) {
+      if (problem.detailLoadFailed) {
+        return `<span class="leetcode-popover-muted">${
+          isChinesePage
+            ? "题面预览加载失败，可刷新页面重试。"
+            : "Statement preview failed to load; refresh to retry."
+        }</span>`;
+      }
+      if (!isProblemDetailLoaded(problem)) {
+        return `
+          ${renderPopoverHint(
+            isChinesePage
+              ? "悬浮查看题面；点击标题打开力扣原题"
+              : "Hover for statement; click the title to open LeetCode",
+          )}
+          ${lazyDetailShell(
+            problem.titleSlug,
+            "statement-preview",
+            isChinesePage
+              ? "题面预览正在加载。"
+              : "Statement preview is loading.",
+          )}
+        `;
+      }
       const paragraphs = problemStatementParagraphs(problem);
       const body = paragraphs.length
         ? paragraphs
@@ -14400,6 +14513,34 @@ const shortcutRows = [
           ${body}
           ${renderProblemConstraintsPreview(problem)}
         </span>
+      `;
+    }
+
+    function renderApproachPreview(problem) {
+      if (problem.detailLoadFailed) {
+        return `<span class="leetcode-popover-muted">${
+          isChinesePage
+            ? "思路和检查点加载失败，可刷新页面重试。"
+            : "Approach notes failed to load; refresh to retry."
+        }</span>`;
+      }
+      if (!isProblemDetailLoaded(problem)) {
+        return lazyDetailShell(
+          problem.titleSlug,
+          "approach",
+          isChinesePage
+            ? "思路和检查点正在加载。"
+            : "Approach notes are loading.",
+        );
+      }
+      return `
+        ${
+          problem.approachPreview
+            ? `<span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>`
+            : ""
+        }
+        ${renderStudyChecks(problem)}
+        ${renderCompanyFollowUps(problem)}
       `;
     }
 
@@ -14634,9 +14775,7 @@ const shortcutRows = [
                 思路
                 <span class="leetcode-popover" role="tooltip">
                   ${renderPopoverHint(previewPinHint(isChinesePage ? "思路" : "approach"))}
-                  <span class="leetcode-popover-lead">${escapeHtml(problem.approachPreview)}</span>
-                  ${renderStudyChecks(problem)}
-                  ${renderCompanyFollowUps(problem)}
+                  ${renderApproachPreview(problem)}
                 </span>
               </span>
               <span class="leetcode-preview-control" data-preview aria-expanded="false" role="button" tabindex="0" aria-label="${escapeHtml(previewPinHint(isChinesePage ? "实现" : "implementation"))}">
@@ -14744,11 +14883,24 @@ const shortcutRows = [
       scheduleProblemDetailsPrefetch(pageItems);
     }
 
-    searchInput?.addEventListener("input", (event) => {
-      state.query = event.target.value.trim();
+    function renderSearchResults() {
       state.page = 1;
       render();
+      scheduleProblemSearchIndexLoad();
       scheduleViewStateWrite();
+    }
+
+    function scheduleSearchRender() {
+      if (searchRenderTimer) window.clearTimeout(searchRenderTimer);
+      searchRenderTimer = window.setTimeout(() => {
+        searchRenderTimer = 0;
+        renderSearchResults();
+      }, searchRenderDelayMs);
+    }
+
+    searchInput?.addEventListener("input", (event) => {
+      state.query = event.target.value.trim();
+      scheduleSearchRender();
     });
 
     pageSizeSelect?.addEventListener("change", () => {
@@ -14851,6 +15003,14 @@ const shortcutRows = [
 
     document.addEventListener("pointerdown", hideVisibleProblemShareToast, {
       capture: true,
+    });
+
+    document.querySelectorAll("details.leetcode-series-guide").forEach((details) => {
+      if (!(details instanceof HTMLDetailsElement)) return;
+      details.addEventListener("toggle", () => {
+        if (details.open) renderLazyMemberLists(details);
+      });
+      if (details.open) renderLazyMemberLists(details);
     });
 
     document.addEventListener("click", (event) => {
@@ -15397,6 +15557,7 @@ const shortcutRows = [
     restoreViewStateControls();
     const directProblemSlug = applyDirectProblemLinkTarget();
     render();
+    scheduleProblemSearchIndexLoad();
     hydratePracticeEventStore();
     if (directProblemSlug) {
       focusDirectProblemLinkTarget(directProblemSlug);

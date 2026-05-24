@@ -534,22 +534,68 @@ function buildRelatedQuestions(problem) {
   };
 }
 
+function problemSearchText(problem, implementationReferences, relatedQuestions) {
+  return [
+    ...(problem.constraints || []),
+    ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
+    ...(problem.companyFollowUps || []).flatMap((item) => [
+      item.question,
+      item.answer,
+      item.company,
+      item.sourceTitle,
+    ]),
+    ...implementationReferences.flatMap((item) => [
+      item.language,
+      item.provenance,
+      item.approachTitle,
+      item.complexity,
+      item.license,
+      item.sourceTitle,
+    ]),
+    ...(relatedQuestions.series || []).flatMap((item) => [
+      item.frontendId,
+      item.titleCn,
+      item.title,
+      item.titleSlug,
+    ]),
+    ...(relatedQuestions.official || []).flatMap((item) => [
+      item.frontendId,
+      item.titleCn,
+      item.title,
+      item.titleSlug,
+    ]),
+    ...(relatedQuestions.topicPeers || []).flatMap((item) => [
+      item.frontendId,
+      item.titleCn,
+      item.title,
+      item.titleSlug,
+      ...(item.sharedTags || []).map((tag) => tag.name),
+    ]),
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
 const leetcodeProblemDetailsBySlug = new Map(
   mergedLeetcodeProblems.map((problem) => {
     const implementationReferences = [
       ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
       ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
     ];
+    const relatedQuestions = buildRelatedQuestions(problem);
     return [
       problem.titleSlug,
       {
+        approachPreview: problem.approachPreview ?? "",
         codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
+        companyFollowUps: problem.companyFollowUps ?? [],
         constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
+        constraints: problem.constraints ?? [],
         detailsLoaded: true,
+        followUps: problem.followUps ?? [],
         implementationReferences,
-        relatedQuestions: buildRelatedQuestions(problem),
+        relatedQuestions,
         statementAssets: leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
         statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
+        statementPreview: problem.statementPreview ?? "",
         titleSlug: problem.titleSlug,
       },
     ];
@@ -557,6 +603,21 @@ const leetcodeProblemDetailsBySlug = new Map(
 );
 
 export const leetcodeProblemDetailSlugs = [...leetcodeProblemDetailsBySlug.keys()];
+export const leetcodeProblemSearchIndex = mergedLeetcodeProblems
+  .map((problem) => {
+    const implementationReferences = [
+      ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
+      ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
+    ];
+    const relatedQuestions =
+      leetcodeProblemDetailsBySlug.get(problem.titleSlug)?.relatedQuestions ??
+      buildRelatedQuestions(problem);
+    return [
+      problem.titleSlug,
+      problemSearchText(problem, implementationReferences, relatedQuestions),
+    ];
+  })
+  .filter(([, searchText]) => searchText);
 
 export function getLeetcodeProblemDetail(slug) {
   return leetcodeProblemDetailsBySlug.get(slug) ?? null;

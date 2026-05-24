@@ -22,7 +22,7 @@ export const GET: APIRoute = ({ params }) => {
 
   return new Response(JSON.stringify(detail), {
     headers: {
-      "cache-control": "public, max-age=31536000, immutable",
+      "cache-control": "public, max-age=3600, stale-while-revalidate=86400",
       "content-type": "application/json; charset=utf-8",
     },
   });
