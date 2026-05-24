@@ -561,6 +561,114 @@ function compareProblemsByFrequency(left, right) {
   );
 }
 
+function compareProblemsByDefaultOrder(left, right) {
+  return (
+    problemFrontendOrder(left) - problemFrontendOrder(right) ||
+    problemFrequencyOrder(left) - problemFrequencyOrder(right) ||
+    left.titleSlug.localeCompare(right.titleSlug)
+  );
+}
+
+function problemPrimarySeriesKey(problem) {
+  return problem.seriesPrimaryKey || (problem.seriesKeys || [])[0] || "";
+}
+
+function problemSeriesDefinitionOrder(problem, seriesKey) {
+  const definitionOrder =
+    leetcodeSeriesDefinitionOrderByKey.get(seriesKey)?.get(problem.titleSlug);
+  if (definitionOrder !== undefined) return definitionOrder;
+  return seriesOrderValue(problem.titleSlug, seriesKey);
+}
+
+function slugRomanOrderValue(slug) {
+  const parts = slug.split("-");
+  return (
+    seriesRomanTokenValues.get(parts[parts.length - 1]) ??
+    Number.MAX_SAFE_INTEGER
+  );
+}
+
+function hasRomanSeriesOrder(problem, seriesKey) {
+  return (
+    seriesOrderValue(problem.titleSlug, seriesKey) !== Number.MAX_SAFE_INTEGER ||
+    slugRomanOrderValue(problem.titleSlug) !== Number.MAX_SAFE_INTEGER
+  );
+}
+
+function usesSequentialSeriesOrder(seriesKey, problems) {
+  return (
+    explicitlySequentialSeriesKeys.has(seriesKey) ||
+    problems.some((problem) => hasRomanSeriesOrder(problem, seriesKey))
+  );
+}
+
+function compareProblemsBySeriesDefinition(left, right, seriesKey) {
+  return (
+    problemSeriesDefinitionOrder(left, seriesKey) -
+      problemSeriesDefinitionOrder(right, seriesKey) ||
+    compareProblemsByDefaultOrder(left, right)
+  );
+}
+
+function sequentialProblemProfiles(problems) {
+  const seriesProblems = new Map();
+  for (const problem of problems) {
+    const key = problemPrimarySeriesKey(problem);
+    if (!key) continue;
+    const members = seriesProblems.get(key) || [];
+    members.push(problem);
+    seriesProblems.set(key, members);
+  }
+
+  const seriesBaseOrder = new Map();
+  for (const [key, members] of seriesProblems) {
+    if (members.length < 2 || !usesSequentialSeriesOrder(key, members)) continue;
+    seriesBaseOrder.set(key, Math.min(...members.map(problemFrontendOrder)));
+  }
+
+  return new Map(
+    problems.map((problem) => {
+      const seriesKey = problemPrimarySeriesKey(problem);
+      const shouldUseSeriesOrder =
+        Boolean(seriesKey) && seriesBaseOrder.has(seriesKey);
+      if (!shouldUseSeriesOrder) {
+        return [
+          problem.titleSlug,
+          {
+            baseOrder: problemFrontendOrder(problem),
+            seriesOrder: 0,
+          },
+        ];
+      }
+      return [
+        problem.titleSlug,
+        {
+          baseOrder: seriesBaseOrder.get(seriesKey) ?? problemFrontendOrder(problem),
+          seriesOrder: problemSeriesDefinitionOrder(problem, seriesKey),
+        },
+      ];
+    }),
+  );
+}
+
+function compareProblemsBySequentialOrder(left, right, profiles) {
+  const leftProfile = profiles.get(left.titleSlug) || {};
+  const rightProfile = profiles.get(right.titleSlug) || {};
+  return (
+    (leftProfile.baseOrder ?? problemFrontendOrder(left)) -
+      (rightProfile.baseOrder ?? problemFrontendOrder(right)) ||
+    (leftProfile.seriesOrder ?? 0) - (rightProfile.seriesOrder ?? 0) ||
+    compareProblemsByDefaultOrder(left, right)
+  );
+}
+
+function sortProblemsBySequentialOrder(problems) {
+  const profiles = sequentialProblemProfiles(problems);
+  return [...problems].sort((left, right) =>
+    compareProblemsBySequentialOrder(left, right, profiles),
+  );
+}
+
 function seriesFrequencyProfile(group) {
   const ranked = group.members
     .map(problemFrequencyOrder)
@@ -700,9 +808,7 @@ function buildPracticeCategoryCollection({
     .sort((left, right) => comparePracticeCategories(left, right, key))
     .map((category) => ({
       ...category,
-      members: [...category.members].sort((left, right) =>
-        comparePracticeProblems(left, right, key),
-      ),
+      members: sortProblemsBySequentialOrder(category.members),
     }));
   const distinctCount = new Set(sortedProblems.map((problem) => problem.titleSlug))
     .size;
@@ -729,14 +835,9 @@ function buildSeriesCatalog(catalogProblems, seriesDefinitions) {
       .map((slug) => bySlug.get(slug))
       .filter(Boolean);
     if (members.length < 2) continue;
-    members.sort((left, right) => {
-      const leftOrder = seriesOrderValue(left.titleSlug, definition.key);
-      const rightOrder = seriesOrderValue(right.titleSlug, definition.key);
-      return (
-        compareProblemsByFrequency(left, right) ||
-        leftOrder - rightOrder
-      );
-    });
+    members.sort((left, right) =>
+      compareProblemsBySeriesDefinition(left, right, definition.key),
+    );
     const group = {
       ...definition,
       members,
@@ -860,6 +961,13 @@ const leetcodeSeriesProblemBySlug = new Map(
 const leetcodeSeriesDefinitionByKey = new Map(
   leetcodeSeriesDefinitions.map((definition) => [definition.key, definition]),
 );
+const leetcodeSeriesDefinitionOrderByKey = new Map(
+  leetcodeSeriesDefinitions.map((definition) => [
+    definition.key,
+    new Map(definition.memberSlugs.map((slug, index) => [slug, index])),
+  ]),
+);
+const explicitlySequentialSeriesKeys = new Set(["n-sum"]);
 const leetcodeSeriesKeysBySlug = new Map();
 for (const definition of leetcodeSeriesDefinitions) {
   for (const slug of definition.memberSlugs) {
@@ -1168,9 +1276,9 @@ const leetcodePracticeCategoryCollections = [
     title: "Hot100 分类刷题单",
     titleEn: "Hot 100 Topic List",
     description:
-      "按主算法标签把 Hot100 拆成可连续练的小题单，分类和分类内题目都按高频优先排序。",
+      "按主算法标签把 Hot100 拆成可连续练的小题单，分类按高频优先，组内按题号和系列递进顺序。",
     descriptionEn:
-      "Hot 100 split by primary algorithm tag, with groups and problems ordered by frequency.",
+      "Hot 100 split by primary algorithm tag, with groups ordered by frequency and each group ordered by problem number and series progression.",
     problems: leetcodeProblemsWithReferences.filter((problem) => problem.hot100),
   }),
   buildPracticeCategoryCollection({
@@ -1178,9 +1286,9 @@ const leetcodePracticeCategoryCollections = [
     title: "字节分类刷题单",
     titleEn: "ByteDance Topic List",
     description:
-      "按字节题库全量排名和主算法标签拆分，适合先按公司高频类别逐组刷完。",
+      "按字节题库全量排名和主算法标签拆分，分类按高频优先，组内按题号和系列递进顺序。",
     descriptionEn:
-      "ByteDance problems split by company rank and primary algorithm tag for focused practice.",
+      "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
     problems: leetcodeProblemsWithReferences.filter((problem) => problem.bytedance),
   }),
 ];
