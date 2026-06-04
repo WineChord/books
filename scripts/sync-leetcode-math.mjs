@@ -135,6 +135,8 @@ const subscriptNames = [
   "y",
 ].sort((left, right) => right.length - left.length);
 const proseIdentifierNames = [
+  "maxJump",
+  "minJump",
   "mentions_string",
   "numPassengers",
   "joinedArray",
@@ -240,6 +242,8 @@ const singleLetterContextPattern =
 const subscriptNamePattern = subscriptNames
   .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
   .join("|");
+const codeIdentifierNames = ["maxJump", "minJump"];
+const codeIdentifierNameSet = new Set(codeIdentifierNames);
 const subscriptTextPattern = new RegExp(
   `\\b(${subscriptNamePattern})\\s+([A-Za-z0-9]+(?:[+-]\\d+)?)\\b`,
   "g",
@@ -270,6 +274,8 @@ const tupleComparisonPattern =
   /\b\d+\s*(?:<=|>=|<|>)\s*[A-Za-z](?:\s*,\s*[A-Za-z])+\s*(?:<=|>=|<|>)\s*[A-Za-z]/g;
 const indexedNamePattern =
   /\b[A-Za-z][A-Za-z0-9_.]*(?:\[[A-Za-z0-9_.+\-*/\s]+\])+\b/g;
+const jumpRangeComparisonPattern =
+  /\bi\s*\+\s*minJump\s*<=\s*j\s*<=\s*min\(i\s*\+\s*maxJump,\s*s\.length\s*-\s*1\)/g;
 const maxJumpIdentifier = "maxJump";
 const dimensionJoinerPattern = String.raw`(?:x|×|&times;)`;
 const dimensionPattern = new RegExp(
@@ -349,6 +355,10 @@ function escapeHtml(value) {
 
 function formatIdentifier(token) {
   const value = token.trim();
+  const compact = compactExpressionSpacing(value).replace(/\s+/g, "");
+  if (codeIdentifierNameSet.has(compact)) {
+    return `\\texttt{${compact.replace(/_/g, "\\_")}}`;
+  }
   if (/^[A-Za-z][A-Za-z0-9_]*$/.test(value) && value.length > 1) {
     return `\\mathrm{${value.replace(/_/g, "\\_")}}`;
   }
@@ -511,6 +521,10 @@ function normalizeLatex(raw) {
     .replace(/\.\.\./g, "\\ldots")
     .replace(/\.\./g, "\\ldots")
     .replace(/\.\s+\.\s+\./g, "\\ldots")
+    .replace(
+      /\bmin\s*\(\s*i\s*\+\s*maxJump\s*,\s*s\.length\s*-\s*1\s*\)/g,
+      "\\min(i + maxJump, s.length - 1)",
+    )
     .replace(/\bnlog\s*\(/gi, "n \\log(")
     .replace(/(?<!\\)\blog\b/g, "\\log")
     .replace(/\b(sum|average)\s*\(/g, (_match, name) => {
@@ -604,6 +618,7 @@ function mathRanges(text) {
   addRange(ranges, text, modularNumberPattern);
   addRange(ranges, text, scientificProductPattern);
   addRange(ranges, text, averagePattern);
+  addRange(ranges, text, jumpRangeComparisonPattern);
   addRange(ranges, text, arithmeticComparisonPattern);
   addRange(ranges, text, tupleComparisonPattern, () => true, {
     allowRightAdjacent: true,
