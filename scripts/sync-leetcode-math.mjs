@@ -270,6 +270,7 @@ const tupleComparisonPattern =
   /\b\d+\s*(?:<=|>=|<|>)\s*[A-Za-z](?:\s*,\s*[A-Za-z])+\s*(?:<=|>=|<|>)\s*[A-Za-z]/g;
 const indexedNamePattern =
   /\b[A-Za-z][A-Za-z0-9_.]*(?:\[[A-Za-z0-9_.+\-*/\s]+\])+\b/g;
+const maxJumpIdentifier = "maxJump";
 const dimensionJoinerPattern = String.raw`(?:x|×|&times;)`;
 const dimensionPattern = new RegExp(
   `\\b(?:\\d+|[A-Za-z][A-Za-z0-9_]*|10(?:\\^|\\s+)\\d+)\\s*${dimensionJoinerPattern}\\s*(?:\\d+|[A-Za-z][A-Za-z0-9_]*|10(?:\\^|\\s+)\\d+)\\b`,
@@ -521,7 +522,8 @@ function normalizeLatex(raw) {
     .replace(/\b([A-Za-z0-9_.]+)\s*\^\s*(\d+)\b/g, "$1^{$2}")
     .replace(
       /\b((?:10\^\{\d+\})|(?:\d+|[A-Za-z][A-Za-z0-9_]*)(?:\^\{\d+\})?)\s*x\s*((?:10\^\{\d+\})|(?:\d+|[A-Za-z][A-Za-z0-9_]*)(?:\^\{\d+\})?)\b/g,
-      (_match, left, right) => {
+      (match, left, right) => {
+        if (match === maxJumpIdentifier) return formatIdentifier(match);
         return `${formatDimensionToken(left)} \\times ${formatDimensionToken(
           right,
         )}`;

@@ -34028,7 +34028,7 @@ export const leetcodeProblems = [
         "name": "滑动窗口"
       }
     ],
-    "statementPreview": "给你一个下标从 0 开始的二进制字符串 s 和两个整数 minJump 和 maxJump 。一开始，你在下标 0 处，且该位置的值一定为 '0' 。当同时满足如下条件时，你可以从下标 i 移动到下标 j 处： i + minJump 且 s[j] == '0' . 如果你可以到达 s 的下标 s.length - 1 处，请你返回 true ，否则返回 false 。",
+    "statementPreview": "给你一个下标从 0 开始的二进制字符串 s 和两个整数 minJump 和 maxJump 。一开始，你在下标 0 处，且该位置的值一定为 '0' 。当同时满足如下条件时，你可以从下标 i 移动到下标 j 处： i + minJump <= j <= min(i + maxJump, s.length - 1) 且 s[j] == '0' . 如果你可以到达 s 的下标 s.length - 1 处，请你返回 true ，否则返回 false 。",
     "approachPreview": "从第一性原理看，能不能到达下标 i，只取决于前面有没有一个已经能到达的位置 j，并且从 j 一跳可以落到 i。把这个事实写成状态：reachable[i] 表示下标 i 是否可达，初始化 reachable[0] = true。若要从 j 跳到 i，必须满足 minJump <= i - j <= maxJump，移项后 j 必须落在区间 [i - maxJump, i - minJump] 里；同时题目只允许落在字符 '0' 上，所以 s[i] 还必须等于 '0'。最直接的转移是检查这个区间内是否存在 reachable[j] 为 true 的下标，但 n 最大是 10^5，如果每个 i 都重新扫一遍前面的区间，最坏会接近 O(n^2)，会超时。优化的关键是：随着 i 从左到右增加，合法前驱区间也整体向右滑动一格。用 reachableCount 记录当前区间里有多少个可达下标；处理 i 时，先把刚进入区间的下标 i - minJump 加进来，如果它可达就加一，再把刚离开区间的下标 i - maxJump - 1 移出去，如果它可达就减一。这样 count > 0 就等价于“存在一个合法可达前驱”。于是 reachable[i] = s[i] == '0' && reachableCount > 0。最后返回 reachable[n - 1]。如果终点是 '1'，即使前面有可达位置也不能落上去；如果某段全是不可落脚的 '1' 或可达窗口断掉，count 会变成 0，后面自然无法从这段延续。整个过程每个下标只进窗口、出窗口各一次，时间 O(n)，空间 O(n)。",
     "followUps": [
       {
