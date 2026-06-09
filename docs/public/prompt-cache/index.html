@@ -50,19 +50,22 @@
       letter-spacing: 0;
     }
     h1 {
-      margin: 0 0 28px;
-      font-size: clamp(28px, 4vw, 46px);
-      max-width: 920px;
+      margin: 0 0 24px;
+      font-size: clamp(27px, 3.2vw, 40px);
+      max-width: 860px;
     }
     h2 {
-      margin: 64px 0 18px;
-      padding-top: 8px;
-      font-size: clamp(24px, 3vw, 32px);
-      border-top: 2px solid rgba(15, 76, 129, 0.18);
+      margin: 86px 0 26px;
+      padding: 22px 0 12px;
+      font-size: clamp(25px, 2.7vw, 32px);
+      border-top: 3px solid rgba(15, 76, 129, 0.22);
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
     }
     h3 {
-      margin: 34px 0 12px;
-      font-size: 22px;
+      margin: 46px 0 14px;
+      padding-left: 14px;
+      font-size: clamp(19px, 2vw, 23px);
+      border-left: 4px solid var(--green);
     }
     p, li {
       font-size: 18px;
@@ -152,7 +155,8 @@
       article { padding: 22px 16px; }
       p, li { font-size: 16px; }
       pre code { font-size: 13px; }
-      h2 { margin-top: 46px; }
+      h2 { margin-top: 54px; }
+      h3 { margin-top: 34px; padding-left: 10px; }
     }
   </style>
 </head>
@@ -167,7 +171,9 @@
 <p>代码 Agent 的难点在于，prompt 不是一段静态文本。它是运行时拼出来的“模型视图”。Claude Code 和 Codex 的源码都在围绕这个视图做工作：哪些内容放前面，哪些内容放尾部，哪些内容落盘，哪些内容摘要，哪些内容只在 UI 里保留，哪些内容真正送进模型。</p>
 <p>本文从源码角度拆开这件事。</p>
 <p><img src="assets/context-pressure-overview.png" alt="长上下文与提示缓存策略总览"></p>
-<h2>1. 先区分三种历史</h2>
+<p>接下来按四层展开：先建立模型视图的心智模型，再看 Claude Code 怎样用显式缓存断点维护这条视图，然后看 Codex 怎样在自动 prefix cache 下维护可恢复历史，最后把两套设计放到一起比较。</p>
+<h2>一、心智模型：缓存命中的是模型视图</h2>
+<h3>1. 三种历史：UI、磁盘和模型</h3>
 <p>理解 prompt cache 之前，要先区分三种“历史”。</p>
 <p>第一种是 UI 历史，也就是用户在界面上看到的 scrollback。它应该尽量完整，因为用户需要回看、复制、调试。</p>
 <p>第二种是磁盘历史，也就是 session transcript、rollout JSONL、tool result 文件、collapse commit 等持久化记录。它服务于 resume、fork、审计和恢复。</p>
@@ -182,7 +188,7 @@
 </code></pre>
 <p><img src="assets/prompt-cache-prefix-pipeline.png" alt="稳定前缀和动态尾部的请求形态"></p>
 <p>这就是为什么“规则文件怎么注入”“工具结果怎么处理”“compaction 后有没有边界”都会影响 prompt cache。它们看起来是上下文管理问题，本质上也都是缓存前缀管理问题。</p>
-<h2>2. Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h2>
+<h3>2. Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h3>
 <p>Claude API 和 OpenAI API 都支持 prompt caching，但暴露方式不同。</p>
 <p>Claude API 有显式的 <code>cache_control</code>。根据 Anthropic 文档，prompt caching 会引用从 <code>tools</code> 到 <code>system</code> 再到 <code>messages</code> 的完整前缀，一直到被标记的 cache breakpoint。Claude API 也有顶层 automatic caching：请求体上放一个 <code>cache_control</code>，系统会把 breakpoint 自动放到最后一个可缓存 block。缓存默认 5 分钟 TTL，也有 1 小时 TTL；cache read 和 cache write 会在 usage 字段里体现。</p>
 <p>这意味着 Claude Code 可以在客户端代码里明确决定 breakpoint 放在哪里。源码里的 <code>addCacheBreakpoints</code> 就是在做这件事。</p>
@@ -195,7 +201,7 @@ Codex:
 prompt_cache_key + automatic prefix cache + replacement_history
 </code></pre>
 <p>两个系统都在追求稳定前缀，但工具不一样。</p>
-<h2>3. 规则文件不是“新会话时塞进 system prompt 一次”这么简单</h2>
+<h3>3. 规则文件不是“新会话时塞进 system prompt 一次”这么简单</h3>
 <p>代码 Agent 通常有项目规则文件：</p>
 <ul>
 <li>Claude Code 使用 <code>CLAUDE.md</code> 和 memory files。</li>
@@ -209,7 +215,8 @@ prompt_cache_key + automatic prefix cache + replacement_history
 compaction 后保留可恢复的边界或替换历史
 </code></pre>
 <p>这个模型比“system prompt 一次性全塞满”更准确。</p>
-<h2>4. Claude Code：<code>getUserContext()</code> 是 memoized 的基础 context</h2>
+<h2>二、Claude Code：显式缓存断点下的模型视图纪律</h2>
+<h3>4. <code>getUserContext()</code> 是 memoized 的基础 context</h3>
 <p>Claude Code 里，<code>getUserContext()</code> 是理解项目规则注入的入口。</p>
 <p>源码位置：<code>src/context.ts</code></p>
 <p>它返回的核心内容包括：</p>
@@ -233,7 +240,7 @@ As you answer the user&#39;s questions, you can use the following context:
 动态事实靠近尾部。
 </code></pre>
 <p>Claude Code 对 system prompt 也有类似切分思路。<code>splitSysPromptPrefix()</code> 会按 <code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY</code> 把 system prompt 分成静态前缀和动态尾部；静态块可进入 global cache scope，动态块不参与同样的稳定前缀假设。</p>
-<h2>5. Claude Code 的请求组装链：先做模型视图，再做缓存控制</h2>
+<h3>5. 请求组装链：先做模型视图，再做缓存控制</h3>
 <p>Claude Code 的主请求路径在 <code>src/query.ts</code>。简化后，关键顺序是：</p>
 <pre><code class="language-text">messages
   -&gt; getMessagesAfterCompactBoundary(messages)
@@ -251,7 +258,7 @@ As you answer the user&#39;s questions, you can use the following context:
 <p>这条顺序非常重要。</p>
 <p><code>getMessagesAfterCompactBoundary()</code> 先决定 compact 之后模型应该从哪里开始看。随后 tool result budget、snip、microcompact、context-collapse、autocompact 都是在调小或投影 <code>messagesForQuery</code>。最后才 prepend 基础 user context，并放 Anthropic cache breakpoint。</p>
 <p>换句话说，Claude Code 不是每轮把完整 transcript 直接发给模型，再指望 provider 缓存兜底。它先在本地构造一个更小、更稳定、更适合缓存的模型视图。</p>
-<h2>6. 大工具结果落盘：不是 compaction，而是 prompt 入口前的减负</h2>
+<h3>6. 大工具结果落盘：不是 compaction，而是 prompt 入口前的减负</h3>
 <p>工具输出是长上下文 Agent 最容易失控的地方。</p>
 <p>一次 <code>grep</code> 可能返回几万行；一次 shell 命令可能输出巨大日志；一次 JSON 工具结果可能有几 MB。如果这些结果原样留在 messages 里，prompt cache 会被两个方向拖垮：</p>
 <ul>
@@ -285,7 +292,7 @@ Preview (first 2KB):
 <p>这比“每轮重新截断前 2000 字符”更稳。因为只要截断逻辑、路径、大小描述或排序有微小变化，缓存前缀就可能变。</p>
 <p>还有一个 per-message 总预算：同一条 user message 里的多个 tool result 合计超过 <code>MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 200_000</code> 时，会优先处理最大的 fresh result。也就是说，Claude Code 不只看单个工具输出，也看同一轮消息里的工具结果总量。</p>
 <p>这层机制发生在 snip 和 microcompact 之前。它解决的是“新鲜大结果不要撑爆本轮模型视图”，不是“对话太长后的总结”。</p>
-<h2>7. SNIP：剪掉中段历史的模型投影</h2>
+<h3>7. SNIP：剪掉中段历史的模型投影</h3>
 <p>SNIP 在这里不是 snippet 的缩写，更接近英语动词 snip：剪掉一段。它不是把整段旧历史总结成一句话，而是在完整 transcript 仍然存在的前提下，把某些中段消息从模型视图里移出去。</p>
 <p>它和 <code>compact_boundary</code> 的区别很大：</p>
 <ul>
@@ -326,7 +333,7 @@ M1 &lt;- M4 &lt;- M5
 <p>第五步是运行形态差异。REPL 需要保留完整 UI scrollback，所以通常不急着把界面历史物理删除，而是在模型路径里投影；headless / SDK 路径没有 UI scrollback 要保留，<code>QueryEngine</code> 会在收到 snip boundary 时通过 <code>snipReplay</code> 重新应用裁剪，避免 marker 在 mutable message store 里反复触发，也避免长会话内存继续膨胀。</p>
 <p>还有一个小但重要的提示机制：<code>context_efficiency</code> attachment。源码注释里说，它会在“增长了若干 token 但一直没有 snip”之后注入 nudge；节奏由 <code>shouldNudgeForSnips()</code> 控制，并会被已有 nudge、snip marker、snip boundary、compact boundary 重置。这说明 SNIP 不是只靠后台阈值，也有一层面向模型行为的轻提示。</p>
 <p>可见源码里，<code>snipCompact.js</code>、<code>snipProjection.js</code>、<code>SnipTool</code>、<code>force-snip</code> 这些执行模块通过 <code>HISTORY_SNIP</code> 条件路径接入；当前源码快照没有展开它们的文件本体。但周边契约已经足够清楚：短 id 用于引用，query 前裁剪模型视图，boundary 记录删除集合，resume 时按 <code>removedUuids</code> 删除并重接 parent 链，UI 和 SDK 分别选择保留 scrollback 或直接收缩 store。外部 npm 包 <code>@anthropic-ai/claude-code@2.1.169</code> 已经是 native binary，不再明文暴露旧源码符号；但字符串里仍能看到 <code>CLAUDE_SNIP</code>、<code>snipTokensFreed</code>、<code>includeSnipped</code>、<code>snipEnabled</code> 等字段。稳妥的结论是：相关设计仍在产品形态里演进，但不能仅凭某个旧符号是否出现，判断某个发行版默认开启了完整旧路径。</p>
-<h2>8. Microcompact：只清旧工具结果，不总结整段对话</h2>
+<h3>8. Microcompact：只清旧工具结果，不总结整段对话</h3>
 <p>microcompact 这个名字容易让人以为它是“小号 autocompact”。实际更准确的理解是：它优先处理旧 tool result 的可见体积。</p>
 <p>源码位置：<code>src/utils/microCompact.ts</code></p>
 <p>它有两类路径。</p>
@@ -343,7 +350,7 @@ cached:
 缓存仍有价值，尽量通过 provider cache edit 改模型侧视图，减少破坏前缀。
 </code></pre>
 <p>microcompact 不是摘要。它不试图理解整段对话，只是把一批旧工具结果从模型视图里移走或引用化。</p>
-<h2>9. Context-collapse：源码里可见的是投影契约</h2>
+<h3>9. Context-collapse：源码里可见的是投影契约</h3>
 <p>context-collapse 更像“把一段历史折叠成摘要占位”的投影机制。</p>
 <p>在这份源码快照里，主链路和持久化契约是可见的：</p>
 <ul>
@@ -355,7 +362,7 @@ cached:
 </ul>
 <p>但具体实现目录在这份源码快照中没有展开，所以不能把不可见的算法细节当作确定事实。可靠的说法是：主链路已经为它预留了“投影、持久化、恢复、与 autocompact 协调”的契约。</p>
 <p>它和 autocompact 的关系也很重要：context-collapse 在 autocompact 之前运行。<code>shouldAutoCompact()</code> 里还明确避开 context-collapse 模式，因为 collapse 自己负责 headroom。如果 autocompact 抢先运行，可能把更细粒度的 collapse 直接压成一段粗 summary。</p>
-<h2>10. Autocompact：最后一级完整摘要</h2>
+<h3>10. Autocompact：最后一级完整摘要</h3>
 <p>autocompact 是 Claude Code 的最后一级保护。</p>
 <p>源码位置：<code>src/utils/autoCompact.ts</code> 和 <code>src/utils/compact.ts</code></p>
 <p>它的触发逻辑会考虑：</p>
@@ -378,7 +385,7 @@ cached:
 <p>最终，Claude Code 写入 <code>compact_boundary</code>。</p>
 <p>源码位置：<code>src/utils/messages.ts</code></p>
 <p><code>createCompactBoundaryMessage()</code> 会生成一条 system message，<code>subtype: &quot;compact_boundary&quot;</code>，metadata 里包括 trigger、preTokens、userContext、messagesSummarized 等信息。之后 <code>getMessagesAfterCompactBoundary()</code> 会从最后一个 boundary 起切模型视图。</p>
-<p><img src="assets/claude-code-compact-boundary.png" alt="Claude Code compact_boundary 切分模型视图"></p>
+<p><img src="assets/claude-code-compact-boundary.svg" alt="Claude Code compact_boundary 切分模型视图"></p>
 <p>没有 boundary 会怎样？</p>
 <ul>
 <li>如果继续发完整历史，summary 不会真正减少模型输入。</li>
@@ -386,7 +393,7 @@ cached:
 <li>如果只有 summary 没有边界，后续请求不知道哪些消息已经被 summary 覆盖。</li>
 </ul>
 <p>所以 boundary 的本质是“模型视图边界”，不是 UI 分割线。</p>
-<h2>11. 四种变小机制放在一起看</h2>
+<h3>11. 四种变小机制放在一起看</h3>
 <p>大结果落盘、snip、microcompact、context-collapse、autocompact 都会让模型输入变小，但它们不是同一种机制。</p>
 <p><img src="assets/claude-code-trimming-stack.svg" alt="Claude Code snip、microcompact、context-collapse、autocompact 分层"></p>
 <p>可以按粒度排序：</p>
@@ -406,7 +413,7 @@ autocompact:
 窗口逼近上限时生成完整 summary，并写 compact_boundary。
 </code></pre>
 <p>这就是 Claude Code 长上下文管理的层级感：能局部处理就局部处理，局部处理不够再摘要，摘要以后用 boundary 保证后续请求不把旧内容带回来。</p>
-<h2>12. <code>addCacheBreakpoints()</code>：Claude Code 怎样保护缓存点</h2>
+<h3>12. <code>addCacheBreakpoints()</code>：怎样保护缓存点</h3>
 <p>Claude Code 的 Anthropic 请求路径里，<code>addCacheBreakpoints()</code> 是核心缓存控制函数。</p>
 <p>源码位置：<code>src/services/api/claude.ts</code></p>
 <p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上，相当于告诉 Claude：本轮最新 message 之前的完整前缀都值得作为后续请求的缓存候选。</p>
@@ -425,13 +432,14 @@ autocompact:
 <li><code>splitSysPromptPrefix()</code> 把 system prompt 静态部分和动态部分拆开。</li>
 </ul>
 <p>这些细节都指向同一个目标：在 Anthropic 的显式 breakpoint 模型下，让 breakpoint 前的内容尽量稳定。</p>
-<h2>13. Codex：自动 prefix cache 加 <code>prompt_cache_key</code></h2>
+<h2>三、Codex：自动 prefix cache 下的可恢复历史</h2>
+<h3>13. 自动 prefix cache 加 <code>prompt_cache_key</code></h3>
 <p>Codex 面对的是 OpenAI 的自动 prefix cache。</p>
 <p>源码位置：<code>codex-rs/core/src/client.rs</code></p>
 <p><code>ModelClient</code> 是 session-scoped，默认用 thread id 生成 <code>prompt_cache_key()</code>，也支持 override。构造 Responses API request 时，会把这个 key 放进请求。</p>
 <p>这不是 Claude 式的 <code>cache_control</code>。它不告诉 provider “缓存到这一个 block 为止”。它更像是告诉服务端：这些请求属于同一个会话或同一类前缀，请尽量让相同前缀复用缓存。</p>
 <p>所以 Codex 的重点不在“插哪个 breakpoint”，而在“让模型历史形状稳定、可恢复”。</p>
-<h2>14. Codex 的 <code>AGENTS.md</code>：会话级 user instructions，而不是每轮随文件焦点重装</h2>
+<h3>14. <code>AGENTS.md</code>：会话级 user instructions，而不是每轮随文件焦点重装</h3>
 <p>Codex 的规则文件加载在 <code>AgentsMdManager</code>。</p>
 <p>源码位置：<code>codex-rs/core/src/agents_md.rs</code></p>
 <p>它会：</p>
@@ -445,7 +453,7 @@ autocompact:
 <p>session 创建时，<code>session/mod.rs</code> 会调用 <code>AgentsMdManager::user_instructions(...)</code>，之后 <code>build_initial_context()</code> 把它放进 contextual user sections。</p>
 <p>这说明 Codex 也不是“每打开一个文件就自动刷新一套规则”。基础规则由 session 初始上下文构造。进入更深目录或修改 CWD 之外文件时，base instructions 要求 Agent 自己检查适用的 <code>AGENTS.md</code>，但会话级 user instructions 不会因为每轮文件焦点变化而自动重写。</p>
 <p>这和 prompt cache 的原则一致：规则文件进入模型视图后，最好稳定。</p>
-<h2>15. Codex 的 initial context、TurnContext 和 durable baseline</h2>
+<h3>15. Initial context、TurnContext 和 durable baseline</h3>
 <p>Codex 的上下文维护链在 <code>codex-rs/core/src/session/mod.rs</code>。</p>
 <p><code>build_initial_context()</code> 会组装：</p>
 <ul>
@@ -465,7 +473,7 @@ autocompact:
 <li>mid-turn compaction 后也会持久化 <code>TurnContextItem</code>，用于 resume / fork 恢复最新 durable baseline。</li>
 </ul>
 <p>这和 Claude Code 的 <code>prependUserContext()</code> 不同。Claude Code 更像是在 API 前临时 prepend memoized context；Codex 更像是在 session/turn 层维护一条可恢复的 context baseline。</p>
-<h2>16. Codex 的大输出策略：更偏截断模型可见内容和事件副本</h2>
+<h3>16. 大输出策略：更偏截断模型可见内容和事件副本</h3>
 <p>在已检查的 Codex 源码里，没有看到 Claude Code 那种“一旦 tool result 超阈值，就把完整结果写到 tool-results 文件，再让模型只看到路径和 2KB preview”的同构机制。</p>
 <p>Codex 更常见的是两类截断：</p>
 <p>第一类是模型可见 function output 截断。</p>
@@ -486,7 +494,7 @@ Codex:
 模型可见输出按 policy 截断，持久化事件副本也会收缩。
 </code></pre>
 <p>两者目标相似，具体工程形态不同。</p>
-<h2>17. Codex compaction：替换模型历史，并持久化 <code>replacement_history</code></h2>
+<h3>17. Compaction：替换模型历史，并持久化 <code>replacement_history</code></h3>
 <p>Codex compaction 的关键函数是 <code>build_compacted_history()</code>。</p>
 <p>源码位置：<code>codex-rs/core/src/compact.rs</code></p>
 <p>它会从旧 history 收集真实用户消息，按 token 预算从后往前选择最近用户消息，保持原顺序写回，然后把 summary 作为最后一条 user message 追加进去。预算常量包括 <code>COMPACT_USER_MESSAGE_MAX_TOKENS = 20_000</code>。</p>
@@ -506,7 +514,8 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 </code></pre>
 <p><img src="assets/codex-context-compact-ledger.svg" alt="Codex 上下文与压缩账本"></p>
 <p>Codex 还有一个 mid-turn compaction 的细节：<code>InitialContextInjection</code> 可以选择 <code>BeforeLastUserMessage</code>，把 initial context 插在最后一个真实 user message 或 summary 前面。这保证压缩发生在 turn 中间时，后续模型请求仍有必要的基础 context。</p>
-<h2>18. 对比表</h2>
+<h2>四、对比和结论</h2>
+<h3>18. 对比表</h3>
 <table>
 <thead>
 <tr>
@@ -566,13 +575,13 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <td>rollout reverse scan、replacement_history、TurnContext baseline</td>
 </tr>
 </tbody></table>
-<h2>19. 读源码时最容易踩的坑</h2>
+<h3>19. 读源码时最容易踩的坑</h3>
 <p>第一个坑：把 UI 历史当成模型历史。很多源码看起来“没有删除历史”，但请求前 projection 已经把模型视图改了。</p>
 <p>第二个坑：把 compaction 当成唯一压缩。Claude Code 在 autocompact 前还有大结果落盘、snip、microcompact、context-collapse。真正的工程设计是分层减压，不是等到爆窗才总结。</p>
 <p>第三个坑：把规则文件想成每轮动态加载。规则文件如果每轮改变并放在前缀，会直接打坏 prompt cache。两个系统都倾向于把规则稳定化，再用尾部或 diff 承载变化。</p>
 <p>第四个坑：把 Claude 和 OpenAI 的缓存控制混用。Claude 的 <code>cache_control</code> 是 block / request 级控制点；OpenAI 更偏自动 prefix cache 和 <code>prompt_cache_key</code>。源码里的 runtime 设计正是围绕这两个 contract 展开的。</p>
 <p>第五个坑：把 <code>compact_boundary</code> 和 <code>replacement_history</code> 看成同一种东西。它们都服务于 compaction 后的恢复，但一个是切片边界，一个是替换后的模型历史。</p>
-<h2>20. 结论：缓存优化的核心是模型视图纪律</h2>
+<h3>20. 结论：缓存优化的核心是模型视图纪律</h3>
 <p>Prompt cache 的关键不只是 API 参数。<code>cache_control</code>、<code>cached_tokens</code>、<code>prompt_cache_key</code> 都只是外层接口。真正决定效果的是 Agent runtime 怎样组织模型看到的历史。</p>
 <p>Claude Code 的路线是：在完整本地历史上维护请求投影，用 memoized context 稳住基础规则，用大结果落盘和 microcompact 控制工具输出，用 snip / context-collapse 做细粒度历史投影，最后用 autocompact 和 <code>compact_boundary</code> 建立新的模型视图起点。</p>
 <p>Codex 的路线是：利用 OpenAI 自动 prefix cache 和 <code>prompt_cache_key</code>，用 <code>AGENTS.md</code> 和 initial context 建立可恢复 baseline，用 <code>TurnContextItem</code> 记录上下文变化，用 <code>replacement_history</code> 安装压缩后的模型历史。</p>
@@ -589,6 +598,7 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <li>Claude Code prompt caching 文档：<code>https://code.claude.com/docs/en/prompt-caching</code></li>
 <li>OpenAI prompt caching 文档：<code>https://developers.openai.com/api/docs/guides/prompt-caching</code></li>
 </ul>
+
     </article>
   </main>
 </body>

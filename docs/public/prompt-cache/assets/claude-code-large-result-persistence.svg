@@ -1,82 +1,74 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="610" viewBox="0 0 1400 610" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
   <title id="title">Claude Code large tool result persistence</title>
-  <desc id="desc">A diagram showing how Claude Code persists oversized tool results to disk, replaces model-visible content with a preview, and freezes the replacement decision by tool_use_id.</desc>
+  <desc id="desc">A clean diagram showing how oversized tool results are persisted and replaced with stable previews.</desc>
   <defs>
     <style>
       .bg { fill: #fbfcf8; }
-      .title { fill: #102a43; font: 700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      .subtitle { fill: #486581; font: 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      .box { fill: #ffffff; stroke: #1f5f8b; stroke-width: 2; rx: 16; }
-      .green { fill: #f1fbf4; stroke: #2f855a; stroke-width: 2; rx: 16; }
-      .yellow { fill: #fff8e1; stroke: #b7791f; stroke-width: 2; rx: 16; }
-      .red { fill: #fff5f5; stroke: #c53030; stroke-width: 2; rx: 16; }
-      .label { fill: #102a43; font: 700 19px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      .body { fill: #334e68; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      .mono { fill: #334e68; font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-      .arrow { stroke: #486581; stroke-width: 3; marker-end: url(#arrow); fill: none; }
-      .dash { stroke: #829ab1; stroke-width: 2; stroke-dasharray: 8 8; fill: none; }
-      .thin { stroke: #bcccdc; stroke-width: 1.5; fill: none; }
+      .title { fill: #102a43; font: 700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .subtitle { fill: #486581; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .box { fill: #ffffff; stroke: #1f5f8b; stroke-width: 1.6; rx: 12; }
+      .green { fill: #f1fbf4; stroke: #2f855a; stroke-width: 1.6; rx: 12; }
+      .yellow { fill: #fff8e1; stroke: #b7791f; stroke-width: 1.6; rx: 12; }
+      .soft { fill: #edf2f7; stroke: #9fb3c8; stroke-width: 1.4; rx: 10; }
+      .label { fill: #102a43; font: 700 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .body { fill: #334e68; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mono { fill: #334e68; font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .arrow { stroke: #486581; stroke-width: 2; marker-end: url(#arrow); fill: none; }
     </style>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#486581"/>
     </marker>
   </defs>
-  <rect class="bg" width="1400" height="610"/>
-  <text class="title" x="54" y="58">Claude Code：大工具结果先落盘，再进入模型视图</text>
-  <text class="subtitle" x="54" y="90">对应 src/Tool.ts、src/utils/toolResultStorage.ts 和 constants/toolLimits.ts。</text>
+  <rect class="bg" width="1200" height="560"/>
+  <text class="title" x="48" y="52">Claude Code：大工具结果先落盘，再进入模型视图</text>
+  <text class="subtitle" x="48" y="82">对应 Tool.ts、toolResultStorage.ts 和 toolLimits.ts。</text>
 
-  <rect class="box" x="66" y="142" width="230" height="120"/>
-  <text class="label" x="92" y="176">tool_result 原文</text>
-  <text class="mono" x="92" y="204">stdout / JSON / search hits</text>
-  <text class="mono" x="92" y="226">可能几十 KB 到数 MB</text>
-  <text class="mono" x="92" y="248">role: user, type: tool_result</text>
+  <rect class="box" x="58" y="134" width="206" height="92"/>
+  <text class="label" x="82" y="164">tool_result 原文</text>
+  <text class="mono" x="82" y="192">stdout / JSON / grep</text>
+  <text class="body" x="82" y="212">可能几十 KB 到数 MB</text>
+  <path class="arrow" d="M 264 180 H 314"/>
 
-  <path class="arrow" d="M 296 202 H 346"/>
-  <rect class="yellow" x="346" y="126" width="280" height="152"/>
-  <text class="label" x="372" y="160">阈值判断</text>
-  <text class="mono" x="372" y="190">Bash / PowerShell: 30,000 chars</text>
-  <text class="mono" x="372" y="212">Grep: 20,000 chars</text>
-  <text class="mono" x="372" y="234">default: 100,000 chars</text>
-  <text class="mono" x="372" y="256">Read: Infinity</text>
+  <rect class="yellow" x="314" y="118" width="238" height="124"/>
+  <text class="label" x="338" y="148">阈值判断</text>
+  <text class="mono" x="338" y="176">Bash: 30k chars</text>
+  <text class="mono" x="338" y="198">Grep: 20k chars</text>
+  <text class="mono" x="338" y="220">default: 100k chars</text>
+  <path class="arrow" d="M 552 180 H 602"/>
 
-  <path class="arrow" d="M 626 202 H 676"/>
-  <rect class="green" x="676" y="126" width="284" height="152"/>
-  <text class="label" x="702" y="160">persistToolResult()</text>
-  <text class="mono" x="702" y="190">.claude/projects/.../session/</text>
-  <text class="mono" x="702" y="212">tool-results/</text>
-  <text class="mono" x="702" y="234">{tool_use_id}.txt | .json</text>
-  <text class="mono" x="702" y="256">write flag: wx</text>
+  <rect class="green" x="602" y="118" width="250" height="124"/>
+  <text class="label" x="626" y="148">persistToolResult()</text>
+  <text class="mono" x="626" y="176">tool-results/</text>
+  <text class="mono" x="626" y="198">{tool_use_id}.txt</text>
+  <text class="mono" x="626" y="220">or .json</text>
+  <path class="arrow" d="M 852 180 H 902"/>
 
-  <path class="arrow" d="M 960 202 H 1010"/>
-  <rect class="box" x="1010" y="126" width="324" height="152"/>
-  <text class="label" x="1036" y="160">模型只看到 preview</text>
-  <text class="mono" x="1036" y="190">&lt;persisted-output&gt;</text>
-  <text class="mono" x="1036" y="212">Full output saved to: path</text>
-  <text class="mono" x="1036" y="234">Preview (first 2KB):</text>
-  <text class="mono" x="1036" y="256">...</text>
+  <rect class="box" x="902" y="118" width="240" height="124"/>
+  <text class="label" x="926" y="148">模型看到 preview</text>
+  <text class="mono" x="926" y="176">&lt;persisted-output&gt;</text>
+  <text class="mono" x="926" y="198">path + size</text>
+  <text class="mono" x="926" y="220">first 2KB preview</text>
 
-  <rect class="red" x="66" y="346" width="368" height="132"/>
-  <text class="label" x="92" y="380">每条 user message 还有总预算</text>
-  <text class="mono" x="92" y="410">MAX_TOOL_RESULTS_PER_MESSAGE_CHARS</text>
-  <text class="mono" x="92" y="432">= 200,000</text>
-  <text class="body" x="92" y="458">超过时优先处理同一条 message 里的最大 fresh result。</text>
+  <rect class="soft" x="58" y="310" width="322" height="118"/>
+  <text class="label" x="82" y="342">同一条 user message 的总预算</text>
+  <text class="mono" x="82" y="372">MAX_TOOL_RESULTS_PER_MESSAGE_CHARS</text>
+  <text class="mono" x="82" y="394">= 200,000</text>
+  <text class="body" x="82" y="416">超过时优先处理最大的 fresh result。</text>
+  <path class="arrow" d="M 380 369 H 438"/>
 
-  <path class="arrow" d="M 434 412 H 496"/>
-  <rect class="green" x="496" y="330" width="408" height="164"/>
-  <text class="label" x="522" y="364">ContentReplacementState</text>
-  <text class="mono" x="522" y="394">seenIds: Set&lt;tool_use_id&gt;</text>
-  <text class="mono" x="522" y="416">replacements: Map&lt;tool_use_id, preview&gt;</text>
-  <text class="body" x="522" y="444">同一个 tool_use_id 的命运被冻结：后续请求复用同一 preview，不再重新读盘或随机截断。</text>
-  <text class="body" x="522" y="468">这会保护 cache prefix 的字节级稳定性。</text>
+  <rect class="green" x="438" y="294" width="342" height="150"/>
+  <text class="label" x="462" y="326">ContentReplacementState</text>
+  <text class="mono" x="462" y="356">seenIds: Set&lt;tool_use_id&gt;</text>
+  <text class="mono" x="462" y="378">replacements: Map&lt;id, preview&gt;</text>
+  <text class="body" x="462" y="406">同一个 tool_use_id 的替换结果固定下来，</text>
+  <text class="body" x="462" y="426">后续请求复用同一段 preview。</text>
+  <path class="arrow" d="M 780 369 H 838"/>
 
-  <path class="arrow" d="M 904 412 H 966"/>
-  <rect class="box" x="966" y="346" width="368" height="132"/>
-  <text class="label" x="992" y="380">缓存含义</text>
-  <text class="body" x="992" y="410">大结果不再把整段输出塞进 prompt。</text>
-  <text class="body" x="992" y="438">模型需要全文时，可根据路径再读。</text>
-  <text class="body" x="992" y="466">旧 preview 每轮保持一致，避免破坏已缓存前缀。</text>
+  <rect class="yellow" x="838" y="310" width="304" height="118"/>
+  <text class="label" x="862" y="342">缓存影响</text>
+  <text class="body" x="862" y="372">旧工具结果的模型可见文本保持稳定。</text>
+  <text class="body" x="862" y="396">需要全文时，模型可根据路径再读。</text>
+  <text class="body" x="862" y="420">这比每轮重新截断更利于 prefix cache。</text>
 
-  <path class="dash" d="M 1172 278 C 1172 318 1156 330 1150 346"/>
-  <path class="thin" d="M 818 278 V 330"/>
-  <text class="mono" x="66" y="548">注意：Codex 源码里更常见的是按 policy 截断模型可见 function output 和 rollout/event 副本；没有看到同样的“完整结果落盘 + prompt 只放路径 preview”的一一对应机制。</text>
+  <text class="body" x="58" y="508">这层机制发生在 snip 和 microcompact 之前，解决的是新鲜大结果撑爆模型视图的问题。</text>
 </svg>
