@@ -1,116 +1,594 @@
 <!doctype html>
-<html style="      ">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Claude Code 和 Codex 的 Prompt Cache 设计：真正重要的是模型看到的历史</title>
-  <meta name="description" content="长时间使用代码 Agent 时，一个问题很快会出现：上下文越来越大，但很多内容其实每一轮都重复出现。工具定义、系统规则、项目说明、历史摘要、最近几轮对话，这些内容每次都重新送进模型，既慢又贵。">
+  <meta name="description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
   <link rel="canonical" href="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:title" content="Claude Code 和 Codex 的 Prompt Cache 设计：真正重要的是模型看到的历史">
-  <meta property="og:description" content="从模型视图、规则文件、动态上下文和 compaction 出发，解释 Claude Code 与 Codex 在 prompt cache 设计上的差异。">
+  <meta property="og:description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
   <meta property="og:url" content="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:type" content="article">
   <meta property="og:image" content="https://www.wineandchord.com/books/prompt-cache/assets/cover-claude-codex-prompt-cache.png">
   <meta name="twitter:card" content="summary_large_image">
-  
+  <style>
+    :root {
+      --bg: #f7f8f4;
+      --paper: #fffffb;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --blue: #0f4c81;
+      --green: #1f7a4d;
+      --code-bg: #f3f6f8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.78;
+      text-rendering: optimizeLegibility;
+    }
+    main {
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      padding: 48px 22px 88px;
+    }
+    article {
+      background: var(--paper);
+      border: 1px solid rgba(15, 76, 129, 0.12);
+      border-radius: 8px;
+      padding: clamp(24px, 4vw, 58px);
+      box-shadow: 0 14px 40px rgba(16, 42, 67, 0.08);
+    }
+    h1, h2, h3 {
+      line-height: 1.28;
+      color: #102a43;
+      letter-spacing: 0;
+    }
+    h1 {
+      margin: 0 0 28px;
+      font-size: clamp(32px, 5vw, 54px);
+      max-width: 920px;
+    }
+    h2 {
+      margin: 64px 0 18px;
+      padding-top: 8px;
+      font-size: clamp(24px, 3vw, 32px);
+      border-top: 2px solid rgba(15, 76, 129, 0.18);
+    }
+    h3 {
+      margin: 34px 0 12px;
+      font-size: 22px;
+    }
+    p, li {
+      font-size: 18px;
+      overflow-wrap: break-word;
+    }
+    p {
+      margin: 18px 0;
+    }
+    a { color: var(--blue); }
+    strong { color: #102a43; }
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 28px auto;
+      border-radius: 8px;
+      border: 1px solid rgba(16, 42, 67, 0.08);
+      background: #fff;
+    }
+    p:first-of-type img {
+      margin-top: 0;
+      border: none;
+      box-shadow: none;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.9em;
+      color: #9b2c2c;
+      background: rgba(155, 44, 44, 0.08);
+      border-radius: 5px;
+      padding: 0.12em 0.32em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 22px 0;
+      padding: 18px 20px;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.62;
+    }
+    pre code {
+      display: block;
+      padding: 0;
+      color: #243b53;
+      background: transparent;
+      font-size: 15px;
+      white-space: pre;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    ul, ol {
+      padding-left: 1.35em;
+      margin: 16px 0 22px;
+    }
+    li + li { margin-top: 8px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 28px 0;
+      font-size: 16px;
+      display: block;
+      overflow-x: auto;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      min-width: 150px;
+      overflow-wrap: break-word;
+    }
+    th {
+      background: #e6f0f8;
+      color: #102a43;
+      text-align: left;
+    }
+    blockquote {
+      margin: 26px 0;
+      padding: 2px 0 2px 20px;
+      border-left: 4px solid var(--green);
+      color: var(--muted);
+    }
+    @media (max-width: 720px) {
+      main { padding: 20px 12px 56px; }
+      article { padding: 22px 16px; }
+      p, li { font-size: 16px; }
+      pre code { font-size: 13px; }
+      h2 { margin-top: 46px; }
+    }
+  </style>
 </head>
-<body style="padding: 24px; background: #ffffff; max-width: 860px; margin: 0 auto; font-family: -apple-system-font,BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB , Microsoft YaHei UI , Microsoft YaHei ,Arial,sans-serif; font-size: 16px; line-height: 1.75; text-align: left;">
-  <div id="output">
-<section class="container" style="font-family: -apple-system-font,BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB , Microsoft YaHei UI , Microsoft YaHei ,Arial,sans-serif; font-size: 16px; line-height: 1.75; text-align: left;"><h1 class="h1" data-heading="true" style="display: table; border-bottom: 2px solid #0F4C81; margin: 2em auto 1em; color: #3f3f3f; font-weight: bold; text-align: center; padding: 0.5em 1em; font-size: calc(16px * 1.4); text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05); margin-top: 0 !important;">Claude Code 和 Codex 的 Prompt Cache 设计：真正重要的是模型看到的历史</h1><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/cover-claude-codex-prompt-cache.png" alt="Claude Code 和 Codex 的 prompt cache 设计对比" style="display: block; width: 100%; margin: 1.5em auto;"></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">长时间使用代码 Agent 时，一个问题很快会出现：上下文越来越大，但很多内容其实每一轮都重复出现。工具定义、系统规则、项目说明、历史摘要、最近几轮对话，这些内容每次都重新送进模型，既慢又贵。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Prompt cache 解决的就是这个问题。服务端把已经处理过的 prompt 前缀保存下来。下一次请求如果复用了相同前缀，就可以少做一部分计算。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这听起来像一个 API 功能，但在 Claude Code 和 Codex 这样的 Agent runtime 里，它会变成架构问题。因为 Agent 不是简单地把用户的一句话发给模型。它要把规则文件、工具列表、动态环境、会话历史、压缩摘要和最新用户输入组装成一个“模型视图”。Prompt cache 命中的不是本地 UI 里的完整历史，也不是磁盘上的日志，而是最后送进模型的那条有序输入。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">本文从这个角度比较 Claude Code 和 Codex。重点不在“哪个更省 token”，而在它们怎样组织上下文、规则文件和 compaction，从而尽量不破坏缓存前缀。</p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">1. Prompt cache 缓存的是前缀，不是语义相似</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">一次模型请求可以抽象成：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">[tools]<br>[system&nbsp;/&nbsp;developer&nbsp;instructions]<br>[project&nbsp;rules]<br>[conversation&nbsp;history&nbsp;or&nbsp;summary]<br>[latest&nbsp;user&nbsp;message]<br>[dynamic&nbsp;attachments]</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Prompt cache 关心的是开头这一段是否稳定。它不是在判断“这轮内容大概意思一样”，而是判断请求前缀能不能复用。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这会带来一个直观但很容易被忽略的原则：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">稳定内容应该靠前。<br>动态内容应该靠后。</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/prompt-cache-prefix-pipeline.png" alt="稳定前缀和动态尾部的请求形态" style="display: block; width: 100%; margin: 1.5em auto;"></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/request-shape-flow.png" alt="一次模型请求里的稳定前缀和动态尾部" style="display: block; width: 100%; margin: 1.5em auto;"></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">如果每轮都在最前面插入当前时间、当前打开文件、随机 session 状态，那么即使后面 100 万 token 都没变，缓存前缀也可能从一开始就断掉。反过来，如果工具定义、系统规则、项目规则和历史摘要保持稳定，只在尾部追加本轮动态信息，缓存就有机会复用前面的大段内容。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Anthropic 和 OpenAI 的 API 都体现了这个原则，但暴露给客户端的控制面不同。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Anthropic Claude API 支持 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">cache_control</code>。它可以在 content block 上显式放 cache breakpoint，也支持请求级 automatic caching。它的缓存前缀按 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">tools -&gt; system -&gt; messages</code> 的顺序组织。OpenAI 的 prompt caching 更偏自动 prefix cache，客户端通过 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">usage.prompt_tokens_details.cached_tokens</code> 观察命中，并可以使用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">prompt_cache_key</code> 帮助服务端稳定路由同一类请求。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这两个 API 差异会反向塑造 Agent runtime 的代码。</p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">2. 规则文件不是“系统提示词的一次性塞入”那么简单</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">代码 Agent 通常有项目规则文件：</p><ul class="ul" style="margin-left: 0; color: #3f3f3f; list-style: none; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• Claude Code 使用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">CLAUDE.md</code> 和 memory files。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• Codex 使用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code>，也支持全局和项目级指令组合。</li></ul><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这些文件的作用类似：告诉 Agent 项目约定、代码风格、测试方法、目录结构、权限注意事项。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">真正的问题不是“有没有规则文件”，而是规则文件在每轮请求中怎么出现：</p><ul class="ul" style="margin-left: 0; color: #3f3f3f; list-style: none; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 是会话开始时读取一次，然后在会话里稳定复用？</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 是每次打开不同文件就重新加载一组规则？</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 是写入会话历史，还是发 API 前临时组装？</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• compaction 后如何保持一致？</li></ul><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这些问题都直接影响 prompt cache。规则文件如果每轮变化，又被放在模型请求前面，就会破坏后面整段缓存前缀。</p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">3. Claude Code：memoized user context 加显式 cache breakpoint</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Claude Code 的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code> 是理解它的入口。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/context.ts</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code> 返回的主要内容是：</p><ul class="ul" style="margin-left: 0; color: #3f3f3f; list-style: none; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">claudeMd</code>：从 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">CLAUDE.md</code> / memory files 收集出来的项目规则。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">currentDate</code>：当前日期说明。</li></ul><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这个函数被 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">memoize</code> 包起来。memoize 的意思是第一次计算结果后缓存起来，后续调用优先复用同一份结果，直到缓存被显式清理。也就是说，在常规会话里，Claude Code 不会每一轮都重新生成一份新的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">CLAUDE.md</code> context。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">真正把这段 context 放进模型请求的是 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">prependUserContext</code>。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/utils/api.ts</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">它会构造一条 meta user message，大致形态是：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">&lt;system-reminder&gt;<br>As&nbsp;you&nbsp;answer&nbsp;the&nbsp;user&#x27;s&nbsp;questions,&nbsp;you&nbsp;can&nbsp;use&nbsp;the&nbsp;following&nbsp;context:<br><br>#&nbsp;claudeMd<br>...<br><br>#&nbsp;currentDate<br>Today&#x27;s&nbsp;date&nbsp;is&nbsp;...<br><br>IMPORTANT:&nbsp;this&nbsp;context&nbsp;may&nbsp;or&nbsp;may&nbsp;not&nbsp;be&nbsp;relevant&nbsp;to&nbsp;your&nbsp;tasks.<br>&lt;/system-reminder&gt;</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">然后返回：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">[meta&nbsp;user&nbsp;context,&nbsp;...messagesForQuery]</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这点很重要：Claude Code 不是把规则内容永久写到每条用户消息前面，也不是给每个最新 user message 单独塞一次规则。它是在发 API 前，把一个 memoized meta user context 临时 prepend 到本次 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">messages</code> 数组前面。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这会不会破坏 cache？答案取决于这条 meta user context 是否稳定。Claude Code 的实现显然知道这个风险，所以它把 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code> memoize，并且对动态信息做了尾部化处理。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">最具体的例子是日期变化。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/utils/attachments.ts</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">代码注释说明，用户如果跨午夜继续工作，不应该刷新 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">messages[0]</code> 里 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code> 产生的旧日期。刷新开头这条消息会改变缓存前缀，导致下一轮整段会话进入 cache creation。Claude Code 的做法是追加一个 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">date_change</code> attachment 到尾部，让模型知道日期变了，但不改已经稳定的前缀。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这个设计说明了一条核心原则：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">动态事实应该通过尾部附件进入上下文，而不是重写开头的规则块。</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Claude Code 这条请求组装链可以精确画成下面这样。图里把 tool-result budget、snip、microcompact、context-collapse、autocompact 折叠成一个“messagesForQuery 投影/压缩”节点，因为它们都会改变 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">messagesForQuery</code>，但它们不是 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code> 的加载点。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这里的 snip 不是 snippet 的缩写，而是“把一段历史剪掉”的动词。<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">HISTORY_SNIP</code> 打开后，Claude Code 会在 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/tools.ts</code> 里把 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">SnipTool</code> 加入工具列表，在 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/commands.ts</code> 里挂上 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">/force-snip</code>，并在 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/query.ts</code> 的请求前路径里执行 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">snipCompactIfNeeded(messagesForQuery)</code>。它的位置很讲究：先做 tool-result budget，再做 snip，然后才进入 microcompact、context-collapse 和 autocompact。这说明 snip 不是普通 UI 展示优化，而是模型请求视图的一层投影。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">从可见源码看，<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">snipCompact.js</code> 和 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">snipProjection.js</code> 是被 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">feature('HISTORY_SNIP')</code> 包住的条件模块，当前源码树里没有展开完整实现。更可靠的读法是看主链路暴露出来的契约：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">snipCompactIfNeeded</code> 返回新的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">messagesForQuery</code>、估算释放的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">tokensFreed</code>，以及可能需要写回历史的 boundary message。<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">tokensFreed</code> 会继续传给 autocompact 和 blocking-limit 判断，因为一些 token 估算来自旧的 usage 记录，直接用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">tokenCountWithEstimation(messagesForQuery)</code> 会把已经剪掉的 token 又算回来。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/claude-code-request-assembly.png" alt="Claude Code 请求组装链路" style="display: block; width: 100%; margin: 1.5em auto;"></p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">4. Claude Code 的 cache breakpoint 在最后一条 message 附近</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Claude Code 的 Anthropic 请求路径里有 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">addCacheBreakpoints</code>。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/services/api/claude.ts</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">请求组装时会调用：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">messages:&nbsp;addCacheBreakpoints(...)</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">addCacheBreakpoints</code> 的默认策略是把 message-level <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">cache_control</code> marker 放在最后一条 message 上；如果是 skip-cache-write 的 fork 场景，会挪到倒数第二条。源码注释强调每个请求只放一个 message-level cache marker。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这和 Anthropic 的缓存模型是匹配的：缓存的是到 breakpoint 为止的有序前缀。Claude Code 围绕这个 breakpoint 做了不少稳定性保护，包括：</p><ul class="ul" style="margin-left: 0; color: #3f3f3f; list-style: none; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 稳定 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code>。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 日期变化尾部化。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 工具 schema 或额外能力尽量放在后缀，减少前缀 churn。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• TTL / cache_control 相关状态尽量在会话中保持稳定。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 用 cache break detection 观察系统块、工具块和 cache_control 的变化。</li></ul><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">所以 Claude Code 的策略不是“绝不 prepend”，而是“prepend 的内容必须稳定，动态内容必须靠后”。</p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">5. compact_boundary：Claude Code 怎样既保留完整历史，又不给模型完整历史</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">长会话一定会遇到 compaction。旧历史需要被摘要替代，否则上下文会无限增长。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Claude Code 的本地 UI 和 transcript 仍然需要保留完整历史。用户要能滚动查看，系统要能同步和恢复。但模型不应该继续看到所有旧消息。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/conversation-compaction-view.png" alt="长会话压缩前后的模型视图" style="display: block; width: 100%; margin: 1.5em auto;"></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">于是 Claude Code 引入了 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code>。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/utils/messages.ts</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getMessagesAfterCompactBoundary</code> 的逻辑是：找到最后一个 compact boundary，然后返回从那里开始的消息。如果没有 boundary，就返回全部消息。注释还说明 boundary 自己是 system message，后续 API normalize 会过滤掉。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">可以把它理解成两个视图：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">本地&nbsp;transcript:<br>turn&nbsp;1<br>turn&nbsp;2<br>turn&nbsp;3<br>compact_boundary<br>summary<br>turn&nbsp;4<br>turn&nbsp;5<br><br>模型请求视图：<br>summary<br>turn&nbsp;4<br>turn&nbsp;5</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code> 不是给模型学习的一条知识，而是客户端的模型视图切片点。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">snip 和 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code> 解决的是相邻但不同的问题。<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code> 是“旧前缀已经被摘要覆盖，模型从哪里重新开始看”；snip 是“完整会话还在，但中间某些消息不再值得进入模型视图”。所以 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getMessagesAfterCompactBoundary</code> 不只做 boundary slice：在 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">HISTORY_SNIP</code> 打开时，它默认还会调用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">projectSnippedView</code>，把被 snip 的消息从模型侧过滤掉。UI 渲染反过来会显式传 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">includeSnipped: true</code>，让用户仍然能在 scrollback 里看到完整历史。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">为了让模型能准确指向要剪掉的消息，<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/utils/messages.ts</code> 还会在 API-bound 的非 meta user message 末尾追加稳定的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">[id:...]</code> 标签。<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">deriveShortMessageId</code> 从消息 UUID 派生 6 位 base36 短 id，<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">appendMessageTagToUserMessage</code> 只改发给 API 的副本，不改本地存储的 message。这样 SnipTool 可以引用短 id 执行历史裁剪，而本地 transcript 仍保持原始内容。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">恢复会话时还有一层保护。<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">src/utils/sessionStorage.ts</code> 会读取 snip boundary 上的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">snipMetadata.removedUuids</code>，从 append-only JSONL 重建出来的消息 Map 里删掉这些 UUID，并把幸存消息的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">parentUuid</code> 跨过缺口重新接起来。没有这一步，resume 会把已剪掉的中段历史重新拼回模型视图；UI 看起来可能只有几十万 token，真正发给模型时却可能恢复成更大的未剪历史。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">更精确地说，它让本地 transcript 和模型请求视图分离：</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/claude-code-compact-boundary.png" alt="Claude Code compact_boundary 切分模型视图" style="display: block; width: 100%; margin: 1.5em auto;"></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">没有这个边界会怎样？</p><ul class="ul" style="margin-left: 0; color: #3f3f3f; list-style: none; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 如果继续发完整历史，compaction 就失去意义。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 如果直接删掉旧历史，UI scrollback、session replay 和调试能力会受损。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 如果只有 summary 没有边界，客户端很难可靠判断哪些消息已经被摘要覆盖。</li></ul><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">所以 Claude Code 的 compaction 设计可以概括为：完整历史仍然存在，但模型视图从 boundary 后开始。</p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">6. Codex：自动 prefix cache 加 prompt_cache_key</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex 面对的是 OpenAI 的 prompt caching。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">OpenAI 的机制更偏自动 prefix cache。客户端不需要像 Anthropic 那样在 message block 上放显式 breakpoint。请求足够长、前缀足够稳定时，服务端会自动复用缓存；命中情况体现在 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">cached_tokens</code>。客户端还能设置 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">prompt_cache_key</code>，让同一类请求更稳定地路由到可复用缓存的位置。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex 源码里可以看到这条路线。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/core/src/client.rs</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex 生成 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">prompt_cache_key</code> 时默认使用 thread id，也支持 override。发送 Responses API request 时，把这个 key 带上。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这不是 Anthropic 式的 cache breakpoint。它更像是告诉 OpenAI：这些请求属于同一个长会话或同一类缓存域，请尽量让它们复用缓存。</p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">7. Codex 的 AGENTS.md：项目规则先组装成 user instructions</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex 的 base instructions 明确规定了 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code> 的作用和作用域。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/protocol/src/prompts/base_instructions/default.md</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">规则包括：</p><ul class="ul" style="margin-left: 0; color: #3f3f3f; list-style: none; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code> 可以出现在仓库任意目录。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 一个 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code> 的作用域是它所在目录为根的整棵子树。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 更深层的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code> 在冲突时优先。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 直接的 system/developer/user 指令优先于 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code>。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 根目录以及从 CWD 向上到根的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code> 内容会被包含，不需要模型自己重新读取。</li></ul><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">实际加载逻辑在 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AgentsMdManager</code>。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/core/src/agents_md.rs</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">它会：</p><ol class="ol" style="margin-left: 0; color: #3f3f3f; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">1. 从当前工作目录向上找项目根，默认根标记是 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">.git</code>。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">2. 从项目根到当前目录按顺序收集 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code>。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">3. 支持 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.override.md</code> 优先于 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code>。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">4. 支持配置 fallback 文件名。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">5. 把配置里的 user instructions 和 AGENTS 文档拼成模型可见的 instruction string。</li></ol><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这说明 Codex 不是“每打开一个文件就自动重装一套规则”。它先根据 session 创建时的 config、primary environment、当前工作目录和项目边界构造项目文档上下文。进入更深目录或处理 CWD 之外的文件时，基础指令要求 Agent 再检查适用的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code>。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">还有一个容易误解的细节：当前 Codex 源码里有测试明确覆盖“第二轮切到另一个 CWD 后不会刷新 AGENTS.md user instructions”的行为。测试文件 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/core/tests/suite/model_visible_layout.rs</code> 里有 TODO，说明未来可能会 diff <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">user_instructions</code> 并在 AGENTS.md 内容变化时发更新。但按当前源码，AGENTS.md 的会话级 user instructions 不是随着每一轮 CWD 改变自动刷新。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">从 cache 角度看，这和 Claude Code 的问题类似：项目规则进入模型视图后，最好保持稳定。真正需要变化的环境事实，不应该频繁污染请求前缀。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex 的 AGENTS.md 发现和注入路径可以更精确地表示为：</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/codex-agentsmd-loading.png" alt="Codex AGENTS.md 发现和注入路径" style="display: block; width: 100%; margin: 1.5em auto;"></p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">8. Codex 的 initial context 和 steady-state diff</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex 还有一条很关键的上下文维护链。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/core/src/session/mod.rs</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">build_initial_context</code> 会组装 developer sections 和 contextual user sections，包括权限说明、developer instructions、collaboration mode、apps、skills、plugins、extension context、user instructions、environment context 等。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">同一个文件里还有 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">record_context_updates_and_set_reference_context_item</code>。它的注释说明：</p><ul class="ul" style="margin-left: 0; color: #3f3f3f; list-style: none; padding-left: 1.5em;"><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 如果没有 reference context，就注入完整 initial context。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 如果已经有 reference context，稳态路径只追加 settings diff，减少 token 开销。</li><li class="listitem" style="display: block; color: #3f3f3f; margin: 0.5em 8px;">• 每个真实用户 turn 都持久化一个 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">TurnContextItem</code>，用于 resume / replay 恢复最新 durable baseline。</li></ul><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这和 Claude Code 的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code> + <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code> 不是同一个形状。Codex 更像是在维护一个可恢复的上下文基线，然后在后续 turn 里尽量只发变化。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这条 context baseline 维护链是：</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/codex-context-baseline.png" alt="Codex initial context 和 steady-state diff" style="display: block; width: 100%; margin: 1.5em auto;"></p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">9. Codex 的 compaction：替换模型历史，而不是本地 boundary 切片</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex compaction 的关键函数是 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">build_compacted_history</code>。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/core/src/compact.rs</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">它会把最近的用户消息和 summary 组合成新的 compacted history。具体顺序是：从旧 history 收集真实用户消息，按 token 预算从后往前选择最近用户消息，保持原顺序写回，然后把 summary 作为最后一条 user message 追加进去。随后 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">replace_compacted_history</code> 会替换 session history，并把 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">RolloutItem::Compacted</code> 持久化。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/core/src/session/mod.rs</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">resume 时，Codex 会优先使用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">CompactedItem</code> 里的 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">replacement_history</code>。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">源码路径：<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">codex-rs/core/src/session/rollout_reconstruction.rs</code></p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">所以 Codex 的思路不是“完整历史还在，然后每轮用 boundary 切一段给模型”。它更接近：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">压缩前模型历史：<br>turn&nbsp;1<br>turn&nbsp;2<br>turn&nbsp;3<br>turn&nbsp;4<br><br>压缩后模型历史：<br>recent&nbsp;user&nbsp;messages<br>summary<br><br>mid-turn&nbsp;自动压缩时：<br>recent&nbsp;user&nbsp;messages<br>initial&nbsp;context&nbsp;inserted&nbsp;before&nbsp;last&nbsp;real&nbsp;user&nbsp;or&nbsp;summary<br>summary</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">然后把这份 replacement history 记录下来，后续恢复时继续使用同样形状。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这更适合 OpenAI 自动 prefix cache 的模式：客户端不管理显式 breakpoint，而是尽量让 compacted history 的形状稳定、可恢复、可复用。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex compaction 的模型历史替换链可以画成：</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;"><img src="assets/codex-compaction-replacement-history.png" alt="Codex compaction 后的 replacement_history" style="display: block; width: 100%; margin: 1.5em auto;"></p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">10. 两个系统的差异不是“谁更先进”，而是 provider contract 不同</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Claude Code 和 Codex 都在做同一件事：让模型看到足够的上下文，同时尽量稳定请求前缀。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">它们的差异来自底层 API contract。</p>
-        <section style="font-family: -apple-system-font,BlinkMacSystemFont, Helvetica Neue, PingFang SC, Hiragino Sans GB , Microsoft YaHei UI , Microsoft YaHei ,Arial,sans-serif; font-size: 16px; line-height: 1.75; text-align: left; max-width: 100%; overflow: auto;">
-          <table class="preview-table" style="color: #3f3f3f; margin-top: 0 !important;">
-            <thead style="font-weight: bold; color: #3f3f3f;"><th class="th" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all; background: rgba(0, 0, 0, 0.05);">维度</th><th class="th" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all; background: rgba(0, 0, 0, 0.05);">Claude Code</th><th class="th" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all; background: rgba(0, 0, 0, 0.05);">Codex</th></thead>
-            <tbody><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">模型侧缓存控制</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">Anthropic <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">cache_control</code> / automatic caching</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">OpenAI automatic prefix cache</td></tr><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">客户端主要控制点</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">addCacheBreakpoints</code> 放 message-level marker</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">prompt_cache_key</code> 稳定缓存域</td></tr><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">项目规则</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">CLAUDE.md</code> / memory files 进入 memoized <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">getUserContext</code></td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AGENTS.md</code> 由 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">AgentsMdManager</code> 组装进 user instructions</td></tr><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">基础 context 注入</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">发 API 前 prepend meta user context</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">initial context + steady-state settings diff</td></tr><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">动态日期处理</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">尾部追加 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">date_change</code>，避免改 prefix</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">通过 turn context / environment context 管理</td></tr><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">细粒度历史裁剪</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;"><code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">HISTORY_SNIP</code> 下用 message id 剪掉中段历史，并通过 projection / boundary / resume filter 保持模型视图一致</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">当前主链路以 compacted replacement history 为核心</td></tr><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">compaction</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">本地完整历史 + <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code> 切模型视图</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">替换模型历史 + 持久化 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">replacement_history</code></td></tr><tr class="tr"><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">resume 重点</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">找到 boundary 后的模型视图</td><td class="td" style="border: 1px solid #dfdfdf; padding: 0.25em 0.5em; color: #3f3f3f; word-break: keep-all;">重建 replacement history 和 turn context baseline</td></tr></tbody>
-          </table>
-        </section>
-      <h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">11. 对 Agent 设计的通用启示</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">第一，规则文件要稳定。项目规则、工具定义、基础行为约束如果每轮随机变化，prompt cache 会很难命中。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">第二，动态事实要尾部化。当前时间、日期变化、临时环境状态、当前文件焦点，这些内容应该作为尾部附件或 diff 进入，而不是改写前缀。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">第三，compaction 必须有边界或替换记录。Claude Code 用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code> 回答“从哪里开始给模型看”；Codex 用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">replacement_history</code> 回答“压缩后的模型历史是什么”。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">第四，UI 历史和模型历史应该分离。用户看到的完整 transcript，不一定是模型每轮需要看到的输入。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">第五，细粒度历史裁剪要有可恢复的投影语义。像 Claude Code 的 snip 这种机制，不能只在内存里删数组元素；它还需要 message id、boundary metadata、UI scrollback 策略和 resume 过滤共同保证“被剪掉的内容不会下一次又回来”。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">第六，缓存优化不是只看 API 参数。<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">cache_control</code>、<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">cached_tokens</code>、<code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">prompt_cache_key</code> 只是表层。真正决定命中率的是 Agent runtime 如何组装请求。</p><h2 class="h2" data-heading="true" style="display: table; margin: 4em auto 2em; color: #fff; background: #0F4C81; font-weight: bold; text-align: center; padding: 0.3em 1.2em; font-size: calc(16px * 1.3); border-radius: 8px 24px 8px 24px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);">12. 结论</h2><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Claude Code 和 Codex 的 prompt cache 差异，表面上是 Anthropic 和 OpenAI API 的差异，深层是两种模型视图维护策略的差异。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Claude Code 更像是在完整本地历史上维护一个切片视图：用 memoized user context 稳住规则前缀，用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">cache_control</code> 明确缓存断点，用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">compact_boundary</code> 决定模型从哪里继续看，再用 snip 把不需要继续进入模型视图的中段历史剪掉。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">Codex 更像是在维护一条可替换、可恢复的模型历史：用 AGENTS.md 和 initial context 建立基线，用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">prompt_cache_key</code> 配合自动 prefix cache，用 <code class="codespan" style="font-size: 90%; color: #d14; background: rgba(27, 31, 35, 0.05); padding: 3px 5px; border-radius: 4px;">replacement_history</code> 让 compaction 后的模型视图可重建。</p><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">把这些机制放在一起看，prompt cache 的核心原则很简单：</p><pre class="hljs code__pre" style="color: #24292e; background: #fff; font-size: 90%; overflow-x: auto; border-radius: 8px; line-height: 1.5; margin: 10px 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); border: 1px solid rgba(0, 0, 0, 0.04); padding: 0 !important;"><span class="mac-sign" style="display: flex; padding: 10px 14px 0;"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" width="45px" height="13px" viewBox="0 0 450 130">
-    <ellipse cx="50" cy="65" rx="50" ry="52" stroke="rgb(220,60,54)" stroke-width="2" fill="rgb(237,108,96)"/>
-    <ellipse cx="225" cy="65" rx="50" ry="52" stroke="rgb(218,151,33)" stroke-width="2" fill="rgb(247,193,81)"/>
-    <ellipse cx="400" cy="65" rx="50" ry="52" stroke="rgb(27,161,37)" stroke-width="2" fill="rgb(100,200,86)"/>
-  </svg></span><code class="language-text" style="font-size: 90%; border-radius: 4px; display: -webkit-box; padding: 0.5em 1em 1em; overflow-x: auto; text-indent: 0; color: inherit; background: none; white-space: nowrap; margin: 0; font-family: 'Fira Code',
-    Menlo,
-    Operator Mono,
-    Consolas,
-    Monaco,
-    monospace;">稳定的东西放在前面。<br>变化的东西放在后面。<br>压缩过的历史必须有明确边界或替换记录。</code></pre><p class="p" style="margin: 1.5em 8px; letter-spacing: 0.1em; color: #3f3f3f;">这才是代码 Agent 能在长会话里保持成本、速度和行为一致性的关键。</p>
-    
-  
-    
-  
-    
-  </section>
-  </div>
+<body>
+  <main>
+    <article>
+<h1>Claude Code 和 Codex 的 Prompt Cache 设计：真正重要的是模型看到的历史</h1>
+<p><img src="assets/cover-claude-codex-prompt-cache.png" alt="Claude Code 和 Codex 的 prompt cache 设计对比"></p>
+<p>长时间使用代码 Agent 时，最先撞上的问题通常不是“模型会不会写代码”，而是上下文怎么活下去。</p>
+<p>一轮请求里可能有系统规则、工具定义、项目说明、运行环境、历史消息、工具输出、图片、文档、摘要和最新用户输入。前几轮还好，几十轮以后，输入会迅速膨胀。每一轮都把所有内容重新送进模型，成本高，延迟高，也更容易把真正重要的信息挤出窗口。</p>
+<p>Prompt cache 解决的是其中一部分问题：如果连续请求共享相同前缀，服务端可以复用已经处理过的前缀计算。它不是语义缓存，不是“这两句话意思差不多就命中”。它更接近字节和结构层面的前缀复用：前面那段 prompt 越稳定，缓存越容易命中。</p>
+<p>代码 Agent 的难点在于，prompt 不是一段静态文本。它是运行时拼出来的“模型视图”。Claude Code 和 Codex 的源码都在围绕这个视图做工作：哪些内容放前面，哪些内容放尾部，哪些内容落盘，哪些内容摘要，哪些内容只在 UI 里保留，哪些内容真正送进模型。</p>
+<p>本文从源码角度拆开这件事。</p>
+<p><img src="assets/context-pressure-overview.png" alt="长上下文与提示缓存策略总览"></p>
+<h2>1. 先区分三种历史</h2>
+<p>理解 prompt cache 之前，要先区分三种“历史”。</p>
+<p>第一种是 UI 历史，也就是用户在界面上看到的 scrollback。它应该尽量完整，因为用户需要回看、复制、调试。</p>
+<p>第二种是磁盘历史，也就是 session transcript、rollout JSONL、tool result 文件、collapse commit 等持久化记录。它服务于 resume、fork、审计和恢复。</p>
+<p>第三种是模型历史，也就是本轮 API 请求里真正传给模型的 messages、system、tools 和附加 context。</p>
+<p>Prompt cache 命中的永远是第三种：模型看到的有序输入。UI 里还在，不代表模型还会看到；磁盘里还在，也不代表每轮都会进 prompt。</p>
+<p>可以把一次请求抽象成：</p>
+<pre><code class="language-text">稳定前缀 = tools + system + project rules + compacted history
+动态尾部 = 本轮环境变化 + 最新用户输入 + 新工具结果
+
+缓存命中依赖：
+前缀尽量长，且尽量不变。
+</code></pre>
+<p><img src="assets/prompt-cache-prefix-pipeline.png" alt="稳定前缀和动态尾部的请求形态"></p>
+<p>这就是为什么“规则文件怎么注入”“工具结果怎么处理”“compaction 后有没有边界”都会影响 prompt cache。它们看起来是上下文管理问题，本质上也都是缓存前缀管理问题。</p>
+<h2>2. Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h2>
+<p>Claude API 和 OpenAI API 都支持 prompt caching，但暴露方式不同。</p>
+<p>Claude API 有显式的 <code>cache_control</code>。根据 Anthropic 文档，prompt caching 会引用从 <code>tools</code> 到 <code>system</code> 再到 <code>messages</code> 的完整前缀，一直到被标记的 cache breakpoint。Claude API 也有顶层 automatic caching：请求体上放一个 <code>cache_control</code>，系统会把 breakpoint 自动放到最后一个可缓存 block。缓存默认 5 分钟 TTL，也有 1 小时 TTL；cache read 和 cache write 会在 usage 字段里体现。</p>
+<p>这意味着 Claude Code 可以在客户端代码里明确决定 breakpoint 放在哪里。源码里的 <code>addCacheBreakpoints</code> 就是在做这件事。</p>
+<p>OpenAI 的 prompt caching 更偏自动 prefix cache。公开文档里的建议是：静态或重复内容放开头，动态内容放末尾；通过 <code>usage.prompt_tokens_details.cached_tokens</code> 观察命中；通过 <code>prompt_cache_key</code> 稳定同一类请求的缓存域。客户端通常不在某个 content block 上手动插 breakpoint。</p>
+<p>这会直接塑造 runtime 设计：</p>
+<pre><code class="language-text">Claude Code:
+显式 cache_control + message projection + compact_boundary
+
+Codex:
+prompt_cache_key + automatic prefix cache + replacement_history
+</code></pre>
+<p>两个系统都在追求稳定前缀，但工具不一样。</p>
+<h2>3. 规则文件不是“新会话时塞进 system prompt 一次”这么简单</h2>
+<p>代码 Agent 通常有项目规则文件：</p>
+<ul>
+<li>Claude Code 使用 <code>CLAUDE.md</code> 和 memory files。</li>
+<li>Codex 使用 <code>AGENTS.md</code>，并把全局配置、项目规则和运行环境组装成上下文片段。</li>
+</ul>
+<p>这些文件不是普通聊天内容。它们描述项目约定、测试命令、代码风格、权限限制和目录语义。如果每轮请求都根据“当前打开文件”重新在前缀里塞一批规则，缓存会很容易失效；如果规则稳定、动态事实靠后，缓存前缀就能活得更久。</p>
+<p>Claude Code 和 Codex 的处理方式都不是“打开某个文件就自动重装一整套规则”。它们更接近：</p>
+<pre><code class="language-text">会话或 turn 开始时构造基础 context
+稳定内容尽量复用
+变化内容用尾部消息、diff 或重新注入机制处理
+compaction 后保留可恢复的边界或替换历史
+</code></pre>
+<p>这个模型比“system prompt 一次性全塞满”更准确。</p>
+<h2>4. Claude Code：<code>getUserContext()</code> 是 memoized 的基础 context</h2>
+<p>Claude Code 里，<code>getUserContext()</code> 是理解项目规则注入的入口。</p>
+<p>源码位置：<code>src/context.ts</code></p>
+<p>它返回的核心内容包括：</p>
+<ul>
+<li><code>claudeMd</code>：从 <code>CLAUDE.md</code> / memory files 收集出来的项目规则。</li>
+<li><code>currentDate</code>：当前日期说明。</li>
+</ul>
+<p>这个函数被 <code>memoize</code> 包起来。memoize 的意思是：第一次调用时真正计算，之后在同一缓存生命周期里复用结果。这样常规请求不会每轮重新扫描并拼出一份新的 <code>CLAUDE.md</code> context。</p>
+<p>把这段 context 放进请求的是 <code>prependUserContext()</code>。</p>
+<p>源码位置：<code>src/utils/api.ts</code></p>
+<p>它构造的是一条 meta user message，大致形态是：</p>
+<pre><code class="language-text">&lt;system-reminder&gt;
+As you answer the user&#39;s questions, you can use the following context:
+...
+&lt;/system-reminder&gt;
+</code></pre>
+<p>这里有一个容易误解的点：它不是“在每个最新 user message 前单独加一次”。它是发 API 前把这条 meta user message prepend 到整个 <code>messagesForQuery</code> 数组最前面。</p>
+<p>这听起来会破坏缓存，因为它在 messages 前面。但关键在于它本身尽量稳定：<code>getUserContext()</code> memoized，<code>CLAUDE.md</code> 不会每轮随机变化。真正容易变化的日期、环境变化和工具结果，会通过其他路径控制。</p>
+<p>比如日期变化不是重写前缀里的 <code>currentDate</code>，而是通过尾部 <code>date_change</code> 这类附加消息表达。原则很简单：</p>
+<pre><code class="language-text">基础规则保持稳定。
+动态事实靠近尾部。
+</code></pre>
+<p>Claude Code 对 system prompt 也有类似切分思路。<code>splitSysPromptPrefix()</code> 会按 <code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY</code> 把 system prompt 分成静态前缀和动态尾部；静态块可进入 global cache scope，动态块不参与同样的稳定前缀假设。</p>
+<h2>5. Claude Code 的请求组装链：先做模型视图，再做缓存控制</h2>
+<p>Claude Code 的主请求路径在 <code>src/query.ts</code>。简化后，关键顺序是：</p>
+<pre><code class="language-text">messages
+  -&gt; getMessagesAfterCompactBoundary(messages)
+  -&gt; applyToolResultBudget()
+  -&gt; snipCompactIfNeeded()
+  -&gt; microcompact()
+  -&gt; context-collapse projectView()
+  -&gt; autoCompactIfNeeded()
+  -&gt; prependUserContext()
+  -&gt; addCacheBreakpoints()
+  -&gt; Claude API
+</code></pre>
+<p>图里把源码里的关键节点放在同一条链上：</p>
+<p><img src="assets/claude-code-context-pressure-ladder.svg" alt="Claude Code 请求里的上下文压力处理顺序"></p>
+<p>这条顺序非常重要。</p>
+<p><code>getMessagesAfterCompactBoundary()</code> 先决定 compact 之后模型应该从哪里开始看。随后 tool result budget、snip、microcompact、context-collapse、autocompact 都是在调小或投影 <code>messagesForQuery</code>。最后才 prepend 基础 user context，并放 Anthropic cache breakpoint。</p>
+<p>换句话说，Claude Code 不是每轮把完整 transcript 直接发给模型，再指望 provider 缓存兜底。它先在本地构造一个更小、更稳定、更适合缓存的模型视图。</p>
+<h2>6. 大工具结果落盘：不是 compaction，而是 prompt 入口前的减负</h2>
+<p>工具输出是长上下文 Agent 最容易失控的地方。</p>
+<p>一次 <code>grep</code> 可能返回几万行；一次 shell 命令可能输出巨大日志；一次 JSON 工具结果可能有几 MB。如果这些结果原样留在 messages 里，prompt cache 会被两个方向拖垮：</p>
+<ul>
+<li>token 数量暴涨，触发压缩或超窗。</li>
+<li>工具输出经常变化，导致前缀不稳定。</li>
+</ul>
+<p>Claude Code 对大结果有一层单独处理。</p>
+<p>源码位置：</p>
+<ul>
+<li><code>src/Tool.ts</code></li>
+<li><code>src/utils/toolResultStorage.ts</code></li>
+<li><code>src/constants/toolLimits.ts</code></li>
+</ul>
+<p>典型阈值包括：</p>
+<ul>
+<li><code>Bash</code> / <code>PowerShell</code>：<code>30_000</code> chars。</li>
+<li><code>Grep</code>：<code>20_000</code> chars。</li>
+<li>默认工具：<code>100_000</code> chars。</li>
+<li><code>Read</code>：<code>Infinity</code>，避免“读文件结果太大，被写成另一个文件，再让模型读那个文件”的循环。</li>
+</ul>
+<p>当 tool result 超过阈值时，Claude Code 会把完整输出写到 session 目录下的 <code>tool-results/{tool_use_id}.txt</code> 或 <code>.json</code>，而模型可见内容替换成一个固定 preview：</p>
+<pre><code class="language-text">&lt;persisted-output&gt;
+Output too large (...). Full output saved to: ...
+
+Preview (first 2KB):
+...
+</code></pre>
+<p><img src="assets/claude-code-large-result-persistence.svg" alt="Claude Code 大工具结果落盘链路"></p>
+<p>这里有一个非常关键的缓存细节：<code>ContentReplacementState</code> 会按 <code>tool_use_id</code> 冻结替换决策。</p>
+<p>第一次决定某个 <code>tool_use_id</code> 要落盘后，后续请求不会重新随机截断、重新读盘、重新生成 preview。它会用 <code>Map&lt;tool_use_id, preview&gt;</code> 复用同一段替换文本。这样同一个旧工具结果在 prompt 里的表现保持字节级稳定。</p>
+<p>这比“每轮重新截断前 2000 字符”更稳。因为只要截断逻辑、路径、大小描述或排序有微小变化，缓存前缀就可能变。</p>
+<p>还有一个 per-message 总预算：同一条 user message 里的多个 tool result 合计超过 <code>MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 200_000</code> 时，会优先处理最大的 fresh result。也就是说，Claude Code 不只看单个工具输出，也看同一轮消息里的工具结果总量。</p>
+<p>这层机制发生在 snip 和 microcompact 之前。它解决的是“新鲜大结果不要撑爆本轮模型视图”，不是“对话太长后的总结”。</p>
+<h2>7. SNIP：剪掉中段历史的模型投影</h2>
+<p>SNIP 在这里不是 snippet 的缩写，更接近英语动词 snip：剪掉一段。它不是把整段旧历史总结成一句话，而是在完整 transcript 仍然存在的前提下，把某些中段消息从模型视图里移出去。</p>
+<p>它和 <code>compact_boundary</code> 的区别很大：</p>
+<ul>
+<li><code>compact_boundary</code> 解决“旧前缀已经被 summary 覆盖，模型从哪里重新开始看”。</li>
+<li>snip 解决“完整会话还在，但中间某些消息不再值得进入模型视图”。</li>
+</ul>
+<p>第一步是让模型能稳定引用“要剪哪条消息”。<code>src/utils/messages.ts</code> 里有 <code>deriveShortMessageId(uuid)</code>：它从消息 UUID 派生 6 位 base36 短 id。随后 <code>appendMessageTagToUserMessage()</code> 会把这个 id 追加到 API-bound 的 user message 最后：</p>
+<pre><code class="language-text">请看一下这段测试日志
+[id:8x3p1k]
+</code></pre>
+<p>这里有几个细节很关键。这个 tag 只加在发 API 的副本里，不写回本地 transcript；<code>isMeta</code> 的内部消息不会被打 tag；tag 注入发生在 merge、smoosh、sanitize 之后，所以 id 对应的是最终会出现在模型视图里的那条 user message；而且这段逻辑必须同时满足 <code>HISTORY_SNIP</code> feature gate 和 runtime enabled，避免工具不可用时还给每条用户消息浪费 token。</p>
+<p>第二步发生在请求主链路。<code>src/query.ts</code> 的顺序是：先对大 tool result 做 budget / 落盘替换，再调用 <code>snipCompactIfNeeded(messagesForQuery)</code>，然后才进入 microcompact。源码注释也直接写明：snip 和 microcompact 不是互斥的，两者可以在同一轮都执行。<code>snipCompactIfNeeded()</code> 返回的不是单纯布尔值，而是三类信息：</p>
+<pre><code class="language-text">messages        剪裁后的模型视图
+tokensFreed     估算释放的 token
+boundaryMessage 本轮如果发生剪裁，需要写入 transcript 的边界消息
+</code></pre>
+<p><code>tokensFreed</code> 之所以要单独传下去，是因为 token 估算会读 surviving assistant message 上的旧 usage。那些 usage 记录反映的是剪裁前上下文大小，单靠 <code>tokenCountWithEstimation(messagesForQuery)</code> 看不到 snip 已经释放的空间。于是 autocompact 和 blocking-limit 判断都要减掉 <code>snipTokensFreed</code>，否则会出现“实际上已经剪下去了，但仍然误判 prompt 太长”的窗口。</p>
+<p>第三步是投影。<code>getMessagesAfterCompactBoundary()</code> 不只是从最后一个 <code>compact_boundary</code> 开始切片；在 SNIP 打开时，它还会默认调用 <code>projectSnippedView()</code>，把被 snip 的消息过滤掉。也就是说，模型侧常规路径拿到的是“compact slice + snip projection”之后的数组。UI 则反过来：<code>Messages.tsx</code> 和 fullscreen scrollback 会传 <code>includeSnipped: true</code>，让人仍然能在界面上看到被移出模型视图的旧消息。</p>
+<p>第四步是恢复。这个点最容易低估。Claude Code 的 transcript 是 append-only JSONL，被 snip 掉的消息仍然留在磁盘上。如果 resume 时只是重新按 parent 链构造会话，不额外处理 snip，就会把旧消息重新拼回模型视图。</p>
+<p>所以 snip boundary 需要持久化 <code>snipMetadata.removedUuids</code>。<code>src/utils/sessionStorage.ts</code> 的 <code>applySnipRemovals()</code> 会在加载 transcript 后做两件事：</p>
+<pre><code class="language-text">1. 从 Map 里删除 removedUuids 指向的消息。
+2. 对仍然存活、但 parentUuid 指向被删消息的节点做 relink。
+</code></pre>
+<p>一个具体例子：</p>
+<pre><code class="language-text">原 parent 链:
+M1 &lt;- M2 &lt;- M3 &lt;- M4 &lt;- M5
+
+snip 删除:
+M2, M3
+
+只删除不 relink 的后果:
+M4.parentUuid 仍然指向 M3，链在缺口处断掉。
+
+正确恢复:
+M1 &lt;- M4 &lt;- M5
+</code></pre>
+<p>这就是为什么 SNIP 不能只靠“本轮内存里删掉几条消息”。没有 <code>removedUuids</code>，重启后消息会复活；没有 parent relink，删除中段会把后续链条截断。<code>compact_boundary</code> 是切掉一个前缀，snip 是挖掉中间一段，恢复算法自然不是同一种。</p>
+<p>第五步是运行形态差异。REPL 需要保留完整 UI scrollback，所以通常不急着把界面历史物理删除，而是在模型路径里投影；headless / SDK 路径没有 UI scrollback 要保留，<code>QueryEngine</code> 会在收到 snip boundary 时通过 <code>snipReplay</code> 重新应用裁剪，避免 marker 在 mutable message store 里反复触发，也避免长会话内存继续膨胀。</p>
+<p>还有一个小但重要的提示机制：<code>context_efficiency</code> attachment。源码注释里说，它会在“增长了若干 token 但一直没有 snip”之后注入 nudge；节奏由 <code>shouldNudgeForSnips()</code> 控制，并会被已有 nudge、snip marker、snip boundary、compact boundary 重置。这说明 SNIP 不是只靠后台阈值，也有一层面向模型行为的轻提示。</p>
+<p>可见源码里，<code>snipCompact.js</code>、<code>snipProjection.js</code>、<code>SnipTool</code>、<code>force-snip</code> 这些执行模块通过 <code>HISTORY_SNIP</code> 条件路径接入；当前源码快照没有展开它们的文件本体。但周边契约已经足够清楚：短 id 用于引用，query 前裁剪模型视图，boundary 记录删除集合，resume 时按 <code>removedUuids</code> 删除并重接 parent 链，UI 和 SDK 分别选择保留 scrollback 或直接收缩 store。外部 npm 包 <code>@anthropic-ai/claude-code@2.1.169</code> 已经是 native binary，不再明文暴露旧源码符号；但字符串里仍能看到 <code>CLAUDE_SNIP</code>、<code>snipTokensFreed</code>、<code>includeSnipped</code>、<code>snipEnabled</code> 等字段。稳妥的结论是：相关设计仍在产品形态里演进，但不能仅凭某个旧符号是否出现，判断某个发行版默认开启了完整旧路径。</p>
+<h2>8. Microcompact：只清旧工具结果，不总结整段对话</h2>
+<p>microcompact 这个名字容易让人以为它是“小号 autocompact”。实际更准确的理解是：它优先处理旧 tool result 的可见体积。</p>
+<p>源码位置：<code>src/utils/microCompact.ts</code></p>
+<p>它有两类路径。</p>
+<p>第一类是 time-based microcompact。缓存已经冷掉、距离上次 assistant message 的时间超过阈值时，它会把旧工具结果内容替换成固定文本：</p>
+<pre><code class="language-text">[Old tool result content cleared]
+</code></pre>
+<p>它会保留最近若干工具结果，清掉更老的结果。这条路径会直接改变 message content，因此更适合缓存已经冷掉的场景。</p>
+<p>第二类是 cached microcompact。源码注释里强调它使用 cache editing API 删除旧 tool result，而不直接修改本地内容；通过 <code>cache_edits</code> 和 <code>cache_reference</code> 让 provider 侧缓存视图瘦身。API 返回后再处理 pending boundary。</p>
+<p>两条路径的差异可以这样理解：</p>
+<pre><code class="language-text">time-based:
+缓存已经不热，直接把旧结果文本替换成固定 marker。
+
+cached:
+缓存仍有价值，尽量通过 provider cache edit 改模型侧视图，减少破坏前缀。
+</code></pre>
+<p>microcompact 不是摘要。它不试图理解整段对话，只是把一批旧工具结果从模型视图里移走或引用化。</p>
+<h2>9. Context-collapse：源码里可见的是投影契约</h2>
+<p>context-collapse 更像“把一段历史折叠成摘要占位”的投影机制。</p>
+<p>在这份源码快照里，主链路和持久化契约是可见的：</p>
+<ul>
+<li><code>src/query.ts</code> 在 microcompact 之后、autocompact 之前做 context-collapse projection。</li>
+<li>注释说明它是 read-time projection：REPL full history 仍保持完整，summary messages 放在 collapse store 里，<code>projectView()</code> 每轮重放 commit log。</li>
+<li><code>src/sessionStorage.ts</code> 有 <code>recordContextCollapseCommit()</code> 和 <code>recordContextCollapseSnapshot()</code>。</li>
+<li><code>src/types/logs.ts</code> 定义 <code>ContextCollapseCommitEntry</code> 和 <code>ContextCollapseSnapshotEntry</code>。</li>
+<li>读 transcript 时，如果遇到 <code>compact_boundary</code>，会清空 pre-boundary 的 context-collapse commits 和 snapshot，避免把旧折叠记录应用到已经不存在的消息链上。</li>
+</ul>
+<p>但具体实现目录在这份源码快照中没有展开，所以不能把不可见的算法细节当作确定事实。可靠的说法是：主链路已经为它预留了“投影、持久化、恢复、与 autocompact 协调”的契约。</p>
+<p>它和 autocompact 的关系也很重要：context-collapse 在 autocompact 之前运行。<code>shouldAutoCompact()</code> 里还明确避开 context-collapse 模式，因为 collapse 自己负责 headroom。如果 autocompact 抢先运行，可能把更细粒度的 collapse 直接压成一段粗 summary。</p>
+<h2>10. Autocompact：最后一级完整摘要</h2>
+<p>autocompact 是 Claude Code 的最后一级保护。</p>
+<p>源码位置：<code>src/utils/autoCompact.ts</code> 和 <code>src/utils/compact.ts</code></p>
+<p>它的触发逻辑会考虑：</p>
+<ul>
+<li>当前模型上下文窗口。</li>
+<li>为 summary 输出预留的 token。</li>
+<li><code>AUTOCOMPACT_BUFFER_TOKENS</code> 等 buffer。</li>
+<li><code>snipTokensFreed</code>，避免重复计算被 snip 释放的 token。</li>
+<li>querySource，避免 <code>compact</code> / <code>session_memory</code> 这类特殊请求递归触发。</li>
+<li>context-collapse 模式，避免两种压缩机制互相抢。</li>
+</ul>
+<p>触发后，它会尝试 session memory compaction；否则调用 <code>compactConversation(..., isAutoCompact=true, ...)</code>。连续失败有 circuit breaker，避免每轮都陷入压缩失败。</p>
+<p><code>compact.ts</code> 里还有几个实际工程细节：</p>
+<ul>
+<li>compaction summary 前会 strip images/documents，用 <code>[image]</code> / <code>[document]</code> 这类占位替换。</li>
+<li>skill discovery/listing 这类会重新注入的 attachment 会在 summarization 前移除，避免摘要里重复包含可再注入内容。</li>
+<li>如果 compaction 请求本身 prompt too long，会从头部按 API round group 截断，用合成 marker 保持消息链形状。</li>
+<li>compact 后会有 bounded post-compact file / skill context 恢复，避免 summary 刚生成就丢掉必要文件语义。</li>
+</ul>
+<p>最终，Claude Code 写入 <code>compact_boundary</code>。</p>
+<p>源码位置：<code>src/utils/messages.ts</code></p>
+<p><code>createCompactBoundaryMessage()</code> 会生成一条 system message，<code>subtype: &quot;compact_boundary&quot;</code>，metadata 里包括 trigger、preTokens、userContext、messagesSummarized 等信息。之后 <code>getMessagesAfterCompactBoundary()</code> 会从最后一个 boundary 起切模型视图。</p>
+<p><img src="assets/claude-code-compact-boundary.png" alt="Claude Code compact_boundary 切分模型视图"></p>
+<p>没有 boundary 会怎样？</p>
+<ul>
+<li>如果继续发完整历史，summary 不会真正减少模型输入。</li>
+<li>如果直接删除旧消息，UI scrollback、恢复和调试都会变差。</li>
+<li>如果只有 summary 没有边界，后续请求不知道哪些消息已经被 summary 覆盖。</li>
+</ul>
+<p>所以 boundary 的本质是“模型视图边界”，不是 UI 分割线。</p>
+<h2>11. 四种变小机制放在一起看</h2>
+<p>大结果落盘、snip、microcompact、context-collapse、autocompact 都会让模型输入变小，但它们不是同一种机制。</p>
+<p><img src="assets/claude-code-trimming-stack.svg" alt="Claude Code snip、microcompact、context-collapse、autocompact 分层"></p>
+<p>可以按粒度排序：</p>
+<pre><code class="language-text">大结果落盘:
+单个 tool_result 太大，先写文件，prompt 只放路径和 preview。
+
+snip:
+剪掉中段历史的模型投影，UI 仍可显示完整历史。
+
+microcompact:
+清旧工具结果，不总结对话。
+
+context-collapse:
+把一段历史折叠成摘要占位，主链路可见投影契约。
+
+autocompact:
+窗口逼近上限时生成完整 summary，并写 compact_boundary。
+</code></pre>
+<p>这就是 Claude Code 长上下文管理的层级感：能局部处理就局部处理，局部处理不够再摘要，摘要以后用 boundary 保证后续请求不把旧内容带回来。</p>
+<h2>12. <code>addCacheBreakpoints()</code>：Claude Code 怎样保护缓存点</h2>
+<p>Claude Code 的 Anthropic 请求路径里，<code>addCacheBreakpoints()</code> 是核心缓存控制函数。</p>
+<p>源码位置：<code>src/services/api/claude.ts</code></p>
+<p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上；某些 skip-cache-write fork 场景会挪到倒数第二条。</p>
+<p>它还和 cached microcompact 协同：</p>
+<ul>
+<li>旧的 pinned <code>cache_edits</code> 会重新插回原 user message 位置。</li>
+<li>新的 cache edits 会插入最后一条 user message，并被 pin 住。</li>
+<li>marker 之前的 tool_result block 会加 <code>cache_reference</code>。</li>
+</ul>
+<p>此外，Claude Code 还在工具 schema 和 system prompt 上做稳定性保护：</p>
+<ul>
+<li><code>toolToAPISchema()</code> 缓存 session-stable base schema，避免工具 schema 在会话中途变化。</li>
+<li><code>splitSysPromptPrefix()</code> 把 system prompt 静态部分和动态部分拆开。</li>
+</ul>
+<p>这些细节都指向同一个目标：在 Anthropic 的显式 breakpoint 模型下，让 breakpoint 前的内容尽量稳定。</p>
+<h2>13. Codex：自动 prefix cache 加 <code>prompt_cache_key</code></h2>
+<p>Codex 面对的是 OpenAI 的自动 prefix cache。</p>
+<p>源码位置：<code>codex-rs/core/src/client.rs</code></p>
+<p><code>ModelClient</code> 是 session-scoped，默认用 thread id 生成 <code>prompt_cache_key()</code>，也支持 override。构造 Responses API request 时，会把这个 key 放进请求。</p>
+<p>这不是 Claude 式的 <code>cache_control</code>。它不告诉 provider “缓存到这一个 block 为止”。它更像是告诉服务端：这些请求属于同一个会话或同一类前缀，请尽量让相同前缀复用缓存。</p>
+<p>所以 Codex 的重点不在“插哪个 breakpoint”，而在“让模型历史形状稳定、可恢复”。</p>
+<h2>14. Codex 的 <code>AGENTS.md</code>：会话级 user instructions，而不是每轮随文件焦点重装</h2>
+<p>Codex 的规则文件加载在 <code>AgentsMdManager</code>。</p>
+<p>源码位置：<code>codex-rs/core/src/agents_md.rs</code></p>
+<p>它会：</p>
+<ol>
+<li>从当前工作目录向上找项目根，默认项目根标记是 <code>.git</code>。</li>
+<li>从项目根到当前目录按顺序收集 <code>AGENTS.md</code>。</li>
+<li><code>AGENTS.override.md</code> 优先于 <code>AGENTS.md</code>。</li>
+<li>支持配置 fallback 文件名。</li>
+<li>把配置里的 user instructions 和 AGENTS 文档拼成模型可见的 instruction string。</li>
+</ol>
+<p>session 创建时，<code>session/mod.rs</code> 会调用 <code>AgentsMdManager::user_instructions(...)</code>，之后 <code>build_initial_context()</code> 把它放进 contextual user sections。</p>
+<p>这说明 Codex 也不是“每打开一个文件就自动刷新一套规则”。基础规则由 session 初始上下文构造。进入更深目录或修改 CWD 之外文件时，base instructions 要求 Agent 自己检查适用的 <code>AGENTS.md</code>，但会话级 user instructions 不会因为每轮文件焦点变化而自动重写。</p>
+<p>这和 prompt cache 的原则一致：规则文件进入模型视图后，最好稳定。</p>
+<h2>15. Codex 的 initial context、TurnContext 和 durable baseline</h2>
+<p>Codex 的上下文维护链在 <code>codex-rs/core/src/session/mod.rs</code>。</p>
+<p><code>build_initial_context()</code> 会组装：</p>
+<ul>
+<li>developer sections</li>
+<li>contextual user sections</li>
+<li>权限和 sandbox 环境</li>
+<li>collaboration mode</li>
+<li>apps / plugins / skills</li>
+<li>user instructions</li>
+<li>environment context</li>
+</ul>
+<p>随后 <code>record_context_updates_and_set_reference_context_item()</code> 维护 reference context：</p>
+<ul>
+<li>如果没有 reference context，就注入完整 initial context。</li>
+<li>如果已经有 reference context，稳态路径只追加 context diffs。</li>
+<li>每个真实用户 turn 都持久化一个 <code>TurnContextItem</code>。</li>
+<li>mid-turn compaction 后也会持久化 <code>TurnContextItem</code>，用于 resume / fork 恢复最新 durable baseline。</li>
+</ul>
+<p>这和 Claude Code 的 <code>prependUserContext()</code> 不同。Claude Code 更像是在 API 前临时 prepend memoized context；Codex 更像是在 session/turn 层维护一条可恢复的 context baseline。</p>
+<h2>16. Codex 的大输出策略：更偏截断模型可见内容和事件副本</h2>
+<p>在已检查的 Codex 源码里，没有看到 Claude Code 那种“一旦 tool result 超阈值，就把完整结果写到 tool-results 文件，再让模型只看到路径和 2KB preview”的同构机制。</p>
+<p>Codex 更常见的是两类截断：</p>
+<p>第一类是模型可见 function output 截断。</p>
+<p>源码位置：<code>codex-rs/core/src/context_manager/history.rs</code></p>
+<p><code>ContextManager::process_item()</code> 会对 <code>FunctionCallOutput</code> 和 <code>CustomToolCallOutput</code> 应用 <code>truncate_function_output_payload(...)</code>，让进入 prompt 的函数输出受 policy 控制。</p>
+<p>第二类是 rollout / event / telemetry 副本截断。</p>
+<p>源码位置：</p>
+<ul>
+<li><code>codex-rs/core/src/mcp_tool_call.rs</code></li>
+<li><code>codex-rs/tools/src/tool_output.rs</code></li>
+</ul>
+<p>MCP tool result 可能把巨大内容放进 <code>content</code>、<code>structuredContent</code> 或 <code>_meta</code>。Codex 会把 event copy 收缩成文本 preview，避免 rollout storage 被多 MB 结果撑爆。telemetry preview 也有 2KB、64 lines 等限制。</p>
+<p>所以这里不要强行一一对应：</p>
+<pre><code class="language-text">Claude Code:
+完整大结果落盘，模型看到路径和 preview。
+
+Codex:
+模型可见输出按 policy 截断，持久化事件副本也会收缩。
+</code></pre>
+<p>两者目标相似，具体工程形态不同。</p>
+<h2>17. Codex compaction：替换模型历史，并持久化 <code>replacement_history</code></h2>
+<p>Codex compaction 的关键函数是 <code>build_compacted_history()</code>。</p>
+<p>源码位置：<code>codex-rs/core/src/compact.rs</code></p>
+<p>它会从旧 history 收集真实用户消息，按 token 预算从后往前选择最近用户消息，保持原顺序写回，然后把 summary 作为最后一条 user message 追加进去。预算常量包括 <code>COMPACT_USER_MESSAGE_MAX_TOKENS = 20_000</code>。</p>
+<p>随后 <code>replace_compacted_history()</code> 会替换 session history，并持久化：</p>
+<pre><code class="language-text">RolloutItem::Compacted(CompactedItem {
+  message,
+  replacement_history: Some(new_history)
+})
+</code></pre>
+<p>resume 时，<code>rollout_reconstruction.rs</code> 会从新到旧扫描 rollout。遇到带 <code>replacement_history</code> 的最新 <code>CompactedItem</code>，就把它作为新的 baseline；更老的消息不再一条条重放成模型历史。</p>
+<p>这就是 Codex 和 Claude Code 在 compaction 形态上的关键差异：</p>
+<pre><code class="language-text">Claude Code:
+完整本地 transcript 仍在，compact_boundary 决定模型从哪里开始看。
+
+Codex:
+compaction 后直接安装 replacement_history，模型历史被替换成新形状。
+</code></pre>
+<p><img src="assets/codex-context-compact-ledger.svg" alt="Codex 上下文与压缩账本"></p>
+<p>Codex 还有一个 mid-turn compaction 的细节：<code>InitialContextInjection</code> 可以选择 <code>BeforeLastUserMessage</code>，把 initial context 插在最后一个真实 user message 或 summary 前面。这保证压缩发生在 turn 中间时，后续模型请求仍有必要的基础 context。</p>
+<h2>18. 对比表</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Claude Code</th>
+<th>Codex</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Provider 缓存模型</td>
+<td>Claude <code>cache_control</code> / automatic caching，可显式控制 breakpoint</td>
+<td>OpenAI automatic prefix cache，使用 <code>prompt_cache_key</code> 稳定缓存域</td>
+</tr>
+<tr>
+<td>项目规则</td>
+<td><code>CLAUDE.md</code> / memory files 进入 memoized <code>getUserContext()</code></td>
+<td><code>AGENTS.md</code> 由 <code>AgentsMdManager</code> 组装进 user instructions</td>
+</tr>
+<tr>
+<td>基础 context 注入</td>
+<td>发 API 前 <code>prependUserContext()</code> 插入 meta user message</td>
+<td>session/turn 层构造 initial context，稳态追加 diffs</td>
+</tr>
+<tr>
+<td>动态事实</td>
+<td>日期变化等尽量尾部化，不重写稳定前缀</td>
+<td>通过 TurnContext / environment context / diff 维护</td>
+</tr>
+<tr>
+<td>大工具结果</td>
+<td>超阈值结果落盘，prompt 放路径和 preview，按 <code>tool_use_id</code> 冻结替换</td>
+<td>模型可见 function output 和 event/rollout 副本按 policy 截断</td>
+</tr>
+<tr>
+<td>中段历史裁剪</td>
+<td>SNIP 通过 UUID / projection / boundary 过滤模型视图</td>
+<td>当前主链路以 replacement history 为核心</td>
+</tr>
+<tr>
+<td>旧工具结果清理</td>
+<td>microcompact：time-based direct clear 或 cached cache_edits</td>
+<td>没有一一对应机制，更多依赖截断和 compaction</td>
+</tr>
+<tr>
+<td>语义折叠</td>
+<td>context-collapse 主链路和持久化契约可见</td>
+<td>没有同名机制</td>
+</tr>
+<tr>
+<td>完整 compaction</td>
+<td>写 <code>compact_boundary</code>，后续从 boundary 后切模型视图</td>
+<td>写 <code>CompactedItem.replacement_history</code>，resume 使用最新替换历史</td>
+</tr>
+<tr>
+<td>resume 关键</td>
+<td>boundary、snip removedUuids、collapse commit/snapshot</td>
+<td>rollout reverse scan、replacement_history、TurnContext baseline</td>
+</tr>
+</tbody></table>
+<h2>19. 读源码时最容易踩的坑</h2>
+<p>第一个坑：把 UI 历史当成模型历史。很多源码看起来“没有删除历史”，但请求前 projection 已经把模型视图改了。</p>
+<p>第二个坑：把 compaction 当成唯一压缩。Claude Code 在 autocompact 前还有大结果落盘、snip、microcompact、context-collapse。真正的工程设计是分层减压，不是等到爆窗才总结。</p>
+<p>第三个坑：把规则文件想成每轮动态加载。规则文件如果每轮改变并放在前缀，会直接打坏 prompt cache。两个系统都倾向于把规则稳定化，再用尾部或 diff 承载变化。</p>
+<p>第四个坑：把 Claude 和 OpenAI 的缓存控制混用。Claude 的 <code>cache_control</code> 是 block / request 级控制点；OpenAI 更偏自动 prefix cache 和 <code>prompt_cache_key</code>。源码里的 runtime 设计正是围绕这两个 contract 展开的。</p>
+<p>第五个坑：把 <code>compact_boundary</code> 和 <code>replacement_history</code> 看成同一种东西。它们都服务于 compaction 后的恢复，但一个是切片边界，一个是替换后的模型历史。</p>
+<h2>20. 结论：缓存优化的核心是模型视图纪律</h2>
+<p>Prompt cache 的关键不只是 API 参数。<code>cache_control</code>、<code>cached_tokens</code>、<code>prompt_cache_key</code> 都只是外层接口。真正决定效果的是 Agent runtime 怎样组织模型看到的历史。</p>
+<p>Claude Code 的路线是：在完整本地历史上维护请求投影，用 memoized context 稳住基础规则，用大结果落盘和 microcompact 控制工具输出，用 snip / context-collapse 做细粒度历史投影，最后用 autocompact 和 <code>compact_boundary</code> 建立新的模型视图起点。</p>
+<p>Codex 的路线是：利用 OpenAI 自动 prefix cache 和 <code>prompt_cache_key</code>，用 <code>AGENTS.md</code> 和 initial context 建立可恢复 baseline，用 <code>TurnContextItem</code> 记录上下文变化，用 <code>replacement_history</code> 安装压缩后的模型历史。</p>
+<p>两者的共同原则可以压缩成一句话：</p>
+<pre><code class="language-text">稳定内容尽量靠前并保持不变；
+动态内容尽量靠后并可替换；
+大内容不要无脑塞进 prompt；
+压缩后必须有可恢复的模型视图契约。
+</code></pre>
+<p>把这个原则抓住，prompt cache 就不再只是一个计费优化，而是长上下文 Agent 的基础架构问题。</p>
+<h2>参考资料</h2>
+<ul>
+<li>Anthropic Claude API prompt caching 文档：<code>https://platform.claude.com/docs/en/build-with-claude/prompt-caching</code></li>
+<li>Claude Code prompt caching 文档：<code>https://code.claude.com/docs/en/prompt-caching</code></li>
+<li>OpenAI prompt caching 文档：<code>https://developers.openai.com/api/docs/guides/prompt-caching</code></li>
+</ul>
+
+
+    </article>
+  </main>
 </body>
 </html>

@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620" role="img" aria-labelledby="title desc">
+  <title id="title">Claude Code request-time context pressure ladder</title>
+  <desc id="desc">A source-grounded pipeline showing how Claude Code derives messagesForQuery, applies pressure controls, prepends user context, and places cache breakpoints.</desc>
+  <defs>
+    <style>
+      .bg { fill: #fbfcf8; }
+      .title { fill: #102a43; font: 700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .subtitle { fill: #486581; font: 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .node { fill: #ffffff; stroke: #1f5f8b; stroke-width: 2; rx: 16; }
+      .node-green { fill: #f1fbf4; stroke: #2f855a; stroke-width: 2; rx: 16; }
+      .node-yellow { fill: #fff8e1; stroke: #b7791f; stroke-width: 2; rx: 16; }
+      .node-red { fill: #fff5f5; stroke: #c53030; stroke-width: 2; rx: 16; }
+      .node-purple { fill: #f5f3ff; stroke: #6b46c1; stroke-width: 2; rx: 16; }
+      .label { fill: #102a43; font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .small { fill: #334e68; font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .body { fill: #334e68; font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .arrow { stroke: #486581; stroke-width: 3; marker-end: url(#arrow); fill: none; }
+      .dash { stroke: #829ab1; stroke-width: 2; stroke-dasharray: 8 8; fill: none; }
+      .band { fill: #e6f6ff; stroke: #8cc8ea; stroke-width: 1.5; rx: 18; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#486581"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1400" height="620"/>
+  <text class="title" x="54" y="58">Claude Code：一次请求里的上下文压力处理顺序</text>
+  <text class="subtitle" x="54" y="90">主链路来自 src/query.ts。重点不是“删历史”，而是先得到模型视图，再按压力从轻到重处理。</text>
+
+  <rect class="band" x="46" y="118" width="1308" height="132"/>
+  <text class="body" x="70" y="148">第一层：从完整 transcript 得到本轮模型候选视图</text>
+  <rect class="node" x="70" y="170" width="210" height="56"/>
+  <text class="label" x="94" y="194">messages</text>
+  <text class="small" x="94" y="214">append-only transcript</text>
+  <path class="arrow" d="M 280 198 H 330"/>
+  <rect class="node" x="330" y="160" width="310" height="78"/>
+  <text class="label" x="354" y="188">getMessagesAfterCompactBoundary</text>
+  <text class="small" x="354" y="211">compact_boundary 之后</text>
+  <text class="small" x="354" y="229">HISTORY_SNIP 时默认投影过滤</text>
+  <path class="arrow" d="M 640 198 H 700"/>
+  <rect class="node-green" x="700" y="160" width="250" height="78"/>
+  <text class="label" x="724" y="188">messagesForQuery</text>
+  <text class="small" x="724" y="211">本轮 API 候选数组</text>
+  <text class="small" x="724" y="229">不是 UI 完整历史</text>
+  <path class="arrow" d="M 950 198 H 1010"/>
+  <rect class="node-yellow" x="1010" y="160" width="300" height="78"/>
+  <text class="label" x="1034" y="188">applyToolResultBudget</text>
+  <text class="small" x="1034" y="211">src/utils/toolResultStorage.ts</text>
+  <text class="small" x="1034" y="229">先处理大 tool_result</text>
+
+  <rect class="band" x="46" y="280" width="1308" height="144"/>
+  <text class="body" x="70" y="310">第二层：在 messagesForQuery 上依次做压力控制</text>
+  <rect class="node-purple" x="70" y="336" width="190" height="62"/>
+  <text class="label" x="94" y="362">snip</text>
+  <text class="small" x="94" y="383">剪掉中段历史投影</text>
+  <path class="arrow" d="M 260 367 H 312"/>
+  <rect class="node" x="312" y="336" width="210" height="62"/>
+  <text class="label" x="336" y="362">microcompact</text>
+  <text class="small" x="336" y="383">清旧 tool_result</text>
+  <path class="arrow" d="M 522 367 H 574"/>
+  <rect class="node-purple" x="574" y="326" width="250" height="82"/>
+  <text class="label" x="598" y="354">context-collapse</text>
+  <text class="small" x="598" y="376">projectView() 投影</text>
+  <text class="small" x="598" y="394">commit / snapshot 契约</text>
+  <path class="arrow" d="M 824 367 H 876"/>
+  <rect class="node-red" x="876" y="326" width="236" height="82"/>
+  <text class="label" x="900" y="354">autocompact</text>
+  <text class="small" x="900" y="376">阈值触发摘要</text>
+  <text class="small" x="900" y="394">写 compact_boundary</text>
+  <path class="arrow" d="M 1112 367 H 1164"/>
+  <rect class="node-green" x="1164" y="326" width="150" height="82"/>
+  <text class="label" x="1191" y="354">final view</text>
+  <text class="small" x="1191" y="376">更小</text>
+  <text class="small" x="1191" y="394">更稳定</text>
+
+  <rect class="band" x="46" y="456" width="1308" height="108"/>
+  <text class="body" x="70" y="486">第三层：发 API 前补基础 context，并放 provider 级缓存控制</text>
+  <rect class="node-green" x="70" y="506" width="270" height="42"/>
+  <text class="label" x="94" y="533">prependUserContext</text>
+  <path class="arrow" d="M 340 527 H 390"/>
+  <rect class="node" x="390" y="494" width="300" height="66"/>
+  <text class="label" x="414" y="522">meta user context</text>
+  <text class="small" x="414" y="543">memoized CLAUDE.md + currentDate</text>
+  <path class="arrow" d="M 690 527 H 740"/>
+  <rect class="node-yellow" x="740" y="494" width="282" height="66"/>
+  <text class="label" x="764" y="522">addCacheBreakpoints</text>
+  <text class="small" x="764" y="543">一个 message-level cache_control</text>
+  <path class="arrow" d="M 1022 527 H 1072"/>
+  <rect class="node-green" x="1072" y="494" width="242" height="66"/>
+  <text class="label" x="1096" y="522">Claude API request</text>
+  <text class="small" x="1096" y="543">tools → system → messages</text>
+
+  <path class="dash" d="M 200 226 C 200 262 180 286 165 336"/>
+  <path class="dash" d="M 1160 238 C 1160 270 1018 292 994 326"/>
+  <text class="small" x="70" y="590">关键结论：这些机制都在维护“模型看到的历史”，而不是简单修改本地 UI scrollback。</text>
+</svg>

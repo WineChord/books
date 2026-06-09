@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620" role="img" aria-labelledby="title desc">
+  <title id="title">Codex context and compaction ledger</title>
+  <desc id="desc">A diagram showing Codex prompt cache key, initial context baseline, turn context, tool output truncation, compaction replacement history, and rollout reconstruction.</desc>
+  <defs>
+    <style>
+      .bg { fill: #fbfcf8; }
+      .title { fill: #102a43; font: 700 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .subtitle { fill: #486581; font: 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .box { fill: #ffffff; stroke: #1f5f8b; stroke-width: 2; rx: 16; }
+      .green { fill: #f1fbf4; stroke: #2f855a; stroke-width: 2; rx: 16; }
+      .yellow { fill: #fff8e1; stroke: #b7791f; stroke-width: 2; rx: 16; }
+      .purple { fill: #f5f3ff; stroke: #6b46c1; stroke-width: 2; rx: 16; }
+      .label { fill: #102a43; font: 700 19px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .body { fill: #334e68; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mono { fill: #334e68; font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .arrow { stroke: #486581; stroke-width: 3; marker-end: url(#arrow); fill: none; }
+      .dash { stroke: #829ab1; stroke-width: 2; stroke-dasharray: 8 8; fill: none; }
+      .ledger { fill: #ffffff; stroke: #9fb3c8; stroke-width: 1.5; rx: 10; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#486581"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1400" height="620"/>
+  <text class="title" x="54" y="58">Codex：没有显式 breakpoint，但有可恢复的模型历史账本</text>
+  <text class="subtitle" x="54" y="90">对应 core/src/client.rs、agents_md.rs、session/mod.rs、compact.rs、rollout_reconstruction.rs。</text>
+
+  <rect class="green" x="62" y="134" width="286" height="126"/>
+  <text class="label" x="88" y="168">OpenAI automatic prefix cache</text>
+  <text class="mono" x="88" y="198">prompt_cache_key = thread id</text>
+  <text class="mono" x="88" y="220">override supported</text>
+  <text class="body" x="88" y="244">客户端不放 cache_control marker。</text>
+
+  <path class="arrow" d="M 348 197 H 402"/>
+  <rect class="box" x="402" y="124" width="314" height="146"/>
+  <text class="label" x="428" y="158">initial context baseline</text>
+  <text class="mono" x="428" y="188">build_initial_context()</text>
+  <text class="mono" x="428" y="210">AGENTS.md + env + tools</text>
+  <text class="mono" x="428" y="232">developer/contextual user sections</text>
+  <text class="body" x="428" y="254">稳态 turn 尽量只追加 diff。</text>
+
+  <path class="arrow" d="M 716 197 H 770"/>
+  <rect class="yellow" x="770" y="124" width="272" height="146"/>
+  <text class="label" x="796" y="158">TurnContextItem</text>
+  <text class="mono" x="796" y="188">once per real user turn</text>
+  <text class="mono" x="796" y="210">also after mid-turn compact</text>
+  <text class="body" x="796" y="238">resume / fork 用它恢复最新 durable baseline。</text>
+
+  <path class="arrow" d="M 1042 197 H 1096"/>
+  <rect class="box" x="1096" y="124" width="242" height="146"/>
+  <text class="label" x="1122" y="158">for_prompt()</text>
+  <text class="mono" x="1122" y="188">normalize history</text>
+  <text class="mono" x="1122" y="210">strip unsupported images</text>
+  <text class="mono" x="1122" y="232">truncate function output</text>
+
+  <rect class="purple" x="62" y="342" width="324" height="142"/>
+  <text class="label" x="88" y="376">CompactedItem</text>
+  <text class="mono" x="88" y="406">replacement_history: Vec&lt;ResponseItem&gt;</text>
+  <text class="mono" x="88" y="428">recent user messages + summary</text>
+  <text class="body" x="88" y="456">压缩后直接替换模型历史，而不是保留旧历史再按 boundary 切片。</text>
+
+  <path class="arrow" d="M 386 413 H 450"/>
+  <rect class="ledger" x="450" y="322" width="342" height="182"/>
+  <text class="label" x="476" y="356">rollout JSONL</text>
+  <text class="mono" x="476" y="386">SessionMeta</text>
+  <text class="mono" x="476" y="410">ResponseItem...</text>
+  <text class="mono" x="476" y="434">TurnContext</text>
+  <text class="mono" x="476" y="458">Compacted(replacement_history)</text>
+  <text class="mono" x="476" y="482">EventMsg...</text>
+
+  <path class="arrow" d="M 792 413 H 856"/>
+  <rect class="green" x="856" y="342" width="294" height="142"/>
+  <text class="label" x="882" y="376">rollout reconstruction</text>
+  <text class="mono" x="882" y="406">newest-to-oldest scan</text>
+  <text class="mono" x="882" y="428">newest replacement checkpoint wins</text>
+  <text class="body" x="882" y="456">resume 不是靠“回放所有旧消息”，而是优先使用最新替换历史。</text>
+
+  <path class="arrow" d="M 1150 413 H 1204"/>
+  <rect class="box" x="1204" y="342" width="134" height="142"/>
+  <text class="label" x="1228" y="376">next turn</text>
+  <text class="mono" x="1228" y="406">stable shape</text>
+  <text class="mono" x="1228" y="428">same cache key</text>
+  <text class="mono" x="1228" y="450">diff only</text>
+
+  <path class="dash" d="M 1217 270 C 1210 310 1240 330 1270 342"/>
+  <path class="dash" d="M 212 260 C 178 298 178 322 224 342"/>
+  <text class="mono" x="62" y="560">对应关系：Claude Code 侧更强调 message projection 和 explicit cache_control；Codex 侧更强调 prompt_cache_key、TurnContext baseline 和 replacement_history。</text>
+</svg>
