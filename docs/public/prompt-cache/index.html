@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Claude Code 和 Codex 的 Prompt Cache 设计：真正重要的是模型看到的历史</title>
+  <title>Claude Code 和 Codex 的 Prompt Cache 设计：关键在模型视图</title>
   <meta name="description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
   <link rel="canonical" href="https://www.wineandchord.com/books/prompt-cache/">
-  <meta property="og:title" content="Claude Code 和 Codex 的 Prompt Cache 设计：真正重要的是模型看到的历史">
+  <meta property="og:title" content="Claude Code 和 Codex 的 Prompt Cache 设计：关键在模型视图">
   <meta property="og:description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
   <meta property="og:url" content="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:type" content="article">
@@ -51,7 +51,7 @@
     }
     h1 {
       margin: 0 0 28px;
-      font-size: clamp(32px, 5vw, 54px);
+      font-size: clamp(28px, 4vw, 46px);
       max-width: 920px;
     }
     h2 {
@@ -159,7 +159,7 @@
 <body>
   <main>
     <article>
-<h1>Claude Code 和 Codex 的 Prompt Cache 设计：真正重要的是模型看到的历史</h1>
+<h1>Claude Code 和 Codex 的 Prompt Cache 设计：关键在模型视图</h1>
 <p><img src="assets/cover-claude-codex-prompt-cache.png" alt="Claude Code 和 Codex 的 prompt cache 设计对比"></p>
 <p>长时间使用代码 Agent 时，最先撞上的问题通常不是“模型会不会写代码”，而是上下文怎么活下去。</p>
 <p>一轮请求里可能有系统规则、工具定义、项目说明、运行环境、历史消息、工具输出、图片、文档、摘要和最新用户输入。前几轮还好，几十轮以后，输入会迅速膨胀。每一轮都把所有内容重新送进模型，成本高，延迟高，也更容易把真正重要的信息挤出窗口。</p>
@@ -409,7 +409,10 @@ autocompact:
 <h2>12. <code>addCacheBreakpoints()</code>：Claude Code 怎样保护缓存点</h2>
 <p>Claude Code 的 Anthropic 请求路径里，<code>addCacheBreakpoints()</code> 是核心缓存控制函数。</p>
 <p>源码位置：<code>src/services/api/claude.ts</code></p>
-<p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上；某些 skip-cache-write fork 场景会挪到倒数第二条。</p>
+<p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上，相当于告诉 Claude：本轮最新 message 之前的完整前缀都值得作为后续请求的缓存候选。</p>
+<p>fork 场景要更微妙。Claude Code 的 forked agent 会拿父会话的 <code>forkContextMessages</code> 作为共享前缀，再在末尾追加自己的 <code>promptMessages</code>。例如 compact fork 会继承主会话上下文，然后追加一条 summary request。这样做的目的，是让 fork 读取父会话已经建立好的 prompt cache，而不是从头处理一遍 tools、system、项目规则和长历史。</p>
+<p>但有些 fork 是 fire-and-forget：它们只是后台做一次摘要、提取或旁路问题，后续主会话不会从这个 fork 的尾部继续。<code>skipCacheWrite</code> 表达的就是这个意思：可以读共享缓存，但不要把这个一次性 fork 的最后一条 prompt 写成新的缓存尾巴。</p>
+<p>所以 <code>addCacheBreakpoints()</code> 在 <code>skipCacheWrite</code> 时把 marker 放到 <code>messages.length - 2</code>。这个位置通常就是“父会话共享前缀的最后一条 message”，而最后一条是 fork 自己追加的临时请求。这样 fork 仍然能命中父会话缓存；即使 provider 或本地 KV cache 尝试写入，也是在已经存在的共享前缀上合并，而不是把 fork 专属尾巴留进缓存。源码注释里还强调只保留一个 marker，是为了避免缓存层额外保护不会再被 resume 的局部位置，让这类短命 fork 占住不必要的缓存页面。</p>
 <p>它还和 cached microcompact 协同：</p>
 <ul>
 <li>旧的 pinned <code>cache_edits</code> 会重新插回原 user message 位置。</li>
@@ -586,8 +589,6 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <li>Claude Code prompt caching 文档：<code>https://code.claude.com/docs/en/prompt-caching</code></li>
 <li>OpenAI prompt caching 文档：<code>https://developers.openai.com/api/docs/guides/prompt-caching</code></li>
 </ul>
-
-
     </article>
   </main>
 </body>
