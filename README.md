@@ -11,6 +11,10 @@ This repository hosts long-form online books for
 - [Suffix Array Primer](https://www.wineandchord.com/books/sa/)
 - [Claude Code Interview Book](https://www.wineandchord.com/books/cc/)
 
+## Articles
+
+- [Claude Code 和 Codex 的 Prompt Cache 设计](https://www.wineandchord.com/books/prompt-cache/)
+
 ## Book Style
 
 All book prose and ordinary UI text defaults to the PingFang font stack defined
