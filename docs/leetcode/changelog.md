@@ -7,10 +7,6 @@ its Chrome extension workflow.
 
 ### Added
 
-- Added contest difficulty ratings across the whole local problem book. Ratings
-  come from `zerotrac/leetcode_problem_rating`, with LingShen ratings used as a
-  fallback when needed; the main table, tag popovers, related problems, and
-  series/category member lists now share the same rating field.
 - Added the LingShen topic list from 灵茶山艾府's "How to practice
   scientifically" route, preserving the 12 source topics, source order, and
   ratings.

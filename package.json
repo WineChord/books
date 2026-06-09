@@ -21,7 +21,6 @@
     "sync:leetcode-math": "node scripts/sync-leetcode-math.mjs",
     "sync:leetcode-statement-assets": "node scripts/sync-leetcode-statement-assets.mjs",
     "sync:leetcode-bytedance": "node scripts/sync-leetcode-bytedance.mjs",
-    "sync:leetcode-contest-ratings": "node scripts/sync-leetcode-contest-ratings.mjs",
     "sync:leetcode-lingshen": "node scripts/sync-leetcode-lingshen.mjs",
     "sync:leetcode-implementations": "node scripts/sync-leetcode-implementations.mjs",
     "verify": "npm run check:content && npm run check:visual-spec && npm run check:leetcode-series && npm run check:leetcode-math && npm run check:leetcode-implementations && npm run build && npm run check:dist"
