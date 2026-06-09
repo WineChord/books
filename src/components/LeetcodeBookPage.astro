@@ -52,6 +52,11 @@ import {
   leetcodeLingShenStats,
 } from "../data/leetcode-lingshen";
 import { leetcodeLingShenRoadmapStats } from "../data/leetcode-lingshen-roadmap";
+import {
+  leetcodeContestRatingSourceUrl,
+  leetcodeContestRatingStats,
+  leetcodeContestRatings,
+} from "../data/leetcode-contest-ratings";
 import { pageUrl } from "../urls";
 
 interface Props {
@@ -213,6 +218,7 @@ const leetcodeSeriesDefinitionByKey = new Map(
 const lingShenBySlug = new Map(
   leetcodeLingShenProblems.map((problem) => [problem.titleSlug, problem]),
 );
+const contestRatingBySlug = new Map(Object.entries(leetcodeContestRatings));
 const lingShenGroupByKey = new Map(
   leetcodeLingShenGroups.map((group) => [group.key, group]),
 );
@@ -1013,6 +1019,12 @@ function relatedSummary(question, catalogBySlug, currentSlug) {
   const difficulty = bookProblem?.difficulty ?? question.difficulty ?? "";
   return {
     current: question.titleSlug === currentSlug,
+    contestProblemIndex: bookProblem?.contestProblemIndex ?? "",
+    contestRating: bookProblem?.contestRating ?? null,
+    contestRatingSource: bookProblem?.contestRatingSource ?? "",
+    contestSlug: bookProblem?.contestSlug ?? "",
+    contestTitle: bookProblem?.contestTitle ?? "",
+    contestTitleEn: bookProblem?.contestTitleEn ?? "",
     difficulty,
     frontendId: bookProblem?.frontendId ?? "",
     frequencyRank: bookProblem?.frequencyRank ?? null,
@@ -1136,6 +1148,25 @@ function lingShenGroupTitlesFor(slug) {
     .filter(Boolean);
 }
 
+function contestRatingFields(slug, lingShen) {
+  const contest = contestRatingBySlug.get(slug);
+  const lingShenRating =
+    typeof lingShen?.rating === "number" ? lingShen.rating : null;
+  const contestRating = contest?.rating ?? lingShenRating;
+  return {
+    contestProblemIndex: contest?.problemIndex ?? "",
+    contestRating: contestRating ?? null,
+    contestRatingSource: contest
+      ? "zerotrac"
+      : contestRating
+        ? "lingshen"
+        : "",
+    contestSlug: contest?.contestSlug ?? "",
+    contestTitle: contest?.contestTitle ?? "",
+    contestTitleEn: contest?.contestTitleEn ?? "",
+  };
+}
+
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
   const lingShen = lingShenBySlug.get(problem.titleSlug);
@@ -1165,6 +1196,7 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
+    ...contestRatingFields(problem.titleSlug, lingShen),
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -1214,6 +1246,7 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
+    ...contestRatingFields(problem.titleSlug, lingShen),
   };
   });
 const existingWithByteDanceSlugs = new Set([
@@ -1273,6 +1306,7 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
+    ...contestRatingFields(problem.titleSlug, lingShen),
   };
   });
 const existingWithSeriesSlugs = new Set([
@@ -1335,6 +1369,7 @@ const leetcodeLingShenSupplements = leetcodeLingShenProblems
     lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: problem.lingshenRank,
     lingShenRating: problem.rating,
+    ...contestRatingFields(problem.titleSlug, problem),
     lingShenSupplement: true,
   }));
 const mergedLeetcodeProblems = [
@@ -1555,6 +1590,9 @@ const leetcodeProblemSummaries = leetcodeProblemsWithReferences.map((problem) =>
   };
 });
 const leetcodeProblemSummaryPayload = packedRecordPayload(leetcodeProblemSummaries);
+const leetcodeContestRatingCoverage = leetcodeProblemsWithReferences.filter(
+  (problem) => problem.contestRating,
+).length;
 const leetcodeReferenceCount =
   leetcodeImplementationStats.references +
   leetcodeGeneratedImplementationStats.references;
@@ -2042,6 +2080,7 @@ const shortcutRows = [
             </label>
           </span>
           <span>{isZh ? "难度" : "Level"}</span>
+          <span>{isZh ? "分数" : "Rating"}</span>
           <span>{isZh ? "频率" : "Freq"}</span>
           <span class="leetcode-byte-filter-head">
             <button
@@ -2433,6 +2472,10 @@ const shortcutRows = [
         <p>{isZh ? "Hot100 补充" : "Hot 100 extras"}</p>
       </div>
       <div>
+        <span>{leetcodeContestRatingCoverage}</span>
+        <p>{isZh ? "周赛分数" : "Contest ratings"}</p>
+      </div>
+      <div>
         <span>{leetcodeStats.duplicatesRemoved}</span>
         <p>{isZh ? "去重核对" : "Duplicate audit"}</p>
       </div>
@@ -2482,6 +2525,14 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeLingShenStats.groups} 组灵神题单、${leetcodeLingShenSupplements.length} 道灵神补充已纳入刷题列表`
           : `${leetcodeLingShenStats.groups} LingShen groups and ${leetcodeLingShenSupplements.length} LingShen supplements included`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeContestRatingCoverage} 道题周赛难度分已覆盖，原始数据 ${leetcodeContestRatingStats.ratings} 条，来源：`
+          : `${leetcodeContestRatingCoverage} contest ratings covered from ${leetcodeContestRatingStats.ratings} raw rows: `}
+        <a href={leetcodeContestRatingSourceUrl} target="_blank" rel="noopener noreferrer">
+          zerotrac/leetcode_problem_rating
+        </a>
       </span>
       <span>
         {isZh
@@ -3334,7 +3385,6 @@ const shortcutRows = [
     let extensionProbePromise = null;
     let extensionProbeResponse = null;
     let previewHoverCloseTimer = 0;
-    let groupIdeaHoverCloseTimer = 0;
     let viewStateWriteTimer = 0;
 
     function readJson(key, fallback) {
@@ -9273,6 +9323,19 @@ const shortcutRows = [
       return 1;
     }
 
+    function contestRatingFitScore(left, right) {
+      const leftRating = Number(left?.contestRating);
+      const rightRating = Number(right?.contestRating);
+      if (!Number.isFinite(leftRating) || !Number.isFinite(rightRating)) {
+        return null;
+      }
+      const gap = Math.abs(leftRating - rightRating);
+      if (gap <= 100) return recommendationSameDifficultyFitScore;
+      if (gap <= 250) return recommendationNearbyDifficultyFitScore;
+      if (gap <= 450) return recommendationNearbyDifficultyFitScore * 0.45;
+      return 0;
+    }
+
     function tagSlugSet(problem) {
       return new Set((problem?.tags || []).map((tag) => tag.slug));
     }
@@ -9381,12 +9444,15 @@ const shortcutRows = [
       const relatedScore = hasRelatedLink(activeProblem, problem)
         ? recommendationRelatedFitScore
         : 0;
+      const ratingScore = contestRatingFitScore(activeProblem, problem);
       const difficultyGap = Math.abs(
         difficultyIndex(activeProblem) - difficultyIndex(problem),
       );
-      const difficultyScore = difficultyGap === 0
-        ? recommendationSameDifficultyFitScore
-        : (difficultyGap === 1 ? recommendationNearbyDifficultyFitScore : 0);
+      const difficultyScore = ratingScore ?? (
+        difficultyGap === 0
+          ? recommendationSameDifficultyFitScore
+          : (difficultyGap === 1 ? recommendationNearbyDifficultyFitScore : 0)
+      );
       return clampScore(tagScore + relatedScore + difficultyScore);
     }
 
@@ -10398,6 +10464,21 @@ const shortcutRows = [
           `lingshen rating ${problem.lingShenRating}`,
         );
       }
+      if (problem.contestRating) {
+        values.push(
+          `周赛难度分 ${problem.contestRating}`,
+          `题目评分 ${problem.contestRating}`,
+          `contest rating ${problem.contestRating}`,
+        );
+      }
+      if (problem.contestTitle) values.push(problem.contestTitle);
+      if (problem.contestTitleEn) values.push(problem.contestTitleEn);
+      if (problem.contestProblemIndex) {
+        values.push(
+          `周赛 ${problem.contestProblemIndex}`,
+          `contest ${problem.contestProblemIndex}`,
+        );
+      }
       const byteDanceRank = byteDanceRankFor(problem);
       if (byteDanceRank) {
         values.push(
@@ -11344,6 +11425,67 @@ const shortcutRows = [
       return "is-medium";
     }
 
+    function contestRatingClass(rating) {
+      const value = Number(rating);
+      if (!Number.isFinite(value)) return "is-empty";
+      if (value >= 2400) return "is-elite";
+      if (value >= 2000) return "is-high";
+      if (value >= 1600) return "is-mid";
+      return "is-low";
+    }
+
+    function contestRatingSourceLabel(problem) {
+      if (problem.contestRatingSource === "zerotrac") {
+        return "zerotrac/leetcode_problem_rating";
+      }
+      if (problem.contestRatingSource === "lingshen") {
+        return isChinesePage ? "灵神题单难度分" : "LingShen rating";
+      }
+      return "";
+    }
+
+    function contestRatingTitle(problem) {
+      if (!problem.contestRating) {
+        return isChinesePage ? "暂无周赛难度分" : "No contest rating";
+      }
+      const source = contestRatingSourceLabel(problem);
+      const contestTitle = isChinesePage
+        ? problem.contestTitle
+        : problem.contestTitleEn || problem.contestTitle;
+      return [
+        isChinesePage ? `周赛难度分 ${problem.contestRating}` : `Rating ${problem.contestRating}`,
+        contestTitle && problem.contestProblemIndex
+          ? `${contestTitle} ${problem.contestProblemIndex}`
+          : contestTitle,
+        source ? `${isChinesePage ? "来源" : "Source"}: ${source}` : "",
+      ].filter(Boolean).join(" · ");
+    }
+
+    function renderContestRating(problem, options = {}) {
+      if (!problem.contestRating) {
+        return options.empty === false
+          ? ""
+          : `<span class="leetcode-contest-rating is-empty" aria-label="${escapeHtml(contestRatingTitle(problem))}">--</span>`;
+      }
+      return `<span class="leetcode-contest-rating ${contestRatingClass(problem.contestRating)}" aria-label="${escapeHtml(contestRatingTitle(problem))}">${escapeHtml(problem.contestRating)}</span>`;
+    }
+
+    function renderContestRatingMeta(problem) {
+      if (!problem.contestRating) return "";
+      const contestTitle = isChinesePage
+        ? problem.contestTitle
+        : problem.contestTitleEn || problem.contestTitle;
+      const contest = [contestTitle, problem.contestProblemIndex]
+        .filter(Boolean)
+        .join(" ");
+      const source = contestRatingSourceLabel(problem);
+      return [
+        `<span>${isChinesePage ? "周赛分" : "Rating"} ${escapeHtml(problem.contestRating)}</span>`,
+        contest ? `<span>${escapeHtml(contest)}</span>` : "",
+        source ? `<span>${escapeHtml(source)}</span>` : "",
+      ].join("");
+    }
+
     function renderTags(problem) {
       return problem.tags
         .slice(0, 3)
@@ -11581,6 +11723,8 @@ const shortcutRows = [
       body.dataset.lazyGuideRendered = "true";
     }
 
+    const lingShenDeckProblemPreviewCount = 4;
+    const lingShenHtmlIdUnsafePattern = /[^A-Za-z0-9_-]/g;
     const lingShenInitialVisibleSections = 8;
 
     function lingShenLocalizedTitle(item) {
@@ -11680,7 +11824,76 @@ const shortcutRows = [
         .join("");
     }
 
-    function renderLingShenDeck(deck) {
+    function lingShenDeckMemberPanelId(deckId) {
+      return `leetcode-${String(deckId || "").replace(lingShenHtmlIdUnsafePattern, "-")}-members`;
+    }
+
+    function renderLingShenDeckMembers(deck, options = {}) {
+      const members = Array.isArray(deck?.members) ? deck.members : [];
+      const expanded = Boolean(options.expanded);
+      const panelId = lingShenDeckMemberPanelId(deck?.id);
+      const visibleMembers = expanded
+        ? members
+        : members.slice(0, lingShenDeckProblemPreviewCount);
+      const items = visibleMembers
+        .map((slug) =>
+          renderLazyMemberItem(problemBySlug.get(slug), {
+            category: true,
+            showRating: true,
+          }),
+        )
+        .filter(Boolean)
+        .join("");
+      const canToggle = members.length > lingShenDeckProblemPreviewCount;
+      const toggleLabel = expanded
+        ? (isChinesePage ? "收起题目" : "Collapse problems")
+        : (isChinesePage
+          ? `展开全部 ${members.length} 题`
+          : `Show all ${members.length} problems`);
+      return `
+        ${
+          items ||
+          `<span class="leetcode-popover-muted">${
+            isChinesePage ? "暂无可在本页打开的题目。" : "No local members available."
+          }</span>`
+        }
+        ${
+          canToggle
+            ? `<button
+                type="button"
+                class="leetcode-lingshen-member-toggle"
+                data-lingshen-deck-members-toggle="${escapeHtml(deck.id)}"
+                aria-controls="${escapeHtml(panelId)}"
+                aria-expanded="${expanded ? "true" : "false"}"
+              >
+                ${escapeHtml(toggleLabel)}
+              </button>`
+            : ""
+        }
+      `;
+    }
+
+    function renderLingShenDeckMemberPanel(deck, options = {}) {
+      const renderPreview = options.renderPreview !== false;
+      return `
+        <div
+          id="${escapeHtml(lingShenDeckMemberPanelId(deck.id))}"
+          class="leetcode-lingshen-members leetcode-series-members"
+          data-lingshen-deck-members="${escapeHtml(deck.id)}"
+          data-lingshen-deck-members-rendered="${renderPreview ? "true" : "false"}"
+        >
+          ${
+            renderPreview
+              ? renderLingShenDeckMembers(deck)
+              : `<span class="leetcode-popover-muted">${
+                  isChinesePage ? "展开小节后加载本组题目。" : "Members load when this section opens."
+                }</span>`
+          }
+        </div>
+      `;
+    }
+
+    function renderLingShenDeck(deck, options = {}) {
       const title = lingShenLocalizedTitle(deck);
       const statusLabel = statusFilterLabels.review;
       return `
@@ -11695,6 +11908,9 @@ const shortcutRows = [
             })}
           </div>
           ${renderLingShenProgress("deck", deck.id, deck.members)}
+          ${renderLingShenDeckMemberPanel(deck, {
+            renderPreview: options.renderPreview,
+          })}
           <div class="leetcode-lingshen-deck-actions">
             <button
               type="button"
@@ -11715,6 +11931,24 @@ const shortcutRows = [
           </div>
         </article>
       `;
+    }
+
+    function renderLingShenDeckMemberContainer(container, deck, options = {}) {
+      container.innerHTML = renderLingShenDeckMembers(deck, options);
+      container.dataset.lingshenDeckMembersRendered = "true";
+    }
+
+    function renderLingShenDeckMemberContainers(scope = document) {
+      scope.querySelectorAll('[data-lingshen-deck-members-rendered="false"]').forEach(
+        (container) => {
+          if (!(container instanceof HTMLElement)) return;
+          const deck = lingShenDeckById.get(
+            container.dataset.lingshenDeckMembers || "",
+          );
+          if (!deck) return;
+          renderLingShenDeckMemberContainer(container, deck);
+        },
+      );
     }
 
     function renderLingShenSection(section, index) {
@@ -11738,7 +11972,11 @@ const shortcutRows = [
             ${renderLingShenProgress("section", section.id, section.members)}
           </header>
           <div class="leetcode-lingshen-decks">
-            ${(section.decks || []).map(renderLingShenDeck).join("")}
+            ${(section.decks || [])
+              .map((deck) =>
+                renderLingShenDeck(deck, { renderPreview: !isExtra }),
+              )
+              .join("")}
           </div>
         </section>
       `;
@@ -11911,9 +12149,7 @@ const shortcutRows = [
         problem.paidOnly ? "is-paid" : "",
         "is-in-book",
       ].filter(Boolean).join(" ");
-      const rating = options.showRating && problem.lingShenRating
-        ? `<em>${escapeHtml(problem.lingShenRating)}</em>`
-        : "";
+      const rating = renderContestRating(problem, { empty: false });
       return `
         <button
           type="button"
@@ -11937,14 +12173,10 @@ const shortcutRows = [
       const key = container.dataset.memberListKey || "";
       const source = kind === "series" ? seriesByKey.get(key) : categoryById.get(key);
       const members = Array.isArray(source?.members) ? source.members : [];
-      const showRating =
-        kind === "category" &&
-        source?.collectionKey === practiceListKindLingShen;
       const items = members
         .map((slug) =>
           renderLazyMemberItem(problemBySlug.get(slug), {
             category: kind === "category",
-            showRating,
           }),
         )
         .filter(Boolean)
@@ -12026,7 +12258,7 @@ const shortcutRows = [
           ${problem.seriesSupplement ? `<span>${isChinesePage ? "系列补充" : "Series supplement"}</span>` : ""}
           ${problem.lingShen ? `<span>${isChinesePage ? "灵神题单" : "LingShen"}</span>` : ""}
           ${problem.lingShenSupplement ? `<span>${isChinesePage ? "灵神补充" : "LingShen supplement"}</span>` : ""}
-          ${problem.lingShenRating ? `<span>${isChinesePage ? "难度分" : "Rating"} ${escapeHtml(problem.lingShenRating)}</span>` : ""}
+          ${renderContestRatingMeta(problem)}
           ${(problem.seriesTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
           ${(problem.lingShenGroupTitles || []).slice(0, 2).map((title) => `<span>${escapeHtml(title)}</span>`).join("")}
           ${
@@ -12062,6 +12294,12 @@ const shortcutRows = [
           ? {
               className: `leetcode-difficulty ${badgeClass(item.difficulty)}`,
               label: item.difficulty,
+            }
+          : null,
+        item.contestRating
+          ? {
+              className: `leetcode-contest-rating ${contestRatingClass(item.contestRating)}`,
+              label: item.contestRating,
             }
           : null,
         { label: item.seriesTitle },
@@ -14029,12 +14267,6 @@ const shortcutRows = [
       previewHoverCloseTimer = 0;
     }
 
-    function clearGroupIdeaHoverCloseTimer() {
-      if (!groupIdeaHoverCloseTimer) return;
-      window.clearTimeout(groupIdeaHoverCloseTimer);
-      groupIdeaHoverCloseTimer = 0;
-    }
-
     function closePreviewPopovers(except = null) {
       clearPreviewHoverCloseTimer();
       list?.querySelectorAll("[data-preview].is-open").forEach((item) => {
@@ -14066,32 +14298,10 @@ const shortcutRows = [
     }
 
     function closeGroupIdeaPopovers(except = null) {
-      clearGroupIdeaHoverCloseTimer();
       document.querySelectorAll(".leetcode-group-idea.is-open").forEach((item) => {
         if (!(item instanceof HTMLElement) || item === except) return;
         setGroupIdeaOpen(item, false);
       });
-      document.querySelectorAll(".leetcode-group-idea.is-hover-open").forEach((item) => {
-        if (!(item instanceof HTMLElement) || item === except) return;
-        item.classList.remove("is-hover-open");
-      });
-    }
-
-    function keepGroupIdeaHoverOpen(groupIdea) {
-      clearGroupIdeaHoverCloseTimer();
-      document.querySelectorAll(".leetcode-group-idea.is-hover-open").forEach((item) => {
-        if (item === groupIdea) return;
-        item.classList.remove("is-hover-open");
-      });
-      groupIdea.classList.add("is-hover-open");
-    }
-
-    function scheduleGroupIdeaHoverClose(groupIdea) {
-      clearGroupIdeaHoverCloseTimer();
-      groupIdeaHoverCloseTimer = window.setTimeout(() => {
-        groupIdea.classList.remove("is-hover-open");
-        groupIdeaHoverCloseTimer = 0;
-      }, previewHoverCloseDelayMs);
     }
 
     function placePreviewPopover(previewButton) {
@@ -16126,6 +16336,7 @@ const shortcutRows = [
             </span>
           </div>
           <div><span class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</span></div>
+          <div class="leetcode-rating-cell">${renderContestRating(problem)}</div>
           <div class="leetcode-frequency">${escapeHtml(problem.frequency)}</div>
           <div class="leetcode-byte">${byteDance}</div>
           <div class="leetcode-status">
@@ -16405,10 +16616,38 @@ const shortcutRows = [
             if (section instanceof HTMLElement) section.hidden = expanded;
           },
         );
+        if (!expanded && topic instanceof HTMLElement) {
+          renderLingShenDeckMemberContainers(topic);
+        }
         lingShenTopicToggle.setAttribute("aria-expanded", String(!expanded));
         lingShenTopicToggle.textContent = expanded
           ? (lingShenTopicToggle.dataset.collapsedLabel || "")
           : (lingShenTopicToggle.dataset.expandedLabel || "");
+        return;
+      }
+      const lingShenDeckMembersToggle = target.closest(
+        "[data-lingshen-deck-members-toggle]",
+      );
+      if (lingShenDeckMembersToggle instanceof HTMLElement) {
+        const deck = lingShenDeckById.get(
+          lingShenDeckMembersToggle.dataset.lingshenDeckMembersToggle || "",
+        );
+        const container = lingShenDeckMembersToggle.closest(
+          "[data-lingshen-deck-members]",
+        );
+        if (deck && container instanceof HTMLElement) {
+          const expanded =
+            lingShenDeckMembersToggle.getAttribute("aria-expanded") === "true";
+          renderLingShenDeckMemberContainer(container, deck, {
+            expanded: !expanded,
+          });
+          const nextToggle = container.querySelector(
+            "[data-lingshen-deck-members-toggle]",
+          );
+          if (nextToggle instanceof HTMLElement) {
+            nextToggle.focus({ preventScroll: true });
+          }
+        }
         return;
       }
       const lingShenDeckPracticeButton = target.closest(
@@ -16665,28 +16904,6 @@ const shortcutRows = [
       schedulePreviewHoverClose(previewButton);
     });
 
-    document.addEventListener("pointerover", (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      const groupIdea = target.closest(".leetcode-group-idea");
-      if (!(groupIdea instanceof HTMLElement)) return;
-      keepGroupIdeaHoverOpen(groupIdea);
-    });
-
-    document.addEventListener("pointerout", (event) => {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-      const groupIdea = target.closest(".leetcode-group-idea");
-      if (!(groupIdea instanceof HTMLElement)) return;
-      if (
-        event.relatedTarget instanceof Node &&
-        groupIdea.contains(event.relatedTarget)
-      ) {
-        return;
-      }
-      scheduleGroupIdeaHoverClose(groupIdea);
-    });
-
     list?.addEventListener("change", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLSelectElement)) return;
@@ -16926,10 +17143,17 @@ const shortcutRows = [
     const restoredDeckFilter = state.filters.deck;
     if (restoredDeckFilter) {
       ensureLingShenRoadmap().then((loaded) => {
-        if (loaded && state.filters.deck === restoredDeckFilter) {
+        if (state.filters.deck !== restoredDeckFilter) return;
+        if (!loaded) {
           syncFilterButtons();
-          render();
+          return;
         }
+        if (!lingShenDeckById.has(restoredDeckFilter)) {
+          state.filters.deck = "";
+          scheduleViewStateWrite();
+        }
+        syncFilterButtons();
+        render();
       });
     }
     const directProblemSlug = applyDirectProblemLinkTarget();
@@ -17647,6 +17871,7 @@ const shortcutRows = [
     [data-ui-tip]::after {
       position: absolute;
       z-index: 45;
+      pointer-events: none;
       opacity: 0;
       transition:
         opacity 0.12s ease,
@@ -19293,17 +19518,6 @@ const shortcutRows = [
       min-width: 0;
     }
 
-    .leetcode-group-idea::after {
-      content: "";
-      position: absolute;
-      top: 100%;
-      right: 0;
-      z-index: 25;
-      display: none;
-      width: min(24rem, 100%);
-      height: 0.42rem;
-    }
-
     .leetcode-group-idea-popover {
       position: absolute;
       top: calc(100% + 0.34rem);
@@ -19325,11 +19539,7 @@ const shortcutRows = [
       white-space: normal;
     }
 
-    .leetcode-group-idea:hover::after,
-    .leetcode-group-idea.is-hover-open::after,
-    .leetcode-group-idea.is-open::after,
     .leetcode-group-idea:hover .leetcode-group-idea-popover,
-    .leetcode-group-idea.is-hover-open .leetcode-group-idea-popover,
     .leetcode-group-idea.is-open .leetcode-group-idea-popover {
       display: grid;
       gap: 0.48rem;
@@ -19620,6 +19830,7 @@ const shortcutRows = [
 
     .leetcode-lingshen-topic-actions button,
     .leetcode-lingshen-deck-actions button,
+    .leetcode-lingshen-member-toggle,
     .leetcode-lingshen-topic-toggle {
       min-height: 1.42rem;
       border: 1px solid rgb(217 119 87 / 42%);
@@ -19639,6 +19850,8 @@ const shortcutRows = [
     .leetcode-lingshen-deck-actions button:hover,
     .leetcode-lingshen-deck-actions button:focus-visible,
     .leetcode-lingshen-deck-actions button.is-active,
+    .leetcode-lingshen-member-toggle:hover,
+    .leetcode-lingshen-member-toggle:focus-visible,
     .leetcode-lingshen-topic-toggle:hover,
     .leetcode-lingshen-topic-toggle:focus-visible {
       background: rgb(217 119 87 / 14%);
@@ -19720,6 +19933,31 @@ const shortcutRows = [
       font-weight: 690;
       line-height: 1.26;
       overflow-wrap: anywhere;
+    }
+
+    .leetcode-lingshen-members {
+      gap: 0.18rem;
+    }
+
+    .leetcode-lingshen-members .leetcode-series-member {
+      grid-template-columns: minmax(0, 1fr) auto;
+      border-color: rgb(194 192 182 / 38%);
+      background: rgb(255 255 255 / 28%);
+      font-size: 0.68rem;
+      padding: 0.22rem 0.32rem;
+    }
+
+    .leetcode-lingshen-members .leetcode-series-member-title {
+      white-space: normal;
+    }
+
+    .leetcode-lingshen-member-toggle {
+      justify-self: start;
+      margin-top: 0.04rem;
+    }
+
+    .leetcode-lingshen-member-toggle:focus-visible {
+      box-shadow: 0 0 0 0.16rem rgb(217 119 87 / 18%);
     }
 
     .leetcode-lingshen-deck-actions {
@@ -19899,7 +20137,7 @@ const shortcutRows = [
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 2.45rem 2.45rem 2.45rem minmax(17rem, 1fr) 3.5rem 4.15rem 5rem 7.35rem;
+      grid-template-columns: 2.45rem 2.45rem 2.45rem minmax(16rem, 1fr) 3.5rem 4.1rem 4.15rem 5rem 7.35rem;
       min-width: 0;
       gap: 0.3rem;
       align-items: center;
@@ -20114,9 +20352,62 @@ const shortcutRows = [
     }
 
     .leetcode-rank,
+    .leetcode-rating-cell,
     .leetcode-frequency {
       font-family: var(--leetcode-page-font);
       font-size: 0.8rem;
+    }
+
+    .leetcode-rating-cell {
+      text-align: center;
+    }
+
+    .leetcode-contest-rating {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 3.1rem;
+      border: 1px solid rgb(126 132 112 / 34%);
+      border-radius: 0.38rem;
+      background: rgb(255 255 255 / 58%);
+      color: #59603f;
+      font-family: var(--leetcode-page-font);
+      font-size: 0.74rem;
+      font-weight: 800;
+      line-height: 1.1;
+      padding: 0.18rem 0.32rem;
+      white-space: nowrap;
+    }
+
+    .leetcode-contest-rating.is-low {
+      border-color: rgb(91 128 95 / 34%);
+      color: #3f784d;
+    }
+
+    .leetcode-contest-rating.is-mid {
+      border-color: rgb(184 123 0 / 34%);
+      color: #996800;
+    }
+
+    .leetcode-contest-rating.is-high {
+      border-color: rgb(205 93 55 / 38%);
+      color: #bc5639;
+    }
+
+    .leetcode-contest-rating.is-elite {
+      border-color: rgb(119 96 176 / 40%);
+      color: #6650a6;
+    }
+
+    .leetcode-contest-rating.is-empty {
+      border-style: dashed;
+      color: var(--color-muted);
+      opacity: 0.58;
+    }
+
+    html.dark .leetcode-contest-rating {
+      background: rgb(24 24 22 / 72%);
+      border-color: rgb(238 228 210 / 22%);
     }
 
     .leetcode-byte {
@@ -21448,6 +21739,7 @@ const shortcutRows = [
     html.dark .leetcode-lingshen-topic-index,
     html.dark .leetcode-lingshen-topic-actions button,
     html.dark .leetcode-lingshen-deck-actions button,
+    html.dark .leetcode-lingshen-member-toggle,
     html.dark .leetcode-lingshen-topic-toggle {
       border-color: rgb(226 149 120 / 42%);
       background: rgb(226 149 120 / 11%);
@@ -21459,6 +21751,8 @@ const shortcutRows = [
     html.dark .leetcode-lingshen-deck-actions button:hover,
     html.dark .leetcode-lingshen-deck-actions button:focus-visible,
     html.dark .leetcode-lingshen-deck-actions button.is-active,
+    html.dark .leetcode-lingshen-member-toggle:hover,
+    html.dark .leetcode-lingshen-member-toggle:focus-visible,
     html.dark .leetcode-lingshen-topic-toggle:hover,
     html.dark .leetcode-lingshen-topic-toggle:focus-visible {
       background: rgb(226 149 120 / 16%);
@@ -21476,6 +21770,15 @@ const shortcutRows = [
 
     html.dark .leetcode-lingshen-deck {
       border-color: #333;
+    }
+
+    html.dark .leetcode-lingshen-members .leetcode-series-member {
+      border-color: #333;
+      background: rgb(255 255 255 / 5%);
+    }
+
+    html.dark .leetcode-lingshen-member-toggle:focus-visible {
+      box-shadow: 0 0 0 0.16rem rgb(226 149 120 / 22%);
     }
 
     html.dark .leetcode-series-group h3,
@@ -21520,6 +21823,14 @@ const shortcutRows = [
 
     .leetcode-series-member-meta .leetcode-difficulty {
       border-radius: 0;
+      font-size: 0.66rem;
+      padding: 0;
+    }
+
+    .leetcode-series-member-meta .leetcode-contest-rating {
+      min-width: auto;
+      border: 0;
+      background: transparent;
       font-size: 0.66rem;
       padding: 0;
     }
@@ -21864,6 +22175,14 @@ const shortcutRows = [
 
     .leetcode-related-meta .leetcode-difficulty {
       font-weight: 700;
+    }
+
+    .leetcode-related-meta .leetcode-contest-rating {
+      min-width: auto;
+      border-radius: 999px;
+      background: rgb(126 132 112 / 9%);
+      font-size: 0.68rem;
+      padding: 0.08rem 0.34rem;
     }
 
     .leetcode-related-meta .leetcode-difficulty.is-easy {
@@ -22405,13 +22724,18 @@ const shortcutRows = [
         grid-row: 2;
       }
 
-      .leetcode-row > .leetcode-frequency {
+      .leetcode-row > .leetcode-rating-cell {
         grid-column: 2;
         grid-row: 2;
       }
 
+      .leetcode-row > .leetcode-frequency {
+        grid-column: 3;
+        grid-row: 2;
+      }
+
       .leetcode-row > .leetcode-byte {
-        grid-column: 3 / -1;
+        grid-column: 4;
         grid-row: 2;
       }
 

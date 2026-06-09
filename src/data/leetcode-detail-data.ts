@@ -14,6 +14,7 @@ import {
   leetcodeSeriesProblems,
 } from "./leetcode-series";
 import { leetcodeLingShenProblems } from "./leetcode-lingshen";
+import { leetcodeContestRatings } from "./leetcode-contest-ratings";
 
 const leetcodeTargetLimit = 888;
 const relatedTopicPeerLimit = 6;
@@ -174,6 +175,12 @@ function relatedSummary(question, catalogBySlug, currentSlug) {
   const difficulty = bookProblem?.difficulty ?? question.difficulty ?? "";
   return {
     current: question.titleSlug === currentSlug,
+    contestProblemIndex: bookProblem?.contestProblemIndex ?? "",
+    contestRating: bookProblem?.contestRating ?? null,
+    contestRatingSource: bookProblem?.contestRatingSource ?? "",
+    contestSlug: bookProblem?.contestSlug ?? "",
+    contestTitle: bookProblem?.contestTitle ?? "",
+    contestTitleEn: bookProblem?.contestTitleEn ?? "",
     difficulty,
     frontendId: bookProblem?.frontendId ?? "",
     frequencyRank: bookProblem?.frequencyRank ?? null,
@@ -272,6 +279,7 @@ const leetcodeSeriesProblemBySlug = new Map(
 const lingShenBySlug = new Map(
   leetcodeLingShenProblems.map((problem) => [problem.titleSlug, problem]),
 );
+const contestRatingBySlug = new Map(Object.entries(leetcodeContestRatings));
 const leetcodeSeriesDefinitionByKey = new Map(
   leetcodeSeriesDefinitions.map((definition) => [definition.key, definition]),
 );
@@ -299,6 +307,25 @@ function seriesTitlesFor(slug) {
     .filter(Boolean);
 }
 
+function contestRatingFields(slug, lingShen) {
+  const contest = contestRatingBySlug.get(slug);
+  const lingShenRating =
+    typeof lingShen?.rating === "number" ? lingShen.rating : null;
+  const contestRating = contest?.rating ?? lingShenRating;
+  return {
+    contestProblemIndex: contest?.problemIndex ?? "",
+    contestRating: contestRating ?? null,
+    contestRatingSource: contest
+      ? "zerotrac"
+      : contestRating
+        ? "lingshen"
+        : "",
+    contestSlug: contest?.contestSlug ?? "",
+    contestTitle: contest?.contestTitle ?? "",
+    contestTitleEn: contest?.contestTitleEn ?? "",
+  };
+}
+
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
   const lingShen = lingShenBySlug.get(problem.titleSlug);
@@ -322,6 +349,7 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     lingShenGroupKeys: lingShen?.groupKeys ?? [],
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
+    ...contestRatingFields(problem.titleSlug, lingShen),
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -356,6 +384,7 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     lingShenGroupKeys: lingShenBySlug.get(problem.titleSlug)?.groupKeys ?? [],
     lingShenRank: lingShenBySlug.get(problem.titleSlug)?.lingshenRank ?? null,
     lingShenRating: lingShenBySlug.get(problem.titleSlug)?.rating ?? null,
+    ...contestRatingFields(problem.titleSlug, lingShenBySlug.get(problem.titleSlug)),
     statementPreview: problem.statementPreview ?? "",
     approachPreview: problem.approachPreview ?? "",
     followUps: problem.followUps ?? [],
@@ -406,6 +435,7 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     lingShenGroupKeys: lingShenBySlug.get(problem.titleSlug)?.groupKeys ?? [],
     lingShenRank: lingShenBySlug.get(problem.titleSlug)?.lingshenRank ?? null,
     lingShenRating: lingShenBySlug.get(problem.titleSlug)?.rating ?? null,
+    ...contestRatingFields(problem.titleSlug, lingShenBySlug.get(problem.titleSlug)),
     statementPreview: problem.statementPreview,
     approachPreview: problem.approachPreview,
     followUps: problem.followUps ?? [],
@@ -460,6 +490,7 @@ const leetcodeLingShenSupplements = leetcodeLingShenProblems
     lingShenGroupKeys: problem.groupKeys,
     lingShenRank: problem.lingshenRank,
     lingShenRating: problem.rating,
+    ...contestRatingFields(problem.titleSlug, problem),
     statementPreview: problem.statementPreview,
     approachPreview: problem.approachPreview,
     followUps: problem.followUps ?? [],
@@ -544,6 +575,11 @@ function problemSearchText(problem, implementationReferences, relatedQuestions) 
       item.company,
       item.sourceTitle,
     ]),
+    problem.contestRating ? `周赛难度分 ${problem.contestRating}` : "",
+    problem.contestRating ? `contest rating ${problem.contestRating}` : "",
+    problem.contestTitle,
+    problem.contestTitleEn,
+    problem.contestProblemIndex,
     ...implementationReferences.flatMap((item) => [
       item.language,
       item.provenance,
