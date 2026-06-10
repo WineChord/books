@@ -1,5 +1,7 @@
 # 源码索引
 
+> **阅读契约：** 把本页当作审计索引，而不是预习材料。先读正文把 claim 理清，再打开链接按 pinned commit 核对 owner、函数和行级证据。
+
 所有链接都固定到公开 Codex 源码 commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。 本页用于审计；正文应当可以独立阅读。
 
 ## 上下文边界

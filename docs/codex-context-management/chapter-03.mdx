@@ -14,6 +14,8 @@ import {
 
 <HistoryLedgerAnimator lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to follow the history ledger. Track how items are recorded, normalized, trimmed, and prepared for a provider without losing the protocol shape needed for replay.
+
 Chapter 2 described the turn envelope. The next problem is the durable side: what happens to all the model-visible items accumulated over a thread? Codex does not keep history as an opaque transcript. It uses `ContextManager` as a ledger of response items ordered oldest to newest, with token information, history versioning, and a reference context baseline for future settings diffs.
 
 The job of the history ledger is deceptively hard. It must record only the items that belong in API history, apply truncation policy to large outputs, preserve function-call invariants, strip unsupported modalities before sampling, estimate token usage, and survive replacement during compaction or rollback.

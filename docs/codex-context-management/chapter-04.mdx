@@ -9,6 +9,8 @@ import {
 
 <FragmentComposer lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to see runtime facts become typed fragments. Track the baseline, the diff, and the injection point; the key question is why Codex can update state without retelling the whole world.
+
 Chapter 3 showed how Codex keeps prompt-ready history. The next problem is how runtime facts enter that history. A naive system repeats a giant preamble every turn: current directory, permissions, mode, realtime state, model guidance, skills, and user instructions. Codex instead uses typed context fragments and settings diffs. Stable context is injected once; later turns inject only changes when a reference baseline exists.
 
 This design is not just token optimization. It is semantic hygiene. The model should see that permissions changed because that fact matters now, not because a wall of boilerplate was pasted again.

@@ -12,6 +12,8 @@ import {
 
 <ClientFanoutMap lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to separate context ownership from context display. Track what TUI, realtime, app-server, token usage, and trace can expose without becoming the source of truth.
+
 Chapter 7 showed that the runtime can reconstruct effective context from rollout evidence. The final layer is exposure. Users and clients need to see context state: token usage, compaction warnings, realtime mode, thread history, and replayed usage when attaching to an existing thread. Codex exposes those facts through the TUI, app-server notifications, realtime context modules, rollout trace, and telemetry. The key rule remains the same: clients render context; the runtime owns it.
 
 This separation prevents a UI from becoming an alternate context manager. The TUI can show remaining context. The app-server can replay token usage. A trace can explain compaction. But the live history ledger and turn envelope stay in core.

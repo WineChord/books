@@ -1,5 +1,7 @@
 # Source Atlas
 
+> **Reading Contract:** Use this page as an audit index, not prerequisite reading. Open links only after a claim is clear in prose, then verify owner, function, and line-level evidence against the pinned commit.
+
 All links point to public Codex source pinned at [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). The book should stand on its own; this page is for audit.
 
 ## Context Boundary

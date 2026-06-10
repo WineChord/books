@@ -9,6 +9,8 @@ import {
 
 <FragmentComposer lang="zh" client:visible />
 
+> **阅读契约：** 把本章当作 typed fragments 的装配图。阅读时盯住 baseline、diff 和注入点；关键问题是 Codex 为什么能更新运行时事实，而不需要重新讲完整世界。
+
 第 3 章展示了 Codex 如何保持 prompt-ready 历史。下一个问题是运行时事实如何进入这份历史。朴素系统每个 turn 都重复一段巨大的开场白：当前目录、权限、模式、realtime 状态、模型指引、skills 和用户指令。Codex 改用 typed context fragments 和 settings diffs：稳定上下文只注入一次；后续 turn 仅在存在 reference baseline 时注入变化。
 
 这不仅仅是 token 优化，更是语义卫生。模型应该看到"权限改变了"，因为这件事现在很重要，而不是因为 boilerplate 又被粘了一次。

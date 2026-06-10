@@ -13,6 +13,8 @@ import {
 
 <CompactionSimulator lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to treat compaction as checkpoint installation. Track who triggers it, what history it replaces, and what evidence remains for future turns.
+
 Chapter 5 covered optional context budgets. Budgets delay the inevitable; they do not eliminate it. Long threads eventually exceed the useful context window. Codex's answer is compaction, but the important design choice is that compaction is a checkpoint protocol. It does not merely ask a model to summarize old text. It installs replacement history, updates the reference context baseline, emits events, runs hooks, resets provider session state when needed, and recomputes token usage.
 
 This is where Codex most clearly treats forgetting as a governed operation.

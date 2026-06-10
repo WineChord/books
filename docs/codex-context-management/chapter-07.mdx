@@ -12,6 +12,8 @@ import {
 
 <RolloutReplayScrubber lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to read resume, rollback, fork, and replay as reconstruction problems. Track the durable facts that let Codex rebuild prompt state after time or branching.
+
 Chapter 6 explained compaction as a checkpoint protocol. That protocol only pays off if the system can later reconstruct effective context. Codex has to resume old threads, roll back recent user turns, fork work for child agents, and replay enough history for clients. The runtime cannot trust an in-memory vector after process exit or branching. It must rebuild from rollout evidence.
 
 The reconstruction code is one of the clearest examples of Codex's context discipline. It scans rollout items from newest to oldest to find the latest surviving replacement-history checkpoint and resume metadata, then replays the surviving suffix forward. Rollback markers are applied while scanning, so the rebuilt history reflects effective state rather than raw event order.

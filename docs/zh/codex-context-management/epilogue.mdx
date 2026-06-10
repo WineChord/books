@@ -1,5 +1,7 @@
 # 结语：上下文纪律
 
+> **阅读契约：** 把本页当作迁移测试。设计任何 agent runtime 时，都追问谁拥有上下文、它活多久、如何被压缩、以及将来如何被重建。
+
 核心教训不是 Codex 有一个聪明的摘要 prompt，而是一个严肃的 agent runtime 必须像数据库治理状态那样治理上下文：它需要 owner、生命周期、checkpoint、diff、projection 和 replay。
 
 模式可以迁移：

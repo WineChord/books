@@ -12,6 +12,8 @@ import {
 
 <ClientFanoutMap lang="zh" client:visible />
 
+> **阅读契约：** 把本章当作 context ownership 与 context display 的分界。阅读时分清 TUI、realtime、app-server、token usage 和 trace 能展示什么，以及它们为什么不是 truth source。
+
 第 7 章展示了 runtime 可以从 rollout 证据重建有效上下文。最后一层是暴露：用户和客户端需要看到上下文状态：token usage、compaction 提示、realtime 模式、thread 历史，以及附加到已存在线程时的回放 usage。Codex 通过 TUI、app-server 通知、realtime context 模块、rollout trace 和 telemetry 暴露这些事实。核心规则始终是：客户端渲染上下文，runtime 拥有上下文。
 
 这种分离让 UI 不会变成另一个 context manager：TUI 可以显示剩余上下文，app-server 可以回放 token usage，trace 可以解释 compaction，但 live 历史账本和 turn envelope 留在 core。

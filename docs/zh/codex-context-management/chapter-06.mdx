@@ -13,6 +13,8 @@ import {
 
 <CompactionSimulator lang="zh" client:visible />
 
+> **阅读契约：** 把本章当作 checkpoint 安装协议。阅读时跟住谁触发压缩、它替换哪段历史、以及哪些证据会留给后续 turn。
+
 第 5 章讨论了可选上下文预算。预算只能延后不可避免；它不能消灭。长线程最终一定会超过有效上下文窗口。Codex 的答案是 compaction，但关键设计是 compaction 是一个 checkpoint 协议。它不只是请模型摘要旧文本，而是安装 replacement history、更新 reference context baseline、发送事件、运行 hooks、必要时重置 provider session 状态、重新计算 token 使用量。
 
 这是 Codex 把"遗忘"明确当作受治理操作的最清楚位置。
