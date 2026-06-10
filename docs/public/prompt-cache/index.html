@@ -267,10 +267,18 @@
 <p>一轮请求里可能有系统规则、工具定义、项目说明、运行环境、历史消息、工具输出、图片、文档、摘要和最新用户输入。前几轮还好，几十轮以后，输入会迅速膨胀。每一轮都把所有内容重新送进模型，成本高，延迟高，也更容易把真正重要的信息挤出窗口。</p>
 <p>Prompt cache 解决的是其中一部分问题：如果连续请求共享相同前缀，服务端可以复用已经处理过的前缀计算。它不是语义缓存，不是“这两句话意思差不多就命中”。它更接近字节和结构层面的前缀复用：前面那段 prompt 越稳定，缓存越容易命中。</p>
 <p>代码 Agent 的难点在于，prompt 不是一段静态文本。它是运行时拼出来的“模型视图”。Claude Code 和 Codex 的源码都在围绕这个视图做工作：哪些内容放前面，哪些内容放尾部，哪些内容落盘，哪些内容摘要，哪些内容只在 UI 里保留，哪些内容真正送进模型。</p>
-<p>本文从源码角度拆开这件事。</p>
+<p>这篇文章只抓一条主线：prompt cache 不是一个孤立的 API 参数，而是一整套“模型视图纪律”。源码里所有看似分散的设计，最后都在回答四个问题：</p>
+<ol>
+<li>provider 到底允许缓存哪一段前缀？</li>
+<li>runtime 怎么让这段前缀尽量稳定？</li>
+<li>工具输出和历史膨胀时，是先局部减压，还是直接总结整段对话？</li>
+<li>压缩之后，下一轮请求怎样知道模型应该从哪里继续看？</li>
+</ol>
+<p>把这四个问题串起来，Claude Code 和 Codex 的差异就不再是“一个手动、一个自动”这么粗的描述，而是两套 runtime 在不同 provider contract 下，对同一个长上下文问题给出的两种工程答案。</p>
 <p><img src="assets/context-pressure-overview.png" alt="长上下文与提示缓存策略总览"></p>
-<p>接下来按四层展开：先建立模型视图的心智模型，再看 Claude Code 怎样用显式缓存断点维护这条视图，然后看 Codex 怎样在自动 prefix cache 下维护可恢复历史，最后把两套设计放到一起比较。</p>
+<p>接下来按这条问题链展开：先建立“模型视图”的坐标系，再看 Claude Code 怎样围绕显式缓存断点维护这条视图，然后看 Codex 怎样在自动 prefix cache 下维护可恢复历史，最后把两套设计压回同一张对照图。</p>
 <h2>一、心智模型：缓存命中的是模型视图</h2>
+<p>先不急着进源码。这里要先立一个坐标系：我们讨论的不是“聊天窗口里看到了什么”，也不是“磁盘上保存了什么”，而是本轮 API 请求里模型实际看到了什么。后面的 <code>getUserContext()</code>、<code>compact_boundary</code>、<code>replacement_history</code>、<code>AGENTS.md</code>，全都要放回这个坐标系里理解。</p>
 <h3>1. 三种历史：UI、磁盘和模型</h3>
 <p>理解 prompt cache 之前，要先区分三种“历史”。</p>
 <p>第一种是 UI 历史，也就是用户在界面上看到的 scrollback。它应该尽量完整，因为用户需要回看、复制、调试。</p>
@@ -320,6 +328,7 @@ compaction 后保留可恢复的边界或替换历史
 </code></pre>
 <p>这个模型比“system prompt 一次性全塞满”更准确。</p>
 <h2>二、Claude Code：显式缓存断点下的模型视图纪律</h2>
+<p>Claude Code 的主线可以概括成一句话：既然 Anthropic 给了显式 <code>cache_control</code>，runtime 就必须先把 breakpoint 前面的模型视图整理得足够稳定。于是它不是一上来就“总结历史”，而是按压力来源分层处理：基础规则先稳定，大工具结果先落盘，中段历史可以投影裁剪，旧工具结果可以微清理，最后撑不住时才做完整 compaction。</p>
 <h3>4. <code>getUserContext()</code> 是 memoized 的基础 context</h3>
 <p>Claude Code 里，<code>getUserContext()</code> 是理解项目规则注入的入口。</p>
 <p>源码位置：<code>src/context.ts</code></p>
@@ -359,10 +368,11 @@ As you answer the user&#39;s questions, you can use the following context:
 </code></pre>
 <p>图里把源码里的关键节点放在同一条链上：</p>
 <p><img src="assets/claude-code-context-pressure-ladder.svg" alt="Claude Code 请求里的上下文压力处理顺序"></p>
-<p>这条顺序非常重要。</p>
+<p>这条顺序非常重要，因为它揭示了 Claude Code 的节奏：先决定模型要看哪段历史，再削掉明显不该进入 prompt 的重量，最后才把基础 context 和缓存断点放上去。缓存控制不是第一步，而是前面一系列投影和减压之后的收口。</p>
 <p><code>getMessagesAfterCompactBoundary()</code> 先决定 compact 之后模型应该从哪里开始看。随后 tool result budget、snip、microcompact、context-collapse、autocompact 都是在调小或投影 <code>messagesForQuery</code>。最后才 prepend 基础 user context，并放 Anthropic cache breakpoint。</p>
 <p>换句话说，Claude Code 不是每轮把完整 transcript 直接发给模型，再指望 provider 缓存兜底。它先在本地构造一个更小、更稳定、更适合缓存的模型视图。</p>
 <h3>6. 大工具结果落盘：不是 compaction，而是 prompt 入口前的减负</h3>
+<p>从这里开始进入 Claude Code 的“减压栈”。第一类压力不是历史太长，而是某个新鲜工具结果刚产生就太大：日志、搜索结果、JSON、测试输出，一次就可能把窗口推到危险区。这个问题如果等到 autocompact 再处理，就太晚了。</p>
 <p>工具输出是长上下文 Agent 最容易失控的地方。</p>
 <p>一次 <code>grep</code> 可能返回几万行；一次 shell 命令可能输出巨大日志；一次 JSON 工具结果可能有几 MB。如果这些结果原样留在 messages 里，prompt cache 会被两个方向拖垮：</p>
 <ul>
@@ -499,6 +509,7 @@ cached:
 <p>所以 boundary 的本质是“模型视图边界”，不是 UI 分割线。</p>
 <h3>11. 四种变小机制放在一起看</h3>
 <p>大结果落盘、snip、microcompact、context-collapse、autocompact 都会让模型输入变小，但它们不是同一种机制。</p>
+<p>把它们放在一张图里，层级感就出来了：越靠前越局部，越靠后越语义化；越靠前越像保持原历史，只改变模型投影，越靠后越像给后续会话建立新的起点。</p>
 <p><img src="assets/claude-code-trimming-stack.svg" alt="Claude Code snip、microcompact、context-collapse、autocompact 分层"></p>
 <p>可以按粒度排序：</p>
 <pre><code class="language-text">大结果落盘:
@@ -518,6 +529,7 @@ autocompact:
 </code></pre>
 <p>这就是 Claude Code 长上下文管理的层级感：能局部处理就局部处理，局部处理不够再摘要，摘要以后用 boundary 保证后续请求不把旧内容带回来。</p>
 <h3>12. <code>addCacheBreakpoints()</code>：怎样保护缓存点</h3>
+<p>前面所有步骤都在整理 breakpoint 前的形状。到了 <code>addCacheBreakpoints()</code>，才是真正把 Anthropic 的 cache contract 落到请求上：该让 provider 读哪段已有缓存，该把新的缓存尾巴写在哪里，哪些一次性 fork 只该读缓存、不该污染后续缓存。</p>
 <p>Claude Code 的 Anthropic 请求路径里，<code>addCacheBreakpoints()</code> 是核心缓存控制函数。</p>
 <p>源码位置：<code>src/services/api/claude.ts</code></p>
 <p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上，相当于告诉 Claude：本轮最新 message 之前的完整前缀都值得作为后续请求的缓存候选。</p>
@@ -537,6 +549,7 @@ autocompact:
 </ul>
 <p>这些细节都指向同一个目标：在 Anthropic 的显式 breakpoint 模型下，让 breakpoint 前的内容尽量稳定。</p>
 <h2>三、Codex：自动 prefix cache 下的可恢复历史</h2>
+<p>Codex 换了另一个 provider contract，文章的重心也要跟着换。OpenAI 侧没有 Claude 那样的 per-block breakpoint，所以 Codex 不是围绕“缓存点放在哪条 message 上”组织代码，而是围绕三个东西组织：<code>prompt_cache_key</code> 稳定缓存域，initial context 稳定会话基线，<code>replacement_history</code> 稳定压缩后的恢复形状。</p>
 <h3>13. 自动 prefix cache 加 <code>prompt_cache_key</code></h3>
 <p>Codex 面对的是 OpenAI 的自动 prefix cache。</p>
 <p>源码位置：<code>codex-rs/core/src/client.rs</code></p>
@@ -630,6 +643,7 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <p>Codex 还有一个 mid-turn compaction 的细节：<code>InitialContextInjection</code> 可以选择 <code>BeforeLastUserMessage</code>。<code>compact.rs</code> 里的注释说得很直白：mid-turn compaction 后，模型被训练成把 compaction summary 看作 history 的最后一项，所以 runtime 会把 initial context 插在最后一个真实 user message 或 summary 前面，而不是追加到 summary 后面。</p>
 <p>这个动作经常被误解成“compact 顺便刷新了 AGENTS.md”。从源码看不是这样。<code>process_compacted_history()</code> 调的是 <code>sess.build_initial_context(turn_context)</code>；而 <code>build_initial_context()</code> 读的是当前 <code>TurnContext</code> 里的 session snapshot。它会先过滤远端 compact 输出里可能陈旧或重复的 developer message、AGENTS wrapper、environment wrapper，再把当前 session 的 canonical initial context 放回 replacement history。目标是让压缩后的模型历史仍然自洽，而不是借 compaction 热更新磁盘上的规则文件。</p>
 <h2>四、对比和结论</h2>
+<p>现在可以把两条路线放到同一张地图里。Claude Code 的核心动作是“在完整 transcript 之上维护请求投影和显式缓存边界”；Codex 的核心动作是“把会话基线和压缩后的模型历史做成可恢复账本”。前者看起来更像一套 projection pipeline，后者看起来更像一套 replay / replacement ledger。</p>
 <h3>18. 对比表</h3>
 <table>
 <thead>
@@ -697,7 +711,7 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <p>第四个坑：把 Claude 和 OpenAI 的缓存控制混用。Claude 的 <code>cache_control</code> 是 block / request 级控制点；OpenAI 更偏自动 prefix cache 和 <code>prompt_cache_key</code>。源码里的 runtime 设计正是围绕这两个 contract 展开的。</p>
 <p>第五个坑：把 <code>compact_boundary</code> 和 <code>replacement_history</code> 看成同一种东西。它们都服务于 compaction 后的恢复，但一个是切片边界，一个是替换后的模型历史。</p>
 <h3>20. 结论：缓存优化的核心是模型视图纪律</h3>
-<p>Prompt cache 的关键不只是 API 参数。<code>cache_control</code>、<code>cached_tokens</code>、<code>prompt_cache_key</code> 都只是外层接口。真正决定效果的是 Agent runtime 怎样组织模型看到的历史。</p>
+<p>Prompt cache 的关键不只是 API 参数。<code>cache_control</code>、<code>cached_tokens</code>、<code>prompt_cache_key</code> 都只是外层接口。真正决定效果的是 Agent runtime 怎样组织模型看到的历史：哪些内容稳定地留在前缀，哪些内容被推到尾部，哪些内容只留在 UI 或磁盘，哪些内容被 summary 覆盖，压缩之后又由什么边界或替换历史承接。</p>
 <p>Claude Code 的路线是：在完整本地历史上维护请求投影，用 memoized context 稳住基础规则，用大结果落盘和 microcompact 控制工具输出，用 snip / context-collapse 做细粒度历史投影，最后用 autocompact 和 <code>compact_boundary</code> 建立新的模型视图起点。</p>
 <p>Codex 的路线是：利用 OpenAI 自动 prefix cache 和 <code>prompt_cache_key</code>，用 <code>AGENTS.md</code> 的 session snapshot 和 initial context 建立可恢复 baseline，用 <code>TurnContextItem</code> 记录上下文变化，用 <code>replacement_history</code> 安装压缩后的模型历史。</p>
 <p>两者的共同原则可以压缩成一句话：</p>
