@@ -24,6 +24,18 @@ Preferred flow:
 5. Use examples at every boundary where readers are likely to confuse concepts.
 6. End with a comparison table or distilled operational rules.
 
+For multi-page technical books or batch article passes, add a compact reading
+contract before changing deep prose:
+
+- Landing pages should expose a short reading route that tells readers which
+  system layers to visit first.
+- Chapters and reference pages should include a brief "Reading Contract" or
+  "阅读契约" near the top, after the title and any hero visual.
+- The contract should name the page's main question, the owners or boundaries
+  to track, and the check a reader should be able to answer afterward.
+- Keep these contracts local to the page, source-safe, and localized; do not
+  include editing process notes or private rationale.
+
 Never expose process instructions, private prompts, TODO comments, or hidden
 editing rationale in public prose.
 
