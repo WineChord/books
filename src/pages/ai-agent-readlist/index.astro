@@ -1,297 +1,103 @@
 ---
+import { renderToString } from "katex";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { assetUrl } from "../../urls";
 
-const title = "AI Agent Readlist";
+const base = import.meta.env.BASE_URL;
+const title = "AI Agent 阅读路线：从上下文到 Harness 的六条机制路径";
 const description =
-  "A curated 2026 reading map for AI agents: context management, multi-agent systems, code execution sandboxes, self-evolution, evaluation, and harness engineering.";
+  "一篇 source-grounded 的中文 AI Agent 工程长文：从上下文、子智能体、沙箱、自进化、评测到 harness，把 OpenAI、Anthropic、Cursor 与经典论文放进同一张机制地图。";
 
-const pillars = [
-  ["Context", "memory / knowledge / summary / compaction", "把上下文窗口当作稀缺工作内存，而不是无限日志。"],
-  ["Team", "multi-agent / subagent / cloud agents", "研究、实现、评审、验证可以拆开，但必须有协议和共享状态。"],
-  ["Runtime", "code executor / sandbox", "沙箱不是只跑 Docker；它是文件、网络、凭证、资源和审计边界。"],
-  ["Learning", "self-evolution", "从一次性反思走向可验证的规则、技能、记忆和训练数据闭环。"],
-  ["Measurement", "evaluation", "agent eval 衡量的是模型、工具、环境、预算和评分器的组合系统。"],
-  ["Harness", "engineering", "真正的产品差异往往在 agent loop、状态机、恢复、验证和交付路径。"],
-];
+const figures = {
+  cover: assetUrl(base, "ai-agent-readlist/assets/cover-ai-agent-readlist-2026.png"),
+  overview: assetUrl(base, "ai-agent-readlist/assets/agent-reading-map-2026.png"),
+  contracts: assetUrl(base, "ai-agent-readlist/assets/provider-company-contracts.png"),
+  context: assetUrl(base, "ai-agent-readlist/assets/context-working-set-map.png"),
+  team: assetUrl(base, "ai-agent-readlist/assets/team-subagent-boundaries.png"),
+  runtime: assetUrl(base, "ai-agent-readlist/assets/runtime-sandbox-boundary.png"),
+  learning: assetUrl(base, "ai-agent-readlist/assets/learning-loop-map.png"),
+  measurement: assetUrl(base, "ai-agent-readlist/assets/measurement-trajectory-map.png"),
+  harness: assetUrl(base, "ai-agent-readlist/assets/harness-delivery-path.png"),
+};
 
-const essentials = [
-  {
-    title: "A practical guide to building agents",
-    org: "OpenAI",
-    url: "https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/",
-    tag: "入门总纲",
-    why: "先建立 agent、workflow、tool、guardrail、orchestration 的共同词汇。",
-  },
-  {
-    title: "Building effective agents",
-    org: "Anthropic",
-    url: "https://www.anthropic.com/research/building-effective-agents",
-    tag: "架构模式",
-    why: "把复杂 agent 拆成 prompt chaining、routing、parallelization、orchestrator-workers、evaluator-optimizer 等简单模式。",
-  },
-  {
-    title: "Unrolling the Codex agent loop",
-    org: "OpenAI",
-    url: "https://openai.com/index/unrolling-the-codex-agent-loop/",
-    tag: "agent loop",
-    why: "理解本地 coding agent 怎样组 prompt、管理 context、调用工具并处理回合状态。",
-  },
-  {
-    title: "Effective context engineering for AI agents",
-    org: "Anthropic",
-    url: "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
-    tag: "上下文管理",
-    why: "重点看 notes、retrieval、tool-result filtering、compaction 和 context reset 的边界。",
-  },
-  {
-    title: "What we've learned building cloud agents",
-    org: "Cursor",
-    url: "https://cursor.com/blog/cloud-agent-lessons",
-    tag: "云端 agent",
-    why: "把 agent 能力和开发环境、持久执行、会话状态、机器生命周期联系起来。",
-  },
-  {
-    title: "Demystifying evals for AI agents",
-    org: "Anthropic",
-    url: "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
-    tag: "测评",
-    why: "从单轮 eval 转向多轮、带工具、会修改环境的系统级评估。",
-  },
-  {
-    title: "Harness engineering: leveraging Codex in an agent-first world",
-    org: "OpenAI",
-    url: "https://openai.com/index/harness-engineering/",
-    tag: "工程方法",
-    why: "读 agent-first 软件开发里 AGENTS.md、架构可读性、taste、merge 策略和垃圾回收。",
-  },
-  {
-    title: "Continually improving our agent harness",
-    org: "Cursor",
-    url: "https://cursor.com/blog/continually-improving-agent-harness",
-    tag: "harness",
-    why: "关注产品化 agent 的真实迭代面：提示、工具、UI、反馈与训练数据如何互相推动。",
-  },
-  {
-    title: "ReAct: Synergizing Reasoning and Acting in Language Models",
-    org: "Paper",
-    url: "https://arxiv.org/abs/2210.03629",
-    tag: "经典范式",
-    why: "几乎所有 tool-using agent 都可追溯到交替进行 reasoning、action、observation 的循环。",
-  },
-  {
-    title: "MemGPT: Towards LLMs as Operating Systems",
-    org: "Paper",
-    url: "https://arxiv.org/abs/2310.08560",
-    tag: "记忆系统",
-    why: "用操作系统虚拟内存类比解释 working memory、archival memory、interrupt 和 paging。",
-  },
-  {
-    title: "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
-    org: "Paper",
-    url: "https://arxiv.org/abs/2405.15793",
-    tag: "ACI",
-    why: "说明 agent 的工具界面本身会显著影响软件工程任务表现。",
-  },
-  {
-    title: "12-Factor Agents",
-    org: "HumanLayer",
-    url: "https://github.com/humanlayer/12-factor-agents",
-    tag: "生产规则",
-    why: "把可靠 agent 的工程原则压成短规则：own context、own prompts、own control flow。",
-  },
-];
+const katexOptions = {
+  throwOnError: false,
+  strict: "ignore",
+  output: "htmlAndMathml",
+};
 
-const companyFocus = [
-  {
-    name: "OpenAI",
-    stance: "从 Responses API、Agents SDK、Codex 到 evals，主线是把 agent loop 产品化，同时把 sandbox、并行任务和 benchmark 放进工程闭环。",
-    links: [
-      ["New tools for building agents", "https://openai.com/index/new-tools-for-building-agents/"],
-      ["Introducing Codex", "https://openai.com/index/introducing-codex/"],
-      ["Building a safe, effective sandbox to enable Codex on Windows", "https://openai.com/index/building-codex-windows-sandbox/"],
-      ["OpenAI Evals", "https://evals.openai.com/"],
-    ],
-  },
-  {
-    name: "Anthropic",
-    stance: "最值得读的是工程博客：context engineering、long-running harness、sandboxing、auto mode、managed agents、eval 噪声，几乎构成一套 agent runtime 课程。",
-    links: [
-      ["Claude Code best practices", "https://code.claude.com/docs/en/best-practices"],
-      ["Effective harnesses for long-running agents", "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents"],
-      ["Scaling Managed Agents", "https://www.anthropic.com/engineering/managed-agents"],
-      ["Quantifying infrastructure noise in agentic coding evals", "https://www.anthropic.com/engineering/infrastructure-noise"],
-    ],
-  },
-  {
-    name: "Cursor",
-    stance: "Cursor 的材料偏产品和系统实践：云端 agent、自主电脑、Bugbot、Composer、CursorBench 和 harness 迭代，重点是 agent fleet 如何进入真实研发流程。",
-    links: [
-      ["The third era of AI software development", "https://cursor.com/blog/third-era"],
-      ["Meet the new Cursor", "https://cursor.com/blog/cursor-3"],
-      ["Cursor agents can now control their own computers", "https://cursor.com/blog/agent-computer-use"],
-      ["Bugbot now self-improves with learned rules", "https://cursor.com/blog/bugbot-learning"],
-    ],
-  },
-];
+const agentFormula = renderToString(
+  String.raw`\mathrm{Agent}=\mathrm{Model}+\mathrm{Context}+\mathrm{Tools}+\mathrm{Runtime}+\mathrm{State}+\mathrm{Policy}+\mathrm{Eval}+\mathrm{Human}`,
+  { ...katexOptions, displayMode: true },
+);
+const passAtK = renderToString(String.raw`\mathrm{pass@}k`, katexOptions);
 
-const sections = [
+const toc = [
   {
-    id: "context",
-    number: "01",
-    title: "Memory, Knowledge, Summary, Compaction",
-    thesis: "上下文管理的核心不是把更多 token 塞进窗口，而是决定什么必须进入 working set、什么应该留在外部状态、什么时候该压缩、什么时候该重启。",
-    focus: [
-      "区分短期对话、任务状态、项目知识、用户偏好和可执行技能。",
-      "compaction 保留连续性，但会带来摘要偏差；reset + handoff 更像换班，要求 artifact 足够完整。",
-      "RAG、prompt cache、rules、notes 和 memory bank 都是 context engineering 的不同入口。",
-    ],
-    readings: [
-      ["Anthropic: Effective context engineering for AI agents", "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"],
-      ["Anthropic: Introducing Contextual Retrieval", "https://www.anthropic.com/news/contextual-retrieval"],
-      ["Claude Code docs: Explore the context window / best practices", "https://code.claude.com/docs/en/best-practices"],
-      ["OpenAI: Unrolling the Codex agent loop", "https://openai.com/index/unrolling-the-codex-agent-loop/"],
-      ["OpenAI: Introducing GPT-5.2-Codex", "https://openai.com/index/introducing-gpt-5-2-codex/"],
-      ["Cursor Docs: Rules", "https://cursor.com/docs/rules"],
-      ["MemGPT: Towards LLMs as Operating Systems", "https://arxiv.org/abs/2310.08560"],
-      ["Generative Agents: Interactive Simulacra of Human Behavior", "https://arxiv.org/abs/2304.03442"],
-      ["A Survey on the Memory Mechanism of LLM-based Agents", "https://arxiv.org/abs/2404.13501"],
+    id: "pressure",
+    label: "一、实践压力：为什么不能只收藏链接",
+    children: [
+      ["pressure-problem", "1.1 真实问题"],
+      ["pressure-questions", "1.2 六个明确问题"],
+      ["pressure-thesis", "1.3 主论点"],
     ],
   },
   {
-    id: "multi-agent",
-    number: "02",
-    title: "Multi-Agent, Subagent, Team",
-    thesis: "多智能体不是默认更强。它适合搜索空间宽、信息源分散、角色能力差异明显、或需要独立评审的任务；否则通信成本和一致性风险会吃掉收益。",
-    focus: [
-      "先学 orchestrator-workers 与 evaluator-optimizer，再读早期 role-play 多智能体论文。",
-      "把 subagent 当隔离上下文和专门工具集，而不是把一个问题切成更多聊天。",
-      "真实团队 agent 的关键是共享仓库、锁、任务板、测试、日志和合并协议。",
-    ],
-    readings: [
-      ["Anthropic: How we built our multi-agent research system", "https://www.anthropic.com/engineering/multi-agent-research-system"],
-      ["Anthropic: Building a C compiler with a team of parallel Claudes", "https://www.anthropic.com/engineering/building-c-compiler"],
-      ["Cursor: Cloud Agents", "https://cursor.com/blog/cloud-agents"],
-      ["Cursor: What we've learned building cloud agents", "https://cursor.com/blog/cloud-agent-lessons"],
-      ["OpenAI Cookbook: Multi-Agent Portfolio Collaboration", "https://developers.openai.com/cookbook/examples/agents_sdk/multi-agent-portfolio-collaboration/multi_agent_portfolio_collaboration"],
-      ["OpenAI: Symphony, an open-source Codex orchestration spec", "https://openai.com/index/open-source-codex-orchestration-symphony/"],
-      ["AutoGen", "https://arxiv.org/abs/2308.08155"],
-      ["CAMEL", "https://arxiv.org/abs/2303.17760"],
-      ["MetaGPT", "https://arxiv.org/abs/2308.00352"],
-      ["ChatDev", "https://arxiv.org/abs/2307.07924"],
+    id: "mental-model",
+    label: "二、心智模型：Agent 是运行系统",
+    children: [
+      ["model-formula", "2.1 系统清单"],
+      ["model-react", "2.2 ReAct 的边界"],
+      ["model-map", "2.3 阅读地图"],
     ],
   },
   {
-    id: "sandbox",
-    number: "03",
-    title: "Code Executor, Sandbox, Computer Use",
-    thesis: "agent 能写代码以后，执行环境就变成模型能力的一部分。好的 sandbox 要允许足够多的试错，同时让错误、注入和越权行为被边界吸收。",
-    focus: [
-      "把 code execution 看成工具压缩器：大量工具调用、过滤、聚合和临时状态都可以留在执行环境里。",
-      "安全边界至少包含 filesystem、network、credential proxy、resource limits、egress audit 和 reproducible image。",
-      "GUI computer use 与 terminal use 是两条路线，但都需要状态观测、回放和失败恢复。",
-    ],
-    readings: [
-      ["OpenAI: ChatGPT plugins and Code Interpreter sandbox", "https://openai.com/index/chatgpt-plugins/"],
-      ["OpenAI: Computer-Using Agent", "https://openai.com/index/computer-using-agent/"],
-      ["OpenAI: Building the Codex Windows sandbox", "https://openai.com/index/building-codex-windows-sandbox/"],
-      ["Anthropic: Code execution with MCP", "https://www.anthropic.com/engineering/code-execution-with-mcp"],
-      ["Anthropic: Claude Code sandboxing", "https://www.anthropic.com/engineering/claude-code-sandboxing"],
-      ["Anthropic: Claude Code auto mode", "https://www.anthropic.com/engineering/claude-code-auto-mode"],
-      ["Cursor: Agents can now control their own computers", "https://cursor.com/blog/agent-computer-use"],
-      ["CodeAct", "https://arxiv.org/abs/2402.01030"],
-      ["OpenHands", "https://arxiv.org/abs/2407.16741"],
-      ["SWE-ReX", "https://github.com/SWE-agent/swe-rex"],
+    id: "contracts",
+    label: "三、Provider 与公司契约",
+    children: [
+      ["contracts-openai", "3.1 OpenAI"],
+      ["contracts-anthropic", "3.2 Anthropic"],
+      ["contracts-cursor", "3.3 Cursor"],
     ],
   },
   {
-    id: "self-evolution",
-    number: "04",
-    title: "Self-Evolution",
-    thesis: "自进化要拆成四层：单次任务里的自我修正、跨任务的记忆与规则、可复用技能库、以及训练数据或模型权重的长期闭环。",
-    focus: [
-      "反思文本只有在能被检索、验证、淘汰时才是资产，否则只是新的噪声。",
-      "技能比记忆更强，因为它把经验变成可执行流程；但技能需要触发条件、测试和版本控制。",
-      "线上反馈能改进 agent，但必须有反作弊、负反馈、回滚和观测，否则会学习错误习惯。",
-    ],
-    readings: [
-      ["Reflexion", "https://arxiv.org/abs/2303.11366"],
-      ["Self-Refine", "https://arxiv.org/abs/2303.17651"],
-      ["Voyager", "https://arxiv.org/abs/2305.16291"],
-      ["Anthropic: Agent Skills", "https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"],
-      ["Anthropic: Writing effective tools for agents", "https://www.anthropic.com/engineering/writing-tools-for-agents"],
-      ["Cursor: Bugbot learned rules", "https://cursor.com/blog/bugbot-learning"],
-      ["Cursor: Bootstrapping Composer with autoinstall", "https://cursor.com/blog/bootstrapping-composer-with-autoinstall"],
-      ["Cursor: Improving Composer through real-time RL", "https://cursor.com/blog/real-time-rl-for-composer"],
-      ["A-Mem: Agentic Memory for LLM Agents", "https://arxiv.org/html/2502.12110v1"],
-      ["A Survey of Self-Evolving Agents", "https://arxiv.org/html/2507.21046v4"],
+    id: "paths",
+    label: "四、六条机制路径",
+    children: [
+      ["path-context", "4.1 Context", ["path-context-read", "path-context-misread"]],
+      ["path-team", "4.2 Team", ["path-team-read", "path-team-misread"]],
+      ["path-runtime", "4.3 Runtime", ["path-runtime-read", "path-runtime-misread"]],
+      ["path-learning", "4.4 Learning", ["path-learning-read", "path-learning-misread"]],
+      ["path-measurement", "4.5 Measurement", ["path-measurement-read", "path-measurement-misread"]],
+      ["path-harness", "4.6 Harness", ["path-harness-read", "path-harness-misread"]],
     ],
   },
   {
-    id: "evaluation",
-    number: "05",
-    title: "Evaluation",
-    thesis: "agent eval 的单位不是 answer，而是 trajectory：任务、环境、工具、预算、随机性、评分器和安全边界共同决定结果。",
-    focus: [
-      "同一个模型在不同机器、时间限制、工具定义、依赖缓存和网络条件下不是同一场考试。",
-      "leaderboard 分数要看污染、任务泄漏、评分 loophole、pass^k 稳定性和人类可复核样本。",
-      "生产 eval 要覆盖成功率、恢复能力、成本、延迟、安全、越权、用户体验和回归检测。",
-    ],
-    readings: [
-      ["Anthropic: Demystifying evals for AI agents", "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"],
-      ["Anthropic: Quantifying infrastructure noise in agentic coding evals", "https://www.anthropic.com/engineering/infrastructure-noise"],
-      ["Anthropic: Designing AI-resistant technical evaluations", "https://www.anthropic.com/engineering/AI-resistant-technical-evaluations"],
-      ["OpenAI: Introducing SWE-bench Verified", "https://openai.com/index/introducing-swe-bench-verified/"],
-      ["OpenAI: Why SWE-bench Verified no longer measures frontier coding capabilities", "https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/"],
-      ["OpenAI: GDPval", "https://openai.com/index/gdpval/"],
-      ["Cursor: How we compare model quality in Cursor", "https://cursor.com/blog/cursorbench"],
-      ["SWE-bench", "https://arxiv.org/abs/2310.06770"],
-      ["Terminal-Bench", "https://arxiv.org/html/2601.11868v1"],
-      ["tau-bench", "https://arxiv.org/abs/2406.12045"],
-      ["GAIA", "https://arxiv.org/abs/2311.12983"],
-      ["WebArena", "https://arxiv.org/abs/2307.13854"],
-      ["OSWorld", "https://arxiv.org/abs/2404.07972"],
-      ["AgentBench", "https://arxiv.org/abs/2308.03688"],
-      ["AgentDojo", "https://arxiv.org/abs/2406.13352"],
-      ["Berkeley RDI: benchmark exploit audit", "https://rdi.berkeley.edu/blog/trustworthy-benchmarks/"],
+    id: "comparison",
+    label: "五、对照表：把资料放回工程坐标",
+    children: [
+      ["comparison-table", "5.1 四层对照"],
+      ["comparison-rules", "5.2 选择规则"],
     ],
   },
   {
-    id: "harness",
-    number: "06",
-    title: "Harness Engineering",
-    thesis: "harness 是把模型变成可交付系统的运行时层：它决定输入怎样组装、工具怎样暴露、状态怎样持久化、失败怎样恢复、结果怎样被验证。",
-    focus: [
-      "不要把 harness 外包给框架黑箱；agent loop、context window、state machine 和 stop condition 要可观察。",
-      "长任务需要 initializer、handoff artifact、checkpoint、deterministic gates、human pause points 和 garbage collection。",
-      "随着模型变强，旧 harness 假设会过期；接口要稳定，策略要可替换。",
-    ],
-    readings: [
-      ["OpenAI: Harness engineering", "https://openai.com/index/harness-engineering/"],
-      ["OpenAI: Unrolling the Codex agent loop", "https://openai.com/index/unrolling-the-codex-agent-loop/"],
-      ["OpenAI: Practical guide to building agents", "https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/"],
-      ["Anthropic: Effective harnesses for long-running agents", "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents"],
-      ["Anthropic: Harness design for long-running application development", "https://www.anthropic.com/engineering/harness-design-long-running-apps"],
-      ["Anthropic: Scaling Managed Agents", "https://www.anthropic.com/engineering/managed-agents"],
-      ["Cursor: Continually improving our agent harness", "https://cursor.com/blog/continually-improving-agent-harness"],
-      ["Cursor: Development environments for your cloud agents", "https://cursor.com/blog/cloud-agent-development-environments"],
-      ["Cursor: Best practices for coding with agents", "https://cursor.com/blog/agent-best-practices"],
-      ["12-Factor Agents", "https://github.com/humanlayer/12-factor-agents"],
+    id: "misreadings",
+    label: "六、常见误读",
+    children: [["misreadings-list", "6.1 六个陷阱"]],
+  },
+  {
+    id: "transfer",
+    label: "七、可迁移规则",
+    children: [["transfer-rules", "7.1 八条规则"]],
+  },
+  {
+    id: "references",
+    label: "八、References",
+    children: [
+      ["references-provider", "8.1 公司与文档"],
+      ["references-papers", "8.2 论文与基准"],
     ],
   },
-];
-
-const readingPlan = [
-  ["2 hours", "读 OpenAI practical guide、Anthropic building effective agents、Codex agent loop、Anthropic context engineering。目标是统一词汇。"],
-  ["1 day", "按六个主题各读一篇公司工程博客，再读 ReAct、MemGPT、SWE-agent、SWE-bench。目标是建立主干。"],
-  ["1 week", "补 Cursor cloud agents、Bugbot learning、Anthropic harness/evals/sandbox、OpenAI Codex sandbox/Symphony，再做一张自己的 agent runtime 架构图。"],
-  ["1 month", "复现一个小型 coding agent：显式 context、sandboxed executor、task ledger、eval harness、review subagent 和 deploy path。"],
-];
-
-const selectionRules = [
-  ["状态", "资料是否说明任务状态、会话状态、外部 artifact 和长期记忆分别放在哪里。"],
-  ["边界", "资料是否说清工具、沙箱、权限、凭证、网络和人类确认的边界。"],
-  ["恢复", "资料是否覆盖失败重试、checkpoint、handoff、rollback 和长任务续跑。"],
-  ["测量", "资料是否能落到 eval、trace、成本、延迟、安全和人工复核指标上。"],
 ];
 ---
 
@@ -300,657 +106,814 @@ const selectionRules = [
   description={description}
   canonicalPath="ai-agent-readlist/"
   lang="zh"
-  titleSuffix="Winechord Books"
+  titleSuffix="WineChord Books"
+  ogImage={figures.cover}
 >
   <main class="agent-page">
-    <aside class="toc" aria-label="AI Agent Readlist 目录">
-      <a class="toc-title" href="#top">AI Agent Readlist</a>
-      <a href="#must-read">必读入口</a>
-      <a href="#company-map">公司主线</a>
-      {sections.map((section) => <a href={`#${section.id}`}>{section.number}. {section.title}</a>)}
-      <a href="#plan">阅读计划</a>
-      <a href="#selection">选文标准</a>
+    <aside class="toc" aria-label="文章目录">
+      <a class="toc-title" href="#top">AI Agent 阅读路线</a>
+      <ol>
+        {toc.map((item) => (
+          <li>
+            <a class="toc-link toc-link-2" href={`#${item.id}`}>{item.label}</a>
+            <ol>
+              {item.children.map((child) => (
+                <li>
+                  <a class="toc-link toc-link-3" href={`#${child[0]}`}>{child[1]}</a>
+                  {child[2] && (
+                    <ol>
+                      {child[2].map((sub) => (
+                        <li><a class="toc-link toc-link-4" href={`#${sub}`}>{sub.endsWith("-read") ? "读什么" : "不要误读"}</a></li>
+                      ))}
+                    </ol>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </li>
+        ))}
+      </ol>
     </aside>
 
     <article id="top" class="article">
-      <section class="hero">
-        <p class="eyebrow">Updated 2026-06-10 · AI Agent Engineering</p>
-        <h1>AI Agent Readlist</h1>
-        <p class="lead">
-          这份清单围绕六个问题组织：上下文管理、多智能体、沙箱执行、自进化、测评和 harness 工程。
-          重点看 OpenAI、Anthropic、Cursor 的公开工程文章，再用经典论文补齐概念骨架。
-        </p>
-        <div class="hero-grid" aria-label="六个主题入口">
-          {pillars.map(([name, keywords, note]) => (
-            <a class="pillar" href={`#${name === "Context" ? "context" : name === "Team" ? "multi-agent" : name === "Runtime" ? "sandbox" : name === "Learning" ? "self-evolution" : name === "Measurement" ? "evaluation" : "harness"}`}>
-              <span>{name}</span>
-              <strong>{keywords}</strong>
-              <em>{note}</em>
-            </a>
-          ))}
+      <section class="hero" aria-label="文章首屏">
+        <div class="hero-copy">
+          <p class="eyebrow">链接核验：2026-06-11 · Wine & Chord</p>
+          <h1>AI Agent 阅读路线：从上下文到 Harness 的六条机制路径</h1>
+          <p class="lead">
+            这不是一份按公司名堆链接的清单。AI Agent 的公开资料已经多到足够让人迷路：
+            OpenAI 讲 Codex、Agents SDK、沙箱和 harness；Anthropic 讲 effective agents、
+            context engineering、skills、sandboxing 和 managed agents；Cursor 讲 cloud agents、
+            CursorBench 和产品 harness。真正要读懂的是它们背后的工程边界。
+          </p>
         </div>
+        <figure class="hero-figure">
+          <img
+            src={figures.cover}
+            alt="AI Agent 阅读路线封面图：六条机制路径进入 agent loop，再经过 eval 与交付路径输出"
+            loading="eager"
+            decoding="async"
+          />
+          <figcaption>
+            先把资料放进六条机制路径，再回头看具体模型和产品发布，才不容易被单个 benchmark 或营销词牵着走。
+          </figcaption>
+        </figure>
       </section>
 
       <section class="reading-contract" aria-label="阅读契约">
         <strong>阅读契约</strong>
         <p>
-          本页回答一个问题：想系统学习 AI Agent，应该先建立哪些工程坐标，而不是被单篇产品发布或论文名词牵着走。
-          读完后，你应该能把资料放进 context、team、runtime、learning、measurement、harness 六条线，并知道每条线要验证什么。
+          本页回答一个问题：想系统学习 AI Agent，应该先建立哪些工程坐标？读完后，你应该能把一篇资料放进 context、team、runtime、learning、measurement、harness 六条线，
+          并能说明它证明了哪个 contract、暴露了哪个边界、留下了什么可复核证据。
         </p>
       </section>
 
-      <figure class="wc-article-figure">
-        <img
-          src="assets/agent-reading-map-2026.png"
-          alt="AI Agent 阅读路线手绘图：Context、Team、Runtime、Learning、Measurement、Harness 六条阅读线汇入 Agent loop"
-          loading="eager"
-          decoding="async"
-        />
-        <figcaption>
-          这份书单按工程问题组织，而不是按公司或模型名字组织：先读懂上下文、团队协作、运行时、学习闭环、评测和 harness，再回头看具体产品。
-        </figcaption>
-      </figure>
-
-      <section class="section thesis-panel">
-        <h2>先抓住三条主线</h2>
-        <div class="thesis-list">
-          <p><strong>Agent 不只是模型。</strong> Agent = model + context + tools + executor + state + policy + evaluator + human handoff。模型越强，运行时工程越重要。</p>
-          <p><strong>上下文窗口是注意力预算。</strong> memory、RAG、summary、rules、skills、compaction、reset，本质都是把任务相关信号送到模型面前，同时隔离噪声。</p>
-          <p><strong>测评必须包含环境。</strong> Coding agent 的分数会被 CPU、网络、依赖、超时、测试、沙箱和 prompt 污染影响。只看 leaderboard 很容易误判。</p>
-        </div>
-      </section>
-
-      <section id="must-read" class="section">
-        <div class="section-head">
-          <p class="kicker">Start Here</p>
-          <h2>先读这 12 篇</h2>
-        </div>
-        <div class="cards essentials">
-          {essentials.map((item, index) => (
-            <a class="card essential-card" href={item.url} target="_blank" rel="noreferrer">
-              <span class="rank">{String(index + 1).padStart(2, "0")}</span>
-              <span class="tag">{item.tag}</span>
-              <h3>{item.title}</h3>
-              <p class="source">{item.org}</p>
-              <p>{item.why}</p>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      <section id="company-map" class="section">
-        <div class="section-head">
-          <p class="kicker">Company Tracks</p>
-          <h2>OpenAI、Anthropic、Cursor 各看什么</h2>
-        </div>
-        <div class="company-grid">
-          {companyFocus.map((company) => (
-            <div class="company-card">
-              <h3>{company.name}</h3>
-              <p>{company.stance}</p>
-              <ul>
-                {company.links.map(([label, url]) => (
-                  <li><a href={url} target="_blank" rel="noreferrer">{label}</a></li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {sections.map((section) => (
-        <section id={section.id} class="section topic-section">
-          <div class="topic-label">{section.number}</div>
-          <div class="topic-body">
-            <div class="section-head">
-              <p class="kicker">Topic {section.number}</p>
-              <h2>{section.title}</h2>
-            </div>
-            <p class="topic-thesis">{section.thesis}</p>
-            <div class="focus-box">
-              <h3>划重点</h3>
-              <ul>
-                {section.focus.map((item) => <li>{item}</li>)}
-              </ul>
-            </div>
-            <div class="reading-list">
-              {section.readings.map(([label, url]) => (
-                <a href={url} target="_blank" rel="noreferrer">
-                  <span>{label}</span>
-                  <small>Source</small>
-                </a>
-              ))}
-            </div>
-          </div>
-        </section>
-      ))}
-
-      <section id="plan" class="section">
-        <div class="section-head">
-          <p class="kicker">Reading Plan</p>
-          <h2>推荐阅读节奏</h2>
-        </div>
-        <div class="plan-list">
-          {readingPlan.map(([time, action]) => (
-            <div class="plan-item">
-              <strong>{time}</strong>
-              <p>{action}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="selection" class="section selection-section">
-        <div class="section-head">
-          <p class="kicker">Selection Rules</p>
-          <h2>什么资料值得放进这份书单</h2>
-        </div>
-        <div class="selection-grid">
-          {selectionRules.map(([rule, body]) => (
-            <article class="selection-card">
-              <strong>{rule}</strong>
-              <p>{body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section class="section final-notes">
-        <h2>最后的判断标准</h2>
+      <section id="pressure" class="section">
+        <h2>一、实践压力：为什么不能只收藏链接</h2>
+        <h3 id="pressure-problem">1.1 真实问题：Agent 失败常常不是“模型不会”</h3>
         <p>
-          一篇资料是否值得进入 agent readlist，看它是否回答了真实工程问题：
-          状态放在哪里、工具怎样暴露、错误怎样恢复、权限怎样收敛、成本怎样测、结果怎样复核。
-          如果只是在说“让多个 agent 互相聊天”，但没有环境、协议、验证和回滚，它只能算 demo，不算工程资料。
+          做 coding agent 或业务 agent 时，失败经常发生在模型之外：上下文塞进了过期信息，工具输出没有过滤，沙箱权限过宽，长任务没有 checkpoint，
+          eval 只看最终答案，没有记录轨迹。Anthropic 在
+          <a href="https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents" target="_blank" rel="noreferrer">Demystifying evals for AI agents</a>
+          里强调 agent eval 要覆盖带工具、会修改环境的多轮过程；Cursor 在
+          <a href="https://cursor.com/blog/continually-improving-agent-harness" target="_blank" rel="noreferrer">harness 迭代复盘</a>
+          里把提示、工具、UI、反馈和训练数据放进同一条产品闭环。它们讨论的不是“再换一个模型”，而是如何让模型处在一个可控系统里。
         </p>
+
+        <h3 id="pressure-questions">1.2 六个明确问题</h3>
+        <ol class="question-list">
+          <li>本轮模型真正看见了什么，哪些状态留在外部 artifact 或 memory 里？</li>
+          <li>什么时候该拆 subagent，拆出去的上下文、工具和输出如何回收？</li>
+          <li>代码执行、浏览器、文件、网络、凭证和人工确认的边界在哪里？</li>
+          <li>一次失败后的经验怎样变成 rule、skill、memory 或训练信号，而不是新的噪声？</li>
+          <li>agent eval 衡量的是一次 answer，还是包含环境、预算、随机性和 <span class="math-inline" set:html={passAtK} /> 的 trajectory 分布？</li>
+          <li>harness 怎样把 prompt、tools、state machine、checkpoint、review 和 deploy 接成可交付路径？</li>
+        </ol>
+
+        <h3 id="pressure-thesis">1.3 主论点：先读边界，再读能力</h3>
+        <p>
+          本文的主论点是：Agent 资料的阅读顺序应该是
+          <strong>public contract first</strong>。先看公开 API、文档和产品承诺允许什么，再看实现或论文如何组织机制，最后才比较模型能力。
+          这也是 <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noreferrer">Building effective agents</a>
+          的基本气质：优先使用可解释、可组合的 workflow 和 agent 模式，只在任务需要时增加复杂性。
+        </p>
+      </section>
+
+      <section id="mental-model" class="section">
+        <h2>二、心智模型：Agent 是运行系统</h2>
+        <h3 id="model-formula">2.1 系统清单：模型只是其中一个部件</h3>
+        <p>
+          如果把 agent 只理解成“会调用工具的大模型”，后面的资料会全部糊在一起。更稳的入口是把它写成系统清单：
+        </p>
+        <div class="formula" set:html={agentFormula} />
+        <p>
+          这个式子不是数学定理，而是阅读检查表。OpenAI 的
+          <a href="https://developers.openai.com/api/docs/guides/agents" target="_blank" rel="noreferrer">Agents SDK 文档</a>
+          强调 instructions、tools、handoffs、guardrails 和 tracing；Codex 文档把
+          <a href="https://developers.openai.com/codex/guides/agents-md" target="_blank" rel="noreferrer">AGENTS.md</a>、
+          sandbox、subagents、skills 放进开发工作流；这些都说明 agent 是模型与运行时的组合。
+        </p>
+
+        <h3 id="model-react">2.2 ReAct 的边界：经典循环，不是现代产品全图</h3>
+        <p>
+          <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noreferrer">ReAct</a>
+          给了一个重要范式：reasoning、action、observation 可以交替推进。但现代产品 agent 还需要沙箱、权限、状态持久化、恢复、评测、人工门禁和交付路径。
+          所以 ReAct 应该作为行动循环的经典论文来读，而不是把所有 tool-using agent 的来源都简化成 ReAct。
+        </p>
+
+        <h3 id="model-map">2.3 阅读地图：从问题线走到机制线</h3>
+        <figure class="wc-figure">
+          <img
+            src={figures.overview}
+            alt="AI Agent 阅读总览图：六条问题线汇入 agent runtime loop，再经过评测和交付路径输出"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>
+            六条线不是分类标签，而是每篇资料应该回答的工程问题：状态、协作、执行、学习、测量和交付。
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="contracts" class="section">
+        <h2>三、Provider 与公司契约</h2>
+        <figure class="wc-figure">
+          <img
+            src={figures.contracts}
+            alt="Provider 与产品契约图：三条公开契约路径分别约束上下文、运行时、评测和产品反馈"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>先读公开 contract，再解释实现选择；不要从模型名倒推运行时能力。</figcaption>
+        </figure>
+
+        <h3 id="contracts-openai">3.1 OpenAI：Codex、Agents SDK、AGENTS.md 与 sandbox</h3>
+        <p>
+          OpenAI 这条线适合从
+          <a href="https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/" target="_blank" rel="noreferrer">Practical guide to building agents</a>
+          入门，然后接
+          <a href="https://developers.openai.com/api/docs/guides/agents" target="_blank" rel="noreferrer">Agents SDK</a>、
+          <a href="https://developers.openai.com/api/docs/guides/agents/sandboxes" target="_blank" rel="noreferrer">Sandbox Agents</a>
+          和 <a href="https://developers.openai.com/codex/changelog" target="_blank" rel="noreferrer">Codex changelog</a>。
+          Coding agent 方向重点看 <a href="https://openai.com/index/unrolling-the-codex-agent-loop/" target="_blank" rel="noreferrer">Codex agent loop</a>、
+          <a href="https://openai.com/index/unlocking-the-codex-harness/" target="_blank" rel="noreferrer">Codex harness</a>
+          和 <a href="https://openai.com/index/open-source-codex-orchestration-symphony/" target="_blank" rel="noreferrer">Symphony</a>。
+          它们共同回答：agent loop 怎样被产品化，工具、沙箱、任务编排和验证如何接入工程交付。
+        </p>
+
+        <h3 id="contracts-anthropic">3.2 Anthropic：简单模式、context、sandbox、skills 与 managed agents</h3>
+        <p>
+          Anthropic 的工程博客更像一套 runtime 课程。
+          <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noreferrer">Building effective agents</a>
+          先区分 workflow 与 agent；
+          <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noreferrer">Effective context engineering</a>
+          讨论 notes、retrieval、tool-result filtering、compaction 和 context reset；
+          <a href="https://www.anthropic.com/engineering/claude-code-sandboxing" target="_blank" rel="noreferrer">Claude Code sandboxing</a>
+          与 <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills" target="_blank" rel="noreferrer">Agent Skills</a>
+          则把执行边界和可复用经验放到前台。
+        </p>
+
+        <h3 id="contracts-cursor">3.3 Cursor：环境、harness 与真实使用信号</h3>
+        <p>
+          Cursor 的资料更偏产品系统。<a href="https://cursor.com/blog/cloud-agent-lessons" target="_blank" rel="noreferrer">Cloud agent lessons</a>
+          把 agent 能力和开发环境、持久执行、会话状态联系起来；
+          <a href="https://cursor.com/blog/continually-improving-agent-harness" target="_blank" rel="noreferrer">Continually improving our agent harness</a>
+          解释真实反馈如何推动提示、工具和训练数据；<a href="https://cursor.com/blog/cursorbench" target="_blank" rel="noreferrer">CursorBench</a>
+          则提醒读者，模型质量在产品环境里要看真实编辑轨迹，而不只是离线题分。
+        </p>
+      </section>
+
+      <section id="paths" class="section">
+        <h2>四、六条机制路径</h2>
+
+        <h3 id="path-context">4.1 Context：有限工作集怎样装箱</h3>
+        <figure class="wc-figure">
+          <img
+            src={figures.context}
+            alt="Context 工作集机制图：多类外部状态经过检索、过滤、压缩和重置进入模型可见窗口"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>Context engineering 的核心不是塞更多 token，而是决定哪些 token 进入本轮 model-visible view。</figcaption>
+        </figure>
+        <p>
+          读 context 时要分清五类东西：对话历史、任务状态、项目规则、外部知识、工具结果。Anthropic 的 context engineering 文章把它们拆成 notes、retrieval、filtering、compaction、reset；
+          OpenAI Codex 的 <a href="https://developers.openai.com/codex/guides/agents-md" target="_blank" rel="noreferrer">AGENTS.md 文档</a>
+          和 Cursor 的 <a href="https://cursor.com/docs/rules" target="_blank" rel="noreferrer">Rules</a> 都说明，长期规则应该可审计、可版本化，而不是每轮临时拼接。
+        </p>
+        <h4 id="path-context-read">读什么</h4>
+        <p>
+          先读 Anthropic context engineering，再读 <a href="https://arxiv.org/abs/2310.08560" target="_blank" rel="noreferrer">MemGPT</a>
+          的 working memory / archival memory 类比；如果关注 coding agent，再接 Codex loop、AGENTS.md、prompt caching 与 conversation state。
+        </p>
+        <h4 id="path-context-misread">不要误读</h4>
+        <p>不要把 memory、RAG、summary、rules、skills 都叫“上下文越多越好”。它们的风险不同：摘要会偏移，检索会漏召回，规则会污染前缀，工具输出会带来注入。</p>
+
+        <h3 id="path-team">4.2 Team：什么时候拆 subagent</h3>
+        <figure class="wc-figure">
+          <img
+            src={figures.team}
+            alt="Team 子智能体边界图：orchestrator 拆出独立工作区，回收 artifact、review 和 verification"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>Subagent 的价值不是更多聊天，而是上下文隔离、工具隔离和 artifact 回收。</figcaption>
+        </figure>
+        <p>
+          多智能体适合搜索空间宽、资料源分散、角色能力差异明显或需要独立评审的任务。Anthropic 的
+          <a href="https://www.anthropic.com/engineering/multi-agent-research-system" target="_blank" rel="noreferrer">multi-agent research system</a>
+          和 OpenAI Codex 的 <a href="https://developers.openai.com/codex/subagents" target="_blank" rel="noreferrer">subagents 文档</a>
+          都把关键点放在任务边界、上下文隔离和输出回收上，而不是简单增加“代理数量”。
+        </p>
+        <h4 id="path-team-read">读什么</h4>
+        <p>先读 Anthropic 的 orchestrator-workers / evaluator-optimizer 模式，再读 Codex subagents、Symphony 和 AutoGen、CAMEL、MetaGPT 等早期论文。</p>
+        <h4 id="path-team-misread">不要误读</h4>
+        <p>拆 subagent 不是并行化仪式。没有共享仓库、锁、任务板、测试、日志和合并协议，多 agent 会把通信成本和一致性风险放大。</p>
+
+        <h3 id="path-runtime">4.3 Runtime：代码执行与沙箱边界</h3>
+        <figure class="wc-figure">
+          <img
+            src={figures.runtime}
+            alt="Runtime 沙箱边界图：执行环境被文件、网络、凭证、资源、审计和人工确认层层约束"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>Runtime 是 agent 接触世界的方式；沙箱是它自主行动的边界。</figcaption>
+        </figure>
+        <p>
+          代码执行是 agent 能力的一部分。OpenAI 的
+          <a href="https://developers.openai.com/codex/concepts/sandboxing" target="_blank" rel="noreferrer">Codex sandboxing</a>
+          和 <a href="https://developers.openai.com/api/docs/guides/agents/sandboxes" target="_blank" rel="noreferrer">Sandbox Agents</a>
+          讲 provider-managed execution；Anthropic 的
+          <a href="https://www.anthropic.com/engineering/code-execution-with-mcp" target="_blank" rel="noreferrer">Code execution with MCP</a>
+          和 Claude Code sandboxing 讲工具、MCP 与本地边界。共同点是：filesystem、network、credentials、resource limits、audit 和 human confirmation 必须显式。
+        </p>
+        <h4 id="path-runtime-read">读什么</h4>
+        <p>先读 Codex sandbox 与 Anthropic Claude Code sandboxing，再读 <a href="https://arxiv.org/abs/2402.01030" target="_blank" rel="noreferrer">CodeAct</a> 和 OpenHands 这类代码行动论文。</p>
+        <h4 id="path-runtime-misread">不要误读</h4>
+        <p>沙箱不是容器品牌。容器、VM、OS sandbox、远端 workspace、provider-managed sandbox 都只是实现；真正要审的是可见边界和失败吸收能力。</p>
+
+        <h3 id="path-learning">4.4 Learning：经验怎样沉淀</h3>
+        <figure class="wc-figure">
+          <img
+            src={figures.learning}
+            alt="Learning 闭环图：trace、reflection、rule、skill、memory、eval gate、rollout feedback 和 rollback 形成可验证学习资产"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>反思只有进入可验证资产，才算 learning；否则只是把噪声写得更长。</figcaption>
+        </figure>
+        <p>
+          自进化至少有四层：单次任务里的自我修正，跨任务的记忆与规则，可复用技能库，以及训练数据或模型权重的长期闭环。
+          Anthropic 的 <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills" target="_blank" rel="noreferrer">Agent Skills</a>
+          和 OpenAI Codex 的 <a href="https://developers.openai.com/codex/skills" target="_blank" rel="noreferrer">skills 文档</a>
+          都说明，经验要变成有触发条件、依赖、测试和版本边界的资产。
+        </p>
+        <h4 id="path-learning-read">读什么</h4>
+        <p>论文从 <a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noreferrer">Reflexion</a>、<a href="https://arxiv.org/abs/2303.17651" target="_blank" rel="noreferrer">Self-Refine</a>、<a href="https://arxiv.org/abs/2305.16291" target="_blank" rel="noreferrer">Voyager</a> 读起，再看 Cursor 的 harness 反馈闭环。</p>
+        <h4 id="path-learning-misread">不要误读</h4>
+        <p>不要把“写一段反思”当成 self-evolution。没有检索、验证、淘汰、回滚和负反馈处理的反思，会变成新的上下文污染。</p>
+
+        <h3 id="path-measurement">4.5 Measurement：评的是轨迹，不是答案</h3>
+        <figure class="wc-figure">
+          <img
+            src={figures.measurement}
+            alt="Measurement 轨迹评测图：任务、环境、工具、预算、随机性、人工复核和安全评分共同决定结果"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>Agent eval 的单位是 trajectory：任务、环境、工具、预算、随机性和评分器一起进入结果。</figcaption>
+        </figure>
+        <p>
+          Anthropic 的 eval 文章和 infrastructure noise 文章都提醒：同一个模型在不同机器、依赖缓存、网络条件和时间限制下不是同一场考试。
+          SWE-bench、Terminal-Bench、tau-bench、AgentDojo 这些 benchmark 要和环境、预算、污染、重试策略一起读。报告指标时，不要只写最高分；要写样本数、预算、重试、<span class="math-inline" set:html={passAtK} />、成本、延迟和安全回归。
+        </p>
+        <h4 id="path-measurement-read">读什么</h4>
+        <p>先读 <a href="https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents" target="_blank" rel="noreferrer">Demystifying evals</a>、<a href="https://www.anthropic.com/engineering/infrastructure-noise" target="_blank" rel="noreferrer">infrastructure noise</a> 和 CursorBench，再读 SWE-bench、Terminal-Bench、tau-bench、AgentDojo。</p>
+        <h4 id="path-measurement-misread">不要误读</h4>
+        <p>Leaderboard 是观测入口，不是上线结论。生产 eval 还要覆盖恢复能力、越权、安全、用户体验、成本和人工复核样本。</p>
+
+        <h3 id="path-harness">4.6 Harness：把能力接成交付路径</h3>
+        <figure class="wc-figure">
+          <img
+            src={figures.harness}
+            alt="Harness 交付路径图：任务进入 context builder、policy gate、agent loop、tool router、checkpoint、tests、human gate 和 release"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>同一个模型，放进不同 harness，会变成不同 agent。</figcaption>
+        </figure>
+        <p>
+          Harness 是把模型变成可交付系统的运行时层。OpenAI 的
+          <a href="https://openai.com/index/harness-engineering/" target="_blank" rel="noreferrer">Harness engineering</a>
+          讨论 AGENTS.md、架构可读性、review loop、merge 和垃圾回收；Cursor 的 harness 文章展示产品如何围绕真实反馈持续改进。
+          <a href="https://github.com/humanlayer/12-factor-agents" target="_blank" rel="noreferrer">12-Factor Agents</a>
+          的规则也指向同一件事：应用应该拥有 context、prompts、control flow、state、tools 和 failure gates。
+        </p>
+        <h4 id="path-harness-read">读什么</h4>
+        <p>先读 OpenAI Codex harness、Harness engineering 和 Cursor harness，再用 12-Factor Agents 检查自己的应用是否把控制流外包给黑箱。</p>
+        <h4 id="path-harness-misread">不要误读</h4>
+        <p>不要把 harness 当胶水代码。它决定输入怎样组装、工具怎样暴露、状态怎样持久化、失败怎样恢复、结果怎样验证。</p>
+      </section>
+
+      <section id="comparison" class="section">
+        <h2>五、对照表：把资料放回工程坐标</h2>
+        <h3 id="comparison-table">5.1 四层对照</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>阅读层</th>
+              <th>先问什么</th>
+              <th>代表来源</th>
+              <th>常见误判</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Provider / API contract</td>
+              <td>公开接口允许什么，哪些只是服务端内部？</td>
+              <td>OpenAI Agents SDK、Codex docs；Anthropic Claude Code docs；Cursor Rules</td>
+              <td>把发布新闻里的产品能力当成稳定 API。</td>
+            </tr>
+            <tr>
+              <td>Runtime / harness</td>
+              <td>谁持有状态，谁执行命令，谁审批越界？</td>
+              <td>Codex loop、Sandbox Agents、Managed Agents、Cursor cloud agents</td>
+              <td>只比较模型，不比较工具和运行时。</td>
+            </tr>
+            <tr>
+              <td>Mechanism / source pattern</td>
+              <td>context、tools、subagents、skills、evals 在链路中怎样流动？</td>
+              <td>Context engineering、Agent Skills、Cursor harness、12-Factor Agents</td>
+              <td>把所有机制都叫 memory 或 prompt。</td>
+            </tr>
+            <tr>
+              <td>Measurement / operation</td>
+              <td>成功率、成本、延迟、安全、恢复和人工复核怎样一起报告？</td>
+              <td>SWE-bench、Terminal-Bench、tau-bench、AgentDojo、CursorBench</td>
+              <td>用一次 leaderboard 分数替代上线判断。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 id="comparison-rules">5.2 选择规则</h3>
+        <p>
+          一篇资料值得放进这份书单，至少要回答一个可验证问题：状态在哪里、边界在哪里、恢复在哪里、测量在哪里。
+          只展示“多个 agent 互相聊天”的 demo，如果没有环境、协议、验证和回滚，只能算灵感材料，不能算工程资料。
+        </p>
+      </section>
+
+      <section id="misreadings" class="section">
+        <h2>六、常见误读</h2>
+        <h3 id="misreadings-list">6.1 六个陷阱</h3>
+        <ol>
+          <li><strong>把 agent 等同于 autonomous。</strong> Anthropic 的分类更稳：workflow 与 agent 都是 agentic system，差别在控制流由代码预设还是由 LLM 动态决定。</li>
+          <li><strong>把 ReAct 当作完整架构。</strong> ReAct 是行动循环的经典论文，不包含现代产品所需的沙箱、权限、状态、恢复、评测和发布路径。</li>
+          <li><strong>把长上下文当作免维护。</strong> 长窗口仍有 attention budget、context rot、缓存、成本和噪声问题。</li>
+          <li><strong>把 subagent 当作并行聊天。</strong> subagent 的核心是隔离上下文、工具和输出 artifact。</li>
+          <li><strong>把 sandbox 当成容器品牌。</strong> 沙箱是执行边界，具体可以是 OS sandbox、container、VM、remote workspace 或 provider-managed sandbox。</li>
+          <li><strong>把 self-evolution 当成写总结。</strong> 没有验证、版本、回滚和淘汰机制的反思，会变成新的上下文污染。</li>
+        </ol>
+      </section>
+
+      <section id="transfer" class="section">
+        <h2>七、可迁移规则</h2>
+        <h3 id="transfer-rules">7.1 八条规则</h3>
+        <ol>
+          <li>先确定 agent 的状态边界，再讨论 prompt。</li>
+          <li>把动态事实放在可替换层，把长期规则放在可审计文件或配置里。</li>
+          <li>任何 subagent 都必须有输入契约、工具契约、输出 artifact 和合并规则。</li>
+          <li>沙箱默认收紧文件、网络、凭证和资源；例外通过 approval 或 rule 表达。</li>
+          <li>把工具输出当成不可信输入处理，保留 receipt 和可复核 trace。</li>
+          <li>把经验沉淀成 rule、skill 或 eval 前，先写触发条件和反例。</li>
+          <li>评测报告必须同时写任务分布、环境、预算、重试、成本、延迟和安全边界。</li>
+          <li>Harness 要允许模型升级，但不要让模型升级改写状态机、权限模型和发布门禁。</li>
+        </ol>
+      </section>
+
+      <section id="references" class="section references">
+        <h2>八、References</h2>
+        <h3 id="references-provider">8.1 公司与文档</h3>
+        <ul>
+          <li>OpenAI: <a href="https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/" target="_blank" rel="noreferrer">A practical guide to building agents</a>、<a href="https://developers.openai.com/api/docs/guides/agents" target="_blank" rel="noreferrer">Agents SDK</a>、<a href="https://developers.openai.com/api/docs/guides/agents/sandboxes" target="_blank" rel="noreferrer">Sandbox Agents</a>、<a href="https://developers.openai.com/codex/changelog" target="_blank" rel="noreferrer">Codex changelog</a>。</li>
+          <li>OpenAI Codex: <a href="https://openai.com/index/unrolling-the-codex-agent-loop/" target="_blank" rel="noreferrer">Unrolling the Codex agent loop</a>、<a href="https://openai.com/index/unlocking-the-codex-harness/" target="_blank" rel="noreferrer">Unlocking the Codex harness</a>、<a href="https://openai.com/index/harness-engineering/" target="_blank" rel="noreferrer">Harness engineering</a>、<a href="https://openai.com/index/open-source-codex-orchestration-symphony/" target="_blank" rel="noreferrer">Symphony</a>。</li>
+          <li>OpenAI Codex docs: <a href="https://developers.openai.com/codex/guides/agents-md" target="_blank" rel="noreferrer">AGENTS.md</a>、<a href="https://developers.openai.com/codex/concepts/sandboxing" target="_blank" rel="noreferrer">Sandbox</a>、<a href="https://developers.openai.com/codex/subagents" target="_blank" rel="noreferrer">Subagents</a>、<a href="https://developers.openai.com/codex/skills" target="_blank" rel="noreferrer">Agent Skills</a>。</li>
+          <li>Anthropic: <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noreferrer">Building effective agents</a>、<a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noreferrer">Effective context engineering for AI agents</a>、<a href="https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents" target="_blank" rel="noreferrer">Demystifying evals for AI agents</a>。</li>
+          <li>Anthropic Claude Code and harness: <a href="https://www.anthropic.com/engineering/claude-code-sandboxing" target="_blank" rel="noreferrer">Claude Code sandboxing</a>、<a href="https://www.anthropic.com/engineering/code-execution-with-mcp" target="_blank" rel="noreferrer">Code execution with MCP</a>、<a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills" target="_blank" rel="noreferrer">Agent Skills</a>、<a href="https://www.anthropic.com/engineering/managed-agents" target="_blank" rel="noreferrer">Managed Agents</a>。</li>
+          <li>Cursor: <a href="https://cursor.com/blog/cloud-agent-lessons" target="_blank" rel="noreferrer">What we’ve learned building cloud agents</a>、<a href="https://cursor.com/blog/continually-improving-agent-harness" target="_blank" rel="noreferrer">Continually improving our agent harness</a>、<a href="https://cursor.com/blog/cursorbench" target="_blank" rel="noreferrer">CursorBench</a>、<a href="https://cursor.com/docs/rules" target="_blank" rel="noreferrer">Rules</a>。</li>
+        </ul>
+        <h3 id="references-papers">8.2 论文与基准</h3>
+        <ul>
+          <li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noreferrer">ReAct: Synergizing Reasoning and Acting in Language Models</a>。</li>
+          <li><a href="https://arxiv.org/abs/2310.08560" target="_blank" rel="noreferrer">MemGPT: Towards LLMs as Operating Systems</a>。</li>
+          <li><a href="https://arxiv.org/abs/2405.15793" target="_blank" rel="noreferrer">SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering</a>。</li>
+          <li><a href="https://arxiv.org/abs/2402.01030" target="_blank" rel="noreferrer">CodeAct</a>、<a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noreferrer">Reflexion</a>、<a href="https://arxiv.org/abs/2303.17651" target="_blank" rel="noreferrer">Self-Refine</a>、<a href="https://arxiv.org/abs/2305.16291" target="_blank" rel="noreferrer">Voyager</a>。</li>
+          <li><a href="https://github.com/swe-bench/SWE-bench" target="_blank" rel="noreferrer">SWE-bench</a>、<a href="https://arxiv.org/abs/2601.11868" target="_blank" rel="noreferrer">Terminal-Bench 2.0</a>、<a href="https://arxiv.org/abs/2406.12045" target="_blank" rel="noreferrer">tau-bench</a>、<a href="https://arxiv.org/abs/2406.13352" target="_blank" rel="noreferrer">AgentDojo</a>。</li>
+          <li><a href="https://github.com/humanlayer/12-factor-agents" target="_blank" rel="noreferrer">12-Factor Agents</a>。</li>
+        </ul>
       </section>
     </article>
   </main>
+
+  <script is:inline>
+    (() => {
+      document.querySelectorAll("table").forEach((table) => {
+        const headers = Array.from(table.querySelectorAll("thead th")).map((th) => th.textContent?.trim() ?? "");
+        table.querySelectorAll("tbody tr").forEach((row) => {
+          Array.from(row.children).forEach((cell, index) => {
+            if (headers[index]) cell.setAttribute("data-label", headers[index]);
+          });
+        });
+      });
+    })();
+  </script>
 </BaseLayout>
 
 <style>
   .agent-page {
-    --agent-paper: #f6f3ea;
-    --agent-ink: #151512;
-    --agent-muted: #6f6a5f;
-    --agent-line: #d8d2c3;
-    --agent-accent: #c85f3f;
-    --agent-teal: #24746c;
-    --agent-blue: #315f8d;
-    --agent-olive: #687a35;
+    --paper: #f7f8f4;
+    --sheet: #fffffb;
+    --ink: #1f2933;
+    --muted: #52606d;
+    --line: #d9e2ec;
+    --blue: #0f4c81;
+    --green: #1f7a4d;
+    --amber: #b7791f;
     display: grid;
-    grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+    gap: 1.6rem;
     min-height: 100vh;
-    background: var(--agent-paper);
-    color: var(--agent-ink);
+    padding: 2rem clamp(1rem, 3vw, 2rem) 5rem;
+    background: var(--paper);
+    color: var(--ink);
     font-family: var(--font-book);
   }
 
   :global(html.dark) .agent-page {
-    --agent-paper: #171816;
-    --agent-ink: #f3efe4;
-    --agent-muted: #aaa294;
-    --agent-line: #38362f;
-    --agent-accent: #e0825e;
-    --agent-teal: #65bdb2;
-    --agent-blue: #8fb4df;
-    --agent-olive: #afc16f;
-    background: var(--agent-paper);
+    --paper: #121716;
+    --sheet: #19201f;
+    --ink: #f3f6f4;
+    --muted: #b4c0bb;
+    --line: #34413e;
+    --blue: #8fb4df;
+    --green: #80cfa2;
+    --amber: #e3b15c;
   }
 
   .toc {
     position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    border-right: 1px solid var(--agent-line);
-    padding: 2rem 1.1rem;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    align-self: start;
+    border: 1px solid rgb(15 76 129 / 14%);
+    border-radius: 0.5rem;
+    background: rgb(255 255 251 / 90%);
+    padding: 1rem 0.7rem;
+    box-shadow: 0 12px 34px rgb(16 42 67 / 7%);
   }
 
-  .toc a {
+  :global(html.dark) .toc {
+    background: rgb(25 32 31 / 92%);
+  }
+
+  .toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .toc li {
+    margin: 0;
+  }
+
+  .toc-title,
+  .toc-link {
     display: block;
-    border-radius: 0.375rem;
-    color: var(--agent-muted);
-    font-size: 0.9rem;
+    border-radius: 0.45rem;
+    color: var(--muted);
     line-height: 1.35;
-    padding: 0.45rem 0.55rem;
     text-decoration: none;
   }
 
-  .toc a:hover {
-    background: rgb(200 95 63 / 10%);
-    color: var(--agent-accent);
+  .toc-title {
+    margin: 0 0 0.7rem;
+    padding: 0 0.55rem 0.7rem;
+    border-bottom: 1px solid rgb(15 76 129 / 12%);
+    color: var(--ink);
+    font-weight: 800;
   }
 
-  .toc .toc-title {
-    margin-bottom: 1rem;
-    color: var(--agent-ink);
-    font-size: 1rem;
+  .toc-link {
+    padding: 0.36rem 0.5rem;
+    font-size: 0.88rem;
+  }
+
+  .toc-link-2 {
+    margin-top: 0.45rem;
+    color: var(--ink);
+    background: rgb(15 76 129 / 6%);
+    border-left: 3px solid rgb(15 76 129 / 45%);
     font-weight: 800;
+  }
+
+  .toc-link-3 {
+    margin-left: 0.65rem;
+    padding-left: 0.8rem;
+    font-size: 0.82rem;
+  }
+
+  .toc-link-4 {
+    margin-left: 1.6rem;
+    padding: 0.25rem 0.45rem;
+    font-size: 0.76rem;
+  }
+
+  .toc-link:hover {
+    background: rgb(31 122 77 / 11%);
+    color: var(--green);
   }
 
   .article {
-    width: min(100%, 75rem);
-    padding: 0 2rem 5rem;
+    width: min(100%, 62rem);
+    min-width: 0;
+    border: 1px solid rgb(15 76 129 / 12%);
+    border-radius: 0.5rem;
+    background: var(--sheet);
+    padding: clamp(1.3rem, 4vw, 3.5rem);
+    box-shadow: 0 14px 40px rgb(16 42 67 / 8%);
   }
 
   .hero {
-    min-height: 92vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-bottom: 1px solid var(--agent-line);
-    padding: 5rem 0 4rem;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(20rem, 1.1fr);
+    align-items: center;
+    gap: 2rem;
+    min-height: min(86vh, 54rem);
   }
 
-  .eyebrow,
-  .kicker {
-    color: var(--agent-accent);
-    font-size: 0.78rem;
+  .eyebrow {
+    margin: 0 0 0.8rem;
+    color: var(--green);
+    font-size: 0.82rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    margin: 0 0 0.75rem;
-    text-transform: uppercase;
   }
 
   h1,
   h2,
   h3,
+  h4,
   p {
     margin-top: 0;
   }
 
-  h1 {
-    font-size: 6rem;
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: #102a43;
     letter-spacing: 0;
-    line-height: 0.94;
-    margin-bottom: 1.4rem;
+    line-height: 1.25;
+    scroll-margin-top: 1.5rem;
+  }
+
+  :global(html.dark) h1,
+  :global(html.dark) h2,
+  :global(html.dark) h3,
+  :global(html.dark) h4 {
+    color: #dbeafe;
+  }
+
+  h1 {
+    max-width: 17ch;
+    margin-bottom: 1.2rem;
+    font-size: clamp(2.15rem, 4.5vw, 4.6rem);
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  h2 {
+    margin: 4.5rem 0 1.4rem;
+    padding-top: 1.4rem;
+    border-top: 3px solid rgb(15 76 129 / 20%);
+    font-size: clamp(1.65rem, 2.7vw, 2.25rem);
+  }
+
+  h3 {
+    margin: 2.2rem 0 0.8rem;
+    padding-left: 0.8rem;
+    border-left: 4px solid var(--green);
+    font-size: clamp(1.2rem, 2vw, 1.45rem);
+  }
+
+  h4 {
+    margin: 1.6rem 0 0.4rem;
+    padding-left: 0.65rem;
+    border-left: 2px solid rgb(15 76 129 / 35%);
+    font-size: 1.05rem;
+  }
+
+  p,
+  li {
+    font-size: 1.06rem;
+    line-height: 1.85;
+    overflow-wrap: break-word;
+  }
+
+  p {
+    margin-bottom: 1.05rem;
+  }
+
+  a {
+    color: var(--blue);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.14em;
+  }
+
+  code {
+    font-family: var(--font-mono);
   }
 
   .lead {
-    color: var(--agent-muted);
-    font-size: 1.28rem;
-    line-height: 1.85;
-    max-width: 58rem;
-  }
-
-  .hero-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.8rem;
-    margin-top: 2.5rem;
-  }
-
-  .pillar,
-  .card,
-  .company-card,
-  .focus-box,
-  .plan-item,
-  .selection-card {
-    border: 1px solid var(--agent-line);
-    border-radius: 0.5rem;
-    background: rgb(255 255 255 / 34%);
-  }
-
-  :global(html.dark) .pillar,
-  :global(html.dark) .card,
-  :global(html.dark) .company-card,
-  :global(html.dark) .focus-box,
-  :global(html.dark) .plan-item,
-  :global(html.dark) .selection-card {
-    background: rgb(255 255 255 / 4%);
-  }
-
-  .pillar {
-    color: var(--agent-ink);
-    min-height: 11rem;
-    padding: 1rem;
-    text-decoration: none;
-  }
-
-  .pillar span {
-    color: var(--agent-accent);
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 800;
-    margin-bottom: 0.6rem;
-    text-transform: uppercase;
-  }
-
-  .pillar strong {
-    display: block;
-    font-size: 1.05rem;
-    line-height: 1.35;
-    margin-bottom: 0.75rem;
-  }
-
-  .pillar em {
-    color: var(--agent-muted);
-    display: block;
-    font-size: 0.9rem;
-    font-style: normal;
-    line-height: 1.55;
-  }
-
-  .section {
-    border-bottom: 1px solid var(--agent-line);
-    padding: 4.5rem 0;
+    color: var(--muted);
+    font-size: 1.18rem;
   }
 
   .reading-contract {
-    border-bottom: 1px solid var(--agent-line);
-    padding: 2rem 0 0.5rem;
+    margin: 2.5rem 0 0;
+    border: 1px solid rgb(31 122 77 / 18%);
+    border-radius: 0.5rem;
+    background: rgb(31 122 77 / 6%);
+    padding: 1rem 1.15rem;
   }
 
   .reading-contract strong {
     display: block;
-    color: var(--agent-ink);
-    font-size: 0.95rem;
-    margin-bottom: 0.45rem;
+    margin-bottom: 0.4rem;
+    color: var(--green);
   }
 
-  .reading-contract p {
-    color: var(--agent-muted);
-    font-size: 1rem;
-    line-height: 1.8;
-    margin-bottom: 0;
+  .section {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.5rem;
   }
 
-  .section-head h2 {
-    font-size: 2.7rem;
-    line-height: 1.12;
-    margin-bottom: 1.4rem;
-  }
-
-  .thesis-panel {
-    padding-top: 3rem;
-  }
-
-  .thesis-list {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-  }
-
-  .thesis-list p {
-    color: var(--agent-muted);
-    font-size: 1rem;
-    line-height: 1.8;
-  }
-
-  .thesis-list strong {
-    color: var(--agent-ink);
-  }
-
-  .cards {
-    display: grid;
-    gap: 1rem;
-  }
-
-  .essentials {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .card {
-    color: var(--agent-ink);
-    min-height: 15rem;
-    padding: 1rem;
-    position: relative;
-    text-decoration: none;
-    transition: border-color 0.16s ease, transform 0.16s ease;
-  }
-
-  .card:hover,
-  .pillar:hover,
-  .company-card:hover,
-  .reading-list a:hover {
-    border-color: var(--agent-accent);
-  }
-
-  .card:hover {
-    transform: translateY(-2px);
-  }
-
-  .rank {
-    color: var(--agent-muted);
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-  }
-
-  .tag {
-    border: 1px solid rgb(200 95 63 / 35%);
-    border-radius: 999px;
-    color: var(--agent-accent);
-    float: right;
-    font-size: 0.72rem;
-    font-weight: 800;
-    padding: 0.2rem 0.55rem;
-  }
-
-  .card h3 {
-    clear: both;
-    font-size: 1.15rem;
-    line-height: 1.35;
-    margin: 1rem 0 0.45rem;
-  }
-
-  .card .source {
-    color: var(--agent-teal);
-    font-size: 0.82rem;
-    font-weight: 800;
-    margin-bottom: 0.9rem;
-    text-transform: uppercase;
-  }
-
-  .card p:not(.source) {
-    color: var(--agent-muted);
-    font-size: 0.92rem;
-    line-height: 1.65;
-  }
-
-  .company-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .company-card {
-    padding: 1.2rem;
-  }
-
-  .company-card h3 {
-    color: var(--agent-blue);
-    font-size: 1.6rem;
-    margin-bottom: 0.7rem;
-  }
-
-  .company-card p {
-    color: var(--agent-muted);
-    line-height: 1.75;
-  }
-
-  .company-card ul,
-  .focus-box ul {
-    margin: 0;
-    padding-left: 1.15rem;
-  }
-
-  .company-card li,
-  .focus-box li {
-    margin: 0.55rem 0;
-  }
-
-  a {
-    color: var(--agent-accent);
-  }
-
-  .topic-section {
-    display: grid;
-    gap: 2rem;
-    grid-template-columns: 5rem minmax(0, 1fr);
-  }
-
-  .topic-label {
-    color: var(--agent-line);
-    font-family: var(--font-mono);
-    font-size: 3.5rem;
-    font-weight: 800;
-    line-height: 1;
-  }
-
-  .topic-thesis {
-    color: var(--agent-ink);
-    font-size: 1.2rem;
-    line-height: 1.85;
-    max-width: 58rem;
-  }
-
-  .focus-box {
-    border-left: 0.35rem solid var(--agent-olive);
-    margin: 1.7rem 0;
-    padding: 1.2rem 1.3rem;
-  }
-
-  .focus-box h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.65rem;
-  }
-
-  .focus-box li {
-    color: var(--agent-muted);
-    line-height: 1.7;
-  }
-
-  .reading-list {
-    display: grid;
-    gap: 0.65rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .reading-list a {
-    align-items: center;
-    border: 1px solid var(--agent-line);
-    border-radius: 0.45rem;
-    color: var(--agent-ink);
-    display: flex;
-    gap: 1rem;
-    justify-content: space-between;
-    min-height: 4rem;
-    padding: 0.75rem 0.9rem;
-    text-decoration: none;
-  }
-
-  .reading-list span {
-    line-height: 1.4;
-  }
-
-  .reading-list small {
-    color: var(--agent-muted);
-    flex: 0 0 auto;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-  }
-
-  .plan-list {
-    display: grid;
-    gap: 0.9rem;
-  }
-
-  .selection-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.8rem;
-  }
-
-  .plan-item {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: 8rem minmax(0, 1fr);
-    padding: 1rem 1.2rem;
-  }
-
-  .plan-item strong {
-    color: var(--agent-teal);
-    font-family: var(--font-mono);
-  }
-
-  .selection-card {
-    padding: 1rem;
-  }
-
-  .selection-card strong {
-    color: var(--agent-teal);
-    display: block;
-    font-family: var(--font-mono);
-    margin-bottom: 0.55rem;
-  }
-
-  .plan-item p,
-  .selection-card p,
-  .final-notes p {
-    color: var(--agent-muted);
-    line-height: 1.8;
-    margin-bottom: 0;
-  }
-
-  .final-notes {
+  .section:last-child {
     border-bottom: 0;
   }
 
-  .final-notes h2 {
-    font-size: 2.4rem;
+  .hero-figure,
+  .wc-figure {
+    margin: 1.6rem 0 2rem;
+  }
+
+  .hero-figure {
+    margin: 0;
+  }
+
+  .hero-figure img,
+  .wc-figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid rgb(16 42 67 / 9%);
+    border-radius: 0.5rem;
+    background: #fffaf0;
+  }
+
+  figcaption {
+    margin-top: 0.6rem;
+    color: var(--muted);
+    font-size: 0.94rem;
+    line-height: 1.65;
+  }
+
+  .question-list {
+    display: grid;
+    gap: 0.7rem;
+    margin: 1rem 0 1.5rem;
+    padding-left: 1.35rem;
+  }
+
+  .formula {
+    margin: 1rem 0 1.2rem;
+    overflow-x: auto;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: rgb(15 76 129 / 5%);
+  }
+
+  .math-inline :global(.katex) {
+    font-size: 1em;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.6rem;
+    font-size: 0.96rem;
+  }
+
+  th,
+  td {
+    border: 1px solid var(--line);
+    padding: 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: rgb(15 76 129 / 7%);
+    color: var(--ink);
+  }
+
+  .references ul {
+    padding-left: 1.2rem;
   }
 
   @media (max-width: 980px) {
     .agent-page {
       display: block;
+      padding: 0.8rem;
     }
 
     .toc {
-      display: none;
+      position: static;
+      max-height: none;
+      margin-bottom: 0.9rem;
     }
 
     .article {
-      padding: 0 1rem 4rem;
+      padding: 1rem;
     }
 
     .hero {
+      grid-template-columns: 1fr;
       min-height: auto;
-      padding-top: 4rem;
+      gap: 1.1rem;
     }
 
     h1 {
-      font-size: 3.4rem;
+      max-width: 100%;
+      font-size: clamp(2rem, 10vw, 3.1rem);
     }
 
     .lead {
-      font-size: 1.12rem;
+      font-size: 1.05rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .toc-link {
+      font-size: 0.8rem;
     }
 
-    .section-head h2,
-    .final-notes h2 {
-      font-size: 2rem;
+    .toc-link-3,
+    .toc-link-4 {
+      margin-left: 0.35rem;
     }
 
-    .hero-grid,
-    .thesis-list,
-    .essentials,
-    .company-grid,
-    .reading-list,
-    .selection-grid {
-      grid-template-columns: 1fr;
+    p,
+    li {
+      font-size: 1rem;
     }
 
-    .topic-section {
+    table,
+    thead,
+    tbody,
+    tr,
+    td {
       display: block;
+      width: 100%;
     }
 
-    .topic-label {
-      font-size: 2.2rem;
-      margin-bottom: 1rem;
+    thead {
+      display: none;
     }
 
-    .plan-item {
-      grid-template-columns: 1fr;
+    tr {
+      margin-bottom: 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    td {
+      border: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    td:last-child {
+      border-bottom: 0;
+    }
+
+    td::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 0.25rem;
+      color: var(--green);
+      font-weight: 800;
     }
   }
 </style>
