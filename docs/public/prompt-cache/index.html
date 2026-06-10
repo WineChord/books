@@ -24,6 +24,7 @@
       --code-bg: #f3f6f8;
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       background: var(--bg);
@@ -32,10 +33,70 @@
       line-height: 1.78;
       text-rendering: optimizeLegibility;
     }
-    main {
-      width: min(100%, 1080px);
+    .page-shell {
+      width: min(100%, 1320px);
       margin: 0 auto;
       padding: 48px 22px 88px;
+      display: grid;
+      grid-template-columns: minmax(0, 240px) minmax(0, 1080px);
+      gap: 24px;
+      align-items: start;
+    }
+    main {
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-panel {
+      position: sticky;
+      top: 24px;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 16px 12px;
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 8px;
+      background: rgba(255, 255, 251, 0.84);
+      box-shadow: 0 10px 30px rgba(16, 42, 67, 0.06);
+    }
+    .toc-title {
+      margin: 0 0 10px;
+      padding: 0 8px 10px;
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+      color: #102a43;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .toc-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-list li {
+      margin: 0;
+      font-size: 14px;
+    }
+    .toc-link {
+      display: block;
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: var(--muted);
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .toc-link:hover,
+    .toc-link.active {
+      background: rgba(31, 122, 77, 0.10);
+      color: #14532d;
+    }
+    .toc-level-2 {
+      margin-top: 8px;
+      color: #102a43;
+      font-weight: 700;
+    }
+    .toc-level-3 {
+      padding-left: 18px;
+      font-size: 13px;
     }
     article {
       background: var(--paper);
@@ -48,6 +109,7 @@
       line-height: 1.28;
       color: #102a43;
       letter-spacing: 0;
+      scroll-margin-top: 24px;
     }
     h1 {
       margin: 0 0 24px;
@@ -150,8 +212,39 @@
       border-left: 4px solid var(--green);
       color: var(--muted);
     }
+    @media (max-width: 1180px) {
+      .page-shell {
+        width: min(100%, 1080px);
+        display: block;
+      }
+      .toc-panel {
+        position: relative;
+        top: auto;
+        max-height: 320px;
+        margin: 0 0 18px;
+      }
+      .toc-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 2px 10px;
+      }
+      .toc-level-3 {
+        padding-left: 8px;
+      }
+    }
     @media (max-width: 720px) {
-      main { padding: 20px 12px 56px; }
+      .page-shell { padding: 20px 12px 56px; }
+      .toc-panel {
+        max-height: 260px;
+        margin-bottom: 14px;
+        padding: 12px 10px;
+      }
+      .toc-title { font-size: 14px; }
+      .toc-list { display: block; }
+      .toc-link {
+        padding: 5px 6px;
+        font-size: 13px;
+      }
       article { padding: 22px 16px; }
       p, li { font-size: 16px; }
       pre code { font-size: 13px; }
@@ -161,7 +254,12 @@
   </style>
 </head>
 <body>
-  <main>
+  <div class="page-shell">
+    <aside class="toc-panel" aria-label="文章目录">
+      <div class="toc-title">目录</div>
+      <nav id="toc" class="toc-nav"></nav>
+    </aside>
+    <main>
     <article>
 <h1>Claude Code 和 Codex 的 Prompt Cache 设计：关键在模型视图</h1>
 <p><img src="assets/cover-claude-codex-prompt-cache.png" alt="Claude Code 和 Codex 的 prompt cache 设计对比"></p>
@@ -618,6 +716,70 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <li>OpenAI Prompt Caching 201：<code>https://developers.openai.com/cookbook/examples/prompt_caching_201</code></li>
 </ul>
     </article>
-  </main>
+    </main>
+  </div>
+  <script>
+    (() => {
+      const article = document.querySelector("article");
+      const toc = document.querySelector("#toc");
+      if (!article || !toc) return;
+
+      const headings = Array.from(article.querySelectorAll("h2, h3"));
+      if (headings.length === 0) return;
+
+      const counts = new Map();
+      const slugify = (text) => {
+        const base = text
+          .toLowerCase()
+          .trim()
+          .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
+          .replace(/^-+|-+$/g, "");
+        return base || "section";
+      };
+
+      const list = document.createElement("ol");
+      list.className = "toc-list";
+      const links = [];
+
+      headings.forEach((heading, index) => {
+        const text = heading.textContent.trim();
+        const base = slugify(text);
+        const seen = counts.get(base) || 0;
+        counts.set(base, seen + 1);
+        heading.id = seen === 0 ? base : `${base}-${seen + 1}`;
+
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = `#${heading.id}`;
+        link.textContent = text;
+        link.className = `toc-link toc-level-${heading.tagName === "H2" ? "2" : "3"}`;
+        if (index === 0) link.classList.add("active");
+        item.appendChild(link);
+        list.appendChild(item);
+        links.push(link);
+      });
+
+      toc.appendChild(list);
+
+      const activate = (id) => {
+        links.forEach((link) => {
+          link.classList.toggle("active", link.getAttribute("href") === `#${id}`);
+        });
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) activate(visible[0].target.id);
+      }, { rootMargin: "-20% 0px -70% 0px", threshold: 0 });
+
+      headings.forEach((heading) => observer.observe(heading));
+      window.addEventListener("hashchange", () => {
+        const id = decodeURIComponent(window.location.hash.slice(1));
+        if (id) activate(id);
+      });
+    })();
+  </script>
 </body>
 </html>
