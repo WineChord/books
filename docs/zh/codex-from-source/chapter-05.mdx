@@ -6,6 +6,8 @@ import { runtimeStack, threadLifecycleOperations } from "../../../src/data/diagr
 
 <DurableThreadLedger lang="zh" client:visible />
 
+> **阅读契约：** 用本章理解持久工作。把 thread identity、queues、history、rollout 和 session ownership 分别看成 state、progress 与 resumability 的答案。
+
 第 4 章把协议边界讲清楚了：客户端可以提交 operation、接收 event、 交换模型 item，却不需要知道 runtime 内部如何工作。本章越过这条边界， 看 Codex 如何把这些协议消息变成一个可恢复、可 fork、可回滚的活线程。
 
 <div class="chapter-lede">

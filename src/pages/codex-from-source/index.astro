@@ -37,6 +37,21 @@ const base = import.meta.env.BASE_URL;
       </div>
     </section>
 
+    <section class="mb-16 grid grid-cols-1 gap-3 md:grid-cols-4" aria-label="Reading route">
+      {[
+        ["01", "Contracts first", "Start with operations, events, threads, turns, and items before reading UI code."],
+        ["02", "Runtime spine", "Follow session state, turn scheduling, provider streaming, and rollout trace as one loop."],
+        ["03", "Side effects", "Read tools, shell, patches, approvals, hooks, sandboxes, and network policy as one authority stack."],
+        ["04", "Surfaces and governance", "Finish with app-server, SDKs, TUI, extensions, cloud tasks, release, and CI."],
+      ].map(([step, title, body]) => (
+        <article class="rounded-lg border border-border p-4 dark:border-[#333]">
+          <span class="font-mono text-xs font-semibold uppercase tracking-wide text-terracotta">{step}</span>
+          <h2 class="mt-2 text-base font-bold text-charcoal dark:text-cream">{title}</h2>
+          <p class="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+        </article>
+      ))}
+    </section>
+
     <ArchitectureMap client:load base={base} />
 
     <section class="mb-20 grid grid-cols-1 gap-4 md:grid-cols-3">

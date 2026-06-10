@@ -6,6 +6,8 @@ import { startupChain, routerToFoundation } from "../../../src/data/diagrams/cod
 
 <StartupBootstrapTimeline lang="zh" client:visible />
 
+> **阅读契约：** 用本章把启动过程读成逐步收窄。跟住 distribution wrapper、CLI parsing 和 Rust routing 如何把用户命令变成类型化路径，同时不让 packaging 拥有架构。
+
 第 1 章把 Codex 描述成一个有边界的操作系统：runtime 接收 typed operation，发出 event，并在副作用前执行策略闸门。本章进入用户触碰到的第一条边界：安装后的命令。这里的设计刻意保持不对称。JavaScript 负责分发机制，Rust 负责产品路由和 runtime 集成。
 
 这条分界很容易被低估。许多命令行产品从一个脚本开始，然后脚本逐渐长出业务行为。Codex 避免了这种形状。面向 npm 的入口选择正确的 native artifact，调整进程环境，转发信号，然后退出架构中心。Rust binary 解析命令，解析共享启动状态，并分发到不同产品接入面。

@@ -1,5 +1,7 @@
 # Source Atlas
 
+> **Reading Contract:** Use this atlas only after the narrative is clear. Open pinned links to verify owners, boundaries, and evidence rather than to discover the story from scratch.
+
 This atlas is the source-audit index for the book. All Codex links point to public GitHub code pinned to commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3`. The chapters should be readable without opening these links; the atlas exists so a reader can verify the book's claims without hunting through the repository.
 
 ## Chapter Anchors

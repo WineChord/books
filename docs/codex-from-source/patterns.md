@@ -1,5 +1,7 @@
 # Pattern Index
 
+> **Reading Contract:** Use this reference as a decision checklist. Start from the problem you are solving, then jump back to the chapter that explains the pattern and its failure mode.
+
 This page collects the reusable design patterns that appear across the book. They are not Codex-only tricks. They are architectural moves that matter whenever an LLM product can inspect files, run commands, call external tools, or serve multiple clients.
 
 ## The Patterns

@@ -10,6 +10,8 @@ import {
 
 <PolicyLaneDashboard lang="zh" client:visible />
 
+> **阅读契约：** 用本章把 CI 读成可执行架构。跟住 policy lanes、test targets、generated checks，以及保护 runtime contracts 的失败信号。
+
 第 24 章展示了发布打包如何防止平台蔓延改变运行时。最后一个系统压力是时间。代码库不是一次性失去架构，而是通过一个个小例外失去架构：一个不应该被 core 触达的依赖，一个没有更新的生成 schema，一个为了方便提交的大二进制，一个 UI crate 绕过协议边界。
 
 Codex 用可执行治理回答很多这类压力。CI 不只是测试运行器，而是一组用脚本、lint、生成检查、workflow lane 和发布 gate 写下来的架构断言。本章解释为什么这些检查属于设计，以及如何借鉴这个模式而不把 CI 变成缓慢嘈杂的墙。

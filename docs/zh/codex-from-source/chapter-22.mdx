@@ -11,6 +11,8 @@ import {
 
 <MemorySideChannel lang="zh" client:visible />
 
+> **阅读契约：** 用本章把 memory 保持为受控旁路。跟住 read prompts、write prompts、user-level state、budgets，并记住 memory 不是隐藏 transcript。
+
 第 21 章把 cloud tasks 和 local turn execution 分开：远程工作有自己的 task contract、identity layer 和 local apply boundary。Memories 采用同样的 架构纪律。长期上下文不是隐藏的 chat history。它是一个受控 side channel， 有 read path、write path、storage rules、locks、redaction，以及用于 consolidation 的受限 internal agent。
 
 本章解释为什么需要这些额外机制。Memory system 可以让 Agent 在跨 session 时显得连续，但也可能泄漏陈旧事实、过度拟合旧对话，或者把敏感内容偷偷带进 未来 prompt。Codex 把 memory 当成显式子系统，是为了让 runtime 获得长期 context 的好处，同时仍然控制哪些内容能被读、被写、被引用。

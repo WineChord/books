@@ -6,6 +6,8 @@ import { patchLifecycle } from "../../../src/data/diagrams/codex-from-source/cha
 
 <PatchWorkbench lang="zh" client:visible />
 
+> **阅读契约：** 用本章把 patch 看成协议，而不是 shell 技巧。跟住 structured diff、approval、application、failure feedback 和最终 evidence。
+
 第 10 章说明了 shell execution 如何成为受监督的进程。本章把一条常见编辑路径从 shell 中拆出来：patch application。Codex 把 `apply_patch` 当作 mutation protocol，而不是传给命令的一段文本。这个差别是架构性的。协议可以被解析、验证、评估、审批，通过正确的文件系统应用，并在模型看到最终结果前记录为 turn diff。
 
 直接写文件很诱人，因为简单。但它作为证据很差。直接写只表达“让这个文件变成这些内容”。Patch 表达的是“在这些路径上执行添加、删除、更新、移动和这些 hunk”。这个结构让 runtime 在副作用发生前有东西可检查。

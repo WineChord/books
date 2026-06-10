@@ -6,6 +6,8 @@ import { policyTransformEnforcement } from "../../../src/data/diagrams/codex-fro
 
 <ContainmentBoundaryExplorer lang="zh" client:visible />
 
+> **阅读契约：** 用本章把 containment 具体化。跟住 sandbox selection、network policy、platform boundaries，以及最终接触外部世界的 executor。
+
 第 12 章描述了决定副作用能否继续的关卡。本章跟随一个已获批准的动作进入隔离层。Approval 说明谁授权了这次 attempt；sandboxing 说明这次 attempt 仍然能触碰什么。它们是不同控制，Codex 也刻意让它们保持不同。
 
 Sandbox 架构有三个阶段。第一，Codex 把 permission profile 解析成 filesystem policy 和 network policy。第二，sandbox manager 判断当前工具是否需要 platform sandbox，并在需要时改写 command。第三，platform helper 按该操作系统能表达的方式执行改写后的 command。

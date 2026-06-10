@@ -6,6 +6,8 @@ import { toolSpecPlanner } from "../../../src/data/diagrams/codex-from-source/ch
 
 <ToolDispatchMap lang="zh" client:visible />
 
+> **阅读契约：** 用本章跟踪工具如何从 model-visible spec 到 runtime handler。跟住 routing、registry lookup、orchestration，并记住 spec 从来不是执行权限。
+
 第 8 章说明了 Codex 为什么先记录运行时事实，再解释这些事实。本章从观察进入行动：当模型请求一个工具时，Codex 必须判断这个请求是否对应真实能力，由哪个运行时负责，是否允许并行，最终又该把什么结果返回给模型和可重放的事件流。
 
 理解工具系统，最稳的方式是把它看成能力系统。工具规格描述模型可以怎样调用；handler 才是能够执行工作的运行时权威；router 在一个具体 turn 中把二者连接起来。这三个概念不能混在一起。模型可见 schema 和执行权限如果变成同一个对象，每新增一个工具，就会同时制造安全例外、UI 例外和重放例外。

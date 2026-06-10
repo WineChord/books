@@ -1,5 +1,7 @@
 # Production Pipeline
 
+> **Reading Contract:** Use this page to understand production discipline. Track how prompts, rewrites, visuals, checks, and evidence keep a source-pinned book maintainable.
+
 This book is produced with a source-first multi-agent workflow. The workflow matters because source-code explanation can easily drift into unsupported claims. Each role has a narrow job and a concrete artifact.
 
 | Stage | Role | Output |

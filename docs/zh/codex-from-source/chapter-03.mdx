@@ -6,6 +6,8 @@ import { configurationStack, authManagerSnapshot } from "../../../src/data/diagr
 
 <ConstraintEnvelopeBuilder lang="zh" client:visible />
 
+> **阅读契约：** 用本章把配置读成约束。跟住 auth、policy、managed requirements、profiles 和环境事实如何变成后续代码必须服从的 envelope。
+
 第 2 章沿着启动路径，从分发包装器走到了 Rust command router。当 router 知道要启动哪个产品接入面之后，Agent 仍然不能立刻开始工作。它必须先解析运行包络：effective configuration、authenticated identity、feature state，以及 managed requirements。
 
 本章讨论的正是这个包络。Codex 不允许每个子系统各自读取喜欢的配置文件或环境变量。系统会构造一份解析后的、带来源信息的视图，并把受约束的 runtime settings 交给后续层。这个不变量非常关键：session loop、model provider、tools、app-server、hooks 和 sandboxing 代码应该消费同一个答案：“这里允许什么？”

@@ -1,5 +1,7 @@
 # Bibliography
 
+> **Reading Contract:** Use this bibliography as evidence inventory. Separate public source anchors, product references, and supporting material before citing them in your own notes.
+
 ## Primary Codex Sources
 
 - OpenAI, [Introducing Codex](https://openai.com/index/introducing-codex/),

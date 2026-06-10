@@ -1,5 +1,7 @@
 # Reader Map
 
+> **Reading Contract:** Use this page to choose depth before you start. The recurring audit question is how a user request moves through operations, turns, model streams, tools, durable events, and client projections.
+
 This book is written for source-equivalent understanding. You can still open the pinned source links, but the main reading path should teach the system without requiring a source checkout beside the book.
 
 ## Two Reading Tracks

@@ -6,6 +6,8 @@ import { rolloutTracePipeline, traceReducerInputs } from "../../../src/data/diag
 
 <RolloutTraceLab lang="zh" client:visible />
 
+> **阅读契约：** 用本章把 observability 当作 replay evidence。分清哪些 runtime facts 进入 rollout trace，哪些成为 client projections，哪些仍然留在内部。
+
 第 7 章说明了 provider 和 transport 的差异如何收敛成统一的模型事件流。 本章继续追踪这些事件进入 runtime 之后的命运：哪些事实会为 replay 持久化， 哪些会被 reduce 成 product analytics，哪些成为 operational telemetry， 哪些作为 raw diagnostic evidence 进入 rollout trace。
 
 <div class="chapter-lede">

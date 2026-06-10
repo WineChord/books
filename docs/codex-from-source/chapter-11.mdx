@@ -6,6 +6,8 @@ import { patchLifecycle } from "../../src/data/diagrams/codex-from-source/chapte
 
 <PatchWorkbench lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to see patches as a protocol, not a shell trick. Track structured diffs, approval, application, failure feedback, and final evidence.
+
 Chapter 10 showed how shell execution becomes a supervised process. This chapter separates one common editing path from the shell: patch application. Codex treats `apply_patch` as a mutation protocol, not as text piped to a command. The difference is architectural. A protocol can be parsed, verified, assessed, approved, applied through the right filesystem, and recorded as a turn diff before the model sees the final result.
 
 Direct file writes are attractive because they are simple. They are also poor evidence. A direct write says, "make this file contain this content." A patch says, "perform these additions, deletions, updates, and moves at these paths." That structure gives the runtime something to inspect before the side effect happens.

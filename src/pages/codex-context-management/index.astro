@@ -48,6 +48,21 @@ const book = codexContextManagementBook;
       </div>
     </section>
 
+    <section class="mb-16 grid grid-cols-1 gap-3 md:grid-cols-4" aria-label="Reading route">
+      {[
+        ["01", "Boundary", "Start with context as runtime state and the turn envelope that freezes one unit of work."],
+        ["02", "Projection", "Then read history normalization, typed fragments, and optional-context budgets as prompt-shaping owners."],
+        ["03", "Survival", "Study compaction, replacement history, rollout reconstruction, rollback, and fork as recovery mechanics."],
+        ["04", "Exposure", "Finish with TUI, realtime, app-server, token usage, and trace as downstream views."],
+      ].map(([step, title, body]) => (
+        <article class="rounded-lg border border-border p-4 dark:border-[#333]">
+          <span class="font-mono text-xs font-semibold uppercase tracking-wide text-terracotta">{step}</span>
+          <h2 class="mt-2 text-base font-bold text-charcoal dark:text-cream">{title}</h2>
+          <p class="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+        </article>
+      ))}
+    </section>
+
     <section class="mb-20 grid grid-cols-1 gap-4 md:grid-cols-3">
       {[
         ["Runtime-first", "Context is treated as governed runtime state, not as a growing prompt string."],

@@ -2,6 +2,8 @@ import BoundedAgentOSMap from "../../src/components/visual/BoundedAgentOSMap.tsx
 
 # Chapter 1: The Architectural Bet: Agent as a Bounded Operating System
 
+> **Reading Contract:** Use this chapter to name Codex as a bounded operating system. Track the operation/event boundary, layered authority, and the three histories before looking at any specific client.
+
 The preface argued that Codex is interesting because it turns a language model product into a system: a local agent that can receive intent, preserve state, call tools, enforce policy, and report evidence. This chapter names the architectural bet behind that system. Codex treats the agent as a bounded operating system: not an operating system for a machine, but a runtime that schedules work, mediates authority, records facts, and exposes stable contracts to several clients.
 
 The word bounded matters. A general operating system assumes it must host arbitrary processes, devices, users, filesystems, and networks. Codex narrows the universe. It hosts one kind of workload: an AI-assisted software engineering conversation. It still needs OS-like responsibilities, but each responsibility is constrained by product vocabulary:

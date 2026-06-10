@@ -7,6 +7,8 @@ import { clientTaxonomy, daemonLifecycle, remoteControlSequence } from "../../sr
 
 <ClientReachabilityBoard lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to compare external client reach. Track SDKs, daemon lifecycle, remote control, and which runtime contracts stay shared across surfaces.
+
 Chapter 14 described the app-server as the contract around shared thread ownership. This chapter follows that contract into the clients and supervisors that make it usable: SDKs that hide protocol mechanics, a daemon that manages local server lifecycle, transports that preserve message semantics, and remote-control streams that carry the same runtime model beyond the local process boundary.
 
 The key distinction is between the protocol and the developer experience built on top of it. A protocol schema says which messages exist. An SDK says how a programmer should start a session, route responses, consume turn events, and answer server requests without becoming a protocol engineer. A daemon says how the local app-server process is found, started, probed, restarted, and updated. Remote control says how a backend-mediated client can behave like another connection without pretending the network is reliable.

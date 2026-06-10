@@ -6,6 +6,8 @@ import { providerStack, transportConvergence, backendTaskSeparation } from "../.
 
 <StreamingProviderLanes lang="zh" client:visible />
 
+> **阅读契约：** 用本章分开 provider transport 与 runtime semantics。跟住 stream normalization、backend tasks、retry/cancel boundaries，以及 provider 差异被隐藏的位置。
+
 第 6 章跟随一次 turn 走到模型 sampling 边界。本章打开这个边界，解释 Codex 如何分离 provider configuration、runtime provider behavior、typed API、 streaming transport、model catalog、realtime session 和 backend task workflow。
 
 <div class="chapter-lede">

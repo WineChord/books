@@ -6,6 +6,8 @@ import { contractSurface, eventMapping } from "../../src/data/diagrams/codex-fro
 
 <JsonRpcContractMap lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to understand app-server as a contract boundary. Track JSON-RPC methods, request serialization, event mapping, and how clients rejoin without owning the runtime.
+
 Chapter 13 ended at the runtime boundary where permissions, sandbox selection, and managed networking decide what a tool attempt may touch. This chapter moves one layer outward. Once the runtime can enforce those decisions, it needs a contract that lets terminal clients, SDK clients, daemon-managed clients, and remote clients share the same threads without sharing an implementation.
 
 The app-server is that contract. It is easy to mistake it for a local web API: requests come in, responses go out, and state lives somewhere behind the server. The source architecture is more interesting. The app-server is a small distributed system running on one machine or across a remote-control bridge. It normalizes transports, serializes work by resource, converts runtime events into client-visible items, remembers enough history to let clients rejoin, and uses server-to-client requests when the runtime needs a human or client decision.

@@ -7,6 +7,8 @@ import { cloudBackendContract, applyTaskFlow, agentIdentityBinding } from "../..
 
 <RemoteTaskContract lang="en" client:visible />
 
+> **Reading Contract:** Use this chapter to read cloud tasks as explicit contracts. Track task identity, remote work state, apply flows, and the local verification that closes the loop.
+
 Chapter 20 showed that local multi-agent coordination becomes understandable when each relationship is explicit: spawn edges, mailbox deliveries, result edges, and close events. This chapter moves the same discipline to remote work. Cloud tasks are not a second agent loop hidden behind a button. They are a backend task workflow with its own identity, environment, attempts, diffs, and local apply path.
 
 The separation is crucial. Local Codex turns stream model output and execute tools in a local permission context. Cloud tasks submit work to a backend environment, later fetch task state, and may apply a returned patch to the current working tree. Those are related product experiences, but they are not the same execution boundary.

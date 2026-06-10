@@ -6,6 +6,8 @@ import { coordinationTopology, liveAndTraceGraphs } from "../../../src/data/diag
 
 <AgentGraphBoard lang="zh" client:visible />
 
+> **阅读契约：** 用本章理解多 agent 协作。跟住 graph edges、parent/child thread boundaries、live updates、trace graphs 和 outcomes 的所有权。
+
 第 19 章在第五部结尾说明了 Codex 如何迁移外部 Agent 配置和历史 session：它不会假装所有外部概念都能无损映射到 Codex，而是保守转换、 保留来源、跳过不安全形态。本章把这个兼容性原则推进到运行时协作： 当 Codex 已经拥有原生 thread 模型之后，多 Agent 协作就应该被表示成 thread、tool、message 和 result 之间的显式关系。
 
 关键变化是：multi-agent 不是一组后台 prompt。它首先是一个图问题。父 thread 可以 spawn 子 thread，可以 assign 或 send 工作，可以 wait 等待， 可以接收 result，也可以 close 一段关系。每个动作都有运行时效果、面向 客户端的事件形态，以及可持久化的 trace 形态。Codex 把这些关注点分开， 所以协作关系可以恢复、调试和渲染，而不是依赖终端文本或隐藏的全局调度器。

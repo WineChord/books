@@ -1,5 +1,7 @@
 # Preface
 
+> **Reading Contract:** Use this preface to set the contract for the whole book: source links are audit evidence, not homework. Read for runtime boundaries, durable nouns, and transfer patterns before you chase file names.
+
 This book is a source-equivalent guide to the open-source [OpenAI Codex repository](https://github.com/openai/codex). It is not a description of OpenAI's private model training stack, hosted cloud service, or internal backend. The source snapshot used throughout the book is [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
 
 The intended default is that you can read the book without opening the source and still learn the architecture, control flow, data contracts, failure paths, policy layers, and client surfaces a source reader would retain. Source links remain available as evidence and for line-level auditing.

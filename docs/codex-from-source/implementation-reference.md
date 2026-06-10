@@ -1,5 +1,7 @@
 # Implementation Reference
 
+> **Reading Contract:** Use this reference for dense source review. Treat each table row as an audit target: owner, data structure, runtime decision, and failure path.
+
 This appendix is the book's "read this instead of opening the source" page. It collects the implementation facts that are too detailed for a smooth chapter but too important to leave only in source links.
 
 ## Snapshot Rule

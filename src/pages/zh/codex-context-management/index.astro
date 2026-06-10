@@ -50,6 +50,21 @@ const book = codexContextManagementBook;
       </div>
     </section>
 
+    <section class="mb-16 grid grid-cols-1 gap-3 md:grid-cols-4" aria-label="阅读路线">
+      {[
+        ["01", "边界", "先读 context 作为 runtime state 的定义，以及冻结一次工作单元的 turn envelope。"],
+        ["02", "投影", "再把 history normalization、typed fragments 和 optional-context budgets 看成塑造 prompt 的 owner。"],
+        ["03", "存活", "把 compaction、replacement history、rollout reconstruction、rollback 和 fork 当作恢复机制来读。"],
+        ["04", "暴露", "最后看 TUI、realtime、app-server、token usage 和 trace 如何作为下游视图存在。"],
+      ].map(([step, title, body]) => (
+        <article class="rounded-lg border border-border p-4 dark:border-[#333]">
+          <span class="font-mono text-xs font-semibold uppercase tracking-wide text-terracotta">{step}</span>
+          <h2 class="mt-2 text-base font-bold text-charcoal dark:text-cream">{title}</h2>
+          <p class="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+        </article>
+      ))}
+    </section>
+
     <section class="mb-20 grid grid-cols-1 gap-4 md:grid-cols-3">
       {[
         ["运行时优先", "上下文被当作受治理的运行时状态，而不是不断增长的 prompt 字符串。"],

@@ -11,6 +11,8 @@ import {
 
 <EventRendererLab lang="zh" client:visible />
 
+> **阅读契约：** 用本章把 TUI 读成 projection。跟住 event rendering、layout state、streaming Markdown、approvals，并记住 terminal 不是第二个 runtime。
+
 第 15 章说明 Codex 不止一种 client shape：SDK、daemon connections、execution wrappers 和 remote-control streams 都通过有纪律的边界触达 runtime。本章研究用户最先感受到的 client。Terminal UI 不是 runtime，而是建立在 app-server-backed thread model 之上的 event renderer、input coordinator 和 approval surface。
 
 这个区别会改变阅读架构的方式。传统 terminal application 往往拥有整个 loop：读一个 key，更新 state，画一帧。Codex 也有这样的 loop，但它绘制的状态大多在别处产生。TUI 把用户输入路由成 app commands，把这些 commands 发送到 app-server session，接收 protocol notifications 和 requests，更新 chat state，并在保留真实 scrollback 的同时，把结果渲染到 live terminal viewport 里。

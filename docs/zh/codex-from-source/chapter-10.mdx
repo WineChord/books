@@ -6,6 +6,8 @@ import { shellExecutionChain } from "../../../src/data/diagrams/codex-from-sourc
 
 <ExecutionBackendBoard lang="zh" client:visible />
 
+> **阅读契约：** 用本章把 shell 和文件系统访问读成有边界能力。把 exec-server boundary、command policy、filesystem mutation 和 result reporting 放在一起看。
+
 第 9 章把工具暴露和工具权限分开了。本章沿着最能体现这种分离的 handler 家族继续往下看：shell-like tools。对模型来说，shell 工具看起来只是“运行一个命令”；对运行时来说，它必须解析命令、分类风险、应用策略、运行 hooks、必要时请求审批、选择环境、执行 sandbox 规则、流式输出，并留下可重放记录。
 
 关键设计点是：Codex 不把“运行命令”当成单个原语。它把命令执行看成一条 pipeline。最终进程可能在本机运行，可能在平台 sandbox 中运行，也可能通过 `exec-server` 抽象表示远端 executor 及其文件系统。

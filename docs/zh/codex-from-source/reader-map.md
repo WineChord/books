@@ -1,5 +1,7 @@
 # 阅读地图
 
+> **阅读契约：** 用本页先选择阅读深度。反复追问一个用户请求如何穿过 operations、turns、model streams、tools、durable events 和 client projections。
+
 本书的目标是提供源码等价理解。你仍然可以打开固定到 commit 的源码链接， 但主阅读路径应该在不需要同时打开仓库的情况下讲清系统。
 
 ## 两条阅读路径

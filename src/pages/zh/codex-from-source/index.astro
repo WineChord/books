@@ -37,6 +37,21 @@ const base = import.meta.env.BASE_URL;
       </div>
     </section>
 
+    <section class="mb-16 grid grid-cols-1 gap-3 md:grid-cols-4" aria-label="阅读路线">
+      {[
+        ["01", "先读契约", "先建立 operations、events、threads、turns、items 的词汇，再进入 UI 代码。"],
+        ["02", "抓住运行时主线", "把 session state、turn scheduling、provider streaming 和 rollout trace 当作一个循环来读。"],
+        ["03", "统一看副作用", "把 tools、shell、patches、approvals、hooks、sandboxes 和 network policy 放进同一套 authority stack。"],
+        ["04", "最后看开放与治理", "用 app-server、SDK、TUI、extensions、cloud tasks、release 和 CI 收束整套系统。"],
+      ].map(([step, title, body]) => (
+        <article class="rounded-lg border border-border p-4 dark:border-[#333]">
+          <span class="font-mono text-xs font-semibold uppercase tracking-wide text-terracotta">{step}</span>
+          <h2 class="mt-2 text-base font-bold text-charcoal dark:text-cream">{title}</h2>
+          <p class="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+        </article>
+      ))}
+    </section>
+
     <ArchitectureMap client:load base={base} lang="zh" />
 
     <section class="mb-20 grid grid-cols-1 gap-4 md:grid-cols-3">
