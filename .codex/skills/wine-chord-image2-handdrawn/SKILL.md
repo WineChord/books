@@ -156,6 +156,11 @@ For source-code diagrams, keep visible labels short:
 - Avoid long Chinese sentences inside generated images.
 - If Chinese labels are required, add them with deterministic post-processing
   and export a single PNG.
+- Use font roles deliberately during deterministic post-processing: reserve
+  monospace fonts for short code identifiers, function names, flags, and schema
+  fields; use a CJK-capable sans font for Chinese prose labels, captions, and
+  callouts. Never place Chinese explanation text in a monospace-only font that
+  can render missing-glyph boxes.
 - Maximum visible labels per figure: `10`; maximum words per label: `4`.
 
 Prompt pattern:
@@ -219,6 +224,8 @@ Plan figures from the article argument, not from existing assets:
 Inspect every generated figure before publishing:
 
 - Text is readable and not misspelled.
+- No missing-glyph boxes, clipped words, accidental line breaks inside code
+  identifiers, or forced wraps such as splitting `observation` across lines.
 - Labels do not escape boxes.
 - Arrows do not cross in confusing ways.
 - The figure matches the article's source claims.
@@ -235,6 +242,10 @@ Regenerate or post-process if any item fails.
 For article batches, create a temporary contact sheet of new figures beside the
 Prompt Cache reference images and inspect the set as one family. The batch
 should look systematic, not like unrelated one-off diagrams.
+
+For any figure with deterministic text overlays, also inspect at least the
+highest-risk images at full size. Contact sheets are useful for family style,
+but they can hide missing glyphs, cramped labels, and bad wrapping.
 
 ## Evolution
 
