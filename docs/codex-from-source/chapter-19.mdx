@@ -9,6 +9,11 @@ import { migrationPipeline, sessionImportFlow } from "../../src/data/diagrams/co
 
 > **Reading Contract:** Use this chapter to treat migration as architecture. Track compatibility lanes, session import, legacy shapes, and where adapters prevent old state from corrupting new contracts.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/compatibility-lane-adapters.png" alt="chapter 19 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Compatibility lanes let Codex import older or foreign shapes while protecting the native runtime model from inherited ambiguity.</figcaption>
+</figure>
+
 Chapter 18 separated extension planes into skills, plugins, connectors, and typed extensions. This chapter asks what happens when users arrive with existing agent configurations and histories that were not born inside those planes. Migration is the bridge, and compatibility is the discipline that keeps the bridge from becoming a pile of special cases.
 
 <div class="chapter-lede">

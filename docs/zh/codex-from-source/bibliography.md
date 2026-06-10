@@ -2,6 +2,11 @@
 
 > **阅读契约：** 把本页当作证据清单。引用到自己的笔记前，先分清 public source anchors、product references 和 supporting material。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/evidence-inventory-bibliography.png" alt="bibliography page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>书目把 Codex 一手来源与 Agent、MCP、Rust、TUI、安全和发布背景材料分开。</figcaption>
+</figure>
+
 ## Codex 一手资料
 
 - OpenAI, [Introducing Codex](https://openai.com/index/introducing-codex/),

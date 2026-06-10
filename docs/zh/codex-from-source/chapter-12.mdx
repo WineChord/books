@@ -9,6 +9,11 @@ import { gateStack, commandThroughGates } from "../../../src/data/diagrams/codex
 
 > **阅读契约：** 用本章把 hooks 和 approvals 看成风险前面的门。跟住 humans、policies 与 hooks 什么时候可以延迟、拒绝或标注一个 side effect。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/hooks-approval-gates.png" alt="chapter 12 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Hooks 和 approvals 是风险门禁：在不可逆副作用发生前，它们可以 annotate、delay、deny 或 continue。</figcaption>
+</figure>
+
 第 11 章展示了文件系统 mutation 如何在应用前被解析和验证。本章研究 runtime 已经理解某个动作之后，仍然可以阻止、修正或解释它的关卡：hooks、approval policy、Guardian review 和 user approval。它们彼此相关，但不是同一层。
 
 Hooks 是配置好的程序，用来观察或影响 runtime events。Approval 是允许或拒绝副作用的控制面决策。Guardian 是可以回答部分 approval requests 的自动 reviewer。用户界面是人工决策表面。Codex 把这些层分开，因此每一层失败时都能给出精确语义。

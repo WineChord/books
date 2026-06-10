@@ -9,6 +9,11 @@ import { clientTaxonomy, daemonLifecycle, remoteControlSequence } from "../../..
 
 > **阅读契约：** 用本章比较外部客户端触达方式。跟住 SDK、daemon lifecycle、remote control，以及哪些 runtime contracts 在所有 surface 之间保持共享。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/sdk-daemon-remote-control.png" alt="chapter 15 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>SDK、daemon、in-process caller 和 remote-control bridge 的触达方式不同，但保持同一套协议语义。</figcaption>
+</figure>
+
 第 14 章把 app-server 描述为围绕 shared thread ownership 的契约。本章沿着这份契约看它如何被使用：SDK 隐藏 protocol 细节，daemon 管理本地 server lifecycle，transports 保持 message semantics，remote-control streams 把同一套 runtime model 带出本地 process boundary。
 
 关键区别在于 protocol 和其上的 developer experience。Protocol schema 说明有哪些 messages。SDK 说明 programmer 如何 start session、route responses、consume turn events、answer server requests，而不必成为 protocol engineer。Daemon 说明本地 app-server process 如何被发现、启动、探测、重启和更新。Remote control 说明 backend-mediated client 如何像另一个 connection 一样工作，同时不假装网络是可靠的。

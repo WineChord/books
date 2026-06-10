@@ -1,19 +1,24 @@
-# 写作流水线
+# 出版纪律
 
-> **阅读契约：** 用本页理解生产纪律。跟住 prompts、rewrites、visuals、checks 和 evidence 如何让固定源码的书长期可维护。
+> **阅读契约：** 用本页理解出版纪律。跟住论断、固定证据、图示、中英文一致性和自动校验如何让固定源码的书长期可维护。
 
-本书使用 source-first 的多 Agent 工作流。这样做不是为了形式感，而是为了防止源码解释漂移成没有证据的猜测。每个角色都有窄职责和明确产物。
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/publication-discipline-pipeline.png" alt="pipeline page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>出版纪律让公开书籍可维护：论断、固定证据、视觉模型、校验门禁和发布页面彼此支撑。</figcaption>
+</figure>
 
-| 阶段 | 角色 | 产物 |
+本页描述这本书面向公开发布的维护契约。源码解释最容易在三个地方漂移：源码链接指向了新位置，图示把边界简化过头，或双语版本悄悄丢失了论断。出版流水线的目的，是在发布前让这些失败模式可见。
+
+| 阶段 | 出版检查 | 读者可见产物 |
 | --- | --- | --- |
-| 1 | 架构探索 agents | 仓库地图、主要 crates、执行流、源码阅读风险和章节候选。 |
-| 2 | 交叉引用 agents | topic-to-source atlas，包含固定到公开 GitHub commit 的链接。 |
-| 3 | 外部研究 agents | Codex、ReAct、MCP、sandboxing、TUI、async Rust、安全语言、GitHub Pages 的公开资料。 |
-| 4 | Benchmark reviewer | 学习参考站的可迁移结构：学习目标、分部目录、图示、章节结尾、源码策略和过程透明度。 |
-| 5 | 章节写作 agents | 地图、协议、runtime、tools、boundaries、integrations、client surfaces 的草稿。 |
-| 6 | 双语 reviewer | 中文完整性、术语一致性、缺失练习和初学者可读性。 |
-| 7 | Integrator | 统一语气、双语镜像结构、Astro 导航、视觉 callouts 和校验脚本。 |
-| 8 | Verifier | build、私有路径扫描、双语文件配对、固定源码链接、metadata、内链和 Pages 发布检查。 |
+| 1 | 论断审计 | 每个架构论断都能被公开源码或公开文档校验。 |
+| 2 | 源码锚定 | Codex 源码链接固定到同一个公开 commit，并指向被解释行为的 owner。 |
+| 3 | 外部证据 | 产品、研究、协议、Rust、TUI、安全和发布背景使用公开的一手或近一手来源。 |
+| 4 | 视觉模型 | 图示解释控制流、所有权、信任边界、生命周期或状态，而不是装饰页面。 |
+| 5 | 章节形状 | 每章说明问题、引入心智模型、命名源码 owner，并以可迁移模式收束。 |
+| 6 | 双语一致 | 中英文页面保留同样论断、图片、源码锚点和练习，同时使用自然的本地表达。 |
+| 7 | 站点集成 | 导航、参考页、图片资产、metadata 和内链匹配发布路由。 |
+| 8 | 自动校验 | 发布前运行 build、内容、生成产物、私有路径和链接检查。 |
 
 ## Guardrails
 

@@ -9,6 +9,11 @@ import { cloudBackendContract, applyTaskFlow, agentIdentityBinding } from "../..
 
 > **阅读契约：** 用本章把 cloud tasks 读成显式契约。跟住 task identity、remote work state、apply flows，以及闭环所需的 local verification。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/cloud-task-remote-work-contract.png" alt="chapter 21 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Cloud tasks 是远程工作契约，包含 identity、environment、attempts、diff retrieval 和本地 apply verification。</figcaption>
+</figure>
+
 第 20 章说明了本地多 Agent 协作为什么要显式化每一段关系：spawn edge、 mailbox delivery、result edge 和 close event。本章把同样的纪律推进到 远程工作。Cloud tasks 不是隐藏在按钮后面的第二套 agent loop。它是一个 backend task workflow，有自己的身份、环境、attempts、diffs 和本地 apply 路径。
 
 这个分离非常关键。Local Codex turn 会流式输出模型结果，并在本地权限上下文 里执行工具。Cloud task 会把工作提交到 backend environment，稍后获取 task state，并可能把返回的 patch 应用到当前工作树。这两个体验相关，但不是同一 个执行边界。

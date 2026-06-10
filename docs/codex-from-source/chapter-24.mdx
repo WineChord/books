@@ -13,6 +13,11 @@ import {
 
 > **Reading Contract:** Use this chapter to follow artifacts from Rust workspace to distributed package. Track native binaries, npm wrappers, release gates, and platform-specific dependency boundaries.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/release-artifact-conveyor.png" alt="chapter 24 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Release work is a conveyor: Rust crates, native binaries, wrappers, packages, platform checks, signing, versions, and smoke tests move together.</figcaption>
+</figure>
+
 Chapter 23 treated the build as a contract engine: Cargo preserves the developer and shipping-build model, Bazel proves release-build assumptions, and generated schemas keep external clients synchronized. Packaging is the next pressure point. A build artifact is not yet a product. It still has to survive npm installation, standalone installers, platform-specific helper binaries, signing, checksums, and native dependencies that behave differently across operating systems.
 
 This chapter follows the delivery path from Rust binary to user command. The design lesson is that packaging should absorb platform sprawl without letting that sprawl reshape the runtime. Codex can support many install paths because the product architecture is narrow: a native command, a thin distribution wrapper, optional platform packages, and helper artifacts whose complexity is kept near release infrastructure.

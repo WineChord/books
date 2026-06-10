@@ -8,6 +8,11 @@ import { runtimeStack, threadLifecycleOperations } from "../../src/data/diagrams
 
 > **Reading Contract:** Use this chapter to understand durable work. Track thread identity, queues, history, rollout, and session ownership as separate answers to state, progress, and resumability.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/thread-session-durable-state.png" alt="chapter 05 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Thread identity, live session ownership, queues, history, and rollout evidence solve different persistence problems and should not collapse into one transcript.</figcaption>
+</figure>
+
 Chapter 4 ended at the protocol boundary: clients can submit operations, receive events, and exchange model items without knowing how the runtime works. This chapter steps behind that boundary and shows the durable machinery that turns those messages into a live agent thread.
 
 <div class="chapter-lede">

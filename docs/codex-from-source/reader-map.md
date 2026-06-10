@@ -2,6 +2,11 @@
 
 > **Reading Contract:** Use this page to choose depth before you start. The recurring audit question is how a user request moves through operations, turns, model streams, tools, durable events, and client projections.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/codex-source-reading-routes.png" alt="reader-map hand-drawn architecture figure" loading="eager" decoding="async" />
+  <figcaption>Pick a path before you read: a fast architecture route, a full implementation route, or a source-audit route after the narrative is clear.</figcaption>
+</figure>
+
 This book is written for source-equivalent understanding. You can still open the pinned source links, but the main reading path should teach the system without requiring a source checkout beside the book.
 
 ## Two Reading Tracks

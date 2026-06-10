@@ -2,6 +2,11 @@
 
 > **阅读契约：** 只有在叙事已经清楚后再用本页。打开 pinned links 是为了核对 owner、boundary 和 evidence，不是从源码里重新发现故事。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/pinned-source-evidence-map.png" alt="source-atlas page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>在正文已经提出论断之后使用源码索引：它把叙事语句映射到 subsystem owner、固定源码行和审计结果。</figcaption>
+</figure>
+
 这个索引用于审计全书的源码依据。所有 Codex 链接都指向公开 GitHub 代码，并固定到 commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3`。正文应该可以独立阅读；源码索引用于验证，而不是要求读者自己补课。
 
 ## 章节锚点

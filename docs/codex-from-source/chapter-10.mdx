@@ -8,6 +8,11 @@ import { shellExecutionChain } from "../../src/data/diagrams/codex-from-source/c
 
 > **Reading Contract:** Use this chapter to read shell and filesystem access as bounded capabilities. Track exec-server boundaries, command policy, filesystem mutation, and result reporting together.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/shell-exec-filesystem-boundary.png" alt="chapter 10 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Shell and filesystem access remain bounded because commands move through parsing, policy, approval, sandboxing, execution, sequencing, and recording.</figcaption>
+</figure>
+
 Chapter 9 separated tool exposure from tool authority. This chapter follows the handler family that makes the distinction most concrete: shell-like tools. A shell tool looks simple from the model's point of view, but the runtime must parse the command, classify risk, apply policy, run hooks, ask for approval when required, choose an environment, enforce sandbox rules, stream output, and leave a replayable record.
 
 The key design point is that Codex does not treat "run this command" as a single primitive. It treats command execution as a pipeline whose final process may run locally, inside a platform sandbox, or through an `exec-server` abstraction that can represent a remote executor and its filesystem.

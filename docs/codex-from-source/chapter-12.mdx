@@ -9,6 +9,11 @@ import { gateStack, commandThroughGates } from "../../src/data/diagrams/codex-fr
 
 > **Reading Contract:** Use this chapter to read hooks and approvals as gates in front of risk. Track when humans, policies, and hooks can delay, deny, or annotate a side effect.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/hooks-approval-gates.png" alt="chapter 12 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Hooks and approvals are gates around risk: they can annotate, delay, deny, or continue work before irreversible side effects happen.</figcaption>
+</figure>
+
 Chapter 11 showed that filesystem mutation can be parsed and verified before it is applied. This chapter studies the gates that can still stop, amend, or explain an action after the runtime understands it: hooks, approval policy, Guardian review, and user approval. They are related, but they are not the same layer.
 
 Hooks are configured programs that observe or influence runtime events. Approval is the control-plane decision that allows or rejects a side effect. Guardian is an automated reviewer that may answer certain approval requests. The user interface is the human decision surface. Codex keeps these layers separate so each can fail in a precise way.

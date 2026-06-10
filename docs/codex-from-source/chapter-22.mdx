@@ -13,6 +13,11 @@ import {
 
 > **Reading Contract:** Use this chapter to keep memory as a controlled side channel. Track read prompts, write prompts, user-level state, budgets, and why memory is not just hidden transcript.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/memory-side-channel-governance.png" alt="chapter 22 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Memory is a controlled side channel: reads, writes, budgets, locks, redaction, consolidation, and storage are intentionally separate.</figcaption>
+</figure>
+
 Chapter 21 separated cloud tasks from local turn execution: remote work has its own task contract, identity layer, and local apply boundary. Memories use the same architectural discipline. Long-term context is not hidden chat history. It is a controlled side channel with a read path, a write path, storage rules, locks, redaction, and a restricted internal agent for consolidation.
 
 This chapter is about why that extra machinery exists. A memory system can make an agent feel continuous across sessions, but it can also leak stale facts, overfit to old conversations, or smuggle sensitive content into future prompts. Codex treats memory as an explicit subsystem so the runtime can benefit from long-term context without surrendering control of what is read, written, and cited.

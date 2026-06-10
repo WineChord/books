@@ -3,7 +3,7 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import Header from "../../../components/Header.astro";
 import ArchitectureMap from "../../../components/ArchitectureMap";
 import { chapters, epiloguePage, parts, referencePages, sourceCommit } from "../../../book.config";
-import { pageUrl } from "../../../urls";
+import { assetUrl, pageUrl } from "../../../urls";
 
 const base = import.meta.env.BASE_URL;
 ---
@@ -30,11 +30,18 @@ const base = import.meta.env.BASE_URL;
           </a>
         </div>
       </div>
-      <div class="book-cover" aria-label="Codex From Source cover">
-        <div class="book-cover__kicker">OpenAI Codex CLI</div>
-        <div class="book-cover__title">Codex<br />From<br />Source</div>
-        <div class="book-cover__footer">25 章 + 结语</div>
-      </div>
+      <figure class="wc-article-figure m-0" aria-label="Codex From Source cover figure">
+        <img
+          src={assetUrl(base, "codex-from-source/assets/cover-codex-from-source.png")}
+          alt="Codex From Source：entry points、protocol、session runtime、tools、clients 和 governance 组成的有边界 agent runtime"
+          loading="eager"
+          decoding="async"
+        />
+        <figcaption>
+          这本书把 Codex 作为一个有边界的 agent runtime 阅读：入口、类型协议、
+          session runtime、工具与策略、客户端和治理共同构成系统。
+        </figcaption>
+      </figure>
     </section>
 
     <section class="mb-16 grid grid-cols-1 gap-3 md:grid-cols-4" aria-label="阅读路线">

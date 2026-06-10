@@ -8,6 +8,11 @@ import { runtimeStack, threadLifecycleOperations } from "../../../src/data/diagr
 
 > **阅读契约：** 用本章理解持久工作。把 thread identity、queues、history、rollout 和 session ownership 分别看成 state、progress 与 resumability 的答案。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/thread-session-durable-state.png" alt="chapter 05 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Thread identity、live session、queues、history 和 rollout evidence 解决不同持久化问题，不能退化成一份 transcript。</figcaption>
+</figure>
+
 第 4 章把协议边界讲清楚了：客户端可以提交 operation、接收 event、 交换模型 item，却不需要知道 runtime 内部如何工作。本章越过这条边界， 看 Codex 如何把这些协议消息变成一个可恢复、可 fork、可回滚的活线程。
 
 <div class="chapter-lede">

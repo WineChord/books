@@ -8,6 +8,11 @@ import { extensionPlanes } from "../../../src/data/diagrams/codex-from-source/ch
 
 > **阅读契约：** 用本章把 skills、plugins、connectors 和 apps 读成打包后的 extension planes。分开看 metadata、trust、loading 和 context injection。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/extension-packaging-plane.png" alt="chapter 18 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Skills、plugins、connectors、apps 和 typed contributors 是 packaging planes；它们以受治理的 context 或 tools 进入 turn。</figcaption>
+</figure>
+
 第 17 章把 MCP 描述成 runtime tool protocol：外部 servers 被发现、整理、路由和观察，但不进入核心 turn loop。本章上移一层。一个工具被路由之前，系统必须先决定哪些 instructions、packages、hosted app identities 和 in-process contributors 能塑造 thread。
 
 <div class="chapter-lede">

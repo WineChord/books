@@ -12,6 +12,11 @@ import {
 
 > **Reading Contract:** Use this chapter to read CI as executable architecture. Track policy lanes, test targets, generated checks, and the failures that protect runtime contracts.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/ci-policy-governance-lanes.png" alt="chapter 25 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>CI protects architecture by separating behavior tests, boundary linting, schema checks, artifact checks, risk policy, and docs evidence.</figcaption>
+</figure>
+
 Chapter 24 showed how release packaging keeps platform sprawl from reshaping the runtime. The final system pressure is time. A codebase does not lose its architecture all at once. It loses it through small exceptions: one dependency that should not be reachable from core, one generated schema that was not updated, one binary artifact checked in because it was convenient, one UI crate that reaches around a protocol boundary.
 
 Codex answers many of those pressures with executable governance. CI is not only a test runner. It is a set of architectural assertions written as scripts, linters, generated checks, workflow lanes, and release gates. This chapter explains why those checks belong in the design and how to steal the pattern without turning CI into a slow wall of noise.

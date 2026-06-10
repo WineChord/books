@@ -2,6 +2,11 @@
 
 > **Reading Contract:** Use this reference for dense source review. Treat each table row as an audit target: owner, data structure, runtime decision, and failure path.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/implementation-audit-reference.png" alt="implementation-reference hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>The implementation reference is dense by design: each row points to an owner, a data structure, a decision, a failure branch, and a source anchor.</figcaption>
+</figure>
+
 This appendix is the book's "read this instead of opening the source" page. It collects the implementation facts that are too detailed for a smooth chapter but too important to leave only in source links.
 
 ## Snapshot Rule

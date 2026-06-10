@@ -8,6 +8,11 @@ import { rolloutTracePipeline, traceReducerInputs } from "../../../src/data/diag
 
 > **阅读契约：** 用本章把 observability 当作 replay evidence。分清哪些 runtime facts 进入 rollout trace，哪些成为 client projections，哪些仍然留在内部。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/observability-rollout-evidence.png" alt="chapter 08 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Codex 先记录事实再生成投影：runtime events、rollout trace、client views 和 replay audits 相关但不同。</figcaption>
+</figure>
+
 第 7 章说明了 provider 和 transport 的差异如何收敛成统一的模型事件流。 本章继续追踪这些事件进入 runtime 之后的命运：哪些事实会为 replay 持久化， 哪些会被 reduce 成 product analytics，哪些成为 operational telemetry， 哪些作为 raw diagnostic evidence 进入 rollout trace。
 
 <div class="chapter-lede">

@@ -9,6 +9,11 @@ import { turnLoopSequence, turnStateMachine } from "../../../src/data/diagrams/c
 
 > **阅读契约：** 用本章把一次 turn 从头走到尾。把 context construction、model streaming、tool loops、continuation、cancellation 和 completion 看成一个 scheduler 问题。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/turn-loop-control-board.png" alt="chapter 06 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>一次 turn 是控制板：context、sampling、tools、continuation、cancellation、compaction、history 和 trace 都在这里相遇。</figcaption>
+</figure>
+
 第 5 章区分了 durable thread 和 live session，也说明了客户端 operation 如何进入 runtime。本章跟随其中一个 operation 进入 turn loop：这里把 调度、上下文、流式输出、工具、hooks、compaction 和 cancellation 组合成 真正的 Agent 行为。
 
 <div class="chapter-lede">

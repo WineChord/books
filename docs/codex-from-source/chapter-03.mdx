@@ -8,6 +8,11 @@ import { configurationStack, authManagerSnapshot } from "../../src/data/diagrams
 
 > **Reading Contract:** Use this chapter to read configuration as constraints. Track how auth, policy, managed requirements, profiles, and environment facts become the envelope that later code must obey.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/config-auth-constraint-stack.png" alt="chapter 03 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Configuration is not decoration; it compiles defaults, profiles, auth, managed requirements, and permissions into the contract a turn must obey.</figcaption>
+</figure>
+
 Chapter 2 followed startup from a distribution wrapper into the Rust command router. Once the router knows which surface is being launched, it still cannot start the agent safely. It must first resolve the operating envelope: effective configuration, authenticated identity, feature state, and managed requirements.
 
 This chapter is about that envelope. Codex does not let every subsystem read whatever configuration file or environment variable it prefers. The system builds a resolved, source-aware view and hands later layers constrained runtime settings. That invariant is essential: the session loop, model provider, tools, app-server, hooks, and sandboxing code should consume the same answer to "what is allowed here?"

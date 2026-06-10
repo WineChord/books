@@ -14,6 +14,11 @@ import {
 
 > **阅读契约：** 用本章进入词汇边界。跟住 operations、events、items、submissions 和 protocol schemas 如何成为 clients、sessions 与 replay 的共同语言。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/protocol-boundary-taxonomy.png" alt="chapter 04 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>协议词汇是共享语言：operations 进入、submissions 排队、events 发出、items 渲染，schemas 保持客户端一致。</figcaption>
+</figure>
+
 第 3 章说明，Codex 只有在配置、认证、feature state 和 managed requirements 被解析成受约束的 runtime envelope 之后，才会开始工作。本章解释承载工作的语言。协议边界是这样一个位置：产品意图不再是私有方法调用，而变成持久消息，包括 submissions、events、model items、app-server JSON-RPC requests、server-to-client requests 和 generated schemas。
 
 协议是产品边界，不是序列化附属品。它告诉客户端可以请求什么，告诉 runtime 必须报告什么，也告诉未来版本已经继承了哪些兼容性义务。

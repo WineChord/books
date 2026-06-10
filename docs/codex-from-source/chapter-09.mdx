@@ -8,6 +8,11 @@ import { toolSpecPlanner } from "../../src/data/diagrams/codex-from-source/chapt
 
 > **Reading Contract:** Use this chapter to follow a tool from model-visible spec to runtime handler. Track routing, registry lookup, orchestration, and why a spec is never execution authority.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/tool-routing-dispatch-map.png" alt="chapter 09 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>A model-visible tool spec is only the first gate; routing, registry lookup, orchestration, and result shaping decide the real side effect.</figcaption>
+</figure>
+
 Chapter 8 established that Codex records runtime facts before trying to interpret them. This chapter moves from observation to action: once the model asks for a tool, Codex must decide whether that request names a real capability, which runtime owns it, how much parallelism it can tolerate, and what result should return to the model and to the durable event stream.
 
 The tool system is easiest to understand as a capability system. A tool specification advertises a shape the model may call. A handler is the runtime authority that can perform the work. A router connects the two for a specific turn. These three ideas must stay separate. If the model-visible schema and the execution authority collapse into one object, every new tool becomes a security exception, a UI exception, and a replay exception at the same time.

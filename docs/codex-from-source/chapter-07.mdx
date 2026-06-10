@@ -8,6 +8,11 @@ import { providerStack, transportConvergence, backendTaskSeparation } from "../.
 
 > **Reading Contract:** Use this chapter to separate provider transport from runtime semantics. Track stream normalization, backend tasks, retry and cancel boundaries, and the places where provider differences are hidden.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/provider-stream-normalization.png" alt="chapter 07 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Provider transports can vary, but the runtime needs stable event semantics: raw stream events become normalized items with bounded retry and cancellation behavior.</figcaption>
+</figure>
+
 Chapter 6 followed a turn until it needed to sample the model. This chapter opens that sampling boundary and explains how Codex separates provider configuration, runtime provider behavior, typed API calls, streaming transports, model catalogs, realtime sessions, and backend task workflows.
 
 <div class="chapter-lede">

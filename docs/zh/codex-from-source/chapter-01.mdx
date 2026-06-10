@@ -4,6 +4,11 @@ import BoundedAgentOSMap from "../../../src/components/visual/BoundedAgentOSMap.
 
 > **阅读契约：** 用本章给 Codex 命名：它是有边界的 agent 操作系统。先盯住 operation/event 边界、分层 authority 和三种 history，再看具体客户端。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/bounded-agent-os-map.png" alt="chapter 01 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>把 Codex 看成有边界的运行环境更容易理解：客户端、类型协议、session runtime、权限、沙箱和 rollout 各自有 owner。</figcaption>
+</figure>
+
 序言提出了本书的核心判断：Codex 值得研究，不是因为它只是把聊天界面接到模型上，而是因为它把语言模型产品做成了一个系统。这个系统接收意图、保存状态、调用工具、执行策略，并把过程证据报告给不同客户端。本章要命名这背后的架构赌注：Codex 把 Agent 当成一个有边界的操作系统来设计。它不是管理整台机器的通用操作系统，而是一个调度工作、仲裁权限、记录事实、并向多个客户端暴露稳定契约的运行时。
 
 “有边界”是关键词。通用操作系统必须承载任意进程、设备、用户、文件系统和网络。Codex 把世界缩小到一个明确领域：AI 辅助的软件工程对话。它仍然需要类似操作系统的职责，但每项职责都被产品词汇约束住。

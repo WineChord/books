@@ -2,6 +2,11 @@
 
 > **阅读契约：** 把本页当作决策清单。先从你要解决的问题出发，再跳回解释该 pattern 和 failure mode 的章节。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/reusable-agent-pattern-index.png" alt="patterns page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>模式索引把反复出现的设计动作变成清单，并保持和章节、源码证据相连。</figcaption>
+</figure>
+
 这一页汇总全书反复出现的可迁移设计模式。它们不是 Codex 独有技巧，而是任何能检查文件、运行命令、调用外部工具或服务多种客户端的 LLM 产品都要面对的架构动作。
 
 ## 模式列表
@@ -25,32 +30,32 @@
   <div class="pattern-card">
     <h3>工具即产品契约</h3>
     <p>工具不是函数指针。它携带 schema、可变性、hooks、取消、输出格式和用户可见效果。</p>
-    <p><a href="chapter-07.html">第 7 章</a></p>
+    <p><a href="chapter-09.html">第 9 章</a></p>
   </div>
   <div class="pattern-card">
     <h3>用 Patch 而不是盲写文件</h3>
     <p>结构化补丁让编辑可审查、可审批、可生成 diff，也更容易归因到某次 turn。</p>
-    <p><a href="chapter-08.html">第 8 章</a></p>
+    <p><a href="chapter-11.html">第 11 章</a></p>
   </div>
   <div class="pattern-card">
     <h3>审批作为控制面</h3>
     <p>approval policy、permission hooks、Guardian review 和网络策略 amendment 位于单个工具之上。</p>
-    <p><a href="chapter-09.html">第 9 章</a></p>
+    <p><a href="chapter-12.html">第 12 章</a></p>
   </div>
   <div class="pattern-card">
     <h3>沙箱作为运行时变换</h3>
     <p>Codex 把沙箱看成对执行请求的变换，由平台、策略、权限和 retry 语义共同决定。</p>
-    <p><a href="chapter-10.html">第 10 章</a></p>
+    <p><a href="chapter-13.html">第 13 章</a></p>
   </div>
   <div class="pattern-card">
     <h3>通过注入扩展</h3>
     <p>Skills、plugins、app mentions 和 MCP inventory 变成 turn-scoped context 和 tools，而不是散落的特殊循环。</p>
-    <p><a href="chapter-11.html">第 11 章</a></p>
+    <p><a href="chapter-17.html">第 17 章</a> / <a href="chapter-18.html">第 18 章</a></p>
   </div>
   <div class="pattern-card">
     <h3>一个 Runtime，多种接入面</h3>
     <p>TUI 和 app-server 的呈现方式不同，但都消费同一个 session model 产生的结构化 events。</p>
-    <p><a href="chapter-12.html">第 12 章</a></p>
+    <p><a href="chapter-14.html">第 14 章</a> / <a href="chapter-16.html">第 16 章</a></p>
   </div>
 </div>
 

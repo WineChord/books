@@ -8,6 +8,11 @@ import { mcpBoundary } from "../../src/data/diagrams/codex-from-source/chapter-1
 
 > **Reading Contract:** Use this chapter to draw the MCP trust plane. Track server provenance, tool discovery, routing, and how external tools stay behind a controlled boundary.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/mcp-trust-plane.png" alt="chapter 17 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>MCP extends capability without runtime entanglement by separating server provenance, transport, discovery, normalized specs, and routing.</figcaption>
+</figure>
+
 Chapter 16 ended Part IV by treating the terminal UI as an inline client over the same runtime contract used by other clients. This chapter moves one step outward: if clients can share the runtime without owning it, external tools must also be able to join a turn without becoming part of the runtime.
 
 <div class="chapter-lede">

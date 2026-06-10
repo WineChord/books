@@ -8,6 +8,11 @@ import { rolloutTracePipeline, traceReducerInputs } from "../../src/data/diagram
 
 > **Reading Contract:** Use this chapter to treat observability as replay evidence. Track which runtime facts become rollout trace, which become client projections, and which stay internal.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/observability-rollout-evidence.png" alt="chapter 08 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Observability works because Codex records facts before projections: runtime events, rollout trace, client views, and replay audits are related but distinct.</figcaption>
+</figure>
+
 Chapter 7 showed how provider and transport differences become a normalized stream of model events. This chapter follows those events after they enter the runtime: which facts are persisted for replay, which are reduced into product analytics, which become operational telemetry, and which are captured as raw diagnostic evidence for rollout trace.
 
 <div class="chapter-lede">

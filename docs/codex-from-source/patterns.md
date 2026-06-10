@@ -2,6 +2,11 @@
 
 > **Reading Contract:** Use this reference as a decision checklist. Start from the problem you are solving, then jump back to the chapter that explains the pattern and its failure mode.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/reusable-agent-pattern-index.png" alt="patterns hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>The pattern index turns recurring design moves into a checklist that stays attached to the chapters and source evidence.</figcaption>
+</figure>
+
 This page collects the reusable design patterns that appear across the book. They are not Codex-only tricks. They are architectural moves that matter whenever an LLM product can inspect files, run commands, call external tools, or serve multiple clients.
 
 ## The Patterns
@@ -25,32 +30,32 @@ This page collects the reusable design patterns that appear across the book. The
   <div class="pattern-card">
     <h3>Tools as Product Contracts</h3>
     <p>A tool is not just a function. It carries schema, mutability, hooks, cancellation, output formatting, and user-visible effects.</p>
-    <p><a href="chapter-07.html">Chapter 7</a></p>
+    <p><a href="chapter-09.html">Chapter 9</a></p>
   </div>
   <div class="pattern-card">
     <h3>Patch Instead of Blind Write</h3>
     <p>Structured patches make edits reviewable, approvable, diffable, and easier to attribute to a turn.</p>
-    <p><a href="chapter-08.html">Chapter 8</a></p>
+    <p><a href="chapter-11.html">Chapter 11</a></p>
   </div>
   <div class="pattern-card">
     <h3>Approval as Control Plane</h3>
     <p>Approval policy, permission hooks, Guardian review, and network amendments sit above individual tools instead of being scattered through them.</p>
-    <p><a href="chapter-09.html">Chapter 9</a></p>
+    <p><a href="chapter-12.html">Chapter 12</a></p>
   </div>
   <div class="pattern-card">
     <h3>Sandbox as Runtime Transform</h3>
     <p>Codex treats sandboxing as a transformation of execution requests, selected by platform, policy, permissions, and retry semantics.</p>
-    <p><a href="chapter-10.html">Chapter 10</a></p>
+    <p><a href="chapter-13.html">Chapter 13</a></p>
   </div>
   <div class="pattern-card">
     <h3>Extension by Injection</h3>
     <p>Skills, plugins, app mentions, and MCP inventory become turn-scoped context and tools rather than separate agent loops.</p>
-    <p><a href="chapter-11.html">Chapter 11</a></p>
+    <p><a href="chapter-17.html">Chapter 17</a> / <a href="chapter-18.html">Chapter 18</a></p>
   </div>
   <div class="pattern-card">
     <h3>One Runtime, Many Surfaces</h3>
     <p>The TUI and app-server differ at presentation time, but both consume structured events from the same session model.</p>
-    <p><a href="chapter-12.html">Chapter 12</a></p>
+    <p><a href="chapter-14.html">Chapter 14</a> / <a href="chapter-16.html">Chapter 16</a></p>
   </div>
 </div>
 

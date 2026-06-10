@@ -13,6 +13,11 @@ import {
 
 > **Reading Contract:** Use this chapter to read the TUI as a projection. Track event rendering, layout state, streaming Markdown, approvals, and why the terminal is not a second runtime.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/tui-event-renderer.png" alt="chapter 16 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>The TUI is a projection, not the owner of truth: session events become render state, streaming Markdown, approval controls, and terminal feedback.</figcaption>
+</figure>
+
 Chapter 15 showed that Codex has more than one client shape: SDKs, daemon connections, execution wrappers, and remote-control streams all reach the runtime through disciplined boundaries. This chapter studies the client most users feel first. The terminal UI is not the runtime. It is an event renderer, input coordinator, and approval surface built on top of the app-server-backed thread model.
 
 That distinction changes how to read the architecture. A conventional terminal application often owns the whole loop: read a key, update state, draw a frame. Codex has that loop, but the state it draws is largely produced elsewhere. The TUI routes user input into app commands, sends those commands to an app-server session, receives protocol notifications and requests, updates chat state, and renders the result inside a live terminal viewport while preserving real scrollback.

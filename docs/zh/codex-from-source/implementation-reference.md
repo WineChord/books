@@ -2,6 +2,11 @@
 
 > **阅读契约：** 把本页用于密集源码审阅。每一行都当成审计目标：owner、data structure、runtime decision 和 failure path。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/implementation-audit-reference.png" alt="implementation-reference page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>实现索引故意保持高密度：每一行都指向 owner、data structure、decision、failure branch 和 source anchor。</figcaption>
+</figure>
+
 这一页是本书的“免打开源码速查页”。它收集那些放进章节正文会打断阅读、但只留在源码链接里又会损失关键信息的实现事实。
 
 ## 快照规则

@@ -2,6 +2,11 @@
 
 > **Reading Contract:** Use this bibliography as evidence inventory. Separate public source anchors, product references, and supporting material before citing them in your own notes.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/evidence-inventory-bibliography.png" alt="bibliography hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>The bibliography separates primary Codex sources from agent, MCP, Rust, TUI, security, and publishing context.</figcaption>
+</figure>
+
 ## Primary Codex Sources
 
 - OpenAI, [Introducing Codex](https://openai.com/index/introducing-codex/),

@@ -13,6 +13,11 @@ import {
 
 > **Reading Contract:** Use this chapter to connect generated contracts to governance. Track schemas, bindings, drift detection, and build checks that keep protocol changes visible.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/generated-contract-drift-check.png" alt="chapter 23 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Generated schemas become governance when source schema, bindings, drift checks, and CI failure all point at the same contract.</figcaption>
+</figure>
+
 Chapter 22 ended inside the runtime, where long-term memory is allowed to change only through read paths, write paths, locks, citations, and restricted internal agents. Part VII moves that same discipline out to the repository itself. If the runtime is governed by durable contracts, the source tree needs machinery that keeps those contracts true after every dependency change, schema edit, platform port, and release build.
 
 This chapter explains why Codex carries two build views of the same Rust system, why generated schemas are treated as product contracts, and why test launchers exist just to make hermetic CI feel like ordinary developer tooling. By the end, you should see the build as a second protocol layer: Cargo speaks for local development and the shipping release workflow, Bazel supplies a hermetic verification overlay, and schema generation speaks for every client that integrates with Codex without linking the runtime.

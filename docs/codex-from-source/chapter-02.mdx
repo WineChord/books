@@ -8,6 +8,11 @@ import { startupChain, routerToFoundation } from "../../src/data/diagrams/codex-
 
 > **Reading Contract:** Use this chapter to follow startup as narrowing. Track how distribution wrappers, CLI parsing, and Rust routing turn a user command into a typed path without letting packaging own architecture.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/startup-router-narrowing.png" alt="chapter 02 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Startup narrows a broad command into one typed runtime path: wrapper, Rust CLI, command router, then the selected surface.</figcaption>
+</figure>
+
 Chapter 1 described Codex as a bounded operating system whose runtime accepts typed operations, emits events, and gates side effects. This chapter moves to the first boundary a user touches: the installed command. The design is deliberately asymmetric. JavaScript owns distribution mechanics; Rust owns product routing and runtime integration.
 
 That split is easy to underestimate. Many command-line products begin as a script that grows behavior over time. Codex resists that shape. The npm-facing entry point chooses the correct native artifact, adjusts the process environment, forwards signals, and then gets out of the way. The Rust binary parses commands, resolves shared startup state, and dispatches into product surfaces.

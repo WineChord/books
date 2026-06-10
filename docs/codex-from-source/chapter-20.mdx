@@ -8,6 +8,11 @@ import { coordinationTopology, liveAndTraceGraphs } from "../../src/data/diagram
 
 > **Reading Contract:** Use this chapter to understand multi-agent coordination. Track graph edges, parent and child thread boundaries, live updates, trace graphs, and the ownership of outcomes.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-from-source/assets/multi-agent-coordination-graph.png" alt="chapter 20 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <figcaption>Multi-agent work is a graph of explicit edges: spawn, mailbox, result, close, live updates, and trace evidence.</figcaption>
+</figure>
+
 Chapter 19 closed Part V by showing how Codex imports outside agent configurations and sessions without pretending that every foreign concept maps cleanly into its own runtime. This chapter turns that compatibility lesson forward: once Codex has a native thread model, coordination between multiple agents is represented as explicit relationships between threads, tools, messages, and results.
 
 The important shift is that "multi-agent" is not a bag of background prompts. It is a graph problem. A parent thread can spawn a child, assign or send work, wait for completion, receive a result, and close the relationship. Each action has a live runtime effect, a client-visible event shape, and a durable trace shape. Codex keeps those concerns separate so a collaboration can be resumed, debugged, and rendered without relying on terminal text or a hidden global scheduler.
