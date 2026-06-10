@@ -466,7 +466,8 @@ autocompact:
 &lt;/INSTRUCTIONS&gt;
 </code></pre>
 <p>测试里也能看到这个边界：<code>user_instructions</code> 不会塞进 Responses API 的顶层 <code>instructions</code> 字段，而是出现在 <code>input</code> 数组里的 user message 中。</p>
-<p>这说明 Codex 也不是“每打开一个文件就自动刷新一套规则”。在同一个 session / thread 的连续 turn 里，全局 <code>~/.codex/AGENTS.md</code> 和 session 创建时解析到的项目 AGENTS，更接近一份 session-level snapshot。之后即使磁盘上的 <code>~/.codex/AGENTS.md</code> 改了，普通 turn、cwd 更新或 compaction 本身也不会自动重新读取它。新的 thread / session 会重新走配置加载；已经运行的 thread 则继续使用 <code>SessionConfiguration</code> 里保存的那份规则字符串。</p>
+<p>这说明 Codex 也不是“每打开一个文件就自动刷新一套规则”。在同一个活跃 session 的连续 turn 里，全局 <code>~/.codex/AGENTS.md</code> 和 session 创建时解析到的项目 AGENTS，更接近一份 session-level snapshot。之后即使磁盘上的 <code>~/.codex/AGENTS.md</code> 改了，普通 turn、cwd 更新或 compaction 本身也不会自动重新读取它。</p>
+<p>如果关闭 runtime 后再 resume 同一条持久化 thread，边界会稍微不同：新的 runtime session 会重新构造 <code>Config</code> 和 <code>SessionConfiguration</code>，因此可以读到当时磁盘上的新版 AGENTS。这里的刷新点是 session 构造，不是 compact 边界。已经在内存里运行的 session，仍然继续使用 <code>SessionConfiguration</code> 里保存的那份规则字符串。</p>
 <p>这和 prompt cache 的原则一致：规则文件进入模型视图后，最好稳定。</p>
 <h3>15. Initial context、TurnContext 和 durable baseline</h3>
 <p>Codex 的上下文维护链在 <code>codex-rs/core/src/session/mod.rs</code>。</p>
