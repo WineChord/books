@@ -8191,6 +8191,10 @@ const sourceGroups: SourceGroup[] = [
           实时语音、多模态、Agent、Code Interpreter、Canvas，还是主动任务系统。判断清楚以后，
           答案才有主线：先交付 P0 文本聊天闭环，再只深入面试官指定或暗示的能力。
         </p>
+        <figure class="wc-article-figure design-inline-figure" aria-label="面试问法路由手绘图">
+          <img src={assetUrl(base, "design/assets/system-design-interview-map.png")} alt="Design ChatGPT 面试问法路由手绘图" loading="lazy" decoding="async" />
+          <figcaption>面试问法先归位：没有指定重点时只展开 P0 chat；一旦追问 API、RAG、GPU、Agent 或安全，就进入对应能力平面。</figcaption>
+        </figure>
         <div class="design-card-grid">
           {questionVariants.map((card) => <DesignInfoCard card={card} />)}
         </div>
