@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Claude and OpenAI prompt cache contracts</title>
+  <desc id="desc">A comparison of the documented Anthropic cache hierarchy and OpenAI automatic prefix cache contract.</desc>
+  <defs>
+    <style>
+      .bg { fill: #fbfcf8; }
+      .title { fill: #102a43; font: 700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .subtitle { fill: #486581; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .panel { fill: #ffffff; stroke: #d9e2ec; stroke-width: 1.5; rx: 16; }
+      .blue { fill: #e6f0ff; stroke: #1f5f8b; stroke-width: 1.5; rx: 12; }
+      .green { fill: #e9f8ef; stroke: #2f855a; stroke-width: 1.5; rx: 12; }
+      .purple { fill: #f5f3ff; stroke: #6b46c1; stroke-width: 1.5; rx: 12; }
+      .yellow { fill: #fff8e1; stroke: #b7791f; stroke-width: 1.5; rx: 12; }
+      .gray { fill: #f5f7fa; stroke: #9fb3c8; stroke-width: 1.3; rx: 10; }
+      .label { fill: #102a43; font: 700 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .body { fill: #334e68; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .small { fill: #486581; font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mono { fill: #334e68; font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .arrow { stroke: #486581; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+      .dash { stroke: #829ab1; stroke-width: 1.6; stroke-dasharray: 7 7; fill: none; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#486581"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1200" height="620"/>
+  <text class="title" x="48" y="52">Prompt cache 的公开边界：provider contract 与前缀稳定性</text>
+  <text class="subtitle" x="48" y="82">Claude 公开了 block hierarchy；OpenAI 公开的是自动 prefix cache、路由 key 和可缓存对象。</text>
+
+  <rect class="panel" x="48" y="118" width="520" height="390"/>
+  <text class="label" x="78" y="154">Claude API：文档明确的缓存层级</text>
+  <text class="small" x="78" y="180">cache prefix hierarchy</text>
+
+  <rect class="blue" x="78" y="212" width="118" height="76"/>
+  <text class="label" x="108" y="242">tools</text>
+  <text class="mono" x="96" y="267">tool schemas</text>
+
+  <path class="arrow" d="M 196 250 H 226"/>
+  <rect class="blue" x="226" y="212" width="118" height="76"/>
+  <text class="label" x="256" y="242">system</text>
+  <text class="mono" x="246" y="267">blocks</text>
+
+  <path class="arrow" d="M 344 250 H 374"/>
+  <rect class="blue" x="374" y="212" width="136" height="76"/>
+  <text class="label" x="406" y="242">messages</text>
+  <text class="mono" x="397" y="267">history</text>
+
+  <path class="arrow" d="M 442 288 V 326"/>
+  <rect class="yellow" x="318" y="326" width="192" height="74"/>
+  <text class="mono" x="344" y="354">cache_control</text>
+  <text class="body" x="344" y="377">breakpoint 写在 block 上</text>
+
+  <rect class="gray" x="78" y="326" width="200" height="74"/>
+  <text class="body" x="100" y="354">tool-use system prompt</text>
+  <text class="small" x="100" y="377">工具定义先于用户 system prompt</text>
+
+  <text class="small" x="78" y="444">能稳定依赖：tools -> system -> messages 的前缀层级，</text>
+  <text class="small" x="78" y="466">以及 breakpoint 前所有内容共同决定缓存 hash。</text>
+
+  <rect class="panel" x="632" y="118" width="520" height="390"/>
+  <text class="label" x="662" y="154">OpenAI / Codex：自动 prefix cache</text>
+  <text class="small" x="662" y="180">exact initial prefix + prompt_cache_key</text>
+
+  <rect class="green" x="662" y="212" width="176" height="94"/>
+  <text class="label" x="688" y="242">cacheable prefix</text>
+  <text class="mono" x="688" y="266">messages / tools</text>
+  <text class="mono" x="688" y="288">schemas / images</text>
+
+  <path class="arrow" d="M 838 258 H 868"/>
+  <rect class="green" x="868" y="212" width="112" height="94"/>
+  <text class="label" x="895" y="242">route</text>
+  <text class="mono" x="892" y="266">prefix hash</text>
+  <text class="mono" x="892" y="288">+ key</text>
+
+  <path class="arrow" d="M 980 258 H 1010"/>
+  <rect class="green" x="1010" y="212" width="112" height="94"/>
+  <text class="label" x="1035" y="242">lookup</text>
+  <text class="mono" x="1032" y="266">&gt;=1024</text>
+  <text class="mono" x="1032" y="288">128 steps</text>
+
+  <path class="dash" d="M 750 306 V 346"/>
+  <rect class="purple" x="662" y="346" width="208" height="72"/>
+  <text class="mono" x="688" y="374">Responses request</text>
+  <text class="body" x="688" y="397">instructions + input + tools + text</text>
+
+  <rect class="yellow" x="902" y="346" width="220" height="72"/>
+  <text class="mono" x="930" y="374">usage.cached_tokens</text>
+  <text class="body" x="930" y="397">观测命中，不手动插 block 点</text>
+
+  <text class="small" x="662" y="444">能稳定依赖：相同初始 prefix、相同 tools/schema/media、</text>
+  <text class="small" x="662" y="466">一致的 prompt_cache_key；不假设公开文档未承诺的内部排序。</text>
+
+  <rect class="gray" x="48" y="536" width="1104" height="52"/>
+  <text class="label" x="74" y="568">共同原则：</text>
+  <text class="body" x="168" y="568">把大而稳定的结构放在可复用前缀里，把最新用户输入、环境变化和新工具结果留在尾部。</text>
+</svg>

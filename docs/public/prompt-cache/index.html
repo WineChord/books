@@ -177,22 +177,28 @@
 <p>理解 prompt cache 之前，要先区分三种“历史”。</p>
 <p>第一种是 UI 历史，也就是用户在界面上看到的 scrollback。它应该尽量完整，因为用户需要回看、复制、调试。</p>
 <p>第二种是磁盘历史，也就是 session transcript、rollout JSONL、tool result 文件、collapse commit 等持久化记录。它服务于 resume、fork、审计和恢复。</p>
-<p>第三种是模型历史，也就是本轮 API 请求里真正传给模型的 messages、system、tools 和附加 context。</p>
+<p>第三种是模型历史，也就是本轮 API 请求里真正进入 provider prompt 的 messages、system / instructions、tools、schema 和附加 context。这里说的是 API contract 和缓存前缀层面的输入，不等于公开了推理服务内部每个 token 的物理排列。</p>
 <p>Prompt cache 命中的永远是第三种：模型看到的有序输入。UI 里还在，不代表模型还会看到；磁盘里还在，也不代表每轮都会进 prompt。</p>
 <p>可以把一次请求抽象成：</p>
-<pre><code class="language-text">稳定前缀 = tools + system + project rules + compacted history
-动态尾部 = 本轮环境变化 + 最新用户输入 + 新工具结果
+<pre><code class="language-text">Claude 侧公开层级：
+tools -&gt; system -&gt; messages -&gt; cache breakpoint
+
+OpenAI 侧公开契约：
+exact initial prefix + prompt_cache_key
+prefix 可包含 messages / tools / schemas / images
 
 缓存命中依赖：
 前缀尽量长，且尽量不变。
 </code></pre>
-<p><img src="assets/prompt-cache-prefix-pipeline.png" alt="稳定前缀和动态尾部的请求形态"></p>
+<p><img src="assets/prompt-cache-provider-contracts.svg" alt="Claude 和 OpenAI 的 prompt cache contract 差异"></p>
+<p>这里必须把 Claude 和 OpenAI 分开理解。Claude API 文档明确给出 cache prefix 的层级：<code>tools</code>、<code>system</code>、<code>messages</code>；Claude 的 tool-use 文档也展示了工具定义会进入 tool-use system prompt，并排在用户 system prompt 之前。所以在 Claude 侧，把工具定义视为稳定前缀最前面的组成部分，是有公开依据的。</p>
+<p>OpenAI 侧更适合描述成“自动 prefix cache”。公开文档能依赖的是：命中需要 exact prefix match；静态内容应该放前面，动态内容放后面；tools、messages、images、structured output schemas 都可以参与缓存；<code>prompt_cache_key</code> 会参与路由，让共享前缀更容易落到同一缓存域。OpenAI 文档没有给出一个和 Claude 完全同构的 <code>tools -&gt; system -&gt; messages</code> block hierarchy。Codex 源码也只是在客户端构造 Responses API 请求，把 <code>instructions</code>、<code>input</code>、<code>tools</code>、<code>text</code> 和 <code>prompt_cache_key</code> 交给 provider；服务端内部如何序列化这些字段，不能作为客户端侧可依赖的工程事实。</p>
 <p>这就是为什么“规则文件怎么注入”“工具结果怎么处理”“compaction 后有没有边界”都会影响 prompt cache。它们看起来是上下文管理问题，本质上也都是缓存前缀管理问题。</p>
 <h3>2. Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h3>
 <p>Claude API 和 OpenAI API 都支持 prompt caching，但暴露方式不同。</p>
 <p>Claude API 有显式的 <code>cache_control</code>。根据 Anthropic 文档，prompt caching 会引用从 <code>tools</code> 到 <code>system</code> 再到 <code>messages</code> 的完整前缀，一直到被标记的 cache breakpoint。Claude API 也有顶层 automatic caching：请求体上放一个 <code>cache_control</code>，系统会把 breakpoint 自动放到最后一个可缓存 block。缓存默认 5 分钟 TTL，也有 1 小时 TTL；cache read 和 cache write 会在 usage 字段里体现。</p>
 <p>这意味着 Claude Code 可以在客户端代码里明确决定 breakpoint 放在哪里。源码里的 <code>addCacheBreakpoints</code> 就是在做这件事。</p>
-<p>OpenAI 的 prompt caching 更偏自动 prefix cache。公开文档里的建议是：静态或重复内容放开头，动态内容放末尾；通过 <code>usage.prompt_tokens_details.cached_tokens</code> 观察命中；通过 <code>prompt_cache_key</code> 稳定同一类请求的缓存域。客户端通常不在某个 content block 上手动插 breakpoint。</p>
+<p>OpenAI 的 prompt caching 更偏自动 prefix cache。公开文档里的建议是：静态或重复内容放开头，动态内容放末尾；tools 和 images 要保持一致；structured output schema 会作为 system message 的 prefix 参与缓存；通过 <code>usage.prompt_tokens_details.cached_tokens</code> 观察命中；通过 <code>prompt_cache_key</code> 稳定同一类请求的缓存域。客户端通常不在某个 content block 上手动插 breakpoint。</p>
 <p>这会直接塑造 runtime 设计：</p>
 <pre><code class="language-text">Claude Code:
 显式 cache_control + message projection + compact_boundary
@@ -595,9 +601,14 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <h2>参考资料</h2>
 <ul>
 <li>Anthropic Claude API prompt caching 文档：<code>https://platform.claude.com/docs/en/build-with-claude/prompt-caching</code></li>
+<li>Anthropic Claude API define tools 文档：<code>https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools</code></li>
 <li>Claude Code prompt caching 文档：<code>https://code.claude.com/docs/en/prompt-caching</code></li>
 <li>OpenAI prompt caching 文档：<code>https://developers.openai.com/api/docs/guides/prompt-caching</code></li>
+<li>OpenAI Prompt Caching 201：<code>https://developers.openai.com/cookbook/examples/prompt_caching_201</code></li>
 </ul>
+
+
+
 
     </article>
   </main>
