@@ -31,3 +31,11 @@
   to `BOOK_STYLE.md`.
 - Existing specs should preserve their local requirements while inheriting this
   repository-wide style contract.
+
+## Editorial Skills
+
+- For any new image2/imagegen asset in this repository, first follow
+  `.codex/skills/wine-chord-image2-handdrawn/SKILL.md`.
+- For standalone technical articles and article-like long-form pages, follow
+  `.codex/skills/wine-chord-article/SKILL.md`, including its heading hierarchy,
+  figure rhythm, source-accuracy, and update protocol.

@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Claude Code 和 Codex 的 Prompt Cache 设计：关键在模型视图</title>
+  <title>Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中</title>
   <meta name="description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
   <link rel="canonical" href="https://www.wineandchord.com/books/prompt-cache/">
-  <meta property="og:title" content="Claude Code 和 Codex 的 Prompt Cache 设计：关键在模型视图">
+  <meta property="og:title" content="Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中">
   <meta property="og:description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
   <meta property="og:url" content="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:type" content="article">
@@ -34,12 +34,12 @@
       text-rendering: optimizeLegibility;
     }
     .page-shell {
-      width: min(100%, 1320px);
+      width: min(100%, 1400px);
       margin: 0 auto;
       padding: 48px 22px 88px;
       display: grid;
-      grid-template-columns: minmax(0, 240px) minmax(0, 1080px);
-      gap: 24px;
+      grid-template-columns: minmax(0, 300px) minmax(0, 1020px);
+      gap: 28px;
       align-items: start;
     }
     main {
@@ -53,11 +53,11 @@
       top: 24px;
       max-height: calc(100vh - 48px);
       overflow: auto;
-      padding: 16px 12px;
+      padding: 16px 10px;
       border: 1px solid rgba(15, 76, 129, 0.14);
-      border-radius: 8px;
-      background: rgba(255, 255, 251, 0.84);
-      box-shadow: 0 10px 30px rgba(16, 42, 67, 0.06);
+      border-radius: 10px;
+      background: rgba(255, 255, 251, 0.9);
+      box-shadow: 0 12px 34px rgba(16, 42, 67, 0.07);
     }
     .toc-title {
       margin: 0 0 10px;
@@ -72,13 +72,19 @@
       margin: 0;
       padding: 0;
     }
+    .toc-sublist {
+      list-style: none;
+      margin: 2px 0 4px;
+      padding: 0;
+    }
     .toc-list li {
       margin: 0;
       font-size: 14px;
     }
     .toc-link {
       display: block;
-      border-radius: 6px;
+      position: relative;
+      border-radius: 7px;
       padding: 6px 8px;
       color: var(--muted);
       line-height: 1.35;
@@ -86,17 +92,44 @@
     }
     .toc-link:hover,
     .toc-link.active {
-      background: rgba(31, 122, 77, 0.10);
+      background: rgba(31, 122, 77, 0.11);
       color: #14532d;
     }
     .toc-level-2 {
-      margin-top: 8px;
+      margin-top: 11px;
+      padding: 8px 10px;
       color: #102a43;
+      background: rgba(15, 76, 129, 0.055);
+      border-left: 3px solid rgba(15, 76, 129, 0.55);
       font-weight: 700;
     }
+    .toc-level-2.active {
+      background: rgba(15, 76, 129, 0.10);
+      color: #0b3558;
+    }
     .toc-level-3 {
-      padding-left: 18px;
+      margin-left: 10px;
+      padding: 5px 8px 5px 18px;
       font-size: 13px;
+    }
+    .toc-level-3::before,
+    .toc-level-4::before {
+      content: "";
+      position: absolute;
+      top: 0.95em;
+      left: 6px;
+      width: 7px;
+      border-top: 1px solid rgba(82, 96, 109, 0.32);
+    }
+    .toc-level-4 {
+      margin-left: 26px;
+      padding: 4px 6px 4px 16px;
+      color: #66788a;
+      font-size: 12.5px;
+      line-height: 1.32;
+    }
+    .toc-level-4.active {
+      color: #14532d;
     }
     article {
       background: var(--paper);
@@ -105,7 +138,7 @@
       padding: clamp(24px, 4vw, 58px);
       box-shadow: 0 14px 40px rgba(16, 42, 67, 0.08);
     }
-    h1, h2, h3 {
+    h1, h2, h3, h4 {
       line-height: 1.28;
       color: #102a43;
       letter-spacing: 0;
@@ -113,8 +146,8 @@
     }
     h1 {
       margin: 0 0 24px;
-      font-size: clamp(27px, 3.2vw, 40px);
-      max-width: 860px;
+      font-size: clamp(24px, 2.8vw, 36px);
+      max-width: 900px;
     }
     h2 {
       margin: 86px 0 26px;
@@ -128,6 +161,13 @@
       padding-left: 14px;
       font-size: clamp(19px, 2vw, 23px);
       border-left: 4px solid var(--green);
+    }
+    h4 {
+      margin: 30px 0 10px;
+      padding-left: 12px;
+      color: #243b53;
+      font-size: clamp(16px, 1.6vw, 18px);
+      border-left: 2px solid rgba(15, 76, 129, 0.35);
     }
     p, li {
       font-size: 18px;
@@ -220,16 +260,14 @@
       .toc-panel {
         position: relative;
         top: auto;
-        max-height: 320px;
+        max-height: 360px;
         margin: 0 0 18px;
       }
-      .toc-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 2px 10px;
-      }
       .toc-level-3 {
-        padding-left: 8px;
+        margin-left: 6px;
+      }
+      .toc-level-4 {
+        margin-left: 18px;
       }
     }
     @media (max-width: 720px) {
@@ -248,8 +286,56 @@
       article { padding: 22px 16px; }
       p, li { font-size: 16px; }
       pre code { font-size: 13px; }
+      table {
+        display: block;
+        width: 100%;
+        overflow: visible;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 15px;
+      }
+      table thead { display: none; }
+      table tbody,
+      table tr,
+      table td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+      }
+      table tr {
+        margin: 14px 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      table td {
+        position: relative;
+        border: 0;
+        border-top: 1px solid var(--line);
+        padding: 10px 12px 10px 92px;
+      }
+      table td:first-child {
+        border-top: 0;
+        padding-left: 12px;
+        background: rgba(15, 76, 129, 0.07);
+        color: #102a43;
+        font-weight: 700;
+      }
+      table td:not(:first-child)::before {
+        content: attr(data-label);
+        position: absolute;
+        top: 10px;
+        left: 12px;
+        width: 66px;
+        color: #52606d;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
       h2 { margin-top: 54px; }
       h3 { margin-top: 34px; padding-left: 10px; }
+      h4 { margin-top: 24px; padding-left: 10px; }
     }
   </style>
 </head>
@@ -261,7 +347,7 @@
     </aside>
     <main>
     <article>
-<h1>Claude Code 和 Codex 的 Prompt Cache 设计：关键在模型视图</h1>
+<h1>Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中</h1>
 <p><img src="assets/cover-claude-codex-prompt-cache.png" alt="Claude Code 和 Codex 的 prompt cache 设计对比"></p>
 <p>长时间使用代码 Agent 时，最先撞上的问题通常不是“模型会不会写代码”，而是上下文怎么活下去。</p>
 <p>一轮请求里可能有系统规则、工具定义、项目说明、运行环境、历史消息、工具输出、图片、文档、摘要和最新用户输入。前几轮还好，几十轮以后，输入会迅速膨胀。每一轮都把所有内容重新送进模型，成本高，延迟高，也更容易把真正重要的信息挤出窗口。</p>
@@ -279,12 +365,13 @@
 <p>接下来按这条问题链展开：先建立“模型视图”的坐标系，再看 Claude Code 怎样围绕显式缓存断点维护这条视图，然后看 Codex 怎样在自动 prefix cache 下维护可恢复历史，最后把两套设计压回同一张对照图。</p>
 <h2>一、心智模型：缓存命中的是模型视图</h2>
 <p>先不急着进源码。这里要先立一个坐标系：我们讨论的不是“聊天窗口里看到了什么”，也不是“磁盘上保存了什么”，而是本轮 API 请求里模型实际看到了什么。后面的 <code>getUserContext()</code>、<code>compact_boundary</code>、<code>replacement_history</code>、<code>AGENTS.md</code>，全都要放回这个坐标系里理解。</p>
-<h3>1. 三种历史：UI、磁盘和模型</h3>
+<h3>1.1 三种历史：UI、磁盘和模型</h3>
 <p>理解 prompt cache 之前，要先区分三种“历史”。</p>
 <p>第一种是 UI 历史，也就是用户在界面上看到的 scrollback。它应该尽量完整，因为用户需要回看、复制、调试。</p>
 <p>第二种是磁盘历史，也就是 session transcript、rollout JSONL、tool result 文件、collapse commit 等持久化记录。它服务于 resume、fork、审计和恢复。</p>
 <p>第三种是模型历史，也就是本轮 API 请求里真正进入 provider prompt 的 messages、system / instructions、tools、schema 和附加 context。这里说的是 API contract 和缓存前缀层面的输入，不等于公开了推理服务内部每个 token 的物理排列。</p>
 <p>Prompt cache 命中的永远是第三种：模型看到的有序输入。UI 里还在，不代表模型还会看到；磁盘里还在，也不代表每轮都会进 prompt。</p>
+<h3>1.2 Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h3>
 <p>可以把一次请求抽象成：</p>
 <pre><code class="language-text">Claude 侧公开层级：
 tools -&gt; system -&gt; messages -&gt; cache breakpoint
@@ -296,11 +383,10 @@ prefix 可包含 messages / tools / schemas / images
 缓存命中依赖：
 前缀尽量长，且尽量不变。
 </code></pre>
-<p><img src="assets/prompt-cache-provider-contracts.svg" alt="Claude 和 OpenAI 的 prompt cache contract 差异"></p>
+<p><img src="assets/prompt-cache-provider-contracts.png" alt="Claude 和 OpenAI 的 prompt cache contract 差异"></p>
 <p>这里必须把 Claude 和 OpenAI 分开理解。Claude API 文档明确给出 cache prefix 的层级：<code>tools</code>、<code>system</code>、<code>messages</code>；Claude 的 tool-use 文档也展示了工具定义会进入 tool-use system prompt，并排在用户 system prompt 之前。所以在 Claude 侧，把工具定义视为稳定前缀最前面的组成部分，是有公开依据的。</p>
 <p>OpenAI 侧更适合描述成“自动 prefix cache”。公开文档能依赖的是：命中需要 exact prefix match；静态内容应该放前面，动态内容放后面；tools、messages、images、structured output schemas 都可以参与缓存；<code>prompt_cache_key</code> 会参与路由，让共享前缀更容易落到同一缓存域。OpenAI 文档没有给出一个和 Claude 完全同构的 <code>tools -&gt; system -&gt; messages</code> block hierarchy。Codex 源码也只是在客户端构造 Responses API 请求，把 <code>instructions</code>、<code>input</code>、<code>tools</code>、<code>text</code> 和 <code>prompt_cache_key</code> 交给 provider；服务端内部如何序列化这些字段，不能作为客户端侧可依赖的工程事实。</p>
 <p>这就是为什么“规则文件怎么注入”“工具结果怎么处理”“compaction 后有没有边界”都会影响 prompt cache。它们看起来是上下文管理问题，本质上也都是缓存前缀管理问题。</p>
-<h3>2. Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h3>
 <p>Claude API 和 OpenAI API 都支持 prompt caching，但暴露方式不同。</p>
 <p>Claude API 有显式的 <code>cache_control</code>。根据 Anthropic 文档，prompt caching 会引用从 <code>tools</code> 到 <code>system</code> 再到 <code>messages</code> 的完整前缀，一直到被标记的 cache breakpoint。Claude API 也有顶层 automatic caching：请求体上放一个 <code>cache_control</code>，系统会把 breakpoint 自动放到最后一个可缓存 block。缓存默认 5 分钟 TTL，也有 1 小时 TTL；cache read 和 cache write 会在 usage 字段里体现。</p>
 <p>这意味着 Claude Code 可以在客户端代码里明确决定 breakpoint 放在哪里。源码里的 <code>addCacheBreakpoints</code> 就是在做这件事。</p>
@@ -313,7 +399,7 @@ Codex:
 prompt_cache_key + automatic prefix cache + replacement_history
 </code></pre>
 <p>两个系统都在追求稳定前缀，但工具不一样。</p>
-<h3>3. 规则文件不是“新会话时塞进 system prompt 一次”这么简单</h3>
+<h3>1.3 规则文件：稳定快照比文件焦点更重要</h3>
 <p>代码 Agent 通常有项目规则文件：</p>
 <ul>
 <li>Claude Code 使用 <code>CLAUDE.md</code> 和 memory files。</li>
@@ -329,7 +415,7 @@ compaction 后保留可恢复的边界或替换历史
 <p>这个模型比“system prompt 一次性全塞满”更准确。</p>
 <h2>二、Claude Code：显式缓存断点下的模型视图纪律</h2>
 <p>Claude Code 的主线可以概括成一句话：既然 Anthropic 给了显式 <code>cache_control</code>，runtime 就必须先把 breakpoint 前面的模型视图整理得足够稳定。于是它不是一上来就“总结历史”，而是按压力来源分层处理：基础规则先稳定，大工具结果先落盘，中段历史可以投影裁剪，旧工具结果可以微清理，最后撑不住时才做完整 compaction。</p>
-<h3>4. <code>getUserContext()</code> 是 memoized 的基础 context</h3>
+<h3>2.1 稳定基线：<code>getUserContext()</code> 和 system prompt 切分</h3>
 <p>Claude Code 里，<code>getUserContext()</code> 是理解项目规则注入的入口。</p>
 <p>源码位置：<code>src/context.ts</code></p>
 <p>它返回的核心内容包括：</p>
@@ -337,7 +423,9 @@ compaction 后保留可恢复的边界或替换历史
 <li><code>claudeMd</code>：从 <code>CLAUDE.md</code> / memory files 收集出来的项目规则。</li>
 <li><code>currentDate</code>：当前日期说明。</li>
 </ul>
+<h4>memoize：计算一次，稳定复用</h4>
 <p>这个函数被 <code>memoize</code> 包起来。memoize 的意思是：第一次调用时真正计算，之后在同一缓存生命周期里复用结果。这样常规请求不会每轮重新扫描并拼出一份新的 <code>CLAUDE.md</code> context。</p>
+<h4><code>prependUserContext()</code>：加在模型视图最前面</h4>
 <p>把这段 context 放进请求的是 <code>prependUserContext()</code>。</p>
 <p>源码位置：<code>src/utils/api.ts</code></p>
 <p>它构造的是一条 meta user message，大致形态是：</p>
@@ -348,12 +436,13 @@ As you answer the user&#39;s questions, you can use the following context:
 </code></pre>
 <p>这里有一个容易误解的点：它不是“在每个最新 user message 前单独加一次”。它是发 API 前把这条 meta user message prepend 到整个 <code>messagesForQuery</code> 数组最前面。</p>
 <p>这听起来会破坏缓存，因为它在 messages 前面。但关键在于它本身尽量稳定：<code>getUserContext()</code> memoized，<code>CLAUDE.md</code> 不会每轮随机变化。真正容易变化的日期、环境变化和工具结果，会通过其他路径控制。</p>
+<h4>动态事实：靠尾部表达</h4>
 <p>比如日期变化不是重写前缀里的 <code>currentDate</code>，而是通过尾部 <code>date_change</code> 这类附加消息表达。原则很简单：</p>
 <pre><code class="language-text">基础规则保持稳定。
 动态事实靠近尾部。
 </code></pre>
 <p>Claude Code 对 system prompt 也有类似切分思路。<code>splitSysPromptPrefix()</code> 会按 <code>SYSTEM_PROMPT_DYNAMIC_BOUNDARY</code> 把 system prompt 分成静态前缀和动态尾部；静态块可进入 global cache scope，动态块不参与同样的稳定前缀假设。</p>
-<h3>5. 请求组装链：先做模型视图，再做缓存控制</h3>
+<h3>2.2 请求管线：先做模型视图，再做缓存控制</h3>
 <p>Claude Code 的主请求路径在 <code>src/query.ts</code>。简化后，关键顺序是：</p>
 <pre><code class="language-text">messages
   -&gt; getMessagesAfterCompactBoundary(messages)
@@ -367,11 +456,11 @@ As you answer the user&#39;s questions, you can use the following context:
   -&gt; Claude API
 </code></pre>
 <p>图里把源码里的关键节点放在同一条链上：</p>
-<p><img src="assets/claude-code-context-pressure-ladder.svg" alt="Claude Code 请求里的上下文压力处理顺序"></p>
+<p><img src="assets/claude-code-context-pressure-ladder.png" alt="Claude Code 请求里的上下文压力处理顺序"></p>
 <p>这条顺序非常重要，因为它揭示了 Claude Code 的节奏：先决定模型要看哪段历史，再削掉明显不该进入 prompt 的重量，最后才把基础 context 和缓存断点放上去。缓存控制不是第一步，而是前面一系列投影和减压之后的收口。</p>
 <p><code>getMessagesAfterCompactBoundary()</code> 先决定 compact 之后模型应该从哪里开始看。随后 tool result budget、snip、microcompact、context-collapse、autocompact 都是在调小或投影 <code>messagesForQuery</code>。最后才 prepend 基础 user context，并放 Anthropic cache breakpoint。</p>
 <p>换句话说，Claude Code 不是每轮把完整 transcript 直接发给模型，再指望 provider 缓存兜底。它先在本地构造一个更小、更稳定、更适合缓存的模型视图。</p>
-<h3>6. 大工具结果落盘：不是 compaction，而是 prompt 入口前的减负</h3>
+<h3>2.3 局部减压：大工具结果先落盘</h3>
 <p>从这里开始进入 Claude Code 的“减压栈”。第一类压力不是历史太长，而是某个新鲜工具结果刚产生就太大：日志、搜索结果、JSON、测试输出，一次就可能把窗口推到危险区。这个问题如果等到 autocompact 再处理，就太晚了。</p>
 <p>工具输出是长上下文 Agent 最容易失控的地方。</p>
 <p>一次 <code>grep</code> 可能返回几万行；一次 shell 命令可能输出巨大日志；一次 JSON 工具结果可能有几 MB。如果这些结果原样留在 messages 里，prompt cache 会被两个方向拖垮：</p>
@@ -379,6 +468,7 @@ As you answer the user&#39;s questions, you can use the following context:
 <li>token 数量暴涨，触发压缩或超窗。</li>
 <li>工具输出经常变化，导致前缀不稳定。</li>
 </ul>
+<h4>阈值：先把新鲜大结果挡在入口外</h4>
 <p>Claude Code 对大结果有一层单独处理。</p>
 <p>源码位置：</p>
 <ul>
@@ -400,31 +490,37 @@ Output too large (...). Full output saved to: ...
 Preview (first 2KB):
 ...
 </code></pre>
-<p><img src="assets/claude-code-large-result-persistence.svg" alt="Claude Code 大工具结果落盘链路"></p>
+<p><img src="assets/claude-code-large-result-persistence.png" alt="Claude Code 大工具结果落盘链路"></p>
+<h4>稳定替换：按 <code>tool_use_id</code> 冻结 preview</h4>
 <p>这里有一个非常关键的缓存细节：<code>ContentReplacementState</code> 会按 <code>tool_use_id</code> 冻结替换决策。</p>
 <p>第一次决定某个 <code>tool_use_id</code> 要落盘后，后续请求不会重新随机截断、重新读盘、重新生成 preview。它会用 <code>Map&lt;tool_use_id, preview&gt;</code> 复用同一段替换文本。这样同一个旧工具结果在 prompt 里的表现保持字节级稳定。</p>
 <p>这比“每轮重新截断前 2000 字符”更稳。因为只要截断逻辑、路径、大小描述或排序有微小变化，缓存前缀就可能变。</p>
 <p>还有一个 per-message 总预算：同一条 user message 里的多个 tool result 合计超过 <code>MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 200_000</code> 时，会优先处理最大的 fresh result。也就是说，Claude Code 不只看单个工具输出，也看同一轮消息里的工具结果总量。</p>
 <p>这层机制发生在 snip 和 microcompact 之前。它解决的是“新鲜大结果不要撑爆本轮模型视图”，不是“对话太长后的总结”。</p>
-<h3>7. SNIP：剪掉中段历史的模型投影</h3>
+<h3>2.4 中段投影：SNIP 的删除、恢复和提示</h3>
 <p>SNIP 在这里不是 snippet 的缩写，更接近英语动词 snip：剪掉一段。它不是把整段旧历史总结成一句话，而是在完整 transcript 仍然存在的前提下，把某些中段消息从模型视图里移出去。</p>
+<h4>和 <code>compact_boundary</code> 的边界</h4>
 <p>它和 <code>compact_boundary</code> 的区别很大：</p>
 <ul>
 <li><code>compact_boundary</code> 解决“旧前缀已经被 summary 覆盖，模型从哪里重新开始看”。</li>
 <li>snip 解决“完整会话还在，但中间某些消息不再值得进入模型视图”。</li>
 </ul>
+<h4>短 id：让模型能指向消息</h4>
 <p>第一步是让模型能稳定引用“要剪哪条消息”。<code>src/utils/messages.ts</code> 里有 <code>deriveShortMessageId(uuid)</code>：它从消息 UUID 派生 6 位 base36 短 id。随后 <code>appendMessageTagToUserMessage()</code> 会把这个 id 追加到 API-bound 的 user message 最后：</p>
 <pre><code class="language-text">请看一下这段测试日志
 [id:8x3p1k]
 </code></pre>
 <p>这里有几个细节很关键。这个 tag 只加在发 API 的副本里，不写回本地 transcript；<code>isMeta</code> 的内部消息不会被打 tag；tag 注入发生在 merge、smoosh、sanitize 之后，所以 id 对应的是最终会出现在模型视图里的那条 user message；而且这段逻辑必须同时满足 <code>HISTORY_SNIP</code> feature gate 和 runtime enabled，避免工具不可用时还给每条用户消息浪费 token。</p>
+<h4>本轮裁剪：返回的不只是 messages</h4>
 <p>第二步发生在请求主链路。<code>src/query.ts</code> 的顺序是：先对大 tool result 做 budget / 落盘替换，再调用 <code>snipCompactIfNeeded(messagesForQuery)</code>，然后才进入 microcompact。源码注释也直接写明：snip 和 microcompact 不是互斥的，两者可以在同一轮都执行。<code>snipCompactIfNeeded()</code> 返回的不是单纯布尔值，而是三类信息：</p>
 <pre><code class="language-text">messages        剪裁后的模型视图
 tokensFreed     估算释放的 token
 boundaryMessage 本轮如果发生剪裁，需要写入 transcript 的边界消息
 </code></pre>
 <p><code>tokensFreed</code> 之所以要单独传下去，是因为 token 估算会读 surviving assistant message 上的旧 usage。那些 usage 记录反映的是剪裁前上下文大小，单靠 <code>tokenCountWithEstimation(messagesForQuery)</code> 看不到 snip 已经释放的空间。于是 autocompact 和 blocking-limit 判断都要减掉 <code>snipTokensFreed</code>，否则会出现“实际上已经剪下去了，但仍然误判 prompt 太长”的窗口。</p>
+<h4>模型投影：UI 保留，API 过滤</h4>
 <p>第三步是投影。<code>getMessagesAfterCompactBoundary()</code> 不只是从最后一个 <code>compact_boundary</code> 开始切片；在 SNIP 打开时，它还会默认调用 <code>projectSnippedView()</code>，把被 snip 的消息过滤掉。也就是说，模型侧常规路径拿到的是“compact slice + snip projection”之后的数组。UI 则反过来：<code>Messages.tsx</code> 和 fullscreen scrollback 会传 <code>includeSnipped: true</code>，让人仍然能在界面上看到被移出模型视图的旧消息。</p>
+<h4>恢复路径：<code>removedUuids</code> 和 parent relink</h4>
 <p>第四步是恢复。这个点最容易低估。Claude Code 的 transcript 是 append-only JSONL，被 snip 掉的消息仍然留在磁盘上。如果 resume 时只是重新按 parent 链构造会话，不额外处理 snip，就会把旧消息重新拼回模型视图。</p>
 <p>所以 snip boundary 需要持久化 <code>snipMetadata.removedUuids</code>。<code>src/utils/sessionStorage.ts</code> 的 <code>applySnipRemovals()</code> 会在加载 transcript 后做两件事：</p>
 <pre><code class="language-text">1. 从 Map 里删除 removedUuids 指向的消息。
@@ -443,11 +539,15 @@ M4.parentUuid 仍然指向 M3，链在缺口处断掉。
 正确恢复:
 M1 &lt;- M4 &lt;- M5
 </code></pre>
+<p><img src="assets/claude-code-snip-projection.png" alt="Claude Code SNIP 的模型投影和 parent relink"></p>
 <p>这就是为什么 SNIP 不能只靠“本轮内存里删掉几条消息”。没有 <code>removedUuids</code>，重启后消息会复活；没有 parent relink，删除中段会把后续链条截断。<code>compact_boundary</code> 是切掉一个前缀，snip 是挖掉中间一段，恢复算法自然不是同一种。</p>
+<h4>运行形态和提示机制</h4>
 <p>第五步是运行形态差异。REPL 需要保留完整 UI scrollback，所以通常不急着把界面历史物理删除，而是在模型路径里投影；headless / SDK 路径没有 UI scrollback 要保留，<code>QueryEngine</code> 会在收到 snip boundary 时通过 <code>snipReplay</code> 重新应用裁剪，避免 marker 在 mutable message store 里反复触发，也避免长会话内存继续膨胀。</p>
 <p>还有一个小但重要的提示机制：<code>context_efficiency</code> attachment。源码注释里说，它会在“增长了若干 token 但一直没有 snip”之后注入 nudge；节奏由 <code>shouldNudgeForSnips()</code> 控制，并会被已有 nudge、snip marker、snip boundary、compact boundary 重置。这说明 SNIP 不是只靠后台阈值，也有一层面向模型行为的轻提示。</p>
+<h4>可见源码边界</h4>
 <p>可见源码里，<code>snipCompact.js</code>、<code>snipProjection.js</code>、<code>SnipTool</code>、<code>force-snip</code> 这些执行模块通过 <code>HISTORY_SNIP</code> 条件路径接入；当前源码快照没有展开它们的文件本体。但周边契约已经足够清楚：短 id 用于引用，query 前裁剪模型视图，boundary 记录删除集合，resume 时按 <code>removedUuids</code> 删除并重接 parent 链，UI 和 SDK 分别选择保留 scrollback 或直接收缩 store。外部 npm 包 <code>@anthropic-ai/claude-code@2.1.169</code> 已经是 native binary，不再明文暴露旧源码符号；但字符串里仍能看到 <code>CLAUDE_SNIP</code>、<code>snipTokensFreed</code>、<code>includeSnipped</code>、<code>snipEnabled</code> 等字段。稳妥的结论是：相关设计仍在产品形态里演进，但不能仅凭某个旧符号是否出现，判断某个发行版默认开启了完整旧路径。</p>
-<h3>8. Microcompact：只清旧工具结果，不总结整段对话</h3>
+<h3>2.5 旧内容再瘦身：microcompact 和 context-collapse</h3>
+<h4>Microcompact：只清旧工具结果，不总结整段对话</h4>
 <p>microcompact 这个名字容易让人以为它是“小号 autocompact”。实际更准确的理解是：它优先处理旧 tool result 的可见体积。</p>
 <p>源码位置：<code>src/utils/microCompact.ts</code></p>
 <p>它有两类路径。</p>
@@ -464,7 +564,7 @@ cached:
 缓存仍有价值，尽量通过 provider cache edit 改模型侧视图，减少破坏前缀。
 </code></pre>
 <p>microcompact 不是摘要。它不试图理解整段对话，只是把一批旧工具结果从模型视图里移走或引用化。</p>
-<h3>9. Context-collapse：源码里可见的是投影契约</h3>
+<h4>Context-collapse：源码里可见的是投影契约</h4>
 <p>context-collapse 更像“把一段历史折叠成摘要占位”的投影机制。</p>
 <p>在这份源码快照里，主链路和持久化契约是可见的：</p>
 <ul>
@@ -476,9 +576,10 @@ cached:
 </ul>
 <p>但具体实现目录在这份源码快照中没有展开，所以不能把不可见的算法细节当作确定事实。可靠的说法是：主链路已经为它预留了“投影、持久化、恢复、与 autocompact 协调”的契约。</p>
 <p>它和 autocompact 的关系也很重要：context-collapse 在 autocompact 之前运行。<code>shouldAutoCompact()</code> 里还明确避开 context-collapse 模式，因为 collapse 自己负责 headroom。如果 autocompact 抢先运行，可能把更细粒度的 collapse 直接压成一段粗 summary。</p>
-<h3>10. Autocompact：最后一级完整摘要</h3>
+<h3>2.6 最后防线：autocompact 和 compact_boundary</h3>
 <p>autocompact 是 Claude Code 的最后一级保护。</p>
 <p>源码位置：<code>src/utils/autoCompact.ts</code> 和 <code>src/utils/compact.ts</code></p>
+<h4>触发条件和摘要请求</h4>
 <p>它的触发逻辑会考虑：</p>
 <ul>
 <li>当前模型上下文窗口。</li>
@@ -496,10 +597,11 @@ cached:
 <li>如果 compaction 请求本身 prompt too long，会从头部按 API round group 截断，用合成 marker 保持消息链形状。</li>
 <li>compact 后会有 bounded post-compact file / skill context 恢复，避免 summary 刚生成就丢掉必要文件语义。</li>
 </ul>
+<h4><code>compact_boundary</code>：summary 之后从哪里继续</h4>
 <p>最终，Claude Code 写入 <code>compact_boundary</code>。</p>
 <p>源码位置：<code>src/utils/messages.ts</code></p>
 <p><code>createCompactBoundaryMessage()</code> 会生成一条 system message，<code>subtype: &quot;compact_boundary&quot;</code>，metadata 里包括 trigger、preTokens、userContext、messagesSummarized 等信息。之后 <code>getMessagesAfterCompactBoundary()</code> 会从最后一个 boundary 起切模型视图。</p>
-<p><img src="assets/claude-code-compact-boundary.svg" alt="Claude Code compact_boundary 切分模型视图"></p>
+<p><img src="assets/claude-code-compact-boundary.png" alt="Claude Code compact_boundary 切分模型视图"></p>
 <p>没有 boundary 会怎样？</p>
 <ul>
 <li>如果继续发完整历史，summary 不会真正减少模型输入。</li>
@@ -507,10 +609,11 @@ cached:
 <li>如果只有 summary 没有边界，后续请求不知道哪些消息已经被 summary 覆盖。</li>
 </ul>
 <p>所以 boundary 的本质是“模型视图边界”，不是 UI 分割线。</p>
-<h3>11. 四种变小机制放在一起看</h3>
+<h3>2.7 收口：减压栈怎样保护缓存点</h3>
+<h4>五种变小机制放在一起看</h4>
 <p>大结果落盘、snip、microcompact、context-collapse、autocompact 都会让模型输入变小，但它们不是同一种机制。</p>
 <p>把它们放在一张图里，层级感就出来了：越靠前越局部，越靠后越语义化；越靠前越像保持原历史，只改变模型投影，越靠后越像给后续会话建立新的起点。</p>
-<p><img src="assets/claude-code-trimming-stack.svg" alt="Claude Code snip、microcompact、context-collapse、autocompact 分层"></p>
+<p><img src="assets/claude-code-trimming-stack.png" alt="Claude Code 大结果落盘、snip、microcompact、context-collapse、autocompact 分层"></p>
 <p>可以按粒度排序：</p>
 <pre><code class="language-text">大结果落盘:
 单个 tool_result 太大，先写文件，prompt 只放路径和 preview。
@@ -528,7 +631,7 @@ autocompact:
 窗口逼近上限时生成完整 summary，并写 compact_boundary。
 </code></pre>
 <p>这就是 Claude Code 长上下文管理的层级感：能局部处理就局部处理，局部处理不够再摘要，摘要以后用 boundary 保证后续请求不把旧内容带回来。</p>
-<h3>12. <code>addCacheBreakpoints()</code>：怎样保护缓存点</h3>
+<h4><code>addCacheBreakpoints()</code>：怎样保护缓存点</h4>
 <p>前面所有步骤都在整理 breakpoint 前的形状。到了 <code>addCacheBreakpoints()</code>，才是真正把 Anthropic 的 cache contract 落到请求上：该让 provider 读哪段已有缓存，该把新的缓存尾巴写在哪里，哪些一次性 fork 只该读缓存、不该污染后续缓存。</p>
 <p>Claude Code 的 Anthropic 请求路径里，<code>addCacheBreakpoints()</code> 是核心缓存控制函数。</p>
 <p>源码位置：<code>src/services/api/claude.ts</code></p>
@@ -550,15 +653,16 @@ autocompact:
 <p>这些细节都指向同一个目标：在 Anthropic 的显式 breakpoint 模型下，让 breakpoint 前的内容尽量稳定。</p>
 <h2>三、Codex：自动 prefix cache 下的可恢复历史</h2>
 <p>Codex 换了另一个 provider contract，文章的重心也要跟着换。OpenAI 侧没有 Claude 那样的 per-block breakpoint，所以 Codex 不是围绕“缓存点放在哪条 message 上”组织代码，而是围绕三个东西组织：<code>prompt_cache_key</code> 稳定缓存域，initial context 稳定会话基线，<code>replacement_history</code> 稳定压缩后的恢复形状。</p>
-<h3>13. 自动 prefix cache 加 <code>prompt_cache_key</code></h3>
+<h3>3.1 缓存域：automatic prefix cache 和 <code>prompt_cache_key</code></h3>
 <p>Codex 面对的是 OpenAI 的自动 prefix cache。</p>
 <p>源码位置：<code>codex-rs/core/src/client.rs</code></p>
 <p><code>ModelClient</code> 是 session-scoped，默认用 thread id 生成 <code>prompt_cache_key()</code>，也支持 override。构造 Responses API request 时，会把这个 key 放进请求。</p>
 <p>这不是 Claude 式的 <code>cache_control</code>。它不告诉 provider “缓存到这一个 block 为止”。它更像是告诉服务端：这些请求属于同一个会话或同一类前缀，请尽量让相同前缀复用缓存。</p>
 <p>所以 Codex 的重点不在“插哪个 breakpoint”，而在“让模型历史形状稳定、可恢复”。</p>
-<h3>14. <code>AGENTS.md</code>：会话级快照，而不是文件焦点驱动的热加载</h3>
+<h3>3.2 规则快照：<code>AGENTS.md</code> 到 initial context</h3>
 <p>Codex 的规则文件加载在 <code>AgentsMdManager</code>。</p>
 <p>源码位置：<code>codex-rs/core/src/agents_md.rs</code></p>
+<h4>两层规则：全局和项目</h4>
 <p>这里要分两层看。</p>
 <p>第一层是全局规则。<code>config/mod.rs</code> 构造 <code>Config</code> 时，会调用 <code>AgentsMdManager::load_global_instructions(...)</code>，从 <code>codex_home</code> 下读取 <code>AGENTS.override.md</code> 或 <code>AGENTS.md</code>，并把内容放进 <code>Config.user_instructions</code>。在默认安装里，这个目录通常对应 <code>~/.codex</code>。也就是说，全局 <code>~/.codex/AGENTS.md</code> 不是每次发请求前临时读盘，而是在会话配置成型时先变成一段配置字段。</p>
 <p>第二层是项目规则。session 创建时，<code>session/mod.rs</code> 会调用 <code>AgentsMdManager::user_instructions(...)</code>，它会在当前 primary environment 的文件系统里读取项目级 AGENTS 文档：</p>
@@ -569,6 +673,7 @@ autocompact:
 <li>支持配置 fallback 文件名。</li>
 <li>把 <code>Config.user_instructions</code> 和项目 AGENTS 文档拼成模型可见的 instruction string，中间用 <code>--- project-doc ---</code> 分隔。</li>
 </ol>
+<h4>进入 <code>TurnContext</code>：快照被复制，而不是热加载</h4>
 <p>这段合成后的字符串随后进入 <code>SessionConfiguration.user_instructions</code>。每个新 turn 创建 <code>TurnContext</code> 时，只是把 <code>session_configuration.user_instructions.clone()</code> 复制过去；<code>build_initial_context()</code> 再把 <code>turn_context.user_instructions</code> 渲染成一条 contextual user message，形状类似：</p>
 <pre><code class="language-text"># AGENTS.md instructions for /path/to/project
 
@@ -577,10 +682,11 @@ autocompact:
 &lt;/INSTRUCTIONS&gt;
 </code></pre>
 <p>测试里也能看到这个边界：<code>user_instructions</code> 不会塞进 Responses API 的顶层 <code>instructions</code> 字段，而是出现在 <code>input</code> 数组里的 user message 中。</p>
+<p><img src="assets/codex-agents-session-snapshot.png" alt="Codex AGENTS.md 的 session snapshot 与 compaction reinjection"></p>
 <p>这说明 Codex 也不是“每打开一个文件就自动刷新一套规则”。在同一个活跃 session 的连续 turn 里，全局 <code>~/.codex/AGENTS.md</code> 和 session 创建时解析到的项目 AGENTS，更接近一份 session-level snapshot。之后即使磁盘上的 <code>~/.codex/AGENTS.md</code> 改了，普通 turn、cwd 更新或 compaction 本身也不会自动重新读取它。</p>
 <p>如果关闭 runtime 后再 resume 同一条持久化 thread，边界会稍微不同：新的 runtime session 会重新构造 <code>Config</code> 和 <code>SessionConfiguration</code>，因此可以读到当时磁盘上的新版 AGENTS。这里的刷新点是 session 构造，不是 compact 边界。已经在内存里运行的 session，仍然继续使用 <code>SessionConfiguration</code> 里保存的那份规则字符串。</p>
 <p>这和 prompt cache 的原则一致：规则文件进入模型视图后，最好稳定。</p>
-<h3>15. Initial context、TurnContext 和 durable baseline</h3>
+<h4>Initial context、TurnContext 和 durable baseline</h4>
 <p>Codex 的上下文维护链在 <code>codex-rs/core/src/session/mod.rs</code>。</p>
 <p><code>build_initial_context()</code> 会组装：</p>
 <ul>
@@ -600,12 +706,14 @@ autocompact:
 <li>mid-turn compaction 后也会持久化 <code>TurnContextItem</code>，用于 resume / fork 恢复最新 durable baseline。</li>
 </ul>
 <p>注意这里的 “initial context” 不是每次都重新扫描所有规则文件。它是用当前 <code>TurnContext</code> 重建模型应该看到的会话基线：哪些 developer section 还有效，哪些 contextual user section 要出现，当前权限、环境、skills、user instructions 应该怎样排列。Claude Code 更像是在 API 前临时 prepend memoized context；Codex 更像是在 session/turn 层维护一条可恢复的 context baseline。</p>
-<h3>16. 大输出策略：更偏截断模型可见内容和事件副本</h3>
+<h3>3.3 输出减压：截断模型可见内容和事件副本</h3>
 <p>在已检查的 Codex 源码里，没有看到 Claude Code 那种“一旦 tool result 超阈值，就把完整结果写到 tool-results 文件，再让模型只看到路径和 2KB preview”的同构机制。</p>
 <p>Codex 更常见的是两类截断：</p>
+<h4>模型可见 function output 截断</h4>
 <p>第一类是模型可见 function output 截断。</p>
 <p>源码位置：<code>codex-rs/core/src/context_manager/history.rs</code></p>
 <p><code>ContextManager::process_item()</code> 会对 <code>FunctionCallOutput</code> 和 <code>CustomToolCallOutput</code> 应用 <code>truncate_function_output_payload(...)</code>，让进入 prompt 的函数输出受 policy 控制。</p>
+<h4>Rollout、event 和 telemetry 副本截断</h4>
 <p>第二类是 rollout / event / telemetry 副本截断。</p>
 <p>源码位置：</p>
 <ul>
@@ -621,10 +729,12 @@ Codex:
 模型可见输出按 policy 截断，持久化事件副本也会收缩。
 </code></pre>
 <p>两者目标相似，具体工程形态不同。</p>
-<h3>17. Compaction：替换模型历史，并持久化 <code>replacement_history</code></h3>
+<h3>3.4 历史替换：compaction 和 <code>replacement_history</code></h3>
 <p>Codex compaction 的关键函数是 <code>build_compacted_history()</code>。</p>
 <p>源码位置：<code>codex-rs/core/src/compact.rs</code></p>
+<h4><code>build_compacted_history()</code>：summary 成为新历史尾部</h4>
 <p>它会从旧 history 收集真实用户消息，按 token 预算从后往前选择最近用户消息，保持原顺序写回，然后把 summary 作为最后一条 user message 追加进去。预算常量包括 <code>COMPACT_USER_MESSAGE_MAX_TOKENS = 20_000</code>。</p>
+<h4><code>replacement_history</code>：resume 的恢复基线</h4>
 <p>随后 <code>replace_compacted_history()</code> 会替换 session history，并持久化：</p>
 <pre><code class="language-text">RolloutItem::Compacted(CompactedItem {
   message,
@@ -639,12 +749,15 @@ Codex:
 Codex:
 compaction 后直接安装 replacement_history，模型历史被替换成新形状。
 </code></pre>
-<p><img src="assets/codex-context-compact-ledger.svg" alt="Codex 上下文与压缩账本"></p>
+<p><img src="assets/codex-context-compact-ledger.png" alt="Codex 上下文与压缩账本"></p>
+<h4>Mid-turn reinjection：重建当前 session snapshot</h4>
 <p>Codex 还有一个 mid-turn compaction 的细节：<code>InitialContextInjection</code> 可以选择 <code>BeforeLastUserMessage</code>。<code>compact.rs</code> 里的注释说得很直白：mid-turn compaction 后，模型被训练成把 compaction summary 看作 history 的最后一项，所以 runtime 会把 initial context 插在最后一个真实 user message 或 summary 前面，而不是追加到 summary 后面。</p>
 <p>这个动作经常被误解成“compact 顺便刷新了 AGENTS.md”。从源码看不是这样。<code>process_compacted_history()</code> 调的是 <code>sess.build_initial_context(turn_context)</code>；而 <code>build_initial_context()</code> 读的是当前 <code>TurnContext</code> 里的 session snapshot。它会先过滤远端 compact 输出里可能陈旧或重复的 developer message、AGENTS wrapper、environment wrapper，再把当前 session 的 canonical initial context 放回 replacement history。目标是让压缩后的模型历史仍然自洽，而不是借 compaction 热更新磁盘上的规则文件。</p>
-<h2>四、对比和结论</h2>
+<h2>四、收束：两套 runtime 的共同纪律</h2>
+<h3>4.1 路线图：projection pipeline 和 replacement ledger</h3>
 <p>现在可以把两条路线放到同一张地图里。Claude Code 的核心动作是“在完整 transcript 之上维护请求投影和显式缓存边界”；Codex 的核心动作是“把会话基线和压缩后的模型历史做成可恢复账本”。前者看起来更像一套 projection pipeline，后者看起来更像一套 replay / replacement ledger。</p>
-<h3>18. 对比表</h3>
+<p><img src="assets/prompt-cache-runtime-routes.png" alt="Claude Code 和 Codex 的 prompt cache runtime 路线对比"></p>
+<h3>4.2 对比表</h3>
 <table>
 <thead>
 <tr>
@@ -704,13 +817,13 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
 <td>rollout reverse scan、replacement_history、TurnContext baseline</td>
 </tr>
 </tbody></table>
-<h3>19. 读源码时最容易踩的坑</h3>
+<h3>4.3 读源码时最容易踩的坑</h3>
 <p>第一个坑：把 UI 历史当成模型历史。很多源码看起来“没有删除历史”，但请求前 projection 已经把模型视图改了。</p>
 <p>第二个坑：把 compaction 当成唯一压缩。Claude Code 在 autocompact 前还有大结果落盘、snip、microcompact、context-collapse。真正的工程设计是分层减压，不是等到爆窗才总结。</p>
 <p>第三个坑：把规则文件想成每轮动态加载。规则文件如果每轮改变并放在前缀，会直接打坏 prompt cache。两个系统都倾向于把规则稳定化，再用尾部或 diff 承载变化。Codex 的 compaction 重注入 initial context，也是在重建当前 session 的规则快照，不是在重新读最新磁盘文件。</p>
 <p>第四个坑：把 Claude 和 OpenAI 的缓存控制混用。Claude 的 <code>cache_control</code> 是 block / request 级控制点；OpenAI 更偏自动 prefix cache 和 <code>prompt_cache_key</code>。源码里的 runtime 设计正是围绕这两个 contract 展开的。</p>
 <p>第五个坑：把 <code>compact_boundary</code> 和 <code>replacement_history</code> 看成同一种东西。它们都服务于 compaction 后的恢复，但一个是切片边界，一个是替换后的模型历史。</p>
-<h3>20. 结论：缓存优化的核心是模型视图纪律</h3>
+<h3>4.4 结论：缓存优化的核心是模型视图纪律</h3>
 <p>Prompt cache 的关键不只是 API 参数。<code>cache_control</code>、<code>cached_tokens</code>、<code>prompt_cache_key</code> 都只是外层接口。真正决定效果的是 Agent runtime 怎样组织模型看到的历史：哪些内容稳定地留在前缀，哪些内容被推到尾部，哪些内容只留在 UI 或磁盘，哪些内容被 summary 覆盖，压缩之后又由什么边界或替换历史承接。</p>
 <p>Claude Code 的路线是：在完整本地历史上维护请求投影，用 memoized context 稳住基础规则，用大结果落盘和 microcompact 控制工具输出，用 snip / context-collapse 做细粒度历史投影，最后用 autocompact 和 <code>compact_boundary</code> 建立新的模型视图起点。</p>
 <p>Codex 的路线是：利用 OpenAI 自动 prefix cache 和 <code>prompt_cache_key</code>，用 <code>AGENTS.md</code> 的 session snapshot 和 initial context 建立可恢复 baseline，用 <code>TurnContextItem</code> 记录上下文变化，用 <code>replacement_history</code> 安装压缩后的模型历史。</p>
@@ -738,7 +851,16 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
       const toc = document.querySelector("#toc");
       if (!article || !toc) return;
 
-      const headings = Array.from(article.querySelectorAll("h2, h3"));
+      article.querySelectorAll("table").forEach((table) => {
+        const headers = Array.from(table.querySelectorAll("thead th")).map((th) => th.textContent.trim());
+        table.querySelectorAll("tbody tr").forEach((row) => {
+          Array.from(row.children).forEach((cell, index) => {
+            if (headers[index]) cell.dataset.label = headers[index];
+          });
+        });
+      });
+
+      const headings = Array.from(article.querySelectorAll("h2, h3, h4"));
       if (headings.length === 0) return;
 
       const counts = new Map();
@@ -754,22 +876,46 @@ compaction 后直接安装 replacement_history，模型历史被替换成新形�
       const list = document.createElement("ol");
       list.className = "toc-list";
       const links = [];
+      const lastItems = new Map();
+
+      const childListFor = (item) => {
+        let child = item.querySelector(":scope > ol");
+        if (!child) {
+          child = document.createElement("ol");
+          child.className = "toc-sublist";
+          item.appendChild(child);
+        }
+        return child;
+      };
+
+      const parentListFor = (level) => {
+        if (level === 2) return list;
+        if (level === 3 && lastItems.get(2)) return childListFor(lastItems.get(2));
+        if (level === 4 && lastItems.get(3)) return childListFor(lastItems.get(3));
+        if (level === 4 && lastItems.get(2)) return childListFor(lastItems.get(2));
+        return list;
+      };
 
       headings.forEach((heading, index) => {
         const text = heading.textContent.trim();
+        const level = Number(heading.tagName.slice(1));
         const base = slugify(text);
         const seen = counts.get(base) || 0;
         counts.set(base, seen + 1);
         heading.id = seen === 0 ? base : `${base}-${seen + 1}`;
 
         const item = document.createElement("li");
+        item.className = `toc-item toc-item-level-${level}`;
         const link = document.createElement("a");
         link.href = `#${heading.id}`;
         link.textContent = text;
-        link.className = `toc-link toc-level-${heading.tagName === "H2" ? "2" : "3"}`;
+        link.className = `toc-link toc-level-${level}`;
         if (index === 0) link.classList.add("active");
         item.appendChild(link);
-        list.appendChild(item);
+        parentListFor(level).appendChild(item);
+        lastItems.set(level, item);
+        if (level <= 2) lastItems.delete(3);
+        if (level <= 3) lastItems.delete(4);
         links.push(link);
       });
 
