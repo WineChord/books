@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { suffixArrayBook } from "../book.config";
-import { pageUrl } from "../urls";
+import { assetUrl, pageUrl } from "../urls";
 
 interface Props {
   lang?: "en" | "zh";
@@ -459,6 +459,29 @@ const copy = isZh
         <a href={pageUrl(base, alternatePath)}>{copy.alternate}</a>
       </nav>
     </section>
+
+    <section class="sa-reading-contract" aria-label={isZh ? "阅读契约" : "Reading contract"}>
+      <strong>{isZh ? "阅读契约" : "Reading Contract"}</strong>
+      <p>
+        {isZh
+          ? "本页只回答一个问题：后缀数组为什么能用“排序后的起点列表”代表所有后缀的字典序。读完后，你应该能解释 suffix、rank、pair key 和 doubling 之间的关系。"
+          : "This page answers one question: why a suffix array can represent lexicographic order with sorted start indices. After reading, you should be able to connect suffixes, rank, pair keys, and doubling."}
+      </p>
+    </section>
+
+    <figure class="wc-article-figure">
+      <img
+        src={assetUrl(base, "sa/assets/suffix-array-mental-model.png")}
+        alt={isZh ? "后缀数组心智模型手绘图：字符串、后缀、排序、rank、二元组和最终 SA" : "Hand-drawn suffix array mental model: string, suffixes, sort, rank, pair key, and final SA"}
+        loading="eager"
+        decoding="async"
+      />
+      <figcaption>
+        {isZh
+          ? "后缀数组的核心不是复制后缀字符串，而是用起点、rank 和二元组把“比较长字符串”变成“比较已知标签”。"
+          : "The suffix-array trick is not copying suffix strings; it turns long string comparison into comparison of start indices, ranks, and pair keys."}
+      </figcaption>
+    </figure>
 
     <section class="sa-lesson-strip" aria-label={isZh ? "学习路线" : "Learning path"}>
       {copy.lessonCards.map(([label, cardTitle, body]) => (
@@ -970,6 +993,28 @@ const copy = isZh
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0.48rem;
       margin: 0.6rem 0 0;
+    }
+
+    .sa-reading-contract {
+      border: 1px solid rgb(20 91 74 / 18%);
+      border-radius: 0.52rem;
+      background: rgb(255 250 239 / 72%);
+      padding: 0.72rem 0.82rem;
+      margin: 0.72rem 0 0;
+    }
+
+    .sa-reading-contract strong {
+      display: block;
+      color: var(--color-charcoal);
+      font-size: 0.76rem;
+      margin-bottom: 0.28rem;
+    }
+
+    .sa-reading-contract p {
+      margin: 0;
+      color: var(--color-secondary);
+      font-size: 0.76rem;
+      line-height: 1.55;
     }
 
     .sa-lesson-card {

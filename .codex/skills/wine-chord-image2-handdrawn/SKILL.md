@@ -204,6 +204,14 @@ docs/public/<article>/assets/<figure-name>.png
 When mirroring a standalone source article, keep the same filename under both
 the source package and `docs/public`.
 
+When wiring these assets into Astro pages in the Books repository, do not use a
+page-link helper for images and do not assume `import.meta.env.BASE_URL` has a
+trailing slash. Use the repository asset URL helper, for example
+`assetUrl(base, "design/assets/example.png")`, or an equivalent helper that
+normalizes the base without appending `.html`. Validate with `npm run
+check:dist` so broken forms such as `/bookscc/...` or `.png.html` are caught
+before commit.
+
 ## Figure Density
 
 Plan figures from the article argument, not from existing assets:

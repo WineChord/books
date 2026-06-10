@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "./Header.astro";
 import { ccBook } from "../book.config";
-import { pageUrl } from "../urls";
+import { assetUrl, pageUrl } from "../urls";
 
 interface Props {
   lang?: "zh";
@@ -355,9 +355,9 @@ const gapFixes = [
         <p class="cc-kicker">Claude Code Context & Interview</p>
         <h1 id="cc-title">把上下文管理讲到面试官愿意继续追问</h1>
         <p class="cc-lede">
-          这是一页可交互的零基础长书：从 token、tool call、context
-          window 开始，讲到 Claude Code 的五层压缩、Auto-Compact、
-          Memory、Subagent、Fork、Coordinator，以及真正能落地的面试答法。
+          这是一页可交互的零基础长书：先把 Claude Code 看成受约束的执行循环，
+          再按压力来源拆开上下文窗口、工具结果、压缩边界、记忆、子 Agent 和面试答法。
+          重点不是背术语，而是讲清每一层到底保护什么状态。
         </p>
         <div class="cc-hero-actions">
           <a href="#window">开始阅读</a>
@@ -383,6 +383,26 @@ const gapFixes = [
         </div>
       </div>
     </section>
+
+    <section class="cc-reading-contract" aria-label="阅读契约">
+      <strong>阅读契约</strong>
+      <p>
+        本页回答一个问题：Claude Code 如何在长任务里保持“当前目标、工具证据、项目规则和恢复状态”不断线。
+        读完后，你应该能解释五层压缩各自的触发点、保留内容、损失边界和面试表达方式。
+      </p>
+    </section>
+
+    <figure class="wc-article-figure">
+      <img
+        src={assetUrl(base, "cc/assets/context-pressure-control.png")}
+        alt="Claude Code 上下文压力控制手绘图：从规则、历史、工具结果到裁剪、压缩、附件和下一轮"
+        loading="eager"
+        decoding="async"
+      />
+      <figcaption>
+        Claude Code 的上下文管理不是一次摘要，而是一条从轻到重的压力控制链：能落盘的先落盘，能裁剪的先裁剪，撑不住时再进入全量 compact 和附件恢复。
+      </figcaption>
+    </figure>
 
     <nav class="cc-toc" aria-label="章节目录">
       {tocItems.map(([href, label]) => (
@@ -1164,6 +1184,28 @@ const gapFixes = [
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
     padding-bottom: 30px;
+  }
+
+  .cc-reading-contract {
+    border: 1px solid rgb(200 95 63 / 20%);
+    border-radius: 8px;
+    background: rgb(255 250 239 / 74%);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+  }
+
+  .cc-reading-contract strong {
+    display: block;
+    color: var(--cc-ink);
+    font-size: 0.92rem;
+    margin-bottom: 6px;
+  }
+
+  .cc-reading-contract p {
+    margin: 0;
+    color: var(--cc-muted);
+    font-size: 0.96rem;
+    line-height: 1.75;
   }
 
   .cc-reading-route article {

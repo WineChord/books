@@ -241,6 +241,11 @@ Images must be useful for readers who see them and readers who rely on text:
   specific.
 - The article must not rely on image text alone for source evidence; the prose
   or caption should carry the source links.
+- In Astro pages under the Books repository, route images with the asset URL
+  helper rather than the page URL helper. `pageUrl()` appends `.html`; images
+  should use `assetUrl(base, ".../assets/name.png")` or an equivalent base
+  normalizer. Never concatenate `${base}foo/...` unless the base is known to
+  include a trailing slash.
 
 ## Tables And Responsive Reading
 

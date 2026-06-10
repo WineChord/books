@@ -11,7 +11,7 @@ import { renderToString } from "katex";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "./Header.astro";
 import { iqBook } from "../book.config";
-import { pageUrl } from "../urls";
+import { assetUrl, pageUrl } from "../urls";
 
 interface DemoToken {
   label: string;
@@ -2975,6 +2975,25 @@ function renderFrames(frames: DemoFrame[]) {
       </div>
     </section>
 
+    <section class="iq-reading-contract" aria-label="阅读契约">
+      <strong>阅读契约</strong>
+      <p>
+        本页回答一个问题：高频智力题如何从题面转成可验证的模型、约束和不变量。读完后，你应该能先判断题型，再选择计数、调度、概率、构造或反例验证路线。
+      </p>
+    </section>
+
+    <figure class="wc-article-figure">
+      <img
+        src={assetUrl(base, "iq/assets/brain-teaser-method.png")}
+        alt="经典智力题解题方法手绘图：模型、不变量、计数、调度、验证和边界情况"
+        loading="eager"
+        decoding="async"
+      />
+      <figcaption>
+        智力题不是靠灵感跳答案，而是先把题面翻译成模型，再用不变量、容量、时序和边界情况压缩搜索空间。
+      </figcaption>
+    </figure>
+
     <section class="iq-method" aria-label="智力题解题路线">
       {methodCards.map(([methodTitle, body]) => (
         <article>
@@ -3411,6 +3430,28 @@ function renderFrames(frames: DemoFrame[]) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.85rem;
     margin: 0 0 1.4rem;
+  }
+
+  .iq-reading-contract {
+    border: 1px solid rgb(49 99 126 / 18%);
+    border-radius: 8px;
+    background: rgb(255 250 239 / 72%);
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .iq-reading-contract strong {
+    display: block;
+    color: var(--iq-ink);
+    font-size: 0.9rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .iq-reading-contract p {
+    margin: 0;
+    color: var(--iq-muted);
+    font-size: 0.96rem;
+    line-height: 1.7;
   }
 
   .iq-method article {

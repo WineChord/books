@@ -331,6 +331,26 @@ const selectionRules = [
         </div>
       </section>
 
+      <section class="reading-contract" aria-label="阅读契约">
+        <strong>阅读契约</strong>
+        <p>
+          本页回答一个问题：想系统学习 AI Agent，应该先建立哪些工程坐标，而不是被单篇产品发布或论文名词牵着走。
+          读完后，你应该能把资料放进 context、team、runtime、learning、measurement、harness 六条线，并知道每条线要验证什么。
+        </p>
+      </section>
+
+      <figure class="wc-article-figure">
+        <img
+          src="assets/agent-reading-map-2026.png"
+          alt="AI Agent 阅读路线手绘图：Context、Team、Runtime、Learning、Measurement、Harness 六条阅读线汇入 Agent loop"
+          loading="eager"
+          decoding="async"
+        />
+        <figcaption>
+          这份书单按工程问题组织，而不是按公司或模型名字组织：先读懂上下文、团队协作、运行时、学习闭环、评测和 harness，再回头看具体产品。
+        </figcaption>
+      </figure>
+
       <section class="section thesis-panel">
         <h2>先抓住三条主线</h2>
         <div class="thesis-list">
@@ -614,6 +634,25 @@ const selectionRules = [
   .section {
     border-bottom: 1px solid var(--agent-line);
     padding: 4.5rem 0;
+  }
+
+  .reading-contract {
+    border-bottom: 1px solid var(--agent-line);
+    padding: 2rem 0 0.5rem;
+  }
+
+  .reading-contract strong {
+    display: block;
+    color: var(--agent-ink);
+    font-size: 0.95rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .reading-contract p {
+    color: var(--agent-muted);
+    font-size: 1rem;
+    line-height: 1.8;
+    margin-bottom: 0;
   }
 
   .section-head h2 {

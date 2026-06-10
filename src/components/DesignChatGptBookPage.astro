@@ -4,7 +4,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import DesignInfoCard from "./DesignInfoCard.astro";
 import Header from "./Header.astro";
 import { designBook } from "../book.config";
-import { pageUrl } from "../urls";
+import { assetUrl, pageUrl } from "../urls";
 
 interface TocItem {
   id: string;
@@ -8145,47 +8145,18 @@ const sourceGroups: SourceGroup[] = [
           </div>
         </div>
 
-        <div class="design-hero__visual hero-system-map" aria-label="ChatGPT P0 主链路和扩展平面图">
-          <div class="hero-map-pill hero-map-pill--main">主链路：每轮自上而下必经</div>
-          <div class="hero-map-pill hero-map-pill--optional">旁路：按权限 / 意图挂接</div>
-          <div class="hero-node hero-node--client">
-            <span>1</span><strong>Client</strong><em>Web / App / API</em>
-          </div>
-          <div class="hero-node hero-node--gateway">
-            <span>2</span><strong>Gateway/Auth</strong><em>identity + rate limit</em>
-          </div>
-          <div class="hero-node hero-node--conversation">
-            <span>3</span><strong>Conversation API</strong><em>turn state + idempotency</em>
-          </div>
-          <div class="hero-node hero-node--context">
-            <span>4</span><strong>Context Builder</strong><em>history + files + memory</em>
-          </div>
-          <div class="hero-node hero-node--safety">
-            <span>5</span><strong>Safety + Quota Gate</strong><em>policy + budget</em>
-          </div>
-          <div class="hero-node hero-node--model">
-            <span>6</span><strong>Model Router</strong><em>model / tool policy</em>
-          </div>
-          <div class="hero-node hero-node--gpu">
-            <span>7</span><strong>GPU Serving</strong><em>prefill + decode</em>
-          </div>
-          <div class="hero-node hero-node--stream">
-            <span>8</span><strong>Stream Relay</strong><em>SSE + cancel</em>
-          </div>
-          <div class="hero-extension hero-extension--context">
-            <span>Hooks into step 4</span><strong>Projects / Memory / RAG</strong><em>先查权限，再注入上下文</em>
-          </div>
-          <div class="hero-extension hero-extension--runtime">
-            <span>Hooks into step 6</span><strong>Apps / Agent / Canvas / Code</strong><em>工具循环、编辑和沙箱执行</em>
-          </div>
-          <div class="hero-extension hero-extension--async">
-            <span>Hooks after step 8</span><strong>Tasks / Pulse</strong><em>离线续跑、通知和保留窗口</em>
-          </div>
-          <div class="hero-plane hero-plane--ops">
-            <span>Ops plane across every step</span>
-            <strong>traces / SLO / cost ledger / kill switch / rollback / audit</strong>
-          </div>
-        </div>
+      <figure class="design-hero__visual design-hero__figure" aria-label="ChatGPT 系统设计手绘总览图">
+        <img src={assetUrl(base, "design/assets/system-design-interview-map.png")} alt="ChatGPT 系统设计面试路线手绘图：P0 chat、API、Context、GPU、Tools、Safety 和 Ops" loading="eager" decoding="async" />
+        <figcaption>先把答案收束到 P0 chat 主链路，再按追问进入 API、上下文、推理、工具、安全和运维平面。</figcaption>
+      </figure>
+      </section>
+
+      <section class="design-reading-contract" aria-label="阅读契约">
+        <strong>阅读契约</strong>
+        <p>
+          本页回答一个问题：面试里如何把“Design ChatGPT”从泛泛而谈变成可执行、可恢复、可扩展、可审计的系统设计。
+          读完后，你应该能先锁 P0 聊天主链路，再按 API、Context、GPU、RAG/Tools、Agent、Canvas、Code、安全和运维逐层展开。
+        </p>
       </section>
 
       <section class="design-answer-contract" aria-label="系统设计答案验收标准">
@@ -8220,62 +8191,6 @@ const sourceGroups: SourceGroup[] = [
           实时语音、多模态、Agent、Code Interpreter、Canvas，还是主动任务系统。判断清楚以后，
           答案才有主线：先交付 P0 文本聊天闭环，再只深入面试官指定或暗示的能力。
         </p>
-        <div class="question-route-map" aria-label="面试问法路由决策图">
-          <div class="route-root">
-            <span>面试官一句话</span>
-            <strong>Design ChatGPT</strong>
-          </div>
-          <div class="route-decision">
-            <span>先问</span>
-            <strong>有没有指定重点？</strong>
-          </div>
-          <div class="route-branch route-branch--api">
-            <span>API / Responses</span>
-            <strong>stream event / 幂等 / 计费 / 版本兼容</strong>
-          </div>
-          <div class="route-branch route-branch--enterprise">
-            <span>Enterprise / knowledge</span>
-            <strong>RAG / ACL / Apps / 审计 / 数据保留</strong>
-          </div>
-          <div class="route-branch route-branch--serving">
-            <span>GPU / low latency</span>
-            <strong>LLM serving / prefill / decode / KV cache</strong>
-          </div>
-          <div class="route-branch route-branch--agent">
-            <span>Agent / browser / tools</span>
-            <strong>Planner / tool approval / checkpoint / injection</strong>
-          </div>
-          <div class="route-branch route-branch--workspace">
-            <span>Code / Canvas / Tasks</span>
-            <strong>sandbox / artifact / patch / scheduler / notification</strong>
-          </div>
-          <div class="route-branch route-branch--realtime">
-            <span>Voice / realtime</span>
-            <strong>WebRTC / WebSocket / VAD / interrupt / TTA</strong>
-          </div>
-          <div class="route-default">
-            <span>没有指定</span>
-            <strong>P0 chat + streaming + history + context + safety</strong>
-          </div>
-          <svg viewBox="0 0 980 420" aria-hidden="true">
-            <defs>
-              <marker id="route-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6f9f" />
-              </marker>
-              <marker id="route-muted-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a66a1f" />
-              </marker>
-            </defs>
-            <path class="route-line route-line--main" d="M180 62 H390" marker-end="url(#route-arrow)" />
-            <path class="route-line route-line--main" d="M590 62 H780" marker-end="url(#route-arrow)" />
-            <path class="route-line route-line--branch" d="M490 106 V165 H145" marker-end="url(#route-muted-arrow)" />
-            <path class="route-line route-line--branch" d="M490 106 V165 H360" marker-end="url(#route-muted-arrow)" />
-            <path class="route-line route-line--branch" d="M490 106 V165 H580" marker-end="url(#route-muted-arrow)" />
-            <path class="route-line route-line--branch" d="M490 106 V165 H800" marker-end="url(#route-muted-arrow)" />
-            <path class="route-line route-line--branch" d="M490 106 V285 H270" marker-end="url(#route-muted-arrow)" />
-            <path class="route-line route-line--branch" d="M490 106 V285 H695" marker-end="url(#route-muted-arrow)" />
-          </svg>
-        </div>
         <div class="design-card-grid">
           {questionVariants.map((card) => <DesignInfoCard card={card} />)}
         </div>
@@ -8686,106 +8601,10 @@ const sourceGroups: SourceGroup[] = [
           这样既能回答传统高并发后端追问，也能自然进入 GPU serving、工具编排和数据治理深挖。
         </p>
 
-        <div class="architecture-board" aria-label="ChatGPT 端到端架构">
-          <div class="arch-band-title arch-band-title--online">Online request path: latency-sensitive, synchronous, user-visible</div>
-          <div class="arch-node arch-node--client">
-            <span>Client</span>
-            <strong>Web / iOS / API / Voice</strong>
-            <p>stream UI, upload, cancel</p>
-          </div>
-          <div class="arch-node arch-node--edge">
-            <span>Edge / API</span>
-            <strong>CDN / WAF / Gateway</strong>
-            <p>rate limit, quota, admission</p>
-          </div>
-          <div class="arch-node arch-node--conversation">
-            <span>Conversation API</span>
-            <strong>turn state</strong>
-            <p>message write, retry token, cancel</p>
-          </div>
-          <div class="arch-node arch-node--context">
-            <span>Context Builder</span>
-            <strong>history / files / memory</strong>
-            <p>token budget, ACL, citations</p>
-          </div>
-          <div class="arch-node arch-node--safety">
-            <span>Safety / Policy</span>
-            <strong>moderation / tool gates</strong>
-            <p>fail closed, tenant policy</p>
-          </div>
-          <div class="arch-node arch-node--router">
-            <span>Model Router</span>
-            <strong>model / pool / flags</strong>
-            <p>load shedding, fallback, health</p>
-          </div>
-          <div class="arch-node arch-node--gpu">
-            <span>GPU Serving</span>
-            <strong>prefill / decode / KV</strong>
-            <p>queue, batching, scheduler</p>
-          </div>
-          <div class="arch-node arch-node--stream">
-            <span>Stream Relay</span>
-            <strong>SSE / WebSocket</strong>
-            <p>seq, backpressure, resume</p>
-          </div>
-
-          <div class="arch-band-title arch-band-title--side">Side planes: invoked by the online path, but scaled and failed independently</div>
-          <div class="arch-plane arch-plane--storage">
-            <span>Durable data plane</span>
-            <strong>Conversation Store / Object Store / Artifact Store / Vector Index / Usage Ledger</strong>
-            <p>online path writes events; async consumers build indexes, billing and replay state.</p>
-          </div>
-          <div class="arch-plane arch-plane--knowledge">
-            <span>Knowledge plane</span>
-            <strong>Files / RAG / Connector Sync / Search / Deep Research</strong>
-            <p>freshness, source ACL, citations and long-running research jobs.</p>
-          </div>
-          <div class="arch-plane arch-plane--runtime">
-            <span>Tool & Agent runtime</span>
-            <strong>Agent Planner / Tool Orchestrator / Code / Browser / App Actions</strong>
-            <p>confirm gates, sandbox limits, checkpoint and audit per tool call.</p>
-          </div>
-          <div class="arch-plane arch-plane--async">
-            <span>Async plane</span>
-            <strong>Scheduler / Job Queue / Workers / Tasks / Pulse / Notifications</strong>
-            <p>deadlines, retries, dedupe, notification fanout and offline continuation.</p>
-          </div>
-          <div class="arch-plane arch-plane--ops">
-            <span>Control & HA plane</span>
-            <strong>Config / Policy / Evals / Observability / Billing / Audit / Multi-region Failover</strong>
-            <p>cell health, kill switch, rollback, SLO burn, cost guardrails and regional failover.</p>
-          </div>
-          <svg class="architecture-board__lines" viewBox="0 0 1200 620" aria-hidden="true">
-            <defs>
-              <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6f9f" />
-              </marker>
-              <marker id="arch-side-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a66a1f" />
-              </marker>
-              <marker id="arch-ops-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#4d8f6a" />
-              </marker>
-            </defs>
-            <path class="arch-line arch-line--main" d="M122 145 H166" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--main" d="M272 145 H316" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--main" d="M422 145 H466" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--main" d="M572 145 H616" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--main" d="M722 145 H766" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--main" d="M872 145 H916" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--main" d="M1022 145 H1066" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--return" d="M1125 206 C1125 258 75 258 75 206" marker-end="url(#arch-arrow)" />
-            <path class="arch-line arch-line--side" d="M375 206 C320 248 270 278 225 318" marker-end="url(#arch-side-arrow)" />
-            <path class="arch-line arch-line--side" d="M525 206 C502 254 430 282 375 318" marker-end="url(#arch-side-arrow)" />
-            <path class="arch-line arch-line--side" d="M825 206 C820 250 820 282 825 318" marker-end="url(#arch-side-arrow)" />
-            <path class="arch-line arch-line--side" d="M975 206 C1016 252 1048 282 1050 318" marker-end="url(#arch-side-arrow)" />
-            <path class="arch-line arch-line--side arch-line--back" d="M825 410 C780 452 645 458 525 410" marker-end="url(#arch-side-arrow)" />
-            <path class="arch-line arch-line--ops" d="M225 548 V466" marker-end="url(#arch-ops-arrow)" />
-            <path class="arch-line arch-line--ops" d="M825 548 V466" marker-end="url(#arch-ops-arrow)" />
-            <path class="arch-line arch-line--ops" d="M975 548 V206" marker-end="url(#arch-ops-arrow)" />
-            <path class="arch-line arch-line--ops" d="M225 548 V206" marker-end="url(#arch-ops-arrow)" />
-          </svg>
-        </div>
+        <figure class="wc-article-figure design-inline-figure" aria-label="ChatGPT 端到端架构手绘图">
+          <img src={assetUrl(base, "design/assets/chatgpt-end-to-end-architecture.png")} alt="ChatGPT 端到端架构手绘图：在线请求路径和数据、知识、工具、异步、控制侧平面" loading="lazy" decoding="async" />
+          <figcaption>主链路服务延迟敏感请求；数据、知识、工具、异步和控制平面被拆开扩缩容、失败和审计。</figcaption>
+        </figure>
         <div class="source-links source-links--compact" aria-label="总架构章节引用来源">
           {architectureCitations.map((link) => (
             <a href={link.href} target="_blank" rel="noreferrer">
@@ -8916,74 +8735,10 @@ const sourceGroups: SourceGroup[] = [
           {flowSteps.map((card) => <DesignInfoCard card={card} />)}
         </div>
 
-        <div class="stream-visual" aria-label="流式输出时序">
-          <div class="stream-visual__title">
-            Durable stream path: every user-visible delta is committed before it is flushed.
-          </div>
-          <div class="stream-step stream-step--accept">
-            <b>1</b>
-            <span>Accept</span>
-            <strong>create response_id</strong>
-            <p>auth, quota, idempotency_key and CREATED event commit before 202.</p>
-          </div>
-          <div class="stream-step stream-step--context">
-            <b>2</b>
-            <span>Build context</span>
-            <strong>history + files + tools</strong>
-            <p>token budget, ACL, policy snapshot and trace_id are frozen for the run.</p>
-          </div>
-          <div class="stream-step stream-step--infer">
-            <b>3</b>
-            <span>Inference</span>
-            <strong>prefill -> decode</strong>
-            <p>GPU queue, KV cache and cancel token define TTFT and TPOT.</p>
-          </div>
-          <div class="stream-step stream-step--delta">
-            <b>4</b>
-            <span>Stream delta</span>
-            <strong>seq + delta + heartbeat</strong>
-            <p>relay flushes SSE/WebSocket events only after durable event append.</p>
-          </div>
-          <div class="stream-step stream-step--done">
-            <b>5</b>
-            <span>Finalize</span>
-            <strong>done / cancel / failed</strong>
-            <p>final usage, finish_reason and canonical assistant message are materialized.</p>
-          </div>
-
-          <div class="stream-branch stream-branch--resume">
-            <span>Retry / resume</span>
-            <strong>Last-Event-ID + response_id + seq cursor</strong>
-            <p>replay committed events; reject gaps and duplicate finalization.</p>
-          </div>
-          <div class="stream-branch stream-branch--pressure">
-            <span>Backpressure</span>
-            <strong>client slow -> relay buffer -> scheduler signal</strong>
-            <p>pause, shrink batch, shed new work or close stream with resumable state.</p>
-          </div>
-          <div class="stream-branch stream-branch--ledger">
-            <span>Ledger & observability</span>
-            <strong>usage_delta, final_usage, spans, audit</strong>
-            <p>partial failure is visible through stream gap, outbox lag and missing final event.</p>
-          </div>
-          <svg class="stream-visual__lines" viewBox="0 0 1200 420" aria-hidden="true">
-            <defs>
-              <marker id="stream-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6f9f" />
-              </marker>
-              <marker id="stream-side-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a66a1f" />
-              </marker>
-            </defs>
-            <path class="stream-line stream-line--main" d="M185 140 H252" marker-end="url(#stream-arrow)" />
-            <path class="stream-line stream-line--main" d="M425 140 H492" marker-end="url(#stream-arrow)" />
-            <path class="stream-line stream-line--main" d="M665 140 H732" marker-end="url(#stream-arrow)" />
-            <path class="stream-line stream-line--main" d="M905 140 H972" marker-end="url(#stream-arrow)" />
-            <path class="stream-line stream-line--side" d="M305 205 C250 240 210 265 185 300" marker-end="url(#stream-side-arrow)" />
-            <path class="stream-line stream-line--side" d="M785 205 C692 242 610 270 600 300" marker-end="url(#stream-side-arrow)" />
-            <path class="stream-line stream-line--side" d="M1025 205 C1015 248 1012 278 1015 300" marker-end="url(#stream-side-arrow)" />
-          </svg>
-        </div>
+        <figure class="wc-article-figure design-inline-figure" aria-label="流式输出持久化手绘图">
+          <img src={assetUrl(base, "design/assets/durable-stream-path.png")} alt="流式输出持久化手绘图：Accept、Context、Inference、Delta、Finalize 和 commit before flush" loading="lazy" decoding="async" />
+          <figcaption>用户已经看到的 delta 必须先落入 durable event；resume、backpressure 和 usage 都围绕同一条事件账本工作。</figcaption>
+        </figure>
         <div class="section-formula" aria-label="流式事件持久化不变量">
           <span>Visible stream invariant</span>
           <div set:html={requestDurabilityFormula} />
@@ -9319,73 +9074,10 @@ const sourceGroups: SourceGroup[] = [
           用户会刷新页面、取消生成、重试请求、上传文件、让 Agent 执行外部动作、要求企业审计和删除传播。正确抽象是：
           API 接受意图，数据库保存可恢复业务状态，运行时执行昂贵推理/工具，事件流把计费、审计、索引、通知和评估异步扇出。
         </p>
-        <div class="api-layer-map" aria-label="API 存储事件流分层图">
-          <div class="api-layer-map__title">Synchronous request creates durable truth; streams and consumers replay from events.</div>
-          <div class="api-flow-node api-flow-node--request">
-            <b>1</b>
-            <span>API request</span>
-            <strong>validate + admit</strong>
-            <small>auth, tenant, quota, rate limit, retry_after, idempotency_key</small>
-          </div>
-          <div class="api-flow-node api-flow-node--commit">
-            <b>2</b>
-            <span>Transactional commit</span>
-            <strong>message + response + event + outbox + ledger</strong>
-            <small>response.created / in_progress, seq=0, tombstone and cancel markers</small>
-          </div>
-          <div class="api-flow-node api-flow-node--runtime">
-            <b>3</b>
-            <span>Runtime</span>
-            <strong>GPU / tools / jobs</strong>
-            <small>append output delta, tool state, completed, failed, cancelled</small>
-          </div>
-          <div class="api-flow-node api-flow-node--client">
-            <b>4a</b>
-            <span>Client stream</span>
-            <strong>response.output_delta</strong>
-            <small>SSE/WebSocket, response_id, seq, resume from Last-Event-ID</small>
-          </div>
-          <div class="api-flow-node api-flow-node--bus">
-            <b>4b</b>
-            <span>Internal event stream</span>
-            <strong>outbox -> bus</strong>
-            <small>ordered replay, retry, DLQ, dedupe, backfill from sequence</small>
-          </div>
-          <div class="api-consumer api-consumer--billing">
-            <span>Billing</span>
-            <strong>usage_delta / final_usage</strong>
-          </div>
-          <div class="api-consumer api-consumer--audit">
-            <span>Audit</span>
-            <strong>policy, tool receipt, admin logs</strong>
-          </div>
-          <div class="api-consumer api-consumer--index">
-            <span>Indexing</span>
-            <strong>search, vector, artifact views</strong>
-          </div>
-          <div class="api-consumer api-consumer--evals">
-            <span>Evals / analytics</span>
-            <strong>quality, SLO, incident replay</strong>
-          </div>
-          <svg class="api-layer-map__lines" viewBox="0 0 1200 520" aria-hidden="true">
-            <defs>
-              <marker id="api-sync-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6f9f" />
-              </marker>
-              <marker id="api-async-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a66a1f" />
-              </marker>
-            </defs>
-            <path class="api-line api-line--sync" d="M250 145 H325" marker-end="url(#api-sync-arrow)" />
-            <path class="api-line api-line--sync" d="M625 145 H700" marker-end="url(#api-sync-arrow)" />
-            <path class="api-line api-line--sync" d="M925 205 V277" marker-end="url(#api-sync-arrow)" />
-            <path class="api-line api-line--async" d="M625 205 V277" marker-end="url(#api-async-arrow)" />
-            <path class="api-line api-line--async" d="M625 374 V428 H170" marker-end="url(#api-async-arrow)" />
-            <path class="api-line api-line--async" d="M625 374 V428 H438" marker-end="url(#api-async-arrow)" />
-            <path class="api-line api-line--async" d="M625 374 V428 H705" marker-end="url(#api-async-arrow)" />
-            <path class="api-line api-line--async" d="M625 374 V428 H972" marker-end="url(#api-async-arrow)" />
-          </svg>
-        </div>
+        <figure class="wc-article-figure design-inline-figure" aria-label="API 存储事件流手绘图">
+          <img src={assetUrl(base, "design/assets/api-storage-event-stream.png")} alt="API 存储和事件流手绘图：API、Commit、Runtime、Client stream、Event stream、Billing、Audit、Index 和 Evals" loading="lazy" decoding="async" />
+          <figcaption>同步 API 先创建可恢复真源，昂贵运行时和异步消费者再从 truth log 读取事实。</figcaption>
+        </figure>
         <div class="section-formula" aria-label="API 存储可靠性公式">
           <span>第 7 章的核心不变量：先有可恢复状态，再让昂贵运行时和异步消费者工作。</span>
           <div set:html={apiStorageFormula} />
@@ -9591,66 +9283,10 @@ const sourceGroups: SourceGroup[] = [
           第一原则很简单：模型只能看到上下文窗口里的东西，但系统不能因为窗口有限就丢掉权限边界，也不能因为有记忆就把历史当数据库。
           所以 Context Builder 更像一个编译器：把很多候选来源编译成一个有优先级、有引用、有版本、有预算的 model input。
         </p>
-        <div class="context-builder-map" aria-label="Context Builder 编译链路图">
-          <div class="context-map__title">Context Builder compiles allowed evidence into a bounded, cited model input pack.</div>
-          <div class="context-source context-source--history">
-            <span>Conversation history</span>
-            <strong>recent turns / summaries</strong>
-          </div>
-          <div class="context-source context-source--memory">
-            <span>Memory</span>
-            <strong>user prefs / project memory</strong>
-          </div>
-          <div class="context-source context-source--rag">
-            <span>Files + RAG + Search</span>
-            <strong>chunks / freshness / citations</strong>
-          </div>
-          <div class="context-source context-source--tool">
-            <span>Tool state</span>
-            <strong>receipts / artifacts / checkpoints</strong>
-          </div>
-          <div class="context-stage context-stage--gate">
-            <b>1</b>
-            <span>ACL + policy gate</span>
-            <strong>per-source auth, tombstone, freshness</strong>
-            <p>block deleted data, cross-tenant leaks and untrusted tool text.</p>
-          </div>
-          <div class="context-stage context-stage--rank">
-            <b>2</b>
-            <span>Rank + truncate</span>
-            <strong>relevance, authority, recency, diversity</strong>
-            <p>cache candidates, defend prompt injection, keep explainable drops.</p>
-          </div>
-          <div class="context-stage context-stage--budget">
-            <b>3</b>
-            <span>Token budget allocator</span>
-            <strong>reserve output, allocate source blocks</strong>
-            <p>compress long logs, pin instructions, cap low-value evidence.</p>
-          </div>
-          <div class="context-output">
-            <span>Final model input pack</span>
-            <strong>system + task + history + evidence + tool state</strong>
-            <p>provenance ids, citation anchors, snapshot version and replay/audit hash.</p>
-          </div>
-          <svg class="context-map__lines" viewBox="0 0 1200 520" aria-hidden="true">
-            <defs>
-              <marker id="context-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7056a8" />
-              </marker>
-              <marker id="context-warn-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#b05268" />
-              </marker>
-            </defs>
-            <path class="context-line context-line--source" d="M245 125 C305 125 320 242 380 242" marker-end="url(#context-arrow)" />
-            <path class="context-line context-line--source" d="M245 215 C300 215 320 242 380 242" marker-end="url(#context-arrow)" />
-            <path class="context-line context-line--source" d="M245 305 C300 305 320 242 380 242" marker-end="url(#context-arrow)" />
-            <path class="context-line context-line--source" d="M245 395 C305 395 320 242 380 242" marker-end="url(#context-arrow)" />
-            <path class="context-line context-line--main" d="M520 242 H592" marker-end="url(#context-arrow)" />
-            <path class="context-line context-line--main" d="M732 242 H804" marker-end="url(#context-arrow)" />
-            <path class="context-line context-line--main" d="M944 242 H1016" marker-end="url(#context-arrow)" />
-            <path class="context-line context-line--warn" d="M455 314 C450 372 515 405 600 405" marker-end="url(#context-warn-arrow)" />
-          </svg>
-        </div>
+        <figure class="wc-article-figure design-inline-figure" aria-label="Context Builder 装箱手绘图">
+          <img src={assetUrl(base, "design/assets/context-builder-packing.png")} alt="Context Builder 装箱手绘图：Files、History、Memory、Tools、Policy、ACL filter、Rank、Budget、Trim 和 Prompt" loading="lazy" decoding="async" />
+          <figcaption>Context Builder 的工作是做有权限的装箱：先过滤，再排序，再按 token 预算裁剪，最后才形成 prompt bundle。</figcaption>
+        </figure>
         <div class="section-formula" aria-label="Context Builder 装箱公式">
           <span>只把允许、未删除、可解释的来源装进输入预算；输出预算必须提前预留。</span>
           <div set:html={contextBuilderFormula} />
@@ -9951,79 +9587,10 @@ const sourceGroups: SourceGroup[] = [
             </tbody>
           </table>
         </div>
-        <div class="inference-flow" aria-label="GPU serving 请求调度流程">
-          <div class="inference-flow__band inference-flow__band--control">Control / Admission</div>
-          <div class="inference-flow__band inference-flow__band--gpu">GPU Path</div>
-          <div class="inference-flow__band inference-flow__band--cleanup">Cleanup / Release</div>
-          <div class="inference-step inference-step--admission">
-            <span>Admission</span>
-            <strong>quota / deadline</strong>
-            <small>reject, downgrade or enqueue</small>
-          </div>
-          <div class="inference-step inference-step--router">
-            <span>Model router</span>
-            <strong>quality / region / cost</strong>
-            <small>choose model pool and version</small>
-          </div>
-          <div class="inference-step inference-step--queue">
-            <span>Per-model queue</span>
-            <strong>tenant fair share</strong>
-            <small>deadline and priority order</small>
-          </div>
-          <div class="inference-step inference-step--scheduler">
-            <span>Scheduler</span>
-            <strong>max seqs / tokens / free KV</strong>
-            <small>forms the next batch</small>
-          </div>
-          <div class="inference-step inference-step--prefill">
-            <span>Prefill</span>
-            <strong>process prompt, build KV</strong>
-            <small>chunked prefill, prefix cache</small>
-          </div>
-          <div class="inference-step inference-step--decode">
-            <span>Decode</span>
-            <strong>generate token by token</strong>
-            <small>continuous batching</small>
-          </div>
-          <div class="inference-step inference-step--stream">
-            <span>Stream</span>
-            <strong>SSE/WebSocket deltas</strong>
-            <small>seq cursor and reconnect</small>
-          </div>
-          <div class="inference-step inference-step--release">
-            <span>KV release</span>
-            <strong>free KV blocks / release GPU memory</strong>
-            <small>next requests can reuse HBM</small>
-          </div>
-          <div class="inference-side inference-side--cancel">
-            <span>Side path: cancel</span>
-            <strong>stop ack -> release KV -> final event</strong>
-          </div>
-          <div class="inference-side inference-side--reconnect">
-            <span>Side path: reconnect</span>
-            <strong>resume stream by response_id + seq cursor</strong>
-          </div>
-          <svg class="inference-flow__lines" viewBox="0 0 1200 520" aria-hidden="true">
-            <defs>
-              <marker id="inference-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6f9f" />
-              </marker>
-              <marker id="inference-side-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a66a1f" />
-              </marker>
-            </defs>
-            <path class="inference-line inference-line--main" d="M134 165 H166" marker-end="url(#inference-arrow)" />
-            <path class="inference-line inference-line--main" d="M284 165 H316" marker-end="url(#inference-arrow)" />
-            <path class="inference-line inference-line--main" d="M434 165 H466" marker-end="url(#inference-arrow)" />
-            <path class="inference-line inference-line--main" d="M584 165 H616" marker-end="url(#inference-arrow)" />
-            <path class="inference-line inference-line--main" d="M734 165 H766" marker-end="url(#inference-arrow)" />
-            <path class="inference-line inference-line--main" d="M884 165 H916" marker-end="url(#inference-arrow)" />
-            <path class="inference-line inference-line--main" d="M1034 165 H1066" marker-end="url(#inference-arrow)" />
-            <path class="inference-line inference-line--side" d="M975 222 V318" marker-end="url(#inference-side-arrow)" />
-            <path class="inference-line inference-line--side" d="M825 222 C825 285 858 310 910 330" marker-end="url(#inference-side-arrow)" />
-            <path class="inference-line inference-line--side" d="M910 388 C1000 405 1115 300 1118 222" marker-end="url(#inference-side-arrow)" />
-          </svg>
-        </div>
+        <figure class="wc-article-figure design-inline-figure" aria-label="LLM 推理 serving 手绘图">
+          <img src={assetUrl(base, "design/assets/llm-inference-serving.png")} alt="LLM 推理服务手绘图：Queue、Prefill、KV cache、Decode、Scheduler、Stream、Batch、Cancel、Fallback 和 Metrics" loading="lazy" decoding="async" />
+          <figcaption>推理设计的核心是把 prefill、KV cache、decode、scheduler 和 stream 看成同一个延迟与吞吐权衡系统。</figcaption>
+        </figure>
         <p>
           高质量答案要把产品入口和 serving 入口连起来：不是所有请求都走一个 GPU 队列。前台聊天、Realtime、Agent、Deep research
           的交互方式、可重试性和容量指标完全不同，调度层必须先识别 surface，再选择模型池、工具池和降级策略。
@@ -10115,58 +9682,6 @@ const sourceGroups: SourceGroup[] = [
               ))}
             </tbody>
           </table>
-        </div>
-        <div class="gpu-visual" aria-label="GPU token 调度图">
-          <div class="gpu-visual__title">Inside one GPU worker: queue pressure becomes batch, KV and HBM pressure.</div>
-          <div class="gpu-panel gpu-panel--queue">
-            <span>Incoming queue</span>
-            <strong>queue depth / batch wait</strong>
-            <small>long prompt, short chat, code, RAG; deadline and tenant fair share decide order.</small>
-          </div>
-          <div class="gpu-panel gpu-panel--scheduler">
-            <span>Batch builder</span>
-            <strong>max_num_seqs + max_num_batched_tokens + free KV blocks</strong>
-            <small>reject or delay when KV watermark, deadline, or token cap is hit.</small>
-          </div>
-          <div class="gpu-panel gpu-panel--prefill">
-            <span>Chunked prefill</span>
-            <strong>process prompt, use prefix cache</strong>
-            <small>large input affects TTFT and allocates initial KV pages.</small>
-          </div>
-          <div class="gpu-panel gpu-panel--decode">
-            <span>Decode loop</span>
-            <strong>continuous batching, token by token</strong>
-            <small>TPOT depends on HBM bandwidth, active seqs and sampling work.</small>
-          </div>
-          <div class="gpu-panel gpu-panel--kv">
-            <span>KV page allocator / HBM</span>
-            <strong>used blocks 72% | free blocks 28%</strong>
-            <div class="gpu-hbm-bar" aria-hidden="true">
-              <i></i><i></i><i></i><i></i><i></i><i class="gpu-hbm-bar__free"></i><i class="gpu-hbm-bar__free"></i>
-            </div>
-            <small>prefix cache helps prefill; eviction/OOM/backpressure protect the pool.</small>
-          </div>
-          <div class="gpu-panel gpu-panel--metrics">
-            <span>Metrics & guardrails</span>
-            <strong>TTFT / TPOT / tokens/s/GPU / utilization / OOM</strong>
-            <small>alert on queue depth, KV eviction, HBM watermark, low throughput and deadline miss.</small>
-          </div>
-          <svg class="gpu-visual__lines" viewBox="0 0 1200 560" aria-hidden="true">
-            <defs>
-              <marker id="gpu-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a84f63" />
-              </marker>
-              <marker id="gpu-side-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a66a1f" />
-              </marker>
-            </defs>
-            <path class="gpu-line gpu-line--main" d="M238 195 H334" marker-end="url(#gpu-arrow)" />
-            <path class="gpu-line gpu-line--main" d="M548 195 H642" marker-end="url(#gpu-arrow)" />
-            <path class="gpu-line gpu-line--main" d="M858 195 H954" marker-end="url(#gpu-arrow)" />
-            <path class="gpu-line gpu-line--side" d="M490 274 C500 330 528 374 595 405" marker-end="url(#gpu-side-arrow)" />
-            <path class="gpu-line gpu-line--side" d="M745 274 V380" marker-end="url(#gpu-side-arrow)" />
-            <path class="gpu-line gpu-line--side" d="M1010 274 C1000 342 952 388 892 405" marker-end="url(#gpu-side-arrow)" />
-          </svg>
         </div>
         <div class="design-table-wrap" aria-label="推理容量估算示例">
           <table class="design-table">
@@ -10260,62 +9775,10 @@ const sourceGroups: SourceGroup[] = [
           外部文档、网页、邮件、PDF、连接器结果、代码执行输出都只是 evidence，不是 instruction；即使它们写着“忽略前面的规则”，也没有指令权。
           对初学者来说，RAG 就是“先检索用户有权看的资料，再让模型基于这些资料回答并给出处”；工具调用则是“模型提出候选动作，平台用规则和状态机决定是否执行”。
         </p>
-        <div class="rag-lanes" aria-label="RAG 和工具三条链路">
-          <div class="rag-node rag-node--query">
-            <span>User query</span>
-            <strong>task, tenant, surface</strong>
-          </div>
-          <div class="rag-node rag-node--planner">
-            <span>Query planner</span>
-            <strong>evidence needed? action needed?</strong>
-          </div>
-          <div class="rag-lane rag-lane--offline">
-            <span>Indexing lane</span>
-            <strong>connector sync -> parse/OCR/chunk -> embed -> shadow index</strong>
-            <small>freshness cursor, source-level ACL, versioned index, cache warming.</small>
-          </div>
-          <div class="rag-lane rag-lane--online">
-            <span>Evidence lane: RAG/Search/Files</span>
-            <strong>hybrid retrieval -> rerank -> citations</strong>
-            <small>gets allowed evidence into context; no side effects.</small>
-          </div>
-          <div class="rag-lane rag-lane--action">
-            <span>Action lane: Tools / APIs</span>
-            <strong>schema -> permission -> confirm -> executor</strong>
-            <small>executes or fetches live state; idempotent receipt and audit required.</small>
-          </div>
-          <div class="rag-guard">
-            <span>Governance boundary</span>
-            <strong>ACL, freshness, prompt-injection defense, cache, latency fallback</strong>
-            <small>external content is evidence, never instruction; unsafe actions require approval.</small>
-          </div>
-          <div class="rag-node rag-node--pack">
-            <span>Context packer</span>
-            <strong>citations + tool receipts + source policy</strong>
-          </div>
-          <div class="rag-node rag-node--response">
-            <span>Model / tool response</span>
-            <strong>answer with citations or action result</strong>
-          </div>
-          <svg class="rag-lanes__lines" viewBox="0 0 1200 620" aria-hidden="true">
-            <defs>
-              <marker id="rag-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6f9f" />
-              </marker>
-              <marker id="rag-side-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#a66a1f" />
-              </marker>
-            </defs>
-            <path class="rag-line rag-line--main" d="M160 110 H255" marker-end="url(#rag-arrow)" />
-            <path class="rag-line rag-line--main" d="M422 110 H515 V230" marker-end="url(#rag-arrow)" />
-            <path class="rag-line rag-line--main" d="M422 110 H515 V360" marker-end="url(#rag-arrow)" />
-            <path class="rag-line rag-line--main" d="M422 110 H515 V490" marker-end="url(#rag-arrow)" />
-            <path class="rag-line rag-line--side" d="M780 230 H878 V360" marker-end="url(#rag-side-arrow)" />
-            <path class="rag-line rag-line--side" d="M780 360 H878" marker-end="url(#rag-side-arrow)" />
-            <path class="rag-line rag-line--side" d="M780 490 H878 V360" marker-end="url(#rag-side-arrow)" />
-            <path class="rag-line rag-line--main" d="M1050 360 H1095" marker-end="url(#rag-arrow)" />
-          </svg>
-        </div>
+        <figure class="wc-article-figure design-inline-figure" aria-label="RAG 和工具链路手绘图">
+          <img src={assetUrl(base, "design/assets/rag-tool-lanes.png")} alt="RAG 和工具三条链路手绘图：Knowledge search、Connector、Tool action、ACL、Retrieve、Execute、Citation、Receipt 和 Answer" loading="lazy" decoding="async" />
+          <figcaption>RAG、connector 和 tool action 都要经过 policy 与 ACL；区别在于返回 citation、receipt 还是可审计动作结果。</figcaption>
+        </figure>
         <div class="design-table-wrap" aria-label="ChatGPT 产品入口到 RAG 工具后端语义">
           <table class="design-table design-table--wide">
             <thead>
@@ -10370,67 +9833,10 @@ const sourceGroups: SourceGroup[] = [
             </tbody>
           </table>
         </div>
-        <div class="tool-state-flow tool-state-machine" aria-label="工具调用状态机">
-          <div class="tool-state-node tool-state-node--proposed">
-            <span>Proposed</span>
-            <strong>model suggests tool + args</strong>
-            <small>idempotency key, trace_id</small>
-          </div>
-          <div class="tool-state-node tool-state-node--validated">
-            <span>Validated</span>
-            <strong>schema + permission check</strong>
-            <small>fail closed on policy miss</small>
-          </div>
-          <div class="tool-state-node tool-state-node--approved">
-            <span>Approved</span>
-            <strong>user confirmation if risky</strong>
-            <small>preview external side effect</small>
-          </div>
-          <div class="tool-state-node tool-state-node--running">
-            <span>Running</span>
-            <strong>lease + timeout + retry</strong>
-            <small>worker attempt is resumable</small>
-          </div>
-          <div class="tool-state-node tool-state-node--result">
-            <span>Result</span>
-            <strong>side effect receipt</strong>
-            <small>sanitize output as evidence</small>
-          </div>
-          <div class="tool-state-node tool-state-node--reconciled">
-            <span>Reconciled</span>
-            <strong>audit trail + final state</strong>
-            <small>dedupe repeated delivery</small>
-          </div>
-          <div class="tool-state-node tool-state-node--failed">
-            <span>Failed / timed out</span>
-            <strong>retry, fail closed, notify user</strong>
-            <small>no silent external action</small>
-          </div>
-          <div class="tool-state-node tool-state-node--compensating">
-            <span>Compensating</span>
-            <strong>rollback or manual review</strong>
-            <small>only when receipt proves side effect</small>
-          </div>
-          <svg class="tool-state-machine__lines" viewBox="0 0 1200 500" aria-hidden="true">
-            <defs>
-              <marker id="tool-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7056a8" />
-              </marker>
-              <marker id="tool-fail-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#b05268" />
-              </marker>
-            </defs>
-            <path class="tool-state-line tool-state-line--main" d="M165 145 H222" marker-end="url(#tool-arrow)" />
-            <path class="tool-state-line tool-state-line--main" d="M365 145 H422" marker-end="url(#tool-arrow)" />
-            <path class="tool-state-line tool-state-line--main" d="M565 145 H622" marker-end="url(#tool-arrow)" />
-            <path class="tool-state-line tool-state-line--main" d="M765 145 H822" marker-end="url(#tool-arrow)" />
-            <path class="tool-state-line tool-state-line--main" d="M965 145 H1022" marker-end="url(#tool-arrow)" />
-            <path class="tool-state-line tool-state-line--fail" d="M335 207 C335 270 472 300 595 330" marker-end="url(#tool-fail-arrow)" />
-            <path class="tool-state-line tool-state-line--fail" d="M725 207 C725 270 660 300 595 330" marker-end="url(#tool-fail-arrow)" />
-            <path class="tool-state-line tool-state-line--fail" d="M940 207 C940 274 875 310 795 330" marker-end="url(#tool-fail-arrow)" />
-            <path class="tool-state-line tool-state-line--fail" d="M682 390 H720" marker-end="url(#tool-fail-arrow)" />
-          </svg>
-        </div>
+        <figure class="wc-article-figure design-inline-figure" aria-label="工具调用状态机手绘图">
+          <img src={assetUrl(base, "design/assets/tool-call-state-machine.png")} alt="工具调用状态机手绘图：Proposed、Validated、Approved、Running、Observed、Recorded、Rejected、Failed 和 Cancelled" loading="lazy" decoding="async" />
+          <figcaption>工具调用要有显式状态机：提出、校验、批准、运行、观察、记录；拒绝、失败和取消都必须有可审计出口。</figcaption>
+        </figure>
         <div class="design-table-wrap" aria-label="工具调用状态分支">
           <table class="design-table">
             <thead>
@@ -13084,6 +12490,28 @@ const sourceGroups: SourceGroup[] = [
     margin: -1rem 0 3rem;
   }
 
+  .design-reading-contract {
+    border: 1px solid rgb(200 95 63 / 20%);
+    border-radius: 0.5rem;
+    background: rgb(255 250 239 / 72%);
+    padding: 1rem 1.15rem;
+    margin: 1.2rem 0 2rem;
+  }
+
+  .design-reading-contract strong {
+    display: block;
+    color: var(--color-charcoal);
+    font-size: 0.92rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .design-reading-contract p {
+    margin: 0;
+    color: var(--color-secondary);
+    font-size: 0.96rem;
+    line-height: 1.75;
+  }
+
   .design-answer-contract article {
     min-width: 0;
     border: 1px solid var(--color-border);
@@ -13897,6 +13325,28 @@ const sourceGroups: SourceGroup[] = [
       radial-gradient(circle at 20% 12%, rgb(47 111 159 / 10%), transparent 28%),
       radial-gradient(circle at 86% 58%, rgb(112 86 168 / 10%), transparent 30%);
     box-shadow: 0 18px 50px rgb(20 20 19 / 8%);
+  }
+
+  .design-hero__visual.design-hero__figure {
+    display: block;
+    min-height: 0;
+    margin: 0;
+    background: #fffaf0;
+    padding: 0.65rem;
+  }
+
+  .design-hero__figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.35rem;
+  }
+
+  .design-hero__figure figcaption {
+    margin: 0.68rem 0.15rem 0.05rem;
+    color: var(--color-muted);
+    font-size: 0.86rem;
+    line-height: 1.55;
   }
 
   .hero-map-lines {
@@ -18929,6 +18379,52 @@ const sourceGroups: SourceGroup[] = [
   }
 
   :global(html.dark) .formula-stack > div {
+    border-color: #333;
+  }
+
+  .design-hero__figure {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .design-hero__figure img,
+  .design-inline-figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .design-hero__figure img {
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: #fffaf0;
+    box-shadow: 0 1px 2px rgb(36 27 8 / 4%), 0 16px 44px rgb(36 27 8 / 9%);
+  }
+
+  .design-hero__figure figcaption {
+    margin-top: 0.75rem;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+
+  .design-inline-figure {
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  :global(html.dark) .design-hero__figure {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  :global(html.dark) .design-hero__figure img {
     border-color: #333;
   }
 
