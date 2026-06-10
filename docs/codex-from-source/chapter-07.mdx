@@ -1,6 +1,4 @@
 import StreamingProviderLanes from "../../src/components/visual/StreamingProviderLanes.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { providerStack, transportConvergence, backendTaskSeparation } from "../../src/data/diagrams/codex-from-source/chapter-07";
 
 # Chapter 7: Model Providers, Streaming, and Backend Tasks
 
@@ -25,8 +23,6 @@ Chapter 6 followed a turn until it needed to sample the model. This chapter open
 
 The provider path is easiest to understand as five layers plus specialized integrations.
 
-<DiagramFlow spec={providerStack} lang="en" client:visible />
-
 The transport layer owns HTTP details: request bodies, headers, compression, retry policy, idle timeouts, custom certificates, stream framing, and telemetry hooks. The typed API layer owns endpoint shapes: Responses, compaction, model listing, file upload, memory summarization, realtime setup, and WebSocket sessions. The provider runtime owns account state, auth resolution, capabilities, model-manager selection, and provider-specific behavior. The model catalog owns what models are available and which defaults are suitable.
 
 The turn loop should not know how to sign an AWS request, parse SSE bytes, or merge a remote model overlay. It should receive a typed stream of response events and enough metadata to make runtime decisions.
@@ -44,8 +40,6 @@ This split is a governance choice. A configuration file can describe a provider,
 ## One Event Vocabulary, Multiple Transports
 
 The Responses path can travel over HTTP streaming or over a Responses WebSocket. Those transports have different mechanics, but they converge on the same runtime event vocabulary before returning to the turn loop.
-
-<DiagramFlow spec={transportConvergence} lang="en" client:visible />
 
 The WebSocket path can reuse session state and reduce per-turn setup cost. The HTTP path remains necessary for providers that do not support WebSockets, for fallback after connection failures, and for auth modes that cannot sign a WebSocket upgrade. The runtime can retry transient stream failures, refresh auth where appropriate, and fall back from WebSocket to HTTP-style streaming without changing the rest of the turn loop.
 
@@ -126,8 +120,6 @@ Realtime is related but not identical to normal inference. It has a media plane 
 ## Backend Tasks Are Not Inference
 
 The backend client speaks task, usage, requirements, rate-limit, and cloud workflow APIs. It can list tasks, fetch task details, create task attempts, read backend-managed requirements, and retrieve diffs or sibling turns. Those APIs may share auth and base URL concerns with model providers, but they are not the Responses stream.
-
-<DiagramFlow spec={backendTaskSeparation} lang="en" client:visible />
 
 Keeping backend tasks separate prevents a common architecture error: treating cloud workflow state as another model transport. A cloud task has lifecycle, environment, attempts, diffs, and apply semantics. A model stream has response events. They may meet in product flows, but they should not share the same runtime abstraction.
 

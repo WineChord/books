@@ -1,6 +1,4 @@
 import ContainmentBoundaryExplorer from "../../../src/components/visual/ContainmentBoundaryExplorer.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { policyTransformEnforcement } from "../../../src/data/diagrams/codex-from-source/chapter-13";
 
 # 第 13 章：Sandboxes、网络策略与平台边界
 
@@ -18,8 +16,6 @@ import { policyTransformEnforcement } from "../../../src/data/diagrams/codex-fro
 Sandbox 架构有三个阶段。第一，Codex 把 permission profile 解析成 filesystem policy 和 network policy。第二，sandbox manager 判断当前工具是否需要 platform sandbox，并在需要时改写 command。第三，platform helper 按该操作系统能表达的方式执行改写后的 command。
 
 ## Policy、Transform、Enforcement
-
-<DiagramFlow spec={policyTransformEnforcement} lang="zh" client:visible />
 
 这不是一个 sandbox，而是一个 policy compiler 加多个 enforcement backends。Compiler 是跨平台的；enforcement 是平台相关的。因此，同一个 permission profile 在不同操作系统上可能产生不同 command、warning 或 refusal。
 

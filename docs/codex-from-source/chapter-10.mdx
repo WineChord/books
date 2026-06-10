@@ -1,6 +1,4 @@
 import ExecutionBackendBoard from "../../src/components/visual/ExecutionBackendBoard.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { shellExecutionChain } from "../../src/data/diagrams/codex-from-source/chapter-10";
 
 # Chapter 10: Shell, Exec Server, and Filesystem Tools
 
@@ -30,8 +28,6 @@ Codex has several shell-adjacent front doors because clients and model surfaces 
 | `write_stdin` | continuation tool for a managed process that already exists |
 
 These tools converge on the same responsibility: turn a model request into an execution request that can be governed. The convergence is important because command policy, sandboxing, and approval should not depend on which client surface happened to expose the command.
-
-<DiagramFlow spec={shellExecutionChain} lang="en" client:visible />
 
 This is the shell execution chain in one picture. No single box is enough to make command execution safe or explainable; the safety comes from the order and the fact that each decision has a structured representation.
 

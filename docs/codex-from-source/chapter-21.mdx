@@ -1,7 +1,4 @@
 import RemoteTaskContract from "../../src/components/visual/RemoteTaskContract.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import { cloudBackendContract, applyTaskFlow, agentIdentityBinding } from "../../src/data/diagrams/codex-from-source/chapter-21";
 
 # Chapter 21: Cloud Tasks, Identity, and Remote Work
 
@@ -21,8 +18,6 @@ The separation is crucial. Local Codex turns stream model output and execute too
 ## Task Workflows Are Backend Contracts
 
 The cloud task client is shaped around a small backend interface. It can list tasks, fetch a summary, fetch a diff, fetch assistant messages, fetch task text, list sibling attempts, create a task, run apply preflight, and apply a task. That interface hides HTTP path details from the CLI and TUI. It also lets a mock backend satisfy the same contract during development and tests.
-
-<DiagramFlow spec={cloudBackendContract} lang="en" client:visible />
 
 This layout prevents the UI from becoming the source of task semantics. A list view may filter review-only tasks, a diff overlay may switch between attempts, and a modal may show apply conflicts. Those are presentation choices. The backend contract remains the architectural center for remote state, while the local patch path remains the only path that mutates the checkout.
 
@@ -87,8 +82,6 @@ The broader architecture lesson is that remote work often has a result set, not 
 
 The most important boundary in cloud tasks is apply. A task may run in the cloud, but applying its diff is a local filesystem operation. Codex fetches or selects a unified diff, validates that it is actually a compatible diff format, and then runs local patch preflight or application. The backend does not get to declare that the user's working tree changed.
 
-<DiagramSequence spec={applyTaskFlow} lang="en" client:visible />
-
 Preflight matters because remote output can be stale relative to the local checkout. Even if the cloud task was correct when produced, the user may have changed files since then. A local preflight turns that uncertainty into a visible result before mutation.
 
 The apply outcome reports three classes: success, partial, and error. Partial is not a cosmetic state. It tells the client that some paths were applied or conflicted while others were skipped, which changes how the user should inspect the working tree.
@@ -114,8 +107,6 @@ The identity layer has a distinct job from ordinary user authentication:
 - decode identity JWT claims, verifying them when trusted keys are available;
 - attach bill-of-material metadata such as agent version, harness, and running
   location.
-
-<DiagramFlow spec={agentIdentityBinding} lang="en" client:visible />
 
 The design avoids conflating "the user is logged in" with "this runtime may act for this task." User auth can establish account context; agent identity binds a particular runtime key to a particular task authorization. That distinction is what lets a backend reason about remote agents without trusting arbitrary local processes by name.
 

@@ -1,7 +1,4 @@
 import TurnLoopTrace from "../../src/components/visual/TurnLoopTrace.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import { turnLoopSequence, turnStateMachine } from "../../src/data/diagrams/codex-from-source/chapter-06";
 
 # Chapter 6: The Turn Loop: Where the Agent Becomes an Agent
 
@@ -26,8 +23,6 @@ Chapter 5 separated durable threads from live sessions and showed how client ope
 
 A turn begins when the submission loop decides that user input should become scheduled work. The session resolves a `TurnContext`, installs an active turn, and runs the loop under a cancellation token. From that point on, every interesting subsystem is nearby: hooks inspect input, skills and plugins inject context, the model client streams events, the tool router dispatches side effects, persistence records items, and telemetry observes progress.
 
-<DiagramSequence spec={turnLoopSequence} lang="en" client:visible />
-
 This diagram is intentionally circular. Codex becomes an agent because model output can change the next model input through tools, observations, compaction, and pending user input.
 
 ## Preparation Before Sampling
@@ -49,8 +44,6 @@ The preparation phase is why the turn loop is not "call the model with the lates
 ## The Turn State Machine
 
 The turn loop is best read as a state machine. The source has many helper paths, but the durable states are compact: prepare a reproducible prompt, sample the model, stream and persist facts, dispatch tools when requested, record observations, repair context when needed, inspect stop hooks, and then either continue or settle.
-
-<DiagramFlow spec={turnStateMachine} lang="en" client:visible />
 
 The loop has one governing rule: continue only for a concrete reason. The reason may be tool follow-up, accepted pending input, compaction, or a stop hook that adds new model-visible work. Without a reason, the turn settles.
 

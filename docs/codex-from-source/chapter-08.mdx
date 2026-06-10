@@ -1,6 +1,4 @@
 import RolloutTraceLab from "../../src/components/visual/RolloutTraceLab.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { rolloutTracePipeline, traceReducerInputs } from "../../src/data/diagrams/codex-from-source/chapter-08";
 
 # Chapter 8: Observability and Rollout Trace
 
@@ -59,15 +57,11 @@ The replay spine must be conservative. It should preserve what future Codex vers
 
 Rollout trace is an opt-in diagnostic path. When enabled, runtime code records ordered raw events and stores larger raw payloads separately. The hot path does not try to build the final explanation graph while the session is running. It captures facts and leaves interpretation to an offline reducer.
 
-<DiagramFlow spec={rolloutTracePipeline} lang="en" client:visible />
-
 Raw trace data can include prompts, model responses, tool inputs and outputs, terminal output, runtime payloads, and paths. It therefore belongs to local diagnostics, not ordinary telemetry. The value of the design is that raw payloads remain available when the reduced graph is not enough to explain a failure.
 
 ## Raw Events and Reduced Graphs
 
 The reduced trace graph is not a transcript. It contains semantic objects: agent threads, Codex turns, model-visible conversation items, inference calls, tool calls, code cells, terminal operations, compactions, and interaction edges. Each object can retain references back to raw payloads.
-
-<DiagramFlow spec={traceReducerInputs} lang="en" client:visible />
 
 This distinction prevents a common debugging mistake. Runtime output is not automatically model-visible output. A terminal operation may produce bytes that appear in a local process log, while the model only sees a summarized tool result. A nested runtime call may be part of a code-mode execution object, while the model-visible transcript contains only the surrounding tool boundary. The trace graph preserves both views without confusing them.
 

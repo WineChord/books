@@ -1,11 +1,4 @@
 import GeneratedContractDriftViewer from "../../src/components/visual/GeneratedContractDriftViewer.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import {
-  buildSurfaceMap,
-  developerFlow,
-  schemaDriftSequence,
-} from "../../src/data/diagrams/codex-from-source/chapter-23";
 
 # Chapter 23: Build Systems and Generated Contracts
 
@@ -36,8 +29,6 @@ The repository therefore makes a deliberate split:
 | Test launchers | Developers and CI | Cargo-like assumptions even when the test is executed by Bazel. |
 
 The clever part is not "use Bazel." The clever part is that Bazel is not allowed to become a second product architecture or a fictional release path. Cargo remains the developer and shipping-build source of truth; Bazel mirrors and constrains it when the system must prove that packaging, platforms, and generated contracts still agree.
-
-<DiagramFlow spec={buildSurfaceMap} lang="en" client:visible />
 
 This diagram is the shape to keep in mind. One source graph feeds two build interfaces. One runtime graph emits several public contracts. If those outputs diverge, the architecture has already failed before a user runs a command.
 
@@ -72,8 +63,6 @@ for target in release_platforms:
 
 The important decision is that the overlay derives from product structure instead of replacing it. Engineers still reason in crates. CI and release verification reason in hermetic targets. Shipping release jobs still use Cargo as the artifact build path, then package and publish the staged outputs.
 
-<DiagramFlow spec={developerFlow} lang="en" client:visible />
-
 The launcher box is easy to underestimate. Tests often assume a working directory, snapshot path, fixture layout, or environment variable. Bazel breaks those assumptions by design. Codex restores only the assumptions the tests are supposed to have, so the same test can serve both local development and hermetic CI without teaching every test about Bazel internals.
 
 ## Generated Schemas Are Product APIs
@@ -81,8 +70,6 @@ The launcher box is easy to underestimate. Tests often assume a working director
 Generated schemas are not build byproducts. They are commitments. Codex uses typed runtime contracts for configuration, hooks, app-server messages, and other client-visible surfaces. When those types are generated into checked-in schemas, the repository turns internal type changes into reviewable product changes.
 
 This is the build-time version of the protocol discipline from Chapter 4. The runtime can evolve internally, but client contracts need stable vocabulary. Generated artifacts make drift visible:
-
-<DiagramSequence spec={schemaDriftSequence} lang="en" client:visible />
 
 A stale schema is not merely "docs out of date." It is evidence that the code and contract no longer describe the same product. Codex's build pipeline treats that as a correctness problem because app-server clients, SDKs, hook authors, and config generators may all depend on those schemas.
 

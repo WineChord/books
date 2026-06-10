@@ -1,6 +1,4 @@
 import RolloutTraceLab from "../../../src/components/visual/RolloutTraceLab.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { rolloutTracePipeline, traceReducerInputs } from "../../../src/data/diagrams/codex-from-source/chapter-08";
 
 # 第 8 章：Observability 与 Rollout Trace
 
@@ -59,15 +57,11 @@ replay spine 必须保守。它要保存未来 Codex 版本理解一个 thread �
 
 rollout trace 是 opt-in diagnostic path。启用后，runtime 会记录 ordered raw events， 并把较大的 raw payload 分开保存。hot path 不会在 session 运行时构造最终 explanation graph；它只捕获事实，把解释工作交给 offline reducer。
 
-<DiagramFlow spec={rolloutTracePipeline} lang="zh" client:visible />
-
 raw trace data 可能包含 prompts、model responses、tool inputs/outputs、terminal output、runtime payloads 和 paths。因此它属于本地诊断，而不是普通 telemetry。这个设计的 价值在于：当 reduced graph 不足以解释 failure 时，raw payload 仍然可用。
 
 ## Raw Events 与 Reduced Graph
 
 reduced trace graph 不是 transcript。它包含 semantic objects：agent threads、Codex turns、 model-visible conversation items、inference calls、tool calls、code cells、terminal operations、compactions 和 interaction edges。每个 object 都可以保留指向 raw payload 的引用。
-
-<DiagramFlow spec={traceReducerInputs} lang="zh" client:visible />
 
 这个区分能避免常见 debugging 错误：runtime output 不自动等于 model-visible output。 terminal operation 可能在本地 process log 里产出大量字节，而模型只看到了一个总结后的 tool result。nested runtime call 可能属于 code-mode execution object，而模型可见 transcript 只包含外围 tool boundary。trace graph 同时保留两种视图，但不把它们混在一起。
 

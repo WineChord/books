@@ -1,7 +1,4 @@
 import ClientReachabilityBoard from "../../../src/components/visual/ClientReachabilityBoard.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
-import { clientTaxonomy, daemonLifecycle, remoteControlSequence } from "../../../src/data/diagrams/codex-from-source/chapter-15";
 
 # 第 15 章：SDK、Daemon 与远程控制
 
@@ -31,8 +28,6 @@ import { clientTaxonomy, daemonLifecycle, remoteControlSequence } from "../../..
 | Remote-control client | Backend-mediated stream | 通过 reconnect、cursor 和 replay 支持远程 app-server sessions。 |
 
 这张 taxonomy 避免一句误导性的“SDK 调 app-server”。有些 SDK 是这样，有些刻意包的是另一条 command surface。有些 client in-process 运行，有些通过 daemon-managed socket 连接，有些穿过 backend。架构仍然一致，是因为每个 client 都尊重清晰的边界。
-
-<DiagramFlow spec={clientTaxonomy} lang="zh" client:visible />
 
 这张图故意是不对称的。Python SDK 和 Rust facade 是 protocol clients。TypeScript SDK 是 process/event-stream client。Daemon 不是面向用户语言的 SDK，而是 lifecycle manager。Remote control 是带有 protocol 后果的 transport bridge。
 
@@ -86,8 +81,6 @@ Daemon 把 app-server startup 变成操作系统层面的关注点。它管理 p
 
 Daemon 的职责是让 local server 可发现且稳定，同时不允许两个 supervisors 破坏同一份状态。Operation locks 防止 lifecycle actions 重叠。Probing 区分“server healthy”和“pid file exists”。Restart behavior 给 clients 走出 stale state 的路径。Update behavior 让产品升级 server，而不要求每个 SDK 都发明自己的 process manager。
 
-<DiagramFlow spec={daemonLifecycle} lang="zh" client:visible />
-
 Daemon 不只是 convenience wrapper。它让 long-lived local contract 对 short-lived tools 和 SDK processes 变得实际可用。
 
 ## Transport Choices
@@ -107,8 +100,6 @@ Transport layer 的目标，是让这些选项在边界之上尽量无聊。一�
 ## Remote Control
 
 Remote control 通过 backend-mediated stream 延伸 app-server contract。本地侧用 backend identity 和 installation metadata enrollment。Remote streams 被映射到 app-server connection ids。Messages 会 chunk，cursors 会 ack，outbound messages 在合适时被 buffer，reconnect 可以 replay remote client 尚未 ack 的数据。
-
-<DiagramSequence spec={remoteControlSequence} lang="zh" client:visible />
 
 网络会让隐藏假设暴露出来。本地 socket 常常可以说“断了就断了”；remote control 不行。它需要显式 cursor 和 replay behavior，因为 remote client 可能在本地 runtime 持续产生 notifications 的同时经历网络失败。
 

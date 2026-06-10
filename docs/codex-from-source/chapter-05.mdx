@@ -1,6 +1,4 @@
 import DurableThreadLedger from "../../src/components/visual/DurableThreadLedger.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { runtimeStack, threadLifecycleOperations } from "../../src/data/diagrams/codex-from-source/chapter-05";
 
 # Chapter 5: Threads, Sessions, and Durable State
 
@@ -24,8 +22,6 @@ Chapter 4 ended at the protocol boundary: clients can submit operations, receive
 ## The Runtime Stack
 
 Codex is not organized around a single "chat object." The runtime is a stack of handles, each narrowing the authority of the layer above it.
-
-<DiagramFlow spec={runtimeStack} lang="en" client:visible />
 
 `ThreadManager` owns the set of live threads and the shared services needed to create new sessions. `CodexThread` is the stable external handle clients use after a thread is created or resumed. `Codex` is intentionally narrow: it exposes a submission path and an event path. `Session` is the large interior object that holds resolved configuration, persistent identity, active turn state, mailbox state, realtime state, goals, review state, and service handles.
 
@@ -96,8 +92,6 @@ This design protects replay. A client can disappear and rejoin. A database row c
 ## Start, Resume, Fork, Roll Back
 
 Thread operations are variations on the same principle: load or choose a replay prefix, build a session over it, then append future items in the same vocabulary.
-
-<DiagramFlow spec={threadLifecycleOperations} lang="en" client:visible />
 
 Resume is not a string reload. It reconstructs model history and session metadata from durable items. Fork is not a copy of a UI transcript. It selects a coherent prefix and opens a new thread whose future diverges from the source. Rollback is not merely deleting visible messages. It rebuilds the active model context from the surviving durable record, taking compaction and incomplete turns into account.
 

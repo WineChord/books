@@ -49,13 +49,11 @@ The public OpenAI Codex material frames Codex as a software-engineering agent th
 
 The source loop is:
 
-<div class="flow">
-  <div><strong>Intent</strong>A prompt enters through the CLI, TUI, exec mode, or app-server.</div>
-  <div><strong>Protocol</strong>The prompt becomes an operation or app-server request.</div>
-  <div><strong>Runtime</strong>The session records context and starts a turn.</div>
-  <div><strong>Action</strong>The model emits response items and tool calls.</div>
-  <div><strong>Boundary</strong>Tools pass through approval, sandbox, hooks, and reporting.</div>
-</div>
+1. **Intent** enters through the CLI, TUI, `exec`, or app-server.
+2. **Protocol** turns that intent into an operation or app-server request.
+3. **Runtime** records context and starts a governed turn.
+4. **Action** streams model items and tool calls.
+5. **Boundary** routes side effects through approval, sandbox, hooks, and evidence.
 
 ## Scope Discipline
 

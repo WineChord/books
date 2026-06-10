@@ -1,6 +1,4 @@
 import ConstraintEnvelopeBuilder from "../../../src/components/visual/ConstraintEnvelopeBuilder.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { configurationStack, authManagerSnapshot } from "../../../src/data/diagrams/codex-from-source/chapter-03";
 
 # 第 3 章：配置、认证与 Managed Requirements
 
@@ -20,8 +18,6 @@ import { configurationStack, authManagerSnapshot } from "../../../src/data/diagr
 ## 配置是一组 Layer，不是一个文件
 
 Codex 配置是分层的。有些 layer 来自 system 或 managed settings；有些来自用户 home config；有些来自 project；还有些来自命令行覆盖、session state 或 thread-level choices。重点不只是优先级，还包括 provenance，也就是来源。
-
-<DiagramFlow spec={configurationStack} lang="zh" client:visible />
 
 图中的 disabled layer 很重要。Project-local configuration 可以被发现，即使 trust 阻止它影响 runtime 行为。这比假装该 layer 不存在更好。客户端可以解释为什么某个值被忽略，用户也可以决定是否信任该项目。
 
@@ -84,8 +80,6 @@ Codex 中的 feature flags 不是散落各处的字符串判断。它们有名�
 配置说明进程想做什么。认证说明是谁在做，以及哪些 backend capability 可以使用。Codex 支持多种 auth shape：API-key auth、ChatGPT OAuth、外部提供的 bearer token，以及任务型集成使用的 agent identity flows。
 
 架构用 auth manager 隐藏这些存储和刷新差异。目标不只是方便，而是防止一个子系统使用旧凭据，同时另一个子系统已经刷新或使其失效。长时间运行的进程需要一种稳定方式来询问：“当前 auth state 是什么？遇到 unauthorized response 时能否恢复？”
-
-<DiagramFlow spec={authManagerSnapshot} lang="zh" client:visible />
 
 Snapshot 可以代表不同 auth mode，但后续层不应该关心 token 存在哪里，也不应该关心 refresh command 怎样执行。它们关心的是能否构造 authenticated client、account metadata 是否可用、是否必须获取 policy requirements。
 

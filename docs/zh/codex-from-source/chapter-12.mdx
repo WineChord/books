@@ -1,7 +1,4 @@
 import ApprovalLadder from "../../../src/components/visual/ApprovalLadder.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
-import { gateStack, commandThroughGates } from "../../../src/data/diagrams/codex-from-source/chapter-12";
 
 # 第 12 章：Hooks 与人工审批
 
@@ -20,15 +17,11 @@ Hooks 是配置好的程序，用来观察或影响 runtime events。Approval �
 
 ## Gate Stack
 
-<DiagramFlow spec={gateStack} lang="zh" client:visible />
-
 这个 stack 是有顺序的，不是装饰。Hooks 可以添加 context 或阻断特定事件。Permission-request hooks 可以在常规 review path 前回答 approval。Guardian 或用户可以决定剩余未解决的 approvals。只有这些 gate 产出 allowed decision 后，tool attempt 才会发生。
 
 ## 一个命令如何穿过 Gate
 
 理解这些层分离的最简单方式，是跟随一条 shell command。模型请求一个命令。Codex 先运行匹配的 pre-tool hooks；这些 hooks 可以在 policy 评估副作用前添加 context、给出 warning，或直接 block。如果 hooks 没有阻断，approval policy 会根据当前 permission profile 判断这个命令是否可以运行。如果需要决策，permission-request hook 可以自动回答；如果没有回答，Guardian 或面向用户的 client 会收到请求。只有 allow decision 到达后，shell handler 才会进入 sandbox selection 和 process execution。结果返回后，post-tool hooks 可以观察输出，并把结构化 feedback 喂回 turn。
-
-<DiagramSequence spec={commandThroughGates} lang="zh" client:visible />
 
 重点不是 command 本身，而是每一道 gate 拥有不同问题：automation 观察什么，policy 允许什么，reviewer 授权什么，sandbox 包含什么，以及什么结果进入 durable state。
 

@@ -1,12 +1,4 @@
 import SubmissionFlowExplorer from "../../../src/components/visual/SubmissionFlowExplorer.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
-import {
-  submissionLifecycle,
-  appServerPipeline,
-  eventToItemMapping,
-  partOneGates,
-} from "../../../src/data/diagrams/codex-from-source/chapter-04";
 
 # 第 4 章：协议边界
 
@@ -36,8 +28,6 @@ Core runtime protocol 的外层形状很简单：
 
 这个拆分让 runtime 像 evented kernel 一样工作。客户端不直接调用私有 session 方法。它们提交 operation，并观察 event。Runtime 可以根据 active state 对 operation 排队、拒绝、转换或串行化。
 
-<DiagramSequence spec={submissionLifecycle} lang="zh" client:visible />
-
 序列图经过简化，但契约准确：只有 runtime 会把提交的意图转换为持久进展。
 
 ## Item 不只是 Message
@@ -54,13 +44,9 @@ App-server 引入第二条协议边界。它不是 core runtime protocol 的替�
 
 它的 wire shape 类似 JSON-RPC：request 期待 response，notification 不期待 response，error 携带结构化失败信息，server-to-client request 允许 runtime 侧要求已连接客户端作出决定，例如 approval 或 input。Codex 刻意保持 envelope 轻量，但 request、response、notification 的区别仍然是核心。
 
-<DiagramFlow spec={appServerPipeline} lang="zh" client:visible />
-
 App-server boundary 加入了本地终端 UI 往往可以隐藏的关注点：connection initialization、experimental capability negotiation、request serialization、backpressure、replay on rejoin、thread listeners、pending approvals 和 derived status。这些都是协议问题，因为客户端可能是拥有独立生命周期的另一个进程。
 
 从 core events 到 app-server items 的映射，是这里最重要的翻译层：
-
-<DiagramFlow spec={eventToItemMapping} lang="zh" client:visible />
 
 客户端不应该通过解析 terminal text 来重建这个 projection。Server 统一完成映射，暴露稳定的 item 和 notification shape，并保留足够的 request id 与 pending-request state，把 decision 重新连接回它解锁的 turn。
 
@@ -115,8 +101,6 @@ Codex 中的协议兼容性是显式的。某些值接受 legacy aliases。旧�
 ## 什么能进入，什么能离开
 
 到 Part I 结束，架构已经建立了四道 gate：
-
-<DiagramFlow spec={partOneGates} lang="zh" client:visible />
 
 Runtime 强大，恰恰因为边界狭窄。客户端可以启动或 steering 工作、中断工作、回答 approval request、提供 dynamic tool output、刷新外部状态，或请求 thread 生命周期动作。客户端可以观察 setup、streaming、tool activity、approval prompts、errors、completion 和 reconstructed items。它不能伸进 session 里直接修改私有状态。
 

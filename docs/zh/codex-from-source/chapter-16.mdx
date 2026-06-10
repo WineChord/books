@@ -1,11 +1,4 @@
 import EventRendererLab from "../../../src/components/visual/EventRendererLab.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import {
-  startupPath,
-  spatialModel,
-  eventSources,
-  streamingMarkdown,
-} from "../../../src/data/diagrams/codex-from-source/chapter-16";
 
 # 第 16 章：TUI 作为事件渲染器
 
@@ -34,23 +27,17 @@ Inline model 比简单 fullscreen UI 更难，但它符合开发者使用终端�
 
 Startup 连接三个世界：configuration/auth state、terminal capability 和 app-server session state。TUI 加载 configuration，确定 account 与 model context，初始化 terminal behavior，create 或 resume thread，然后进入一个同时处理 UI events 与 runtime events 的 event loop。
 
-<DiagramFlow spec={startupPath} lang="zh" client:visible />
-
 Terminal capability 不是装饰。Keyboard enhancement、focus behavior、tmux handling、color palette support、desktop notifications、inline viewport behavior、image paste 和 clipboard paths 都可能改变 UI 应该尝试什么。App-server 给 TUI runtime contract；terminal detection 给它物理显示 contract。
 
 ## 空间模型
 
 在阅读 event loop 之前，先把屏幕想成四层。真实 scrollback 已经 committed，属于 terminal。Live viewport 包含 in-flight work 的 mutable cells。Bottom pane 拥有 composition 和 focused transient views。Modal layer 只有在 protocol request 或 UI task 需要决策时才打断 composer。
 
-<DiagramFlow spec={spatialModel} lang="zh" client:visible />
-
 这张图解释了 inline 选择。UI 不是在 repaint 一个私有世界，而是在判断哪些 runtime facts 已足够稳定、可以提交给 terminal 的世界，哪些仍必须保持 mutable。
 
 ## 四个 Event Sources
 
 运行后，app loop 是一个 multiplexer。它监听 internal app events、active-thread protocol events、terminal input events 和 app-server session events。然后把它们转成三类结果：发送 app command，修改 transcript 或 UI state，或者 schedule 一帧。
-
-<DiagramFlow spec={eventSources} lang="zh" client:visible />
 
 这种 event shape 解释了为什么 TUI 更像 actor-like 系统，而不是一棵单一 mutable widget tree。App object 拥有 orchestration。Chat widget 拥有 conversation state。Bottom pane 拥有 input 和 transient views。Terminal control 拥有 raw mode、resize、buffer diffing 和 viewport behavior。每个 component 都有状态，但它们通过 typed events 和 commands 通信，而不是跨层直接伸手修改。
 
@@ -98,8 +85,6 @@ Approval handling 展示了为什么这很重要。Command approval 不只是 tr
 ## Streaming Markdown
 
 Streaming output 是最难的 rendering path。Model 可能输出 partial markdown，后续 tokens 会改变早先可见文本的 wrap 或 parse。Tables 是最清楚的例子：后来的 row 可能改变前面 rows 的 column widths。因此 TUI 把 stable committed source 和 mutable live tail 分开。
-
-<DiagramFlow spec={streamingMarkdown} lang="zh" client:visible />
 
 规则是保守的：只 commit 可以被视为 stable source 的内容，把 incomplete 或 layout-sensitive 内容留在 live viewport。这让 scrollback 保持可读，同时仍能快速展示新输出。
 

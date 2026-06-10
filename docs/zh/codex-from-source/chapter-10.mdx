@@ -1,6 +1,4 @@
 import ExecutionBackendBoard from "../../../src/components/visual/ExecutionBackendBoard.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { shellExecutionChain } from "../../../src/data/diagrams/codex-from-source/chapter-10";
 
 # 第 10 章：Shell、Exec Server 与文件系统工具
 
@@ -30,8 +28,6 @@ Codex 有多个 shell 相邻入口，因为不同客户端和模型表面需要�
 | `write_stdin` | 写入已存在 managed process stdin 的 continuation tool |
 
 这些入口最终汇聚到同一项责任：把模型请求转成可治理的 execution request。汇聚非常重要，因为命令策略、沙箱和审批不应取决于某个客户端表面恰好暴露了哪种命令工具。
-
-<DiagramFlow spec={shellExecutionChain} lang="zh" client:visible />
 
 这就是 shell execution chain。任何单个节点都不足以让命令执行安全或可解释；安全性来自顺序，也来自每个决策都有结构化表达。
 

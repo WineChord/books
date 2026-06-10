@@ -1,10 +1,4 @@
 import PolicyLaneDashboard from "../../../src/components/visual/PolicyLaneDashboard.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import {
-  mergeConfidenceFanout,
-  ciLaneMap,
-  generatedDriftStateMachine,
-} from "../../../src/data/diagrams/codex-from-source/chapter-25";
 
 # 第 25 章：CI、策略与架构治理
 
@@ -27,8 +21,6 @@ Codex 用可执行治理回答很多这类压力。CI 不只是测试运行器�
 
 可执行策略把“请不要破坏这个边界”变成“这个 pull request 在边界仍然成立之前不能合并”。这不是官僚主义。对 agent 运行时来说，这是风险管理。系统可以运行命令、修改文件、调用外部服务并协调远端工作。治理让这些能力在仓库变化时仍然受约束。
 
-<DiagramFlow spec={mergeConfidenceFanout} lang="zh" client:visible />
-
 merge confidence 不是说 CI 证明了一切。它只证明项目选择变成可执行规则的那些内容。难点是选择真正保护架构的规则，而不是把个人偏好编码进去。
 
 ## CI lane 应该匹配风险
@@ -36,8 +28,6 @@ merge confidence 不是说 CI 证明了一切。它只证明项目选择变成�
 Codex 的 CI 表面按目的拆分。有面向普通变更的快速检查，有提供平台信心的更广矩阵，有验证 hermetic 发布假设的 Bazel 路径，有保护客户端契约的 schema 与生成文件检查，有外部 surface 的 SDK 检查，也有组装产物的 release workflow。
 
 这是一张风险地图。协议类型变更的爆炸半径不同于 TUI 渲染 helper 变更。打包变更的风险不同于测试 helper 变更。CI 设计应该让这些差异可见。
-
-<DiagramFlow spec={ciLaneMap} lang="zh" client:visible />
 
 反模式是一个不区分目的的“run everything”按钮。它隐藏了失败的是哪种架构承诺，并让工程师把失败当成 CI 天气。lane 应该解释自己提供哪一种信任。
 
@@ -69,8 +59,6 @@ report 是设计的一部分。只说“failed”的策略会训练开发者去�
 ## 深入：把生成漂移建模成状态机
 
 生成产物需要特别严格，因为 drift 可能有多种含义。开发者忘了重新生成？生成器变了？源码契约有意变化？实验字段泄漏进稳定 schema？
-
-<DiagramFlow spec={generatedDriftStateMachine} lang="zh" client:visible />
 
 这个状态机很小，但它改变行为。契约变化会作为契约变化被 review。仓库不再要求 reviewer 从内部类型 diff 里猜客户端影响。
 

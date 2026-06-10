@@ -1,6 +1,4 @@
 import ToolDispatchMap from "../../src/components/visual/ToolDispatchMap.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { toolSpecPlanner } from "../../src/data/diagrams/codex-from-source/chapter-09";
 
 # Chapter 9: Tool Specifications, Routing, and Dispatch
 
@@ -36,8 +34,6 @@ Codex keeps tool metadata and execution behavior on different planes.
 | Output shaping | What goes back into the turn? | function output, custom tool output, failed-call response, events |
 
 The separation is visible in the lifecycle. A session builds a tool registry from configuration, feature flags, model capability, MCP startup state, discoverable tools, dynamic tools, and hosted tool availability. The registry then produces two products: configured specs for internal lookup, and model-visible specs for the request sent to the model.
-
-<DiagramFlow spec={toolSpecPlanner} lang="en" client:visible />
 
 This diagram is the core of the chapter: the model receives specifications, not handlers. The runtime keeps handlers, not just schemas. The router is the turn-local bridge between them.
 

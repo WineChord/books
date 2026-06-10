@@ -1,6 +1,4 @@
 import ContainmentBoundaryExplorer from "../../src/components/visual/ContainmentBoundaryExplorer.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { policyTransformEnforcement } from "../../src/data/diagrams/codex-from-source/chapter-13";
 
 # Chapter 13: Sandboxes, Network Policy, and Platform Boundaries
 
@@ -18,8 +16,6 @@ Chapter 12 described the gates that decide whether a side effect may proceed. Th
 The sandbox architecture has three stages. First, Codex resolves a permission profile into filesystem and network policy. Second, a sandbox manager decides whether the current tool needs a platform sandbox and transforms the command when it does. Third, a platform helper enforces the transformed command as well as that operating system allows.
 
 ## Policy, Transform, Enforcement
-
-<DiagramFlow spec={policyTransformEnforcement} lang="en" client:visible />
 
 This is not one sandbox. It is a policy compiler plus several enforcement backends. The compiler is cross-platform. Enforcement is platform-specific. That distinction is why the same permission profile can produce different commands, warnings, or refusals on different operating systems.
 

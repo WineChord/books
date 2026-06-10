@@ -47,13 +47,11 @@ OpenAI 公开材料把 Codex 描述为一个可以在隔离环境里工作、运
 
 源码循环是：
 
-<div class="flow">
-  <div><strong>意图</strong>Prompt 从 CLI、TUI、exec mode 或 app-server 进入。</div>
-  <div><strong>协议</strong>Prompt 变成 operation 或 app-server request。</div>
-  <div><strong>运行时</strong>Session 记录上下文并启动 turn。</div>
-  <div><strong>行动</strong>模型产生 response items 和 tool calls。</div>
-  <div><strong>边界</strong>工具经过审批、沙箱、hooks 和结果上报。</div>
-</div>
+1. **Intent** 从 CLI、TUI、`exec` 或 app-server 进入。
+2. **Protocol** 把 intent 变成 operation 或 app-server request。
+3. **Runtime** 记录 context，并启动受治理的 turn。
+4. **Action** 流式产出 model items 与 tool calls。
+5. **Boundary** 让 side effects 经过 approval、sandbox、hooks 与 evidence。
 
 ## 范围纪律
 

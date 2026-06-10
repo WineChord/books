@@ -1,6 +1,4 @@
 import ConstraintEnvelopeBuilder from "../../src/components/visual/ConstraintEnvelopeBuilder.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { configurationStack, authManagerSnapshot } from "../../src/data/diagrams/codex-from-source/chapter-03";
 
 # Chapter 3: Configuration, Authentication, and Managed Requirements
 
@@ -20,8 +18,6 @@ This chapter is about that envelope. Codex does not let every subsystem read wha
 ## Configuration Is a Stack, Not a File
 
 Codex configuration is layered. Some layers come from system or managed settings. Some come from the user's home configuration. Some come from a project. Some come from command-line overrides, session state, or thread-level choices. The important point is not only precedence; it is provenance.
-
-<DiagramFlow spec={configurationStack} lang="en" client:visible />
 
 The disabled layer in the diagram is important. Project-local configuration may be visible even when trust prevents it from affecting runtime behavior. This is better than pretending the layer does not exist. A client can explain why a value was ignored, and a user can decide whether to trust the project.
 
@@ -84,8 +80,6 @@ This is another example of bounded-OS thinking. A general program can check an e
 Configuration says what the process wants to do. Authentication says who is doing it and which backend capabilities can be used. Codex supports several auth shapes: API-key auth, ChatGPT OAuth, externally supplied bearer tokens, and agent identity flows used by task-oriented integrations.
 
 The architecture hides those storage and refresh differences behind an auth manager. The goal is not only convenience. It prevents one subsystem from using an old credential while another subsystem has refreshed or invalidated it. A long-running process needs a stable way to ask, "what is the current auth state, and can it recover from unauthorized responses?"
-
-<DiagramFlow spec={authManagerSnapshot} lang="en" client:visible />
 
 The snapshot can represent different auth modes, but later layers should not care where a token was stored or how a refresh command was executed. They care whether an authenticated client can be constructed, whether account metadata is available, and whether policy requirements must be fetched.
 

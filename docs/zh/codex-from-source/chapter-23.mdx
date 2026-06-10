@@ -1,11 +1,4 @@
 import GeneratedContractDriftViewer from "../../../src/components/visual/GeneratedContractDriftViewer.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
-import {
-  buildSurfaceMap,
-  developerFlow,
-  schemaDriftSequence,
-} from "../../../src/data/diagrams/codex-from-source/chapter-23";
 
 # 第 23 章：构建系统与生成契约
 
@@ -37,8 +30,6 @@ Agent 运行时对构建漂移特别敏感。普通 CLI 也许可以容忍本地
 
 关键不在于“使用 Bazel”。关键在于 Bazel 没有被允许变成第二套产品架构，也没有被写成虚构的唯一发布路径。Cargo 仍然是开发者和 shipping build 的源头；Bazel 在需要证明打包、平台和生成契约仍然一致时，把它镜像并约束起来。
 
-<DiagramFlow spec={buildSurfaceMap} lang="zh" client:visible />
-
 这个图就是本章的形状：一个源码图喂给两个构建接口；一个运行时图吐出多个公开契约。只要这些输出开始分叉，架构在用户运行命令之前就已经失败了。
 
 ## Cargo 是开发者源头
@@ -68,8 +59,6 @@ for target in release_platforms:
 
 重要决策是 overlay 从产品结构推导出来，而不是替换产品结构。工程师仍然按 crate 推理；CI 和发布验证按 hermetic target 推理；实际发布 job 仍然用 Cargo 构建 artifact，然后再 package 和 publish。
 
-<DiagramFlow spec={developerFlow} lang="zh" client:visible />
-
 launcher 这个盒子很容易被低估。测试经常假设工作目录、snapshot 路径、fixture 布局或环境变量。Bazel 天然会打破这些假设。Codex 只恢复测试应该拥有的假设，这样同一个测试既能服务本地开发，也能服务 hermetic CI，而不需要让每个测试都学习 Bazel 内部机制。
 
 ## 生成 schema 是产品 API
@@ -77,8 +66,6 @@ launcher 这个盒子很容易被低估。测试经常假设工作目录、snaps
 生成 schema 不是构建副产物，而是承诺。Codex 用类型化运行时契约表达配置、hooks、app-server 消息和其他客户端可见面。当这些类型被生成到仓库中的 schema 文件，内部类型变化就变成可 review 的产品变化。
 
 这就是第 4 章协议纪律在构建时的版本。运行时可以内部演进，但客户端契约需要稳定词汇。生成产物让漂移可见：
-
-<DiagramSequence spec={schemaDriftSequence} lang="zh" client:visible />
 
 过期 schema 不只是“文档没更新”。它说明代码和契约已经不再描述同一个产品。Codex 把这当作正确性问题，因为 app-server 客户端、SDK、hook 作者和配置生成器都可能依赖这些 schema。
 

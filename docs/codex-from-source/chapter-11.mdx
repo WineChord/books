@@ -1,6 +1,4 @@
 import PatchWorkbench from "../../src/components/visual/PatchWorkbench.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { patchLifecycle } from "../../src/data/diagrams/codex-from-source/chapter-11";
 
 # Chapter 11: Patches as a First-Class Editing Protocol
 
@@ -20,8 +18,6 @@ Direct file writes are attractive because they are simple. They are also poor ev
 ## The Patch Lifecycle
 
 Patch execution has a longer lifecycle than it first appears to have.
-
-<DiagramFlow spec={patchLifecycle} lang="en" client:visible />
 
 The parse step understands the patch grammar. The verify step consults the workspace filesystem to compute the concrete changes that would occur. The assess step decides whether the patch is auto-approved, needs approval, or requires additional permissions. The apply step writes through the selected executor filesystem, not through an assumed local path.
 

@@ -1,7 +1,4 @@
 import CompatibilityLaneBoard from "../../../src/components/visual/CompatibilityLaneBoard.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
-import { migrationPipeline, sessionImportFlow } from "../../../src/data/diagrams/codex-from-source/chapter-19";
 
 # 第 19 章：外部迁移与向后兼容
 
@@ -23,8 +20,6 @@ import { migrationPipeline, sessionImportFlow } from "../../../src/data/diagrams
 </div>
 
 Agent system 的 backward compatibility 不只是接受旧 API 字段。它还意味着接纳用户已有历史、工作习惯和本地自动化，同时不能让模糊行为变成隐藏权限。Codex 把 migration 当作受控 import path：读取 source artifact，识别 supported constructs，翻译成 Codex-native shapes，跳过 unsafe 或 dynamic cases，并记录足够 metadata 以避免重复导入。
-
-<DiagramFlow spec={migrationPipeline} lang="zh" client:visible />
 
 最后一个节点很重要。迁移后的 hook 应作为 Codex hook 运行；迁移后的 command 应表现为 Codex skill 或 workflow unit；导入的 session 应成为 rollout history。Migration layer 不应该留在 turn loop 里。
 
@@ -66,8 +61,6 @@ for each source_entry in external_config:
 Session import 与 config migration 不同，因为 history 不是未来能力，而是过去对话的证据。External JSONL sessions 可能包含 user messages、assistant messages、tool calls、tool outputs、titles、working directories、token usage 和 source-specific records。Codex 必须把足够多历史翻译成自己的 rollout items，才能让 thread 与 history reconstruction 理解。
 
 Import path 因此会检测 candidate sessions，验证 working context 仍存在，只加载 importable records，构建 visible turns，添加 import metadata，并记录 content-hash ledger。Ledger 防止重复导入，同时允许 source content 改变后再次被发现。
-
-<DiagramSequence spec={sessionImportFlow} lang="zh" client:visible />
 
 这个设计同时保留两个事实：导入对话可作为 Codex history 使用；它也仍然带着 imported history 的 provenance。
 

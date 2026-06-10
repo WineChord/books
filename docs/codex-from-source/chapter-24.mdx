@@ -1,11 +1,4 @@
 import ReleaseArtifactConveyor from "../../src/components/visual/ReleaseArtifactConveyor.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import {
-  releaseSurfaceMap,
-  installerArtifactSequence,
-  nativeDependencyQuarantine,
-} from "../../src/data/diagrams/codex-from-source/chapter-24";
 
 # Chapter 24: Packaging, Release, and Native Dependencies
 
@@ -27,8 +20,6 @@ This chapter follows the delivery path from Rust binary to user command. The des
 The first architectural fact about packaging is that the installed command is not where the agent lives. The JavaScript-facing package is distribution glue. The Rust binary owns the CLI router and runtime. That split appeared in Chapter 2; release infrastructure is where the split pays off.
 
 If npm packaging owned real behavior, every platform package would risk becoming a product fork. If installers owned behavior, standalone distribution would drift from npm distribution. If native helper binaries leaked into core logic, platform differences would infect the turn loop. Codex instead keeps a single runtime center and lets packaging solve acquisition, selection, and verification.
-
-<DiagramFlow spec={releaseSurfaceMap} lang="en" client:visible />
 
 The meta package and installer are different doors into the same house. The user should not be able to infer which door they used by observing runtime semantics.
 
@@ -57,8 +48,6 @@ This is also where DotSlash and helper packages matter. The public package famil
 
 Standalone installers solve a different problem: users may want Codex without depending on a JavaScript package manager at runtime. That does not mean the installer should invent a second artifact model. A stronger pattern is to let the installer consume the same release payloads that packaging produces, then expose a stable command shim.
 
-<DiagramSequence spec={installerArtifactSequence} lang="en" client:visible />
-
 This keeps delivery paths coupled at the artifact level rather than forked at the behavior level. The installer owns installation mechanics. It should not own runtime semantics. When that rule holds, npm install and standalone install become operational variants of the same product.
 
 ## Native Dependencies Belong in Quarantine
@@ -68,8 +57,6 @@ Native dependencies are where release systems often become unmaintainable. Codex
 V8 and Bubblewrap are the useful examples. V8 brings archive selection, checksums, source-built versus release-compatible modes, and platform ABI differences. Bubblewrap is part of the Linux sandbox delivery story and may be provided by the host or by helper packaging. Neither concern belongs in the turn loop; both must be visible to release engineering.
 
 The reusable pattern is quarantine. Native complexity belongs in `third_party`, patch directories, Bazel repository rules, release scripts, and helper package assembly. Product crates should consume a stable capability, not a maze of platform build details.
-
-<DiagramFlow spec={nativeDependencyQuarantine} lang="en" client:visible />
 
 The design is not free. Quarantine creates a maintenance surface: checksums must be updated, patches must be justified, release assets must be present, and platform selectors must be tested. The benefit is that the maintenance surface is visible and centralized instead of being smeared across runtime code.
 

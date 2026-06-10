@@ -1,10 +1,4 @@
 import PolicyLaneDashboard from "../../src/components/visual/PolicyLaneDashboard.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import {
-  mergeConfidenceFanout,
-  ciLaneMap,
-  generatedDriftStateMachine,
-} from "../../src/data/diagrams/codex-from-source/chapter-25";
 
 # Chapter 25: CI, Policy, and Architectural Governance
 
@@ -27,8 +21,6 @@ Every chapter in this book described a boundary: protocol before clients, policy
 
 Executable policy turns "please do not violate this boundary" into "this pull request cannot merge until the boundary still holds." That is not bureaucracy. For an agent runtime, it is risk management. The system can run commands, mutate files, call external services, and coordinate remote work. Governance keeps those powers constrained as the repository changes.
 
-<DiagramFlow spec={mergeConfidenceFanout} lang="en" client:visible />
-
 The merge confidence node is not a claim that CI proves everything. It proves the rules the project chose to make executable. The art is choosing rules that guard real architecture rather than encoding personal style preferences.
 
 ## CI Lanes Match Risk, Not Just Language
@@ -36,8 +28,6 @@ The merge confidence node is not a claim that CI proves everything. It proves th
 Codex's CI surface is split by purpose. There are fast checks for ordinary changes, broader matrices for platform confidence, Bazel paths for hermetic release assumptions, schema and generated-file checks for client contracts, SDK checks for external surfaces, and release workflows for artifact assembly.
 
 This is a risk map. A change to a protocol type has different blast radius from a change to a TUI rendering helper. A change to packaging has different risk from a unit test helper. The CI design should make those differences visible.
-
-<DiagramFlow spec={ciLaneMap} lang="en" client:visible />
 
 The anti-pattern is one undifferentiated "run everything" button. That hides which architectural promise failed and makes engineers treat failures as CI weather. Lanes should explain the kind of trust they provide.
 
@@ -71,8 +61,6 @@ The report is part of the design. A policy that only says "failed" trains develo
 ## Deep Dive: Generated Drift as a State Machine
 
 Generated artifacts need especially strict handling because drift can be ambiguous. Did the developer forget to regenerate? Did the generator change? Did the source contract change intentionally? Did an experimental field leak into the stable schema?
-
-<DiagramFlow spec={generatedDriftStateMachine} lang="en" client:visible />
 
 The state machine is small, but it changes behavior. A contract change becomes reviewable as a contract change. The repository no longer asks reviewers to infer client impact from internal type diffs.
 

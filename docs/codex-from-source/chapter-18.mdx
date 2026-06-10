@@ -1,6 +1,4 @@
 import ExtensionProvenance from "../../src/components/visual/ExtensionProvenance.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import { extensionPlanes } from "../../src/data/diagrams/codex-from-source/chapter-18";
 
 # Chapter 18: Skills, Plugins, Connectors, and Typed Extensions
 
@@ -24,8 +22,6 @@ Chapter 17 showed MCP as a runtime tool protocol: external servers are discovere
 These surfaces are related but not interchangeable. A skill is primarily a model-instruction and workflow unit. A plugin is a distribution package that can contain skills, MCP server definitions, hooks, and app connector IDs. A connector is hosted app metadata tied to account access. A typed extension is compiled into the process and contributes through explicit traits rather than through a dynamic plugin ABI.
 
 The architecture becomes readable when those planes stay separate.
-
-<DiagramFlow spec={extensionPlanes} lang="en" client:visible />
 
 The diagram is intentionally not a single pipeline. Extension loading is a set of converging planes that meet at thread construction, tool exposure, and runtime policy.
 

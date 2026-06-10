@@ -1,12 +1,4 @@
 import SubmissionFlowExplorer from "../../src/components/visual/SubmissionFlowExplorer.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import {
-  submissionLifecycle,
-  appServerPipeline,
-  eventToItemMapping,
-  partOneGates,
-} from "../../src/data/diagrams/codex-from-source/chapter-04";
 
 # Chapter 4: The Protocol Boundary
 
@@ -36,8 +28,6 @@ The core runtime protocol has a simple outer shape:
 
 This split lets the runtime behave like an evented kernel. Clients do not call private session methods directly. They submit operations and observe events. The runtime may queue, reject, transform, or serialize operations according to active state.
 
-<DiagramSequence spec={submissionLifecycle} lang="en" client:visible />
-
 The sequence is simplified, but the contract is accurate: the runtime is the only component that converts submitted intent into durable progress.
 
 ## Items Are Not Just Messages
@@ -64,13 +54,9 @@ The important word is "like." App-server is not a generic JSON-RPC server onto w
 | Resource serialization | Requests must be ordered by thread, path, process, account, or global state. |
 | Replay and rejoin | A reconnecting client needs committed history plus live updates without duplicates. |
 
-<DiagramFlow spec={appServerPipeline} lang="en" client:visible />
-
 The app-server boundary adds concerns that a local terminal UI can often hide: connection initialization, experimental capability negotiation, request serialization, backpressure, replay on rejoin, thread listeners, pending approvals, and derived status. Those are protocol concerns because clients may be separate processes with their own lifecycle.
 
 The mapping from core events to app-server items is the most important translation layer:
-
-<DiagramFlow spec={eventToItemMapping} lang="en" client:visible />
 
 A client should not reconstruct this projection by parsing terminal text. The server does that mapping once, exposes stable item and notification shapes, and keeps enough request ids and pending-request state to reconnect decisions to the turns they unblock.
 
@@ -125,8 +111,6 @@ The bounded-OS analogy helps here too. Operating systems carry compatibility for
 ## What Can Enter and Leave
 
 By the end of Part I, the architecture has four gates:
-
-<DiagramFlow spec={partOneGates} lang="en" client:visible />
 
 The runtime is powerful precisely because the boundary is narrow. A client can start or steer work, interrupt it, answer approval requests, provide dynamic tool outputs, refresh external state, or request thread lifecycle actions. A client can observe setup, streaming, tool activity, approval prompts, errors, completion, and reconstructed items. It cannot reach inside the session and mutate private state directly.
 
