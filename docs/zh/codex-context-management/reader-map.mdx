@@ -1,6 +1,3 @@
-import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
-import { threeReadingPaths } from "../../../src/data/diagrams/codex-context-management/reader-map";
-
 # 阅读地图
 
 > **阅读契约：** 先用本页选择阅读路径，再进入章节。阅读时分清哪些章节回答架构问题，哪些章节回答实现问题，哪些章节提供可迁移模式。
@@ -14,17 +11,7 @@ import { threeReadingPaths } from "../../../src/data/diagrams/codex-context-mana
 
 ## 三条阅读路径
 
-你可以用三种方式阅读本书。选择符合你目标的那一条：
-
-<DiagramAscii
-  lang="zh"
-  ascii={threeReadingPaths.ascii}
-  legend={threeReadingPaths.legend}
-  highlights={threeReadingPaths.highlights}
-  client:visible
-/>
-
-每条路径都坦白自己的取舍：概览跳过大多数实现密度，一小时内读完；深入是唯一通读全部小节的方式；模式搜寻是为另一个 runtime 提取可迁移设计动作的最快方式。
+你可以用三种方式阅读本书。每条路径都坦白自己的取舍：概览跳过大多数实现密度，一小时内读完；深入是唯一通读全部小节的方式；模式搜寻是为另一个 runtime 提取可迁移设计动作的最快方式。
 
 ## 给架构读者
 

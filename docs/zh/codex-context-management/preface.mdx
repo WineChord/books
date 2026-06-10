@@ -1,6 +1,3 @@
-import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
-import { chapterMap } from "../../../src/data/diagrams/codex-context-management/preface";
-
 # 前言
 
 > **阅读契约：** 先用本页锁住全书论点：context 是受治理的 runtime state，不是不断增长的 transcript。阅读后续章节时，把 ledger、envelope、fragments、optional planes、compaction 和 replay 六个 owner 分开看。
@@ -24,17 +21,7 @@ import { chapterMap } from "../../../src/data/diagrams/codex-context-management/
 
 ## 一张总览
 
-读任何章节之前，整个子系统可以先画成一张图。每个方框对应一章，按顺序排列：
-
-<DiagramAscii
-  lang="zh"
-  ascii={chapterMap.ascii}
-  legend={chapterMap.legend}
-  highlights={chapterMap.highlights}
-  client:visible
-/>
-
-按箭头方向阅读章节。每一章都默认前面的 owner 已经存在，专注自己的关注点。如果某章觉得脱节，回到这张图：每件事都在这层栈中有一个位置。
+读任何章节之前，先把整个子系统理解成一组顺序展开的 owner：runtime boundary、turn envelope、history ledger、typed fragments、optional budget、checkpoint、replay、client surfaces。每一章都默认前面的 owner 已经存在，专注自己的关注点；如果某章觉得脱节，就回到这个 owner 顺序里重新定位它。
 
 ## 本书覆盖的范围
 
@@ -58,6 +45,6 @@ import { chapterMap } from "../../../src/data/diagrams/codex-context-management/
 
 ## 如何使用本书
 
-技术负责人可以读每章开头、图示与"应用模式"，理解设计原理。资深工程师建议读完每一章，包括深入部分，因为真正的功课不是"摘要旧消息"，而是如何让一个可变 prompt projection 始终与持久证据绑定。
+技术负责人可以读每章开头、手绘图与"应用模式"，理解设计原理。资深工程师建议读完每一章，包括深入部分，因为真正的功课不是"摘要旧消息"，而是如何让一个可变 prompt projection 始终与持久证据绑定。
 
 每章末尾五条"应用模式"是可迁移的模式：如果你在设计新的 agent runtime，模式比具体字段名更重要；如果你在阅读 Codex 源码，章节叙事比模式更重要。

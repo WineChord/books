@@ -1,12 +1,4 @@
 import ClientFanoutMap from "../../../src/components/visual/ClientFanoutMap.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
-import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  tokenFanout,
-  replayAttribution,
-  compactionTraceStream,
-} from "../../../src/data/diagrams/codex-context-management/chapter-08";
 
 # 第 8 章：面向客户端的上下文
 
@@ -39,9 +31,6 @@ Codex 通过几个面暴露上下文。表很短但值得记住：
 ## Token Usage 是上下文面
 
 TUI token usage 模型把 input、cached input、output、reasoning output 和 total token 分开，再相对于经过 baseline 调整的上下文窗口计算剩余百分比。这个 baseline 是显示选择，不是 runtime 的唯一预算规则。Core runtime 仍然用模型信息和 token usage 触发 compaction。
-
-<DiagramFlow spec={tokenFanout} lang="zh" client:visible />
-
 同一份源事实喂给多个面。这就是 UI 不撒谎的原因。模式是"从一个事实 fan-out"，而不是"让每个消费者算自己的数字"。如果 TUI bar 与 compaction 阈值不一致，那是 bug，不是显示偏好。
 
 ## App-Server 回放
@@ -61,9 +50,7 @@ else:
 
 模式很微妙：客户端回放是"连接作用域"的，因为它向新观察者解释历史，而不是一次新的 runtime 事件。
 
-<DiagramSequence spec={replayAttribution} lang="zh" client:visible />
-
-图说明了为什么这次 replay 事件只发给附加的客户端：其他订阅者已经在事件实时发生时看过它，再发一次会被当成新模型动作，扰乱它们的状态。
+这个范围规则说明了为什么这次 replay 事件只发给附加的客户端：其他订阅者已经在事件实时发生时看过它，再发一次会被当成新模型动作，扰乱它们的状态。
 
 ## Realtime 是上下文, 不只是 transport
 
@@ -90,14 +77,6 @@ Realtime 状态出现在 settings update 逻辑中。Realtime 起止可以发出
   <img src="/books/codex-context-management/assets/semantic-trace-boundary.png" alt="Semantic trace boundary：compact input、checkpoint install、future sampling、trace reducers、runtime ledger 与 client surfaces 的分界" loading="lazy" decoding="async" />
   <figcaption>Trace 有价值，是因为它没有把 compact input、checkpoint install 与后续 sampling 混成一个模糊事件；每个阶段都可以单独审计。</figcaption>
 </figure>
-
-<DiagramAscii
-  lang="zh"
-  ascii={compactionTraceStream.ascii}
-  legend={compactionTraceStream.legend}
-  highlights={compactionTraceStream.highlights}
-  client:visible
-/>
 
 三阶段同处一条 trace：compact、install、sample。朴素 trace 会把它们折成一个"compaction 事件"，让单独审计每个阶段变得不可能。
 

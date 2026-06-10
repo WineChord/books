@@ -1,9 +1,4 @@
 import FragmentComposer from "../../src/components/visual/FragmentComposer.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import {
-  fragmentLanes,
-  settingsDiff,
-} from "../../src/data/diagrams/codex-context-management/chapter-04";
 
 # Chapter 4: Typed Fragments and Settings Diffs
 
@@ -52,8 +47,6 @@ The tag is human-readable on the model side and machine-recognizable on the runt
 
 The fragment layer is one of three rendering disciplines that meet at the prompt projection. The hand-drawn catalog and the table below split their responsibilities:
 
-<DiagramFlow spec={fragmentLanes} lang="en" client:visible />
-
 The three lanes prevent a common bug: runtime state being rendered through inconsistent code paths. Once a fragment exists, every subsystem that wants to inject the same fact uses the same renderer.
 
 <figure class="wc-article-figure">
@@ -81,8 +74,6 @@ The key is not that all of these become text. The key is that they become text t
 ## Settings Diffs
 
 `build_settings_update_items` compares a previous context item with the next turn context. It can emit a contextual user message for environment changes and a developer message for model instructions, permissions, collaboration mode, realtime state, and personality. Model-switch instructions are placed first so model-specific guidance frames the rest of the diff.
-
-<DiagramFlow spec={settingsDiff} lang="en" client:visible />
 
 The result is precise context churn. Codex avoids repeating everything when nothing changed, but it can still fully reinject after compaction or rollback by clearing the reference baseline.
 

@@ -1,11 +1,4 @@
 import ContextLifecycleExplorer from "../../src/components/visual/ContextLifecycleExplorer.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  projectionFlow,
-  ownerStack,
-  lifetimeAxis,
-} from "../../src/data/diagrams/codex-context-management/chapter-01";
 
 # Chapter 1: Context Is a Runtime Boundary
 
@@ -39,8 +32,6 @@ An agent context system has to answer five questions every turn:
 | What is replaceable? | Compacted history installed as a checkpoint with explicit replacement history. |
 
 That split matters because context changes at different speeds. The user prompt changes every turn. Environment metadata changes occasionally. Permission policy may change mid-thread. Skills may be explicitly mentioned for one turn. Tool outputs may be too large. Compaction may rewrite the old transcript entirely. One buffer cannot represent those lifetimes cleanly.
-
-<DiagramFlow spec={projectionFlow} lang="en" client:visible />
 
 The important arrow is not the one into the model. It is the loop back into the rollout and history ledger. Codex keeps enough evidence to later rebuild why a prompt looked the way it did.
 
@@ -89,14 +80,6 @@ The pattern matters because it makes prompt construction a repeatable runtime op
 
 The five owners form a layered stack. Each owner is responsible for one concern; the projection step reads from all of them.
 
-<DiagramAscii
-  lang="en"
-  ascii={ownerStack.ascii}
-  legend={ownerStack.legend}
-  highlights={ownerStack.highlights}
-  client:visible
-/>
-
 Read the opening figure top-down for prompt construction and bottom-up for replay. Both directions touch the same five owners; the difference is whether the ledger is being read or rebuilt.
 
 ## Context Has Multiple Lifetimes
@@ -113,17 +96,7 @@ Codex context is easier to reason about if you classify every piece by lifetime.
 
 The road not taken is a single "conversation messages" list. That is tempting because every model API eventually needs a list. Codex keeps the list as an output format, not as the core abstraction.
 
-The lifetimes can be plotted on a time axis showing when each value is materialized, mutated, and discarded:
-
-<DiagramAscii
-  lang="en"
-  ascii={lifetimeAxis.ascii}
-  legend={lifetimeAxis.legend}
-  highlights={lifetimeAxis.highlights}
-  client:visible
-/>
-
-The horizontal bars are not equal. A single session usually contains many turns; each turn produces a single prompt projection; checkpoints span ranges of turns; clients reattach over time. Reading code in this layout makes it clear why a single mutable buffer cannot represent every owner.
+The lifetimes are not equal. A single session usually contains many turns; each turn produces a single prompt projection; checkpoints span ranges of turns; clients reattach over time. Reading the code with that lifetime model in mind makes it clear why a single mutable buffer cannot represent every owner.
 
 ## Source-Level Map
 

@@ -1,11 +1,4 @@
 import ContextLifecycleExplorer from "../../../src/components/visual/ContextLifecycleExplorer.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  projectionFlow,
-  ownerStack,
-  lifetimeAxis,
-} from "../../../src/data/diagrams/codex-context-management/chapter-01";
 
 # 第 1 章：上下文是运行时边界
 
@@ -39,8 +32,6 @@ Codex 避开这个失败模式的方式，是把上下文做成 runtime 管理�
 | 什么是可替换的？ | 作为 checkpoint 安装的 compacted replacement history。 |
 
 这些内容变化速度不同。用户 prompt 每个 turn 都变；环境元信息偶尔变；权限策略可能在线程中间变；skill 可能只被某个 turn 显式提到；工具输出可能过大；compaction 可能重写旧 transcript。一个字符串缓冲区无法干净表达这些生命周期。
-
-<DiagramFlow spec={projectionFlow} lang="zh" client:visible />
 
 最重要的箭头不是进入模型的箭头，而是回到 rollout 和 history ledger 的箭头。Codex 保留足够证据，使得将来可以重建一个 prompt 为什么长成那样。
 
@@ -82,15 +73,7 @@ sendToModel(baseInstructions, promptInput, toolSpecs)
 
 ## Owner 全景图
 
-可以把五个 owner 画成一座分层的栈。每个 owner 只负责一件事；最上面的 projection 步骤从所有 owner 读取。
-
-<DiagramAscii
-  lang="zh"
-  ascii={ownerStack.ascii}
-  legend={ownerStack.legend}
-  highlights={ownerStack.highlights}
-  client:visible
-/>
+五个 owner 形成一座分层的栈。每个 owner 只负责一件事；最上面的 projection 步骤从所有 owner 读取。
 
 构造 prompt 时从上往下读，replay 时从下往上读。两个方向都经过同样的五个 owner，区别在于 ledger 是被读还是被重建。
 
@@ -106,17 +89,7 @@ sendToModel(baseInstructions, promptInput, toolSpecs)
 
 没有选择的道路是单一 conversation message list。Codex 把 message list 当输出格式，而不是核心抽象。
 
-把这些生命周期画在时间轴上，可以看清每个值什么时候被生成、修改、丢弃：
-
-<DiagramAscii
-  lang="zh"
-  ascii={lifetimeAxis.ascii}
-  legend={lifetimeAxis.legend}
-  highlights={lifetimeAxis.highlights}
-  client:visible
-/>
-
-横向条长短不一：一个 session 通常包含很多 turn；每个 turn 产生一个 prompt projection；checkpoint 跨越一段 turn；客户端会在不同时间重新接入。这种排版让人一眼看出，单一可变缓冲区无法表达每一个 owner。
+这些生命周期的跨度不同：一个 session 通常包含很多 turn；每个 turn 产生一个 prompt projection；checkpoint 跨越一段 turn；客户端会在不同时间重新接入。跨度差异越大，越能看出单一可变缓冲区无法表达每一个 owner。
 
 ## 源码层映射
 

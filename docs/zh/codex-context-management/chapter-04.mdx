@@ -1,9 +1,4 @@
 import FragmentComposer from "../../../src/components/visual/FragmentComposer.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import {
-  fragmentLanes,
-  settingsDiff,
-} from "../../../src/data/diagrams/codex-context-management/chapter-04";
 
 # 第 4 章：类型化片段与设置 Diff
 
@@ -50,9 +45,7 @@ Marker 尤其重要：它们让过滤与 replay 逻辑能识别注入的上下�
 
 ## Fragment 栈在哪一层
 
-Fragment 层是 prompt projection 处汇合的三种渲染纪律之一。下图展示它们各自的职责：
-
-<DiagramFlow spec={fragmentLanes} lang="zh" client:visible />
+Fragment 层是 prompt projection 处汇合的三种渲染纪律之一：历史账本保留对话证据，turn envelope 提供当前运行时事实，typed fragments 负责把可识别的事实渲染成模型可见消息。
 
 三条泳道避免了一个常见 bug：运行时状态被走多条不一致的代码路径渲染。一旦有了 fragment，任何想注入相同事实的子系统都会复用同一个 renderer。
 
@@ -81,8 +74,6 @@ Context 模块导出针对 environment context、permissions、collaboration mod
 ## Settings Diffs
 
 `build_settings_update_items` 把上一份 context item 与下一次 turn context 比较。它可以为环境变化发出一条 contextual user message，为模型 instructions、权限、协作模式、realtime 状态、人格发出 developer message。Model-switch instructions 排在最前，让模型相关指引为后面的 diff 立框架。
-
-<DiagramFlow spec={settingsDiff} lang="zh" client:visible />
 
 结果是精确的上下文 churn：不变化时 Codex 不重复整段，但在 compaction 或 rollback 后清掉 reference baseline，仍然可以完整重新注入。
 

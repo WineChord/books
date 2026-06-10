@@ -1,12 +1,4 @@
 import ResolutionOrderTimeline from "../../../src/components/visual/ResolutionOrderTimeline.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../../src/components/visual/diagrams/DiagramSequence.tsx";
-import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  envelopeGroups,
-  envelopeFlow,
-  modelSwitchSequence,
-} from "../../../src/data/diagrams/codex-context-management/chapter-02";
 
 # 第 2 章：TurnContext：包住一次 Turn 的信封
 
@@ -33,19 +25,9 @@ Codex 把这个信封叫做 `TurnContext`。这个名字很精确：它不是整
 
 这一长串不是参考噪声，而是表达了一种设计立场：上下文不是"模型应该看到什么文字？"，而是"这次模型获准在哪种运行时契约下行动？"
 
-按语义这些字段可以分成七组。把它们画成一个 struct 是观察信封密度最直观的方式：
-
-<DiagramAscii
-  lang="zh"
-  ascii={envelopeGroups.ascii}
-  legend={envelopeGroups.legend}
-  highlights={envelopeGroups.highlights}
-  client:visible
-/>
+按语义这些字段可以分成七组；开篇手绘图把它们压缩成同一份 turn 契约，下面的正文则展开每组字段服务的消费者。
 
 字段分组不是随意的，每一组喂给一类不同的消费者：identity 决定模型行为，workspace 定义文件与 shell 的世界，instructions 变成消息文字，policy 控制哪些能力允许，capabilities 决定模型看到哪些 tools，modes 改变交互契约，telemetry 喂给 trace 和 rollout。
-
-<DiagramFlow spec={envelopeFlow} lang="zh" client:visible />
 
 信封刻意比 prompt 范围更宽：有些字段会变成文字、有些字段决定 tools、有些字段决定 sandbox 行为、有些字段只影响 telemetry。把它们放在一起避免了 agent 中常见的 bug：模型看到一套指令，executor 却执行另一套。
 
@@ -94,10 +76,7 @@ if currentUsage >= autoCompactLimit:
 Codex 把模型切换当作上下文事件，而不是一次配置赋值。一次 turn 切换模型时，turn envelope 重新计算模型信息、支持的 reasoning 等级、默认 reasoning 行为、tools 能力、图像生成能力、web search 能力、协作模式指引。之后 settings update 逻辑会先注入 model-switch 指令，让模型在收到其他 diff 之前先看到模型相关的指引。
 
 这点在长线程中很重要。之前的历史可能在更大的窗口或不同模型行为下产生。Codex 有一条采样前路径，可以在切换之前用旧模型先做一次 compaction，再以更小窗口继续。这是一个微妙但关键的选择：在旧模型还能读懂旧 context 时压缩，再让新模型继续。
-
-<DiagramSequence spec={modelSwitchSequence} lang="zh" client:visible />
-
-这条序列说明"改字段然后继续"是不完整的。朴素切换会丢掉旧模型在历史里携带的指引；Codex 通过在新模型接管*之前*而不是之后做 compaction，保住连续性。
+这也说明"改字段然后继续"是不完整的。朴素切换会丢掉旧模型在历史里携带的指引；Codex 通过在新模型接管*之前*而不是之后做 compaction，保住连续性。
 
 ## 它是运行时契约，不是参数袋
 

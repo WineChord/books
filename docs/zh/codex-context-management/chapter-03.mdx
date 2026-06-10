@@ -1,14 +1,4 @@
 import HistoryLedgerAnimator from "../../../src/components/visual/HistoryLedgerAnimator.tsx";
-import DiagramFlow from "../../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramState from "../../../src/components/visual/diagrams/DiagramState.tsx";
-import DiagramAscii from "../../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  ledgerShape,
-  ledgerLifecycle,
-  truncationFunnel,
-  normalizationFlow,
-  rollbackExample,
-} from "../../../src/data/diagrams/codex-context-management/chapter-03";
 
 # 第 3 章：ContextManager：把历史变成可提示状态
 
@@ -42,21 +32,9 @@ import {
 
 让人意外的字段是 reference context item。它说明历史不只是过去的对话，还是下一次 turn 决定要重新引入哪些运行时事实的 baseline。当 compaction 或 rollback 让这个 baseline 失效时，Codex 清除它，回退到完整重新注入。
 
-用 ASCII 把四个字段画在一起，更容易记住整体形状：
+这个四字段结构很容易记住，但第四个字段会改变整个对象的含义：四个字段中三个看起来普通，reference baseline 却让账本不再只是一个 vector。它是第 2 章 envelope 与第 4 章 diff fragments 之间的链接。
 
-<DiagramAscii
-  lang="zh"
-  ascii={ledgerShape.ascii}
-  legend={ledgerShape.legend}
-  highlights={ledgerShape.highlights}
-  client:visible
-/>
-
-四个字段中三个看起来普通，但 reference baseline 让账本不再只是一个 vector。它是第 2 章 envelope 与第 4 章 diff fragments 之间的链接。
-
-<DiagramState spec={ledgerLifecycle} lang="zh" client:visible />
-
-这是概念状态机。代码主要是 clone 与 mutate，但生命周期是真的：先记录足够原始的 items，再根据目标模型 normalize，再记录新证据。
+账本生命周期在代码里主要表现为 clone 与 mutate，但语义上很清楚：先记录足够原始的 items，再根据目标模型 normalize，再记录新证据。
 
 ## 记录是经过过滤的
 
@@ -77,25 +55,13 @@ for item in incomingItems:
 
 这个抽象正确地把策略塑形过的证据写入历史，而不是 raw side effect。Raw side effect 仍可能在 rollout 或 UI 中存在，但模型可见账本保持有界。
 
-Truncation policy 本身是一个由当前输出上限驱动的小型状态机。可以把它画成漏斗：
-
-<DiagramAscii
-  lang="zh"
-  ascii={truncationFunnel.ascii}
-  legend={truncationFunnel.legend}
-  highlights={truncationFunnel.highlights}
-  client:visible
-/>
-
-这条漏斗也是后面章节能讨论"tool output 作为有预算的平面"的原因。Tool output 通过单一漏斗进入历史，而不是被每个调用点临时截断。
+Truncation policy 本身是一个由当前输出上限驱动的小型状态机。它也是后面章节能讨论"tool output 作为有预算的平面"的原因：Tool output 通过单一策略入口进入历史，而不是被每个调用点临时截断。
 
 ## Normalization 保护不变量
 
 Function call 与 function output 是配对的。删除其中一方不删另一方，会让 prompt 形状被模型 API 拒绝或误解。历史 manager 在丢弃最旧或最新 items 时把配对删除委托给 normalization helper。这是 `remove_first_item` 在需要时也会移除对应方的原因。
 
 同样的思想出现在采样前。`for_prompt` 克隆 manager、做 normalization，再剥离不适合当前模型模态的 items。如果模型不支持图片，message 与 tool output 中的图片内容会被移除。原始账本仍能保留更丰富的历史，prompt projection 则尊重当前模型契约。
-
-<DiagramFlow spec={normalizationFlow} lang="zh" client:visible />
 
 权衡很明显：Codex 选择对每个 provider 都安全的 prompt 形状，而不是最大保真度。如果某个 item 在当前模型下无法安全表示，是 projection 改变，而不是账本被破坏。
 
@@ -120,17 +86,7 @@ Rollback 才让账本证明自己不只是 vector。删除最近 N 个用户 tur
 
 最后这条行为很微妙。如果 Codex 继续 diff 一个其源文本已被移除的 baseline，未来的 turn 就可能省略关键上下文。清空 baseline 让下一次常规 turn 完整重新注入 context，而不是信任过期的 diff。
 
-一个小例子让这个选择更清楚：
-
-<DiagramAscii
-  lang="zh"
-  ascii={rollbackExample.ascii}
-  legend={rollbackExample.legend}
-  highlights={rollbackExample.highlights}
-  client:visible
-/>
-
-第一种情况是 happy path；第三种情况避免了无声 context 漂移。规则故意保守：拿不准就重新注入。
+这条规则故意保守：拿不准就重新注入。它牺牲少量 token，换来不会在 baseline 已经失效时继续生成不完整 diff。
 
 ## 应用模式
 

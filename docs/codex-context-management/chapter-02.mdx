@@ -1,12 +1,4 @@
 import ResolutionOrderTimeline from "../../src/components/visual/ResolutionOrderTimeline.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  envelopeGroups,
-  envelopeFlow,
-  modelSwitchSequence,
-} from "../../src/data/diagrams/codex-context-management/chapter-02";
 
 # Chapter 2: TurnContext: The Envelope Around a Turn
 
@@ -33,19 +25,9 @@ By the end of this chapter, you should understand why Codex centralizes turn fac
 
 That list is not reference noise. It reveals a design position: context is not only "what text should the model see?" Context is "under which runtime contract is this model allowed to act?"
 
-The fields cluster into seven semantic groups. Drawing them as a single struct is the most compact way to see how dense one envelope really is:
-
-<DiagramAscii
-  lang="en"
-  ascii={envelopeGroups.ascii}
-  legend={envelopeGroups.legend}
-  highlights={envelopeGroups.highlights}
-  client:visible
-/>
+The fields cluster into seven semantic groups. The opening figure compresses them into one turn contract; the prose below names what each group controls.
 
 The field groups are not arbitrary. Each one feeds a different consumer. Identity selects model behavior. Workspace defines the universe of files and shells. Instructions become message text. Policy gates which capabilities are allowed. Capabilities define what tools the model sees. Modes change interaction contract. Telemetry feeds the trace and rollout.
-
-<DiagramFlow spec={envelopeFlow} lang="en" client:visible />
 
 The envelope is intentionally broader than the prompt. Some fields become text. Some fields choose tools. Some fields choose sandbox behavior. Some fields only affect telemetry. Keeping them together prevents a common agent bug: the model sees one set of instructions while the executor enforces another.
 
@@ -95,9 +77,7 @@ Codex treats model switching as a context event, not just a config assignment. W
 
 This matters in a long thread. The previous history may have been produced under a larger window or different model behavior. Codex has a pre-sampling path that can compact against the previous model before continuing under a smaller window. That is a subtle but important choice: compact while the old model can still read the old context, then continue with the new model.
 
-<DiagramSequence spec={modelSwitchSequence} lang="en" client:visible />
-
-The sequence shows why "switch the field and continue" is incomplete. A naive switch would discard whatever guidance the previous model carried in its history. Codex preserves continuity by compacting *before* the new model takes over, not after.
+The model-switch path shows why "switch the field and continue" is incomplete. A naive switch would discard whatever guidance the previous model carried in its history. Codex preserves continuity by compacting *before* the new model takes over, not after.
 
 ## Runtime Contract, Not Parameter Bag
 

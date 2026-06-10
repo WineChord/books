@@ -1,12 +1,4 @@
 import BudgetSimulator from "../../src/components/visual/BudgetSimulator.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  optionalContextSelection,
-  windowSlicing,
-  skillBreadthVsDepth,
-  toolOutputPolicy,
-} from "../../src/data/diagrams/codex-context-management/chapter-05";
 
 # Chapter 5: Budgeting Optional Context
 
@@ -42,21 +34,11 @@ Codex has several optional context planes:
 
 The common pattern is "select, budget, then inject." Optional context never gets to assume the whole window is available.
 
-<DiagramFlow spec={optionalContextSelection} lang="en" client:visible />
-
 Warnings are part of the design. If Codex shortens skill descriptions or omits some skill metadata, the user-visible runtime can explain that the model saw a reduced capability list. Silent omission would be cheaper but harder to debug.
 
 ## How the Window Is Sliced
 
-The effective context window is shared between several consumers. A rough allocation model keeps the relationships visible. Numbers are illustrative and shift with model and configuration:
-
-<DiagramAscii
-  lang="en"
-  ascii={windowSlicing.ascii}
-  legend={windowSlicing.legend}
-  highlights={windowSlicing.highlights}
-  client:visible
-/>
+The effective context window is shared between several consumers. A rough allocation model keeps the relationships visible: required history and current task context come first, optional planes compete for a bounded middle slice, and the answer keeps a reserved tail. Exact numbers shift with model and configuration.
 
 The reserved tail on the right is what makes optional planes really optional. If the model has no room left to answer, every clever skill description was wasted. Budgeting respects that asymmetry: the answer always wins.
 
@@ -80,15 +62,7 @@ emitWarnings(rendered.report)
 
 The transferable idea is not the exact percentage. It is that optional capability discovery has a budget owner and emits diagnostics.
 
-A small ASCII illustration of the breadth-before-depth strategy:
-
-<DiagramAscii
-  lang="en"
-  ascii={skillBreadthVsDepth.ascii}
-  legend={skillBreadthVsDepth.legend}
-  highlights={skillBreadthVsDepth.highlights}
-  client:visible
-/>
+A useful way to remember the breadth-before-depth strategy is: shorten every skill first, then omit only when the shared budget is still exhausted.
 
 ## Hooks and Memory Are Side Channels
 
@@ -113,9 +87,7 @@ Tool output is optional in a different sense: the observation may be necessary f
 
 That is a better failure mode than treating tool output as raw transcript text. The output has a protocol identity, so Codex can reason about it.
 
-<DiagramFlow spec={toolOutputPolicy} lang="en" client:visible />
-
-The diagram is dense on purpose. The simplest-looking arrow, "tool output --> history," is actually four different cases under the hood. Naming them is half the design.
+The simplest-looking edge, "tool output --> history," is actually four different cases under the hood. Naming them is half the design.
 
 ## Apply This
 

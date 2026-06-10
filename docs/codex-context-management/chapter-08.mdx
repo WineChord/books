@@ -1,12 +1,4 @@
 import ClientFanoutMap from "../../src/components/visual/ClientFanoutMap.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  tokenFanout,
-  replayAttribution,
-  compactionTraceStream,
-} from "../../src/data/diagrams/codex-context-management/chapter-08";
 
 # Chapter 8: Client-Facing Context
 
@@ -40,8 +32,6 @@ The right column is the part that matters. Each surface has a precise way it fai
 
 The TUI token usage model separates input, cached input, output, reasoning output, and total tokens. It also computes a remaining percentage against a baseline-adjusted context window. That baseline is a display choice, not the runtime's only budget rule. The core runtime still uses model info and token usage to trigger compaction.
 
-<DiagramFlow spec={tokenFanout} lang="en" client:visible />
-
 The same source fact feeds multiple surfaces. That is what keeps the UI honest. The pattern is "fan-out from one fact" rather than "let each consumer compute its own number." If the TUI bar disagrees with compaction's threshold, that is a bug, not just a display preference.
 
 ## App-Server Replay
@@ -61,9 +51,7 @@ else:
 
 The pattern is subtle: client replay is connection-scoped because it explains history to a new observer; it is not a new runtime event.
 
-<DiagramSequence spec={replayAttribution} lang="en" client:visible />
-
-The diagram shows why the replay event is delivered only to the attaching client. Other subscribers already saw the original event when it was live; sending it again would look like a new model action and confuse their state.
+This is why the replay event is delivered only to the attaching client. Other subscribers already saw the original event when it was live; sending it again would look like a new model action and confuse their state.
 
 ## Realtime Is Context, Not Just Transport
 
@@ -85,14 +73,6 @@ The correct treatment crosses a layer boundary. A piece of client metadata becom
 Remote compaction records an installed checkpoint payload containing input history and replacement history. That trace boundary is different from the later inference request. The distinction lets reducers and debuggers represent exactly what happened: the provider compacted one history, Codex installed another live history, and future sampling used the updated prompt projection.
 
 Good observability does not just count tokens. It preserves semantic boundaries.
-
-<DiagramAscii
-  lang="en"
-  ascii={compactionTraceStream.ascii}
-  legend={compactionTraceStream.legend}
-  highlights={compactionTraceStream.highlights}
-  client:visible
-/>
 
 <figure class="wc-article-figure">
   <img src="/books/codex-context-management/assets/semantic-trace-boundary.png" alt="Semantic trace boundary separating compact input, checkpoint installation, future sampling, trace reducers, runtime ledger, and client surfaces" loading="lazy" decoding="async" />

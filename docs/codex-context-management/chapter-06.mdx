@@ -1,13 +1,4 @@
 import CompactionSimulator from "../../src/components/visual/CompactionSimulator.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramSequence from "../../src/components/visual/diagrams/DiagramSequence.tsx";
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  compactionHookFlow,
-  compactionBeforeAfter,
-  remoteCompactionFlow,
-  summaryOnlyVsReplacement,
-} from "../../src/data/diagrams/codex-context-management/chapter-06";
 
 # Chapter 6: Compaction as a Checkpoint Protocol
 
@@ -34,8 +25,6 @@ Compaction can happen manually, before sampling, or mid-turn after a sampling re
 
 This distinction is the heart of the protocol. Compaction is not only "smaller history." It is smaller history placed in a model-compatible order.
 
-<DiagramSequence spec={compactionHookFlow} lang="en" client:visible />
-
 Hooks wrap compaction because compaction is a side effect on the thread's semantic state. External policy may need to block or observe it.
 
 <figure class="wc-article-figure">
@@ -46,14 +35,6 @@ Hooks wrap compaction because compaction is a side effect on the thread's semant
 ## Before and After
 
 The clearest way to understand compaction is to compare history before and after. The key invariant is chronological grouping: user messages, tool calls, observations, summaries, and injected context keep their protocol identity even when old material is replaced.
-
-<DiagramAscii
-  lang="en"
-  ascii={compactionBeforeAfter.ascii}
-  legend={compactionBeforeAfter.legend}
-  highlights={compactionBeforeAfter.highlights}
-  client:visible
-/>
 
 Notice how the mid-turn variant re-injects `initial_ctx` because the continuation that follows still needs runtime facts. The pre-turn variant clears the baseline so the *next* regular turn rebuilds the bundle from scratch.
 
@@ -90,8 +71,6 @@ Remote compaction uses a provider compact endpoint when available. It trims func
 
 Remote compaction is not just an optimization. It gives the provider a first- class conversation-history compaction path while Codex still owns the semantic install boundary. The endpoint may produce compacted history, but Codex decides which items survive and where canonical context goes.
 
-<DiagramFlow spec={remoteCompactionFlow} lang="en" client:visible />
-
 The ownership line is the contract: the provider may produce compacted material, but Codex filters it, places it, records it, and installs it as runtime state.
 
 ## Local vs Remote at a Glance
@@ -112,14 +91,6 @@ Both strategies emit the same kind of event downstream: an installed checkpoint 
 A summary is prose. Replacement history is protocol state. The difference is huge. Replacement history can preserve user-message boundaries, compaction item placement, and current context insertion. It gives rollout reconstruction a concrete base. Summary text alone would force resume code to reinterpret old events every time.
 
 A small "summary-only" failure illustrates the trap: a summary can remember themes, but it cannot by itself preserve user-message boundaries, tool-call pairing, or insertion points for current context.
-
-<DiagramAscii
-  lang="en"
-  ascii={summaryOnlyVsReplacement.ascii}
-  legend={summaryOnlyVsReplacement.legend}
-  highlights={summaryOnlyVsReplacement.highlights}
-  client:visible
-/>
 
 Codex still carries summary text, but the checkpoint is the real abstraction.
 

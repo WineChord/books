@@ -1,12 +1,4 @@
 import RolloutReplayScrubber from "../../src/components/visual/RolloutReplayScrubber.tsx";
-import DiagramFlow from "../../src/components/visual/diagrams/DiagramFlow.tsx";
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import {
-  reconstructionOutputs,
-  rolloutLayoutScan,
-  forkBoundaries,
-  legacyCompactionTree,
-} from "../../src/data/diagrams/codex-context-management/chapter-07";
 
 # Chapter 7: Resume, Rollback, Fork, and Replay
 
@@ -39,21 +31,11 @@ Reconstruction returns three things:
 
 The last two outputs are easy to miss. Resume is not just "load messages." It must also recover the context baseline used by the diff system from Chapter 4. If compaction cleared that baseline, resume must preserve the clearing.
 
-<DiagramFlow spec={reconstructionOutputs} lang="en" client:visible />
-
 The reverse scan is efficient because old rollout items become irrelevant once a newer surviving replacement-history checkpoint and needed metadata are known.
 
 ## Reading the Rollout Layout
 
-A rollout is an append-only log of structured items. Picture a section of one:
-
-<DiagramAscii
-  lang="en"
-  ascii={rolloutLayoutScan.ascii}
-  legend={rolloutLayoutScan.legend}
-  highlights={rolloutLayoutScan.highlights}
-  client:visible
-/>
+A rollout is an append-only log of structured items. A typical section contains initial context, user turns, assistant turns, tool observations, checkpoints, rollback markers, and fork boundaries.
 
 The scan walks right to left and short-circuits at the latest surviving checkpoint. In this example that is `CP` between `u3` and `u4`, so older items (`i_c`, `u1`, `a1`, `t1`, `u2`, `a2`) become irrelevant for the rebuilt history. The rollback marker `RB` is interpreted while scanning.
 
@@ -131,15 +113,7 @@ return suffixStartingAtNthBoundaryFromEnd()
 
 The pattern matters outside multi-agent systems too. If your runtime has more than one way to start work, your context truncation must understand all of them.
 
-A small picture clarifies what counts as a fork boundary:
-
-<DiagramAscii
-  lang="en"
-  ascii={forkBoundaries.ascii}
-  legend={forkBoundaries.legend}
-  highlights={forkBoundaries.highlights}
-  client:visible
-/>
+The boundary rule is concise:
 
 `AGENT_ENVELOPE` is an assistant message that triggered a child agent turn. It is treated as a boundary because the suffix starting there is its own unit of work. A user message is also a boundary, but it is not the only kind.
 
@@ -149,15 +123,7 @@ The reconstruction code still handles legacy compaction records without replacem
 
 This is also why the source distinguishes durable rollout evidence from live history. The live history can improve over time, while rollout replay preserves compatibility with older records.
 
-The legacy decision tree is small but worth seeing:
-
-<DiagramAscii
-  lang="en"
-  ascii={legacyCompactionTree.ascii}
-  legend={legacyCompactionTree.legend}
-  highlights={legacyCompactionTree.highlights}
-  client:visible
-/>
+The legacy decision rule is small but worth naming:
 
 The branch never silently produces an inferior prompt; the shape difference is explicit, recorded, and visible to telemetry.
 
