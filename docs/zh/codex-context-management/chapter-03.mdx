@@ -16,6 +16,11 @@ import {
 
 > **阅读契约：** 把本章当作 history ledger 的流向图。阅读时跟住 items 如何记录、归一化、裁剪并交给 provider，同时不破坏 replay 需要的协议形状。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/history-ledger-normalization.png" alt="History ledger 从结构化证据记录、输出裁剪、provider 不变量归一化，到模型可用 prompt view 的流程" loading="eager" decoding="async" />
+  <figcaption>账本先记录结构化证据，再派生 provider-safe prompt view；rollback 与 compaction 可以清除过期 baseline，而不污染持久记录。</figcaption>
+</figure>
+
 第 2 章描述了 turn envelope。下一个问题在持久侧：一个 thread 累积的所有模型可见 items 该如何处理？Codex 不把历史当作不透明 transcript，而是用 `ContextManager` 作为 response items 的账本，按从旧到新排序，附带 token 信息、history 版本号，以及未来设置 diff 的 reference context baseline。
 
 历史账本看似简单，实则做了不少事：只记录属于 API 历史的 items、对大型输出执行 truncation policy、保留 function-call 配对不变量、采样前剥离不支持的模态、估算 token 使用量、以及在 compaction 或 rollback 中能被替换。

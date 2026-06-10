@@ -50,11 +50,16 @@ The tag is human-readable on the model side and machine-recognizable on the runt
 
 ## Where the Fragment Stack Sits
 
-The fragment layer is one of three rendering disciplines that meet at the prompt projection. The diagram shows their distinct responsibilities:
+The fragment layer is one of three rendering disciplines that meet at the prompt projection. The hand-drawn catalog and the table below split their responsibilities:
 
 <DiagramFlow spec={fragmentLanes} lang="en" client:visible />
 
 The three lanes prevent a common bug: runtime state being rendered through inconsistent code paths. Once a fragment exists, every subsystem that wants to inject the same fact uses the same renderer.
+
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/typed-fragment-catalog-board.png" alt="Typed fragment catalog board showing initial context, settings diff, and ContextualUserFragment families" loading="lazy" decoding="async" />
+  <figcaption>The fragment catalog is an architecture inventory: each family has one renderer, one recognition shape when needed, and one path into model-visible context.</figcaption>
+</figure>
 
 ## The Fragment Catalog
 

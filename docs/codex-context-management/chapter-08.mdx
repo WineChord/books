@@ -94,6 +94,11 @@ Good observability does not just count tokens. It preserves semantic boundaries.
   client:visible
 />
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/semantic-trace-boundary.png" alt="Semantic trace boundary separating compact input, checkpoint installation, future sampling, trace reducers, runtime ledger, and client surfaces" loading="lazy" decoding="async" />
+  <figcaption>The trace is valuable because it does not collapse compact input, checkpoint installation, and later sampling into one vague event; each phase remains auditable.</figcaption>
+</figure>
+
 Three phases live in the same trace stream: compact, install, sample. A naive trace would collapse them into one "compaction event" and lose the ability to audit each phase separately.
 
 ## Apply This

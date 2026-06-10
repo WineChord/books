@@ -56,6 +56,11 @@ Fragment 层是 prompt projection 处汇合的三种渲染纪律之一。下图�
 
 三条泳道避免了一个常见 bug：运行时状态被走多条不一致的代码路径渲染。一旦有了 fragment，任何想注入相同事实的子系统都会复用同一个 renderer。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/typed-fragment-catalog-board.png" alt="Typed fragment catalog：initial context、settings diff 与 ContextualUserFragment 家族的架构清单" loading="lazy" decoding="async" />
+  <figcaption>Fragment 目录是一份架构清单：每个 context family 有一个 renderer，必要时有一个可识别形状，并通过同一条路径进入模型可见上下文。</figcaption>
+</figure>
+
 ## Fragment 目录
 
 Context 模块导出针对 environment context、permissions、collaboration mode、model switch instructions、realtime start/end、personality、skills、plugins、apps、hooks、user instructions、saved network rules、approved command prefixes、subagent notifications、turn-aborted messages 的 fragments。

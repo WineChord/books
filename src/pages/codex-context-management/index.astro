@@ -2,7 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Header from "../../components/Header.astro";
 import { codexContextManagementBook, sourceCommit } from "../../book.config";
-import { pageUrl } from "../../urls";
+import { assetUrl, pageUrl } from "../../urls";
 
 const base = import.meta.env.BASE_URL;
 const book = codexContextManagementBook;
@@ -41,11 +41,18 @@ const book = codexContextManagementBook;
           </a>
         </div>
       </div>
-      <div class="book-cover" aria-label={`${book.title} cover`}>
-        <div class="book-cover__kicker">{book.coverKicker}</div>
-        <div class="book-cover__title" set:html={book.coverTitle} />
-        <div class="book-cover__footer">{book.coverFooter}</div>
-      </div>
+      <figure class="wc-article-figure m-0" aria-label={`${book.title} cover figure`}>
+        <img
+          src={assetUrl(base, `${book.slug}/assets/cover-codex-context-management.png`)}
+          alt="Codex context management as a pipeline from ledger, turn envelope, and fragments to projection, clients, compaction, and replay"
+          loading="eager"
+          decoding="async"
+        />
+        <figcaption>
+          Codex keeps context coherent by separating the durable ledger, turn envelope,
+          typed fragments, model projection, client views, compaction, and replay.
+        </figcaption>
+      </figure>
     </section>
 
     <section class="mb-16 grid grid-cols-1 gap-3 md:grid-cols-4" aria-label="Reading route">

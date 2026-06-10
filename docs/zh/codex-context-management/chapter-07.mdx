@@ -22,6 +22,11 @@ import {
 
 <div class="source-equivalence"> 本章对应 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L4">RolloutReconstruction</a>、 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">逆向重建</a>、 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L250">遗留 compaction 处理</a>、 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L26">user-turn rollout 位置</a>，以及 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L57">fork-turn 位置</a>。 </div>
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/rollout-reconstruction-boundaries.png" alt="Rollout reconstruction 逆向扫描 checkpoint、rollback marker、agent envelope、user turn 与 assistant turn 的边界" loading="lazy" decoding="async" />
+  <figcaption>Resume 与 fork 都是投影问题：raw rollout 仍保持 append-only，重建过程选择最新存活 checkpoint、应用 rollback marker，并尊重 agent 触发的边界。</figcaption>
+</figure>
+
 ## 重建的三个输出
 
 重建返回三件东西：

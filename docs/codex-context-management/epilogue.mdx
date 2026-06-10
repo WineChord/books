@@ -18,43 +18,10 @@ The pattern transfers well:
 
 If you only memorise one diagram from this book, make it this one. It collapses the eight chapters into one read:
 
-```text
-                +------------------------------+
-                |        TurnContext           |   <- ch.2 envelope
-                +------+----------+------------+
-                       |          |
-                       v          v
-   +--------------+  fragments  +-----------+
-   | History      |<-- diffs --->| Optional |   <- ch.3, ch.4, ch.5
-   | ledger       |             | planes    |
-   +------+-------+             +-----+-----+
-          |                           |
-          +------------+--------------+
-                       v
-              +-----------------+
-              | Prompt projection|              <- ch.1 boundary
-              +--------+--------+
-                       |
-                       v
-                  Model request
-                       |
-                       v
-              +-----------------+
-              | New items + log |
-              +--------+--------+
-                       |
-        +--------------+--------------+
-        v                             v
-  +-----------+                +--------------+
-  | Compaction|                | Rollout      |   <- ch.6, ch.7
-  | checkpoint|                | reconstruction|
-  +-----------+                +------+-------+
-                                      |
-                                      v
-                               +--------------+
-                               | Client view  |   <- ch.8
-                               +--------------+
-```
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/context-discipline-route-map.png" alt="Context discipline route map connecting envelope, ledger, fragments, budgets, projection, checkpoint, replay, and client view" loading="eager" decoding="async" />
+  <figcaption>Forward through the map, Codex builds a model view for one turn. Backward through the map, Codex reconstructs effective state from checkpoints, rollout evidence, and client-facing projections.</figcaption>
+</figure>
 
 Read top to bottom for a turn going forward. Read bottom to top for resume, rollback, and replay. Both directions touch every owner; the difference is whether the ledger is being read or rebuilt.
 

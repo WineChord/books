@@ -4,6 +4,11 @@
 
 所有链接都固定到公开 Codex 源码 commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。 本页用于审计；正文应当可以独立阅读。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/context-source-atlas-evidence-ladder.png" alt="Source atlas evidence ladder：从正文 claim 到 source map、pinned GitHub line 与 audit result" loading="eager" decoding="async" />
+  <figcaption>本页应该在正文 claim 已经清楚之后使用：源码索引把一条叙事论断落到 subsystem owner，再落到固定 commit 的行级锚点，用于确认或修正文稿。</figcaption>
+</figure>
+
 ## 上下文边界
 
 - Context manager fields and ledger:

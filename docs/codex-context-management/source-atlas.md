@@ -4,6 +4,11 @@
 
 All links point to public Codex source pinned at [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). The book should stand on its own; this page is for audit.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/context-source-atlas-evidence-ladder.png" alt="Source atlas evidence ladder from narrative claim to source map, pinned GitHub line, and audit result" loading="eager" decoding="async" />
+  <figcaption>Use this page after the prose has already made a claim: the atlas turns a narrative statement into a subsystem owner, then into a pinned line anchor that can confirm or correct the book.</figcaption>
+</figure>
+
 ## Context Boundary
 
 - Context manager fields and ledger:

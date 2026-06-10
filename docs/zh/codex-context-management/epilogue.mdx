@@ -18,43 +18,10 @@
 
 如果你只记住本书一张图，让它是这一张。它把 8 章压缩成一次阅读：
 
-```text
-                +------------------------------+
-                |        TurnContext           |   <- 第 2 章 envelope
-                +------+----------+------------+
-                       |          |
-                       v          v
-   +--------------+  fragments  +-----------+
-   | History      |<-- diffs --->| Optional |    <- 第 3, 4, 5 章
-   | ledger       |             | planes    |
-   +------+-------+             +-----+-----+
-          |                           |
-          +------------+--------------+
-                       v
-              +-----------------+
-              | Prompt projection|              <- 第 1 章 边界
-              +--------+--------+
-                       |
-                       v
-                  Model request
-                       |
-                       v
-              +-----------------+
-              | New items + log |
-              +--------+--------+
-                       |
-        +--------------+--------------+
-        v                             v
-  +-----------+                +--------------+
-  | Compaction|                | Rollout      |   <- 第 6, 7 章
-  | checkpoint|                | reconstruction|
-  +-----------+                +------+-------+
-                                      |
-                                      v
-                               +--------------+
-                               | 客户端 view  |   <- 第 8 章
-                               +--------------+
-```
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/context-discipline-route-map.png" alt="Context discipline route map：envelope、ledger、fragments、budgets、projection、checkpoint、replay 与 client view 的全书路线图" loading="eager" decoding="async" />
+  <figcaption>顺着图往前读，Codex 为一次 turn 构造模型视图；逆着图往回读，Codex 从 checkpoint、rollout evidence 与客户端投影中重建有效状态。</figcaption>
+</figure>
 
 正向 turn 时从上往下读；resume、rollback、replay 时从下往上读。两个方向都经过每一个 owner，差别只在 ledger 是被读还是被重建。
 

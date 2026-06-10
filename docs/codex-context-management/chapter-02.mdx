@@ -14,6 +14,11 @@ import {
 
 > **Reading Contract:** Use this chapter to understand the turn envelope. Track how model identity, workspace facts, instructions, policy, capabilities, modes, and telemetry are resolved before Codex builds prompt context.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/turn-envelope-resolution.png" alt="Turn envelope resolution feeding identity, workspace, instructions, policy, capabilities, modes, and telemetry into TurnContext" loading="eager" decoding="async" />
+  <figcaption>`TurnContext` is useful because prompt construction, tool exposure, sandboxing, compaction, and trace all read the same resolved turn contract.</figcaption>
+</figure>
+
 Chapter 1 argued that context is a runtime boundary. The first concrete object behind that boundary is the turn envelope. A turn is not just "the next user message." It is a sampling attempt under a particular model, provider, cwd, permission profile, network policy, tools configuration, feature set, realtime state, collaboration mode, hook state, skill load result, and telemetry context.
 
 Codex names that envelope `TurnContext`. The name is precise. It is not the full thread, and it is not only text for the model. It is the resolved runtime state needed for one unit of agent work. If this object is wrong, the prompt may be grammatically valid while semantically illegal: a tool appears when policy forbids it, a model switch keeps the wrong reasoning setting, or a sandbox uses the wrong working directory.

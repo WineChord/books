@@ -38,6 +38,11 @@ Compaction 可以手动触发、采样前触发，或在 turn 中采样请求达
 
 Hooks 包住 compaction，因为 compaction 是 thread 语义状态上的副作用。外部策略可能需要阻断或观察它。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/compaction-checkpoint-install.png" alt="Codex compaction checkpoint 安装流程：旧历史经过 compact producer 与 runtime install 变成 replacement history" loading="lazy" decoding="async" />
+  <figcaption>生产 compacted 材料的可以是本地模型或远程端点，但语义边界仍在 Codex：过滤、放置、记录与安装 replacement history 都由 runtime 完成。</figcaption>
+</figure>
+
 ## 压缩前 vs 压缩后
 
 理解 compaction 最直观的方式是看历史的前后对比。方括号按时序分组 items，{} 标注 item 类型：

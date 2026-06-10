@@ -16,6 +16,11 @@ import {
 
 > **Reading Contract:** Use this chapter to follow the history ledger. Track how items are recorded, normalized, trimmed, and prepared for a provider without losing the protocol shape needed for replay.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/history-ledger-normalization.png" alt="History ledger records structured evidence, bounds large outputs, normalizes provider invariants, and projects model-ready history" loading="eager" decoding="async" />
+  <figcaption>The ledger records structured evidence first, then derives a provider-safe prompt view; rollback and compaction can clear stale baselines without corrupting the durable record.</figcaption>
+</figure>
+
 Chapter 2 described the turn envelope. The next problem is the durable side: what happens to all the model-visible items accumulated over a thread? Codex does not keep history as an opaque transcript. It uses `ContextManager` as a ledger of response items ordered oldest to newest, with token information, history versioning, and a reference context baseline for future settings diffs.
 
 The job of the history ledger is deceptively hard. It must record only the items that belong in API history, apply truncation policy to large outputs, preserve function-call invariants, strip unsupported modalities before sampling, estimate token usage, and survive replacement during compaction or rollback.

@@ -1,9 +1,11 @@
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import { chapterMap } from "../../src/data/diagrams/codex-context-management/preface";
-
 # Preface
 
 > **Reading Contract:** Use this preface to lock the thesis before the mechanics: context is governed runtime state, not a growing transcript. Track the six owners it names -- ledger, envelope, fragments, optional planes, compaction, and replay -- and keep them separate while reading the chapters.
+
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/context-runtime-overview.png" alt="Six owners of Codex context: history ledger, turn envelope, typed fragments, optional planes, compaction, and replay evidence around a prompt projection" loading="eager" decoding="async" />
+  <figcaption>The whole book can be read as an ownership map: durable evidence, turn-local facts, rendered fragments, optional planes, checkpoints, and replay all meet at the prompt projection without becoming the same thing.</figcaption>
+</figure>
 
 This book is about one part of Codex that is easy to underestimate: context management. Most agent write-ups talk about tools, models, and user interfaces. Codex is interesting because it treats context as governed runtime state. The prompt sent to the model is not a string that grows until it fails. It is the projection of a thread ledger, a turn envelope, typed context fragments, policy diffs, optional knowledge planes, compaction checkpoints, and replay evidence.
 
@@ -20,17 +22,20 @@ That bet explains the shape of the subsystem. A turn has an explicit envelope. H
 
 ## A Map Before You Start
 
-The whole subsystem can be drawn as a single picture before you read any chapters. Each box becomes a chapter, in order:
+The subsystem is easiest to read as a route through owners. Each owner has a chapter home:
 
-<DiagramAscii
-  lang="en"
-  ascii={chapterMap.ascii}
-  legend={chapterMap.legend}
-  highlights={chapterMap.highlights}
-  client:visible
-/>
+| Chapter | Owner | Question |
+| --- | --- | --- |
+| Chapter 1 | Context boundary | Why is the prompt a projection rather than a transcript? |
+| Chapter 2 | Turn envelope | Which runtime facts govern one model request? |
+| Chapter 3 | History ledger | How does durable evidence become prompt-ready state? |
+| Chapter 4 | Typed fragments | How do runtime facts enter the model view safely? |
+| Chapter 5 | Optional planes | Which helpful context gets a budget instead of a guarantee? |
+| Chapter 6 | Compaction | How does Codex install a checkpoint without losing protocol shape? |
+| Chapter 7 | Replay | How does resume, rollback, and fork rebuild effective context? |
+| Chapter 8 | Client surfaces | How do clients display context without owning it? |
 
-Read the chapters in the same direction as the arrows. Each chapter assumes the previous owners exist and concentrates on its own concern. Reference back to this picture if a chapter feels disconnected; everything has a position in this stack.
+Read the chapters in that order the first time. Each chapter assumes the previous owners exist and concentrates on its own concern.
 
 ## What This Book Covers
 
@@ -54,6 +59,6 @@ The source links point to the public Codex repository. The prose intentionally d
 
 ## How to Use This Book
 
-Technical leaders can read the opening sections, diagrams, and "Apply This" sections to understand the design rationale. Senior engineers should read every chapter, including the deep dives, because the real lesson is not "summarize old messages." The lesson is how to keep a mutable prompt projection tied to durable evidence.
+Technical leaders can read the opening sections, hand-drawn figures, and "Apply This" sections to understand the design rationale. Senior engineers should read every chapter, including the deep dives, because the real lesson is not "summarize old messages." The lesson is how to keep a mutable prompt projection tied to durable evidence.
 
 Each chapter ends with five "Apply This" items. They are the transferable patterns. If you are designing a new agent runtime, the patterns matter more than the exact field names. If you are reading Codex source, the chapter narrative matters more than the patterns.

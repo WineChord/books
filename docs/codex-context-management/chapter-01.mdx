@@ -13,6 +13,11 @@ import {
 
 > **Reading Contract:** Use this chapter to set the system boundary. Track what becomes durable, turn-local, injected, optional, and replaceable; by the end, prompt construction should feel like a projection over owned runtime state.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/runtime-boundary-stack.png" alt="Codex context boundary stack from durable ledger, turn-local envelope, injected fragments, optional planes, and replaceable checkpoints to a model-visible prompt" loading="eager" decoding="async" />
+  <figcaption>The core move is to treat the prompt as a rebuildable view over named owners, rather than as the owner of history, policy, tool output, or compaction state.</figcaption>
+</figure>
+
 The larger Codex architecture book treats the session runtime as the place where events, tools, policy, streaming, and durable state meet. This book starts one layer deeper: before a model can decide anything, Codex must decide what counts as context. Without that boundary, every later feature becomes a prompt concatenation trick. Tools leak observations forever. Policy changes get buried in old text. Compaction becomes lossy amnesia. Resume becomes guesswork.
 
 Codex avoids that failure mode by making context a runtime-managed artifact. A turn does not send "the conversation" to the model. It sends a prompt projection of a thread ledger under a turn-specific envelope. The projection may include history, initial context, settings diffs, skill guidance, plugin guidance, hook context, memory summaries, tool outputs, images, and compaction summaries. Each piece has ownership and timing.
@@ -82,7 +87,7 @@ The pattern matters because it makes prompt construction a repeatable runtime op
 
 ## A Map of the Owners
 
-The five owners can be drawn as a layered stack. Each owner is responsible for one concern; the projection step at the top reads from all of them.
+The five owners form a layered stack. Each owner is responsible for one concern; the projection step reads from all of them.
 
 <DiagramAscii
   lang="en"
@@ -92,7 +97,7 @@ The five owners can be drawn as a layered stack. Each owner is responsible for o
   client:visible
 />
 
-Read the diagram top-down for prompt construction and bottom-up for replay. Both directions touch the same five owners; the difference is whether the ledger is being read or rebuilt.
+Read the opening figure top-down for prompt construction and bottom-up for replay. Both directions touch the same five owners; the difference is whether the ledger is being read or rebuilt.
 
 ## Context Has Multiple Lifetimes
 

@@ -14,6 +14,11 @@ import {
 
 > **阅读契约：** 把本章当作 turn envelope 的解析图。阅读时跟住 model identity、workspace facts、instructions、policy、capabilities、modes 和 telemetry 如何先被解析，再进入 prompt context。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/turn-envelope-resolution.png" alt="Turn envelope 解析图：identity、workspace、instructions、policy、capabilities、modes 与 telemetry 汇入 TurnContext" loading="eager" decoding="async" />
+  <figcaption>`TurnContext` 的价值在于 prompt、tools、sandbox、compaction 与 trace 都读取同一份已解析的 turn 契约。</figcaption>
+</figure>
+
 第 1 章论证了上下文是一个运行时边界。这个边界后面第一个具体对象就是 turn envelope。一次 turn 不只是"下一条用户消息"，它是在特定模型、provider、cwd、permission profile、网络策略、tools 配置、feature 集合、realtime 状态、协作模式、hook 状态、skill 加载结果和 telemetry 上下文下的一次采样尝试。
 
 Codex 把这个信封叫做 `TurnContext`。这个名字很精确：它不是整个 thread，也不是只发给模型的文本。它是一次 agent 工作所需的解析后运行时状态。如果它出错，prompt 在语法上可能合法，但语义违法：策略禁止的工具出现了、模型切换后还保留旧的 reasoning 设置、或者 sandbox 用了错误的工作目录。

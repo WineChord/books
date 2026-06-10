@@ -22,6 +22,11 @@ By the end of this chapter, you should understand why durable context is not the
 
 <div class="source-equivalence"> This chapter maps to <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L4">RolloutReconstruction</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">reverse reconstruction</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L250">legacy compaction handling</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L26">user-turn rollout positions</a>, and <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L57">fork-turn positions</a>. </div>
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/rollout-reconstruction-boundaries.png" alt="Rollout reconstruction scans backward through checkpoints, rollback markers, agent envelopes, user turns, and assistant turns" loading="lazy" decoding="async" />
+  <figcaption>Resume and fork are projection problems: the raw rollout stays append-only while reconstruction chooses the newest surviving checkpoint, applies rollback markers, and respects agent-triggered boundaries.</figcaption>
+</figure>
+
 ## Reconstruction Has Three Outputs
 
 Reconstruction returns three things:

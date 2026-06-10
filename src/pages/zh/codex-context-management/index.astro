@@ -2,7 +2,7 @@
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import Header from "../../../components/Header.astro";
 import { codexContextManagementBook, sourceCommit } from "../../../book.config";
-import { pageUrl } from "../../../urls";
+import { assetUrl, pageUrl } from "../../../urls";
 
 const base = import.meta.env.BASE_URL;
 const book = codexContextManagementBook;
@@ -43,11 +43,18 @@ const book = codexContextManagementBook;
           </a>
         </div>
       </div>
-      <div class="book-cover" aria-label={`${book.zhTitle} cover`}>
-        <div class="book-cover__kicker">{book.zhCoverKicker}</div>
-        <div class="book-cover__title" set:html={book.coverTitle} />
-        <div class="book-cover__footer">{book.zhCoverFooter}</div>
-      </div>
+      <figure class="wc-article-figure m-0" aria-label={`${book.zhTitle} cover figure`}>
+        <img
+          src={assetUrl(base, `${book.slug}/assets/cover-codex-context-management.png`)}
+          alt="Codex 上下文管理：ledger、turn envelope、fragments、projection、clients、compaction 与 replay 的运行时管线"
+          loading="eager"
+          decoding="async"
+        />
+        <figcaption>
+          Codex 通过分离持久账本、turn envelope、typed fragments、模型投影、客户端视图、
+          compaction 和 replay，让长线程里的上下文保持可治理、可恢复。
+        </figcaption>
+      </figure>
     </section>
 
     <section class="mb-16 grid grid-cols-1 gap-3 md:grid-cols-4" aria-label="阅读路线">

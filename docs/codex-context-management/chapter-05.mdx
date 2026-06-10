@@ -14,6 +14,11 @@ import {
 
 > **Reading Contract:** Use this chapter to budget optional planes. Track skills, plugins, memory, tool output, and images as candidates that must earn space in the model window.
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/optional-context-budget-board.png" alt="Optional context budget board where skills, plugins, memory, hooks, tool output, and images compete for model window space" loading="eager" decoding="async" />
+  <figcaption>Optional context is not second-class context; it is useful context that must pass selection, budgeting, and injection rules before it can spend model-window space.</figcaption>
+</figure>
+
 Chapter 4 explained how required runtime facts become typed fragments and diffs. This chapter turns to optional context: skills, plugins, apps, memory summaries, tool outputs, images, and hook additions. Optional does not mean unimportant. It means the system should be able to drop, shorten, select, or defer it without breaking the core turn contract.
 
 Codex's context management is strongest when it treats optional material as a budgeted plane. A skill description can help the model, but every token spent on skills is a token not spent on the user's code, previous tool outputs, or the current task. The design question is not "can we include it?" The question is "what budget and ownership make inclusion safe?"
@@ -43,7 +48,7 @@ Warnings are part of the design. If Codex shortens skill descriptions or omits s
 
 ## How the Window Is Sliced
 
-The effective context window is shared between several consumers. A rough allocation diagram makes the relationships visible. Numbers are illustrative and shift with model and configuration:
+The effective context window is shared between several consumers. A rough allocation model keeps the relationships visible. Numbers are illustrative and shift with model and configuration:
 
 <DiagramAscii
   lang="en"

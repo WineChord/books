@@ -1,29 +1,29 @@
-import DiagramAscii from "../../src/components/visual/diagrams/DiagramAscii.tsx";
-import { threeReadingPaths } from "../../src/data/diagrams/codex-context-management/reader-map";
-
 # Reader Map
 
 > **Reading Contract:** Use this map to choose a reading path before opening chapters. Track which chapters answer architecture questions, which answer implementation questions, and which give transferable patterns.
 
 This book is shorter and narrower than _Codex From Source_. It assumes you already know that Codex has a session runtime, tool execution, a TUI, and an app-server surface. It zooms in on the question those systems all depend on: what exactly does the model see, why does it see that, and how does Codex keep the answer stable after many turns?
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/codex-context-reading-routes.png" alt="Three reading routes through the Codex context management book for architects, implementers, and pattern readers" loading="eager" decoding="async" />
+  <figcaption>Choose a route before opening the chapters: the architecture path gives the boundary, the implementation path follows every owner, and the pattern path extracts the reusable moves.</figcaption>
+</figure>
+
 ## Three Reading Paths
 
 You can read this book in three ways. Pick the path that matches your goal:
 
-<DiagramAscii
-  lang="en"
-  ascii={threeReadingPaths.ascii}
-  legend={threeReadingPaths.legend}
-  highlights={threeReadingPaths.highlights}
-  client:visible
-/>
+| Path | Best for | Chapters |
+| --- | --- | --- |
+| Architecture path | You need the system shape first. | [Chapter 1](chapter-01.html), [Chapter 2](chapter-02.html), [Chapter 6](chapter-06.html), [Chapter 7](chapter-07.html), [epilogue](epilogue.html) |
+| Implementation path | You want the source-equivalent walkthrough. | All chapters in order. |
+| Pattern path | You are borrowing design moves for another agent runtime. | Preface, "Apply This" sections, source atlas, epilogue. |
 
 Each path is honest about its trade-off. The overview path skips most implementation density and finishes in under an hour. The deep-dive path is the only one that reads every section. The pattern path is the fastest way to extract transferable design moves for another runtime.
 
 ## For Architecture Readers
 
-Read chapters 1, 2, 6, 7, and the epilogue. That path gives you the central design:
+Read [Chapter 1](chapter-01.html), [Chapter 2](chapter-02.html), [Chapter 6](chapter-06.html), [Chapter 7](chapter-07.html), and the [epilogue](epilogue.html). That path gives you the central design:
 
 - Context is an enforced boundary rather than a loose transcript.
 - A turn envelope freezes the runtime facts that are allowed to affect one
@@ -35,14 +35,14 @@ Read chapters 1, 2, 6, 7, and the epilogue. That path gives you the central desi
 
 Read all chapters in order. The ordering is deliberate:
 
-1. Chapter 1 defines the problem and vocabulary.
-2. Chapter 2 explains the turn envelope that gathers runtime facts.
-3. Chapter 3 explains the history ledger that becomes prompt input.
-4. Chapter 4 explains typed context fragments and diff injection.
-5. Chapter 5 explains optional context budgets.
-6. Chapter 6 explains compaction.
-7. Chapter 7 explains resume, rollback, fork, and replay.
-8. Chapter 8 explains how clients observe context without owning it.
+1. [Chapter 1](chapter-01.html) defines the problem and vocabulary.
+2. [Chapter 2](chapter-02.html) explains the turn envelope that gathers runtime facts.
+3. [Chapter 3](chapter-03.html) explains the history ledger that becomes prompt input.
+4. [Chapter 4](chapter-04.html) explains typed context fragments and diff injection.
+5. [Chapter 5](chapter-05.html) explains optional context budgets.
+6. [Chapter 6](chapter-06.html) explains compaction.
+7. [Chapter 7](chapter-07.html) explains resume, rollback, fork, and replay.
+8. [Chapter 8](chapter-08.html) explains how clients observe context without owning it.
 
 ## Canonical Homes
 
@@ -50,14 +50,14 @@ Each concept has one home:
 
 | Concept | Canonical chapter |
 | --- | --- |
-| Context as runtime state | Chapter 1 |
-| `TurnContext` shape | Chapter 2 |
-| History normalization and token estimation | Chapter 3 |
-| Runtime context diffing | Chapter 4 |
-| Skills, plugins, memory, outputs, images | Chapter 5 |
-| Local and remote compaction | Chapter 6 |
-| Rollout reconstruction and truncation | Chapter 7 |
-| TUI/app-server/realtime/token usage surfaces | Chapter 8 |
+| Context as runtime state | [Chapter 1](chapter-01.html) |
+| `TurnContext` shape | [Chapter 2](chapter-02.html) |
+| History normalization and token estimation | [Chapter 3](chapter-03.html) |
+| Runtime context diffing | [Chapter 4](chapter-04.html) |
+| Skills, plugins, memory, outputs, images | [Chapter 5](chapter-05.html) |
+| Local and remote compaction | [Chapter 6](chapter-06.html) |
+| Rollout reconstruction and truncation | [Chapter 7](chapter-07.html) |
+| TUI/app-server/realtime/token usage surfaces | [Chapter 8](chapter-08.html) |
 
 ## Cross-References at a Glance
 

@@ -13,6 +13,11 @@ import {
 
 > **阅读契约：** 把本章当作系统边界说明。阅读时盯住什么是持久的、turn-local 的、注入的、可选的、可替换的；读完后，prompt 构造应当像 runtime state 上的 projection。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/runtime-boundary-stack.png" alt="Codex 上下文边界栈：durable ledger、turn-local envelope、injected fragments、optional planes 与 replaceable checkpoints 投影成模型可见 prompt" loading="eager" decoding="async" />
+  <figcaption>关键动作是把 prompt 视为可重建的视图，而不是让它拥有历史、策略、工具输出或 compaction 状态。</figcaption>
+</figure>
+
 《Codex 源码剖析》把 session runtime 解释为事件、工具、策略、流式输出和持久状态汇合的地方。本书从更深一层开始：模型能做出任何决定之前，Codex 必须先决定什么算上下文。如果没有这个边界，后面的功能都会退化成 prompt 拼接技巧。工具观察会永久泄漏，策略变化会埋在旧文本里，压缩会变成失忆，resume 会变成猜测。
 
 Codex 避开这个失败模式的方式，是把上下文做成 runtime 管理的 artifact。一次 turn 不是把"整段对话"发给模型，而是在特定 turn envelope 下，把 thread ledger 投影成 prompt。这个投影可能包含历史、initial context、settings diff、skill 指导、plugin 指导、hook context、memory 摘要、工具输出、图片和压缩摘要。每一类内容都有归属和时机。

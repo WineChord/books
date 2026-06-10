@@ -86,6 +86,11 @@ Realtime 状态出现在 settings update 逻辑中。Realtime 起止可以发出
 
 好的可观测性不只是数 token，它还保留语义边界。
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/semantic-trace-boundary.png" alt="Semantic trace boundary：compact input、checkpoint install、future sampling、trace reducers、runtime ledger 与 client surfaces 的分界" loading="lazy" decoding="async" />
+  <figcaption>Trace 有价值，是因为它没有把 compact input、checkpoint install 与后续 sampling 混成一个模糊事件；每个阶段都可以单独审计。</figcaption>
+</figure>
+
 <DiagramAscii
   lang="zh"
   ascii={compactionTraceStream.ascii}

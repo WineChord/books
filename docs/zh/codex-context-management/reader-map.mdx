@@ -7,6 +7,11 @@ import { threeReadingPaths } from "../../../src/data/diagrams/codex-context-mana
 
 本书比《Codex 源码剖析》更短更专门。它默认你已经知道 Codex 有 session runtime、tool 执行、TUI 和 app-server。它聚焦于这些系统都依赖的同一个问题：模型究竟看到了什么？为什么是这些？多轮之后 Codex 又如何让答案保持稳定？
 
+<figure class="wc-article-figure">
+  <img src="/books/codex-context-management/assets/codex-context-reading-routes.png" alt="Codex 上下文管理书的三条阅读路线：架构读者、实现读者与模式读者" loading="eager" decoding="async" />
+  <figcaption>先选阅读路线：架构路线抓住边界，实现路线追完每个 owner，模式路线提炼可迁移的运行时设计动作。</figcaption>
+</figure>
+
 ## 三条阅读路径
 
 你可以用三种方式阅读本书。选择符合你目标的那一条：
@@ -23,7 +28,7 @@ import { threeReadingPaths } from "../../../src/data/diagrams/codex-context-mana
 
 ## 给架构读者
 
-读第 1、2、6、7 章和结语。这条路径让你看到核心设计：
+读[第 1 章](chapter-01.html)、[第 2 章](chapter-02.html)、[第 6 章](chapter-06.html)、[第 7 章](chapter-07.html)和[结语](epilogue.html)。这条路径让你看到核心设计：
 
 - 上下文是一条强制边界，而不是松散 transcript。
 - Turn envelope 冻结了允许影响单次模型请求的运行时事实。
@@ -34,14 +39,14 @@ import { threeReadingPaths } from "../../../src/data/diagrams/codex-context-mana
 
 按顺序读完所有章节。这个顺序是刻意的：
 
-1. 第 1 章定义问题与词汇。
-2. 第 2 章解释收集运行时事实的 turn envelope。
-3. 第 3 章解释作为 prompt 输入的历史账本。
-4. 第 4 章解释 typed context fragments 与 diff 注入。
-5. 第 5 章解释可选上下文预算。
-6. 第 6 章解释 compaction。
-7. 第 7 章解释 resume、rollback、fork 与 replay。
-8. 第 8 章解释客户端如何在不拥有上下文的前提下观察它。
+1. [第 1 章](chapter-01.html)定义问题与词汇。
+2. [第 2 章](chapter-02.html)解释收集运行时事实的 turn envelope。
+3. [第 3 章](chapter-03.html)解释作为 prompt 输入的历史账本。
+4. [第 4 章](chapter-04.html)解释 typed context fragments 与 diff 注入。
+5. [第 5 章](chapter-05.html)解释可选上下文预算。
+6. [第 6 章](chapter-06.html)解释 compaction。
+7. [第 7 章](chapter-07.html)解释 resume、rollback、fork 与 replay。
+8. [第 8 章](chapter-08.html)解释客户端如何在不拥有上下文的前提下观察它。
 
 ## 概念归属表
 
@@ -49,14 +54,14 @@ import { threeReadingPaths } from "../../../src/data/diagrams/codex-context-mana
 
 | 概念 | 所属章节 |
 | --- | --- |
-| 上下文作为运行时状态 | 第 1 章 |
-| `TurnContext` 形状 | 第 2 章 |
-| 历史 normalization 与 token 估计 | 第 3 章 |
-| 运行时上下文 diff | 第 4 章 |
-| Skills、plugins、memory、outputs、images | 第 5 章 |
-| 本地与远程 compaction | 第 6 章 |
-| Rollout 重建与截断 | 第 7 章 |
-| TUI / app-server / realtime / token usage 面 | 第 8 章 |
+| 上下文作为运行时状态 | [第 1 章](chapter-01.html) |
+| `TurnContext` 形状 | [第 2 章](chapter-02.html) |
+| 历史 normalization 与 token 估计 | [第 3 章](chapter-03.html) |
+| 运行时上下文 diff | [第 4 章](chapter-04.html) |
+| Skills、plugins、memory、outputs、images | [第 5 章](chapter-05.html) |
+| 本地与远程 compaction | [第 6 章](chapter-06.html) |
+| Rollout 重建与截断 | [第 7 章](chapter-07.html) |
+| TUI / app-server / realtime / token usage 面 | [第 8 章](chapter-08.html) |
 
 ## 交叉引用速查
 
