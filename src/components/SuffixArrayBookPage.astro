@@ -167,6 +167,11 @@ const copy = isZh
           problemPath,
         ],
       ],
+      lessonCards: [
+        ["读法", "先看后缀，再看起点", "本页所有表格都围绕起点移动；后缀文本只是帮助你验证排序。"],
+        ["核心", "rank 是前缀的名字", "倍增不是重新比较整段字符串，而是复用上一轮 rank 形成二元组。"],
+        ["验收", "能解释 sa[i]", "读完应能说清 sa 存的是排序后的起点，不是复制后的后缀字符串。"],
+      ],
       steps: [
         {
           stage: "suffix",
@@ -327,6 +332,11 @@ const copy = isZh
           problemPath,
         ],
       ],
+      lessonCards: [
+        ["Read", "Suffix first, start index second", "Every table is about moving start indices; suffix text only helps verify the order."],
+        ["Core", "rank names a prefix", "Doubling reuses old ranks as pairs instead of comparing whole strings again."],
+        ["Check", "Explain sa[i]", "You should leave knowing that sa stores sorted start positions, not copied suffix strings."],
+      ],
       steps: [
         {
           stage: "suffix",
@@ -448,6 +458,16 @@ const copy = isZh
         <a href={pageUrl(base, specPath)}>{copy.spec}</a>
         <a href={pageUrl(base, alternatePath)}>{copy.alternate}</a>
       </nav>
+    </section>
+
+    <section class="sa-lesson-strip" aria-label={isZh ? "学习路线" : "Learning path"}>
+      {copy.lessonCards.map(([label, cardTitle, body]) => (
+        <article class="sa-lesson-card">
+          <span>{label}</span>
+          <strong>{cardTitle}</strong>
+          <p>{body}</p>
+        </article>
+      ))}
     </section>
 
     <section class="sa-workbench">
@@ -894,8 +914,7 @@ const copy = isZh
       --sa-soft: rgb(20 20 19 / 3%);
       --sa-line: rgb(194 192 182 / 70%);
       color: var(--color-charcoal);
-      font-family: "PingFang SC", -apple-system, BlinkMacSystemFont,
-        "Helvetica Neue", "Segoe UI", sans-serif;
+      font-family: var(--font-book);
     }
 
     html.dark .leetcode-shell {
@@ -927,7 +946,7 @@ const copy = isZh
 
     .sa-hero h1 {
       margin: 0;
-      font-size: clamp(1.15rem, 2vw, 1.65rem);
+      font-size: 1.5rem;
       line-height: 1.1;
     }
 
@@ -944,6 +963,45 @@ const copy = isZh
       flex-wrap: wrap;
       justify-content: flex-end;
       gap: 0.28rem;
+    }
+
+    .sa-lesson-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.48rem;
+      margin: 0.6rem 0 0;
+    }
+
+    .sa-lesson-card {
+      border: 1px solid var(--sa-line);
+      border-radius: 0.52rem;
+      background: var(--sa-panel);
+      padding: 0.58rem 0.64rem;
+    }
+
+    .sa-lesson-card span {
+      display: block;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .sa-lesson-card strong {
+      display: block;
+      margin-top: 0.22rem;
+      color: var(--color-charcoal);
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
+
+    .sa-lesson-card p {
+      margin: 0.28rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.68rem;
+      line-height: 1.5;
     }
 
     .sa-actions a,
@@ -1337,6 +1395,7 @@ const copy = isZh
 
     @media (max-width: 900px) {
       .sa-hero,
+      .sa-lesson-strip,
       .sa-stepper-head,
       .sa-step-body,
       .sa-grid,

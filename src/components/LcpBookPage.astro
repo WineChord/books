@@ -115,6 +115,11 @@ const copy = isZh
           problemPath,
         ],
       ],
+      lessonCards: [
+        ["读法", "只比较相邻后缀", "LCP 表里的每一格都来自排序后相邻两行，不是任意两段字符串。"],
+        ["核心", "h 是可继承的余量", "Kasai 线性化的关键是下一轮先继承 h-1，再继续向右扩展。"],
+        ["验收", "能读 lcp[p]", "读完应能说清 lcp[p] 比较 sa[p] 与 sa[p-1]，值是长度。"],
+      ],
       steps: [
         {
           stage: "meaning",
@@ -259,6 +264,11 @@ const copy = isZh
           problemPath,
         ],
       ],
+      lessonCards: [
+        ["Read", "Only adjacent suffixes", "Each LCP cell comes from neighboring rows after sorting, not from arbitrary substrings."],
+        ["Core", "h is reusable slack", "Kasai becomes linear because the next start can inherit h-1 before extending."],
+        ["Check", "Read lcp[p]", "You should know lcp[p] compares sa[p] with sa[p-1], and the value is a length."],
+      ],
       steps: [
         {
           stage: "meaning",
@@ -364,6 +374,16 @@ const copy = isZh
         <a href={pageUrl(base, specPath)}>{copy.spec}</a>
         <a href={pageUrl(base, alternatePath)}>{copy.alternate}</a>
       </nav>
+    </section>
+
+    <section class="lcp-lesson-strip" aria-label={isZh ? "学习路线" : "Learning path"}>
+      {copy.lessonCards.map(([label, cardTitle, body]) => (
+        <article class="lcp-lesson-card">
+          <span>{label}</span>
+          <strong>{cardTitle}</strong>
+          <p>{body}</p>
+        </article>
+      ))}
     </section>
 
     <section class="lcp-workbench">
@@ -780,8 +800,7 @@ const copy = isZh
       --lcp-soft: rgb(20 20 19 / 3%);
       --lcp-line: rgb(194 192 182 / 70%);
       color: var(--color-charcoal);
-      font-family: "PingFang SC", -apple-system, BlinkMacSystemFont,
-        "Helvetica Neue", "Segoe UI", sans-serif;
+      font-family: var(--font-book);
     }
 
     html.dark .lcp-shell {
@@ -813,7 +832,7 @@ const copy = isZh
 
     .lcp-hero h1 {
       margin: 0;
-      font-size: clamp(1.15rem, 2vw, 1.65rem);
+      font-size: 1.5rem;
       line-height: 1.1;
     }
 
@@ -840,6 +859,45 @@ const copy = isZh
 
     .lcp-actions {
       justify-content: flex-end;
+    }
+
+    .lcp-lesson-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.48rem;
+      margin: 0.6rem 0 0;
+    }
+
+    .lcp-lesson-card {
+      border: 1px solid var(--lcp-line);
+      border-radius: 0.52rem;
+      background: var(--lcp-panel);
+      padding: 0.58rem 0.64rem;
+    }
+
+    .lcp-lesson-card span {
+      display: block;
+      color: var(--color-terracotta);
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .lcp-lesson-card strong {
+      display: block;
+      margin-top: 0.22rem;
+      color: var(--color-charcoal);
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
+
+    .lcp-lesson-card p {
+      margin: 0.28rem 0 0;
+      color: var(--color-secondary);
+      font-size: 0.68rem;
+      line-height: 1.5;
     }
 
     .lcp-actions a,
@@ -1238,6 +1296,7 @@ const copy = isZh
 
     @media (max-width: 900px) {
       .lcp-hero,
+      .lcp-lesson-strip,
       .lcp-stepper-head,
       .lcp-step-body,
       .lcp-grid,

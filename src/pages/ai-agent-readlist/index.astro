@@ -286,6 +286,13 @@ const readingPlan = [
   ["1 week", "补 Cursor cloud agents、Bugbot learning、Anthropic harness/evals/sandbox、OpenAI Codex sandbox/Symphony，再做一张自己的 agent runtime 架构图。"],
   ["1 month", "复现一个小型 coding agent：显式 context、sandboxed executor、task ledger、eval harness、review subagent 和 deploy path。"],
 ];
+
+const selectionRules = [
+  ["状态", "资料是否说明任务状态、会话状态、外部 artifact 和长期记忆分别放在哪里。"],
+  ["边界", "资料是否说清工具、沙箱、权限、凭证、网络和人类确认的边界。"],
+  ["恢复", "资料是否覆盖失败重试、checkpoint、handoff、rollback 和长任务续跑。"],
+  ["测量", "资料是否能落到 eval、trace、成本、延迟、安全和人工复核指标上。"],
+];
 ---
 
 <BaseLayout
@@ -302,6 +309,7 @@ const readingPlan = [
       <a href="#company-map">公司主线</a>
       {sections.map((section) => <a href={`#${section.id}`}>{section.number}. {section.title}</a>)}
       <a href="#plan">阅读计划</a>
+      <a href="#selection">选文标准</a>
     </aside>
 
     <article id="top" class="article">
@@ -412,6 +420,21 @@ const readingPlan = [
         </div>
       </section>
 
+      <section id="selection" class="section selection-section">
+        <div class="section-head">
+          <p class="kicker">Selection Rules</p>
+          <h2>什么资料值得放进这份书单</h2>
+        </div>
+        <div class="selection-grid">
+          {selectionRules.map(([rule, body]) => (
+            <article class="selection-card">
+              <strong>{rule}</strong>
+              <p>{body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section class="section final-notes">
         <h2>最后的判断标准</h2>
         <p>
@@ -517,7 +540,7 @@ const readingPlan = [
   }
 
   h1 {
-    font-size: clamp(3.2rem, 10vw, 7rem);
+    font-size: 6rem;
     letter-spacing: 0;
     line-height: 0.94;
     margin-bottom: 1.4rem;
@@ -525,7 +548,7 @@ const readingPlan = [
 
   .lead {
     color: var(--agent-muted);
-    font-size: clamp(1.08rem, 2vw, 1.45rem);
+    font-size: 1.28rem;
     line-height: 1.85;
     max-width: 58rem;
   }
@@ -541,7 +564,8 @@ const readingPlan = [
   .card,
   .company-card,
   .focus-box,
-  .plan-item {
+  .plan-item,
+  .selection-card {
     border: 1px solid var(--agent-line);
     border-radius: 0.5rem;
     background: rgb(255 255 255 / 34%);
@@ -551,7 +575,8 @@ const readingPlan = [
   :global(html.dark) .card,
   :global(html.dark) .company-card,
   :global(html.dark) .focus-box,
-  :global(html.dark) .plan-item {
+  :global(html.dark) .plan-item,
+  :global(html.dark) .selection-card {
     background: rgb(255 255 255 / 4%);
   }
 
@@ -592,7 +617,7 @@ const readingPlan = [
   }
 
   .section-head h2 {
-    font-size: clamp(1.9rem, 4vw, 3.1rem);
+    font-size: 2.7rem;
     line-height: 1.12;
     margin-bottom: 1.4rem;
   }
@@ -791,6 +816,12 @@ const readingPlan = [
     gap: 0.9rem;
   }
 
+  .selection-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+
   .plan-item {
     display: grid;
     gap: 1rem;
@@ -803,7 +834,19 @@ const readingPlan = [
     font-family: var(--font-mono);
   }
 
+  .selection-card {
+    padding: 1rem;
+  }
+
+  .selection-card strong {
+    color: var(--agent-teal);
+    display: block;
+    font-family: var(--font-mono);
+    margin-bottom: 0.55rem;
+  }
+
   .plan-item p,
+  .selection-card p,
   .final-notes p {
     color: var(--agent-muted);
     line-height: 1.8;
@@ -815,7 +858,7 @@ const readingPlan = [
   }
 
   .final-notes h2 {
-    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-size: 2.4rem;
   }
 
   @media (max-width: 980px) {
@@ -836,11 +879,25 @@ const readingPlan = [
       padding-top: 4rem;
     }
 
+    h1 {
+      font-size: 3.4rem;
+    }
+
+    .lead {
+      font-size: 1.12rem;
+    }
+
+    .section-head h2,
+    .final-notes h2 {
+      font-size: 2rem;
+    }
+
     .hero-grid,
     .thesis-list,
     .essentials,
     .company-grid,
-    .reading-list {
+    .reading-list,
+    .selection-grid {
       grid-template-columns: 1fr;
     }
 

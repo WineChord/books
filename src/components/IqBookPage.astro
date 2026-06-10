@@ -2785,6 +2785,13 @@ const totalFrames = puzzles.reduce(
   (sum, puzzle) => sum + puzzle.demo.frames.length,
   0,
 );
+
+const methodCards = [
+  ["澄清约束", "先确认是否单轮、是否可自适应、是否恰好一个答案、是否允许混合或重复操作。"],
+  ["找第一原则", "把题目翻译成容量、奇偶、不变量、递推、状态图或样本空间，而不是背固定答案。"],
+  ["证明最优", "给出下限、构造和排除反例；只给步骤而不证明，面试里很容易被追问击穿。"],
+  ["讲出变体", "最后改一个约束，说明答案怎样变化，证明你理解的是母题结构。"],
+];
 const sourceCards = [
   {
     title: "量化面试 Brainteasers 题型表",
@@ -2966,6 +2973,15 @@ function renderFrames(frames: DemoFrame[]) {
           <em>每道题都能逐步播放和回看</em>
         </div>
       </div>
+    </section>
+
+    <section class="iq-method" aria-label="智力题解题路线">
+      {methodCards.map(([methodTitle, body]) => (
+        <article>
+          <strong>{methodTitle}</strong>
+          <p>{body}</p>
+        </article>
+      ))}
     </section>
 
     <section class="iq-toolbar" aria-label="题库筛选">
@@ -3309,9 +3325,7 @@ function renderFrames(frames: DemoFrame[]) {
 
 <style>
   .iq-page {
-    --iq-page-font: "PingFang SC", "PingFang TC", "PingFang HK",
-      -apple-system, BlinkMacSystemFont, "Hiragino Sans GB",
-      "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    --iq-page-font: var(--font-book);
     --iq-panel: rgb(255 255 255 / 54%);
     --iq-panel-strong: rgb(255 255 255 / 72%);
     --iq-ink: var(--color-charcoal);
@@ -3328,9 +3342,7 @@ function renderFrames(frames: DemoFrame[]) {
   }
 
   :global(body:has(.iq-page)) {
-    font-family: "PingFang SC", "PingFang TC", "PingFang HK", -apple-system,
-      BlinkMacSystemFont, "Hiragino Sans GB", "Microsoft YaHei",
-      "Noto Sans CJK SC", sans-serif;
+    font-family: var(--font-book);
   }
 
   html.dark .iq-page {
@@ -3374,7 +3386,7 @@ function renderFrames(frames: DemoFrame[]) {
     max-width: 13ch;
     margin: 0;
     color: var(--iq-ink);
-    font-size: clamp(3.1rem, 9vw, 6.8rem);
+    font-size: 5.8rem;
     line-height: 0.95;
     letter-spacing: 0;
   }
@@ -3392,6 +3404,35 @@ function renderFrames(frames: DemoFrame[]) {
     flex-wrap: wrap;
     gap: 0.75rem;
     margin-top: 1.65rem;
+  }
+
+  .iq-method {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: 0 0 1.4rem;
+  }
+
+  .iq-method article {
+    min-width: 0;
+    border: 1px solid var(--iq-line);
+    border-radius: 8px;
+    background: var(--iq-panel);
+    padding: 1rem;
+  }
+
+  .iq-method strong {
+    display: block;
+    color: var(--iq-ink);
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  .iq-method p {
+    margin: 0.5rem 0 0;
+    color: var(--iq-soft);
+    font-size: 0.86rem;
+    line-height: 1.65;
   }
 
   .iq-hero-actions a,
@@ -3452,7 +3493,7 @@ function renderFrames(frames: DemoFrame[]) {
     display: block;
     color: var(--color-terracotta);
     font-family: var(--iq-page-font);
-    font-size: clamp(2.4rem, 7vw, 4.5rem);
+    font-size: 3.8rem;
     font-weight: 800;
     line-height: 1;
   }
@@ -3551,7 +3592,7 @@ function renderFrames(frames: DemoFrame[]) {
   .iq-section-heading h2 {
     margin: 0;
     color: var(--iq-ink);
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-size: 2.25rem;
     line-height: 1.1;
   }
 
@@ -3643,7 +3684,7 @@ function renderFrames(frames: DemoFrame[]) {
   .iq-puzzle-head h2 {
     margin: 0;
     color: var(--iq-ink);
-    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-size: 2rem;
     line-height: 1.16;
   }
 
@@ -3933,6 +3974,10 @@ function renderFrames(frames: DemoFrame[]) {
       grid-template-columns: 1fr;
     }
 
+    .iq-method {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .iq-hero {
       min-height: auto;
     }
@@ -3951,6 +3996,19 @@ function renderFrames(frames: DemoFrame[]) {
       padding-inline: 0.75rem;
     }
 
+    .iq-hero h1 {
+      font-size: 3.1rem;
+    }
+
+    .iq-hero-board span {
+      font-size: 2.5rem;
+    }
+
+    .iq-section-heading h2,
+    .iq-puzzle-head h2 {
+      font-size: 1.65rem;
+    }
+
     .iq-puzzle-head {
       flex-direction: column;
     }
@@ -3961,6 +4019,10 @@ function renderFrames(frames: DemoFrame[]) {
     }
 
     .iq-demo-controls {
+      grid-template-columns: 1fr;
+    }
+
+    .iq-method {
       grid-template-columns: 1fr;
     }
   }

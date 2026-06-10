@@ -390,6 +390,29 @@ const gapFixes = [
       ))}
     </nav>
 
+    <section class="cc-reading-route" aria-label="阅读路线">
+      <article>
+        <span>01</span>
+        <strong>先建执行循环</strong>
+        <p>把 Claude Code 看成模型、工具、权限、状态不断往返的 runtime。</p>
+      </article>
+      <article>
+        <span>02</span>
+        <strong>再看压缩分层</strong>
+        <p>区分轻量裁剪、读时投影和 Auto-Compact 全量重写。</p>
+      </article>
+      <article>
+        <span>03</span>
+        <strong>最后接上记忆和多 Agent</strong>
+        <p>长期规则、当前摘要、附件恢复和子 agent 隔离不能混成一类。</p>
+      </article>
+      <article>
+        <span>04</span>
+        <strong>面试要讲边界</strong>
+        <p>不要只背机制名，要说触发条件、保留内容、失败恢复和取舍。</p>
+      </article>
+    </section>
+
     <section class="cc-section cc-section-band" id="mental-model">
       <div class="cc-section-heading">
         <p class="cc-kicker">0. Mental Model</p>
@@ -1053,7 +1076,8 @@ const gapFixes = [
 
   .cc-hero,
   .cc-section,
-  .cc-toc {
+  .cc-toc,
+  .cc-reading-route {
     margin: 0 auto;
     max-width: 1180px;
     padding-left: 20px;
@@ -1090,7 +1114,7 @@ const gapFixes = [
   .cc-hero h1 {
     margin: 0;
     max-width: 760px;
-    font-size: clamp(2.45rem, 7vw, 5.4rem);
+    font-size: 5rem;
     line-height: 0.98;
   }
 
@@ -1133,6 +1157,44 @@ const gapFixes = [
   .cc-toc a:hover {
     border-color: var(--cc-coral);
     color: var(--cc-coral);
+  }
+
+  .cc-reading-route {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    padding-bottom: 30px;
+  }
+
+  .cc-reading-route article {
+    min-width: 0;
+    border: 1px solid var(--cc-line);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 4%);
+    padding: 16px;
+  }
+
+  .cc-reading-route span {
+    display: block;
+    color: var(--cc-coral);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 850;
+    margin-bottom: 8px;
+  }
+
+  .cc-reading-route strong {
+    display: block;
+    color: var(--cc-ink);
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  .cc-reading-route p {
+    margin: 8px 0 0;
+    color: var(--cc-muted);
+    font-size: 0.84rem;
+    line-height: 1.65;
   }
 
   .cc-workbench,
@@ -1262,7 +1324,7 @@ const gapFixes = [
 
   .cc-section h2 {
     margin: 0;
-    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-size: 3rem;
     line-height: 1.08;
   }
 
@@ -1467,7 +1529,7 @@ const gapFixes = [
   .cc-layer-detail h3 {
     margin: 0;
     color: var(--cc-ink);
-    font-size: clamp(1.6rem, 3vw, 2.5rem);
+    font-size: 2.2rem;
   }
 
   .cc-layer-facts {
@@ -1699,7 +1761,7 @@ const gapFixes = [
 
   .cc-image-ledger strong {
     color: var(--cc-blue);
-    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-size: 3rem;
     line-height: 1;
   }
 
@@ -1820,6 +1882,7 @@ const gapFixes = [
     .cc-remix-board,
     .cc-recursive-grid,
     .cc-gap-list,
+    .cc-reading-route,
     .cc-source-grid {
       grid-template-columns: 1fr;
     }
@@ -1832,7 +1895,8 @@ const gapFixes = [
   @media (max-width: 560px) {
     .cc-hero,
     .cc-section,
-    .cc-toc {
+    .cc-toc,
+    .cc-reading-route {
       padding-left: 16px;
       padding-right: 16px;
     }
@@ -1844,6 +1908,15 @@ const gapFixes = [
 
     .cc-hero h1 {
       font-size: 2.35rem;
+    }
+
+    .cc-section h2 {
+      font-size: 2rem;
+    }
+
+    .cc-layer-detail h3,
+    .cc-image-ledger strong {
+      font-size: 1.75rem;
     }
   }
 </style>

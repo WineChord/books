@@ -8188,6 +8188,29 @@ const sourceGroups: SourceGroup[] = [
         </div>
       </section>
 
+      <section class="design-answer-contract" aria-label="系统设计答案验收标准">
+        <article>
+          <span>Scope</span>
+          <strong>先锁 P0</strong>
+          <p>默认文字聊天闭环，不把 Agent、Canvas、Code、Pulse 一口气塞进主链路。</p>
+        </article>
+        <article>
+          <span>State</span>
+          <strong>状态要可恢复</strong>
+          <p>conversation、message、generation、tool call、trace 和 billing 都要有明确真源。</p>
+        </article>
+        <article>
+          <span>Runtime</span>
+          <strong>推理不是黑盒</strong>
+          <p>讲清 prefill、decode、batching、KV cache、流式回压、取消和降级。</p>
+        </article>
+        <article>
+          <span>Safety</span>
+          <strong>能力越强，边界越硬</strong>
+          <p>工具、文件、外部 app、代码执行和后台任务都要有权限、审计和回滚。</p>
+        </article>
+      </section>
+
       <section id="question-map" class="design-section">
         <p class="design-kicker">1. 面试问法地图</p>
         <h2>先判断面试官到底在问哪一层</h2>
@@ -13052,6 +13075,46 @@ const sourceGroups: SourceGroup[] = [
   .hero-boundary-grid .info-card p {
     font-size: 0.82rem;
     line-height: 1.55;
+  }
+
+  .design-answer-contract {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin: -1rem 0 3rem;
+  }
+
+  .design-answer-contract article {
+    min-width: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: rgb(255 253 247 / 68%);
+    padding: 0.95rem;
+    box-shadow: 0 10px 28px rgb(20 20 19 / 5%);
+  }
+
+  .design-answer-contract span {
+    display: block;
+    color: var(--color-terracotta);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 850;
+    margin-bottom: 0.45rem;
+    text-transform: uppercase;
+  }
+
+  .design-answer-contract strong {
+    display: block;
+    color: var(--color-charcoal);
+    font-size: 0.98rem;
+    line-height: 1.35;
+  }
+
+  .design-answer-contract p {
+    margin: 0.55rem 0 0;
+    color: var(--color-secondary);
+    font-size: 0.86rem;
+    line-height: 1.65;
   }
 
   .question-route-map {
@@ -18942,6 +19005,11 @@ const sourceGroups: SourceGroup[] = [
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .design-answer-contract {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 0;
+    }
+
     .design-hero,
     .design-section {
       scroll-margin-top: 7.5rem;
@@ -18968,6 +19036,10 @@ const sourceGroups: SourceGroup[] = [
       gap: 0.65rem;
       height: auto;
       padding: 0.85rem;
+    }
+
+    .design-answer-contract {
+      grid-template-columns: 1fr;
     }
 
     .hero-map-lines {
