@@ -33,6 +33,7 @@ This repository hosts long-form online books for
 
 ## Articles and Guides
 
+- [AI Agent Readlist](https://www.wineandchord.com/books/ai-agent-readlist/)
 - [DeepSeek V4 模型技术大全](https://www.wineandchord.com/books/deepseek/)
 - [Claude Code 和 Codex 的 Prompt Cache 设计](https://www.wineandchord.com/books/prompt-cache/)
 
