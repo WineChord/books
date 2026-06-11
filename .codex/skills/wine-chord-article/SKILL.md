@@ -72,6 +72,17 @@ what problem appears
 -> cache/context consequence
 ```
 
+For multi-mechanism sections, do not leave the reader with only a taxonomy.
+Convert mechanism lists into pressure-and-invariant tables when useful:
+
+```text
+pressure source
+-> why the simpler approach fails
+-> chosen mechanism
+-> invariant protected
+-> failure boundary
+```
+
 Do not stop at `what` and `how`. Each major mechanism should naturally reveal
 the `why` behind the design: the invariant being protected, the simpler design
 that would fail, the cost of the chosen approach, and the boundary where the
@@ -94,6 +105,9 @@ or counterexamples where useful. Cover the ways the recommended design can
 break: minimum thresholds, unstable schemas, dynamic data in a cached prefix,
 version drift, TTL or routing behavior, overly broad or overly narrow cache
 keys, premature summarization, or recovery boundaries that cannot be replayed.
+Do not isolate all failure conditions in a final caveats section. Also embed
+the relevant failure mode at the mechanism where it is created, then use the
+final caveats section to connect the cases.
 
 For long source articles, prefer ending with a transferable decision table or
 rule set. It should map content state to runtime handling and the invariant
@@ -284,6 +298,9 @@ For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell
 readers which claims come from official contracts, pinned source snapshots, and
 bounded engineering inference, without sounding like process notes.
+When source links point to a public mirror or reconstructed source snapshot,
+say so in the evidence boundary. Do not let mirror-backed links read like
+official vendor source authority.
 
 ## Terminology And Link Semantics
 
