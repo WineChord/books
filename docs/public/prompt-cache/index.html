@@ -1195,15 +1195,30 @@ enablePromptCaching = true, skipCacheWrite = true
 <li>user instructions</li>
 <li>environment context</li>
 </ul>
-<p>随后 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2987"><code>record_context_updates_and_set_reference_context_item()</code></a> 维护 reference context：</p>
+<p>随后 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2987"><code>record_context_updates_and_set_reference_context_item()</code></a> 维护 reference context。这里的 reference context 不是一段额外塞给模型的“参考资料”，而是一份 runtime 保存的 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L349"><code>TurnContextItem</code></a> baseline：上一轮已经被视为模型上下文基线的 cwd、workspace roots、日期时区、审批和 sandbox、网络、模型、personality、collaboration mode、multi-agent 版本、realtime 状态等。它回答的是一个很具体的问题：下一轮还要不要把整包 initial context 再发一遍，还是只发相对上一份 baseline 的 context diff？</p>
 <ul>
 <li>如果没有 reference context，就注入完整 initial context。</li>
 <li>如果已经有 reference context，稳态路径只追加 context diffs。</li>
 <li>每个真实用户 turn 都持久化一个 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L349"><code>TurnContextItem</code></a>。</li>
 <li>mid-turn compaction 后也会持久化 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L349"><code>TurnContextItem</code></a>，用于 resume / fork 恢复最新 durable baseline。</li>
 </ul>
-<p>注意这里的 “initial context” 不是每次都重新扫描所有规则文件。它是用当前 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L556"><code>TurnContext</code></a> 重建模型应该看到的会话基线：哪些 developer section 还有效，哪些 contextual user section 要出现，当前权限、环境、skills、user instructions 应该怎样排列。Claude Code 更像是在 API 前临时 prepend memoized context；Codex 更像是在 session/turn 层维护一条可恢复的 context baseline。</p>
+<p>把它展开成一轮最小形状，会更清楚：</p>
+<pre><code class="language-text">第一个真实用户 turn:
+reference_context_item = None
+-&gt; build_initial_context(turn_context)
+-&gt; history 追加完整 initial context
+-&gt; rollout 写入 TurnContextItem，内存 baseline 更新成当前 TurnContextItem
+
+后续普通 turn:
+reference_context_item = 上一轮 TurnContextItem
+-&gt; build_settings_update_items(previous, current)
+-&gt; 没变化：不追加 context message，但仍持久化新的 TurnContextItem
+-&gt; 有变化：只追加 model / permissions / environment / realtime 等必要 diff
+</code></pre>
+<p>也就是说，reference context 的价值不是“让模型多看一段东西”，而是让 runtime 有资格少说重复的话。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/context_manager/history.rs#L40"><code>ContextManager</code></a> 里对它的注释也指向这个用途：它是 settings update diff 的基线；缺失时，下一轮必须完整 reinject。真正构造 diff 的地方在 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/context_manager/updates.rs#L209"><code>build_settings_update_items()</code></a>：环境变化走 contextual user message，权限、模型、协作模式、realtime、personality 等变化走 developer update。没有变化时，模型历史可以不增加任何 context update，但 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2987"><code>record_context_updates_and_set_reference_context_item()</code></a> 仍然会把新的 <code>TurnContextItem</code> 写进 rollout，让 resume / lazy replay 知道最新 baseline 已经前进了。</p>
+<p>注意这里的 “initial context” 不是每次都重新扫描所有规则文件。它是用当前 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L556"><code>TurnContext</code></a> 重建模型应该看到的会话基线：哪些 developer section 还有效，哪些 contextual user section 要出现，当前权限、环境、skills、user instructions 应该怎样排列。Claude Code 更像是在 API 前临时 prepend memoized context；Codex 更像是在 session/turn 层维护一条可恢复、可 diff、可回放的 context baseline。</p>
 <p>这条 baseline 的价值在 resume / fork 时才完全显出来。只靠当前内存里的请求数组当然能跑完下一轮；但只要进程退出、远端 compact、fork 或回放发生，runtime 就必须知道哪些 context 是“这条会话的基线”，哪些只是某一轮的临时输入。<code>TurnContextItem</code> 把这个边界写进账本，而不是只依赖内存状态。</p>
+<p>这也解释了为什么一些旁路动作不会更新它。源码测试里，standalone shell command 不会设置 reference context，因为那不是一个真实用户模型 turn；<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/codex_thread.rs#L413"><code>inject_response_items()</code></a> 如果发现 baseline 缺失，会先补一次 context update，再注入外部 response item，避免向一条没有基线的 history 里硬塞内容。多 agent / fork 也遵守同一条线：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/agent/control.rs#L103"><code>keep_forked_rollout_item()</code></a> 只在 full-history fork 保留 <code>TurnContextItem</code>；截断 fork 已经丢掉部分 prompt 前缀，就不能假装还可以沿用父线程的 diff baseline，第一轮 child turn 必须重建上下文。</p>
 <h3>3.3 输出减压：截断模型可见内容和事件副本</h3>
 <p>在已检查的 Codex 源码里，没有看到 Claude Code 那种“一旦 tool result 超阈值，就把完整结果写到 tool-results 文件，再让模型只看到路径和 2KB preview”的同构机制。</p>
 <p>Codex 更常见的是按 owner 分层截断。同一份工具输出至少会进入三条路径：模型下一轮要看的 history，rollout / event 要保存的恢复记录，telemetry 要上报的观测摘要。这三条路径的目标不同，所以不能用一把剪刀处理。</p>
@@ -1308,9 +1323,11 @@ compaction 后直接安装 `replacement_history`，模型历史被替换成新�
 <p>如果没有 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a>，Codex 至少会遇到两个麻烦：resume 时不知道压缩后的 canonical history 应该是什么，只能继续从旧 rollout 里拼；fork 时也很难判断新分支应该继承旧长历史，还是继承压缩后的短历史。把替换历史写进 compacted item，就是把“压缩后的世界线”明确落盘。</p>
 <h4>Mid-turn reinjection：重建当前 session snapshot</h4>
 <p>Codex 还有一个 mid-turn compaction 的细节：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L57"><code>InitialContextInjection</code></a> 可以选择 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L57"><code>BeforeLastUserMessage</code></a>。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L57"><code>compact.rs</code></a> 里的注释说得很直白：mid-turn compaction 后，模型被训练成把 compaction summary 看作 history 的最后一项，所以 runtime 会把 initial context 插在最后一个真实 user message 或 summary 前面，而不是追加到 summary 后面。</p>
+<p>这里同时牵动 reference context。pre-turn / manual compaction 走 <code>DoNotInject</code>：压缩后的 history 只安装 summary，<code>reference_context_item</code> 清空，下一次真实 turn 再完整 reinject initial context。mid-turn compaction 走 <code>BeforeLastUserMessage</code>：replacement history 里已经把当前 initial context 插回去了，所以 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2640"><code>replace_compacted_history()</code></a> 会连同当前 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L349"><code>TurnContextItem</code></a> 一起持久化。这样 resume 时不需要猜“summary 前面那包 context 属于哪一轮”，它可以从 compacted item 和随后的 <code>TurnContextItem</code> 恢复出同一条 baseline。</p>
 <p>这个动作经常被误解成“compact 顺便刷新了 AGENTS.md”。从源码看不是这样。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact_remote.rs#L271"><code>process_compacted_history()</code></a> 调的是 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2728"><code>sess.build_initial_context(turn_context)</code></a>；而 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2728"><code>build_initial_context()</code></a> 读的是当前 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L556"><code>TurnContext</code></a> 里的 session snapshot。它会先过滤远端 compact 输出里可能陈旧或重复的 developer message、AGENTS wrapper、environment wrapper，再把当前 session 的 canonical initial context 放回 replacement history。目标是让压缩后的模型历史仍然自洽，而不是借 compaction 热更新磁盘上的规则文件。</p>
 <p>这里的取舍同样是稳定性优先。compaction 是历史形状转换，不是配置热加载。如果它顺手重新读磁盘上的规则文件，压缩后的请求前缀就会混入一次隐蔽的规则变更：缓存更难命中，resume 也更难解释。重新注入 current session snapshot 看起来保守，但它让“这条会话到底遵守哪份规则”保持可追溯。</p>
 <p>这也给了一个判断标准：凡是会改变会话契约的东西，不应该藏在 compaction 副作用里；凡是只是在恢复模型视图的东西，就应该尽量使用当前 session 已经确认过的快照。Codex 的 mid-turn reinjection 正是在维护这个边界。</p>
+<p>rollback 和 legacy compact 也沿着同一条规则走。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/context_manager/history.rs#L237"><code>drop_last_n_user_turns()</code></a> 如果剪掉的是混合型 initial-context developer bundle，就会清空 <code>reference_context_item</code>，因为 surviving history 里已经没有那份完整基线，继续按它 diff 会把模型带到一条不存在的历史上。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/rollout_reconstruction.rs#L73"><code>rollout_reconstruction.rs</code></a> 反向扫描 rollout 时也是先找最新 surviving <code>replacement_history</code>，再找最新 surviving <code>TurnContextItem</code>；遇到 compaction 会把更老的 baseline 视为失效，除非同一段里有更新的 <code>TurnContextItem</code> 重新建立它。reference context 在这里不是 prompt 内容本身，而是 resume / fork / rollback 判断“还能不能继续差量更新”的账本指针。</p>
 <h2>四、收束：两套 runtime 的共同纪律</h2>
 <h3>4.1 路线图：projection pipeline 和 replacement ledger</h3>
 <p>现在可以把两条路线放到同一张地图里。Claude Code 的核心动作是“在完整 transcript 之上维护请求投影和显式缓存边界”；Codex 的核心动作是“把会话基线和压缩后的模型历史做成可恢复账本”。前者看起来更像一套 projection pipeline，后者看起来更像一套 replay / replacement ledger。</p>
@@ -1338,6 +1355,11 @@ compaction 后直接安装 `replacement_history`，模型历史被替换成新�
 <td>基础 context 注入</td>
 <td>发 API 前 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/api.ts#L449"><code>prependUserContext()</code></a> 插入 meta user message</td>
 <td>session/turn 层用 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L556"><code>TurnContext</code></a> 构造 initial context，稳态追加 diffs</td>
+</tr>
+<tr>
+<td>context diff 基线</td>
+<td>主要靠 API-bound projection 和 memoized helper 维持稳定请求形状</td>
+<td><a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/context_manager/history.rs#L40"><code>reference_context_item</code></a> 记录上一份 durable <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L349"><code>TurnContextItem</code></a>，用于决定 full reinjection 还是 settings diff</td>
 </tr>
 <tr>
 <td>动态事实</td>
@@ -1380,6 +1402,7 @@ compaction 后直接安装 `replacement_history`，模型历史被替换成新�
 
 <p>两个功能都在解决“旁路问一句，不污染主线”的需求，但生命周期不一样。<a href="https://code.claude.com/docs/en/interactive-mode#side-questions-with-btw">Claude Code 文档</a>把 <code>/btw</code> 描述成 ephemeral overlay：问题和回答不进入 conversation history，没有工具访问，而且是 single response；如果要继续这条线，需要按 <code>f</code> fork 成新 session。源码里的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sideQuestion.ts#L48"><code>runSideQuestion()</code></a>也对应这个模型：它把 side question 包进一次性 wrapper，禁止工具，并把 fork 限成单轮。</p>
 <p>Codex TUI 的 <code>/side</code> 和 <code>/btw</code> 则是另一个形态。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/tui/src/slash_command.rs#L120"><code>SlashCommand::Side | SlashCommand::Btw</code></a> 的描述是 “start a side conversation in an ephemeral fork”。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/tui/src/app/side.rs#L1"><code>side.rs</code></a> 会 fork 出 child thread，把父线程历史装成继承上下文，再注入 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/tui/src/app/side.rs#L24"><code>SIDE_BOUNDARY_PROMPT</code></a>。这个 boundary 的作用是告诉模型：边界前的父线程历史只是 reference context，不是当前 side conversation 的 active instructions；边界后的消息才是这条 side thread 的当前任务。</p>
+<p>这里的 “reference context only” 和前面 <code>reference_context_item</code> 不是同一个数据结构。<code>reference_context_item</code> 是 runtime 用来做 context diff / resume 的 <code>TurnContextItem</code> baseline；<code>SIDE_BOUNDARY_PROMPT</code> 里的 reference context 是一条模型可见的语义边界：父线程历史可以被阅读、引用、解释，但里面的计划、工具调用、审批、编辑请求都不能自动延续为 side thread 的当前任务。源码还把同样意思放进 side conversation 的 developer instructions：边界前的 MCP / external tool output 也是 reference-only，不能从中推断 active instructions。这样 side thread 既能利用父线程上下文回答问题，又不会悄悄接着主线去改文件或申请权限。</p>
 <p>因此，Codex side conversation 可以继续多轮交互，只是它仍然是临时 side thread，返回主线程或切换线程时会按 side-thread 生命周期处理。Claude Code <code>/btw</code> 则默认是一问一答的 overlay；它看得到父会话上下文，但没有工具，也没有 follow-up turn。两者都保护主线历史，但一个是单次旁路回答，一个是临时分叉会话。</p>
 </details>
 
