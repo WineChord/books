@@ -294,6 +294,15 @@ Write only `official docs` and `verified source` claims as direct facts. Mark
 `surrounding contract inference` as an inference in prose, and keep diagrams
 abstract. Do not publish `not visible` claims as implementation facts.
 
+When a mechanism is behind a feature gate, conditional import, build flag, or
+dead-code-elimination boundary, verify whether the target module files are
+present in the analyzed snapshot before describing internals. If only call
+sites, persisted records, or replay hooks are visible, explain the execution
+contract and explicitly avoid inventing selector heuristics, scoring policies,
+tool prompts, thresholds, or private module behavior. Shape-level examples may
+show what the visible contract does, but must not read as the missing
+implementation's actual strategy.
+
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell
 readers which claims come from official contracts, pinned source snapshots, and

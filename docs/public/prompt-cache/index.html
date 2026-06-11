@@ -649,7 +649,19 @@ Preview (first 2KB):
 </ol>
 <p>它真正做的是一件事：完整 transcript 仍然保留，但某些中段消息不再进入后续 API 请求的 <code>messages</code> 数组。</p>
 <p>为什么需要 SNIP，而不是只靠 autocompact？因为有些历史不是“应该总结”，而是“已经不该让模型继续看”。中段探索、过期日志、错误方向的局部分析，留在 UI 和 transcript 里仍有审计价值；但继续塞进模型视图，只会消耗 token、干扰注意力，还可能让缓存前缀承载一段已经无用的变化内容。SNIP 的判断更像剪辑时间线，不像写摘要。</p>
-<h4>2.4.1 先看一个最小例子</h4>
+<h4>2.4.1 谁决定要剪哪几条</h4>
+<p>读 SNIP 时，最需要先拆开的不是名词，而是两个动作：selector 负责决定“哪几条消息应该被剪掉”，projection 负责把这个决定应用到后续模型视图里。</p>
+<p>公开源码快照里，projection 和恢复契约非常清楚；完整 selector 策略并没有随快照展开。能直接确认的链路是：</p>
+<ol>
+<li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L200"><code>deriveShortMessageId(uuid)</code></a> 和 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L1620"><code>appendMessageTagToUserMessage()</code></a> 会给 API-bound 的非 meta user message 追加短 id，让模型侧有办法引用具体消息。</li>
+<li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/tools.ts#L123"><code>src/tools.ts</code></a> 会在 <code>HISTORY_SNIP</code> 打开时把 <code>SnipTool</code> 放进工具列表， <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/commands.ts#L83"><code>src/commands.ts</code></a> 也会在同一个 gate 下接入 <code>force-snip</code>。</li>
+<li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/attachments.ts#L3959"><code>context_efficiency</code> attachment</a> 会按 <code>shouldNudgeForSnips(messages)</code> 的节奏提醒整理上下文；源码注释只暴露了节奏边界：约 10k token 的增长区间，已有 nudge、snip marker、snip boundary、compact boundary 都会重置。</li>
+<li>主链路随后调用 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>snipCompactIfNeeded(messagesForQuery)</code></a>，得到裁剪后的 <code>messages</code>、释放的 <code>tokensFreed</code>，以及需要写回 transcript 的 <code>boundaryMessage</code>。</li>
+<li>持久化恢复时，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1982"><code>applySnipRemovals()</code></a> 读取 boundary 里的 <code>removedUuids</code>，删除中段消息并重接 parent 链。</li>
+</ol>
+<p>这条链路说明，SNIP 不是 runtime 按 token 数机械剪一段，也不是 autocompact 那种把旧前缀总结成 summary 的全局改写。它先让消息变得可指认，再由一个 gated 的选择入口产生删除集合，最后由 projection / boundary / replay 契约执行。</p>
+<p>但“哪些消息被选中”的精确策略，比如工具 schema、prompt、候选区间评分、阈值、保守保护区和强制路径的细节，都落在当前快照缺失的 <code>SnipTool</code>、<code>snipCompact</code>、<code>snipProjection</code>、<code>force-snip</code> 等模块里。下面的 <code>U2/A2</code> 例子只用来解释模型视图如何变化，不应读成源码里的固定 heuristic。</p>
+<h4>2.4.2 先看一个最小例子</h4>
 <p>假设一段会话已经长成这样：</p>
 <pre><code class="language-text">U1: 规则和任务背景
 A1: 初步分析
@@ -671,13 +683,13 @@ U1 A1 U3 A3 U4
 </code></pre>
 <p>这就是 SNIP 的核心。用户界面仍然能回看 <code>U2/A2</code>，磁盘仍然能审计它们曾经存在过，但模型下一轮不再为这段中间历史付 token，也不会让它污染 cache prefix。</p>
 <p><img src="assets/claude-code-snip-projection.png" alt="Claude Code SNIP 的模型投影和 parent relink"></p>
-<h4>2.4.2 第一步：给可剪消息贴短 id</h4>
+<h4>2.4.3 第一步：给可剪消息贴短 id</h4>
 <p>模型必须有办法指向“要剪哪几条消息”。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L200"><code>deriveShortMessageId(uuid)</code></a> 会从消息 UUID 派生 6 位 base36 短 id；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L1620"><code>appendMessageTagToUserMessage()</code></a> 再把这个 id 追加到 API-bound 的 user message 末尾：</p>
 <pre><code class="language-text">请看一下这段测试日志
 [id:8x3p1k]
 </code></pre>
 <p>这个 tag 只存在于发给 API 的副本里，不写回本地 transcript；<code>isMeta</code> 内部消息不会被打 tag；tag 注入发生在 merge、smoosh、sanitize 之后，所以 id 对应的是最终会出现在模型视图里的那条 user message。源码还把这段逻辑挂在 <code>HISTORY_SNIP</code> feature gate 和 runtime enabled 条件下，避免工具不可用时还给每条用户消息增加 token。</p>
-<h4>2.4.3 第二步：请求前投影出新的 messages</h4>
+<h4>2.4.4 第二步：请求前投影出新的 messages</h4>
 <p>SNIP 发生在主请求链路里，而且位置很讲究。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>src/query.ts</code></a> 先处理新鲜大工具结果，再调用 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>snipCompactIfNeeded(messagesForQuery)</code></a>，随后才进入 microcompact。</p>
 <p>裁剪前的请求包可以抽象成：</p>
 <pre><code class="language-json">{
@@ -709,7 +721,7 @@ tokensFreed     估算释放的 token
 boundaryMessage 本轮如果发生裁剪，需要写入 transcript 的边界消息
 </code></pre>
 <p><code>tokensFreed</code> 需要单独传下去，是因为 token 估算会读 surviving assistant message 上的旧 usage。那些 usage 记录反映的是剪裁前上下文大小，单靠 <code>tokenCountWithEstimation(messagesForQuery)</code> 看不到 SNIP 已经释放的空间。于是 autocompact 和 blocking-limit 判断都要减掉 <code>snipTokensFreed</code>，否则系统可能误以为 prompt 仍然太长。</p>
-<h4>2.4.4 第三步：把删除集合写进 transcript</h4>
+<h4>2.4.5 第三步：把删除集合写进 transcript</h4>
 <p>只在内存里过滤一次还不够。Claude Code 的 transcript 是 append-only JSONL，resume 时会从磁盘重建对话链。如果没有持久化删除集合，重启后 <code>U2/A2</code> 会重新回到模型历史里。</p>
 <p>所以 SNIP 需要一个 boundary message 记录 <code>snipMetadata.removedUuids</code>。形状可以理解为：</p>
 <pre><code class="language-json">{
@@ -721,7 +733,7 @@ boundaryMessage 本轮如果发生裁剪，需要写入 transcript 的边界消�
 }
 </code></pre>
 <p>这里的关键不是 subtype 名字，而是 <code>removedUuids</code> 这个恢复契约：后续加载 transcript 时，runtime 必须知道哪些旧消息已经被模型视图剪掉。</p>
-<h4>2.4.5 第四步：resume 时删除并重接 parent 链</h4>
+<h4>2.4.6 第四步：resume 时删除并重接 parent 链</h4>
 <p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1982"><code>applySnipRemovals()</code></a> 在加载 transcript 后做两件事：</p>
 <pre><code class="language-text">1. 从消息 Map 里删除 removedUuids 指向的消息。
 2. 如果存活消息的 parentUuid 指向被删消息，就沿被删消息的 parent 链向前找第一个未删除祖先。
@@ -753,7 +765,9 @@ M1 &lt;- M4 &lt;- M5
 
 <p>REPL 需要保留完整 UI scrollback，所以 UI 路径会传 <code>includeSnipped: true</code>；模型路径默认通过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4643"><code>getMessagesAfterCompactBoundary()</code></a> 调用 <code>projectSnippedView()</code>，拿到 “compact slice + snip projection” 之后的数组。headless / SDK 路径没有同样的 scrollback 要保留，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/QueryEngine.ts#L1276"><code>QueryEngine</code></a> 会在收到 snip boundary 时通过 <code>snipReplay</code> 重新应用裁剪。</p>
 <p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/attachments.ts#L3959"><code>context_efficiency</code> attachment</a> 还提供了一层轻提示：当上下文增长了一段时间但一直没有 SNIP 时，它会按 <code>shouldNudgeForSnips()</code> 的节奏提示模型考虑整理上下文；已有 nudge、snip marker、snip boundary、compact boundary 都会重置这个节奏。</p>
-<p>可见源码里，<code>snipCompact.js</code>、<code>snipProjection.js</code>、<code>SnipTool</code>、<code>force-snip</code> 这些执行模块通过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>HISTORY_SNIP</code></a> 条件路径接入；当前源码快照没有展开它们的文件本体。但周边契约已经足够清楚：短 id 用于引用，query 前裁剪模型视图，boundary 记录删除集合，resume 时按 <code>removedUuids</code> 删除并重接 parent 链，UI 和 SDK 分别选择保留 scrollback 或直接收缩 store。外部 npm 包 <a href="https://www.npmjs.com/package/@anthropic-ai/claude-code"><code>@anthropic-ai/claude-code</code></a> 的 2.x 发行形态已经是 native binary，不再明文暴露旧源码符号；但字符串里仍能看到 <code>CLAUDE_SNIP</code>、<code>snipTokensFreed</code>、<code>includeSnipped</code>、<code>snipEnabled</code> 等字段。稳妥的结论是：相关设计仍在产品形态里演进，但不能仅凭某个旧符号是否出现，判断某个发行版默认开启了完整旧路径。</p>
+<p>可见源码里，<code>snipCompact.js</code>、<code>snipProjection.js</code>、<code>SnipTool</code>、<code>force-snip</code> 这些执行模块都是通过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>HISTORY_SNIP</code></a> 条件路径接入。当前公开快照并不是“runtime 关掉但代码还完整留在目录里”：<code>src/services/compact</code> 里没有 <code>snipCompact</code> / <code>snipProjection</code> 文件，<code>src/tools</code> 里没有 <code>SnipTool</code> 目录，<code>src/commands</code> 里也没有 <code>force-snip</code> 模块本体。</p>
+<p>这和源码里的构建约束吻合。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query/config.ts#L13"><code>feature()</code> gate</a> 被注释为 tree-shaking boundary；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/QueryEngine.ts#L1276"><code>QueryEngine</code></a> 也把 SNIP 相关 import 标成 dead-code-elimination 路径；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1982"><code>sessionStorage</code></a> 甚至避免写出 boundary subtype 字符串，因为 <code>HISTORY_SNIP</code> 是 ant-only，相关 literal 不能泄漏到外部分发检查里。更稳妥的读法是：公开快照保留了边缘接线、数据契约和恢复算法；核心 selector 与投影模块被 feature gate 隔离，并没有以可读文件形式随这份快照发布。</p>
+<p>所以，文章能把“短 id 如何进入 API-bound user message”“query 前如何接入裁剪”“<code>removedUuids</code> 如何恢复”“UI 与 SDK 为什么走不同保留策略”讲成源码事实；但不能把不可见模块里的选择策略讲成源码事实。外部分发包是否还能 grep 到某些 SNIP 字符串，只能作为版本形态的旁证，不能替代 pinned source snapshot 里的可见边界。</p>
 </details>
 
 <h3>2.5 旧内容再瘦身：microcompact 和 context-collapse</h3>
@@ -815,7 +829,7 @@ M1 S1 M6 M7
 <li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/types/logs.ts#L255"><code>src/types/logs.ts</code></a> 定义 <code>ContextCollapseCommitEntry</code> 和 <code>ContextCollapseSnapshotEntry</code>。</li>
 <li>读 transcript 时，如果遇到 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a>，会清空 pre-boundary 的 context-collapse commits 和 snapshot，避免把旧折叠记录应用到已经不存在的消息链上。</li>
 </ul>
-<p>但具体实现目录在这份源码快照中没有展开，所以不能把不可见的算法细节当作确定事实。可靠的说法是：主链路已经为它预留了“投影、持久化、恢复、与 autocompact 协调”的契约。</p>
+<p>这里也要保持同样的证据边界：可见源码能证明 context-collapse 的 commit / snapshot / projection 位置，不能证明未展开模块里的选择算法、摘要生成策略和候选区间评分。可靠的说法是：主链路已经为它预留了“投影、持久化、恢复、与 autocompact 协调”的契约；至于哪些区间会被折叠、何时折叠、如何评分，只能在可见契约之外保持克制。</p>
 <p>它和 autocompact 的关系也很重要：context-collapse 在 autocompact 之前运行。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L160"><code>shouldAutoCompact()</code></a> 里还明确避开 context-collapse 模式，因为 collapse 自己负责 headroom。如果 autocompact 抢先运行，可能把更细粒度的 collapse 直接压成一段粗 summary。</p>
 <p>这就是 context-collapse 的边界：它适合局部语义仍有价值、但原文太重的区间；它不适合替代最终的窗口保护。把它理解成“比 SNIP 更语义化、比 autocompact 更局部”的中间层，才不会把所有压缩机制混成一个词。</p>
 <h3>2.6 最后防线：autocompact 和 compact_boundary</h3>
