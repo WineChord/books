@@ -303,6 +303,13 @@ tool prompts, thresholds, or private module behavior. Shape-level examples may
 show what the visible contract does, but must not read as the missing
 implementation's actual strategy.
 
+It is acceptable to add bounded engineering inference when it helps readers
+connect the visible contracts into a plausible lifecycle. Keep that inference
+constraint-driven: state which visible owner, recovery, cache, or request-shape
+constraints force the likely design, and describe what the mechanism probably
+must protect. Do not fabricate exact prompts, schemas, scoring formulas, magic
+numbers, private filenames, or vendor intent.
+
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell
 readers which claims come from official contracts, pinned source snapshots, and

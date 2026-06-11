@@ -660,7 +660,17 @@ Preview (first 2KB):
 <li>持久化恢复时，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1982"><code>applySnipRemovals()</code></a> 读取 boundary 里的 <code>removedUuids</code>，删除中段消息并重接 parent 链。</li>
 </ol>
 <p>这条链路说明，SNIP 不是 runtime 按 token 数机械剪一段，也不是 autocompact 那种把旧前缀总结成 summary 的全局改写。它先让消息变得可指认，再由一个 gated 的选择入口产生删除集合，最后由 projection / boundary / replay 契约执行。</p>
-<p>但“哪些消息被选中”的精确策略，比如工具 schema、prompt、候选区间评分、阈值、保守保护区和强制路径的细节，都落在当前快照缺失的 <code>SnipTool</code>、<code>snipCompact</code>、<code>snipProjection</code>、<code>force-snip</code> 等模块里。下面的 <code>U2/A2</code> 例子只用来解释模型视图如何变化，不应读成源码里的固定 heuristic。</p>
+<p>从这些约束出发，可以做一个保守的工程推断。它大概率不是一个单纯的本地 tokenizer 规则，而是一条“模型提出候选、runtime 验证并投影”的链路：</p>
+<pre><code class="language-text">上下文持续增长
+-&gt; context_efficiency 触发整理提示
+-&gt; 模型在 API-bound 消息里看到 [id:...] 标签
+-&gt; 模型通过 SnipTool 或 force path 指向候选消息 / 区间
+-&gt; runtime 校验候选是否仍在当前模型视图、是否可安全删除
+-&gt; snipCompactIfNeeded() 生成投影视图、tokensFreed 和 boundary
+-&gt; resume 时按 removedUuids 重放同一个删除集合
+</code></pre>
+<p>这个推断来自几个 owner 约束。selector 不能只看体积，否则会误剪仍然支撑当前任务的背景；不能剪最新 user turn 和活跃 tool exchange，否则下一步回答会失去目标；不能绕开 transcript boundary，否则重启后会复活；也不能只写 UI 状态，否则 headless / SDK 路径无法收缩 store。更合理的候选通常会是高体积、低依赖、已被后续结论取代的中段历史：长日志、失败分支、过期探索、已经被最终结论覆盖的局部分析。</p>
+<p>这仍然不是源码里的精确 selector 策略。工具 schema、prompt、候选区间评分、阈值、保护区和强制路径细节，都落在当前快照缺失的 <code>SnipTool</code>、<code>snipCompact</code>、<code>snipProjection</code>、<code>force-snip</code> 等模块里。下面的 <code>U2/A2</code> 例子只用来解释模型视图如何变化，不应读成源码里的固定 heuristic。</p>
 <h4>2.4.2 先看一个最小例子</h4>
 <p>假设一段会话已经长成这样：</p>
 <pre><code class="language-text">U1: 规则和任务背景
