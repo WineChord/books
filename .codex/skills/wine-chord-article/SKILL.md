@@ -321,6 +321,10 @@ When explaining cache edit, compare it against both direct replacement and
 direct deletion of the same block. Call out whether the benefit applies to the
 current transition from a warm old prefix, or only to future turns after a new
 shorter prefix has been written.
+For prompt-cache lookback explanations, distinguish distance to the prior cache
+write from distance to the edited or deleted block. Lookback starts at the
+current breakpoint and searches for earlier written cache entries; it does not
+search outward from the historical block being edited.
 
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell
