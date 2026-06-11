@@ -321,6 +321,16 @@ When explaining cache edit, compare it against both direct replacement and
 direct deletion of the same block. Call out whether the benefit applies to the
 current transition from a warm old prefix, or only to future turns after a new
 shorter prefix has been written.
+When a cache/projection mechanism uses overloaded terms such as `prefix`,
+separate at least three layers before drawing conclusions: request or identity
+prefix used for cache lookup, provider-side cached object or processed state,
+and the effective model-visible view after edits or projections. If a field
+such as `cache_reference`, a beta header, or a cache-control marker participates
+in lookup identity, explain whether it was already part of the stable request
+discipline or newly introduced in the transition being analyzed. Do not imply
+that cache edits preserve every counter or every token span; they may preserve
+the reusable identity path while intentionally deleting tokens from the cached
+or model-visible view.
 For prompt-cache lookback explanations, distinguish distance to the prior cache
 write from distance to the edited or deleted block. Lookback starts at the
 current breakpoint and searches for earlier written cache entries; it does not
