@@ -42,8 +42,9 @@ brand mark, and source-accurate labels.
   is requested.
 - The page must reference final raster images, usually PNG. Do not leave source
   diagrams as HTML, Mermaid, or SVG-only illustrations in published articles.
-- Every final figure must carry a small `Wine & Chord` mark in the bottom-right
-  safe area.
+- Every final figure must carry the exact fixed `Wine & Chord` raster mark from
+  `assets/wine-chord-brand-mark-reference.png` in the bottom-right safe area.
+  Do not rely on the image model to redraw or reinterpret the logo.
 - Do not include production notes, prompts, private instructions, model names,
   or process explanations inside public images.
 - Do not let generated text invent source facts. If exact identifiers, arrows,
@@ -91,17 +92,20 @@ Brand mark:
 
 - The fixed reference is
   `assets/wine-chord-brand-mark-reference.png` in this skill directory.
-- Every final figure must place this style of mark in the bottom-right safe
-  area: handwritten deep-navy cursive `Wine & Chord`, a sweeping underline
-  flourish, and a small purple grape cluster with green leaves at the right.
-- Do not use a badge, box, stamp, sans-serif wordmark, generic icon, or alternate
-  logo treatment. The mark should feel hand-lettered on the same warm paper as
-  the figure.
+- Treat this PNG as the authoritative brand asset, not merely a style hint.
+  The final published figure should composite this exact mark into the image.
+- The mark contains the approved treatment: handwritten deep-navy cursive
+  `Wine & Chord`, a sweeping underline flourish, and a small purple grape
+  cluster with green leaves at the right.
+- Do not use a badge, box, stamp, sans-serif wordmark, generic icon, alternate
+  logo treatment, or image-model imitation. The mark must remain visually
+  consistent across every generated figure.
 - Keep it legible but secondary: roughly `10%` to `16%` of image width, with at
   least `3%` canvas padding from the right and bottom edges.
-- If image generation cannot reproduce the mark reliably, generate the figure
-  with a clean reserved bottom-right area and overlay the reference mark or a
-  deterministic reconstruction during post-processing.
+- During image generation, ask for a clean bottom-right paper area reserved for
+  the mark. After generation, overlay the reference PNG deterministically. If
+  the model generated any competing logo or text there, cover it with matching
+  paper texture before compositing the fixed asset.
 - Do not crop, blur, recolor, or stretch the grape element. Preserve the
   handwritten underline relationship to the text.
 
@@ -211,9 +215,8 @@ Palette: deep navy, Wine & Chord blue, muted forest green, slate gray, small
 amber highlights.
 Subject: [one precise source-level idea].
 Composition: [nodes and arrows in exact order].
-Include the fixed Wine & Chord brand mark in the bottom-right: deep-navy
-handwritten cursive text, sweeping underline, purple grape cluster and green
-leaves, matching the local reference asset.
+Leave a clean warm-paper safe area in the bottom-right for the fixed
+Wine & Chord brand mark that will be composited after generation.
 No process notes, no prompt references, no meta text.
 Use only these short labels: [label list].
 Keep arrows clean and non-crossing; leave generous margins.
@@ -231,8 +234,22 @@ Use deterministic composition when accuracy requires it:
 - Keep the image2 output as the background or illustration layer.
 - Overlay exact labels, node titles, arrows, or callouts with a script or design
   renderer.
+- Always overlay the fixed brand asset from
+  `assets/wine-chord-brand-mark-reference.png` as the final bottom-right mark.
 - Export one final PNG for publication.
 - Keep source files near the article only when they are useful for regeneration.
+
+Mandatory brand overlay protocol:
+
+1. Generate the figure body with a clean bottom-right warm-paper safe area.
+2. Load `assets/wine-chord-brand-mark-reference.png`.
+3. Scale the mark proportionally to `10%` to `16%` of canvas width.
+4. Place it in the bottom-right safe area with at least `3%` right and bottom
+   padding.
+5. If the reference PNG background differs from the target paper, softly key out
+   the light paper background or blend it into a small matching-paper patch. Do
+   not alter the blue lettering, underline, grape cluster, or leaves.
+6. Save the composited result as the only image referenced by the article.
 
 Recommended final asset layout:
 
@@ -276,9 +293,10 @@ Inspect every generated figure before publishing:
 - Labels do not escape boxes.
 - Arrows do not cross in confusing ways.
 - The figure matches the article's source claims.
-- The Wine & Chord mark matches
-  `assets/wine-chord-brand-mark-reference.png`: cursive wordmark, underline,
-  grape cluster, bottom-right placement, no alternate badge or generic icon.
+- The Wine & Chord mark is the exact composited raster asset from
+  `assets/wine-chord-brand-mark-reference.png`, proportionally scaled and placed
+  in the bottom-right. No image-model imitation, alternate badge, generic icon,
+  distorted crop, recolor, or competing generated logo is visible.
 - No private instruction, prompt, TODO, or process note is visible.
 - Mobile rendering keeps the image legible at article width.
 - The figure fits the Prompt Cache visual family when viewed beside the
