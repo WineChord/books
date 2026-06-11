@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中</title>
-  <meta name="description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
+  <meta name="description" content="从 Claude Code 和 Codex 源码解释 prompt cache 的模型视图纪律：provider contract、稳定前缀、动态上下文、局部减压、compaction 边界、replacement_history 和长上下文取舍。">
   <link rel="canonical" href="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:title" content="Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中">
-  <meta property="og:description" content="从 Claude Code 和 Codex 源码解释 prompt cache、动态上下文、大工具结果落盘、snip、microcompact、context-collapse、autocompact 和 replacement_history。">
+  <meta property="og:description" content="从 Claude Code 和 Codex 源码解释 prompt cache 的模型视图纪律：provider contract、稳定前缀、动态上下文、局部减压、compaction 边界、replacement_history 和长上下文取舍。">
   <meta property="og:url" content="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:type" content="article">
   <meta property="og:image" content="https://www.wineandchord.com/books/prompt-cache/assets/cover-claude-codex-prompt-cache.png">
@@ -260,6 +260,21 @@
       border-left: 4px solid var(--green);
       color: var(--muted);
     }
+    details {
+      margin: 24px 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(15, 76, 129, 0.18);
+      border-radius: 8px;
+      background: #f8fbfb;
+    }
+    summary {
+      cursor: pointer;
+      color: #102a43;
+      font-weight: 700;
+    }
+    details > *:last-child {
+      margin-bottom: 0;
+    }
     @media (max-width: 1180px) {
       .page-shell {
         width: min(100%, 1080px);
@@ -357,10 +372,11 @@
     <article>
 <h1>Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中</h1>
 <p><img src="assets/cover-claude-codex-prompt-cache.png" alt="Claude Code 和 Codex 的 prompt cache 设计对比"></p>
-<p>长时间使用<a href="https://en.wikipedia.org/wiki/Software_agent">代码 Agent</a> 时，最先撞上的问题通常不是“模型会不会写代码”，而是上下文怎么活下去。</p>
+<p>长时间使用 coding agent 时，最先撞上的问题通常不是“模型会不会写代码”，而是上下文怎么活下去。这里的 coding agent 指能读代码库、改文件、运行命令并维护会话历史的编程 runtime；<a href="https://code.claude.com/docs/en/overview">Claude Code</a> 官方更常用 agentic coding tool 这类说法，<a href="https://developers.openai.com/codex">Codex</a> 官方则直接称自己为 coding agent。</p>
 <p>一轮请求里可能有系统规则、工具定义、项目说明、运行环境、历史消息、工具输出、图片、文档、摘要和最新用户输入。前几轮还好，几十轮以后，输入会迅速膨胀。每一轮都把所有内容重新送进模型，成本高，延迟高，也更容易把真正重要的信息挤出窗口。</p>
-<p><a href="https://developers.openai.com/api/docs/guides/prompt-caching">Prompt cache</a> 解决的是其中一部分问题：如果连续请求共享相同前缀，服务端可以复用已经处理过的前缀计算。它不是语义缓存，不是“这两句话意思差不多就命中”。它更接近字节和结构层面的前缀复用：前面那段 prompt 越稳定，缓存越容易命中。</p>
-<p>代码 Agent 的难点在于，prompt 不是一段静态文本。它是运行时拼出来的“模型视图”。<a href="https://code.claude.com/docs/en/prompt-caching">Claude Code</a> 和 <a href="https://github.com/openai/codex">Codex</a> 的源码都在围绕这个视图做工作：哪些内容放前面，哪些内容放尾部，哪些内容落盘，哪些内容摘要，哪些内容只在 UI 里保留，哪些内容真正送进模型。</p>
+<p>Prompt cache 解决的是其中一部分问题：如果连续请求共享相同前缀，服务端可以复用已经处理过的前缀计算。它不是语义缓存，不是“这两句话意思差不多就命中”。它更接近字节和结构层面的前缀复用：前面那段 prompt 越稳定，缓存越容易命中。</p>
+<p>从推理系统的角度看，这通常对应 prefill 阶段的重复计算复用。开源推理框架 <a href="https://docs.vllm.ai/en/stable/design/prefix_caching/">vLLM 的 prefix caching 设计文档</a>把它说得很直接：相同前缀已经处理过时，可以复用对应的 KV cache blocks，而不是重新计算整段 prompt。这也解释了为什么 prompt cache 对“相同前缀”这么敏感：它复用的是已经算过的前缀状态，不是复用模型即将生成的回答。</p>
+<p>这类系统的难点在于，prompt 不是一段静态文本。它是运行时拼出来的“模型视图”。Claude Code 和 Codex 的源码都在围绕这个视图做工作：哪些内容放前面，哪些内容放尾部，哪些内容落盘，哪些内容摘要，哪些内容只在 UI 里保留，哪些内容真正送进模型。</p>
 <p>这篇文章只抓一条主线：prompt cache 不是一个孤立的 API 参数，而是一整套“模型视图纪律”。源码里所有看似分散的设计，最后都在回答四个问题：</p>
 <ol>
 <li>provider 到底允许缓存哪一段前缀？</li>
@@ -369,6 +385,8 @@
 <li>压缩之后，下一轮请求怎样知道模型应该从哪里继续看？</li>
 </ol>
 <p>把这四个问题串起来，Claude Code 和 Codex 的差异就不再是“一个手动、一个自动”这么粗的描述，而是两套 runtime 在不同 provider contract 下，对同一个长上下文问题给出的两种工程答案。</p>
+<p>更进一步说，源码里真正值得看的不是“它用了哪个 API 字段”，而是每个字段背后的取舍：为什么这段内容要稳定，为什么那段内容要靠后，为什么有些东西只留在 UI 或磁盘，为什么不能等到窗口快爆了再统一总结。把这些问题问下去，prompt cache 才会从一个计费功能变成长上下文 runtime 的结构约束。</p>
+<p>这篇文章的证据也分三层：provider contract 以 OpenAI、Anthropic 等官方文档为准；源码机制以固定 commit 的公开源码为准；服务端内部序列化、缓存路由和发行版 feature gate 只能按公开契约和可见源码做边界内推断。后面凡是讲“形状”“视图”“契约”，都在这个边界内使用。</p>
 <p><img src="assets/context-pressure-overview.png" alt="长上下文与提示缓存策略总览"></p>
 <p>接下来按这条问题链展开：先建立“模型视图”的坐标系，再看 Claude Code 怎样围绕显式缓存断点维护这条视图，然后看 Codex 怎样在自动 prefix cache 下维护可恢复历史，最后把两套设计压回同一张对照图。</p>
 <h2>一、心智模型：缓存命中的是模型视图</h2>
@@ -379,6 +397,17 @@
 <p>第二种是磁盘历史，也就是 session transcript、rollout <a href="https://jsonlines.org/">JSONL</a>、tool result 文件、collapse commit 等持久化记录。它服务于 resume、fork、审计和恢复。</p>
 <p>第三种是模型历史，也就是本轮 API 请求里真正进入 provider prompt 的 messages、system / instructions、tools、schema 和附加 context。这里说的是 API contract 和缓存前缀层面的输入，不等于公开了推理服务内部每个 token 的物理排列。</p>
 <p>Prompt cache 命中的永远是第三种：模型看到的有序输入。UI 里还在，不代表模型还会看到；磁盘里还在，也不代表每轮都会进 prompt。</p>
+<p>判断一段 context 应该放在哪里，可以先问三个问题：</p>
+<pre><code class="language-text">谁需要它？
+模型本轮推理需要，还是只给用户回看，还是只给 resume 恢复？
+
+它会不会变？
+稳定规则适合靠前；临时事实、时间、工具输出适合靠后或可替换。
+
+拿掉会坏什么？
+会丢语义，就需要 summary 或恢复契约；只会丢可见细节，就可以落盘、裁剪或折叠。
+</code></pre>
+<p>后面所有机制都在反复回答这三个问题。SNIP、microcompact、context-collapse、autocompact 看起来名字很多，本质上只是对这三个问题给出了不同粒度的答案。</p>
 <h3>1.2 Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h3>
 <p>可以把一次请求抽象成：</p>
 <pre><code class="language-text">Claude 侧公开层级：
@@ -392,13 +421,16 @@ prefix 可包含 messages / tools / schemas / images
 前缀尽量长，且尽量不变。
 </code></pre>
 <p><img src="assets/prompt-cache-provider-contracts.png" alt="Claude 和 OpenAI 的 prompt cache contract 差异"></p>
-<p>这里必须把 Claude 和 OpenAI 分开理解。<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Claude API 文档</a>明确给出 cache prefix 的层级：<code>tools</code>、<code>system</code>、<code>messages</code>；<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">Claude 的 tool-use 文档</a>也展示了工具定义会进入 tool-use system prompt，并排在用户 system prompt 之前。所以在 Claude 侧，把工具定义视为稳定前缀最前面的组成部分，是有公开依据的。</p>
-<p><a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI</a> 侧更适合描述成“自动 prefix cache”。公开文档能依赖的是：命中需要 exact prefix match；静态内容应该放前面，动态内容放后面；tools、messages、images、structured output schemas 都可以参与缓存；<code>prompt_cache_key</code> 会参与路由，让共享前缀更容易落到同一缓存域。OpenAI 文档没有给出一个和 Claude 完全同构的 <code>tools -&gt; system -&gt; messages</code> block hierarchy。Codex 源码也只是在客户端构造 <a href="https://platform.openai.com/docs/api-reference/responses/create">Responses API</a> 请求，把 <code>instructions</code>、<code>input</code>、<code>tools</code>、<code>text</code> 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a> 交给 provider；服务端内部如何序列化这些字段，不能作为客户端侧可依赖的工程事实。</p>
-<p>这就是为什么“规则文件怎么注入”“工具结果怎么处理”“compaction 后有没有边界”都会影响 prompt cache。它们看起来是上下文管理问题，本质上也都是缓存前缀管理问题。</p>
-<p><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Claude API</a> 和 <a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI API</a> 都支持 prompt caching，但暴露方式不同。</p>
-<p>Claude API 有显式的 <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching"><code>cache_control</code></a>。根据 Anthropic 文档，prompt caching 会引用从 <code>tools</code> 到 <code>system</code> 再到 <code>messages</code> 的完整前缀，一直到被标记的 cache breakpoint。Claude API 也有顶层 automatic caching：请求体上放一个 <code>cache_control</code>，系统会把 breakpoint 自动放到最后一个可缓存 block。缓存默认 5 分钟 TTL，也有 1 小时 TTL；cache read 和 cache write 会在 usage 字段里体现。</p>
+<p>这里必须把 Claude 和 OpenAI 分开理解。两边都叫 prompt caching，但客户端能控制的东西不是同一个。</p>
+<h4>Claude：客户端可以标记缓存断点</h4>
+<p><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Claude API 文档</a>明确给出 cache prefix 的层级：<code>tools</code>、<code>system</code>、<code>messages</code>。这不是一句抽象建议，而是后面读源码时要抓住的顺序：<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">Claude 的 tool-use 文档</a>也展示了工具定义会进入 tool-use system prompt，并排在用户 system prompt 之前。所以在 Claude 侧，把工具定义视为稳定前缀最前面的组成部分，是有公开依据的。</p>
+<p>Claude API 有显式的 <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching"><code>cache_control</code></a>。prompt caching 会引用从 <code>tools</code> 到 <code>system</code> 再到 <code>messages</code> 的完整前缀，一直到被标记的 cache breakpoint。Claude API 也有顶层 automatic caching：请求体上放一个 <code>cache_control</code>，系统会把 breakpoint 自动放到最后一个可缓存 block。缓存默认 5 分钟 TTL，也有 1 小时 TTL；cache read 和 cache write 会在 usage 字段里体现。</p>
 <p>这意味着 Claude Code 可以在客户端代码里明确决定 breakpoint 放在哪里。源码里的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints</code></a> 就是在做这件事。</p>
-<p>OpenAI 的 prompt caching 更偏自动 prefix cache。公开文档里的建议是：静态或重复内容放开头，动态内容放末尾；tools 和 images 要保持一致；structured output schema 会作为 system message 的 prefix 参与缓存；通过 <a href="https://developers.openai.com/api/docs/guides/prompt-caching"><code>usage.prompt_tokens_details.cached_tokens</code></a> 观察命中；通过 <a href="https://platform.openai.com/docs/api-reference/responses/create"><code>prompt_cache_key</code></a> 稳定同一类请求的缓存域。客户端通常不在某个 content block 上手动插 breakpoint。</p>
+<h4>OpenAI：客户端稳定前缀，服务端自动命中</h4>
+<p><a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI</a> 侧更适合描述成“自动 prefix cache”。公开文档能依赖的是：命中需要 exact prefix match；静态内容应该放前面，动态内容放后面；tools、messages、images、structured output schemas 都可以参与缓存；<code>prompt_cache_key</code> 会参与路由，让共享前缀更容易落到同一缓存域。</p>
+<p>OpenAI 文档没有给出一个和 Claude 完全同构的 <code>tools -&gt; system -&gt; messages</code> block hierarchy。Codex 源码也只是在客户端构造 <a href="https://platform.openai.com/docs/api-reference/responses/create">Responses API</a> 请求，把 <code>instructions</code>、<code>input</code>、<code>tools</code>、<code>text</code> 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a> 交给 provider；服务端内部如何序列化这些字段，不能作为客户端侧可依赖的工程事实。</p>
+<p>所以 Codex 不能像 Claude Code 那样“把缓存点插到某一条 message”。它能做的是把重复内容放在稳定前缀里，把变化内容推到尾部，并用 <a href="https://platform.openai.com/docs/api-reference/responses/create"><code>prompt_cache_key</code></a> 稳定同一类请求的缓存域。通过 <a href="https://developers.openai.com/api/docs/guides/prompt-caching"><code>usage.prompt_tokens_details.cached_tokens</code></a>，客户端可以观察命中结果，但不是手动指定某个 content block 作为断点。</p>
+<h4>这会塑造 runtime 设计</h4>
 <p>这会直接塑造 runtime 设计：</p>
 <pre><code class="language-text">Claude Code:
 显式 cache_control + message projection + compact_boundary
@@ -407,8 +439,10 @@ Codex:
 prompt_cache_key + automatic prefix cache + replacement_history
 </code></pre>
 <p>两个系统都在追求稳定前缀，但工具不一样。</p>
+<p>这就是为什么“规则文件怎么注入”“工具结果怎么处理”“compaction 后有没有边界”都会影响 prompt cache。它们看起来是上下文管理问题，本质上也都是缓存前缀管理问题。</p>
+<p>如果忽略 provider contract，最容易得出一个看似统一、实际错误的结论：把所有静态内容塞进最前面，然后让服务端缓存。这个说法对工程实现太粗。Claude Code 可以精细移动 breakpoint；Codex 更依赖自动 prefix cache 和可恢复历史形状。两者都要稳定前缀，但一个是在显式断点附近做手术，另一个是在完整请求形状上保持纪律。</p>
 <h3>1.3 规则文件：稳定快照比文件焦点更重要</h3>
-<p>代码 Agent 通常有项目规则文件：</p>
+<p>coding agent 通常有项目规则文件：</p>
 <ul>
 <li>Claude Code 使用 <a href="https://code.claude.com/docs/en/memory"><code>CLAUDE.md</code></a> 和 memory files。</li>
 <li>Codex 使用 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/agents_md.rs#L46"><code>AGENTS.md</code></a>，并把全局配置、项目规则和运行环境组装成上下文片段。</li>
@@ -421,8 +455,102 @@ prompt_cache_key + automatic prefix cache + replacement_history
 compaction 后保留可恢复的边界或替换历史
 </code></pre>
 <p>这个模型比“system prompt 一次性全塞满”更准确。</p>
+<h3>1.4 像看网络包一样看 prompt</h3>
+<p>很多 prompt cache 的误解，来自把“聊天记录”想成一条连续文本。更接近真实工程的方法，是把每一轮请求看成一次协议包：客户端把系统规则、工具定义、上下文片段、历史消息和最新输入装进 provider API 的字段里；provider 只能在这个有序输入上做缓存。</p>
+<p>下面两个 JSON 都是形状级示例，不是某个发行版的完整私有 payload。它们保留的是公开 API contract 和源码里能验证的关键字段。</p>
+<p>Claude 侧的请求可以这样理解：</p>
+<pre><code class="language-json">{
+  &quot;model&quot;: &quot;claude-sonnet-4-5&quot;,
+  &quot;max_tokens&quot;: 4096,
+  &quot;tools&quot;: [
+    {
+      &quot;name&quot;: &quot;Bash&quot;,
+      &quot;input_schema&quot;: { &quot;type&quot;: &quot;object&quot; }
+    }
+  ],
+  &quot;system&quot;: [
+    {
+      &quot;type&quot;: &quot;text&quot;,
+      &quot;text&quot;: &quot;stable system prompt ...&quot;
+    }
+  ],
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;&lt;system-reminder&gt;CLAUDE.md 和会话基础 context ...&lt;/system-reminder&gt;&quot;
+    },
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;跑一下测试\n[id:8x3p1k]&quot;
+    },
+    {
+      &quot;role&quot;: &quot;assistant&quot;,
+      &quot;content&quot;: [
+        { &quot;type&quot;: &quot;tool_use&quot;, &quot;id&quot;: &quot;toolu_01&quot;, &quot;name&quot;: &quot;Bash&quot;, &quot;input&quot;: { &quot;command&quot;: &quot;npm test&quot; } }
+      ]
+    },
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: [
+        {
+          &quot;type&quot;: &quot;tool_result&quot;,
+          &quot;tool_use_id&quot;: &quot;toolu_01&quot;,
+          &quot;content&quot;: &quot;&lt;persisted-output&gt;Full output saved to ... Preview ...&lt;/persisted-output&gt;&quot;
+        },
+        {
+          &quot;type&quot;: &quot;text&quot;,
+          &quot;text&quot;: &quot;继续分析失败原因&quot;,
+          &quot;cache_control&quot;: { &quot;type&quot;: &quot;ephemeral&quot; }
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p>这段示例里有三件事值得盯住：</p>
+<ol>
+<li><code>tools</code>、<code>system</code>、<code>messages</code> 是 Claude prompt caching 文档明确描述的缓存层级。</li>
+<li>Claude Code 的基础 context 不是写进顶层 <code>system</code>，而是 API 前临时 prepend 成 meta user message。</li>
+<li>message-level <code>cache_control</code> 决定缓存断点；如果前面的内容稳定，后续 turn 更容易复用。</li>
+</ol>
+<p>OpenAI / Codex 侧更像这样：</p>
+<pre><code class="language-json">{
+  &quot;model&quot;: &quot;gpt-5.1-codex&quot;,
+  &quot;prompt_cache_key&quot;: &quot;thread_018f...&quot;,
+  &quot;instructions&quot;: &quot;stable developer/runtime instructions ...&quot;,
+  &quot;tools&quot;: [
+    {
+      &quot;type&quot;: &quot;function&quot;,
+      &quot;name&quot;: &quot;shell&quot;,
+      &quot;parameters&quot;: { &quot;type&quot;: &quot;object&quot; }
+    }
+  ],
+  &quot;input&quot;: [
+    {
+      &quot;type&quot;: &quot;message&quot;,
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: [
+        {
+          &quot;type&quot;: &quot;input_text&quot;,
+          &quot;text&quot;: &quot;# AGENTS.md instructions for /repo\n\n&lt;INSTRUCTIONS&gt;...&lt;/INSTRUCTIONS&gt;&quot;
+        }
+      ]
+    },
+    {
+      &quot;type&quot;: &quot;message&quot;,
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: [
+        { &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;请修复这个测试&quot; }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p>这里没有 Claude 那种“在某个 content block 上插缓存断点”的客户端控制。Codex 能做的是把 session 基线、<code>input</code> 历史、工具 schema 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a> 组织得稳定，让 OpenAI 的 automatic prefix cache 更容易命中。</p>
+<p>后面所有机制都可以用同一个问题来读：它改变的是 UI 历史、磁盘历史，还是这个请求包里的模型历史？</p>
 <h2>二、Claude Code：显式缓存断点下的模型视图纪律</h2>
 <p>Claude Code 的主线可以概括成一句话：既然 Anthropic 给了显式 <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching"><code>cache_control</code></a>，runtime 就必须先把 breakpoint 前面的模型视图整理得足够稳定。于是它不是一上来就“总结历史”，而是按压力来源分层处理：基础规则先稳定，大工具结果先落盘，中段历史可以投影裁剪，旧工具结果可以微清理，最后撑不住时才做完整 compaction。</p>
+<p>为什么不直接等到上下文快满时 autocompact？因为 summary 是有代价的：它会丢掉细节，会改变后续模型视图的形状，也会把“哪些信息还原样存在、哪些只剩摘要”变成恢复问题。能在更局部的位置解决，就不应该把整个会话压成一段 summary。Claude Code 的减压栈就是这个判断的工程化结果。</p>
 <h3>2.1 稳定基线：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/context.ts#L155"><code>getUserContext()</code></a> 和 system prompt 切分</h3>
 <p>Claude Code 里，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/context.ts#L155"><code>getUserContext()</code></a> 是理解项目规则注入的入口。</p>
 <p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/context.ts#L155"><code>src/context.ts</code></a></p>
@@ -470,7 +598,7 @@ As you answer the user&#39;s questions, you can use the following context:
 <p>换句话说，Claude Code 不是每轮把完整 transcript 直接发给模型，再指望 provider 缓存兜底。它先在本地构造一个更小、更稳定、更适合缓存的模型视图。</p>
 <h3>2.3 局部减压：大工具结果先落盘</h3>
 <p>从这里开始进入 Claude Code 的“减压栈”。第一类压力不是历史太长，而是某个新鲜工具结果刚产生就太大：日志、搜索结果、JSON、测试输出，一次就可能把窗口推到危险区。这个问题如果等到 autocompact 再处理，就太晚了。</p>
-<p>工具输出是长上下文 Agent 最容易失控的地方。</p>
+<p>工具输出是长上下文 coding agent 最容易失控的地方。</p>
 <p>一次 <code>grep</code> 可能返回几万行；一次 shell 命令可能输出巨大日志；一次 JSON 工具结果可能有几 MB。如果这些结果原样留在 messages 里，prompt cache 会被两个方向拖垮：</p>
 <ul>
 <li>token 数量暴涨，触发压缩或超窗。</li>
@@ -505,62 +633,147 @@ Preview (first 2KB):
 <p>这比“每轮重新截断前 2000 字符”更稳。因为只要截断逻辑、路径、大小描述或排序有微小变化，缓存前缀就可能变。</p>
 <p>还有一个 per-message 总预算：同一条 user message 里的多个 tool result 合计超过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/constants/toolLimits.ts#L49"><code>MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 200_000</code></a> 时，会优先处理最大的 fresh result。也就是说，Claude Code 不只看单个工具输出，也看同一轮消息里的工具结果总量。</p>
 <p>这层机制发生在 snip 和 microcompact 之前。它解决的是“新鲜大结果不要撑爆本轮模型视图”，不是“对话太长后的总结”。</p>
-<h3>2.4 中段投影：SNIP 的删除、恢复和提示</h3>
-<p>SNIP 在这里不是 snippet 的缩写，更接近英语动词 snip：剪掉一段。它不是把整段旧历史总结成一句话，而是在完整 transcript 仍然存在的前提下，把某些中段消息从模型视图里移出去。</p>
-<h4>和 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a> 的边界</h4>
-<p>它和 <code>compact_boundary</code> 的区别很大：</p>
-<ul>
-<li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a> 解决“旧前缀已经被 summary 覆盖，模型从哪里重新开始看”。</li>
-<li>snip 解决“完整会话还在，但中间某些消息不再值得进入模型视图”。</li>
-</ul>
-<h4>短 id：让模型能指向消息</h4>
-<p>第一步是让模型能稳定引用“要剪哪条消息”。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L200"><code>src/utils/messages.ts</code></a> 里有 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L200"><code>deriveShortMessageId(uuid)</code></a>：它从消息 UUID 派生 6 位 base36 短 id。随后 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L1620"><code>appendMessageTagToUserMessage()</code></a> 会把这个 id 追加到 API-bound 的 user message 最后：</p>
+<h3>2.4 中段投影：SNIP 到底剪掉了什么</h3>
+<p>SNIP 这个词最容易被误读成 “snippet” 或“小摘要”。放回请求包视角，它其实更接近英语动词 <code>snip</code>：从模型本轮要看的历史中剪掉一段。</p>
+<p>它不做三件事：</p>
+<ol>
+<li>不把整段对话总结成一句话。</li>
+<li>不把 UI scrollback 里的旧消息抹掉。</li>
+<li>不靠修改顶层 system prompt 来改变模型记忆。</li>
+</ol>
+<p>它真正做的是一件事：完整 transcript 仍然保留，但某些中段消息不再进入后续 API 请求的 <code>messages</code> 数组。</p>
+<h4>2.4.1 先看一个最小例子</h4>
+<p>假设一段会话已经长成这样：</p>
+<pre><code class="language-text">U1: 规则和任务背景
+A1: 初步分析
+U2: 很长的测试日志
+A2: 对日志的局部分析
+U3: 另一个方向的探索
+A3: 结论
+U4: 最新问题
+</code></pre>
+<p>过了一会儿，<code>U2/A2</code> 这段中间探索已经没有价值，但 <code>U1</code> 的背景和 <code>U4</code> 的最新问题仍然重要。SNIP 后，三种历史会变成三种形状：</p>
+<pre><code class="language-text">UI 历史:
+U1 A1 U2 A2 U3 A3 U4
+
+磁盘 transcript:
+U1 A1 U2 A2 U3 A3 U4  +  snip boundary(removedUuids: [U2, A2])
+
+下一轮 API messages:
+U1 A1 U3 A3 U4
+</code></pre>
+<p>这就是 SNIP 的核心。用户界面仍然能回看 <code>U2/A2</code>，磁盘仍然能审计它们曾经存在过，但模型下一轮不再为这段中间历史付 token，也不会让它污染 cache prefix。</p>
+<p><img src="assets/claude-code-snip-projection.png" alt="Claude Code SNIP 的模型投影和 parent relink"></p>
+<h4>2.4.2 第一步：给可剪消息贴短 id</h4>
+<p>模型必须有办法指向“要剪哪几条消息”。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L200"><code>deriveShortMessageId(uuid)</code></a> 会从消息 UUID 派生 6 位 base36 短 id；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L1620"><code>appendMessageTagToUserMessage()</code></a> 再把这个 id 追加到 API-bound 的 user message 末尾：</p>
 <pre><code class="language-text">请看一下这段测试日志
 [id:8x3p1k]
 </code></pre>
-<p>这里有几个细节很关键。这个 tag 只加在发 API 的副本里，不写回本地 transcript；<code>isMeta</code> 的内部消息不会被打 tag；tag 注入发生在 merge、smoosh、sanitize 之后，所以 id 对应的是最终会出现在模型视图里的那条 user message；而且这段逻辑必须同时满足 <code>HISTORY_SNIP</code> feature gate 和 runtime enabled，避免工具不可用时还给每条用户消息浪费 token。</p>
-<h4>本轮裁剪：返回的不只是 messages</h4>
-<p>第二步发生在请求主链路。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>src/query.ts</code></a> 的顺序是：先对大 tool result 做 budget / 落盘替换，再调用 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>snipCompactIfNeeded(messagesForQuery)</code></a>，然后才进入 microcompact。源码注释也直接写明：snip 和 microcompact 不是互斥的，两者可以在同一轮都执行。<code>snipCompactIfNeeded()</code> 返回的不是单纯布尔值，而是三类信息：</p>
+<p>这个 tag 只存在于发给 API 的副本里，不写回本地 transcript；<code>isMeta</code> 内部消息不会被打 tag；tag 注入发生在 merge、smoosh、sanitize 之后，所以 id 对应的是最终会出现在模型视图里的那条 user message。源码还把这段逻辑挂在 <code>HISTORY_SNIP</code> feature gate 和 runtime enabled 条件下，避免工具不可用时还给每条用户消息增加 token。</p>
+<h4>2.4.3 第二步：请求前投影出新的 messages</h4>
+<p>SNIP 发生在主请求链路里，而且位置很讲究。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>src/query.ts</code></a> 先处理新鲜大工具结果，再调用 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>snipCompactIfNeeded(messagesForQuery)</code></a>，随后才进入 microcompact。</p>
+<p>裁剪前的请求包可以抽象成：</p>
+<pre><code class="language-json">{
+  &quot;messages&quot;: [
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U1 背景\n[id:aa1111]&quot; },
+    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A1 初步分析&quot; },
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U2 很长日志\n[id:bb2222]&quot; },
+    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A2 局部分析&quot; },
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U3 另一个方向\n[id:cc3333]&quot; },
+    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A3 结论&quot; },
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U4 最新问题\n[id:dd4444]&quot; }
+  ]
+}
+</code></pre>
+<p>裁剪后的模型视图则变成：</p>
+<pre><code class="language-json">{
+  &quot;messages&quot;: [
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U1 背景\n[id:aa1111]&quot; },
+    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A1 初步分析&quot; },
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U3 另一个方向\n[id:cc3333]&quot; },
+    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A3 结论&quot; },
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U4 最新问题\n[id:dd4444]&quot; }
+  ]
+}
+</code></pre>
+<p><code>snipCompactIfNeeded()</code> 返回的也不是一个简单的 true / false，而是三件东西：</p>
 <pre><code class="language-text">messages        剪裁后的模型视图
 tokensFreed     估算释放的 token
-boundaryMessage 本轮如果发生剪裁，需要写入 transcript 的边界消息
+boundaryMessage 本轮如果发生裁剪，需要写入 transcript 的边界消息
 </code></pre>
-<p><code>tokensFreed</code> 之所以要单独传下去，是因为 token 估算会读 surviving assistant message 上的旧 usage。那些 usage 记录反映的是剪裁前上下文大小，单靠 <code>tokenCountWithEstimation(messagesForQuery)</code> 看不到 snip 已经释放的空间。于是 autocompact 和 blocking-limit 判断都要减掉 <code>snipTokensFreed</code>，否则会出现“实际上已经剪下去了，但仍然误判 prompt 太长”的窗口。</p>
-<h4>模型投影：UI 保留，API 过滤</h4>
-<p>第三步是投影。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4643"><code>getMessagesAfterCompactBoundary()</code></a> 不只是从最后一个 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a> 开始切片；在 SNIP 打开时，它还会默认调用 <code>projectSnippedView()</code>，把被 snip 的消息过滤掉。也就是说，模型侧常规路径拿到的是“compact slice + snip projection”之后的数组。UI 则反过来：<code>Messages.tsx</code> 和 fullscreen scrollback 会传 <code>includeSnipped: true</code>，让人仍然能在界面上看到被移出模型视图的旧消息。</p>
-<h4>恢复路径：<code>removedUuids</code> 和 parent relink</h4>
-<p>第四步是恢复。这个点最容易低估。Claude Code 的 transcript 是 append-only JSONL，被 snip 掉的消息仍然留在磁盘上。如果 resume 时只是重新按 parent 链构造会话，不额外处理 snip，就会把旧消息重新拼回模型视图。</p>
-<p>所以 snip boundary 需要持久化 <code>snipMetadata.removedUuids</code>。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1982"><code>src/utils/sessionStorage.ts</code></a> 的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1982"><code>applySnipRemovals()</code></a> 会在加载 transcript 后做两件事：</p>
-<pre><code class="language-text">1. 从 Map 里删除 removedUuids 指向的消息。
-2. 对仍然存活、但 parentUuid 指向被删消息的节点做 relink。
+<p><code>tokensFreed</code> 需要单独传下去，是因为 token 估算会读 surviving assistant message 上的旧 usage。那些 usage 记录反映的是剪裁前上下文大小，单靠 <code>tokenCountWithEstimation(messagesForQuery)</code> 看不到 SNIP 已经释放的空间。于是 autocompact 和 blocking-limit 判断都要减掉 <code>snipTokensFreed</code>，否则系统可能误以为 prompt 仍然太长。</p>
+<h4>2.4.4 第三步：把删除集合写进 transcript</h4>
+<p>只在内存里过滤一次还不够。Claude Code 的 transcript 是 append-only JSONL，resume 时会从磁盘重建对话链。如果没有持久化删除集合，重启后 <code>U2/A2</code> 会重新回到模型历史里。</p>
+<p>所以 SNIP 需要一个 boundary message 记录 <code>snipMetadata.removedUuids</code>。形状可以理解为：</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;system&quot;,
+  &quot;subtype&quot;: &quot;&lt;snip boundary subtype&gt;&quot;,
+  &quot;snipMetadata&quot;: {
+    &quot;removedUuids&quot;: [&quot;uuid-u2&quot;, &quot;uuid-a2&quot;]
+  }
+}
 </code></pre>
-<p>一个具体例子：</p>
+<p>这里的关键不是 subtype 名字，而是 <code>removedUuids</code> 这个恢复契约：后续加载 transcript 时，runtime 必须知道哪些旧消息已经被模型视图剪掉。</p>
+<h4>2.4.5 第四步：resume 时删除并重接 parent 链</h4>
+<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1982"><code>applySnipRemovals()</code></a> 在加载 transcript 后做两件事：</p>
+<pre><code class="language-text">1. 从消息 Map 里删除 removedUuids 指向的消息。
+2. 如果存活消息的 parentUuid 指向被删消息，就沿被删消息的 parent 链向前找第一个未删除祖先。
+</code></pre>
+<p>具体看 parent 链：</p>
 <pre><code class="language-text">原 parent 链:
 M1 &lt;- M2 &lt;- M3 &lt;- M4 &lt;- M5
 
-snip 删除:
+SNIP 删除:
 M2, M3
 
-只删除不 relink 的后果:
+只删除不 relink:
 M4.parentUuid 仍然指向 M3，链在缺口处断掉。
 
 正确恢复:
 M1 &lt;- M4 &lt;- M5
 </code></pre>
-<p><img src="assets/claude-code-snip-projection.png" alt="Claude Code SNIP 的模型投影和 parent relink"></p>
-<p>这就是为什么 SNIP 不能只靠“本轮内存里删掉几条消息”。没有 <code>removedUuids</code>，重启后消息会复活；没有 parent relink，删除中段会把后续链条截断。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a> 是切掉一个前缀，snip 是挖掉中间一段，恢复算法自然不是同一种。</p>
-<h4>运行形态和提示机制</h4>
-<p>第五步是运行形态差异。REPL 需要保留完整 UI scrollback，所以通常不急着把界面历史物理删除，而是在模型路径里投影；headless / SDK 路径没有 UI scrollback 要保留，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/QueryEngine.ts#L1276"><code>QueryEngine</code></a> 会在收到 snip boundary 时通过 <code>snipReplay</code> 重新应用裁剪，避免 marker 在 mutable message store 里反复触发，也避免长会话内存继续膨胀。</p>
-<p>还有一个小但重要的提示机制：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/attachments.ts#L3959"><code>context_efficiency</code> attachment</a>。源码注释里说，它会在“增长了若干 token 但一直没有 snip”之后注入 nudge；节奏由 <code>shouldNudgeForSnips()</code> 控制，并会被已有 nudge、snip marker、snip boundary、compact boundary 重置。这说明 SNIP 不是只靠后台阈值，也有一层面向模型行为的轻提示。</p>
-<h4>可见源码边界</h4>
+<p>这一步解释了为什么 SNIP 不是“本轮数组里 splice 掉几项”这么简单。没有 <code>removedUuids</code>，重启后消息会复活；没有 parent relink，中段删除会把后续链条剪断。</p>
+<details>
+<summary>SNIP 和 compact_boundary 的区别</summary>
+
+<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a> 处理的是“旧前缀已经被 summary 覆盖，模型之后应该从哪里重新开始看”。它像是在历史前半段画一条切线：切线之前的消息不再直接进入模型视图。</p>
+<p>SNIP 处理的是“完整会话还在，但中间某几条消息不值得继续进入模型视图”。它像是在历史中间挖掉一段：前面的背景、后面的最新上下文都可能继续保留。</p>
+<p>所以两者恢复算法不同：<code>compact_boundary</code> 主要决定从最后一个 boundary 起切片；SNIP 需要 <code>removedUuids</code> 和 parent relink，因为它删除的是中段节点。</p>
+</details>
+
+<details>
+<summary>运行形态、提示机制和可见源码边界</summary>
+
+<p>REPL 需要保留完整 UI scrollback，所以 UI 路径会传 <code>includeSnipped: true</code>；模型路径默认通过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4643"><code>getMessagesAfterCompactBoundary()</code></a> 调用 <code>projectSnippedView()</code>，拿到 “compact slice + snip projection” 之后的数组。headless / SDK 路径没有同样的 scrollback 要保留，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/QueryEngine.ts#L1276"><code>QueryEngine</code></a> 会在收到 snip boundary 时通过 <code>snipReplay</code> 重新应用裁剪。</p>
+<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/attachments.ts#L3959"><code>context_efficiency</code> attachment</a> 还提供了一层轻提示：当上下文增长了一段时间但一直没有 SNIP 时，它会按 <code>shouldNudgeForSnips()</code> 的节奏提示模型考虑整理上下文；已有 nudge、snip marker、snip boundary、compact boundary 都会重置这个节奏。</p>
 <p>可见源码里，<code>snipCompact.js</code>、<code>snipProjection.js</code>、<code>SnipTool</code>、<code>force-snip</code> 这些执行模块通过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396"><code>HISTORY_SNIP</code></a> 条件路径接入；当前源码快照没有展开它们的文件本体。但周边契约已经足够清楚：短 id 用于引用，query 前裁剪模型视图，boundary 记录删除集合，resume 时按 <code>removedUuids</code> 删除并重接 parent 链，UI 和 SDK 分别选择保留 scrollback 或直接收缩 store。外部 npm 包 <a href="https://www.npmjs.com/package/@anthropic-ai/claude-code"><code>@anthropic-ai/claude-code@2.1.169</code></a> 已经是 native binary，不再明文暴露旧源码符号；但字符串里仍能看到 <code>CLAUDE_SNIP</code>、<code>snipTokensFreed</code>、<code>includeSnipped</code>、<code>snipEnabled</code> 等字段。稳妥的结论是：相关设计仍在产品形态里演进，但不能仅凭某个旧符号是否出现，判断某个发行版默认开启了完整旧路径。</p>
+</details>
+
 <h3>2.5 旧内容再瘦身：microcompact 和 context-collapse</h3>
+<p>SNIP 处理的是“中段消息还要不要进模型视图”。这一节处理的是另一个问题：旧内容仍然有用，但原始形态太重。</p>
+<p>可以先把两者分清：</p>
+<pre><code class="language-text">microcompact:
+目标是旧 tool_result 的可见体积。
+典型变化是把工具结果正文替换成固定 marker，或通过 cache edit 删除 provider 缓存视图里的旧结果。
+
+context-collapse:
+目标是一段历史消息的语义体积。
+典型变化是 UI / transcript 仍保留细节，但 API-bound view 里出现 summary projection。
+</code></pre>
+<p>它们都发生在 autocompact 前面。换句话说，Claude Code 会先尝试把“已经不值得原样进入 prompt 的局部重量”拿掉；只有这些局部手段还不够，才进入完整会话摘要。</p>
 <h4>Microcompact：只清旧工具结果，不总结整段对话</h4>
 <p>microcompact 这个名字容易让人以为它是“小号 autocompact”。实际更准确的理解是：它优先处理旧 tool result 的可见体积。</p>
 <p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/microCompact.ts#L253"><code>src/services/compact/microCompact.ts</code></a></p>
 <p>它有两类路径。</p>
 <p>第一类是 time-based microcompact。缓存已经冷掉、距离上次 assistant message 的时间超过阈值时，它会把旧工具结果内容替换成固定文本：</p>
 <pre><code class="language-text">[Old tool result content cleared]
+</code></pre>
+<p>放成请求包差异，就是：</p>
+<pre><code class="language-text">压缩前:
+tool_result(toolu_01) = &quot;几万行旧日志 ...&quot;
+
+time-based microcompact 后:
+tool_result(toolu_01) = &quot;[Old tool result content cleared]&quot;
 </code></pre>
 <p>它会保留最近若干工具结果，清掉更老的结果。这条路径会直接改变 message content，因此更适合缓存已经冷掉的场景。</p>
 <p>第二类是 cached microcompact。源码注释里强调它使用 cache editing API 删除旧 tool result，而不直接修改本地内容；通过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/microCompact.ts#L253"><code>cache_edits</code> 和 <code>cache_reference</code></a> 让 provider 侧缓存视图瘦身。API 返回后再处理 pending boundary。</p>
@@ -574,6 +787,17 @@ cached:
 <p>microcompact 不是摘要。它不试图理解整段对话，只是把一批旧工具结果从模型视图里移走或引用化。</p>
 <h4>Context-collapse：源码里可见的是投影契约</h4>
 <p>context-collapse 更像“把一段历史折叠成摘要占位”的投影机制。</p>
+<p>它和 microcompact 的差别在于粒度。microcompact 看的是 tool result body；context-collapse 看的是一段历史消息能否被一条 summary 替代。</p>
+<pre><code class="language-text">UI / transcript:
+M1 M2 M3 M4 M5 M6 M7
+
+collapse store:
+commit(range: M2..M5, summary: S1)
+
+API-bound model view:
+M1 S1 M6 M7
+</code></pre>
+<p>这里的重点仍然是“投影”。读者在界面上不一定失去 M2 到 M5；但模型本轮看到的是更短的视图。</p>
 <p>在这份源码快照里，主链路和持久化契约是可见的：</p>
 <ul>
 <li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L365"><code>src/query.ts</code></a> 在 microcompact 之后、autocompact 之前做 context-collapse projection。</li>
@@ -610,6 +834,43 @@ cached:
 <p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>src/utils/messages.ts</code></a></p>
 <p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>createCompactBoundaryMessage()</code></a> 会生成一条 system message，<code>subtype: &quot;compact_boundary&quot;</code>，metadata 里包括 trigger、preTokens、userContext、messagesSummarized 等信息。之后 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4643"><code>getMessagesAfterCompactBoundary()</code></a> 会从最后一个 boundary 起切模型视图。</p>
 <p><img src="assets/claude-code-compact-boundary.png" alt="Claude Code compact_boundary 切分模型视图"></p>
+<p>放回请求包视角，compact 前后的差异更直观。</p>
+<p>compact 前，模型历史可能是完整长链：</p>
+<pre><code class="language-json">{
+  &quot;messages&quot;: [
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U1 项目背景&quot; },
+    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A1 分析&quot; },
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U2 大量探索&quot; },
+    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A2 结果&quot; },
+    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U3 当前问题&quot; }
+  ]
+}
+</code></pre>
+<p>autocompact 生成 summary 后，transcript 里会出现一条 boundary。后续请求不会继续把 boundary 之前的所有消息原样发给模型，而是从最后一个 boundary 附近重新组织模型视图：</p>
+<pre><code class="language-json">{
+  &quot;messages&quot;: [
+    {
+      &quot;role&quot;: &quot;system&quot;,
+      &quot;content&quot;: &quot;Conversation compacted&quot;,
+      &quot;subtype&quot;: &quot;compact_boundary&quot;,
+      &quot;compactMetadata&quot;: {
+        &quot;trigger&quot;: &quot;auto&quot;,
+        &quot;preTokens&quot;: 180000,
+        &quot;messagesSummarized&quot;: 42
+      }
+    },
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;上一段对话摘要：已经确认测试失败来自缓存断点位置 ...&quot;
+    },
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;U3 当前问题&quot;
+    }
+  ]
+}
+</code></pre>
+<p>这个示例同样是形状级的：真实 API 发送前还会经过 normalize，boundary 这类 system message 本身不一定以同样形态进入 provider payload。重要的是恢复契约：summary 代表旧前缀，boundary 告诉 runtime 后续模型视图从哪里承接。</p>
 <p>没有 boundary 会怎样？</p>
 <ul>
 <li>如果继续发完整历史，summary 不会真正减少模型输入。</li>
@@ -646,7 +907,20 @@ autocompact:
 <p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上，相当于告诉 Claude：本轮最新 message 之前的完整前缀都值得作为后续请求的缓存候选。</p>
 <p>fork 场景要更微妙。Claude Code 的 forked agent 会拿父会话的 <code>forkContextMessages</code> 作为共享前缀，再在末尾追加自己的 <code>promptMessages</code>。例如 compact fork 会继承主会话上下文，然后追加一条 summary request。这样做的目的，是让 fork 读取父会话已经建立好的 prompt cache，而不是从头处理一遍 tools、system、项目规则和长历史。</p>
 <p>但有些 fork 是 fire-and-forget：它们只是后台做一次摘要、提取或旁路问题，后续主会话不会从这个 fork 的尾部继续。<code>skipCacheWrite</code> 表达的就是这个意思：可以读共享缓存，但不要把这个一次性 fork 的最后一条 prompt 写成新的缓存尾巴。</p>
-<p>所以 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a> 在 <code>skipCacheWrite</code> 时把 marker 放到 <code>messages.length - 2</code>。这个位置通常就是“父会话共享前缀的最后一条 message”，而最后一条是 fork 自己追加的临时请求。这样 fork 仍然能命中父会话缓存；即使 provider 或本地 KV cache 尝试写入，也是在已经存在的共享前缀上合并，而不是把 fork 专属尾巴留进缓存。源码注释里还强调只保留一个 marker，是为了避免缓存层额外保护不会再被 resume 的局部位置，让这类短命 fork 占住不必要的缓存页面。</p>
+<p>形状上可以这样看：</p>
+<pre><code class="language-text">父会话共享前缀:
+M1 M2 M3
+
+fork 临时请求:
+M1 M2 M3 F1
+</code></pre>
+<p>常规请求会把 cache marker 放在最后一条：</p>
+<pre><code class="language-text">M1 M2 M3 F1[cache_control]
+</code></pre>
+<p>但 <code>skipCacheWrite</code> 的 fork 不希望 <code>F1</code> 变成后续缓存尾巴。于是 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a> 把 marker 放到 <code>messages.length - 2</code>：</p>
+<pre><code class="language-text">M1 M2 M3[cache_control] F1
+</code></pre>
+<p>这个位置通常就是父会话共享前缀的最后一条 message，而最后一条是 fork 自己追加的临时请求。这样 fork 仍然能读取父会话已经建立好的缓存；即使 provider 或本地 KV cache 尝试写入，也是在已经存在的共享前缀上合并，而不是把 fork 专属尾巴留进缓存。源码注释里还强调只保留一个 marker，是为了避免缓存层额外保护不会再被 resume 的局部位置，让这类短命 fork 占住不必要的缓存页面。</p>
 <p>它还和 cached microcompact 协同：</p>
 <ul>
 <li>旧的 pinned <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>cache_edits</code></a> 会重新插回原 user message 位置。</li>
@@ -661,6 +935,7 @@ autocompact:
 <p>这些细节都指向同一个目标：在 Anthropic 的显式 breakpoint 模型下，让 breakpoint 前的内容尽量稳定。</p>
 <h2>三、Codex：自动 prefix cache 下的可恢复历史</h2>
 <p>Codex 换了另一个 provider contract，文章的重心也要跟着换。OpenAI 侧没有 Claude 那样的 per-block breakpoint，所以 Codex 不是围绕“缓存点放在哪条 message 上”组织代码，而是围绕三个东西组织：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a> 稳定缓存域，initial context 稳定会话基线，<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a> 稳定压缩后的恢复形状。</p>
+<p>这不是“Codex 少做了一层缓存控制”。更准确地说，Codex 的控制点换了位置：既然 provider 侧缓存是 automatic prefix cache，客户端更应该保证可重复的请求前缀和可重建的历史账本，而不是假装自己能控制某个内部 cache breakpoint。于是它把重点放在 session snapshot、turn context、rollout reconstruction 和 replacement history 上。</p>
 <h3>3.1 缓存域：automatic prefix cache 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a></h3>
 <p>Codex 面对的是 OpenAI 的自动 prefix cache。</p>
 <p>源码位置：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>codex-rs/core/src/client.rs</code></a></p>
@@ -737,17 +1012,49 @@ Codex:
 模型可见输出按 policy 截断，持久化事件副本也会收缩。
 </code></pre>
 <p>两者目标相似，具体工程形态不同。</p>
+<p>这里也不能简单判定哪边“更完整”。Claude Code 的落盘 preview 适合把巨大原文留在本地可追溯位置，再让模型只看稳定替代文本；Codex 的截断和事件副本收缩更贴近它自己的 rollout / history 管线。评估这类机制时，应该先问它保护的是哪条路径：模型输入、持久化日志、telemetry，还是 resume 重建。路径不同，正确的减压形态也会不同。</p>
 <h3>3.4 历史替换：compaction 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a></h3>
 <p>Codex compaction 的关键函数是 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L476"><code>build_compacted_history()</code></a>。</p>
 <p>源码位置：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L476"><code>codex-rs/core/src/compact.rs</code></a></p>
+<p>这节先看结果：Claude Code 是“完整 transcript 还在，靠 boundary 决定从哪里切”；Codex 更像“把模型历史换成一份新账本”。</p>
+<p>为什么 Codex 不也写一个 <code>compact_boundary</code> 然后每次从那里切？因为它的持久化模型本来就是 rollout 账本：resume 时会重放或重建一组 <code>ResponseItem</code>。当 compaction 已经产出一份新的 canonical history，把这份 history 作为 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a> 安装进去，比在旧链上再维护一个切片边界更直接。边界适合“完整历史仍是主存储，模型视图从某处投影”；替换历史适合“新历史已经成为恢复基线”。</p>
 <h4><a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L476"><code>build_compacted_history()</code></a>：summary 成为新历史尾部</h4>
 <p>它会从旧 history 收集真实用户消息，按 token 预算从后往前选择最近用户消息，保持原顺序写回，然后把 summary 作为最后一条 user message 追加进去。预算常量包括 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L49"><code>COMPACT_USER_MESSAGE_MAX_TOKENS = 20_000</code></a>。</p>
+<p>压缩前的 Codex runtime history / API input 形状可以抽象成：</p>
+<pre><code class="language-json">{
+  &quot;prompt_cache_key&quot;: &quot;thread_018f...&quot;,
+  &quot;input&quot;: [
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;initial context&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;U1 早期任务&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;output_text&quot;, &quot;text&quot;: &quot;A1 早期回答&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;U2 很长的中段探索&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;output_text&quot;, &quot;text&quot;: &quot;A2 中段结果&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;U3 最新问题&quot; }] }
+  ]
+}
+</code></pre>
+<p>压缩后，<code>build_compacted_history()</code> 产出的新历史更像：</p>
+<pre><code class="language-json">{
+  &quot;prompt_cache_key&quot;: &quot;thread_018f...&quot;,
+  &quot;input&quot;: [
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;initial context&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;U3 最新问题&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;Compaction summary: U1/U2/A1/A2 的关键结论 ...&quot; }] }
+  ]
+}
+</code></pre>
+<p>这不是 OpenAI 服务端自动替你改历史，而是 Codex runtime 在本地构造新的 history / <code>input</code> 基线，再交给 Responses API。示例里保留了 Codex <code>ResponseItem</code> 的形状，省略了请求封装和归一化细节。<code>prompt_cache_key</code> 仍然帮助同一 thread 的相似前缀进入同一缓存域，但它不等于 Claude 的 <code>cache_control</code>。</p>
 <h4><a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a>：resume 的恢复基线</h4>
 <p>随后 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2640"><code>replace_compacted_history()</code></a> 会替换 session history，并持久化：</p>
-<pre><code class="language-text">RolloutItem::Compacted(CompactedItem {
-  message,
-  replacement_history: Some(new_history)
-})
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;compacted&quot;,
+  &quot;message&quot;: &quot;Compaction summary: ...&quot;,
+  &quot;replacement_history&quot;: [
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;initial context&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;U3 最新问题&quot; }] },
+    { &quot;type&quot;: &quot;message&quot;, &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: [{ &quot;type&quot;: &quot;input_text&quot;, &quot;text&quot;: &quot;Compaction summary: ...&quot; }] }
+  ]
+}
 </code></pre>
 <p>resume 时，<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/rollout_reconstruction.rs#L123"><code>rollout_reconstruction.rs</code></a> 会从新到旧扫描 rollout。遇到带 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a> 的最新 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>CompactedItem</code></a>，就把它作为新的 baseline；更老的消息不再一条条重放成模型历史。</p>
 <p>这就是 Codex 和 Claude Code 在 compaction 形态上的关键差异：</p>
@@ -761,6 +1068,7 @@ compaction 后直接安装 `replacement_history`，模型历史被替换成新�
 <h4>Mid-turn reinjection：重建当前 session snapshot</h4>
 <p>Codex 还有一个 mid-turn compaction 的细节：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L57"><code>InitialContextInjection</code></a> 可以选择 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L57"><code>BeforeLastUserMessage</code></a>。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L57"><code>compact.rs</code></a> 里的注释说得很直白：mid-turn compaction 后，模型被训练成把 compaction summary 看作 history 的最后一项，所以 runtime 会把 initial context 插在最后一个真实 user message 或 summary 前面，而不是追加到 summary 后面。</p>
 <p>这个动作经常被误解成“compact 顺便刷新了 AGENTS.md”。从源码看不是这样。<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact_remote.rs#L271"><code>process_compacted_history()</code></a> 调的是 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2728"><code>sess.build_initial_context(turn_context)</code></a>；而 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/mod.rs#L2728"><code>build_initial_context()</code></a> 读的是当前 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L556"><code>TurnContext</code></a> 里的 session snapshot。它会先过滤远端 compact 输出里可能陈旧或重复的 developer message、AGENTS wrapper、environment wrapper，再把当前 session 的 canonical initial context 放回 replacement history。目标是让压缩后的模型历史仍然自洽，而不是借 compaction 热更新磁盘上的规则文件。</p>
+<p>这里的取舍同样是稳定性优先。compaction 是历史形状转换，不是配置热加载。如果它顺手重新读磁盘上的规则文件，压缩后的请求前缀就会混入一次隐蔽的规则变更：缓存更难命中，resume 也更难解释。重新注入 current session snapshot 看起来保守，但它让“这条会话到底遵守哪份规则”保持可追溯。</p>
 <h2>四、收束：两套 runtime 的共同纪律</h2>
 <h3>4.1 路线图：projection pipeline 和 replacement ledger</h3>
 <p>现在可以把两条路线放到同一张地图里。Claude Code 的核心动作是“在完整 transcript 之上维护请求投影和显式缓存边界”；Codex 的核心动作是“把会话基线和压缩后的模型历史做成可恢复账本”。前者看起来更像一套 projection pipeline，后者看起来更像一套 replay / replacement ledger。</p>
@@ -825,14 +1133,67 @@ compaction 后直接安装 `replacement_history`，模型历史被替换成新�
 <td>rollout reverse scan、<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/rollout_reconstruction.rs#L123"><code>replacement_history</code></a>、<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L556"><code>TurnContext</code></a> baseline</td>
 </tr>
 </tbody></table>
-<h3>4.3 读源码时最容易踩的坑</h3>
+<h3>4.3 什么时候缓存会失效</h3>
+<p>如果只记“静态放前面、动态放后面”，还不够。真正上线时，prompt cache 往往死在更小的细节上。</p>
+<p>第一类是前缀不够长或不够近。<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Claude prompt caching</a> 有不同模型的最小 cacheable prompt length，也有 breakpoint lookback 限制；<a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI prompt caching</a> 也要求达到自动缓存门槛。共享前缀太短，或者缓存写入点离当前请求太远，都会让“我明明加了 cache”变成没有命中。</p>
+<p>第二类是前缀被无意污染。工具 schema、structured output schema、图片输入、示例顺序、JSON key 顺序、时间戳、消息 id、路径列表，只要出现在可缓存前缀里并发生变化，就可能让 exact prefix match 失败。<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">Anthropic tool-use 文档</a>还特别指出，<code>tool_choice</code> 变化会影响 message block caching：工具定义和 system prompt 仍可缓存，但 message content 需要重新处理。</p>
+<p>第三类是缓存域选错。OpenAI 的 <a href="https://platform.openai.com/docs/api-reference/responses/create"><code>prompt_cache_key</code></a> 可以帮助同类请求落到更合适的缓存域，但太粗会把不该共享的请求混在一起，太细又会把本可共享的前缀拆散。文档还提到同一 prefix / key 组合请求频率过高时可能溢出到其他机器，命中率会下降。</p>
+<p>第四类是过早或过粗的压缩。compaction 能救窗口，但它也会改变后续模型历史的形状。如果一段内容只是“大但可追溯”，落盘或 preview 往往比 summary 更稳；如果一段内容只是“中段不再重要”，SNIP 这类 projection 比完整 summary 更少破坏上下文。压缩不是越早越好，而是应该发生在最小足够粒度上。</p>
+<h3>4.4 可迁移的上下文决策表</h3>
+<p>把 Claude Code 和 Codex 都看完之后，可以得到一张更通用的判断表：</p>
+<table>
+<thead>
+<tr>
+<th>内容状态</th>
+<th>更合适的处理</th>
+<th>保护的东西</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>稳定、常复用、影响全局行为</td>
+<td>放在稳定前缀或 session snapshot</td>
+<td>prompt cache 命中、行为一致性</td>
+</tr>
+<tr>
+<td>动态、只影响当前 turn</td>
+<td>放在尾部消息或 diff</td>
+<td>前缀稳定性</td>
+</tr>
+<tr>
+<td>很大、但原文可追溯</td>
+<td>落盘、preview、引用或截断</td>
+<td>窗口预算、可审计性</td>
+</tr>
+<tr>
+<td>中段探索已经无价值</td>
+<td>projection / SNIP</td>
+<td>模型视图精简、UI scrollback 保留</td>
+</tr>
+<tr>
+<td>语义仍有价值但原文太重</td>
+<td>collapse / summary</td>
+<td>关键语义延续</td>
+</tr>
+<tr>
+<td>窗口接近上限</td>
+<td>autocompact / replacement history</td>
+<td>会话继续运行</td>
+</tr>
+<tr>
+<td>压缩改变历史起点</td>
+<td>boundary 或 replacement ledger</td>
+<td>resume / fork 可恢复性</td>
+</tr>
+</tbody></table>
+<p>这张表的价值在于，它不绑定某个产品名。自己写 coding-agent runtime 时，也可以用同样的问题检查设计：这段信息是否稳定，是否可再取回，是否需要保留原文，压缩后由谁承接恢复。</p>
+<h3>4.5 读源码时最容易踩的坑</h3>
 <p>第一个坑：把 UI 历史当成模型历史。很多源码看起来“没有删除历史”，但请求前 projection 已经把模型视图改了。</p>
 <p>第二个坑：把 compaction 当成唯一压缩。Claude Code 在 autocompact 前还有大结果落盘、snip、microcompact、context-collapse。真正的工程设计是分层减压，不是等到爆窗才总结。</p>
 <p>第三个坑：把规则文件想成每轮动态加载。规则文件如果每轮改变并放在前缀，会直接打坏 prompt cache。两个系统都倾向于把规则稳定化，再用尾部或 diff 承载变化。Codex 的 compaction 重注入 initial context，也是在重建当前 session 的规则快照，不是在重新读最新磁盘文件。</p>
 <p>第四个坑：把 Claude 和 OpenAI 的缓存控制混用。Claude 的 <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching"><code>cache_control</code></a> 是 block / request 级控制点；OpenAI 更偏自动 prefix cache 和 <a href="https://platform.openai.com/docs/api-reference/responses/create"><code>prompt_cache_key</code></a>。源码里的 runtime 设计正是围绕这两个 contract 展开的。</p>
 <p>第五个坑：把 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a> 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a> 看成同一种东西。它们都服务于 compaction 后的恢复，但一个是切片边界，一个是替换后的模型历史。</p>
-<h3>4.4 结论：缓存优化的核心是模型视图纪律</h3>
-<p><a href="https://developers.openai.com/api/docs/guides/prompt-caching">Prompt cache</a> 的关键不只是 API 参数。<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching"><code>cache_control</code></a>、<a href="https://developers.openai.com/api/docs/guides/prompt-caching"><code>cached_tokens</code></a>、<a href="https://platform.openai.com/docs/api-reference/responses/create"><code>prompt_cache_key</code></a> 都只是外层接口。真正决定效果的是 Agent runtime 怎样组织模型看到的历史：哪些内容稳定地留在前缀，哪些内容被推到尾部，哪些内容只留在 UI 或磁盘，哪些内容被 summary 覆盖，压缩之后又由什么边界或替换历史承接。</p>
+<h3>4.6 结论：缓存优化的核心是模型视图纪律</h3>
+<p><a href="https://developers.openai.com/api/docs/guides/prompt-caching">Prompt cache</a> 的关键不只是 API 参数。<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching"><code>cache_control</code></a>、<a href="https://developers.openai.com/api/docs/guides/prompt-caching"><code>cached_tokens</code></a>、<a href="https://platform.openai.com/docs/api-reference/responses/create"><code>prompt_cache_key</code></a> 都只是外层接口。真正决定效果的是 runtime 怎样组织模型看到的历史：哪些内容稳定地留在前缀，哪些内容被推到尾部，哪些内容只留在 UI 或磁盘，哪些内容被 summary 覆盖，压缩之后又由什么边界或替换历史承接。</p>
 <p>Claude Code 的路线是：在完整本地历史上维护请求投影，用 memoized context 稳住基础规则，用大结果落盘和 microcompact 控制工具输出，用 snip / context-collapse 做细粒度历史投影，最后用 autocompact 和 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a> 建立新的模型视图起点。</p>
 <p>Codex 的路线是：利用 OpenAI 自动 prefix cache 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a>，用 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/agents_md.rs#L46"><code>AGENTS.md</code></a> 的 session snapshot 和 initial context 建立可恢复 baseline，用 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/session/turn_context.rs#L349"><code>TurnContextItem</code></a> 记录上下文变化，用 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a> 安装压缩后的模型历史。</p>
 <p>两者的共同原则可以压缩成一句话：</p>
@@ -841,7 +1202,21 @@ compaction 后直接安装 `replacement_history`，模型历史被替换成新�
 大内容不要无脑塞进 prompt；
 压缩后必须有可恢复的模型视图契约。
 </code></pre>
-<p>把这个原则抓住，prompt cache 就不再只是一个计费优化，而是长上下文 Agent 的基础架构问题。</p>
+<p>如果把这句话继续拆开，它其实是一组判断题：</p>
+<pre><code class="language-text">这段信息是不是稳定？
+稳定就值得保护前缀；不稳定就不要污染前缀。
+
+这段信息是不是可再取回？
+可再取回就可以落盘、引用、截断；不可再取回就需要摘要或保留。
+
+这次压缩有没有改变模型历史的起点？
+改变了，就必须留下 boundary、replacement history 或等价恢复契约。
+
+这个机制服务的是模型、UI、磁盘还是观测系统？
+服务对象不同，正确的“变小”方式也不同。
+</code></pre>
+<p>这也是读长上下文 coding-agent 源码时更可靠的路线：不要先问“它有没有某个功能名”，先问它在保护哪条不变量。Claude Code 和 Codex 的很多差异，最后都能回到这些不变量上。</p>
+<p>把这个原则抓住，prompt cache 就不再只是一个计费优化，而是长上下文 coding agent 的基础架构问题。</p>
 <h2>参考资料</h2>
 <ul>
 <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Anthropic Claude API prompt caching 文档</a></li>
@@ -851,6 +1226,7 @@ compaction 后直接安装 `replacement_history`，模型历史被替换成新�
 <li><a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI prompt caching 文档</a></li>
 <li><a href="https://developers.openai.com/cookbook/examples/prompt_caching_201">OpenAI Prompt Caching 201</a></li>
 <li><a href="https://platform.openai.com/docs/api-reference/responses/create">OpenAI Responses API create 文档</a></li>
+<li><a href="https://docs.vllm.ai/en/stable/design/prefix_caching/">vLLM Automatic Prefix Caching 设计文档</a></li>
 <li><a href="https://github.com/openai/codex">OpenAI Codex 源码仓库</a></li>
 <li><a href="https://modelcontextprotocol.io/">Model Context Protocol 文档</a></li>
 </ul>

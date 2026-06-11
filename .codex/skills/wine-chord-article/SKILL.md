@@ -59,6 +59,74 @@ practical pressure
 -> references
 ```
 
+For complex runtime mechanisms, each substantial section should teach through a
+reader-facing lifecycle, not through a pile of source facts. Prefer this local
+arc:
+
+```text
+what problem appears
+-> what the runtime changes
+-> before/after request or persisted-record shape
+-> source functions that implement the transition
+-> what breaks without this mechanism
+-> cache/context consequence
+```
+
+Do not stop at `what` and `how`. Each major mechanism should naturally reveal
+the `why` behind the design: the invariant being protected, the simpler design
+that would fail, the cost of the chosen approach, and the boundary where the
+claim stops. Integrate this reasoning into the prose; never announce process
+phrases such as "using critical thinking" or explain the editorial intent.
+
+For source-heavy runtime articles, keep a small invariant ledger in the
+writer's head and let it shape the text:
+
+- What is the owner of this state: model view, UI, durable storage, telemetry,
+  provider cache, or resume reconstruction?
+- What must remain stable for caching, recovery, or user trust?
+- What is allowed to be lossy, summarized, truncated, projected, or regenerated?
+- What breaks if the mechanism is removed or moved later in the pipeline?
+- Which provider or platform contract forces this design instead of a simpler
+  one?
+
+Every substantial API/provider article should also include failure conditions
+or counterexamples where useful. Cover the ways the recommended design can
+break: minimum thresholds, unstable schemas, dynamic data in a cached prefix,
+version drift, TTL or routing behavior, overly broad or overly narrow cache
+keys, premature summarization, or recovery boundaries that cannot be replayed.
+
+For long source articles, prefer ending with a transferable decision table or
+rule set. It should map content state to runtime handling and the invariant
+protected, so readers can apply the article beyond the named products.
+
+When a reader question is narrow or out of order, do not mirror the question as
+a random new section. Extract the durable confusion behind it and place the
+answer where the article's natural argument needs it. If the answer is useful
+but too detailed for the main flow, use an HTML `details` block with a precise
+`summary`. Good candidates for `details`: feature gates, version drift,
+visible-source limits, edge-case recovery, provider caveats, or "how this
+differs from a nearby concept" notes.
+
+Protocol-shaped examples are mandatory when prose alone leaves too much
+ambiguity. For API/runtime articles, include small before/after request or
+record examples at mechanism boundaries:
+
+- label examples as shape-level when fields are simplified or internal
+  normalization is omitted;
+- keep them close to real provider or source data structures;
+- distinguish public API payloads from runtime-internal history items;
+- show only fields needed for the concept;
+- avoid invented exact values for hidden provider internals;
+- explain what changed immediately after the code block.
+- For branchy mechanisms such as forks, skip-cache modes, fallback paths, or
+  resume variants, use minimal sequence examples (`M1 M2 M3 F1`) or compact
+  JSON fragments before adding a new diagram. Add a figure only when the
+  ownership boundary, lifecycle, or recovery path remains hard to see.
+
+Keep source and publication targets synchronized during every revision. When a
+standalone Markdown source and generated public HTML both exist, render the
+public page from the source before evaluating the final reader experience.
+
 The prose should read like a finished technical essay, not like an edited chat
 transcript. It must not reveal the user's requests, editing plan, model
 instructions, review process, local machine details, or any private rationale.
@@ -211,6 +279,46 @@ Classify every source-level claim before making it sound certain:
 Write only `official docs` and `verified source` claims as direct facts. Mark
 `surrounding contract inference` as an inference in prose, and keep diagrams
 abstract. Do not publish `not visible` claims as implementation facts.
+
+For articles that mix provider APIs and source code, include a quiet evidence
+boundary near the opening or before deep source interpretation. It should tell
+readers which claims come from official contracts, pinned source snapshots, and
+bounded engineering inference, without sounding like process notes.
+
+## Terminology And Link Semantics
+
+Treat terminology and links as part of the article's argument, not as decoration.
+The linked target must be at the same abstraction level as the linked words.
+
+- Category terms should link to a neutral category source only when that source
+  is actually useful. If no good neutral source exists, leave the category term
+  unlinked and link the concrete products or mechanisms nearby instead.
+- Product names should link to official overview or product documentation on
+  first mention. Link a product name to a narrow feature page only when the
+  sentence is specifically about that feature.
+- Provider mechanism names should link to the provider's own documentation, not
+  to a competing provider or a generic wiki page.
+- Source identifiers, file paths, constants, structs, and functions should link
+  to pinned source URLs, not overview docs.
+- Avoid awkward half-translations. If the English term is the industry term used
+  by the products or docs, use the English term directly in a Chinese article.
+  Add a Chinese gloss only when it improves comprehension, and do not repeat the
+  gloss after the first mention.
+- When a category has competing vendor names, use the smallest stable category
+  term in prose and explain the vendor terms once near first use. For example,
+  `coding agent` can describe the class, while the same sentence links Claude
+  Code's official `agentic coding tool` wording and Codex's official `coding
+  agent` wording to their own product docs. Do not add repetitive parenthetical
+  translations such as `代码智能体` unless the article truly needs the gloss.
+- Treat a link as a claim about the linked words. If the words name a category,
+  avoid linking them to a single product as though that product defines the
+  category; instead link nearby product names, official docs, source files, or
+  concrete mechanisms at their proper layer.
+- Do not link a broad concept to a page that describes a narrower vendor product
+  unless the prose clearly says the link is an example, not the definition.
+- Before publishing, scan early paragraphs especially carefully: the first
+  linked occurrence of a term teaches readers what conceptual layer the article
+  is operating on.
 
 ## Links And References
 

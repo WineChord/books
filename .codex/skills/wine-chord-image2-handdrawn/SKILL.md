@@ -144,10 +144,31 @@ Before generating, write a compact figure brief:
    visually clean.
 6. References: which Prompt Cache image roles should guide style and layout.
 
+For runtime and protocol figures, prefer lifecycle or before/after layouts over
+generic box clusters. A good figure should make one transition visible:
+request before vs after projection, UI history vs model-visible history,
+durable record vs resume reconstruction, or provider contract vs client
+runtime responsibility. If the article already uses JSON examples for exact
+fields, the figure should show ownership, order, and consequence rather than
+duplicating the whole payload.
+
+Figures should expose the reason for a mechanism, not just its plumbing. When a
+diagram depicts a runtime choice, make the protected invariant visually clear:
+stable prefix, lossy projection, durable recovery point, ownership boundary, or
+failure mode avoided. Avoid decorative complexity that shows more nodes without
+making the tradeoff easier to understand.
+
 When a figure depicts source-code behavior, ensure the surrounding article text
 or caption links to the corresponding source files, functions, and official
 contracts. The image may carry short labels, but it must not be the only place
 where a reader can trace a claim back to code or documentation.
+
+Visible figure labels must follow the same abstraction level as the prose. Use
+category labels for categories, product labels for products, and source
+identifier labels for exact code concepts. Do not let a broad category such as
+`coding agent` visually collapse into one vendor product, and do not add
+awkward translation glosses such as `代码智能体` unless they make the figure
+easier to understand.
 
 Those traceability links must follow the article skill's source-link contract:
 canonical GitHub repository, immutable commit SHA, verified path, and line
