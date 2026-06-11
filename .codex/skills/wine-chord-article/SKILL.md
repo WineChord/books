@@ -335,6 +335,12 @@ For shape-level cache-edit examples, do not imply an exact `cache_edits` block
 index unless the source helper or provider contract directly proves that
 position. If placement is helper-dependent, link the helper and explain the
 placement rule separately from the conceptual request shape.
+When using KV-cache or prefix-cache mental models, separate operational
+shorthand from mathematical equivalence. Do not claim that a provider-side edit
+is token-for-token equivalent to a fresh prefill of the shortened prompt unless
+official docs or source prove how suffix states are recomputed, rearranged, or
+masked. It is safer to state the visible contract, counters, and source-level
+handling, then mark deeper inference as provider-internal.
 For prompt-cache lookback explanations, distinguish distance to the prior cache
 write from distance to the edited or deleted block. Lookback starts at the
 current breakpoint and searches for earlier written cache entries; it does not
