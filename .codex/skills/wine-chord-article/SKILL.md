@@ -310,6 +310,14 @@ constraints force the likely design, and describe what the mechanism probably
 must protect. Do not fabricate exact prompts, schemas, scoring formulas, magic
 numbers, private filenames, or vendor intent.
 
+Define internal view terms at first use. Terms such as `API-bound`,
+`model-visible view`, `projection`, `cache edit`, and `provider cache view`
+should name their owner and lifetime: UI, durable transcript, request payload,
+provider-side cache, or replay/recovery state. For cache editing, distinguish an
+expected cache-read reduction from a prefix break. The reader should understand
+whether a mechanism removes tokens from the model view, preserves local history,
+avoids client-side prefix mutation, or merely changes observability counters.
+
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell
 readers which claims come from official contracts, pinned source snapshots, and
