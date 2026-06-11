@@ -370,6 +370,14 @@ other real message that enters the model for this fork. Do not leave it as an
 abstract "tail" if the reader needs to know why it exists. State whether that
 tail belongs to the parent conversation, the fork transcript, or no transcript
 at all, and why the mainline will or will not ever resume from `S + F`.
+When a mechanism asks a model to generate a compaction summary, explain the
+summary prompt contract at shape level: who triggers it, what messages are sent,
+whether tools or thinking are allowed, what output wrapper is expected, which
+parts are stripped, and which summary record is installed afterward. Distinguish
+the generated summary text from runtime markers such as compact boundaries,
+provider payload filters, restored attachments, and post-compact cleanup hooks.
+Do not let readers infer that "summary exists" automatically explains selection,
+prompting, installation, and resume behavior.
 
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell

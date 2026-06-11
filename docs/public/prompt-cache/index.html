@@ -937,47 +937,41 @@ M1 S1 M6 M7
 <p>所以，“哪一段会被选中”不能从这份快照里还原成精确算法；但它必须满足几个可见约束：它是 <code>startUuid..endUuid</code> 定位的连续 span；它有 summary 和 risk；它要能在 resume 时从 transcript 重新找到；它不能跨过已经改变历史起点的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a>。这也是为什么读 transcript 时一旦遇到 compact boundary，就会清空旧的 context-collapse commits 和 snapshot，避免把旧 span 套到已经切过的历史上。</p>
 <p>这就是 context-collapse 的真实位置：它适合“局部语义仍有价值、但原文太重”的区间。它比 SNIP 更保留语义，因为它用 summary 替代；它比 autocompact 更局部，因为它不改写整条会话起点；它也比普通 summary 更复杂，因为它必须同时维护 staged queue、commit log、resume replay 和 413 recovery。</p>
 <h3>2.6 最后防线：autocompact 和 compact_boundary</h3>
-<p>autocompact 是 Claude Code 的最后一级保护。</p>
+<p>autocompact 是 Claude Code 的最后一级保护。它不是“后台随手总结一下”，而是一条会改变后续模型历史起点的 compact transaction：先判断窗口是否真的危险，再启动一次摘要请求，拿到 summary 后写入 runtime boundary，最后用 summary、恢复上下文和最新消息组成新的模型视图。</p>
 <p>它之所以是最后一级，是因为它动的是会话的继续方式：旧历史不再主要靠原文进入模型，而是由 summary 和 boundary 承接。这个动作能救窗口，但也最容易改变模型后续推理的依据。</p>
-<p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L160"><code>src/services/compact/autoCompact.ts</code></a> 和 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L598"><code>src/services/compact/compact.ts</code></a></p>
-<h4>触发条件和摘要请求</h4>
-<p>它的触发逻辑会考虑：</p>
-<ul>
-<li>当前模型上下文窗口。</li>
-<li>为 summary 输出预留的 token。</li>
-<li><code>AUTOCOMPACT_BUFFER_TOKENS</code> 等 buffer。</li>
-<li><code>snipTokensFreed</code>，避免重复计算被 snip 释放的 token。</li>
-<li>querySource，避免 <code>compact</code> / <code>session_memory</code> 这类特殊请求递归触发。</li>
-<li>context-collapse 模式，避免两种压缩机制互相抢。</li>
-</ul>
-<p>触发后，它会尝试 session memory compaction；否则调用 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L598"><code>compactConversation(..., isAutoCompact=true, ...)</code></a>。连续失败有 circuit breaker，避免每轮都陷入压缩失败。</p>
-<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L598"><code>compact.ts</code></a> 里还有几个实际工程细节：</p>
-<ul>
-<li>compaction summary 前会 strip images/documents，用 <code>[image]</code> / <code>[document]</code> 这类占位替换。</li>
-<li>skill discovery/listing 这类会重新注入的 attachment 会在 summarization 前移除，避免摘要里重复包含可再注入内容。</li>
-<li>如果 compaction 请求本身 prompt too long，会从头部按 API round group 截断，用合成 marker 保持消息链形状。</li>
-<li>compact 后会有 bounded post-compact file / skill context 恢复，避免 summary 刚生成就丢掉必要文件语义。</li>
-</ul>
-<h4><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a>：summary 之后从哪里继续</h4>
-<p>最终，Claude Code 写入 <code>compact_boundary</code>。</p>
-<p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>src/utils/messages.ts</code></a></p>
-<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>createCompactBoundaryMessage()</code></a> 会生成一条 system message，<code>subtype: &quot;compact_boundary&quot;</code>，metadata 里包括 trigger、preTokens、userContext、messagesSummarized 等信息。之后 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4643"><code>getMessagesAfterCompactBoundary()</code></a> 会从最后一个 boundary 起切模型视图。</p>
-<p><img src="assets/claude-code-compact-boundary.png" alt="Claude Code compact_boundary 切分模型视图"></p>
-<p>放回请求包视角，compact 前后的差异更直观。</p>
-<p>compact 前，模型历史可能是完整长链：</p>
-<pre><code class="language-json">{
-  &quot;messages&quot;: [
-    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U1 项目背景&quot; },
-    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A1 分析&quot; },
-    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U2 大量探索&quot; },
-    { &quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;A2 结果&quot; },
-    { &quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;U3 当前问题&quot; }
-  ]
-}
+<p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L160"><code>src/services/compact/autoCompact.ts</code></a>、<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L598"><code>src/services/compact/compact.ts</code></a> 和 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/prompt.ts#L12"><code>src/services/compact/prompt.ts</code></a></p>
+<p><img src="assets/claude-code-autocompact-lifecycle.png" alt="Claude Code autocompact 的触发、compact fork 和 post-compact 视图"></p>
+<h4>触发：先扣输出预算，再留安全缓冲</h4>
+<p>autocompact 的阈值不是简单的“到了 90% 就总结”。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L33"><code>getEffectiveContextWindowSize()</code></a> 先从模型上下文窗口里扣掉 summary 可能需要的输出预算，输出预算最多按 <code>20_000</code> token 计算；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L72"><code>getAutoCompactThreshold()</code></a> 再减掉 <code>13_000</code> token 的缓冲区。形状上就是：</p>
+<pre><code class="language-text">effectiveWindow = contextWindow - min(modelMaxOutputTokens, 20_000)
+autoThreshold  = effectiveWindow - 13_000
+tokenUsage     = tokenCountWithEstimation(messages) - snipTokensFreed
+shouldCompact  = tokenUsage &gt;= autoThreshold
 </code></pre>
-<p>autocompact 生成 summary 后，transcript 里会出现一条 boundary。后续请求不会继续把 boundary 之前的所有消息原样发给模型，而是从最后一个 boundary 附近重新组织模型视图：</p>
+<p>这里的 <code>snipTokensFreed</code> 很重要。SNIP 已经把一部分历史从模型视图里剪掉，但 surviving message 上的旧 usage 统计可能还带着剪裁前的估算。autocompact 如果不减掉这部分释放量，就会误以为窗口仍然更满，导致过早进入全局 summary。</p>
+<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L160"><code>shouldAutoCompact()</code></a> 还会避开几类请求：配置禁用时不做；<code>session_memory</code>、<code>compact</code> 这类特殊 querySource 不递归触发；context-collapse 模式下不抢局部折叠的工作；reactive-only 配置下也不会主动做。真正进入 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L241"><code>autoCompactIfNeeded()</code></a> 后，它会先尝试 session memory compaction；如果那条更窄的路径不能解决，才调用 <code>compactConversation(..., isAutoCompact=true, ...)</code>。连续失败还有三次 circuit breaker，避免每轮都把同一个会话带进压缩失败循环。</p>
+<h4>compact prompt：不是一句 summarize，而是一份输出契约</h4>
+<p>用于 autocompact 的摘要请求来自 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/prompt.ts#L12"><code>getCompactPrompt()</code></a>。它不是只给模型一句“总结一下”，而是拼出一份很明确的文本契约：</p>
+<pre><code class="language-text">NO_TOOLS_PREAMBLE
+BASE_COMPACT_PROMPT
+optional custom instructions
+NO_TOOLS_TRAILER
+</code></pre>
+<p>这份契约先要求只输出文本、不要调用工具；随后要求模型输出两个 wrapper：<code>&lt;analysis&gt;</code> 用来在摘要前整理判断，<code>&lt;summary&gt;</code> 才是会被保留下来的正文。<code>BASE_COMPACT_PROMPT</code> 还规定了 summary 的章节形状：用户目标、关键技术概念、文件和代码区段、错误和修复、问题解决过程、所有用户消息、待办、当前工作、可选下一步。也就是说，autocompact 摘要不是自由散文，而是为了恢复下一轮 coding context 设计的结构化移交记录。</p>
+<p>摘要回来以后，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/prompt.ts#L311"><code>formatCompactSummary()</code></a> 会去掉 <code>&lt;analysis&gt;</code>，把 <code>&lt;summary&gt;</code> 规范成 <code>Summary:</code> 开头的文本。随后 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/prompt.ts#L337"><code>getCompactUserSummaryMessage()</code></a> 会把它包装成“这个 session 正在从上一段会话继续”的 user message。autocompact 场景会 suppress follow-up questions，所以包装文本还会要求模型直接继续之前的任务，不要为了继续而先向用户追问。</p>
+<h4>compact fork：为什么摘要请求也要考虑 prompt cache</h4>
+<p>默认路径下，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L1136"><code>streamCompactSummary()</code></a> 不会简单地在主会话里新发一次独立摘要请求，而是通过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L1188"><code>runForkedAgent()</code></a> 开一个 compact fork。这个 fork 继承父会话的共享前缀 <code>S</code>，再在尾部追加一条真实的 <code>summaryRequest</code> 作为 fork-only suffix <code>F</code>：</p>
+<pre><code class="language-text">compact fork input = shared S + summaryRequest F
+
+S = 父会话已有 tools / system / user context / messagesForQuery
+F = 这一次“请按 compact prompt 生成 summary”的真实 user message
+</code></pre>
+<p>这里的几个参数很能说明设计意图：<code>querySource: &quot;compact&quot;</code> 避免递归触发 compaction；<code>maxTurns: 1</code> 说明它只要一轮 summary；<code>skipCacheWrite: true</code> 说明它可以读父会话共享前缀的缓存，但不要把 <code>S + F</code> 写成未来主线会 resume 的缓存尾巴。源码还特意不在这个 fork 上设置 <code>maxOutputTokens</code>，因为那会影响 thinking 配置一致性，反而可能破坏这次 fork 想复用的父会话缓存形状。</p>
+<p>如果 prompt-cache-sharing fork 没拿到可用 summary，才会落到直接 streaming fallback。这个 fallback 路径会先移除图片和可重新注入的 attachment，再用一个专门的 summary system prompt、禁用 thinking，并允许有限工具来补读文件。换句话说，“summary 前会把图片/可再注入附件移走”是 fallback 路径里直接可见的处理；主路径的重点则是借 compact fork 复用父会话缓存，再把这条 fork-only 摘要任务控制成不污染未来主线缓存。</p>
+<h4>summary 安装：boundary 和 summary 是两条不同记录</h4>
+<p>summary 生成后，Claude Code 不是把旧消息直接删掉，也不是把 <code>compact_boundary</code> 当成要发给模型的普通 system prompt。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L596"><code>compactConversation()</code></a> 会构造一条 boundary marker，再构造 summary message，并把后续仍需要的上下文重新挂回去。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L330"><code>buildPostCompactMessages()</code></a> 的顺序可以概括成：</p>
 <pre><code class="language-json">{
-  &quot;messages&quot;: [
+  &quot;transcript&quot;: [
     {
       &quot;role&quot;: &quot;system&quot;,
       &quot;content&quot;: &quot;Conversation compacted&quot;,
@@ -985,12 +979,16 @@ M1 S1 M6 M7
       &quot;compactMetadata&quot;: {
         &quot;trigger&quot;: &quot;auto&quot;,
         &quot;preTokens&quot;: 180000,
-        &quot;messagesSummarized&quot;: 42
+        &quot;logicalParentUuid&quot;: &quot;last-pre-compact-message&quot;
       }
     },
     {
       &quot;role&quot;: &quot;user&quot;,
-      &quot;content&quot;: &quot;上一段对话摘要：已经确认测试失败来自缓存断点位置 ...&quot;
+      &quot;content&quot;: &quot;This session is being continued from a previous conversation ...\n\nSummary: ...&quot;
+    },
+    {
+      &quot;role&quot;: &quot;user&quot;,
+      &quot;content&quot;: &quot;Restored file, plan, skills, hook result, or deferred-tool context ...&quot;
     },
     {
       &quot;role&quot;: &quot;user&quot;,
@@ -999,7 +997,8 @@ M1 S1 M6 M7
   ]
 }
 </code></pre>
-<p>这个示例同样是形状级的：真实 API 发送前还会经过 normalize，boundary 这类 system message 本身不一定以同样形态进入 provider payload。重要的是恢复契约：summary 代表旧前缀，boundary 告诉 runtime 后续模型视图从哪里承接。</p>
+<p>这段是 transcript / runtime 形状，不是 provider payload 原样。真实 API 发送前还会经过 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L2056"><code>normalizeMessagesForAPI()</code></a>；<code>compact_boundary</code> 这种 runtime system marker 会被过滤掉。后续模型真正看到的是 summary message、恢复上下文、最新用户消息等 API-bound 内容。boundary 的作用在本地：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4643"><code>getMessagesAfterCompactBoundary()</code></a> 能从最后一条 boundary 起切片，知道哪些旧消息已经由 summary 覆盖，不该再原样进入模型视图。</p>
+<p><img src="assets/claude-code-compact-boundary.png" alt="Claude Code compact_boundary 切分模型视图"></p>
 <p>没有 boundary 会怎样？</p>
 <ul>
 <li>如果继续发完整历史，summary 不会真正减少模型输入。</li>
@@ -1007,6 +1006,16 @@ M1 S1 M6 M7
 <li>如果只有 summary 没有边界，后续请求不知道哪些消息已经被 summary 覆盖。</li>
 </ul>
 <p>所以 boundary 的本质是“模型视图边界”，不是 UI 分割线。</p>
+<details>
+<summary>细节：失败路径、恢复上下文和 post-compact cleanup</summary>
+
+<p>autocompact 还需要处理几条不那么显眼、但决定可靠性的路径。</p>
+<p>第一，摘要请求自己也可能 prompt too long。直接 streaming fallback 会用 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L243"><code>truncateHeadForPTLRetry()</code></a> 从头部按 API round group 截断，并插入一个合成 marker，避免 summary 请求因为历史太长而无法启动。</p>
+<p>第二，compact 后不能只留下 summary。Claude Code 会恢复一批 bounded context：当前文件、计划、plan mode、已经使用的 skills、deferred tools、agent listing、MCP instructions、session start hooks 等。这些内容不是旧历史的重复，而是下一轮继续工作需要的 runtime context。</p>
+<p>第三，compact 完成后会运行 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/postCompactCleanup.ts#L31"><code>postCompactCleanup()</code></a>。它会清掉 microcompact 状态、必要时重置 context-collapse、清空 user context / memory file / system prompt section 等缓存，并重置一些与审批、speculative check、tracing、session message cache 相关的状态。原因很简单：compact 已经改变了模型历史起点，之前围绕旧历史积累的临时缓存不能无条件沿用。</p>
+<p>第四，失败不是无限重试。<code>autoCompactIfNeeded()</code> 会记录连续失败次数，超过阈值后短路；prompt-too-long 分支也会先尝试更窄的恢复路径，再落到 reactive compact。autocompact 是最后防线，但不是一个可以在每轮无成本触发的后台任务。</p>
+</details>
+
 <h3>2.7 收口：减压栈怎样保护缓存点</h3>
 <h4>五种变小机制放在一起看</h4>
 <p>大结果落盘、snip、microcompact、context-collapse、autocompact 都会让模型输入变小，但它们不是同一种机制。</p>

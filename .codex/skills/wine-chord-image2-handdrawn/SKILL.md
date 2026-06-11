@@ -33,8 +33,8 @@ choices.
 
 Do not clone a Prompt Cache diagram's content for a different article. Reuse
 the visual system: warm paper, sketched technical diagrams, restrained color,
-clear lanes/stacks/timelines/ledgers, small bottom-right `Wine & Chord` mark,
-and source-accurate labels.
+clear lanes/stacks/timelines/ledgers, the fixed bottom-right `Wine & Chord`
+brand mark, and source-accurate labels.
 
 ## Non-Negotiables
 
@@ -89,10 +89,21 @@ Line and shape:
 
 Brand mark:
 
-- Place `Wine & Chord` in the bottom-right corner.
-- Keep it small: roughly `8%` to `14%` of image width.
-- It may be handwritten, badge-like, or accompanied by a tiny grape/chord icon,
-  but must not compete with the diagram.
+- The fixed reference is
+  `assets/wine-chord-brand-mark-reference.png` in this skill directory.
+- Every final figure must place this style of mark in the bottom-right safe
+  area: handwritten deep-navy cursive `Wine & Chord`, a sweeping underline
+  flourish, and a small purple grape cluster with green leaves at the right.
+- Do not use a badge, box, stamp, sans-serif wordmark, generic icon, or alternate
+  logo treatment. The mark should feel hand-lettered on the same warm paper as
+  the figure.
+- Keep it legible but secondary: roughly `10%` to `16%` of image width, with at
+  least `3%` canvas padding from the right and bottom edges.
+- If image generation cannot reproduce the mark reliably, generate the figure
+  with a clean reserved bottom-right area and overlay the reference mark or a
+  deterministic reconstruction during post-processing.
+- Do not crop, blur, recolor, or stretch the grape element. Preserve the
+  handwritten underline relationship to the text.
 
 ## Reference Image Roles
 
@@ -200,7 +211,9 @@ Palette: deep navy, Wine & Chord blue, muted forest green, slate gray, small
 amber highlights.
 Subject: [one precise source-level idea].
 Composition: [nodes and arrows in exact order].
-Include a small elegant handwritten “Wine & Chord” mark in the bottom-right.
+Include the fixed Wine & Chord brand mark in the bottom-right: deep-navy
+handwritten cursive text, sweeping underline, purple grape cluster and green
+leaves, matching the local reference asset.
 No process notes, no prompt references, no meta text.
 Use only these short labels: [label list].
 Keep arrows clean and non-crossing; leave generous margins.
@@ -263,7 +276,9 @@ Inspect every generated figure before publishing:
 - Labels do not escape boxes.
 - Arrows do not cross in confusing ways.
 - The figure matches the article's source claims.
-- The Wine & Chord mark is present and unobtrusive.
+- The Wine & Chord mark matches
+  `assets/wine-chord-brand-mark-reference.png`: cursive wordmark, underline,
+  grape cluster, bottom-right placement, no alternate badge or generic icon.
 - No private instruction, prompt, TODO, or process note is visible.
 - Mobile rendering keeps the image legible at article width.
 - The figure fits the Prompt Cache visual family when viewed beside the
