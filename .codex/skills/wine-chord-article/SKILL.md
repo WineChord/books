@@ -321,6 +321,10 @@ The linked target must be at the same abstraction level as the linked words.
   by the products or docs, use the English term directly in a Chinese article.
   Add a Chinese gloss only when it improves comprehension, and do not repeat the
   gloss after the first mention.
+- Do not mechanically add Chinese parenthetical glosses for mature technical
+  terms such as `runtime`, `provider contract`, `owner`, `projection`, or
+  `ledger`. Use the English term directly when it is clearer and already
+  carries the engineering meaning.
 - When a category has competing vendor names, use the smallest stable category
   term in prose and explain the vendor terms once near first use. For example,
   `coding agent` can describe the class, while the same sentence links Claude

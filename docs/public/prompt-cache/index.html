@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中</title>
-  <meta name="description" content="从 Claude Code 和 Codex 源码解释 prompt cache 的模型视图纪律：供应商公开契约、稳定前缀、动态上下文、局部减压、compaction 边界、replacement_history 和长上下文取舍。">
+  <meta name="description" content="从 Claude Code 和 Codex 源码解释 prompt cache 的模型视图纪律：provider contract、稳定前缀、动态上下文、局部减压、compaction 边界、replacement_history 和长上下文取舍。">
   <link rel="canonical" href="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:title" content="Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中">
-  <meta property="og:description" content="从 Claude Code 和 Codex 源码解释 prompt cache 的模型视图纪律：供应商公开契约、稳定前缀、动态上下文、局部减压、compaction 边界、replacement_history 和长上下文取舍。">
+  <meta property="og:description" content="从 Claude Code 和 Codex 源码解释 prompt cache 的模型视图纪律：provider contract、稳定前缀、动态上下文、局部减压、compaction 边界、replacement_history 和长上下文取舍。">
   <meta property="og:url" content="https://www.wineandchord.com/books/prompt-cache/">
   <meta property="og:type" content="article">
   <meta property="og:image" content="https://www.wineandchord.com/books/prompt-cache/assets/cover-claude-codex-prompt-cache.png">
@@ -372,22 +372,22 @@
     <article>
 <h1>Claude Code 和 Codex 的 Prompt Cache：模型视图如何决定缓存命中</h1>
 <p><img src="assets/cover-claude-codex-prompt-cache.png" alt="Claude Code 和 Codex 的 prompt cache 设计对比"></p>
-<p>长时间使用 coding agent 时，最先撞上的问题通常不是“模型会不会写代码”，而是上下文怎么活下去。这里的 coding agent 指能读代码库、改文件、运行命令并维护会话历史的编程运行时（runtime）；<a href="https://code.claude.com/docs/en/overview">Claude Code</a> 官方更常用 agentic coding tool 这类说法，<a href="https://developers.openai.com/codex">Codex</a> 官方则直接称自己为 coding agent。</p>
+<p>长时间使用 coding agent 时，最先撞上的问题通常不是“模型会不会写代码”，而是上下文怎么活下去。这里的 coding agent 指能读代码库、改文件、运行命令并维护会话历史的编程 runtime；<a href="https://code.claude.com/docs/en/overview">Claude Code</a> 官方更常用 agentic coding tool 这类说法，<a href="https://developers.openai.com/codex">Codex</a> 官方则直接称自己为 coding agent。</p>
 <p>一轮请求里可能有系统规则、工具定义、项目说明、运行环境、历史消息、工具输出、图片、文档、摘要和最新用户输入。前几轮还好，几十轮以后，输入会迅速膨胀。每一轮都把所有内容重新送进模型，成本高，延迟高，也更容易把真正重要的信息挤出窗口。</p>
 <p>Prompt cache 解决的是其中一部分问题：如果连续请求共享相同前缀，服务端可以复用已经处理过的前缀计算。它不是语义缓存，不是“这两句话意思差不多就命中”。它更接近字节和结构层面的前缀复用：前面那段 prompt 越稳定，缓存越容易命中。</p>
 <p>从推理系统的角度看，这通常对应 prefill 阶段的重复计算复用。开源推理框架 <a href="https://docs.vllm.ai/en/stable/design/prefix_caching/">vLLM 的 prefix caching 设计文档</a>把它说得很直接：相同前缀已经处理过时，可以复用对应的 KV cache blocks，而不是重新计算整段 prompt。这也解释了为什么 prompt cache 对“相同前缀”这么敏感：它复用的是已经算过的前缀状态，不是复用模型即将生成的回答。</p>
-<p>这类系统的难点在于，prompt 不是一段静态文本。它是运行时拼出来的“模型视图”。Claude Code 和 Codex 的源码都在围绕这个视图做工作：哪些内容放前面，哪些内容放尾部，哪些内容落盘，哪些内容摘要，哪些内容只在 UI 里保留，哪些内容真正送进模型。</p>
+<p>这类系统的难点在于，prompt 不是一段静态文本。它是 runtime 拼出来的“模型视图”。Claude Code 和 Codex 的源码都在围绕这个视图做工作：哪些内容放前面，哪些内容放尾部，哪些内容落盘，哪些内容摘要，哪些内容只在 UI 里保留，哪些内容真正送进模型。</p>
 <p>这篇文章只抓一条主线：prompt cache 不是一个孤立的 API 参数，而是一整套“模型视图纪律”。源码里所有看似分散的设计，最后都在回答四个问题：</p>
 <ol>
 <li>provider 到底允许缓存哪一段前缀？</li>
-<li>运行时怎么让这段前缀尽量稳定？</li>
+<li>runtime 怎么让这段前缀尽量稳定？</li>
 <li>工具输出和历史膨胀时，是先局部减压，还是直接总结整段对话？</li>
 <li>压缩之后，下一轮请求怎样知道模型应该从哪里继续看？</li>
 </ol>
-<p>把这四个问题串起来，Claude Code 和 Codex 的差异就不再是“一个手动、一个自动”这么粗的描述，而是两套运行时在不同供应商公开契约（provider contract）下，对同一个长上下文问题给出的两种工程答案。</p>
-<p>更进一步说，源码里真正值得看的不是“它用了哪个 API 字段”，而是每个字段背后的取舍：为什么这段内容要稳定，为什么那段内容要靠后，为什么有些东西只留在 UI 或磁盘，为什么不能等到窗口快爆了再统一总结。把这些问题问下去，prompt cache 才会从一个计费功能变成长上下文运行时的结构约束。</p>
-<p>这篇文章的证据也分三层：供应商公开契约以 OpenAI、Anthropic 等官方文档为准；源码机制以固定 commit 的公开源码快照为准，其中 Claude Code 相关链接使用 <code>WineChord/claude-code</code> 公开镜像快照；服务端内部序列化、缓存路由和发行版 feature gate 只能按公开契约和可见源码做边界内推断。后面凡是讲“形状”“视图”“契约”，都在这个边界内使用。</p>
-<p>读这类源码，最容易迷路的地方不是函数太多，而是每个函数看起来都像“再整理一下上下文”。更稳的读法是把每个机制都追问到底：它在防止哪一种失败？如果用更简单的做法，会坏在缓存、语义、恢复、还是可见历史？一旦沿着这个问题链走，prompt cache 就不再是一个孤立优化，而是运行时对模型视图负责的方式。</p>
+<p>把这四个问题串起来，Claude Code 和 Codex 的差异就不再是“一个手动、一个自动”这么粗的描述，而是两套 runtime 在不同 provider contract 下，对同一个长上下文问题给出的两种工程答案。</p>
+<p>更进一步说，源码里真正值得看的不是“它用了哪个 API 字段”，而是每个字段背后的取舍：为什么这段内容要稳定，为什么那段内容要靠后，为什么有些东西只留在 UI 或磁盘，为什么不能等到窗口快爆了再统一总结。把这些问题问下去，prompt cache 才会从一个计费功能变成长上下文 runtime 的结构约束。</p>
+<p>这篇文章的证据也分三层：provider contract 以 OpenAI、Anthropic 等官方文档为准；源码机制以固定 commit 的公开源码快照为准，其中 Claude Code 相关链接使用 <code>WineChord/claude-code</code> 公开镜像快照；服务端内部序列化、缓存路由和发行版 feature gate 只能按公开契约和可见源码做边界内推断。后面凡是讲“形状”“视图”“契约”，都在这个边界内使用。</p>
+<p>读这类源码，最容易迷路的地方不是函数太多，而是每个函数看起来都像“再整理一下上下文”。更稳的读法是把每个机制都追问到底：它在防止哪一种失败？如果用更简单的做法，会坏在缓存、语义、恢复、还是可见历史？一旦沿着这个问题链走，prompt cache 就不再是一个孤立优化，而是 runtime 对模型视图负责的方式。</p>
 <p><img src="assets/context-pressure-overview.png" alt="长上下文与提示缓存策略总览"></p>
 <p>接下来按这条问题链展开：先建立“模型视图”的坐标系，再看 Claude Code 怎样围绕显式缓存断点维护这条视图，然后看 Codex 怎样在自动 prefix cache 下维护可恢复历史，最后把两套设计压回同一张对照图。</p>
 <h2>一、心智模型：缓存命中的是模型视图</h2>
@@ -396,7 +396,7 @@
 <p>理解 prompt cache 之前，要先区分三种“历史”。</p>
 <p>第一种是 UI 历史，也就是用户在界面上看到的 scrollback。它应该尽量完整，因为用户需要回看、复制、调试。</p>
 <p>第二种是磁盘历史，也就是 session transcript、rollout <a href="https://jsonlines.org/">JSONL</a>、tool result 文件、collapse commit 等持久化记录。它服务于 resume、fork、审计和恢复。</p>
-<p>第三种是模型历史，也就是本轮 API 请求里真正进入供应商 prompt 的 messages、system / instructions、tools、schema 和附加 context。这里说的是公开 API 契约和缓存前缀层面的输入，不等于公开了推理服务内部每个 token 的物理排列。</p>
+<p>第三种是模型历史，也就是本轮 API 请求里真正进入 provider prompt 的 messages、system / instructions、tools、schema 和附加 context。这里说的是 API contract 和缓存前缀层面的输入，不等于公开了推理服务内部每个 token 的物理排列。</p>
 <p>Prompt cache 命中的永远是第三种：模型看到的有序输入。UI 里还在，不代表模型还会看到；磁盘里还在，也不代表每轮都会进 prompt。</p>
 <p>判断一段 context 应该放在哪里，可以先问三个问题：</p>
 <pre><code class="language-text">谁需要它？
@@ -409,7 +409,7 @@
 会丢语义，就需要 summary 或恢复契约；只会丢可见细节，就可以落盘、裁剪或折叠。
 </code></pre>
 <p>后面所有机制都在反复回答这三个问题。SNIP、microcompact、context-collapse、autocompact 看起来名字很多，本质上只是对这三个问题给出了不同粒度的答案。</p>
-<h3>1.2 供应商公开契约：Claude 和 OpenAI 给客户端的控制面不同</h3>
+<h3>1.2 Provider contract：Claude 和 OpenAI 给客户端的控制面不同</h3>
 <p>可以把一次请求抽象成：</p>
 <pre><code class="language-text">Claude 侧公开层级：
 tools -&gt; system -&gt; messages -&gt; cache breakpoint
@@ -421,7 +421,7 @@ prefix 可包含 messages / tools / schemas / images
 缓存命中依赖：
 前缀尽量长，且尽量不变。
 </code></pre>
-<p><img src="assets/prompt-cache-provider-contracts.png" alt="Claude 和 OpenAI 的 prompt cache 契约差异"></p>
+<p><img src="assets/prompt-cache-provider-contracts.png" alt="Claude 和 OpenAI 的 prompt cache contract 差异"></p>
 <p>这里必须把 Claude 和 OpenAI 分开理解。两边都叫 prompt caching，但客户端能控制的东西不是同一个。</p>
 <h4>Claude：客户端可以标记缓存断点</h4>
 <p><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Claude API 文档</a>明确给出 cache prefix 的层级：<code>tools</code>、<code>system</code>、<code>messages</code>。这不是一句抽象建议，而是后面读源码时要抓住的顺序：<a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools">Claude 的 tool-use 文档</a>也展示了工具定义会进入 tool-use system prompt，并排在用户 system prompt 之前。所以在 Claude 侧，把工具定义视为稳定前缀最前面的组成部分，是有公开依据的。</p>
@@ -441,7 +441,7 @@ prompt_cache_key + automatic prefix cache + replacement_history
 </code></pre>
 <p>两个系统都在追求稳定前缀，但工具不一样。</p>
 <p>这就是为什么“规则文件怎么注入”“工具结果怎么处理”“compaction 后有没有边界”都会影响 prompt cache。它们看起来是上下文管理问题，本质上也都是缓存前缀管理问题。</p>
-<p>如果忽略供应商公开契约，最容易得出一个看似统一、实际错误的结论：把所有静态内容塞进最前面，然后让服务端缓存。这个说法对工程实现太粗。Claude Code 可以精细移动 breakpoint；Codex 更依赖自动 prefix cache 和可恢复历史形状。两者都要稳定前缀，但一个是在显式断点附近做手术，另一个是在完整请求形状上保持纪律。</p>
+<p>如果忽略 provider contract，最容易得出一个看似统一、实际错误的结论：把所有静态内容塞进最前面，然后让服务端缓存。这个说法对工程实现太粗。Claude Code 可以精细移动 breakpoint；Codex 更依赖自动 prefix cache 和可恢复历史形状。两者都要稳定前缀，但一个是在显式断点附近做手术，另一个是在完整请求形状上保持纪律。</p>
 <h3>1.3 规则文件：稳定快照比文件焦点更重要</h3>
 <p>coding agent 通常有项目规则文件：</p>
 <ul>
@@ -458,7 +458,7 @@ compaction 后保留可恢复的边界或替换历史
 <p>这个模型比“system prompt 一次性全塞满”更准确。</p>
 <h3>1.4 像看网络包一样看 prompt</h3>
 <p>很多 prompt cache 的误解，来自把“聊天记录”想成一条连续文本。更接近真实工程的方法，是把每一轮请求看成一次协议包：客户端把系统规则、工具定义、上下文片段、历史消息和最新输入装进 provider API 的字段里；provider 只能在这个有序输入上做缓存。</p>
-<p>下面两个 JSON 都是形状级示例，不是某个发行版的完整私有 payload。它们保留的是公开 API 契约和源码里能验证的关键字段。</p>
+<p>下面两个 JSON 都是形状级示例，不是某个发行版的完整私有 payload。它们保留的是公开 API contract 和源码里能验证的关键字段。</p>
 <p>Claude 侧的请求可以这样理解：</p>
 <pre><code class="language-json">{
   &quot;model&quot;: &quot;claude-sonnet-4-5&quot;,
@@ -943,7 +943,7 @@ M1 S1 M6 M7
 </tbody></table>
 <p>这就是 Claude Code 长上下文管理的层级感：能局部处理就局部处理，局部处理不够再摘要，摘要以后用 boundary 保证后续请求不把旧内容带回来。每一级都在把“变小”限制在最小必要范围内。</p>
 <h4><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a>：怎样保护缓存点</h4>
-<p>前面所有步骤都在整理 breakpoint 前的形状。到了 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a>，才是真正把 Anthropic 的缓存契约落到请求上：该让 provider 读哪段已有缓存，该把新的缓存尾巴写在哪里，哪些一次性 fork 只该读缓存、不该污染后续缓存。</p>
+<p>前面所有步骤都在整理 breakpoint 前的形状。到了 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a>，才是真正把 Anthropic 的 cache contract 落到请求上：该让 provider 读哪段已有缓存，该把新的缓存尾巴写在哪里，哪些一次性 fork 只该读缓存、不该污染后续缓存。</p>
 <p>Claude Code 的 Anthropic 请求路径里，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a> 是核心缓存控制函数。</p>
 <p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>src/services/api/claude.ts</code></a></p>
 <p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上，相当于告诉 Claude：本轮最新 message 之前的完整前缀都值得作为后续请求的缓存候选。</p>
@@ -970,7 +970,7 @@ M1 M2 M3 F1
 <li>新的 cache edits 会插入最后一条 user message，并被 pin 住。</li>
 <li>marker 之前的 tool_result block 会加 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>cache_reference</code></a>。</li>
 </ul>
-<p>这些是源码里可见的请求构造字段，不应理解成 Anthropic 公共文档里另一个独立的通用 API 契约。文章在这里关心的是 Claude Code 怎样维护自己的缓存视图，而不是给这些内部字段外推平台语义。</p>
+<p>这些是源码里可见的请求构造字段，不应理解成 Anthropic 公共文档里另一个独立的通用 API contract。文章在这里关心的是 Claude Code 怎样维护自己的缓存视图，而不是给这些内部字段外推平台语义。</p>
 <p>此外，Claude Code 还在工具 schema 和 system prompt 上做稳定性保护：</p>
 <ul>
 <li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/api.ts#L119"><code>toolToAPISchema()</code></a> 缓存 session-stable base schema，避免工具 schema 在会话中途变化。</li>
@@ -978,7 +978,7 @@ M1 M2 M3 F1
 </ul>
 <p>这些细节都指向同一个目标：在 Anthropic 的显式 breakpoint 模型下，让 breakpoint 前的内容尽量稳定。</p>
 <h2>三、Codex：自动 prefix cache 下的可恢复历史</h2>
-<p>Codex 换了另一个供应商公开契约，文章的重心也要跟着换。OpenAI 侧没有 Claude 那样的 per-block breakpoint，所以 Codex 不是围绕“缓存点放在哪条 message 上”组织代码，而是围绕三个东西组织：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a> 稳定缓存域，initial context 稳定会话基线，<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a> 稳定压缩后的恢复形状。</p>
+<p>Codex 换了另一个 provider contract，文章的重心也要跟着换。OpenAI 侧没有 Claude 那样的 per-block breakpoint，所以 Codex 不是围绕“缓存点放在哪条 message 上”组织代码，而是围绕三个东西组织：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a> 稳定缓存域，initial context 稳定会话基线，<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a> 稳定压缩后的恢复形状。</p>
 <p>这不是“Codex 少做了一层缓存控制”。更准确地说，Codex 的控制点换了位置：既然 provider 侧缓存是 automatic prefix cache，客户端更应该保证可重复的请求前缀和可重建的历史账本，而不是假装自己能控制某个内部 cache breakpoint。于是它把重点放在 session snapshot、turn context、rollout reconstruction 和 replacement history 上。</p>
 <p>因此 Codex 这一节要反过来读：不要拿 Claude Code 的 <code>cache_control</code> 当尺子去找“缺失功能”，而要看 Codex 把哪些内容做成稳定输入，哪些内容做成可重放记录，哪些内容在 compaction 后被替换成新的 canonical history。它的核心问题不是“断点放在哪”，而是“下一轮请求能不能重建出同一条模型历史”。</p>
 <h3>3.1 缓存域：automatic prefix cache 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/client.rs#L371"><code>prompt_cache_key</code></a></h3>
@@ -1039,13 +1039,13 @@ M1 M2 M3 F1
 <p>这条 baseline 的价值在 resume / fork 时才完全显出来。只靠当前内存里的请求数组当然能跑完下一轮；但只要进程退出、远端 compact、fork 或回放发生，runtime 就必须知道哪些 context 是“这条会话的基线”，哪些只是某一轮的临时输入。<code>TurnContextItem</code> 把这个边界写进账本，而不是只依赖内存状态。</p>
 <h3>3.3 输出减压：截断模型可见内容和事件副本</h3>
 <p>在已检查的 Codex 源码里，没有看到 Claude Code 那种“一旦 tool result 超阈值，就把完整结果写到 tool-results 文件，再让模型只看到路径和 2KB preview”的同构机制。</p>
-<p>Codex 更常见的是按状态所有者分层截断。同一份工具输出至少会进入三条路径：模型下一轮要看的 history，rollout / event 要保存的恢复记录，telemetry 要上报的观测摘要。这三条路径的目标不同，所以不能用一把剪刀处理。</p>
+<p>Codex 更常见的是按 owner 分层截断。同一份工具输出至少会进入三条路径：模型下一轮要看的 history，rollout / event 要保存的恢复记录，telemetry 要上报的观测摘要。这三条路径的目标不同，所以不能用一把剪刀处理。</p>
 <pre><code class="language-text">工具原始输出
   -&gt; 模型可见 history：为了下一轮推理，按 policy 截断
   -&gt; rollout / event：为了恢复和回放，保留结构但收缩巨大副本
   -&gt; telemetry：为了观测和排障，只留短 preview
 </code></pre>
-<p>如果三条路径都保留完整输出，窗口、磁盘和观测系统都会被大结果拖垮；如果三条路径都只保留同一个短 preview，resume 和排障又可能失去足够上下文。Codex 的做法不是“少了落盘”，而是把压力按状态所有者拆开处理。</p>
+<p>如果三条路径都保留完整输出，窗口、磁盘和观测系统都会被大结果拖垮；如果三条路径都只保留同一个短 preview，resume 和排障又可能失去足够上下文。Codex 的做法不是“少了落盘”，而是把压力按 owner 拆开处理。</p>
 <h4>模型可见 function output 截断</h4>
 <p>第一类是模型可见 function output 截断。</p>
 <p>源码位置：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/context_manager/history.rs#L377"><code>codex-rs/core/src/context_manager/history.rs</code></a></p>
@@ -1083,8 +1083,8 @@ Codex:
 </code></pre>
 <p>两者目标相似，具体工程形态不同。</p>
 <p>这里也不能简单判定哪边“更完整”。Claude Code 的落盘 preview 适合把巨大原文留在本地可追溯位置，再让模型只看稳定替代文本；Codex 的截断和事件副本收缩更贴近它自己的 rollout / history 管线。评估这类机制时，应该先问它保护的是哪条路径：模型输入、持久化日志、telemetry，还是 resume 重建。路径不同，正确的减压形态也会不同。</p>
-<p>反过来说，如果把 Claude Code 的落盘策略机械搬到 Codex，也未必更好。Codex 的 rollout、event 和 telemetry 都是系统恢复与观测的一部分；如果只留下一个本地路径，远端执行、云端恢复和跨环境复现都会变复杂。它选择在模型可见输出和事件副本上分别截断，是在不同状态所有者之间分摊压力，而不是只追求“保留原文”这一项指标。</p>
-<p>这里也有一条失败边界：如果没有任何一个状态所有者能追溯原始结果，截断就会从“减压”变成“破坏性丢失”。Claude Code 用本地 tool-results 文件解决这件事；Codex 更依赖自己的 rollout / event / history 管线和执行环境约束。两者不是谁一定更高级，而是围绕各自恢复模型选择了不同的责任分配。</p>
+<p>反过来说，如果把 Claude Code 的落盘策略机械搬到 Codex，也未必更好。Codex 的 rollout、event 和 telemetry 都是系统恢复与观测的一部分；如果只留下一个本地路径，远端执行、云端恢复和跨环境复现都会变复杂。它选择在模型可见输出和事件副本上分别截断，是在不同 owner 之间分摊压力，而不是只追求“保留原文”这一项指标。</p>
+<p>这里也有一条失败边界：如果没有任何一个 owner 能追溯原始结果，截断就会从“减压”变成“破坏性丢失”。Claude Code 用本地 tool-results 文件解决这件事；Codex 更依赖自己的 rollout / event / history 管线和执行环境约束。两者不是谁一定更高级，而是围绕各自恢复模型选择了不同的责任分配。</p>
 <h3>3.4 历史替换：compaction 和 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/protocol/src/protocol.rs#L2854"><code>replacement_history</code></a></h3>
 <p>Codex compaction 的关键函数是 <a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L476"><code>build_compacted_history()</code></a>。</p>
 <p>源码位置：<a href="https://github.com/openai/codex/blob/3389fa554e953d07a12a34f5681aae46f17958f8/codex-rs/core/src/compact.rs#L476"><code>codex-rs/core/src/compact.rs</code></a></p>
