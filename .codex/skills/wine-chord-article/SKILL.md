@@ -317,6 +317,10 @@ provider-side cache, or replay/recovery state. For cache editing, distinguish an
 expected cache-read reduction from a prefix break. The reader should understand
 whether a mechanism removes tokens from the model view, preserves local history,
 avoids client-side prefix mutation, or merely changes observability counters.
+When explaining cache edit, compare it against both direct replacement and
+direct deletion of the same block. Call out whether the benefit applies to the
+current transition from a warm old prefix, or only to future turns after a new
+shorter prefix has been written.
 
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell
