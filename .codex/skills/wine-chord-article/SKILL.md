@@ -370,7 +370,8 @@ readers which claims come from official contracts, pinned source snapshots, and
 bounded engineering inference, without sounding like process notes.
 When source links point to a public mirror or reconstructed source snapshot,
 say so in the evidence boundary. Do not let mirror-backed links read like
-official vendor source authority.
+official vendor source authority. Keep mirror repository owners in URLs rather
+than visible prose unless the owner itself is part of the technical argument.
 
 ## Terminology And Link Semantics
 
