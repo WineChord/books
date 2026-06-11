@@ -190,6 +190,15 @@ MUST: Any illustrated Wine & Chord article must use
 The published page must reference final raster images generated through that
 image2 workflow, usually PNG.
 
+MUST: Every article change requires a visual impact pass by default, even when
+the user asks only for prose, links, source details, section structure, or a
+small factual correction. Check whether the change creates a new mechanism,
+changes a lifecycle, shifts a boundary, alters a before/after shape, introduces
+a new comparison, or makes an existing figure inaccurate. If so, add, replace,
+or regenerate the relevant image through the image2 hand-drawn workflow. If not,
+keep the existing figures and note that no image change was needed during
+handoff.
+
 MUST NOT: Do not publish hand-authored HTML, inline SVG, Mermaid, canvas, CSS
 shape compositions, DOM diagrams, or other code-drawn substitutes as article
 figures. They may be used only as private planning scaffolds or temporary
@@ -265,6 +274,18 @@ Before rewriting a page, make a figure plan:
 4. Keep filenames stable only when the semantic role remains stable; rename
    when the figure's teaching role changes.
 5. Update captions, alt text, and `og:image` when the cover changes.
+
+For incremental edits, run the same check at smaller scope:
+
+1. Identify the paragraph, section, or source claim being changed.
+2. Locate any figure whose labels, arrows, ordering, boundary, or caption now
+   touches that claim.
+3. Decide whether the existing figure remains accurate, needs a deterministic
+   label/overlay fix, or needs a fresh image2 regeneration.
+4. Preserve image rhythm; do not add decorative images just because a change was
+   made.
+5. Include the visual decision in final verification notes: regenerated,
+   adjusted, or intentionally unchanged.
 
 ## Source Accuracy
 
