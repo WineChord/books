@@ -101,6 +101,24 @@ Use the exemplar as a practical bar for new or revised articles:
 - It closes by compressing the system into transferable rules and common
   misreadings.
 
+## Mandatory Image2 Figure Rule
+
+MUST: Any illustrated Wine & Chord article must use
+`.codex/skills/wine-chord-image2-handdrawn/SKILL.md` for every public figure.
+The published page must reference final raster images generated through that
+image2 workflow, usually PNG.
+
+MUST NOT: Do not publish hand-authored HTML, inline SVG, Mermaid, canvas, CSS
+shape compositions, DOM diagrams, or other code-drawn substitutes as article
+figures. They may be used only as private planning scaffolds or temporary
+implementation aids, and must be replaced by image2-generated final raster
+assets before publication.
+
+If exact labels, arrows, or source-code identifiers must be corrected after
+generation, do it only as part of the image2 hand-drawn workflow's deterministic
+post-processing step, and still export a single final raster image. Do not let
+post-processing become an excuse to rebuild the figure as HTML or SVG.
+
 ## Heading Hierarchy
 
 Use a visible hierarchy rather than one long flat sequence.
