@@ -1016,7 +1016,19 @@ M1 M2 M3 F1
 <p>但 <code>skipCacheWrite</code> 的 fork 不希望 <code>F1</code> 变成后续缓存尾巴。于是 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a> 把 marker 放到 <code>messages.length - 2</code>：</p>
 <pre><code class="language-text">M1 M2 M3[cache_control] F1
 </code></pre>
-<p>这个位置通常就是父会话共享前缀的最后一条 message，而最后一条是 fork 自己追加的临时请求。这样 fork 仍然能读取父会话已经建立好的缓存；即使 provider 或本地 KV cache 尝试写入，也是在已经存在的共享前缀上合并，而不是把 fork 专属尾巴留进缓存。源码注释里还强调只保留一个 marker，是为了避免缓存层额外保护不会再被 resume 的局部位置，让这类短命 fork 占住不必要的缓存页面。</p>
+<p>这个位置通常就是父会话共享前缀的最后一条 message，而最后一条是 fork 自己追加的临时请求。把它拆成 <code>S + F</code> 更清楚：</p>
+<pre><code class="language-text">S = 父会话共享前缀 = M1 M2 M3
+F = fork 一次性尾巴 = F1
+</code></pre>
+<p>如果 marker 放在 <code>F</code> 上，请求形状是：</p>
+<pre><code class="language-text">S F[cache_control]
+</code></pre>
+<p>这当然也可能通过 lookback 读到上一轮写过的 <code>S</code>，但响应开始后，新的缓存写入点会变成 <code>S + F</code>。问题是主会话未来不会从 <code>S + F</code> 继续；这个 cache entry 对主线基本没有复用价值，还可能让底层 KV cache 为一个不会 resume 的 fork 尾巴多保留页面。</p>
+<p>如果 marker 放在 <code>S</code> 上，请求形状是：</p>
+<pre><code class="language-text">S[cache_control] F
+</code></pre>
+<p>这时 fork 仍然可以读父会话已经写好的 <code>S</code>；<code>F</code> 仍然作为本轮输入被模型处理，但它位于最后一个 breakpoint 之后，不会被写成新的缓存尾巴。即使 provider 或本地 KV cache 在 <code>S</code> 处执行写入，也更像是对已经存在的共享前缀做 refresh / merge，而不是制造一条 <code>S + F</code> 的短命分支。</p>
+<p>所以 <code>skipCacheWrite</code> 不是“不用缓存”，而是“只读共享前缀，不写一次性尾巴”。源码注释里还强调只保留一个 marker，是为了避免缓存层额外保护不会再被 resume 的局部位置，让这类短命 fork 占住不必要的缓存页面。这里说的也不是“找到之前的机器”，而是找到之前在共享前缀 <code>S</code> 写过的 cache entry；具体路由和 KV page 管理由 provider / 内部缓存层处理。</p>
 <p>这里的边界也很清楚。<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">Anthropic 文档</a>说明 explicit breakpoints 最多 4 个，automatic caching 也会占用一个 slot；lookback window 只有 20 个 block；缓存默认 5 分钟 TTL。如果每个 fork 都在短命尾巴上写新 breakpoint，很快就会把缓存层变成一堆不会再被主会话复用的位置。<code>skipCacheWrite</code> 的意义不只是省一次写入，而是避免短命分支把长期前缀的缓存纪律打乱。</p>
 <p>公开源码快照里，它还和 cached microcompact 的缓存编辑字段协同：</p>
 <ul>

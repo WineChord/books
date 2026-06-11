@@ -325,6 +325,10 @@ For prompt-cache lookback explanations, distinguish distance to the prior cache
 write from distance to the edited or deleted block. Lookback starts at the
 current breakpoint and searches for earlier written cache entries; it does not
 search outward from the historical block being edited.
+When explaining skip-cache-write or fire-and-forget forks, split the request
+into shared prefix `S` and fork-only suffix `F`. Make clear that the fork still
+reads `S` from cache and still sends `F` as uncached input, but avoids writing a
+new `S + F` cache tail that future mainline turns will not resume from.
 
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell
