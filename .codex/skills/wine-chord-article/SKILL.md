@@ -303,6 +303,14 @@ tool prompts, thresholds, or private module behavior. Shape-level examples may
 show what the visible contract does, but must not read as the missing
 implementation's actual strategy.
 
+When an article discusses hidden or provider-constructed prompts, split the
+claim into product prompts, public API request surface, provider-generated
+scaffolding derived from request fields, model-internal behavior, and safety or
+policy enforcement. Do not infer a cache-visible hidden system prompt from a
+product UI prompt, a model self-identification answer, or general safety
+behavior. Treat official docs about product prompts, API parameters, tool
+scaffolds, token accounting, and prompt caching as separate evidence layers.
+
 It is acceptable to add bounded engineering inference when it helps readers
 connect the visible contracts into a plausible lifecycle. Keep that inference
 constraint-driven: state which visible owner, recovery, cache, or request-shape
@@ -388,11 +396,10 @@ The linked target must be at the same abstraction level as the linked words.
   `ledger`. Use the English term directly when it is clearer and already
   carries the engineering meaning.
 - When a category has competing vendor names, use the smallest stable category
-  term in prose and explain the vendor terms once near first use. For example,
-  `coding agent` can describe the class, while the same sentence links Claude
-  Code's official `agentic coding tool` wording and Codex's official `coding
-  agent` wording to their own product docs. Do not add repetitive parenthetical
-  translations such as `代码智能体` unless the article truly needs the gloss.
+  term in prose and link concrete product names to official docs. Do not
+  foreground minor naming differences unless naming, taxonomy, or API surface is
+  part of the article's argument. Avoid repetitive parenthetical translations
+  such as `代码智能体` unless the article truly needs the gloss.
 - Treat a link as a claim about the linked words. If the words name a category,
   avoid linking them to a single product as though that product defines the
   category; instead link nearby product names, official docs, source files, or
