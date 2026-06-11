@@ -879,10 +879,11 @@ P + Q + cache_control
 <p>所以 cache edit 的收益很窄，但真实：它不是让旧日志既消失又完全不影响缓存统计；它是把“客户端从中间改写或删除一段历史”变成“provider 对已有缓存做一次带 reference 的删除”。收益体现在三个地方：本地 transcript 不丢细节，模型窗口不再背旧工具结果，warm cache 不必因为中段大文本消失而把后面的稳定历史整体重新铺一遍。代价也存在：它依赖 provider 支持、beta header、稳定的 <code>cache_reference</code> 位置，以及把旧 <code>cache_edits</code> pin 回原 user message 的请求纪律。</p>
 <p>microcompact 不是摘要。它不试图理解整段对话，只是把一批旧工具结果从模型视图里移走或引用化。</p>
 <p>这个限制反而是它的价值。旧 tool result 的问题通常不是语义复杂，而是体积太大、复用价值太低。用 summary 去处理它，既费一次模型调用，也可能把日志里的偶发细节误写成结论；用固定 marker 或 cache edit 处理，表达的是更保守的判断：旧结果不再值得原样占窗口，但也不需要被解释成新知识。</p>
-<h4>Context-collapse：源码里可见的是投影契约</h4>
-<p>context-collapse 更像“把一段历史折叠成摘要占位”的投影机制。</p>
-<p>它和 microcompact 的差别在于粒度。microcompact 看的是 tool result body；context-collapse 看的是一段历史消息能否被一条 summary 替代。</p>
-<p><img src="assets/claude-code-context-collapse.png" alt="Claude Code context-collapse 用 summary projection 把完整历史投影成模型视图"></p>
+<h4>Context-collapse：从候选 span 到 summary projection</h4>
+<p>context-collapse 更像“把一段连续历史折叠成摘要占位”的投影机制。</p>
+<p>它和 microcompact 的差别在于粒度。microcompact 看的是 tool result body；context-collapse 看的是一段消息 span 能否被一条 summary 替代。也就是说，这里真正需要回答的不是“最后是不是变短了”，而是四个问题：哪一段被选中，summary 由谁生成，什么时候从 staged 变成 committed，模型又在什么位置看到这个替代视图。</p>
+<p>先把源码边界说清楚：这份源码快照能看到 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L18"><code>query.ts</code></a> 对 <code>services/contextCollapse/index.js</code> 的 feature-gated 动态引入、启动时的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/setup.ts#L295"><code>initContextCollapse()</code></a>、query 主链路、transcript 里的 commit / snapshot 类型、resume 恢复和 UI 状态；但真正的 <code>services/contextCollapse</code> 目录没有随快照展开。因此，具体 selector 如何打分、summary prompt 怎么写、触发阈值是多少，不能当成源码事实。可见源码能证明的是下面这条契约链。</p>
+<p><img src="assets/claude-code-context-collapse.png" alt="Claude Code context-collapse 的 staged snapshot、commit log 和 projectView 生命周期"></p>
 <pre><code class="language-text">UI / transcript:
 M1 M2 M3 M4 M5 M6 M7
 
@@ -892,18 +893,49 @@ commit(range: M2..M5, summary: S1)
 API-bound model view:
 M1 S1 M6 M7
 </code></pre>
-<p>这里的重点仍然是“投影”。读者在界面上不一定失去 M2 到 M5；但模型本轮看到的是更短的视图。</p>
-<p>在这份源码快照里，主链路和持久化契约是可见的：</p>
-<ul>
-<li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L365"><code>src/query.ts</code></a> 在 microcompact 之后、autocompact 之前做 context-collapse projection。</li>
-<li>注释说明它是 read-time projection：REPL full history 仍保持完整，summary messages 放在 collapse store 里，<code>projectView()</code> 每轮重放 commit log。</li>
-<li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1541"><code>src/utils/sessionStorage.ts</code></a> 有 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1541"><code>recordContextCollapseCommit()</code></a> 和 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionStorage.ts#L1541"><code>recordContextCollapseSnapshot()</code></a>。</li>
-<li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/types/logs.ts#L255"><code>src/types/logs.ts</code></a> 定义 <code>ContextCollapseCommitEntry</code> 和 <code>ContextCollapseSnapshotEntry</code>。</li>
-<li>读 transcript 时，如果遇到 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a>，会清空 pre-boundary 的 context-collapse commits 和 snapshot，避免把旧折叠记录应用到已经不存在的消息链上。</li>
-</ul>
-<p>这里也要保持同样的证据边界：可见源码能证明 context-collapse 的 commit / snapshot / projection 位置，不能证明未展开模块里的选择算法、摘要生成策略和候选区间评分。可靠的说法是：主链路已经为它预留了“投影、持久化、恢复、与 autocompact 协调”的契约；至于哪些区间会被折叠、何时折叠、如何评分，只能在可见契约之外保持克制。</p>
-<p>它和 autocompact 的关系也很重要：context-collapse 在 autocompact 之前运行。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L160"><code>shouldAutoCompact()</code></a> 里还明确避开 context-collapse 模式，因为 collapse 自己负责 headroom。如果 autocompact 抢先运行，可能把更细粒度的 collapse 直接压成一段粗 summary。</p>
-<p>这就是 context-collapse 的边界：它适合局部语义仍有价值、但原文太重的区间；它不适合替代最终的窗口保护。把它理解成“比 SNIP 更语义化、比 autocompact 更局部”的中间层，才不会把所有压缩机制混成一个词。</p>
+<p>这里的重点仍然是“投影”。读者在界面上不一定失去 M2 到 M5；原始消息也仍然作为普通 user / assistant message 留在 transcript 里。变化发生在 API-bound model view：<code>projectView()</code> 用一条 <code>&lt;collapsed id=&quot;...&quot;&gt;...&lt;/collapsed&gt;</code> summary placeholder 替代这段 span。</p>
+<p>可见数据结构把链路拆成两个阶段。</p>
+<p>第一阶段是 staged snapshot。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/types/logs.ts#L271"><code>ContextCollapseSnapshotEntry</code></a> 里保存的是一组尚未一定进入模型视图的候选折叠：</p>
+<pre><code class="language-ts">{
+  staged: [
+    {
+      startUuid: &quot;...&quot;,
+      endUuid: &quot;...&quot;,
+      summary: &quot;...&quot;,
+      risk: 0.42,
+      stagedAt: 1234567890
+    }
+  ],
+  armed: true,
+  lastSpawnTokens: 180000
+}
+</code></pre>
+<p>这几个字段很关键。<code>startUuid</code> / <code>endUuid</code> 说明被选择的不是任意散点，而是一段可以用边界消息恢复的连续 span；<code>summary</code> 说明 summary 已经生成；<code>risk</code> 说明缺失模块里存在某种候选风险评估，但分值含义和排序策略不可见；<code>stagedAt</code>、<code>armed</code>、<code>lastSpawnTokens</code> 说明它不是每轮同步硬算，而是有一个触发状态和 staged queue。源码注释还说 snapshot 会在每次 <code>ctx-agent</code> spawn resolve 后写入，所以 summary 的直接生产者应当是 context-collapse 模块启动的后台 summarizer，而不是 autocompact 的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L598"><code>compactConversation()</code></a>，也不是普通用户消息。</p>
+<p>第二阶段是 commit log。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/types/logs.ts#L255"><code>ContextCollapseCommitEntry</code></a> 不再只是“候选”，而是足以让 <code>projectView()</code> 重放的 splice instruction：</p>
+<pre><code class="language-ts">{
+  collapseId: &quot;0000000000000042&quot;,
+  summaryUuid: &quot;...&quot;,
+  summaryContent: &quot;&lt;collapsed id=\&quot;...\&quot;&gt;...&lt;/collapsed&gt;&quot;,
+  summary: &quot;...&quot;,
+  firstArchivedUuid: &quot;...&quot;,
+  lastArchivedUuid: &quot;...&quot;
+}
+</code></pre>
+<p>源码注释说得很直白：被归档的原消息不需要再持久化，因为它们已经在 transcript 里；commit 只持久化边界 UUID 和 summary placeholder。resume 时，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sessionRestore.ts#L121"><code>restoreFromEntries()</code></a> 必须在第一次 query 前恢复 commit log 和 staged snapshot，这样 <code>projectView()</code> 才能从 resumed message array 里找到 <code>firstArchivedUuid..lastArchivedUuid</code> 这段 span，并重新构造模型视图。</p>
+<p>把它放回 query 主链路，顺序是这样的：</p>
+<pre><code class="language-text">messagesForQuery
+  -&gt; microcompact
+  -&gt; applyCollapsesIfNeeded()
+       - replay committed collapses through projectView()
+       - maybe commit staged collapses
+       - maybe schedule / update future staged summaries
+  -&gt; autocompact check
+  -&gt; Claude API request
+</code></pre>
+<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L428"><code>query.ts</code></a> 的注释强调它必须在 autocompact 之前运行：如果局部 collapse 已经让窗口降下来，就保留更细粒度的局部摘要，而不是让 autocompact 把整段旧会话压成一个全局 summary。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/autoCompact.ts#L160"><code>shouldAutoCompact()</code></a> 里也专门避开 context-collapse 模式，因为两者同时抢窗口时，autocompact 会把 collapse 正要保护的 granular context 直接抹平成一段粗 summary。</p>
+<p>还有一个只看 happy path 容易漏掉的分支：prompt-too-long 恢复。Claude Code 在 blocking-limit 检查处明确给 context-collapse 留出空间；如果真实 API 返回 413，后处理会先调用 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L1086"><code>recoverFromOverflow()</code></a> drain staged collapses，写成 committed collapse 后 retry。只有这一步还不够，才继续落到 reactive compact。这个设计解释了 staged snapshot 的价值：summary 可以提前准备好，未必每一条都立刻进入模型视图，但窗口真的爆掉时可以先把这些已经生成好的局部 summary 提交掉。</p>
+<p>所以，“哪一段会被选中”不能从这份快照里还原成精确算法；但它必须满足几个可见约束：它是 <code>startUuid..endUuid</code> 定位的连续 span；它有 summary 和 risk；它要能在 resume 时从 transcript 重新找到；它不能跨过已经改变历史起点的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/messages.ts#L4530"><code>compact_boundary</code></a>。这也是为什么读 transcript 时一旦遇到 compact boundary，就会清空旧的 context-collapse commits 和 snapshot，避免把旧 span 套到已经切过的历史上。</p>
+<p>这就是 context-collapse 的真实位置：它适合“局部语义仍有价值、但原文太重”的区间。它比 SNIP 更保留语义，因为它用 summary 替代；它比 autocompact 更局部，因为它不改写整条会话起点；它也比普通 summary 更复杂，因为它必须同时维护 staged queue、commit log、resume replay 和 413 recovery。</p>
 <h3>2.6 最后防线：autocompact 和 compact_boundary</h3>
 <p>autocompact 是 Claude Code 的最后一级保护。</p>
 <p>它之所以是最后一级，是因为它动的是会话的继续方式：旧历史不再主要靠原文进入模型，而是由 summary 和 boundary 承接。这个动作能救窗口，但也最容易改变模型后续推理的依据。</p>

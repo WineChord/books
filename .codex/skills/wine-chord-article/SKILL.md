@@ -302,6 +302,13 @@ contract and explicitly avoid inventing selector heuristics, scoring policies,
 tool prompts, thresholds, or private module behavior. Shape-level examples may
 show what the visible contract does, but must not read as the missing
 implementation's actual strategy.
+When the missing implementation is a compaction, projection, staging, or
+summary mechanism, still reconstruct the visible lifecycle from the surrounding
+contracts: trigger owner, candidate record shape, summary producer boundary,
+staged-vs-committed state, projection point, persistence record, resume replay,
+and overflow recovery. Clearly mark selector algorithms, scoring signs,
+thresholds, and prompt wording as unavailable unless the source directly shows
+them.
 
 When an article discusses hidden or provider-constructed prompts, split the
 claim into product prompts, public API request surface, provider-generated
