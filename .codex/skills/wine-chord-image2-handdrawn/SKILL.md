@@ -149,6 +149,11 @@ or caption links to the corresponding source files, functions, and official
 contracts. The image may carry short labels, but it must not be the only place
 where a reader can trace a claim back to code or documentation.
 
+Those traceability links must follow the article skill's source-link contract:
+canonical GitHub repository, immutable commit SHA, verified path, and line
+anchor. Never use a moving branch or a local workspace directory name as the
+public evidence URL.
+
 For source-code diagrams, keep visible labels short:
 
 - Prefer code identifiers only when short, for example `cache_control`,

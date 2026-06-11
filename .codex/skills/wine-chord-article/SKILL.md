@@ -204,6 +204,14 @@ a reference list at the end.
   terms at their first or most explanatory occurrence.
 - Prefer exact GitHub blob URLs with line anchors when the local source has
   been verified.
+- Source links must use the canonical repository name, not a temporary local
+  directory name or scratch mirror. Verify the GitHub repository before linking.
+- Source links must be pinned to an immutable commit SHA, not `main`, `master`,
+  or another moving branch. Use the commit that matches the local source snapshot
+  used for the analysis.
+- Before publishing, check that representative pinned source URLs return 200 and
+  that visible file paths, function names, and line anchors still point to the
+  intended code.
 - Prefer official docs for provider contracts, APIs, SDK behavior, and product
   features.
 - Use reputable primary or canonical sources for background concepts: official
