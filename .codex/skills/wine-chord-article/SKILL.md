@@ -188,7 +188,8 @@ Use the exemplar as a practical bar for new or revised articles:
 MUST: Any illustrated Wine & Chord article must use
 `.codex/skills/wine-chord-image2-handdrawn/SKILL.md` for every public figure.
 The published page must reference final raster images generated through that
-image2 workflow, usually PNG.
+image2 workflow, usually PNG, using the PicGo remote URLs produced by that
+workflow.
 
 MUST: Every article change requires a visual impact pass by default, even when
 the user asks only for prose, links, source details, section structure, or a
@@ -198,6 +199,15 @@ a new comparison, or makes an existing figure inaccurate. If so, add, replace,
 or regenerate the relevant image through the image2 hand-drawn workflow. If not,
 keep the existing figures and note that no image change was needed during
 handoff.
+
+MUST: Any newly generated or regenerated article image must be uploaded with the
+local PicGo CLI after final post-processing, and the article must use the URL
+returned by PicGo in Markdown, HTML, MDX, Astro image data, and social metadata.
+Keep the local PNG in the repo as source/backing material when useful, but do not
+publish new generated figures by repository-relative `assets/*.png` paths. If
+PicGo upload fails, stop and report the blocker instead of silently falling back
+to local paths. Existing legacy local-image references may remain until the
+figure is touched or regenerated.
 
 MUST NOT: Do not publish hand-authored HTML, inline SVG, Mermaid, canvas, CSS
 shape compositions, DOM diagrams, or other code-drawn substitutes as article
@@ -273,7 +283,9 @@ Before rewriting a page, make a figure plan:
    or recovery path is otherwise invisible.
 4. Keep filenames stable only when the semantic role remains stable; rename
    when the figure's teaching role changes.
-5. Update captions, alt text, and `og:image` when the cover changes.
+5. Upload new or regenerated final PNGs with PicGo and record the local
+   path-to-remote URL mapping.
+6. Update captions, alt text, image `src`, and `og:image` when the cover changes.
 
 For incremental edits, run the same check at smaller scope:
 
@@ -282,10 +294,13 @@ For incremental edits, run the same check at smaller scope:
    touches that claim.
 3. Decide whether the existing figure remains accurate, needs a deterministic
    label/overlay fix, or needs a fresh image2 regeneration.
-4. Preserve image rhythm; do not add decorative images just because a change was
+4. If a figure is added or touched, run the PicGo upload step and replace the
+   published image reference with the returned URL.
+5. Preserve image rhythm; do not add decorative images just because a change was
    made.
-5. Include the visual decision in final verification notes: regenerated,
-   adjusted, or intentionally unchanged.
+6. Include the visual decision in final verification notes: regenerated,
+   adjusted, or intentionally unchanged. For generated images, also include
+   whether PicGo upload succeeded.
 
 ## Source Accuracy
 

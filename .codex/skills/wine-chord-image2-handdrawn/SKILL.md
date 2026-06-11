@@ -45,6 +45,9 @@ brand mark, and source-accurate labels.
 - Every final figure must carry the exact fixed `Wine & Chord` raster mark from
   `assets/wine-chord-brand-mark-reference.png` in the bottom-right safe area.
   Do not rely on the image model to redraw or reinterpret the logo.
+- Every final generated figure must be uploaded with the local PicGo CLI before
+  publication. Published article markup should use the remote URL returned by
+  PicGo, not a repository-relative image path.
 - Do not include production notes, prompts, private instructions, model names,
   or process explanations inside public images.
 - Do not let generated text invent source facts. If exact identifiers, arrows,
@@ -260,13 +263,31 @@ docs/public/<article>/assets/<figure-name>.png
 When mirroring a standalone source article, keep the same filename under both
 the source package and `docs/public`.
 
-When wiring these assets into Astro pages in the Books repository, do not use a
-page-link helper for images and do not assume `import.meta.env.BASE_URL` has a
-trailing slash. Use the repository asset URL helper, for example
+PicGo publication protocol:
+
+1. Finish the image2 generation, deterministic label fixes, and fixed
+   `Wine & Chord` brand overlay first.
+2. Save the final PNG locally under the article's assets directory so the source
+   package remains reproducible.
+3. Upload that final PNG with the local PicGo CLI, for example
+   `picgo upload docs/public/<article>/assets/<figure-name>.png`.
+4. Capture the remote URL printed by PicGo and use that URL in published
+   Markdown, HTML, MDX, Astro image data, and `og:image` metadata.
+5. Keep a small mapping in the working notes or commit context from local asset
+   path to PicGo URL so future edits know which source file produced the public
+   image.
+6. If PicGo is unavailable or upload fails, stop and report the blocker. Do not
+   silently publish generated figures with local repository paths, except for
+   temporary local drafts that are not being published.
+
+When wiring legacy local assets into Astro pages in the Books repository, do not
+use a page-link helper for images and do not assume `import.meta.env.BASE_URL`
+has a trailing slash. Use the repository asset URL helper, for example
 `assetUrl(base, "design/assets/example.png")`, or an equivalent helper that
-normalizes the base without appending `.html`. Validate with `npm run
-check:dist` so broken forms such as `/bookscc/...` or `.png.html` are caught
-before commit.
+normalizes the base without appending `.html`. For new generated figures,
+prefer the PicGo URL from the publication protocol above. Validate with
+`npm run check:dist` so broken forms such as `/bookscc/...` or `.png.html` are
+caught before commit.
 
 ## Figure Density
 
@@ -297,6 +318,9 @@ Inspect every generated figure before publishing:
   `assets/wine-chord-brand-mark-reference.png`, proportionally scaled and placed
   in the bottom-right. No image-model imitation, alternate badge, generic icon,
   distorted crop, recolor, or competing generated logo is visible.
+- The published article references the PicGo remote URL for each generated
+  figure. The local PNG may remain in the repo as source/backing material, but
+  it should not be the published `src` for generated article images.
 - No private instruction, prompt, TODO, or process note is visible.
 - Mobile rendering keeps the image legible at article width.
 - The figure fits the Prompt Cache visual family when viewed beside the
