@@ -331,6 +331,10 @@ discipline or newly introduced in the transition being analyzed. Do not imply
 that cache edits preserve every counter or every token span; they may preserve
 the reusable identity path while intentionally deleting tokens from the cached
 or model-visible view.
+For shape-level cache-edit examples, do not imply an exact `cache_edits` block
+index unless the source helper or provider contract directly proves that
+position. If placement is helper-dependent, link the helper and explain the
+placement rule separately from the conceptual request shape.
 For prompt-cache lookback explanations, distinguish distance to the prior cache
 write from distance to the edited or deleted block. Lookback starts at the
 current breakpoint and searches for earlier written cache entries; it does not
