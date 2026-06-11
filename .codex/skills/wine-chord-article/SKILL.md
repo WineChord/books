@@ -349,6 +349,12 @@ When explaining skip-cache-write or fire-and-forget forks, split the request
 into shared prefix `S` and fork-only suffix `F`. Make clear that the fork still
 reads `S` from cache and still sends `F` as uncached input, but avoids writing a
 new `S + F` cache tail that future mainline turns will not resume from.
+Also explain what `F` concretely is in the source: a `promptMessages` task
+instruction, summary request, side-question wrapper, suggestion prompt, or
+other real message that enters the model for this fork. Do not leave it as an
+abstract "tail" if the reader needs to know why it exists. State whether that
+tail belongs to the parent conversation, the fork transcript, or no transcript
+at all, and why the mainline will or will not ever resume from `S + F`.
 
 For articles that mix provider APIs and source code, include a quiet evidence
 boundary near the opening or before deep source interpretation. It should tell

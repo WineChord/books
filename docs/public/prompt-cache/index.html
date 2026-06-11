@@ -1018,8 +1018,13 @@ M1 S1 M6 M7
 <p>Claude Code 的 Anthropic 请求路径里，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>addCacheBreakpoints()</code></a> 是核心缓存控制函数。</p>
 <p>源码位置：<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/api/claude.ts#L3063"><code>src/services/api/claude.ts</code></a></p>
 <p>它默认只放一个 message-level <code>cache_control</code> marker。常规请求放在最后一条 message 上，相当于告诉 Claude：本轮最新 message 之前的完整前缀都值得作为后续请求的缓存候选。</p>
-<p>fork 场景要更微妙。Claude Code 的 forked agent 会拿父会话的 <code>forkContextMessages</code> 作为共享前缀，再在末尾追加自己的 <code>promptMessages</code>。例如 compact fork 会继承主会话上下文，然后追加一条 summary request。这样做的目的，是让 fork 读取父会话已经建立好的 prompt cache，而不是从头处理一遍 tools、system、项目规则和长历史。</p>
-<p>但有些 fork 是 fire-and-forget：它们只是后台做一次摘要、提取或旁路问题，后续主会话不会从这个 fork 的尾部继续。<code>skipCacheWrite</code> 表达的就是这个意思：可以读共享缓存，但不要把这个一次性 fork 的最后一条 prompt 写成新的缓存尾巴。</p>
+<p>fork 场景要更微妙。Claude Code 的 forked agent 会拿父会话的 <code>forkContextMessages</code> 作为共享前缀，再在末尾追加自己的 <code>promptMessages</code>。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/forkedAgent.ts#L131"><code>createCacheSafeParams()</code></a> 把父会话的 system prompt、user context、system context、toolUseContext 和 <code>context.messages</code> 打包成 cache-safe params；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/forkedAgent.ts#L490"><code>runForkedAgent()</code></a> 再把 <code>initialMessages</code> 拼成：</p>
+<pre><code class="language-text">initialMessages = forkContextMessages + promptMessages
+</code></pre>
+<p>这里的 <code>promptMessages</code> 就是 fork 的尾巴 <code>F</code>。它不是 marker，也不是只给缓存系统看的占位，而是真实进入模型的 user message。它存在的原因很朴素：fork 共享父会话历史，只是为了拿到素材；但模型还必须知道“现在要用这些素材做什么”。</p>
+<p>例如 compact fork 的 <code>F</code> 是一条 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/compact.ts#L1188"><code>summaryRequest</code></a>，内容来自 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/compact/prompt.ts#L12"><code>getCompactPrompt()</code></a>：先用 no-tools preamble 要求只输出文本，再要求模型“create a detailed summary of the conversation so far”，并按固定章节输出。没有这条尾巴，模型只看到一长串父会话历史，并不会自动知道应该开始压缩摘要。</p>
+<p><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/PromptSuggestion/promptSuggestion.ts#L294"><code>prompt suggestion</code></a> 的 <code>F</code> 是一条建议生成 prompt，要求模型只输出 2 到 12 个词的下一步建议；源码还强调不能把 tools 改成空数组，因为那会破坏父请求的 cache key，所以只通过 <code>canUseTool</code> 在客户端拒绝工具调用。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/sideQuestion.ts#L48"><code>side question</code></a> 的 <code>F</code> 则是包在 <code>&lt;system-reminder&gt;</code> 里的临时问题，明确说这是一次性回答、无工具、不会有后续回合。这些尾巴都是真的任务指令，只是它们属于旁路任务，不属于主线会话。</p>
+<p>所以 <code>skipCacheWrite</code> 处理的不是“有没有尾巴”，而是“尾巴属于谁”。有些 fork 是 fire-and-forget：它们只是后台做一次摘要、提取、建议或旁路问答，后续主会话不会从这个 fork 的尾部继续。<code>skipCacheWrite</code> 表达的就是这个意思：可以读共享缓存，可以把 <code>F</code> 作为本轮输入处理，但不要把这个一次性 <code>F</code> 写成未来缓存尾巴。</p>
 <p>形状上可以这样看：</p>
 <pre><code class="language-text">父会话共享前缀:
 M1 M2 M3
@@ -1040,7 +1045,8 @@ F = fork 一次性尾巴 = F1
 <p>如果 marker 放在 <code>F</code> 上，请求形状是：</p>
 <pre><code class="language-text">S F[cache_control]
 </code></pre>
-<p>这当然也可能通过 lookback 读到上一轮写过的 <code>S</code>，但响应开始后，新的缓存写入点会变成 <code>S + F</code>。问题是主会话未来不会从 <code>S + F</code> 继续；这个 cache entry 对主线基本没有复用价值，还可能让底层 KV cache 为一个不会 resume 的 fork 尾巴多保留页面。</p>
+<p>这当然也可能通过 lookback 读到上一轮写过的 <code>S</code>。但响应开始后，新的缓存写入点会变成 <code>S + F</code>。问题是 <code>F</code> 的语义是“请根据上面的主线历史做一个旁路任务”，不是主线用户刚刚说的新话。compact 完成后，主线会继续走“summary + 后续真实用户输入”；prompt suggestion 展示完以后，主线会等待用户是否采纳；side question 回答完以后，主线仍然从原来的工作流继续。没有哪条主线会自然从 <code>S + F</code> 继续追加下一轮。</p>
+<p>所以，把 breakpoint 放到 <code>F</code> 上并不是“后续也能继续参与 prefix cache”。它会写出一条很可能无人复用的 fork suffix cache entry。更糟的是，Claude Code 源码注释指向了底层 KVCC / Mycro 的页面保留问题：如果多放一个 marker，倒数第二个位置也会被保护，local-attention KV pages 会多活一轮；而 fire-and-forget fork 没有从那个位置 resume 的价值。</p>
 <p>如果 marker 放在 <code>S</code> 上，请求形状是：</p>
 <pre><code class="language-text">S[cache_control] F
 </code></pre>
