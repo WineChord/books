@@ -2196,91 +2196,126 @@ const shortcutRows = [
               isZh ? (
                 <>
                   <p>
-                    这个扩展是一个本仓库里的本地 Chrome 小工具。页面只把题目 slug、
-                    语言和当前代码发给扩展；登录 cookie 留在 Chrome 扩展侧，页面
-                    JavaScript 不会读取它。
+                    这个扩展是本仓库里的本地 Chrome 小工具。页面只把题目、语言和当前代码发给扩展；
+                    力扣登录状态留在你的浏览器里，本站页面不会读取。
                   </p>
-                  <p class="leetcode-extension-download">
-                    <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
-                      下载最新扩展 ZIP
-                    </a>
-                    <span>
-                      下载后先解压，再在 Chrome 里加载解压后的文件夹；非商店扩展不能直接点
-                      ZIP 完成安装。
-                    </span>
-                  </p>
-                  <ol>
+                  <ol class="leetcode-extension-steps">
                     <li>
-                      从 <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Release</a>
-                      下载 <code>leetcode-submit.zip</code>，并解压到本地。
+                      <strong>下载并解压扩展 ZIP</strong>
+                      <p>
+                        点击按钮下载 <code>leetcode-submit.zip</code>；下载完成后先解压，
+                        Chrome 不能直接加载 ZIP。
+                      </p>
+                      <p class="leetcode-extension-actions">
+                        <a
+                          class="leetcode-extension-primary-action"
+                          href={extensionReleaseDownloadUrl}
+                          download="leetcode-submit.zip"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          下载扩展 ZIP
+                        </a>
+                      </p>
                     </li>
-                    <li>在 Chrome 地址栏打开 <code>chrome://extensions</code>。</li>
-                    <li>打开右上角的 <strong>开发者模式</strong>。</li>
                     <li>
-                      如果需要从源码安装，可以打开 <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub 仓库</a>，
-                      clone 到本地；扩展源码在
-                      <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
-                        extensions/leetcode-submit
-                      </a>。
+                      <strong>打开扩展管理页，启用开发者模式</strong>
+                      <p>
+                        点下面按钮复制 <code>chrome://extensions</code>；Chrome 通常不允许普通网页直接打开
+                        <code>chrome://</code> 地址，复制后粘贴到 Chrome 地址栏即可。
+                      </p>
+                      <p class="leetcode-extension-actions">
+                        <button type="button" data-extension-manager-open data-extension-manager-url="chrome://extensions">
+                          复制 chrome://extensions
+                        </button>
+                        <span data-extension-manager-status aria-live="polite"></span>
+                      </p>
                     </li>
-                    <li>点击 <strong>加载已解压的扩展程序</strong>。</li>
                     <li>
-                      优先选择刚解压出的 <code>leetcode-submit</code> 文件夹；源码安装时选择
-                      <code>extensions/leetcode-submit</code> 文件夹。
+                      <strong>加载能看到 manifest.json 的文件夹</strong>
+                      <p>
+                        点击 <strong>加载已解压的扩展程序</strong>，选择刚才解压后、里面能看到
+                        <code>manifest.json</code> 的文件夹。然后在同一个 Chrome 用户里登录
+                        <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a>，
+                        回到本页运行或提交。
+                      </p>
                     </li>
-                    <li>在同一个 Chrome 用户里登录 <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a>。</li>
-                    <li>回到本页展开一道题，点击“运行样例”或“提交力扣”。</li>
                   </ol>
-                  <p>
-                    扩展更新后，下载最新 ZIP、覆盖本地解压目录，然后回到
-                    <code>chrome://extensions</code> 对这个已解压扩展点一次“重新加载”。
-                  </p>
+                  <details class="leetcode-extension-advanced">
+                    <summary>源码安装 / 更新说明</summary>
+                    <p>
+                      源码安装时打开 <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub 仓库</a>
+                      并 clone 到本地，扩展源码在
+                      <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">extensions/leetcode-submit</a>。
+                      更新扩展时，下载最新
+                      <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">Release</a>
+                      ZIP、覆盖本地解压目录，然后在 <code>chrome://extensions</code> 对这个扩展点一次“重新加载”。
+                    </p>
+                  </details>
                 </>
               ) : (
                 <>
                   <p>
                     This repository includes a local Chrome extension. The page sends only
-                    the problem slug, language, and editor code to the extension; LeetCode
-                    cookies stay inside Chrome extension APIs.
+                    the problem, language, and editor code to the extension; your LeetCode
+                    sign-in stays in your browser.
                   </p>
-                  <p class="leetcode-extension-download">
-                    <a href={extensionReleaseDownloadUrl} target="_blank" rel="noopener noreferrer">
-                      Download latest extension ZIP
-                    </a>
-                    <span>
-                      Unzip it first, then load the unzipped folder in Chrome. A
-                      non-store extension cannot be installed directly from the ZIP.
-                    </span>
-                  </p>
-                  <ol>
+                  <ol class="leetcode-extension-steps">
                     <li>
-                      Download <code>leetcode-submit.zip</code> from
-                      <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">GitHub Releases</a>
-                      and unzip it locally.
+                      <strong>Download and unzip the extension ZIP</strong>
+                      <p>
+                        Use the button to download <code>leetcode-submit.zip</code>, then unzip it.
+                        Chrome cannot load the ZIP directly.
+                      </p>
+                      <p class="leetcode-extension-actions">
+                        <a
+                          class="leetcode-extension-primary-action"
+                          href={extensionReleaseDownloadUrl}
+                          download="leetcode-submit.zip"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Download extension ZIP
+                        </a>
+                      </p>
                     </li>
-                    <li>Open <code>chrome://extensions</code> in Chrome.</li>
-                    <li>Enable <strong>Developer mode</strong>.</li>
                     <li>
-                      To install from source instead, open the
+                      <strong>Open the Chrome extensions page and enable Developer mode</strong>
+                      <p>
+                        Use the button to copy <code>chrome://extensions</code>. Chrome usually blocks
+                        ordinary pages from opening <code>chrome://</code> URLs directly, so paste it
+                        into the Chrome address bar.
+                      </p>
+                      <p class="leetcode-extension-actions">
+                        <button type="button" data-extension-manager-open data-extension-manager-url="chrome://extensions">
+                          Copy chrome://extensions
+                        </button>
+                        <span data-extension-manager-status aria-live="polite"></span>
+                      </p>
+                    </li>
+                    <li>
+                      <strong>Load the folder that contains manifest.json</strong>
+                      <p>
+                        Click <strong>Load unpacked</strong>, then choose the unzipped folder where
+                        you can see <code>manifest.json</code>. Sign in to
+                        <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a>
+                        in the same Chrome profile, then return here to run or submit.
+                      </p>
+                    </li>
+                  </ol>
+                  <details class="leetcode-extension-advanced">
+                    <summary>Source install / update notes</summary>
+                    <p>
+                      To install from source, open the
                       <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub repository</a>
                       and clone it locally. The extension source is in
-                      <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">
-                        extensions/leetcode-submit
-                      </a>.
-                    </li>
-                    <li>Click <strong>Load unpacked</strong>.</li>
-                    <li>
-                      Prefer the unzipped <code>leetcode-submit</code> folder. For source
-                      installs, select <code>extensions/leetcode-submit</code>.
-                    </li>
-                    <li>Sign in to <a href="https://leetcode.cn" target="_blank" rel="noopener noreferrer">leetcode.cn</a> in the same Chrome profile.</li>
-                    <li>Return to this page, open a problem, then run or submit.</li>
-                  </ol>
-                  <p>
-                    After extension updates, download the latest ZIP, replace the local
-                    unzipped folder, then reload this unpacked extension in
-                    <code>chrome://extensions</code>.
-                  </p>
+                      <a href={extensionDirectoryUrl} target="_blank" rel="noopener noreferrer">extensions/leetcode-submit</a>.
+                      For updates, download the latest
+                      <a href={extensionReleasesUrl} target="_blank" rel="noopener noreferrer">Release</a>
+                      ZIP, replace the local unzipped folder, then reload this unpacked
+                      extension in <code>chrome://extensions</code>.
+                    </p>
+                  </details>
                 </>
               )
             }
@@ -3072,7 +3107,8 @@ const shortcutRows = [
       ["two-pointers", ["双指针"]],
       ["union-find", ["并查集"]],
     ]);
-    const editorDefaultTheme = "cursor-light";
+    const editorLightDefaultTheme = "cursor-light";
+    const editorDarkDefaultTheme = "cursor-dark";
     const editorDefaultFont = "cursor";
     const editorDefaultSize = "compact";
     const editorDefaultLeading = "balanced";
@@ -4498,6 +4534,12 @@ const shortcutRows = [
         : fallback;
     }
 
+    function preferredEditorDefaultTheme() {
+      return document.documentElement.classList.contains("dark")
+        ? editorDarkDefaultTheme
+        : editorLightDefaultTheme;
+    }
+
     function syncDailyResetUi() {
       const enabled = dailyEditorResetEnabled();
       if (dailyResetToggle instanceof HTMLInputElement) {
@@ -4707,7 +4749,7 @@ const shortcutRows = [
       const theme = selectedAppearanceValue(
         editorThemeSelect,
         editorAppearance.theme,
-        editorDefaultTheme,
+        preferredEditorDefaultTheme(),
       );
       const font = selectedAppearanceValue(
         editorFontSelect,
@@ -13634,6 +13676,40 @@ const shortcutRows = [
       return fallbackCopied;
     }
 
+    async function copyTextToClipboardAsync(text) {
+      const value = String(text || "");
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(value);
+          return true;
+        } catch {
+          // Fall back to the selection-based copy path below.
+        }
+      }
+      return fallbackCopyText(value);
+    }
+
+    async function copyChromeExtensionManagerUrl(actionButton) {
+      if (!(actionButton instanceof HTMLElement)) return;
+      const url = actionButton.dataset.extensionManagerUrl || "chrome://extensions";
+      const status = actionButton
+        .closest(".leetcode-extension-actions")
+        ?.querySelector("[data-extension-manager-status]");
+      const copied = await copyTextToClipboardAsync(url);
+      if (status instanceof HTMLElement) {
+        status.textContent = copied
+          ? isChinesePage
+            ? "地址已复制，请粘贴到 Chrome 地址栏。"
+            : "Address copied. Paste it into the Chrome address bar."
+          : isChinesePage
+            ? "请手动在 Chrome 地址栏输入 chrome://extensions。"
+            : "Type chrome://extensions into the Chrome address bar.";
+        window.setTimeout(() => {
+          status.textContent = "";
+        }, 4200);
+      }
+    }
+
     function copyEditorCode(textarea, actionButton = null) {
       if (!(textarea instanceof HTMLTextAreaElement)) return false;
       copyTextToClipboard(textarea.value);
@@ -16483,6 +16559,12 @@ const shortcutRows = [
       syncRenderedEditors();
     });
 
+    document.addEventListener("themechange", () => {
+      if (editorAppearance?.theme) return;
+      applyEditorAppearance();
+      syncRenderedEditors();
+    });
+
     document.addEventListener("pointerdown", hideVisibleProblemShareToast, {
       capture: true,
     });
@@ -16539,6 +16621,11 @@ const shortcutRows = [
       const insightTarget = target.closest("[data-open-insight]");
       if (insightTarget instanceof HTMLElement) {
         openRelatedProblem(insightTarget.dataset.openInsight || "");
+        return;
+      }
+      const extensionManagerTarget = target.closest("[data-extension-manager-open]");
+      if (extensionManagerTarget instanceof HTMLElement) {
+        copyChromeExtensionManagerUrl(extensionManagerTarget);
         return;
       }
       const extensionGuideLink = target.closest("[data-extension-guide-link]");
@@ -17612,7 +17699,25 @@ const shortcutRows = [
     }
 
     html.dark .leetcode-shell {
-      color: var(--color-cream);
+      --leetcode-dark-accent: #ee9671;
+      --leetcode-dark-accent-strong: #f1a583;
+      --leetcode-dark-bg: #141413;
+      --leetcode-dark-border: rgb(238 228 210 / 18%);
+      --leetcode-dark-border-strong: rgb(238 228 210 / 28%);
+      --leetcode-dark-danger: #ff8f82;
+      --leetcode-dark-elevated: #20201d;
+      --leetcode-dark-muted: #b8b0a3;
+      --leetcode-dark-row: rgb(255 255 255 / 3.6%);
+      --leetcode-dark-row-hover: rgb(238 150 113 / 13%);
+      --leetcode-dark-shadow: rgb(0 0 0 / 42%);
+      --leetcode-dark-soft: #191917;
+      --leetcode-dark-success: #55d0bb;
+      --leetcode-dark-surface: #1b1b19;
+      --leetcode-dark-text: #f2eadf;
+      --leetcode-dark-text-soft: #d8d0c3;
+      --leetcode-dark-warning: #f2c86d;
+      color: var(--leetcode-dark-text);
+      color-scheme: dark;
     }
 
     .leetcode-hero {
@@ -19396,34 +19501,142 @@ const shortcutRows = [
       margin-top: 0.24rem;
     }
 
-    .leetcode-extension-download {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.28rem 0.5rem;
-      align-items: baseline;
-    }
-
-    .leetcode-extension-download a {
-      border: 1px solid rgb(22 138 119 / 34%);
-      border-radius: 0.38rem;
-      background: rgb(22 138 119 / 8%);
-      color: #168a77;
-      font-weight: 700;
-      padding: 0.12rem 0.44rem;
-    }
-
-    .leetcode-extension-download span {
-      flex: 1 1 22rem;
-      color: var(--color-muted);
-      font-size: 0.72rem;
-    }
-
     .leetcode-extension-guide code,
     .leetcode-insight-guide code {
       border-radius: 0.28rem;
       background: rgb(20 20 19 / 6%);
       font-size: 0.72rem;
       padding: 0.05rem 0.22rem;
+    }
+
+    .leetcode-extension-steps {
+      display: grid;
+      gap: 0.46rem;
+      padding-left: 0;
+      counter-reset: leetcode-extension-step;
+      list-style: none;
+    }
+
+    .leetcode-extension-steps li {
+      counter-increment: leetcode-extension-step;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 0.12rem 0.5rem;
+      align-items: start;
+      min-width: 0;
+      border: 1px solid rgb(194 192 182 / 52%);
+      border-radius: 0.46rem;
+      background: rgb(255 255 255 / 34%);
+      padding: 0.52rem 0.58rem;
+    }
+
+    .leetcode-extension-steps li + li {
+      margin-top: 0;
+    }
+
+    .leetcode-extension-steps li::before {
+      content: counter(leetcode-extension-step);
+      display: inline-grid;
+      place-items: center;
+      width: 1.45rem;
+      height: 1.45rem;
+      border: 1px solid rgb(22 138 119 / 38%);
+      border-radius: 50%;
+      background: rgb(22 138 119 / 9%);
+      color: #168a77;
+      font-size: 0.72rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .leetcode-extension-steps strong,
+    .leetcode-extension-steps p {
+      grid-column: 2;
+      min-width: 0;
+    }
+
+    .leetcode-extension-steps strong {
+      color: var(--color-charcoal);
+      font-family: var(--leetcode-system-font);
+      font-size: 0.78rem;
+      line-height: 1.25;
+    }
+
+    .leetcode-extension-steps p {
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      line-height: 1.48;
+    }
+
+    .leetcode-extension-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem 0.42rem;
+      align-items: center;
+    }
+
+    .leetcode-extension-actions a,
+    .leetcode-extension-actions button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 1.82rem;
+      border: 1px solid rgb(22 138 119 / 34%);
+      border-radius: 0.38rem;
+      background: rgb(22 138 119 / 8%);
+      color: #168a77;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 760;
+      line-height: 1.2;
+      padding: 0.2rem 0.58rem;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .leetcode-extension-actions button {
+      border-color: rgb(217 119 87 / 34%);
+      background: rgb(217 119 87 / 8%);
+      color: var(--color-terracotta);
+    }
+
+    .leetcode-extension-actions a:hover,
+    .leetcode-extension-actions a:focus-visible,
+    .leetcode-extension-actions button:hover,
+    .leetcode-extension-actions button:focus-visible {
+      background: rgb(22 138 119 / 13%);
+      outline: none;
+      text-decoration: none;
+    }
+
+    .leetcode-extension-actions button:hover,
+    .leetcode-extension-actions button:focus-visible {
+      background: rgb(217 119 87 / 13%);
+    }
+
+    .leetcode-extension-actions span {
+      min-height: 1rem;
+      color: var(--color-muted);
+      font-size: 0.68rem;
+      line-height: 1.35;
+    }
+
+    .leetcode-extension-advanced {
+      border-top: 1px solid rgb(194 192 182 / 42%);
+      padding-top: 0.08rem;
+    }
+
+    .leetcode-extension-advanced summary {
+      color: var(--color-secondary);
+      font-size: 0.72rem;
+      padding: 0.24rem 0;
+    }
+
+    .leetcode-extension-advanced p {
+      color: var(--color-muted);
+      font-size: 0.72rem;
+      line-height: 1.52;
     }
 
     .leetcode-series-grid {
@@ -20031,6 +20244,10 @@ const shortcutRows = [
       text-decoration: none;
     }
 
+    .leetcode-extension-guide .leetcode-extension-actions a {
+      color: #168a77;
+    }
+
     .leetcode-footer-links {
       display: flex;
       flex-wrap: wrap;
@@ -20067,6 +20284,11 @@ const shortcutRows = [
     .leetcode-extension-guide a:hover,
     .leetcode-extension-guide a:focus-visible {
       text-decoration: underline;
+    }
+
+    .leetcode-extension-guide .leetcode-extension-actions a:hover,
+    .leetcode-extension-guide .leetcode-extension-actions a:focus-visible {
+      text-decoration: none;
     }
 
     .leetcode-duplicate-list {
@@ -21648,10 +21870,26 @@ const shortcutRows = [
       color: var(--color-cream);
     }
 
-    html.dark .leetcode-extension-download a {
+    html.dark .leetcode-extension-steps li {
+      border-color: #333;
+      background: rgb(30 30 28 / 34%);
+    }
+
+    html.dark .leetcode-extension-steps li::before,
+    html.dark .leetcode-extension-actions a {
       border-color: rgb(105 201 183 / 36%);
       background: rgb(105 201 183 / 10%);
       color: #69c9b7;
+    }
+
+    html.dark .leetcode-extension-actions button {
+      border-color: rgb(226 149 120 / 42%);
+      background: rgb(226 149 120 / 11%);
+      color: #e29578;
+    }
+
+    html.dark .leetcode-extension-advanced {
+      border-top-color: #333;
     }
 
     html.dark .leetcode-series-group,
@@ -22570,6 +22808,456 @@ const shortcutRows = [
       background: var(--color-dark-surface);
       color: var(--color-muted);
       box-shadow: 0 18px 45px rgb(0 0 0 / 32%);
+    }
+
+    html.dark .leetcode-copy,
+    html.dark .leetcode-summary,
+    html.dark .leetcode-filter-cluster > span,
+    html.dark .leetcode-series-filter > span,
+    html.dark .leetcode-search label,
+    html.dark .leetcode-page-size label,
+    html.dark .leetcode-page-jump,
+    html.dark .leetcode-rank,
+    html.dark .leetcode-frequency,
+    html.dark .leetcode-byte,
+    html.dark .leetcode-practice-head span,
+    html.dark .leetcode-practice-panel p,
+    html.dark .leetcode-practice-meter b,
+    html.dark .leetcode-submit-note,
+    html.dark .leetcode-submit-meta,
+    html.dark .leetcode-manual-case-status,
+    html.dark .leetcode-testcase-field-label,
+    html.dark .leetcode-popover-lead,
+    html.dark .leetcode-popover-hint,
+    html.dark .leetcode-popover-muted,
+    html.dark .leetcode-related-meta,
+    html.dark .leetcode-implementation-meta,
+    html.dark .leetcode-extension-guide,
+    html.dark .leetcode-insight-guide,
+    html.dark .leetcode-series-guide,
+    html.dark .leetcode-footer-links {
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-title,
+    html.dark .leetcode-stats span,
+    html.dark .leetcode-problem-link,
+    html.dark .leetcode-statement-collapsed span,
+    html.dark .leetcode-practice-loading strong,
+    html.dark .leetcode-practice-meter strong,
+    html.dark .leetcode-submit-detail-label,
+    html.dark .leetcode-manual-case-head b,
+    html.dark .leetcode-popover-section > strong,
+    html.dark .leetcode-popover-heading,
+    html.dark .leetcode-statement-preview-body,
+    html.dark .leetcode-followup-source b,
+    html.dark .leetcode-related-title,
+    html.dark .leetcode-implementation-card strong,
+    html.dark .leetcode-achievement-tip > button b,
+    html.dark .leetcode-achievement-popover > strong,
+    html.dark .leetcode-achievement-card b,
+    html.dark .leetcode-group-idea-popover > strong,
+    html.dark .leetcode-group-idea-row-head b,
+    html.dark .leetcode-series-group h3,
+    html.dark .leetcode-lingshen-topic h3,
+    html.dark .leetcode-lingshen-section h4,
+    html.dark .leetcode-lingshen-deck > div:first-child span,
+    html.dark .leetcode-series-member {
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-hero,
+    html.dark .leetcode-stats,
+    html.dark .leetcode-table-wrap,
+    html.dark .leetcode-duplicate-audit,
+    html.dark .leetcode-session-board,
+    html.dark .leetcode-session-history,
+    html.dark .leetcode-history-tip,
+    html.dark .leetcode-footer-settings,
+    html.dark .leetcode-extension-guide,
+    html.dark .leetcode-insight-guide,
+    html.dark .leetcode-series-guide,
+    html.dark .leetcode-footer-links,
+    html.dark .leetcode-manual-cases,
+    html.dark .leetcode-popover-section,
+    html.dark .leetcode-list-practice-actions,
+    html.dark .leetcode-lingshen-topic,
+    html.dark .leetcode-lingshen-deck,
+    html.dark .leetcode-extension-advanced {
+      border-color: var(--leetcode-dark-border);
+    }
+
+    html.dark .leetcode-hero {
+      border-bottom-color: var(--leetcode-dark-border);
+    }
+
+    html.dark .leetcode-copy {
+      border-left-color: var(--leetcode-dark-border-strong);
+    }
+
+    html.dark .leetcode-table-head {
+      border-bottom-color: var(--leetcode-dark-border);
+      background:
+        linear-gradient(180deg, rgb(255 255 255 / 5%), transparent),
+        var(--leetcode-dark-bg);
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-row {
+      border-top-color: var(--leetcode-dark-border);
+      color: var(--leetcode-dark-text-soft);
+    }
+
+    html.dark .leetcode-row:nth-child(even) {
+      background: var(--leetcode-dark-row);
+    }
+
+    html.dark .leetcode-row:hover {
+      background: var(--leetcode-dark-row-hover);
+    }
+
+    html.dark .leetcode-problem-link:visited,
+    html.dark .leetcode-row.is-visited .leetcode-problem-link {
+      color: #c5b4ff;
+    }
+
+    html.dark .leetcode-problem-link:hover {
+      color: var(--leetcode-dark-accent-strong);
+    }
+
+    html.dark .leetcode-difficulty.is-easy,
+    html.dark .leetcode-contest-rating.is-low,
+    html.dark .leetcode-submit-note [data-tone="success"],
+    html.dark .leetcode-manual-case-status[data-tone="success"],
+    html.dark .leetcode-submit-note [data-extension-download-link] {
+      color: var(--leetcode-dark-success);
+    }
+
+    html.dark .leetcode-difficulty.is-medium,
+    html.dark .leetcode-contest-rating.is-mid,
+    html.dark .leetcode-rank.is-bytedance,
+    html.dark .leetcode-submit-note [data-tone="pending"],
+    html.dark .leetcode-manual-case-status[data-tone="pending"],
+    html.dark .leetcode-practice-meter .leetcode-one-shot-meter em {
+      color: var(--leetcode-dark-warning);
+    }
+
+    html.dark .leetcode-difficulty.is-hard,
+    html.dark .leetcode-contest-rating.is-high,
+    html.dark .leetcode-submit-note [data-tone="error"],
+    html.dark .leetcode-manual-case-status[data-tone="error"] {
+      color: var(--leetcode-dark-danger);
+    }
+
+    html.dark .leetcode-rank.is-hot,
+    html.dark .leetcode-submit-note [data-extension-guide-link],
+    html.dark .leetcode-practice-meter em,
+    html.dark .leetcode-source-link {
+      color: var(--leetcode-dark-accent);
+    }
+
+    html.dark .leetcode-contest-rating,
+    html.dark .leetcode-testcase-source,
+    html.dark .leetcode-lingshen-summary span,
+    html.dark .leetcode-lingshen-meta span,
+    html.dark .leetcode-related-meta span,
+    html.dark .leetcode-implementation-meta span,
+    html.dark .leetcode-implementation-meta a {
+      border-color: var(--leetcode-dark-border);
+      background: rgb(255 255 255 / 5%);
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-contest-rating.is-elite {
+      color: #d5c5ff;
+    }
+
+    html.dark .leetcode-contest-rating.is-empty {
+      color: var(--leetcode-dark-muted);
+      opacity: 0.72;
+    }
+
+    html.dark .leetcode-session-board,
+    html.dark .leetcode-duplicate-audit,
+    html.dark .leetcode-extension-guide,
+    html.dark .leetcode-insight-guide,
+    html.dark .leetcode-series-guide,
+    html.dark .leetcode-lingshen-section,
+    html.dark .leetcode-series-group,
+    html.dark .leetcode-series-member {
+      background:
+        linear-gradient(180deg, rgb(255 255 255 / 4%), transparent 42%),
+        var(--leetcode-dark-surface);
+    }
+
+    html.dark .leetcode-practice-panel {
+      border-top-color: rgb(238 150 113 / 34%);
+      background:
+        linear-gradient(180deg, rgb(238 150 113 / 5%), transparent 18%),
+        var(--leetcode-dark-soft);
+    }
+
+    html.dark .leetcode-statement-panel,
+    html.dark .leetcode-submit-note,
+    html.dark .leetcode-manual-cases textarea,
+    html.dark .leetcode-manual-case-item pre,
+    html.dark .leetcode-submit-detail pre,
+    html.dark .leetcode-code-block,
+    html.dark .leetcode-related-item,
+    html.dark .leetcode-extension-steps li,
+    html.dark .leetcode-lingshen-members .leetcode-series-member {
+      border-color: var(--leetcode-dark-border);
+      background: var(--leetcode-dark-elevated);
+    }
+
+    html.dark .leetcode-statement-panel {
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+    }
+
+    html.dark .leetcode-statement-body,
+    html.dark .leetcode-practice-panel .leetcode-statement-body p,
+    html.dark .leetcode-practice-panel .leetcode-statement-body
+      .leetcode-statement-constraints {
+      color: var(--leetcode-dark-text-soft);
+    }
+
+    html.dark .leetcode-statement-constraints strong,
+    html.dark .leetcode-statement-asset th {
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-statement-constraint-separator {
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-statement-asset th,
+    html.dark .leetcode-statement-asset td {
+      border-color: var(--leetcode-dark-border);
+    }
+
+    html.dark .leetcode-statement-actions a,
+    html.dark .leetcode-statement-panel button,
+    html.dark .leetcode-search input,
+    html.dark .leetcode-series-filter select,
+    html.dark .leetcode-page-jump input,
+    html.dark .leetcode-toolbar .leetcode-filter-group button,
+    html.dark .leetcode-session-actions button,
+    html.dark .leetcode-route-skip-controls button,
+    html.dark .leetcode-practice-nav button,
+    html.dark .leetcode-practice-actions select,
+    html.dark .leetcode-practice-actions button,
+    html.dark .leetcode-practice-actions a,
+    html.dark .leetcode-editor-preferences select,
+    html.dark .leetcode-editor-preferences button,
+    html.dark .leetcode-manual-case-actions button,
+    html.dark .leetcode-manual-case-item button,
+    html.dark .leetcode-testcase-tabs button,
+    html.dark .leetcode-pagination button,
+    html.dark .leetcode-byte-filter-menu button,
+    html.dark .leetcode-status-filter-menu button {
+      border-color: var(--leetcode-dark-border-strong);
+      background: rgb(255 255 255 / 4.5%);
+      color: var(--leetcode-dark-text-soft);
+    }
+
+    html.dark .leetcode-search input,
+    html.dark .leetcode-series-filter select,
+    html.dark .leetcode-page-jump input,
+    html.dark .leetcode-editor-preferences select,
+    html.dark .leetcode-practice-actions select {
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-search input::placeholder {
+      color: rgb(216 208 195 / 58%);
+    }
+
+    html.dark .leetcode-statement-actions a:hover,
+    html.dark .leetcode-statement-panel button:hover,
+    html.dark .leetcode-toolbar .leetcode-filter-group button:hover,
+    html.dark .leetcode-session-actions button:hover,
+    html.dark .leetcode-route-skip-controls button:hover,
+    html.dark .leetcode-practice-nav button:hover,
+    html.dark .leetcode-practice-actions select:hover,
+    html.dark .leetcode-practice-actions select:focus-visible,
+    html.dark .leetcode-practice-actions a:hover,
+    html.dark .leetcode-practice-actions button:hover,
+    html.dark .leetcode-manual-case-actions button:hover,
+    html.dark .leetcode-manual-case-item button:hover,
+    html.dark .leetcode-pagination button:hover,
+    html.dark .leetcode-byte-filter-menu button:hover,
+    html.dark .leetcode-byte-filter-menu button:focus-visible,
+    html.dark .leetcode-byte-filter-menu button.is-active,
+    html.dark .leetcode-status-filter-menu button:hover,
+    html.dark .leetcode-status-filter-menu button:focus-visible,
+    html.dark .leetcode-status-filter-menu button.is-active {
+      border-color: rgb(238 150 113 / 58%);
+      background: rgb(238 150 113 / 12%);
+      color: var(--leetcode-dark-accent-strong);
+    }
+
+    html.dark .leetcode-toolbar .leetcode-filter-group button.is-active,
+    html.dark .leetcode-list-controls .leetcode-filter-group button.is-active,
+    html.dark .leetcode-list-scope-controls .leetcode-filter-group button.is-active,
+    html.dark .leetcode-series-filter select.is-active,
+    html.dark .leetcode-session-actions button.is-on,
+    html.dark .leetcode-route-skip-controls button.is-on,
+    html.dark .leetcode-practice-actions button.is-on {
+      border-color: rgb(238 150 113 / 72%);
+      background: rgb(238 150 113 / 16%);
+      color: var(--leetcode-dark-accent-strong);
+    }
+
+    html.dark .leetcode-byte-filter-menu,
+    html.dark .leetcode-status-filter-menu,
+    html.dark .leetcode-popover,
+    html.dark .leetcode-share-toast,
+    html.dark .leetcode-share-toast::before,
+    html.dark .leetcode-insight-popover,
+    html.dark .leetcode-achievement-popover,
+    html.dark .leetcode-session-history [data-timing-history-list],
+    html.dark .leetcode-group-idea-popover,
+    html.dark .leetcode-shortcut-popover,
+    html.dark [data-ui-tip]::before,
+    html.dark [data-ui-tip]::after {
+      border-color: var(--leetcode-dark-border-strong);
+      background:
+        linear-gradient(180deg, rgb(255 255 255 / 4%), transparent 42%),
+        #20201e;
+      box-shadow: 0 1.2rem 2.8rem var(--leetcode-dark-shadow);
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-share-toast pre {
+      border-color: var(--leetcode-dark-border);
+      background: #171715;
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-related-item:hover,
+    html.dark .leetcode-series-member:hover,
+    html.dark .leetcode-series-member:focus-visible {
+      border-color: rgb(238 150 113 / 52%);
+      background: rgb(238 150 113 / 12%);
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-session-metric,
+    html.dark .leetcode-history-day,
+    html.dark .leetcode-achievement-card {
+      border-color: var(--leetcode-dark-border);
+      background: rgb(255 255 255 / 5%);
+    }
+
+    html.dark .leetcode-session-metric.is-live {
+      background: rgb(238 150 113 / 15%);
+    }
+
+    html.dark .leetcode-session-metric span,
+    html.dark .leetcode-history-day em {
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-history-day b,
+    html.dark .leetcode-history-day small {
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-history-day.is-today {
+      border-color: rgb(238 150 113 / 60%);
+      background: rgb(238 150 113 / 12%);
+    }
+
+    html.dark .leetcode-editor-shell {
+      border-color: var(--leetcode-editor-border);
+      background: var(--leetcode-editor-background);
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 5%),
+        0 0.6rem 1.8rem rgb(0 0 0 / 18%);
+    }
+
+    html.dark .leetcode-editor-lines {
+      border-right-color: var(--leetcode-editor-gutter-border);
+    }
+
+    html.dark .leetcode-testcase-tabs button.is-active {
+      border-color: rgb(238 228 210 / 34%);
+      background: rgb(238 228 210 / 10%);
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-testcase-tabs button.is-active[data-result-state="success"] {
+      border-color: rgb(85 208 187 / 68%);
+      background: rgb(85 208 187 / 14%);
+      color: var(--leetcode-dark-success);
+    }
+
+    html.dark .leetcode-testcase-tabs button.is-active[data-result-state="error"] {
+      border-color: rgb(255 143 130 / 64%);
+      background: rgb(255 143 130 / 14%);
+      color: var(--leetcode-dark-danger);
+    }
+
+    html.dark .leetcode-testcase-result {
+      background: rgb(85 208 187 / 14%);
+      color: var(--leetcode-dark-success);
+    }
+
+    html.dark .leetcode-testcase-tabs button[data-result-state="error"]
+      .leetcode-testcase-result {
+      background: rgb(255 143 130 / 14%);
+      color: var(--leetcode-dark-danger);
+    }
+
+    html.dark .leetcode-extension-steps strong,
+    html.dark .leetcode-extension-advanced summary {
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-extension-steps p,
+    html.dark .leetcode-extension-advanced p {
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-extension-guide code,
+    html.dark .leetcode-insight-guide code,
+    html.dark .leetcode-shortcut-tip kbd {
+      border-color: var(--leetcode-dark-border);
+      background: rgb(255 255 255 / 8%);
+      color: var(--leetcode-dark-text);
+    }
+
+    html.dark .leetcode-extension-steps li::before,
+    html.dark .leetcode-extension-actions a {
+      border-color: rgb(85 208 187 / 42%);
+      background: rgb(85 208 187 / 12%);
+      color: var(--leetcode-dark-success);
+    }
+
+    html.dark .leetcode-extension-actions button,
+    html.dark .leetcode-series-group header button,
+    html.dark .leetcode-list-practice-actions button,
+    html.dark .leetcode-lingshen-topic-index,
+    html.dark .leetcode-lingshen-topic-actions button,
+    html.dark .leetcode-lingshen-deck-actions button,
+    html.dark .leetcode-lingshen-member-toggle,
+    html.dark .leetcode-lingshen-topic-toggle {
+      border-color: rgb(238 150 113 / 46%);
+      background: rgb(238 150 113 / 12%);
+      color: var(--leetcode-dark-accent-strong);
+    }
+
+    html.dark .leetcode-group-idea-tags em,
+    html.dark .leetcode-group-idea-row-meta em,
+    html.dark .leetcode-practice-signal {
+      border-color: rgb(238 150 113 / 34%);
+      background: rgb(238 150 113 / 10%);
+      color: var(--leetcode-dark-muted);
+    }
+
+    html.dark .leetcode-lingshen-progress,
+    html.dark .leetcode-group-idea-row-meta .leetcode-paid-label {
+      color: var(--leetcode-dark-accent-strong);
     }
 
     @media (max-width: 1180px) {
