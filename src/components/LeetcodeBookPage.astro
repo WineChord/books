@@ -12099,11 +12099,6 @@ const shortcutRows = [
       details.dataset.lazyGuideRendered = "true";
       renderLazyMemberLists(details);
       syncFilterButtons();
-      if (details.querySelector("[data-group-idea-list]")) {
-        ensureProblemGuideIdeas().then((loaded) => {
-          if (loaded) refreshGroupIdeaRows(details);
-        });
-      }
     }
 
     function renderLazyMemberItem(problem, options = {}) {
@@ -16510,6 +16505,11 @@ const shortcutRows = [
           const shouldOpen = !groupIdea.classList.contains("is-open");
           closeGroupIdeaPopovers(groupIdea);
           setGroupIdeaOpen(groupIdea, shouldOpen);
+          if (shouldOpen && !problemGuideIdeasLoaded) {
+            ensureProblemGuideIdeas().then((loaded) => {
+              if (loaded) refreshGroupIdeaRows(groupIdea);
+            });
+          }
           if (!shouldOpen) groupIdeaTrigger.blur();
         }
         return;
