@@ -2916,6 +2916,8 @@ const shortcutRows = [
     const flowProblemDetailPrefetchLimit = 4;
     const flowProblemDetailPrefetchConcurrency = 2;
     const flowProblemDetailPrefetchIdleTimeoutMs = 1200;
+    const practiceNavigationProblemDetailPrefetchLimit = 1;
+    const problemDetailIntentPrefetchDelayMs = 160;
     const extensionReleaseDownloadUrl =
       leetcodeShell?.dataset.extensionDownloadUrl ||
       "https://github.com/WineChord/books/releases/latest/download/leetcode-submit.zip";
@@ -4213,7 +4215,11 @@ const shortcutRows = [
     let problemGuideIdeasPromise = null;
     let problemDetailPrefetchActiveCount = 0;
     let problemDetailPrefetchScheduled = false;
+    let cancelProblemDetailPrefetchDrain = null;
     let flowProblemDetailPrefetchScheduled = false;
+    let practiceNavigationProblemDetailPrefetchScheduled = false;
+    let problemDetailIntentPrefetchTimer = 0;
+    let problemDetailIntentPrefetchSlug = "";
     const problemDetailPrefetchQueue = [];
     const problemDetailPrefetchQueuedSlugs = new Set();
     let timingMilestone = "";
@@ -4437,13 +4443,35 @@ const shortcutRows = [
       );
     }
 
-    function scheduleProblemDetailPrefetchDrain() {
-      if (problemDetailPrefetchScheduled) return;
+    function scheduleProblemDetailPrefetchDrain({ idle = true } = {}) {
+      if (problemDetailPrefetchScheduled) {
+        if (idle || !cancelProblemDetailPrefetchDrain) return;
+        cancelProblemDetailPrefetchDrain();
+        cancelProblemDetailPrefetchDrain = null;
+        problemDetailPrefetchScheduled = false;
+      }
       problemDetailPrefetchScheduled = true;
-      runWhenIdle(() => {
+      const drain = () => {
+        cancelProblemDetailPrefetchDrain = null;
         problemDetailPrefetchScheduled = false;
         drainProblemDetailPrefetchQueue();
-      }, flowProblemDetailPrefetchIdleTimeoutMs);
+      };
+      if (idle && "requestIdleCallback" in window) {
+        const idleId = window.requestIdleCallback(drain, {
+          timeout: flowProblemDetailPrefetchIdleTimeoutMs,
+        });
+        cancelProblemDetailPrefetchDrain = () => {
+          window.cancelIdleCallback?.(idleId);
+        };
+        return;
+      }
+      const timerId = window.setTimeout(
+        drain,
+        idle ? flowProblemDetailPrefetchIdleTimeoutMs : 0,
+      );
+      cancelProblemDetailPrefetchDrain = () => {
+        window.clearTimeout(timerId);
+      };
     }
 
     function drainProblemDetailPrefetchQueue() {
@@ -4466,28 +4494,71 @@ const shortcutRows = [
             problemDetailPrefetchActiveCount - 1,
           );
           if (problemDetailPrefetchQueue.length) {
-            scheduleProblemDetailPrefetchDrain();
+            scheduleProblemDetailPrefetchDrain({ idle: false });
           }
         });
       }
     }
 
-    function enqueueProblemDetailPrefetch(slugs) {
+    function enqueueProblemDetailPrefetch(slugs, options = {}) {
       if (!slugs?.length || !shouldAllowProblemDetailPrefetch()) return;
+      const nextSlugs = [];
       slugs.forEach((slug) => {
         if (!canPrefetchProblemDetail(slug)) return;
-        if (problemDetailPrefetchQueuedSlugs.has(slug)) return;
+        if (problemDetailPrefetchQueuedSlugs.has(slug)) {
+          if (options.priority === "front") {
+            const index = problemDetailPrefetchQueue.indexOf(slug);
+            if (index !== -1) {
+              problemDetailPrefetchQueue.splice(index, 1);
+              nextSlugs.push(slug);
+            }
+          }
+          return;
+        }
         problemDetailPrefetchQueuedSlugs.add(slug);
-        problemDetailPrefetchQueue.push(slug);
+        nextSlugs.push(slug);
       });
+      if (options.priority === "front") {
+        problemDetailPrefetchQueue.unshift(...nextSlugs);
+      } else {
+        problemDetailPrefetchQueue.push(...nextSlugs);
+      }
       if (problemDetailPrefetchQueue.length) {
-        scheduleProblemDetailPrefetchDrain();
+        scheduleProblemDetailPrefetchDrain({ idle: options.idle !== false });
       }
     }
 
     function clearProblemDetailPrefetchQueue() {
       problemDetailPrefetchQueue.length = 0;
       problemDetailPrefetchQueuedSlugs.clear();
+    }
+
+    function clearProblemDetailIntentPrefetch(slug = "") {
+      if (slug && problemDetailIntentPrefetchSlug !== slug) return;
+      if (problemDetailIntentPrefetchTimer) {
+        window.clearTimeout(problemDetailIntentPrefetchTimer);
+        problemDetailIntentPrefetchTimer = 0;
+      }
+      problemDetailIntentPrefetchSlug = "";
+    }
+
+    function scheduleProblemDetailIntentPrefetch(slug) {
+      if (!slug || !shouldAllowProblemDetailPrefetch()) return;
+      if (!canPrefetchProblemDetail(slug)) return;
+      if (problemDetailIntentPrefetchSlug === slug) return;
+      clearProblemDetailIntentPrefetch();
+      problemDetailIntentPrefetchSlug = slug;
+      problemDetailIntentPrefetchTimer = window.setTimeout(() => {
+        const intentSlug = problemDetailIntentPrefetchSlug;
+        problemDetailIntentPrefetchTimer = 0;
+        problemDetailIntentPrefetchSlug = "";
+        if (intentSlug) {
+          enqueueProblemDetailPrefetch([intentSlug], {
+            idle: false,
+            priority: "front",
+          });
+        }
+      }, problemDetailIntentPrefetchDelayMs);
     }
 
     function prefetchSlugsFromProblems(items, limit) {
@@ -4550,7 +4621,57 @@ const shortcutRows = [
           currentFlowPrefetchProblems(currentSlug),
           flowProblemDetailPrefetchLimit,
         );
-        enqueueProblemDetailPrefetch(slugs);
+        enqueueProblemDetailPrefetch(slugs, { idle: false });
+      }, flowProblemDetailPrefetchIdleTimeoutMs);
+    }
+
+    function currentPracticeNavigationPrefetchProblems(currentSlug) {
+      if (
+        flowModeEnabled() ||
+        !practiceNavigationProblemDetailPrefetchLimit ||
+        !currentSlug
+      ) {
+        return [];
+      }
+      const items = orderedProblems();
+      if (!items.length) return [];
+      const currentIndex = items.findIndex(
+        (item) => item.titleSlug === currentSlug,
+      );
+      if (currentIndex === -1) return [];
+      return [
+        ...routePrefetchProblems(
+          items,
+          currentIndex,
+          1,
+          practiceNavigationProblemDetailPrefetchLimit,
+        ),
+        ...routePrefetchProblems(
+          items,
+          currentIndex,
+          -1,
+          practiceNavigationProblemDetailPrefetchLimit,
+        ),
+      ];
+    }
+
+    function schedulePracticeNavigationProblemDetailsPrefetch(
+      fallbackSlug = state.expandedSlug,
+    ) {
+      if (flowModeEnabled()) return;
+      if (!practiceNavigationProblemDetailPrefetchLimit) return;
+      if (!state.expandedSlug) return;
+      if (practiceNavigationProblemDetailPrefetchScheduled) return;
+      practiceNavigationProblemDetailPrefetchScheduled = true;
+      runWhenIdle(() => {
+        practiceNavigationProblemDetailPrefetchScheduled = false;
+        if (flowModeEnabled() || !state.expandedSlug) return;
+        const currentSlug = currentPracticeSlug(fallbackSlug || state.expandedSlug);
+        const slugs = prefetchSlugsFromProblems(
+          currentPracticeNavigationPrefetchProblems(currentSlug),
+          practiceNavigationProblemDetailPrefetchLimit * 2,
+        );
+        enqueueProblemDetailPrefetch(slugs, { idle: false });
       }, flowProblemDetailPrefetchIdleTimeoutMs);
     }
 
@@ -4848,6 +4969,7 @@ const shortcutRows = [
       syncFlowModeUi();
       if (!flowModeEnabled()) {
         clearProblemDetailPrefetchQueue();
+        schedulePracticeNavigationProblemDetailsPrefetch();
         return;
       }
       scheduleFlowProblemDetailsPrefetch();
@@ -11392,6 +11514,7 @@ const shortcutRows = [
       scheduleViewStateWrite();
       focusEditorForSlug(target.titleSlug, { frameContext: true });
       scheduleFlowProblemDetailsPrefetch(target.titleSlug);
+      schedulePracticeNavigationProblemDetailsPrefetch(target.titleSlug);
     }
 
     function practiceRouteTarget(items, startIndex, direction) {
@@ -11451,6 +11574,31 @@ const shortcutRows = [
       );
       if (currentIndex < 0) return null;
       return practiceRouteTarget(items, currentIndex, 1)?.problem || null;
+    }
+
+    function submitFlowPrefetchProblems(problem) {
+      if (!flowModeEnabled() || !problem?.titleSlug) return [];
+      if (flowMode === flowModeList) {
+        return [nextListFlowProblemAfterAccepted(problem)].filter(Boolean);
+      }
+      if (flowMode === flowModeInsight) {
+        return suggestedPracticeItems()
+          .map((item) => item.problem)
+          .filter((item) => item?.titleSlug !== problem.titleSlug)
+          .slice(0, flowProblemDetailPrefetchLimit);
+      }
+      return [];
+    }
+
+    function scheduleSubmitFlowProblemDetailsPrefetch(problem) {
+      const slugs = prefetchSlugsFromProblems(
+        submitFlowPrefetchProblems(problem),
+        flowProblemDetailPrefetchLimit,
+      );
+      enqueueProblemDetailPrefetch(slugs, {
+        idle: false,
+        priority: "front",
+      });
     }
 
     function advanceFlowAfterAcceptedSubmit(nextProblem, timingResult = {}) {
@@ -15843,6 +15991,7 @@ const shortcutRows = [
       setActionBusy(actionButton, true);
       setPanelLeetcodeActionBusy(panel, true);
       try {
+        scheduleSubmitFlowProblemDetailsPrefetch(problem);
         await ensureLeetcodeReady(panel);
         setSubmitStatus(panel, "正在提交到力扣...", "pending");
         const response = await extensionRequest(
@@ -15902,6 +16051,12 @@ const shortcutRows = [
           });
           if (flowMode === flowModeInsight) {
             nextFlowProblem = suggestedFlowProblem(problem.titleSlug);
+          }
+          if (nextFlowProblem?.titleSlug) {
+            enqueueProblemDetailPrefetch([nextFlowProblem.titleSlug], {
+              idle: false,
+              priority: "front",
+            });
           }
           setSubmitStatus(
             panel,
@@ -16559,6 +16714,7 @@ const shortcutRows = [
       syncLingShenRoadmapProgress();
       scheduleProblemDetailsPrefetch(pageItems);
       scheduleFlowProblemDetailsPrefetch();
+      schedulePracticeNavigationProblemDetailsPrefetch();
     }
 
     function renderSearchResults() {
@@ -16577,7 +16733,7 @@ const shortcutRows = [
 
     searchInput?.addEventListener("input", (event) => {
       state.query = event.target.value.trim();
-      scheduleProblemSearchIndexLoad({ idle: true });
+      scheduleProblemSearchIndexLoad({ idle: state.query.length < 2 });
       scheduleSearchRender();
     });
 
@@ -17040,6 +17196,7 @@ const shortcutRows = [
       const row = target.closest(".leetcode-row");
       if (!(row instanceof HTMLElement)) return;
       const slug = row.dataset.slug || "";
+      clearProblemDetailIntentPrefetch(slug);
       const shouldOpen = state.expandedSlug !== slug;
       if (!shouldOpen && manualRunCaseOpenSlug === slug) {
         setManualRunCaseOpenSlug("");
@@ -17053,11 +17210,22 @@ const shortcutRows = [
     list?.addEventListener("pointerover", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+      const row = target.closest(".leetcode-row");
+      if (
+        row instanceof HTMLElement &&
+        event.pointerType === "mouse" &&
+        !(
+          event.relatedTarget instanceof Node &&
+          row.contains(event.relatedTarget)
+        )
+      ) {
+        scheduleProblemDetailIntentPrefetch(row.dataset.slug || "");
+      }
       const previewButton = target.closest("[data-preview]");
       if (!(previewButton instanceof HTMLElement)) return;
-      const row = previewButton.closest(".leetcode-row");
-      if (row instanceof HTMLElement && previewButton.querySelector("[data-lazy-detail]")) {
-        ensureProblemDetails(row.dataset.slug || "");
+      const previewRow = previewButton.closest(".leetcode-row");
+      if (previewRow instanceof HTMLElement && previewButton.querySelector("[data-lazy-detail]")) {
+        ensureProblemDetails(previewRow.dataset.slug || "");
       }
       keepPreviewHoverOpen(previewButton);
     });
@@ -17065,6 +17233,16 @@ const shortcutRows = [
     list?.addEventListener("pointerout", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+      const row = target.closest(".leetcode-row");
+      if (
+        row instanceof HTMLElement &&
+        !(
+          event.relatedTarget instanceof Node &&
+          row.contains(event.relatedTarget)
+        )
+      ) {
+        clearProblemDetailIntentPrefetch(row.dataset.slug || "");
+      }
       const previewButton = target.closest("[data-preview]");
       if (!(previewButton instanceof HTMLElement)) return;
       if (
@@ -17074,6 +17252,15 @@ const shortcutRows = [
         return;
       }
       schedulePreviewHoverClose(previewButton);
+    });
+
+    list?.addEventListener("focusin", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const row = target.closest(".leetcode-row");
+      if (row instanceof HTMLElement) {
+        scheduleProblemDetailIntentPrefetch(row.dataset.slug || "");
+      }
     });
 
     list?.addEventListener("change", (event) => {
