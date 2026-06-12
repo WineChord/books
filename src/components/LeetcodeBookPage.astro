@@ -2913,6 +2913,9 @@ const shortcutRows = [
     );
     const problemDetailPromises = new Map();
     const problemDetailPrefetchLimit = 0;
+    const flowProblemDetailPrefetchLimit = 4;
+    const flowProblemDetailPrefetchConcurrency = 2;
+    const flowProblemDetailPrefetchIdleTimeoutMs = 1200;
     const extensionReleaseDownloadUrl =
       leetcodeShell?.dataset.extensionDownloadUrl ||
       "https://github.com/WineChord/books/releases/latest/download/leetcode-submit.zip";
@@ -4208,6 +4211,11 @@ const shortcutRows = [
     let problemGuideIndexPromise = null;
     let problemGuideIdeasLoaded = false;
     let problemGuideIdeasPromise = null;
+    let problemDetailPrefetchActiveCount = 0;
+    let problemDetailPrefetchScheduled = false;
+    let flowProblemDetailPrefetchScheduled = false;
+    const problemDetailPrefetchQueue = [];
+    const problemDetailPrefetchQueuedSlugs = new Set();
     let timingMilestone = "";
     let searchQueryCache = { raw: null, profile: null };
     const problemSearchScoreCache = new Map();
@@ -4412,33 +4420,138 @@ const shortcutRows = [
       return promise;
     }
 
-    function scheduleProblemDetailsPrefetch(items) {
-      if (!problemDetailPrefetchLimit) return;
-      if (navigator.connection?.saveData) return;
-      const slugs = items
-        .map((problem) => problem.titleSlug)
-        .filter((slug) => {
-          const problem = problemBySlug.get(slug);
-          return (
-            problem &&
-            !isProblemDetailLoaded(problem) &&
-            !problem.detailLoadFailed &&
-            !problemDetailPromises.has(slug)
-          );
-        })
-        .slice(0, problemDetailPrefetchLimit);
-      if (!slugs.length) return;
-      const run = () => {
-        slugs.reduce(
-          (chain, slug) => chain.then(() => ensureProblemDetails(slug)),
-          Promise.resolve(),
-        );
-      };
-      if ("requestIdleCallback" in window) {
-        window.requestIdleCallback(run, { timeout: 1500 });
+    function shouldAllowProblemDetailPrefetch() {
+      if (navigator.connection?.saveData) return false;
+      const connectionType = String(navigator.connection?.effectiveType || "");
+      if (connectionType === "slow-2g" || connectionType === "2g") return false;
+      return true;
+    }
+
+    function canPrefetchProblemDetail(slug) {
+      const problem = problemBySlug.get(slug);
+      return Boolean(
+        problem &&
+        !isProblemDetailLoaded(problem) &&
+        !problem.detailLoadFailed &&
+        !problemDetailPromises.has(slug),
+      );
+    }
+
+    function scheduleProblemDetailPrefetchDrain() {
+      if (problemDetailPrefetchScheduled) return;
+      problemDetailPrefetchScheduled = true;
+      runWhenIdle(() => {
+        problemDetailPrefetchScheduled = false;
+        drainProblemDetailPrefetchQueue();
+      }, flowProblemDetailPrefetchIdleTimeoutMs);
+    }
+
+    function drainProblemDetailPrefetchQueue() {
+      if (!shouldAllowProblemDetailPrefetch()) {
+        problemDetailPrefetchQueue.length = 0;
+        problemDetailPrefetchQueuedSlugs.clear();
         return;
       }
-      window.setTimeout(run, 250);
+      while (
+        problemDetailPrefetchActiveCount < flowProblemDetailPrefetchConcurrency &&
+        problemDetailPrefetchQueue.length
+      ) {
+        const slug = problemDetailPrefetchQueue.shift();
+        problemDetailPrefetchQueuedSlugs.delete(slug);
+        if (!canPrefetchProblemDetail(slug)) continue;
+        problemDetailPrefetchActiveCount += 1;
+        ensureProblemDetails(slug).finally(() => {
+          problemDetailPrefetchActiveCount = Math.max(
+            0,
+            problemDetailPrefetchActiveCount - 1,
+          );
+          if (problemDetailPrefetchQueue.length) {
+            scheduleProblemDetailPrefetchDrain();
+          }
+        });
+      }
+    }
+
+    function enqueueProblemDetailPrefetch(slugs) {
+      if (!slugs?.length || !shouldAllowProblemDetailPrefetch()) return;
+      slugs.forEach((slug) => {
+        if (!canPrefetchProblemDetail(slug)) return;
+        if (problemDetailPrefetchQueuedSlugs.has(slug)) return;
+        problemDetailPrefetchQueuedSlugs.add(slug);
+        problemDetailPrefetchQueue.push(slug);
+      });
+      if (problemDetailPrefetchQueue.length) {
+        scheduleProblemDetailPrefetchDrain();
+      }
+    }
+
+    function clearProblemDetailPrefetchQueue() {
+      problemDetailPrefetchQueue.length = 0;
+      problemDetailPrefetchQueuedSlugs.clear();
+    }
+
+    function prefetchSlugsFromProblems(items, limit) {
+      if (!limit) return [];
+      return items
+        .map((problem) => problem?.titleSlug)
+        .filter((slug) => slug && canPrefetchProblemDetail(slug))
+        .slice(0, limit);
+    }
+
+    function scheduleProblemDetailsPrefetch(items) {
+      if (!problemDetailPrefetchLimit) return;
+      enqueueProblemDetailPrefetch(
+        prefetchSlugsFromProblems(items, problemDetailPrefetchLimit),
+      );
+    }
+
+    function routePrefetchProblems(items, startIndex, direction, limit) {
+      const targets = [];
+      let index = startIndex;
+      while (targets.length < limit) {
+        const target = practiceRouteTarget(items, index, direction);
+        if (!target?.problem) break;
+        targets.push(target.problem);
+        index = target.index;
+      }
+      return targets;
+    }
+
+    function currentFlowPrefetchProblems(currentSlug) {
+      if (!flowModeEnabled() || !flowProblemDetailPrefetchLimit) return [];
+      if (flowMode === flowModeInsight) {
+        return suggestedPracticeItems()
+          .map((item) => item.problem)
+          .filter((problem) => problem?.titleSlug !== currentSlug)
+          .slice(0, flowProblemDetailPrefetchLimit);
+      }
+      const items = orderedProblems();
+      if (!items.length) return [];
+      const currentIndex = items.findIndex(
+        (item) => item.titleSlug === currentSlug,
+      );
+      return routePrefetchProblems(
+        items,
+        currentIndex === -1 ? -1 : currentIndex,
+        1,
+        flowProblemDetailPrefetchLimit,
+      );
+    }
+
+    function scheduleFlowProblemDetailsPrefetch(fallbackSlug = state.expandedSlug) {
+      if (!flowModeEnabled() || !flowProblemDetailPrefetchLimit) return;
+      if (flowProblemDetailPrefetchScheduled) return;
+      flowProblemDetailPrefetchScheduled = true;
+      runWhenIdle(() => {
+        flowProblemDetailPrefetchScheduled = false;
+        if (!flowModeEnabled() || !state.expandedSlug) return;
+        const currentSlug = currentPracticeSlug(fallbackSlug || state.expandedSlug);
+        const slugs = prefetchSlugsFromProblems(
+          currentFlowPrefetchProblems(currentSlug),
+          flowProblemDetailPrefetchLimit,
+        );
+        enqueueProblemDetailPrefetch(slugs);
+      }, flowProblemDetailPrefetchIdleTimeoutMs);
     }
 
     function runWhenIdle(callback, timeoutMs = 1500) {
@@ -4733,6 +4846,11 @@ const shortcutRows = [
       flowMode = normalizedFlowMode(nextMode);
       localStorage.setItem(flowModeKey, flowMode);
       syncFlowModeUi();
+      if (!flowModeEnabled()) {
+        clearProblemDetailPrefetchQueue();
+        return;
+      }
+      scheduleFlowProblemDetailsPrefetch();
     }
 
     function toggleFlowMode() {
@@ -11273,6 +11391,7 @@ const shortcutRows = [
       render();
       scheduleViewStateWrite();
       focusEditorForSlug(target.titleSlug, { frameContext: true });
+      scheduleFlowProblemDetailsPrefetch(target.titleSlug);
     }
 
     function practiceRouteTarget(items, startIndex, direction) {
@@ -16439,6 +16558,7 @@ const shortcutRows = [
       syncAchievementUi();
       syncLingShenRoadmapProgress();
       scheduleProblemDetailsPrefetch(pageItems);
+      scheduleFlowProblemDetailsPrefetch();
     }
 
     function renderSearchResults() {
