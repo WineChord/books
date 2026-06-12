@@ -13,7 +13,10 @@ import {
   leetcodeSeriesDefinitions,
   leetcodeSeriesProblems,
 } from "./leetcode-series";
-import { leetcodeLingShenProblems } from "./leetcode-lingshen";
+import {
+  leetcodeLingShenGroups,
+  leetcodeLingShenProblems,
+} from "./leetcode-lingshen";
 import { leetcodeContestRatings } from "./leetcode-contest-ratings";
 
 const leetcodeTargetLimit = 888;
@@ -279,6 +282,9 @@ const leetcodeSeriesProblemBySlug = new Map(
 const lingShenBySlug = new Map(
   leetcodeLingShenProblems.map((problem) => [problem.titleSlug, problem]),
 );
+const lingShenGroupByKey = new Map(
+  leetcodeLingShenGroups.map((group) => [group.key, group]),
+);
 const contestRatingBySlug = new Map(Object.entries(leetcodeContestRatings));
 const leetcodeSeriesDefinitionByKey = new Map(
   leetcodeSeriesDefinitions.map((definition) => [definition.key, definition]),
@@ -304,6 +310,12 @@ function seriesKeysFor(slug) {
 function seriesTitlesFor(slug) {
   return seriesKeysFor(slug)
     .map((key) => leetcodeSeriesDefinitionByKey.get(key)?.title)
+    .filter(Boolean);
+}
+
+function lingShenGroupTitlesFor(slug) {
+  return (lingShenBySlug.get(slug)?.groupKeys ?? [])
+    .map((key) => lingShenGroupByKey.get(key)?.title)
     .filter(Boolean);
 }
 
@@ -347,6 +359,7 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     seriesTitles: seriesTitlesFor(problem.titleSlug),
     lingShen: Boolean(lingShen),
     lingShenGroupKeys: lingShen?.groupKeys ?? [],
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
     ...contestRatingFields(problem.titleSlug, lingShen),
@@ -382,6 +395,7 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     tags: problem.tags,
     lingShen: Boolean(lingShenBySlug.get(problem.titleSlug)),
     lingShenGroupKeys: lingShenBySlug.get(problem.titleSlug)?.groupKeys ?? [],
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: lingShenBySlug.get(problem.titleSlug)?.lingshenRank ?? null,
     lingShenRating: lingShenBySlug.get(problem.titleSlug)?.rating ?? null,
     ...contestRatingFields(problem.titleSlug, lingShenBySlug.get(problem.titleSlug)),
@@ -433,6 +447,7 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     tags: problem.tags,
     lingShen: Boolean(lingShenBySlug.get(problem.titleSlug)),
     lingShenGroupKeys: lingShenBySlug.get(problem.titleSlug)?.groupKeys ?? [],
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: lingShenBySlug.get(problem.titleSlug)?.lingshenRank ?? null,
     lingShenRating: lingShenBySlug.get(problem.titleSlug)?.rating ?? null,
     ...contestRatingFields(problem.titleSlug, lingShenBySlug.get(problem.titleSlug)),
@@ -488,6 +503,7 @@ const leetcodeLingShenSupplements = leetcodeLingShenProblems
     tags: problem.tags,
     lingShen: true,
     lingShenGroupKeys: problem.groupKeys,
+    lingShenGroupTitles: lingShenGroupTitlesFor(problem.titleSlug),
     lingShenRank: problem.lingshenRank,
     lingShenRating: problem.rating,
     ...contestRatingFields(problem.titleSlug, problem),
@@ -565,8 +581,28 @@ function buildRelatedQuestions(problem) {
   };
 }
 
+function searchFragment(value, limit = 140) {
+  const text = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  if (text.length <= limit) return text;
+  return text.slice(0, limit).replace(/[，。；、\s]+$/u, "");
+}
+
+function uniqueSearchFragments(values) {
+  const seen = new Set();
+  const fragments = [];
+  values.flat().forEach((value) => {
+    const fragment = searchFragment(value);
+    const key = fragment.toLowerCase();
+    if (!fragment || seen.has(key)) return;
+    seen.add(key);
+    fragments.push(fragment);
+  });
+  return fragments;
+}
+
 function problemSearchText(problem, implementationReferences, relatedQuestions) {
-  return [
+  return uniqueSearchFragments([
     ...(problem.constraints || []),
     ...(problem.followUps || []).flatMap((item) => [item.question, item.answer]),
     ...(problem.companyFollowUps || []).flatMap((item) => [
@@ -607,7 +643,7 @@ function problemSearchText(problem, implementationReferences, relatedQuestions) 
       item.titleSlug,
       ...(item.sharedTags || []).map((tag) => tag.name),
     ]),
-  ].filter(Boolean).join(" ").toLowerCase();
+  ]).join(" ").toLowerCase();
 }
 
 const leetcodeProblemDetailsBySlug = new Map(
@@ -638,7 +674,129 @@ const leetcodeProblemDetailsBySlug = new Map(
   }),
 );
 
+const byteDanceBucketPayloadKeys = [
+  "all",
+  "thirtyDays",
+  "threeMonths",
+  "sixMonths",
+  "moreThanSixMonths",
+];
+const codeTemplateLanguagePayloadSlugs = [
+  "bash",
+  "c",
+  "cangjie",
+  "cpp",
+  "csharp",
+  "dart",
+  "elixir",
+  "erlang",
+  "golang",
+  "java",
+  "javascript",
+  "kotlin",
+  "mssql",
+  "mysql",
+  "oraclesql",
+  "php",
+  "postgresql",
+  "python",
+  "python3",
+  "pythondata",
+  "racket",
+  "ruby",
+  "rust",
+  "scala",
+  "swift",
+  "typescript",
+];
+const codeTemplateLanguagePayloadIndexBySlug = new Map(
+  codeTemplateLanguagePayloadSlugs.map((slug, index) => [slug, index]),
+);
+const tagPayload = [];
+const tagPayloadIndexByKey = new Map();
+
+function tagPayloadKey(tag) {
+  return `${tag.slug}\0${tag.name}`;
+}
+
+function packedTags(tags) {
+  return (tags || []).map((tag) => {
+    const key = tagPayloadKey(tag);
+    if (!tagPayloadIndexByKey.has(key)) {
+      tagPayloadIndexByKey.set(key, tagPayload.length);
+      tagPayload.push([tag.slug, tag.name]);
+    }
+    return tagPayloadIndexByKey.get(key);
+  });
+}
+
+function packedCodeTemplateLanguageSlugs(codeTemplates) {
+  return codeTemplates.reduce((mask, template) => {
+    const index = codeTemplateLanguagePayloadIndexBySlug.get(template.langSlug);
+    return index === undefined ? mask : mask | (1 << index);
+  }, 0);
+}
+
+function packedByteDanceBuckets(buckets) {
+  return byteDanceBucketPayloadKeys.map((key) => buckets?.[key] ?? null);
+}
+
+function packedByteDanceBucketSources(sources) {
+  const values = byteDanceBucketPayloadKeys.map((key) => sources?.[key] ?? null);
+  return values.some(Boolean) ? values : null;
+}
+
+function packedRecordPayload(records) {
+  const keys = [...new Set(records.flatMap((record) => Object.keys(record)))];
+  return {
+    keys,
+    tagPayload,
+    codeTemplateLanguagePayloadSlugs,
+    rows: records.map((record) =>
+      keys.map((key) => record[key] === undefined ? null : record[key]),
+    ),
+  };
+}
+
+const leetcodeProblemSummaries = mergedLeetcodeProblems.map((problem) => {
+  const implementationReferences = [
+    ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
+    ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
+  ];
+  const relatedQuestions =
+    leetcodeProblemDetailsBySlug.get(problem.titleSlug)?.relatedQuestions ??
+    buildRelatedQuestions(problem);
+  const {
+    approachPreview,
+    acRate,
+    companyFollowUps,
+    followUps,
+    searchText,
+    statementPreview,
+    url,
+    bytedanceSource,
+    bytedancePeriods,
+    ...summary
+  } = problem;
+  const codeTemplates = leetcodeCodeTemplates[problem.titleSlug] ?? [];
+  return {
+    ...summary,
+    bytedanceBuckets: packedByteDanceBuckets(summary.bytedanceBuckets),
+    bytedanceBucketSources: packedByteDanceBucketSources(
+      summary.bytedanceBucketSources,
+    ),
+    codeTemplateLanguageSlugs: packedCodeTemplateLanguageSlugs(codeTemplates),
+    companyFollowUpCount: (companyFollowUps || []).length,
+    implementationReferenceCount: implementationReferences.length,
+    relatedQuestionCount: relatedQuestions.total ?? 0,
+    tags: packedTags(summary.tags),
+  };
+});
+
 export const leetcodeProblemDetailSlugs = [...leetcodeProblemDetailsBySlug.keys()];
+export const leetcodeProblemSummaryPayload = packedRecordPayload(
+  leetcodeProblemSummaries,
+);
 export const leetcodeProblemSearchIndex = mergedLeetcodeProblems
   .map((problem) => {
     const implementationReferences = [

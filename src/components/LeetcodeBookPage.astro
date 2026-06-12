@@ -1,18 +1,11 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { leetcodeBook } from "../book.config";
+import { leetcodeCodeTemplateStats } from "../data/leetcode-code-templates";
 import {
-  leetcodeCodeTemplateStats,
-  leetcodeCodeTemplates,
-} from "../data/leetcode-code-templates";
-import {
-  leetcodeImplementationReferences,
   leetcodeImplementationStats,
 } from "../data/leetcode-implementation-references";
-import {
-  leetcodeGeneratedImplementationReferences,
-  leetcodeGeneratedImplementationStats,
-} from "../data/leetcode-implementation-generated";
+import { leetcodeGeneratedImplementationStats } from "../data/leetcode-implementation-generated";
 import {
   leetcodeByteDanceProblems,
   leetcodeByteDanceStats,
@@ -26,15 +19,11 @@ import {
 } from "../data/leetcode-problems";
 import {
   leetcodeProblemConstraintStats,
-  leetcodeProblemConstraints,
 } from "../data/leetcode-problem-constraints";
 import {
-  leetcodeProblemConstraintHtml,
   leetcodeProblemMathStats,
-  leetcodeProblemStatementHtml,
 } from "../data/leetcode-problem-math";
 import {
-  leetcodeProblemStatementAssets,
   leetcodeProblemStatementAssetStats,
 } from "../data/leetcode-problem-assets";
 import {
@@ -1182,11 +1171,6 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     bytedanceRank: entry?.bytedanceRank ?? null,
     bytedanceSource: entry?.source ?? (problem.bytedance ? "legacyTop888" : null),
     bytedanceVerified: hasVerifiedByteDanceBucket || problem.bytedanceVerified,
-    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
-    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
-    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
-    statementAssets:
-      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
     seriesKeys: seriesKeysFor(problem.titleSlug),
     seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
       ?.seriesPrimaryKey ?? "",
@@ -1231,11 +1215,6 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     tags: problem.tags,
     statementPreview: problem.statementPreview ?? "",
     approachPreview: problem.approachPreview ?? "",
-    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
-    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
-    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
-    statementAssets:
-      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
     followUps: problem.followUps ?? [],
     seriesKeys: seriesKeysFor(problem.titleSlug),
     seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
@@ -1291,11 +1270,6 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     tags: problem.tags,
     statementPreview: problem.statementPreview,
     approachPreview: problem.approachPreview,
-    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
-    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
-    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
-    statementAssets:
-      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
     followUps: problem.followUps ?? [],
     seriesKeys: problem.seriesKeys,
     seriesPrimaryKey: problem.seriesPrimaryKey,
@@ -1353,11 +1327,6 @@ const leetcodeLingShenSupplements = leetcodeLingShenProblems
     tags: problem.tags,
     statementPreview: problem.statementPreview,
     approachPreview: problem.approachPreview,
-    constraints: leetcodeProblemConstraints[problem.titleSlug] ?? [],
-    constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
-    statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
-    statementAssets:
-      leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
     followUps: problem.followUps ?? [],
     seriesKeys: seriesKeysFor(problem.titleSlug),
     seriesPrimaryKey: leetcodeSeriesProblemBySlug.get(problem.titleSlug)
@@ -1436,107 +1405,10 @@ function buildRelatedQuestions(problem) {
     total: official.length + series.length + topicPeers.length,
   };
 }
-const leetcodeProblemsWithReferences = mergedLeetcodeProblems.map((problem) => ({
-  ...problem,
-  codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
-  implementationReferences:
-    [
-      ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
-      ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
-    ],
-  relatedQuestions: buildRelatedQuestions(problem),
-}));
+const leetcodeProblemsWithReferences = mergedLeetcodeProblems;
 const leetcodeProblemPayloadIndexBySlug = new Map(
   leetcodeProblemsWithReferences.map((problem, index) => [problem.titleSlug, index]),
 );
-function codeTemplateLanguageSlugs(codeTemplates) {
-  return codeTemplates.map((template) => template.langSlug).filter(Boolean);
-}
-
-const byteDanceBucketPayloadKeys = [
-  "all",
-  "thirtyDays",
-  "threeMonths",
-  "sixMonths",
-  "moreThanSixMonths",
-];
-const codeTemplateLanguagePayloadSlugs = [
-  "bash",
-  "c",
-  "cangjie",
-  "cpp",
-  "csharp",
-  "dart",
-  "elixir",
-  "erlang",
-  "golang",
-  "java",
-  "javascript",
-  "kotlin",
-  "mssql",
-  "mysql",
-  "oraclesql",
-  "php",
-  "postgresql",
-  "python",
-  "python3",
-  "pythondata",
-  "racket",
-  "ruby",
-  "rust",
-  "scala",
-  "swift",
-  "typescript",
-];
-const codeTemplateLanguagePayloadIndexBySlug = new Map(
-  codeTemplateLanguagePayloadSlugs.map((slug, index) => [slug, index]),
-);
-const tagPayload = [];
-const tagPayloadIndexByKey = new Map();
-
-function tagPayloadKey(tag) {
-  return `${tag.slug}\0${tag.name}`;
-}
-
-function packedTags(tags) {
-  return (tags || []).map((tag) => {
-    const key = tagPayloadKey(tag);
-    if (!tagPayloadIndexByKey.has(key)) {
-      tagPayloadIndexByKey.set(key, tagPayload.length);
-      tagPayload.push([tag.slug, tag.name]);
-    }
-    return tagPayloadIndexByKey.get(key);
-  });
-}
-
-function packedCodeTemplateLanguageSlugs(codeTemplates) {
-  return codeTemplates.reduce((mask, template) => {
-    const index = codeTemplateLanguagePayloadIndexBySlug.get(template.langSlug);
-    return index === undefined ? mask : mask | (1 << index);
-  }, 0);
-}
-
-function packedByteDanceBuckets(buckets) {
-  return byteDanceBucketPayloadKeys.map((key) => buckets?.[key] ?? null);
-}
-
-function packedByteDanceBucketSources(sources) {
-  const values = byteDanceBucketPayloadKeys.map((key) => sources?.[key] ?? null);
-  return values.some(Boolean) ? values : null;
-}
-
-function packedRecordPayload(records) {
-  const keys = [...new Set(records.flatMap((record) => Object.keys(record)))];
-  return {
-    keys,
-    tagPayload,
-    codeTemplateLanguagePayloadSlugs,
-    rows: records.map((record) =>
-      keys.map((key) => record[key] === undefined ? null : record[key]),
-    ),
-  };
-}
-
 function jsonScriptPayload(value) {
   return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
@@ -1556,40 +1428,6 @@ function packedMemberSlugs(slugs) {
     .filter(Number.isInteger);
 }
 
-const leetcodeProblemSummaries = leetcodeProblemsWithReferences.map((problem) => {
-  const {
-    approachPreview,
-    acRate,
-    codeTemplates,
-    constraintHtml,
-    constraints,
-    companyFollowUps,
-    followUps,
-    implementationReferences,
-    relatedQuestions,
-    searchText,
-    statementAssets,
-    statementHtml,
-    statementPreview,
-    url,
-    bytedanceSource,
-    bytedancePeriods,
-    ...summary
-  } = problem;
-  return {
-    ...summary,
-    bytedanceBuckets: packedByteDanceBuckets(summary.bytedanceBuckets),
-    bytedanceBucketSources: packedByteDanceBucketSources(
-      summary.bytedanceBucketSources,
-    ),
-    codeTemplateLanguageSlugs: packedCodeTemplateLanguageSlugs(codeTemplates),
-    companyFollowUpCount: (companyFollowUps || []).length,
-    implementationReferenceCount: implementationReferences.length,
-    relatedQuestionCount: relatedQuestions.total ?? 0,
-    tags: packedTags(summary.tags),
-  };
-});
-const leetcodeProblemSummaryPayload = packedRecordPayload(leetcodeProblemSummaries);
 const leetcodeContestRatingCoverage = leetcodeProblemsWithReferences.filter(
   (problem) => problem.contestRating,
 ).length;
@@ -2619,7 +2457,6 @@ const shortcutRows = [
 
   </main>
 
-  <script type="application/json" id="leetcode-data" set:html={jsonScriptPayload(leetcodeProblemSummaryPayload)}></script>
   <script type="application/json" id="leetcode-series-data" set:html={jsonScriptPayload(leetcodeSeriesFilterOptions)}></script>
   <script type="application/json" id="leetcode-category-data" set:html={jsonScriptPayload(leetcodePracticeCategoryOptions)}></script>
 
@@ -2746,9 +2583,8 @@ const shortcutRows = [
       });
     }
 
-    const dataNode = document.getElementById("leetcode-data");
-    const problems = unpackRecords(JSON.parse(dataNode?.textContent || "[]"));
-    const problemSlugPayload = problems.map((problem) => problem.titleSlug);
+    let problems = [];
+    let problemSlugPayload = [];
 
     function unpackMemberSlugs(members) {
       if (!Array.isArray(members)) return [];
@@ -2766,29 +2602,19 @@ const shortcutRows = [
       };
     }
 
-    const seriesDataNode = document.getElementById("leetcode-series-data");
-    const seriesOptions = JSON.parse(seriesDataNode?.textContent || "[]").map(
-      unpackGuideOption,
-    );
-    const seriesByKey = new Map(
-      seriesOptions.map((series) => [series.key, series]),
-    );
-    const seriesOrderByKey = new Map(
-      seriesOptions.map((series) => [
-        series.key,
-        new Map((series.members || []).map((slug, index) => [slug, index])),
-      ]),
-    );
-    const categoryDataNode = document.getElementById("leetcode-category-data");
-    const categoryOptions = JSON.parse(categoryDataNode?.textContent || "[]").map(
-      unpackGuideOption,
-    );
-    const categoriesByCollectionKey = new Map();
-    categoryOptions.forEach((category) => {
-      const members = categoriesByCollectionKey.get(category.collectionKey) || [];
-      members.push(category);
-      categoriesByCollectionKey.set(category.collectionKey, members);
-    });
+    let seriesOptions = [];
+    let seriesByKey = new Map();
+    let seriesOrderByKey = new Map();
+    let categoryOptions = [];
+    let categoriesByCollectionKey = new Map();
+    let practiceListOptions = [];
+    let practiceListByKey = new Map();
+    let practiceListOrderByKey = new Map();
+    let categoryById = new Map();
+    let categoryOrderById = new Map();
+    let problemBySlug = new Map();
+    let defaultOrderBySlug = new Map();
+    let maxPageSize = 20;
     const practiceListKindSeries = "series";
     const practiceListKindHot100 = "hot100";
     const practiceListKindByteDance = "bytedance";
@@ -2901,73 +2727,103 @@ const shortcutRows = [
       );
     }
 
-    const practiceListOptions = [
-      {
-        key: practiceListKindSeries,
-        title: "系列题单总览",
-        titleEn: "Series map",
-        description:
-          "同一组内按基础题、编号变体和强关联变体组织；点击书内题可直接打开本页练习面板，付费题会保留标记。",
-        descriptionEn:
-          "Groups are ordered by base problem, numbered variants, and strongly related variants. In-book items open the local practice panel; paid items keep their marker.",
-        members: practiceListMembersFor(practiceListKindSeries),
-      },
-      {
-        key: practiceListKindHot100,
-        title: "Hot100 分类刷题单",
-        titleEn: "Hot 100 Topic List",
-        description:
-          "按主算法标签把 Hot100 拆成可连续练的小题单，分类按高频优先，组内按题号和系列递进顺序。",
-        descriptionEn:
-          "Hot 100 split by primary algorithm tag, with groups ordered by frequency and each group ordered by problem number and series progression.",
-        members: practiceListMembersFor(practiceListKindHot100),
-      },
-      {
-        key: practiceListKindByteDance,
-        title: "字节分类刷题单",
-        titleEn: "ByteDance Topic List",
-        description:
-          "按字节题库全量排名和主算法标签拆分，分类按高频优先，组内按题号和系列递进顺序。",
-        descriptionEn:
-          "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
-        members: practiceListMembersFor(practiceListKindByteDance),
-      },
-      {
-        key: practiceListKindLingShen,
-        title: "灵神题单",
-        titleEn: "LingShen Topic List",
-        description:
-          "按灵神「如何科学刷题」路线的 12 个专题串联，专题内保留原题单顺序和难度分。",
-        descriptionEn:
-          "The 12-topic LingShen practice route, preserving source order and ratings inside each topic.",
-        members: practiceListMembersFor(practiceListKindLingShen),
-      },
-    ];
-    const practiceListByKey = new Map(
-      practiceListOptions.map((listOption) => [listOption.key, listOption]),
-    );
-    const practiceListOrderByKey = new Map(
-      practiceListOptions.map((listOption) => [
-        listOption.key,
-        new Map((listOption.members || []).map((slug, index) => [slug, index])),
-      ]),
-    );
-    const categoryById = new Map(
-      categoryOptions.map((category) => [category.id, category]),
-    );
-    const categoryOrderById = new Map(
-      categoryOptions.map((category) => [
-        category.id,
-        new Map((category.members || []).map((slug, index) => [slug, index])),
-      ]),
-    );
-    const problemBySlug = new Map(
-      problems.map((problem) => [problem.titleSlug, problem]),
-    );
-    const defaultOrderBySlug = new Map(
-      problems.map((problem, index) => [problem.titleSlug, index]),
-    );
-    const maxPageSize = problems.length || 20;
+    function initializeProblemIndexes(payload) {
+      problems = unpackRecords(payload);
+      problemSlugPayload = problems.map((problem) => problem.titleSlug);
+
+      const seriesDataNode = document.getElementById("leetcode-series-data");
+      seriesOptions = JSON.parse(seriesDataNode?.textContent || "[]").map(
+        unpackGuideOption,
+      );
+      seriesByKey = new Map(
+        seriesOptions.map((series) => [series.key, series]),
+      );
+      seriesOrderByKey = new Map(
+        seriesOptions.map((series) => [
+          series.key,
+          new Map((series.members || []).map((slug, index) => [slug, index])),
+        ]),
+      );
+
+      const categoryDataNode = document.getElementById("leetcode-category-data");
+      categoryOptions = JSON.parse(categoryDataNode?.textContent || "[]").map(
+        unpackGuideOption,
+      );
+      categoriesByCollectionKey = new Map();
+      categoryOptions.forEach((category) => {
+        const members = categoriesByCollectionKey.get(category.collectionKey) || [];
+        members.push(category);
+        categoriesByCollectionKey.set(category.collectionKey, members);
+      });
+
+      practiceListOptions = [
+        {
+          key: practiceListKindSeries,
+          title: "系列题单总览",
+          titleEn: "Series map",
+          description:
+            "同一组内按基础题、编号变体和强关联变体组织；点击书内题可直接打开本页练习面板，付费题会保留标记。",
+          descriptionEn:
+            "Groups are ordered by base problem, numbered variants, and strongly related variants. In-book items open the local practice panel; paid items keep their marker.",
+          members: practiceListMembersFor(practiceListKindSeries),
+        },
+        {
+          key: practiceListKindHot100,
+          title: "Hot100 分类刷题单",
+          titleEn: "Hot 100 Topic List",
+          description:
+            "按主算法标签把 Hot100 拆成可连续练的小题单，分类按高频优先，组内按题号和系列递进顺序。",
+          descriptionEn:
+            "Hot 100 split by primary algorithm tag, with groups ordered by frequency and each group ordered by problem number and series progression.",
+          members: practiceListMembersFor(practiceListKindHot100),
+        },
+        {
+          key: practiceListKindByteDance,
+          title: "字节分类刷题单",
+          titleEn: "ByteDance Topic List",
+          description:
+            "按字节题库全量排名和主算法标签拆分，分类按高频优先，组内按题号和系列递进顺序。",
+          descriptionEn:
+            "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
+          members: practiceListMembersFor(practiceListKindByteDance),
+        },
+        {
+          key: practiceListKindLingShen,
+          title: "灵神题单",
+          titleEn: "LingShen Topic List",
+          description:
+            "按灵神「如何科学刷题」路线的 12 个专题串联，专题内保留原题单顺序和难度分。",
+          descriptionEn:
+            "The 12-topic LingShen practice route, preserving source order and ratings inside each topic.",
+          members: practiceListMembersFor(practiceListKindLingShen),
+        },
+      ];
+      practiceListByKey = new Map(
+        practiceListOptions.map((listOption) => [listOption.key, listOption]),
+      );
+      practiceListOrderByKey = new Map(
+        practiceListOptions.map((listOption) => [
+          listOption.key,
+          new Map((listOption.members || []).map((slug, index) => [slug, index])),
+        ]),
+      );
+      categoryById = new Map(
+        categoryOptions.map((category) => [category.id, category]),
+      );
+      categoryOrderById = new Map(
+        categoryOptions.map((category) => [
+          category.id,
+          new Map((category.members || []).map((slug, index) => [slug, index])),
+        ]),
+      );
+      problemBySlug = new Map(
+        problems.map((problem) => [problem.titleSlug, problem]),
+      );
+      defaultOrderBySlug = new Map(
+        problems.map((problem, index) => [problem.titleSlug, index]),
+      );
+      maxPageSize = problems.length || 20;
+    }
     const list = document.getElementById("leetcode-problem-list");
     const searchInput = document.getElementById("leetcode-search");
     const pageSizeSelect = document.getElementById("leetcode-page-size");
@@ -3010,6 +2866,9 @@ const shortcutRows = [
     const problemDetailBaseUrl =
       leetcodeShell?.dataset.problemDetailBaseUrl || "/books/leetcode/data/";
     const problemDataVersion = leetcodeShell?.dataset.problemDataVersion || "";
+    const problemSummaryUrl = withProblemDataVersion(
+      `${problemDetailBaseUrl}summary.json`,
+    );
     const problemSearchIndexUrl = withProblemDataVersion(
       `${problemDetailBaseUrl}search.json`,
     );
@@ -4348,6 +4207,21 @@ const shortcutRows = [
       return `${url}${separator}v=${encodeURIComponent(problemDataVersion)}`;
     }
 
+    async function loadProblemSummary() {
+      const response = await fetch(problemSummaryUrl, {
+        headers: { accept: "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error(`Problem summary request failed: ${response.status}`);
+      }
+      const payload = await response.json();
+      initializeProblemIndexes(payload);
+      if (!problems.length) {
+        throw new Error("Problem summary is empty");
+      }
+      return true;
+    }
+
     async function ensureProblemSearchIndex() {
       if (problemSearchIndexLoaded) return true;
       if (problemSearchIndexPromise) return problemSearchIndexPromise;
@@ -4383,11 +4257,16 @@ const shortcutRows = [
       return problemSearchIndexPromise;
     }
 
-    function scheduleProblemSearchIndexLoad() {
+    function scheduleProblemSearchIndexLoad({ idle = false } = {}) {
       if (!state.query || problemSearchIndexLoaded) return;
-      ensureProblemSearchIndex().then((loaded) => {
+      const load = () => ensureProblemSearchIndex().then((loaded) => {
         if (loaded && state.query) render();
       });
+      if (idle) {
+        runWhenIdle(load, 2200);
+        return;
+      }
+      load();
     }
 
     async function ensureProblemGuideIdeas() {
@@ -17139,61 +17018,83 @@ const shortcutRows = [
       }
     });
 
-    restoreViewStateControls();
-    const restoredDeckFilter = state.filters.deck;
-    if (restoredDeckFilter) {
-      ensureLingShenRoadmap().then((loaded) => {
-        if (state.filters.deck !== restoredDeckFilter) return;
-        if (!loaded) {
+    async function initializeLeetcodePage() {
+      try {
+        await loadProblemSummary();
+      } catch (error) {
+        console.warn("Could not load LeetCode problem summary", error);
+        if (list) {
+          list.innerHTML = `
+            <div class="leetcode-load-error">
+              ${
+                isChinesePage
+                  ? "题目索引加载失败，请刷新页面重试。"
+                  : "Problem index failed to load. Refresh to retry."
+              }
+            </div>
+          `;
+        }
+        return;
+      }
+
+      restoreViewStateControls();
+      const restoredDeckFilter = state.filters.deck;
+      if (restoredDeckFilter) {
+        ensureLingShenRoadmap().then((loaded) => {
+          if (state.filters.deck !== restoredDeckFilter) return;
+          if (!loaded) {
+            syncFilterButtons();
+            return;
+          }
+          if (!lingShenDeckById.has(restoredDeckFilter)) {
+            state.filters.deck = "";
+            scheduleViewStateWrite();
+          }
           syncFilterButtons();
-          return;
-        }
-        if (!lingShenDeckById.has(restoredDeckFilter)) {
-          state.filters.deck = "";
-          scheduleViewStateWrite();
-        }
-        syncFilterButtons();
-        render();
-      });
-    }
-    const directProblemSlug = applyDirectProblemLinkTarget();
-    render();
-    scheduleProblemSearchIndexLoad();
-    runWhenIdle(() => {
-      hydratePracticeEventStore();
-    }, 2500);
-    if (directProblemSlug) {
-      focusDirectProblemLinkTarget(directProblemSlug);
-    } else {
-      restoreViewStateAfterRender();
-    }
-    window.addEventListener("scroll", scheduleViewStateWrite, { passive: true });
-    window.setInterval(syncTimingUi, 1000);
-    window.setInterval(syncEditorDraftDay, editorDraftDayCheckIntervalMs);
-    window.addEventListener("blur", syncTimingUi);
-    window.addEventListener("focus", () => {
-      syncEditorDraftDay();
-      schedulePracticeEventReload();
-      syncTimingUi();
-    });
-    window.addEventListener("beforeunload", flushViewStateWrite);
-    window.addEventListener("pagehide", () => {
-      flushViewStateWrite();
-      syncTimingUi();
-    });
-    window.addEventListener("pageshow", () => {
-      syncEditorDraftDay();
-      schedulePracticeEventReload();
-      syncTimingUi();
-    });
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) flushViewStateWrite();
-      if (!document.hidden) {
+          render();
+        });
+      }
+      const directProblemSlug = applyDirectProblemLinkTarget();
+      render();
+      scheduleProblemSearchIndexLoad({ idle: true });
+      runWhenIdle(() => {
+        hydratePracticeEventStore();
+      }, 2500);
+      if (directProblemSlug) {
+        focusDirectProblemLinkTarget(directProblemSlug);
+      } else {
+        restoreViewStateAfterRender();
+      }
+      window.addEventListener("scroll", scheduleViewStateWrite, { passive: true });
+      window.setInterval(syncTimingUi, 1000);
+      window.setInterval(syncEditorDraftDay, editorDraftDayCheckIntervalMs);
+      window.addEventListener("blur", syncTimingUi);
+      window.addEventListener("focus", () => {
         syncEditorDraftDay();
         schedulePracticeEventReload();
-      }
-      syncTimingUi();
-    });
+        syncTimingUi();
+      });
+      window.addEventListener("beforeunload", flushViewStateWrite);
+      window.addEventListener("pagehide", () => {
+        flushViewStateWrite();
+        syncTimingUi();
+      });
+      window.addEventListener("pageshow", () => {
+        syncEditorDraftDay();
+        schedulePracticeEventReload();
+        syncTimingUi();
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) flushViewStateWrite();
+        if (!document.hidden) {
+          syncEditorDraftDay();
+          schedulePracticeEventReload();
+        }
+        syncTimingUi();
+      });
+    }
+
+    initializeLeetcodePage();
   </script>
 
   <style is:global>
