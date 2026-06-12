@@ -530,6 +530,7 @@ const leetcodeSeriesCatalog = buildSeriesCatalog(
   leetcodeSeriesDefinitions,
 );
 const leetcodeSeriesGroupsBySlug = leetcodeSeriesCatalog.groupsBySlug;
+export const leetcodeMergedProblems = mergedLeetcodeProblems;
 
 function buildRelatedQuestions(problem) {
   const seenSeriesSlugs = new Set();

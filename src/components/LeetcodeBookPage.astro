@@ -1409,9 +1409,6 @@ const leetcodeProblemsWithReferences = mergedLeetcodeProblems;
 const leetcodeProblemPayloadIndexBySlug = new Map(
   leetcodeProblemsWithReferences.map((problem, index) => [problem.titleSlug, index]),
 );
-function jsonScriptPayload(value) {
-  return JSON.stringify(value).replaceAll("<", "\\u003c");
-}
 
 function compactGroupIdea(idea) {
   return {
@@ -2457,9 +2454,6 @@ const shortcutRows = [
 
   </main>
 
-  <script type="application/json" id="leetcode-series-data" set:html={jsonScriptPayload(leetcodeSeriesFilterOptions)}></script>
-  <script type="application/json" id="leetcode-category-data" set:html={jsonScriptPayload(leetcodePracticeCategoryOptions)}></script>
-
   <script>
     const progressKey = "leetcode-book-progress-v1";
     const clickedKey = "leetcode-book-clicked-v1";
@@ -2727,14 +2721,12 @@ const shortcutRows = [
       );
     }
 
-    function initializeProblemIndexes(payload) {
-      problems = unpackRecords(payload);
-      problemSlugPayload = problems.map((problem) => problem.titleSlug);
-
-      const seriesDataNode = document.getElementById("leetcode-series-data");
-      seriesOptions = JSON.parse(seriesDataNode?.textContent || "[]").map(
-        unpackGuideOption,
-      );
+    function initializeProblemGuideIndexes(payload = {}) {
+      const seriesPayload = Array.isArray(payload?.series) ? payload.series : [];
+      const categoryPayload = Array.isArray(payload?.categories)
+        ? payload.categories
+        : [];
+      seriesOptions = seriesPayload.map(unpackGuideOption);
       seriesByKey = new Map(
         seriesOptions.map((series) => [series.key, series]),
       );
@@ -2745,10 +2737,7 @@ const shortcutRows = [
         ]),
       );
 
-      const categoryDataNode = document.getElementById("leetcode-category-data");
-      categoryOptions = JSON.parse(categoryDataNode?.textContent || "[]").map(
-        unpackGuideOption,
-      );
+      categoryOptions = categoryPayload.map(unpackGuideOption);
       categoriesByCollectionKey = new Map();
       categoryOptions.forEach((category) => {
         const members = categoriesByCollectionKey.get(category.collectionKey) || [];
@@ -2816,6 +2805,12 @@ const shortcutRows = [
           new Map((category.members || []).map((slug, index) => [slug, index])),
         ]),
       );
+      problemGuideIndexLoaded = true;
+    }
+
+    function initializeProblemIndexes(payload) {
+      problems = unpackRecords(payload);
+      problemSlugPayload = problems.map((problem) => problem.titleSlug);
       problemBySlug = new Map(
         problems.map((problem) => [problem.titleSlug, problem]),
       );
@@ -2871,6 +2866,9 @@ const shortcutRows = [
     );
     const problemSearchIndexUrl = withProblemDataVersion(
       `${problemDetailBaseUrl}search.json`,
+    );
+    const problemGuideIndexUrl = withProblemDataVersion(
+      `${problemDetailBaseUrl}guides.json`,
     );
     const problemGuideIdeasUrl = withProblemDataVersion(
       `${problemDetailBaseUrl}guide-ideas.json`,
@@ -4170,6 +4168,8 @@ const shortcutRows = [
     let activePracticeTimer = { elapsedMs: 0, slug: "", startedAt: 0 };
     let problemSearchIndexLoaded = false;
     let problemSearchIndexPromise = null;
+    let problemGuideIndexLoaded = false;
+    let problemGuideIndexPromise = null;
     let problemGuideIdeasLoaded = false;
     let problemGuideIdeasPromise = null;
     let timingMilestone = "";
@@ -4220,6 +4220,33 @@ const shortcutRows = [
         throw new Error("Problem summary is empty");
       }
       return true;
+    }
+
+    async function ensureProblemGuideIndex() {
+      if (problemGuideIndexLoaded) return true;
+      if (problemGuideIndexPromise) return problemGuideIndexPromise;
+      problemGuideIndexPromise = fetch(problemGuideIndexUrl, {
+        headers: { accept: "application/json" },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Problem guide index request failed: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((payload) => {
+          initializeProblemGuideIndexes(payload);
+          syncFilterButtons();
+          return true;
+        })
+        .catch((error) => {
+          console.warn("Could not load LeetCode guide index", error);
+          return false;
+        })
+        .finally(() => {
+          problemGuideIndexPromise = null;
+        });
+      return problemGuideIndexPromise;
     }
 
     async function ensureProblemSearchIndex() {
@@ -4965,6 +4992,12 @@ const shortcutRows = [
         viewStateWriteTimer = 0;
       }
       writeViewState();
+    }
+
+    function viewStateNeedsProblemGuideIndex() {
+      const filters = viewState?.filters;
+      if (!filters || typeof filters !== "object") return false;
+      return Boolean(filters.series || filters.category || filters.list);
     }
 
     function restoreViewStateControls() {
@@ -10674,6 +10707,12 @@ const shortcutRows = [
     }
 
     function applySeriesFilter(seriesKey, options = {}) {
+      if (seriesKey && !problemGuideIndexLoaded) {
+        ensureProblemGuideIndex().then((loaded) => {
+          if (loaded) applySeriesFilter(seriesKey, options);
+        });
+        return true;
+      }
       const key = seriesByKey.has(seriesKey) ? seriesKey : "";
       if (state.filters.series === key && !options.force) return false;
       state.filters.series = key;
@@ -10690,6 +10729,12 @@ const shortcutRows = [
     }
 
     function startSeriesPractice(seriesKey) {
+      if (seriesKey && !problemGuideIndexLoaded) {
+        ensureProblemGuideIndex().then((loaded) => {
+          if (loaded) startSeriesPractice(seriesKey);
+        });
+        return true;
+      }
       const key = seriesByKey.has(seriesKey) ? seriesKey : "";
       if (!key) return false;
       applySeriesFilter(key, { force: true });
@@ -10743,6 +10788,12 @@ const shortcutRows = [
     }
 
     function startPracticeList(kind) {
+      if (kind && !problemGuideIndexLoaded) {
+        ensureProblemGuideIndex().then((loaded) => {
+          if (loaded) startPracticeList(kind);
+        });
+        return true;
+      }
       const listOption = applyPracticeListFilter(kind, { force: true });
       if (!listOption) return false;
       setFlowMode(flowModeList);
@@ -10798,6 +10849,12 @@ const shortcutRows = [
     }
 
     function startCategoryPractice(categoryId) {
+      if (categoryId && !problemGuideIndexLoaded) {
+        ensureProblemGuideIndex().then((loaded) => {
+          if (loaded) startCategoryPractice(categoryId);
+        });
+        return true;
+      }
       const category = applyCategoryPracticeFilter(categoryId, { force: true });
       if (!category) return false;
       setFlowMode(flowModeList);
@@ -12005,6 +12062,35 @@ const shortcutRows = [
     function renderLazyGuide(details) {
       if (!(details instanceof HTMLElement) || details.tagName !== "DETAILS") return;
       if (details.dataset.lazyGuideRendered === "true") return;
+      if (details.dataset.lazyGuideRendered === "loading") return;
+      if (!problemGuideIndexLoaded) {
+        const body = details.querySelector(
+          details.dataset.lazyGuide === "series"
+            ? '[data-lazy-guide-body="series"]'
+            : '[data-lazy-guide-body="category"]',
+        );
+        if (body instanceof HTMLElement) {
+          body.innerHTML = `<p>${escapeHtml(
+            isChinesePage ? "题单索引加载中。" : "Loading the practice index.",
+          )}</p>`;
+        }
+        details.dataset.lazyGuideRendered = "loading";
+        ensureProblemGuideIndex().then((loaded) => {
+          details.dataset.lazyGuideRendered = "false";
+          if (!loaded) {
+            if (body instanceof HTMLElement) {
+              body.innerHTML = `<p>${escapeHtml(
+                isChinesePage
+                  ? "题单索引加载失败，请刷新页面重试。"
+                  : "Practice index failed to load. Refresh and try again.",
+              )}</p>`;
+            }
+            return;
+          }
+          renderLazyGuide(details);
+        });
+        return;
+      }
       if (details.dataset.lazyGuide === "series") {
         renderLazySeriesGuide(details);
       } else if (details.dataset.lazyGuide === "category") {
@@ -16300,7 +16386,7 @@ const shortcutRows = [
 
     searchInput?.addEventListener("input", (event) => {
       state.query = event.target.value.trim();
-      scheduleProblemSearchIndexLoad();
+      scheduleProblemSearchIndexLoad({ idle: true });
       scheduleSearchRender();
     });
 
@@ -17037,6 +17123,9 @@ const shortcutRows = [
         return;
       }
 
+      if (viewStateNeedsProblemGuideIndex()) {
+        await ensureProblemGuideIndex();
+      }
       restoreViewStateControls();
       const restoredDeckFilter = state.filters.deck;
       if (restoredDeckFilter) {
