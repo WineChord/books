@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "@fontsource-variable/source-serif-4";
 @import "katex/dist/katex.min.css";
 
 @plugin "@tailwindcss/typography";

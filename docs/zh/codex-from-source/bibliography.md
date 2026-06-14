@@ -3,7 +3,7 @@
 > **阅读契约：** 把本页当作证据清单。引用到自己的笔记前，先分清 public source anchors、product references 和 supporting material。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/evidence-inventory-bibliography.png" alt="bibliography page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evidence-inventory-bibliography.png" alt="参考文献证据清单：分开固定源码锚点、产品资料、标准和背景材料" loading="lazy" decoding="async" />
   <figcaption>书目把 Codex 一手来源与 Agent、MCP、Rust、TUI、安全和发布背景材料分开。</figcaption>
 </figure>
 
@@ -68,7 +68,7 @@
   [Artificial Intelligence Risk Management Framework 1.0](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10),
   2023 年 1 月 26 日。用于一般风险管理表述。
 - containers/bubblewrap,
-  [README](https://github.com/containers/bubblewrap/blob/f4cbeb44f293d21ef93aaf88b9bd2f4e229748ad/README.md)。用于 Linux
+  [README](https://github.com/containers/bubblewrap/blob/2f55bae38468d0c50cf5df87b1e481e882b63acb/README.md)。用于 Linux
   沙箱背景。
 - GitHub Docs,
   [About custom domains and GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/about-custom-domains-and-github-pages)。

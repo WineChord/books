@@ -1,21 +1,21 @@
-import StartupBootstrapTimeline from "../../../src/components/visual/StartupBootstrapTimeline.tsx";
 
 # 第 2 章：从分发包装器到 Rust Router
-
-<StartupBootstrapTimeline lang="zh" client:visible />
 
 > **阅读契约：** 用本章把启动过程读成逐步收窄。跟住 distribution wrapper、CLI parsing 和 Rust routing 如何把用户命令变成类型化路径，同时不让 packaging 拥有架构。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/startup-router-narrowing.png" alt="chapter 02 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/startup-router-narrowing.png" alt="启动路由收窄图：从 npm wrapper 穿过 invocation dispatch、Rust CLI router、product surfaces 和 shared runtime crates" loading="lazy" decoding="async" />
   <figcaption>启动路径把宽泛命令逐层收窄成类型化运行时入口：wrapper、Rust CLI、命令路由，再到具体 surface。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 1 章把 Codex 描述成一个有边界的操作系统：runtime 接收 typed operation，发出 event，并在副作用前执行策略闸门。本章进入用户触碰到的第一条边界：安装后的命令。这里的设计刻意保持不对称。JavaScript 负责分发机制，Rust 负责产品路由和 runtime 集成。
 
 这条分界很容易被低估。许多命令行产品从一个脚本开始，然后脚本逐渐长出业务行为。Codex 避免了这种形状。面向 npm 的入口选择正确的 native artifact，调整进程环境，转发信号，然后退出架构中心。Rust binary 解析命令，解析共享启动状态，并分发到不同产品接入面。
 
 结果不只是一个更快的可执行文件，而是一条架构边界：分发层可以知道 binary 怎样被找到，但不应该知道 Agent 怎样工作。
+
 
 ## 启动链路
 
@@ -33,7 +33,7 @@ import StartupBootstrapTimeline from "../../../src/components/visual/StartupBoot
 | 产品接入面 | TUI、exec、app-server、login、review、cloud、plugin、MCP。 | Config、auth 或 runtime loop 的重复实现。 |
 | 共享 runtime crates | Config、auth、protocol、session、tools、state、sandboxing。 | 分发渠道假设。 |
 
-## 作为交付胶水的 JavaScript
+### 作为交付胶水的 JavaScript
 
 包装器的工作很机械，但很关键。它把“用户运行了安装后的命令”转换为“正确的 native executable 正在带着正确环境运行”。这包括平台选择、optional dependency 查找、vendored artifact fallback、额外 helper path、包管理器标记和信号处理。
 
@@ -53,7 +53,7 @@ function wrapper_main(argv, environment):
 
 这段伪代码表达的是边界。包装器不会解析“启动 thread”或“批准 patch”。它转发参数，并保持进程行为。
 
-## 用调用名做路由
+### 用调用名做路由
 
 Native binary 启动后，Codex 还会根据可执行文件的调用方式进行第二层 dispatch。在类 Unix 系统里，一个 binary 可以在通过不同名字或受控参数调用时表现为多个 helper 工具。Codex 用这个模式支持 sandbox 启动、patch application、filesystem helper execution、shell escalation 等路径。
 
@@ -61,7 +61,7 @@ Native binary 启动后，Codex 还会根据可执行文件的调用方式进行
 
 这个模式也有代价：启动时必须在普通命令解析前检查 invocation metadata。这个检查必须保持窄而确定。如果它长成产品级命令处理，就会和 command router 竞争。只要控制得当，它能让 runtime 把稳定 helper path 传给后续子系统，而不是把安装布局写死。
 
-## Rust Router
+### Rust Router
 
 Command router 是产品第一次清晰显形的地方。它的根命令接收全局配置覆盖、feature toggles、remote options 和默认 interactive prompt。Subcommands 表示被支持的产品接入面。
 
@@ -79,13 +79,13 @@ Command router 是产品第一次清晰显形的地方。它的根命令接收�
 
 Router 不会让所有流程都变简单；它让这些流程变显式。读者只要看 command tree，就能在阅读 session loop 之前知道产品有哪些接入面。
 
-## 隐藏命令仍然是契约
+### 隐藏命令仍然是契约
 
 有些命令不会出现在普通 help 输出里，因为它们服务内部或实验流程。隐藏不等于随意。隐藏命令仍然有解析后的参数、测试和启动模型里的位置。这比把同样行为藏在临时环境变量或非结构化 shell 片段里更安全。
 
 这对 helper process 尤其重要。Sandbox、app-server proxy、schema generation、trace reduction、内部 relay 常常需要命令行入口。把它们作为 first-class parsed commands，可以让 release system、测试和其他 crates 以稳定方式调用它们。
 
-## 薄产品接入面
+### 薄产品接入面
 
 Router 的核心设计纪律，是让产品接入面成为共享 runtime crates 上的薄层。Interactive mode 不应该拥有独立 config resolver。Headless execution 不应该拥有独立 auth 模型。App-server 不应该发明第二套 thread store。Review 不应该变成不相关的 Agent loop。
 
@@ -93,13 +93,13 @@ Router 的核心设计纪律，是让产品接入面成为共享 runtime crates 
 
 这个 foundation 不是便利库，而是系统防止产品接入面漂移的架构手段。
 
-## Install Context 是元数据
+### Install Context 是元数据
 
 Codex 还会保留 install context。一个 binary 可能来自 npm、Bun、Homebrew、standalone archive、desktop app 或未知来源。不同来源可能需要不同的更新提示、bundled helper 发现或诊断信息。关键在于，install context 是元数据，而不是行为权限。它应该解释进程从哪里来、打包资源在哪里；它不应该决定模型能否编辑文件。
 
 这种分离避免交付关注点泄漏到策略层。Managed account requirement 应该约束 runtime 设置，而不关心 binary 怎样安装。Sandbox helper 应该能被发现，而不关心哪个产品接入面在运行。启动阶段把安装事实传下去，是为了让后续层不用重新探测世界。
 
-## Router 为什么影响后续章节
+### Router 为什么影响后续章节
 
 后续章节都依赖这条启动分界。配置和认证可以讲一次，因为所有主要命令路径都会到达同一个 foundation。协议可以作为产品边界来讲，因为 app-server、TUI 和 exec 都是共享 runtime 概念之上的接入面。工具执行可以作为 runtime capability 来讲，因为包装器不会绕过它。
 
@@ -123,7 +123,7 @@ Codex 还会保留 install context。一个 binary 可能来自 npm、Bun、Home
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| npm 启动包装器 | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L1) |
+| npm 启动包装器 | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L175) |
 | Rust 命令路由 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) |
 | App 命令边界 | [`codex-rs/cli/src/app_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/app_cmd.rs#L5) |
 | App-server daemon 命令 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L417) |

@@ -4,9 +4,11 @@
 > **Reading Contract:** Use this epilogue to decide what to reuse elsewhere. Translate Codex's nouns -- contract, authority, rollout, projection, and governance -- into your own agent runtime.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/transferable-agent-runtime-lessons.png" alt="epilogue hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/transferable-agent-runtime-lessons.png" alt="Transferable agent runtime lessons map from typed contracts through authority, rollout, projections, memory, and executable governance" loading="lazy" decoding="async" />
   <figcaption>The transferable lesson is not to copy every subsystem, but to keep vocabulary, side effects, surfaces, facts, and governance explicit.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 25 closed the implementation story with governance because that is where architecture either survives or turns into nostalgia. The epilogue is shorter and more opinionated. Codex is interesting not because every subsystem is the perfect subsystem, but because the system makes one coherent bet and pays the cost of that bet repeatedly.
 
@@ -58,7 +60,7 @@ Those costs are acceptable only because the product needs them. If you are build
 
 ## The Book's Final Mental Model
 
-If you remember one diagram, make it this one:
+Use the opening figure as the book's final map:
 
 The system is not a model call. It is a bounded operating environment for a model-driven worker. The more capable that worker becomes, the more valuable the boundaries become.
 

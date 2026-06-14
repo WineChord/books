@@ -1,19 +1,19 @@
-import ConstraintEnvelopeBuilder from "../../src/components/visual/ConstraintEnvelopeBuilder.tsx";
 
 # Chapter 3: Configuration, Authentication, and Managed Requirements
-
-<ConstraintEnvelopeBuilder lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to read configuration as constraints. Track how auth, policy, managed requirements, profiles, and environment facts become the envelope that later code must obey.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/config-auth-constraint-stack.png" alt="chapter 03 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/config-auth-constraint-stack.png" alt="Configuration and authentication constraint stack showing defaults, trusted project config, auth snapshot, managed requirements, and resolved permissions" loading="lazy" decoding="async" />
   <figcaption>Configuration is not decoration; it compiles defaults, profiles, auth, managed requirements, and permissions into the contract a turn must obey.</figcaption>
 </figure>
 
 Chapter 2 followed startup from a distribution wrapper into the Rust command router. Once the router knows which surface is being launched, it still cannot start the agent safely. It must first resolve the operating envelope: effective configuration, authenticated identity, feature state, and managed requirements.
 
 This chapter is about that envelope. Codex does not let every subsystem read whatever configuration file or environment variable it prefers. The system builds a resolved, source-aware view and hands later layers constrained runtime settings. That invariant is essential: the session loop, model provider, tools, app-server, hooks, and sandboxing code should consume the same answer to "what is allowed here?"
+
+**Source boundary:** claims about resolved permissions are **verified source** through [`config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L236), permission compilation is **verified source** through [`permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L300), and managed feature gates are **verified source** through [`managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L25). The chapter's "runtime envelope" language is a **surrounding contract inference** from those resolved shapes and from the public permission profile in [`app-server-protocol`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L375), not a claim about hidden service internals.
+
 
 ## Configuration Is a Stack, Not a File
 
@@ -23,7 +23,7 @@ The disabled layer in the diagram is important. Project-local configuration may 
 
 Layering also makes diagnostics possible. If a requested setting fails, Codex can distinguish "unknown field," "overridden by a higher-precedence layer," "disabled because the project is untrusted," and "rejected by requirements." Those are different problems with different remedies.
 
-## Preferences Versus Requirements
+### Preferences Versus Requirements
 
 A common configuration mistake is to treat all settings as preferences. Codex does not. A preference says what a user or surface would like. A requirement says what the environment permits. Requirements are restrictive overlays.
 
@@ -39,7 +39,7 @@ For example, a user preference may request a permissive sandbox mode. A managed 
 
 This is where Codex starts to look like an enterprise-ready local runtime. A managed account or host policy can constrain network behavior, filesystem access, approval style, hooks, plugins, MCP servers, web search, residency, and permission profiles without changing every product surface.
 
-## Trust-Gated Project Configuration
+### Trust-Gated Project Configuration
 
 Project configuration is useful because different repositories need different defaults. It is also dangerous because a repository can be supplied by someone else. A local agent that blindly honors project config would let the workspace configure the tool that is about to inspect and modify that same workspace.
 
@@ -67,7 +67,7 @@ function load_effective_settings(inputs):
 
 The pseudocode avoids source details, but it shows the key ordering: ordinary preferences merge first; requirements constrain after.
 
-## Feature Flags as Lifecycle Management
+### Feature Flags as Lifecycle Management
 
 Feature flags in Codex are not scattered string checks. They have names, defaults, stages, aliases, warnings, dependencies, and sometimes structured configuration. That centralization lets the product evolve without turning every subsystem into a compatibility table.
 
@@ -75,7 +75,7 @@ A feature may be experimental, staged, renamed, deprecated, or requirements only
 
 This is another example of bounded-OS thinking. A general program can check an environment variable wherever it wants. A runtime with multiple clients and generated contracts needs one normalized feature vocabulary.
 
-## Authentication as a Snapshot
+### Authentication as a Snapshot
 
 Configuration says what the process wants to do. Authentication says who is doing it and which backend capabilities can be used. Codex supports several auth shapes: API-key auth, ChatGPT OAuth, externally supplied bearer tokens, and agent identity flows used by task-oriented integrations.
 
@@ -83,13 +83,13 @@ The architecture hides those storage and refresh differences behind an auth mana
 
 The snapshot can represent different auth modes, but later layers should not care where a token was stored or how a refresh command was executed. They care whether an authenticated client can be constructed, whether account metadata is available, and whether policy requirements must be fetched.
 
-## Managed Requirements and Fail-Closed Behavior
+### Managed Requirements and Fail-Closed Behavior
 
 Managed requirements turn account or host policy into local constraints. They may be loaded from local managed configuration, platform management systems, or cloud-backed account policy. For eligible managed accounts, failure to load requirements can be a fail-closed condition. That choice is inconvenient by design. If the account requires centralized policy, silently proceeding without that policy would make the local runtime less trustworthy precisely when policy matters most.
 
 The requirements layer also preserves source information. A value constrained by cloud policy should be reported differently from a value constrained by a local requirements file. Source-aware errors make the system explainable to users, administrators, and client surfaces.
 
-## The Resolved Runtime Envelope
+### The Resolved Runtime Envelope
 
 By the time a command surface starts real work, it should receive a resolved runtime envelope:
 

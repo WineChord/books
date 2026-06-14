@@ -3,11 +3,11 @@
 > **Reading Contract:** Use this page to choose depth before you start. The recurring audit question is how a user request moves through operations, turns, model streams, tools, durable events, and client projections.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/codex-source-reading-routes.png" alt="reader-map hand-drawn architecture figure" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-routes.png" alt="Reader route map for moving from runtime contracts through side effects, client surfaces, extensions, and governance" loading="eager" decoding="async" />
   <figcaption>Pick a path before you read: a fast architecture route, a full implementation route, or a source-audit route after the narrative is clear.</figcaption>
 </figure>
 
-This book is written for source-equivalent understanding. You can still open the pinned source links, but the main reading path should teach the system without requiring a source checkout beside the book.
+This book is written for source-grounded understanding. You can still open the pinned source links, but the main reading path should teach the system without requiring a source checkout beside the book.
 
 ## Two Reading Tracks
 
@@ -35,7 +35,7 @@ You should be able to explain how one user request becomes a protocol operation,
 
 ## Two-Hour Path
 
-Use this path when you want source-reader knowledge without opening source:
+Use this path when you want source-grounded architecture knowledge without opening source:
 
 1. Read the preface, then Chapters 1-8 in order. This gives the contract,
    runtime, model, and observability spine.

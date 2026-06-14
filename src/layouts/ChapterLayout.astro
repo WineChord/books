@@ -33,6 +33,10 @@ const showPartHeader = page.number && part && isFirstChapterOfPartPage(page);
 const homePath = lang === "zh" ? `zh/${book.slug}/` : `${book.slug}/`;
 const brandTitle = lang === "zh" ? book.zhTitle : book.title;
 const brandShortTitle = lang === "zh" ? book.zhShortTitle : book.shortTitle;
+const socialImage =
+  book.slug === "codex-from-source"
+    ? "https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cover-codex-from-source.png"
+    : undefined;
 ---
 
 <BaseLayout
@@ -41,6 +45,7 @@ const brandShortTitle = lang === "zh" ? book.zhShortTitle : book.shortTitle;
   canonicalPath={canonicalPath(localized.path)}
   lang={lang}
   titleSuffix={brandTitle}
+  image={socialImage}
 >
   <ReadingProgress />
   <Header
@@ -61,9 +66,9 @@ const brandShortTitle = lang === "zh" ? book.zhShortTitle : book.shortTitle;
           <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-terracotta">
             {lang === "zh" ? `第 ${part!.number} 部` : `Part ${part!.number}`}
           </p>
-          <h2 class="font-serif text-2xl font-bold text-charcoal dark:text-cream">
+          <p class="font-serif text-2xl font-bold text-charcoal dark:text-cream">
             {lang === "zh" ? part!.zhTitle : part!.title}
-          </h2>
+          </p>
           <p class="mt-2 text-sm italic text-muted">
             {lang === "zh" ? part!.zhEpigraph : part!.epigraph}
           </p>
@@ -82,5 +87,6 @@ const brandShortTitle = lang === "zh" ? book.zhShortTitle : book.shortTitle;
 
   <script src="../scripts/copy-code.ts"></script>
   <script src="../scripts/focus-mode.ts"></script>
+  <script src="../scripts/responsive-tables.ts"></script>
   {hasMermaid && <script src="../scripts/mermaid-render.ts"></script>}
 </BaseLayout>

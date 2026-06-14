@@ -1,21 +1,21 @@
-import JsonRpcContractMap from "../../../src/components/visual/JsonRpcContractMap.tsx";
 
 # 第 14 章：App-Server 契约
-
-<JsonRpcContractMap lang="zh" client:visible />
 
 > **阅读契约：** 用本章理解 app-server 作为 contract boundary。跟住 JSON-RPC methods、request serialization、event mapping，以及客户端如何重新接入而不拥有 runtime。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/app-server-contract-bridge.png" alt="chapter 14 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-contract-bridge.png" alt="JSON-RPC app-server 契约桥：统一 transport、按资源串行化、映射 runtime event，并让客户端重新接入共享 thread" loading="lazy" decoding="async" />
   <figcaption>App-server 是契约桥：JSON-RPC methods、request processors、thread runtime、event mapping 和 client views 保持对齐。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 13 章停在 runtime 边界：permissions、sandbox selection 和 managed networking 决定一次 tool attempt 可以触碰什么。本章再往外走一层。当 runtime 已经能够执行这些决策，它还需要一份契约，让 terminal client、SDK client、 daemon 管理的 client 和 remote client 共享同一套 thread，而不是共享同一份实现。
 
 App-server 就是这份契约。它很容易被误读成一个本地 Web API：请求进来，响应出去，状态藏在 server 后面。源码里的结构更接近一个运行在本机、也可能跨过 remote-control bridge 的小型分布式系统。它负责统一 transports，按资源序列化工作，把 runtime events 转成 client 可见的 items，保存足够的历史以便 client 重新加入，并在 runtime 需要人或 client 做决定时发出 server-to-client requests。
 
 更有用的心智模型不是“core 外面包了一层 HTTP”，而是“围绕 thread ownership 的 protocol boundary”。Client 不拥有 agent loop。Client 拥有 connection、capabilities、UI state，以及对 server requests 的响应。Server 拥有 thread lifecycle、turn submission、replay、status derivation，以及 core events 到公开契约的映射。
+
 
 ## 契约表面
 
@@ -32,7 +32,7 @@ App-server protocol 有四种可见形状。
 
 这张图省略了很多具体 request family，但保留了支配性思想：incoming bytes 不能直接进入 core。它们要经过 transport normalization、initialization checks、feature gates、resource serialization 和 request processors。Outgoing data 也不是裸 core event stream，而是经过 lifecycle handlers、history builders、pending request tracking、compatibility filtering 和每个 connection 的 send queue。
 
-## Transport Normalization
+### Transport Normalization
 
 App-server 可以通过多种 transport 访问：standard I/O、本地 socket、类似 WebSocket 的 channel、in-process client，或 remote-control stream。Protocol 层不应该关心消息由哪条路径带来。它需要的是 incoming message、outgoing sender、connection metadata，以及检测 cancellation 或 disconnect 的方式。
 
@@ -40,7 +40,7 @@ App-server 可以通过多种 transport 访问：standard I/O、本地 socket、
 
 这也解释了为什么即使所有 process 都在同一台机器上，local app-server 仍然像分布式系统。Client 可能断开。Response 可能延迟。Notification 可能需要 replay 给重新加入的 client。某个 connection 可能支持 experimental method，而另一个 connection 不支持。慢速 receiver 会带来 backpressure。契约必须显式处理这些情况，不能依赖普通函数调用的假设。
 
-## Initialization 与 Capability Gates
+### Initialization 与 Capability Gates
 
 Connection 使用 runtime 前，必须先说明自己是什么 client。Initialization 记录 client identity、支持的 protocol concepts 和 feature capability。之后 request handling 会应用两类检查。
 
@@ -48,7 +48,7 @@ Connection 使用 runtime 前，必须先说明自己是什么 client。Initiali
 
 关键设计点是：capability 属于 connection，而 thread 可以被共享。Thread 可以比创建它的 client 活得更久，另一个 client 可以稍后 resume 或 observe 它。因此 app-server 不能只把“client 能理解什么”存在 thread 上；它还必须记住 connection contract，并在边界处应用它。
 
-## Request Serialization
+### Request Serialization
 
 不是所有 request 都能同时运行。全局 settings 写入、thread resume、process operation 和 filesystem watch update 会干扰不同资源。App-server 使用 resource-scoped serialization，所以不必在“不安全并发”和“一个全局大锁”之间二选一。
 
@@ -84,7 +84,7 @@ pseudocode: message handling
 
 这段 pseudocode 故意保持朴素。架构事实是 validation 和 execution 之间的 queue。正是这个 queue，把多个并发 client 变成对共享 runtime state 的有序操作。
 
-## Threads、Turns 与 Items
+### Threads、Turns 与 Items
 
 App-server 用用户可见模型暴露 runtime：threads 包含 turns；turns 产生 items；items 可以 replay、update 或 complete。Core 内部可以有更细的 events，但 client 不应该理解每一种内部 runtime message。它们需要一份稳定契约，说明 conversation 是什么，以及它如何变化。
 
@@ -92,13 +92,13 @@ Thread start 是最清楚的例子。Server 加载 effective configuration，验
 
 Response 和 notification 的分离非常关键。Request response 表示 server 接受并启动了操作；notifications 表示操作在时间中发生了什么。这样 long-running turn 不会阻塞整个 request processor，同时 client 仍然能获得结构化进度。
 
-## Event Mapping
+### Event Mapping
 
 Core runtime 用自己的词汇发出 events。App-server 把这些 events 映射成 client-facing notifications 和 server requests。有些映射很直接：turn started、item appeared、output grew、command finished、turn completed。另一些是 lifecycle decisions：thread 变成 idle、active、input-pending 或 system-error。还有一些是双向的：file change 或 command approval 需要 client 回答后才能继续。
 
 这个 mapping layer 也是 app-server 保护 clients 免受内部变化影响的地方。Core 可以增加更细的 event，或改变内部 rollout 表达，而不强迫每个 client 同时改变。公开契约应该有意识地演进：新的 item kind、新的 notification fields、新的 server request，都应该通过版本或 gate 管理，让 client 能承受过渡期。
 
-## Replay 与 Rejoin
+### Replay 与 Rejoin
 
 Threads 足够持久，client 可以离开后再回来。Rejoin 不只是“打开当前 transcript”。Server 必须从存储的 rollout data 重建 client view，然后接入 live stream，并且不能丢失或重复 events。
 
@@ -106,7 +106,7 @@ Threads 足够持久，client 可以离开后再回来。Rejoin 不只是“打�
 
 App-server 用 thread 周围的 listener state 和 command queues 解决这个问题。Resume operation 可以向已加载 thread 请求有序 replay 和 subscription behavior，而不是在旁边重建第二份模型。得到的状态来自 runtime facts：loaded state、active turns、pending approvals、pending user input、system errors 和 listener history。
 
-## Server-To-Client Requests
+### Server-To-Client Requests
 
 Server requests 是这份契约最能区分 agent runtime 和传统服务的部分。Server 可以在 runtime 继续之前，请 client 做一件事。
 
@@ -122,19 +122,19 @@ Server requests 是这份契约最能区分 agent runtime 和传统服务的部�
 
 Server 会跟踪这些 pending requests，因为它们属于 turn state。Runtime 正等待某个 client 回答时，client disconnect 不能被当作无害 UI 事件。根据 request type 和 policy，server 可能 cancel、timeout、reassign、replay，或报告 turn 正处于 input-pending。
 
-## Backpressure 与 Overload
+### Backpressure 与 Overload
 
 契约也必须说明 clients 或 transports 跟不上时会发生什么。没有 backpressure，快速 runtime 会构造无界 outbound queues，或者嘈杂 client 会用 work 淹没 processor。App-server 把 overload 当作 protocol concern，而不仅是日志 concern。
 
 Ingress backpressure 保护 request processing。Outbound backpressure 保护每个 connection。Resource queues 保护共享 state。Pending server requests 防止双向工作被遗忘。这些机制并不华丽，但它们定义了产品的可靠性边界。如果一个 well-typed notification 在描述关键状态转换时被静默丢弃，它就没有实际价值。
 
-## Derived Status
+### Derived Status
 
 Clients 想要简单 status：loaded、idle、active、waiting for input、waiting for approval 或 failed。Runtime 并不把这个 status 存成一个单一 truth field。它从事实派生：thread 是否 loaded，是否有 active turn，是否有 pending server requests，listener 是否看到未恢复的 system error，当前 operation 是否在等待用户输入。
 
 Derived status 比复制状态更安全。如果 server 维护一个独立的 `threadStatus` 字段，每个边缘情况都可能造成 drift。Derivation 让 server 从同一批 events 和 pending-work records 重建 status，而这些事实也正是 replay 的来源。
 
-## Trace Ledger
+### Trace Ledger
 
 | 问题 | 第 14 章答案 |
 | --- | --- |

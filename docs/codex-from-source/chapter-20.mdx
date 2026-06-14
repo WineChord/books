@@ -1,19 +1,19 @@
-import AgentGraphBoard from "../../src/components/visual/AgentGraphBoard.tsx";
 
 # Chapter 20: Multi-Agent Coordination
-
-<AgentGraphBoard lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to understand multi-agent coordination. Track graph edges, parent and child thread boundaries, live updates, trace graphs, and the ownership of outcomes.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/multi-agent-coordination-graph.png" alt="chapter 20 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/multi-agent-coordination-graph.png" alt="Multi-agent coordination graph showing parent and child threads, spawn edges, mailboxes, wait states, outcomes, and trace reduction" loading="lazy" decoding="async" />
   <figcaption>Multi-agent work is a graph of explicit edges: spawn, mailbox, result, close, live updates, and trace evidence.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 19 closed Part V by showing how Codex imports outside agent configurations and sessions without pretending that every foreign concept maps cleanly into its own runtime. This chapter turns that compatibility lesson forward: once Codex has a native thread model, coordination between multiple agents is represented as explicit relationships between threads, tools, messages, and results.
 
 The important shift is that "multi-agent" is not a bag of background prompts. It is a graph problem. A parent thread can spawn a child, assign or send work, wait for completion, receive a result, and close the relationship. Each action has a live runtime effect, a client-visible event shape, and a durable trace shape. Codex keeps those concerns separate so a collaboration can be resumed, debugged, and rendered without relying on terminal text or a hidden global scheduler.
+
 
 ## The Coordination Unit Is Still a Thread
 
@@ -33,7 +33,7 @@ The parent-child topology is persisted by a narrow graph store. It knows that a 
 
 This diagram intentionally separates graph persistence from trace reduction. The graph store answers operational questions such as "which descendants are still open?" The trace graph answers explanatory questions such as "which tool call delivered the task that produced this result?"
 
-## Agent-Control Tools Are Coordination Edges
+### Agent-Control Tools Are Coordination Edges
 
 An agent-control tool is not just another function call. It names another thread as a participant in the conversation. That is why Codex treats the main multi-agent actions as relationship-producing events:
 
@@ -50,7 +50,7 @@ The "mailbox" term is useful as a mental model. The sender performs a tool call.
 
 Codex handles that by reducing events into interaction edges. An interaction edge has a source anchor, a target anchor, a kind, timing, carried item ids, and raw evidence references. The source may be a tool call. The target may be a conversation item or, in failure cases, a thread. The edge records information flow without claiming that the two endpoints were created at the same time.
 
-## Live Graph Versus Trace Graph
+### Live Graph Versus Trace Graph
 
 There are two useful graphs, and confusing them creates design mistakes.
 
@@ -60,7 +60,7 @@ The trace graph is a semantic reconstruction. It is built from raw protocol, run
 
 The live graph should remain small because it participates in the running system. The trace graph can be richer because it is a replay artifact. This is the same "observe first, interpret later" pattern from Chapter 8, applied to multi-agent coordination.
 
-## Pending Queues Make Races Explicit
+### Pending Queues Make Races Explicit
 
 The hardest part of the reducer is not recognizing a spawn or send action. The hard part is ordering. The parent may finish a tool call before the child has a model-visible task item. A child may fail before its final assistant message is available. A close operation may name a target that never produced a reduced thread. A result notification may arrive as runtime status rather than normal conversation content.
 
@@ -95,7 +95,7 @@ procedure finish_replay():
 
 The graph-store and rollout-trace reducers named in the source map implement the concrete version of this queue. The reducer does not force all events into an immediate edge. It waits until the best target is known, then falls back only where the runtime evidence still proves a real relationship.
 
-## Descendant Traversal Is a Policy Choice
+### Descendant Traversal Is a Policy Choice
 
 Listing descendants sounds mechanical, but it encodes a policy. When a caller asks for open descendants, Codex walks only through open edges. That means a grandchild below a closed child is not returned even if the grandchild's own incoming edge is open. The filter prunes traversal, not merely the final row set.
 
@@ -103,7 +103,7 @@ That behavior matters because "open collaboration tree" is an operational questi
 
 Another subtle choice is that updating the status of a missing child can be a successful no-op. That makes close handling idempotent across races and partial state. A close event can be replayed or received after cleanup without turning the graph store into a source of avoidable errors.
 
-## Collaboration Events Are Product Events
+### Collaboration Events Are Product Events
 
 Multi-agent coordination must be visible to clients. Otherwise users cannot understand why a child exists, why a task is still running, or why a result appeared in the parent thread. Codex therefore emits collaboration events in addition to mutating thread state. Those events let clients render child status, mailbox deliveries, result notifications, and close operations without reverse-engineering tool output.
 
@@ -117,7 +117,7 @@ The architectural boundary is:
 
 This prevents the common failure mode where the parent transcript becomes the only record of collaboration. A transcript may be compacted, summarized, or formatted for humans. Coordination needs stronger identity and lifecycle semantics than prose can provide.
 
-## Failure Modes
+### Failure Modes
 
 A multi-agent system fails confusingly when it loses identity. The thread id, agent path, tool call id, model-visible call id, and conversation item id serve different purposes. A child thread's nickname is useful presentation metadata, not identity. A tool call proves that the parent requested an action, but the receiver-side conversation item proves where the message entered the child. A result notification proves delivery to the parent, but not necessarily that the child produced a normal assistant message.
 
@@ -145,8 +145,8 @@ Multi-agent Codex is still Codex: threads, turns, tools, events, and replayable 
 | --- | --- |
 | Graph edge status | [`codex-rs/agent-graph-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7) |
 | Local graph store | [`codex-rs/agent-graph-store/src/local.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/local.rs#L13) |
-| Agent trace reducer | [`codex-rs/rollout-trace/src/reducer/tool/agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L1) |
-| Session multi-agent integration | [`codex-rs/core/src/session/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/multi_agents.rs#L1) |
-| Multi-agent tool handlers | [`codex-rs/core/src/tools/handlers/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents.rs#L1) |
+| Agent trace reducer | [`codex-rs/rollout-trace/src/reducer/tool/agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L62) |
+| Session multi-agent integration | [`codex-rs/core/src/session/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/multi_agents.rs#L6) |
+| Multi-agent tool handlers | [`codex-rs/core/src/tools/handlers/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents.rs#L40) |
 
 </div>

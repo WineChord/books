@@ -1,19 +1,19 @@
-import MemorySideChannel from "../../src/components/visual/MemorySideChannel.tsx";
 
 # Chapter 22: Memories and User-Level State
-
-<MemorySideChannel lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to keep memory as a controlled side channel. Track read prompts, write prompts, user-level state, budgets, and why memory is not just hidden transcript.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/memory-side-channel-governance.png" alt="chapter 22 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-side-channel-governance.png" alt="Memory side-channel governance map separating read prompts, write pipeline, citations, locks, redaction, consolidation, and storage" loading="lazy" decoding="async" />
   <figcaption>Memory is a controlled side channel: reads, writes, budgets, locks, redaction, consolidation, and storage are intentionally separate.</figcaption>
 </figure>
 
 Chapter 21 separated cloud tasks from local turn execution: remote work has its own task contract, identity layer, and local apply boundary. Memories use the same architectural discipline. Long-term context is not hidden chat history. It is a controlled side channel with a read path, a write path, storage rules, locks, redaction, and a restricted internal agent for consolidation.
 
 This chapter is about why that extra machinery exists. A memory system can make an agent feel continuous across sessions, but it can also leak stale facts, overfit to old conversations, or smuggle sensitive content into future prompts. Codex treats memory as an explicit subsystem so the runtime can benefit from long-term context without surrendering control of what is read, written, and cited.
+
+**Source boundary:** memory usage kinds are **verified source** in [`usage.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/usage.rs#L8), citation parsing is **verified source** in [`citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6), and the read-only service and write phases are **verified source** in [`memories/mcp`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/mcp/src), [`phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70), and [`phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L45). The chapter's safety rationale is a **surrounding contract inference** from those visible rails, not a claim about hidden memory service behavior.
+
 
 ## Memory Has Separate Read and Write Paths
 
@@ -23,7 +23,7 @@ The write path runs in the background at root-session startup. It scans eligible
 
 The separation prevents a common mistake: letting the active model write its own future instructions directly. Codex can use models to extract and consolidate memory, but those models run inside a bounded pipeline rather than inside the user's ordinary turn.
 
-## Read Path: Useful but Read-Only
+### Read Path: Useful but Read-Only
 
 The read path has two jobs. First, it can inject a bounded summary into the active session's developer instructions. That gives the model a compact view of known long-term context without forcing it to scan a directory. Second, the MCP memory service lets the model list, read, and search memory files when it needs more evidence.
 
@@ -31,7 +31,7 @@ The MCP service is deliberately read-only and path-scoped. It rejects parent dir
 
 Search is also structured. A request can match any query, require all queries on the same line, or require all queries within a line window. The response contains matching content, line numbers, matched queries, pagination, and a truncation flag. That is a tool contract, not terminal grep output.
 
-## Citations Connect Memory Back to Evidence
+### Citations Connect Memory Back to Evidence
 
 Memory needs provenance. Codex parses citation blocks into structured entries and rollout or thread ids. A citation can point to memory artifact locations and also to the rollouts that produced the memory. This lets clients and later runtime logic distinguish "the model used a memory" from "the model mentioned a fact that happened to be remembered."
 
@@ -39,7 +39,7 @@ The citation system is intentionally narrow. It does not attempt to prove every 
 
 A citation can be thought of as a compact receipt: "this memory artifact came from these rollout or thread sources and was used in this read path." The receipt is not model authority. It is runtime accounting. Later selection logic can prefer memories that are cited and recently useful, and pruning can remove artifacts that are neither fresh nor used.
 
-## Stage 1 Extracts Per-Rollout Memory
+### Stage 1 Extracts Per-Rollout Memory
 
 Stage 1 is parallel and bounded. At startup, Codex claims eligible rollout jobs from the state database. Eligibility depends on session source, age, idle time, scan limits, claim limits, and lease ownership. That prevents memory extraction from racing active sessions or duplicating work across concurrent startups.
 
@@ -73,7 +73,7 @@ procedure stage_one_startup():
 
 The model is useful here because memory extraction is semantic. The deterministic rails around it are equally important: claim leases, schema shape, redaction, bounded concurrency, retry accounting, and database persistence.
 
-## Stage 2 Consolidates Global Memory
+### Stage 2 Consolidates Global Memory
 
 Stage 2 is serialized. It claims a single global lock before touching the memory workspace. Then it prepares a git-baseline workspace, builds a locked down configuration for the internal agent, loads selected Stage 1 outputs, synchronizes raw memory artifacts and rollout summaries, prunes stale generated resources, and asks git whether the workspace changed.
 
@@ -81,7 +81,7 @@ If there is no diff, Stage 2 can mark success without running a model. If there 
 
 The git baseline is not for collaboration. It is a deterministic diff engine for the memory workspace. Stage 2 uses the diff to decide whether consolidation is needed and to give the internal agent a bounded view of changed artifacts.
 
-## The Internal Agent Is Deliberately Restricted
+### The Internal Agent Is Deliberately Restricted
 
 Stage 2 uses a model-guided agent because consolidation is editorial work: merge related memories, update summaries, and maintain higher-level memory artifacts. But that agent is not a normal user-facing session.
 
@@ -98,7 +98,7 @@ Its configuration is constrained:
 
 This is the core safety pattern of the memory system. Codex allows a model to perform the semantic part, but it removes ambient authority. The internal agent can edit memory artifacts; it cannot browse the network, call arbitrary tools, delegate to more agents, or create another memory loop.
 
-## Memory Selection Is Usage-Aware
+### Memory Selection Is Usage-Aware
 
 Stage 2 does not simply consolidate every Stage 1 output forever. It selects a bounded set. Outputs can age out based on unused time. Items with recorded usage are ranked by usage count and recency; items without usage can fall back to generation time so fresh memories are not ignored just because they have not yet been cited.
 
@@ -106,7 +106,7 @@ Selection affects the workspace. Raw memories are rendered in stable order to av
 
 This design treats memory as state with lifecycle, not as append-only lore. A memory that is never used can disappear from the active set. A memory that is used can remain eligible. The system keeps enough accounting to make that decision outside the model.
 
-## Failure Modes
+### Failure Modes
 
 Memory failures are dangerous when they are silent. Codex therefore chooses fail-soft behavior for startup integration but explicit accounting inside the pipeline. If the session is ephemeral, memory is disabled, the session is a sub-agent, or the state database is unavailable, startup generation is skipped. If backend rate limits are too low, generation is skipped rather than consuming scarce tokens. If Stage 1 extraction fails, the job is marked failed with retry backoff. If Stage 2 cannot hold the global lock, it does not mutate the workspace.
 
@@ -133,9 +133,9 @@ Memories complete Part VI's theme. Multi-agent work needed interaction edges; cl
 | Concept | Source anchor |
 | --- | --- |
 | Memory usage kinds | [`codex-rs/memories/read/src/usage.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/usage.rs#L8) |
-| Citation parser | [`codex-rs/memories/read/src/citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L1) |
+| Citation parser | [`codex-rs/memories/read/src/citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6) |
 | Read-only MCP memory service | [`codex-rs/memories/mcp/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/mcp/src) |
-| Stage 1 extraction | [`codex-rs/memories/write/src/phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L1) |
-| Stage 2 consolidation | [`codex-rs/memories/write/src/phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L1) |
+| Stage 1 extraction | [`codex-rs/memories/write/src/phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70) |
+| Stage 2 consolidation | [`codex-rs/memories/write/src/phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L45) |
 
 </div>

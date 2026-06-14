@@ -1,19 +1,19 @@
-import SubmissionFlowExplorer from "../../src/components/visual/SubmissionFlowExplorer.tsx";
 
 # Chapter 4: The Protocol Boundary
-
-<SubmissionFlowExplorer lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter as the vocabulary gate. Track operations, events, items, submissions, and protocol schemas as the shared language that clients, sessions, and replay use.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/protocol-boundary-taxonomy.png" alt="chapter 04 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/protocol-boundary-taxonomy.png" alt="Protocol boundary taxonomy for submissions, operations, events, items, app-server messages, generated schemas, and compatibility" loading="lazy" decoding="async" />
   <figcaption>The protocol vocabulary is the shared language: operations enter, submissions queue, events emit, items render, and schemas keep clients aligned.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 3 established that Codex starts work only after configuration, authentication, feature state, and managed requirements have been resolved into a constrained runtime envelope. This chapter explains the language that carries work across that envelope. The protocol boundary is where product intent stops being private method calls and becomes durable messages: submissions, events, model items, app-server JSON-RPC requests, server-to-client requests, and generated schemas.
 
 The protocol is a product boundary, not a serialization afterthought. It tells clients what they may ask for, tells the runtime what it must report, and tells future versions what compatibility obligations they have inherited.
+
 
 ## Core Runtime Protocol
 
@@ -30,7 +30,7 @@ This split lets the runtime behave like an evented kernel. Clients do not call p
 
 The sequence is simplified, but the contract is accurate: the runtime is the only component that converts submitted intent into durable progress.
 
-## Items Are Not Just Messages
+### Items Are Not Just Messages
 
 In a simple chat application, "message" can carry most of the system. Codex needs a richer item vocabulary. A thread may contain user text, images, model output, reasoning summaries, command calls, command output, file changes, approval records, tool observations, plan updates, hook activity, realtime transcripts, and collaboration events.
 
@@ -38,7 +38,7 @@ Calling all of these "messages" would hide the key distinction: different items 
 
 The item model is therefore an architectural vocabulary. It lets the runtime, app-server, terminal UI, SDKs, and rollout reducers agree on what kind of fact they are handling.
 
-## App-Server JSON-RPC
+### App-Server JSON-RPC
 
 App-server introduces a second protocol boundary. It is not a replacement for the core runtime protocol; it is a client-facing distributed-system layer around threads, turns, items, approvals, filesystem APIs, process APIs, MCP, plugins, account state, and remote-control flows.
 
@@ -60,7 +60,7 @@ The mapping from core events to app-server items is the most important translati
 
 A client should not reconstruct this projection by parsing terminal text. The server does that mapping once, exposes stable item and notification shapes, and keeps enough request ids and pending-request state to reconnect decisions to the turns they unblock.
 
-## From App Request to Core Operation
+### From App Request to Core Operation
 
 The app-server model uses user-facing concepts such as thread, turn, item, and environment selection. The core runtime uses submissions and operations. A request to start a turn therefore has to be validated and translated.
 
@@ -92,7 +92,7 @@ function map_core_event(event):
 
 Again, this is pseudocode. The important idea is translation with validation. App-server is not a tunnel that blindly forwards arbitrary JSON into the core. It owns a client contract and maps that contract onto runtime operations.
 
-## Generated Schemas as Governance
+### Generated Schemas as Governance
 
 Generated schemas make the protocol auditable outside Rust. JSON Schema and TypeScript-facing artifacts let clients, tests, and release checks detect drift. They also force the source types to carry enough metadata for stable and experimental surfaces to be separated.
 
@@ -100,7 +100,7 @@ Schema generation is a form of architectural governance. Without it, a field can
 
 This is especially important because Codex has more than one client generation target. A Rust app-server client, a Python SDK, generated TypeScript bindings, and test clients all need a shared understanding of the wire model even when they expose different ergonomics.
 
-## Compatibility Is a Code Path
+### Compatibility Is a Code Path
 
 Protocol compatibility in Codex is explicit. Legacy aliases are accepted for some values. Older request forms coexist with newer turn-context operations. App-server v1 and v2 concepts overlap. Experimental fields are gated by connection capability and filtered from stable schema output. Deprecated fields may remain accepted even when ignored so older clients keep working.
 
@@ -108,7 +108,7 @@ This is not accidental clutter. It is the cost of a protocol boundary that other
 
 The bounded-OS analogy helps here too. Operating systems carry compatibility for old system calls because applications depend on them. Agent runtimes that want multiple clients inherit a smaller version of the same obligation.
 
-## What Can Enter and Leave
+### What Can Enter and Leave
 
 By the end of Part I, the architecture has four gates:
 
@@ -139,8 +139,8 @@ Part I established the contract: distribution reaches the Rust router, the route
 | --- | --- |
 | Core submissions and events | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L125) |
 | App-server JSON-RPC envelope | [`codex-rs/app-server-protocol/src/jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L37) |
-| V2 protocol families | [`codex-rs/app-server-protocol/src/protocol/v2/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/mod.rs#L1) |
+| V2 protocol families | [`codex-rs/app-server-protocol/src/protocol/v2/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/mod.rs#L3) |
 | Event-to-item mapping | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L30) |
-| Schema export | [`codex-rs/app-server-protocol/src/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L1) |
+| Schema export | [`codex-rs/app-server-protocol/src/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L54) |
 
 </div>

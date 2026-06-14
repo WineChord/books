@@ -3,7 +3,7 @@
 > **阅读契约：** 把本页当作决策清单。先从你要解决的问题出发，再跳回解释该 pattern 和 failure mode 的章节。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/reusable-agent-pattern-index.png" alt="patterns page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/reusable-agent-pattern-index.png" alt="可复用 agent 模式索引：连接 typed boundaries、queue-pair runtime、tools、approvals、sandboxes、extensions 与共享 surfaces" loading="lazy" decoding="async" />
   <figcaption>模式索引把反复出现的设计动作变成清单，并保持和章节、源码证据相连。</figcaption>
 </figure>
 

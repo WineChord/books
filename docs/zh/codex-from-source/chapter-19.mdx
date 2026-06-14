@@ -1,15 +1,14 @@
-import CompatibilityLaneBoard from "../../../src/components/visual/CompatibilityLaneBoard.tsx";
 
 # 第 19 章：外部迁移与向后兼容
-
-<CompatibilityLaneBoard lang="zh" client:visible />
 
 > **阅读契约：** 用本章把 migration 当成架构。跟住 compatibility lanes、session import、legacy shapes，以及 adapters 如何防止旧状态污染新契约。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/compatibility-lane-adapters.png" alt="chapter 19 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/compatibility-lane-adapters.png" alt="兼容性通道：展示外部配置迁移、session import、adapter 与旧状态保护" loading="lazy" decoding="async" />
   <figcaption>Compatibility lanes 让 Codex 能导入旧形态或外部形态，同时保护 native runtime model 不继承含糊边界。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 18 章把 extension planes 拆成 skills、plugins、connectors 和 typed extensions。本章追问：当用户带着并非诞生于这些 planes 的既有 agent configurations 与 histories 进入 Codex 时，系统应该怎么办？Migration 是桥，compatibility 是纪律，防止这座桥变成一堆不可维护的特判。
 
@@ -22,6 +21,7 @@ import CompatibilityLaneBoard from "../../../src/components/visual/Compatibility
 Agent system 的 backward compatibility 不只是接受旧 API 字段。它还意味着接纳用户已有历史、工作习惯和本地自动化，同时不能让模糊行为变成隐藏权限。Codex 把 migration 当作受控 import path：读取 source artifact，识别 supported constructs，翻译成 Codex-native shapes，跳过 unsafe 或 dynamic cases，并记录足够 metadata 以避免重复导入。
 
 最后一个节点很重要。迁移后的 hook 应作为 Codex hook 运行；迁移后的 command 应表现为 Codex skill 或 workflow unit；导入的 session 应成为 rollout history。Migration layer 不应该留在 turn loop 里。
+
 
 ## Configuration Migration
 
@@ -56,7 +56,7 @@ for each source_entry in external_config:
 
 这是通过翻译实现 compatibility，而不是通过无边界解释实现 compatibility。
 
-## Session Import
+### Session Import
 
 Session import 与 config migration 不同，因为 history 不是未来能力，而是过去对话的证据。External JSONL sessions 可能包含 user messages、assistant messages、tool calls、tool outputs、titles、working directories、token usage 和 source-specific records。Codex 必须把足够多历史翻译成自己的 rollout items，才能让 thread 与 history reconstruction 理解。
 
@@ -64,7 +64,7 @@ Import path 因此会检测 candidate sessions，验证 working context 仍存�
 
 这个设计同时保留两个事实：导入对话可作为 Codex history 使用；它也仍然带着 imported history 的 provenance。
 
-## 不让兼容变成语义漂移
+### 不让兼容变成语义漂移
 
 最危险的 migration bug 不是 parse failure，而是成功导入后改变了含义。Agent systems 在 prompt rules、tool call formats、hook timing、permission models、command expansion、subagent behavior 和 history schemas 上都可能不同。Converter 如果过度聪明，就会创建看似有效、却行为不同的 native artifact。
 
@@ -74,7 +74,7 @@ Codex 用三条 compatibility rules 降低这种风险。
 
 这些规则并不花哨，但它们避免 migration 变成每个后续 subsystem 里的隐藏 compatibility mode。
 
-## Backward Compatibility Bridges
+### Backward Compatibility Bridges
 
 Migration 是一座桥，protocol compatibility 是另一座桥。前面章节已经介绍 generated schemas、legacy aliases、v1/v2 coexistence、experimental gates 和 client-version workarounds。第 19 章把这些想法整理成一般策略：
 
@@ -88,7 +88,7 @@ Migration 是一座桥，protocol compatibility 是另一座桥。前面章节�
 
 共同主题是 explicitness。Compatibility code 应该说清楚它在桥接什么、跳过什么、桥接在哪里结束。
 
-## Designing the Import Report
+### Designing the Import Report
 
 Import operation 即使成功也应该产出 report。用户需要知道哪些 MCP servers 被导入，哪些 hooks 被跳过，哪些 commands 变成 skills，哪些 existing files 被保留，哪些 sessions 变成 threads。Silent migration 在演示里诱人，在生产里危险。
 
@@ -112,7 +112,7 @@ Report 也是 test oracle。Migration tests 应覆盖 edge behavior：disabled s
 
 <div class="trace-ledger">
 
-## Trace Ledger
+### Trace Ledger
 
 | 问题 | 第 19 章答案 |
 | --- | --- |
@@ -145,10 +145,10 @@ Report 也是 test oracle。Migration tests 应覆盖 edge behavior：disabled s
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| External config model | [`codex-rs/app-server/src/config/external_agent_config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/config/external_agent_config.rs#L1) |
-| Migration request processor | [`codex-rs/app-server/src/request_processors/external_agent_config_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L1) |
-| TUI migration startup | [`codex-rs/tui/src/external_agent_config_migration_startup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/external_agent_config_migration_startup.rs#L1) |
-| Protocol compatibility surface | [`codex-rs/app-server-protocol/src/protocol/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/mod.rs#L1) |
+| External config model | [`codex-rs/app-server/src/config/external_agent_config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/config/external_agent_config.rs#L42) |
+| Migration request processor | [`codex-rs/app-server/src/request_processors/external_agent_config_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L58) |
+| TUI migration startup | [`codex-rs/tui/src/external_agent_config_migration_startup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/external_agent_config_migration_startup.rs#L28) |
+| Protocol compatibility surface | [`codex-rs/app-server-protocol/src/protocol/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/mod.rs#L4) |
 | Thread store | [`codex-rs/thread-store/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src) |
 
 </div>

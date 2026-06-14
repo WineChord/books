@@ -1,19 +1,19 @@
-import ConstraintEnvelopeBuilder from "../../../src/components/visual/ConstraintEnvelopeBuilder.tsx";
 
 # 第 3 章：配置、认证与 Managed Requirements
-
-<ConstraintEnvelopeBuilder lang="zh" client:visible />
 
 > **阅读契约：** 用本章把配置读成约束。跟住 auth、policy、managed requirements、profiles 和环境事实如何变成后续代码必须服从的 envelope。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/config-auth-constraint-stack.png" alt="chapter 03 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/config-auth-constraint-stack.png" alt="配置与认证约束栈：展示 defaults、可信项目配置、auth snapshot、managed requirements 和 resolved permissions" loading="lazy" decoding="async" />
   <figcaption>配置不是装饰项；defaults、profiles、auth、managed requirements 和 permissions 会编译成一次 turn 必须遵守的契约。</figcaption>
 </figure>
 
 第 2 章沿着启动路径，从分发包装器走到了 Rust command router。当 router 知道要启动哪个产品接入面之后，Agent 仍然不能立刻开始工作。它必须先解析运行包络：effective configuration、authenticated identity、feature state，以及 managed requirements。
 
 本章讨论的正是这个包络。Codex 不允许每个子系统各自读取喜欢的配置文件或环境变量。系统会构造一份解析后的、带来源信息的视图，并把受约束的 runtime settings 交给后续层。这个不变量非常关键：session loop、model provider、tools、app-server、hooks 和 sandboxing 代码应该消费同一个答案：“这里允许什么？”
+
+**源码边界：** 关于 resolved permissions 的说法是 **verified source**，锚点在 [`config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L236)；permission compilation 是 **verified source**，锚点在 [`permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L300)；managed feature gates 是 **verified source**，锚点在 [`managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L25)。本章把它们称为 runtime envelope，是从这些 resolved shapes 和 [`app-server-protocol`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L375) 的公开 permission profile 做出的 **surrounding contract inference**，不是对隐藏服务内部的断言。
+
 
 ## 配置是一组 Layer，不是一个文件
 
@@ -23,7 +23,7 @@ Codex 配置是分层的。有些 layer 来自 system 或 managed settings；有
 
 Layering 还让诊断成为可能。如果某个设置失败，Codex 可以区分“未知字段”“被更高优先级 layer 覆盖”“因为项目未受信任而 disabled”“被 requirements 拒绝”。这些是不同问题，对应不同解决方式。
 
-## Preference 与 Requirement 不同
+### Preference 与 Requirement 不同
 
 常见配置错误，是把所有设置都当成 preference。Codex 没有这样做。Preference 表示用户或接入面想要什么；requirement 表示环境允许什么。Requirements 是 restrictive overlays。
 
@@ -39,7 +39,7 @@ Layering 还让诊断成为可能。如果某个设置失败，Codex 可以区�
 
 这也是 Codex 开始表现得像 enterprise-ready local runtime 的地方。Managed account 或 host policy 可以约束 network behavior、filesystem access、approval style、hooks、plugins、MCP servers、web search、residency 和 permission profiles，而不需要修改每个产品接入面。
 
-## Trust-Gated Project Configuration
+### Trust-Gated Project Configuration
 
 Project configuration 很有用，因为不同仓库需要不同默认值。它也危险，因为仓库可能来自别人。一个本地 Agent 如果盲目遵守 project config，就等于允许 workspace 配置一个即将检查和修改该 workspace 的工具。
 
@@ -67,7 +67,7 @@ function load_effective_settings(inputs):
 
 伪代码省略了实现细节，但保留了关键顺序：普通 preferences 先合并，requirements 后约束。
 
-## Feature Flags 是生命周期管理
+### Feature Flags 是生命周期管理
 
 Codex 中的 feature flags 不是散落各处的字符串判断。它们有名称、默认值、阶段、aliases、warnings、dependencies，有时还有结构化配置。集中管理让产品可以演进，而不必让每个子系统都变成兼容性表。
 
@@ -75,7 +75,7 @@ Codex 中的 feature flags 不是散落各处的字符串判断。它们有名�
 
 这也是有边界操作系统思路的一个例子。普通程序可以在任何地方检查环境变量；一个拥有多个客户端和 generated contracts 的 runtime，需要统一的 feature vocabulary。
 
-## 认证是一份 Snapshot
+### 认证是一份 Snapshot
 
 配置说明进程想做什么。认证说明是谁在做，以及哪些 backend capability 可以使用。Codex 支持多种 auth shape：API-key auth、ChatGPT OAuth、外部提供的 bearer token，以及任务型集成使用的 agent identity flows。
 
@@ -83,13 +83,13 @@ Codex 中的 feature flags 不是散落各处的字符串判断。它们有名�
 
 Snapshot 可以代表不同 auth mode，但后续层不应该关心 token 存在哪里，也不应该关心 refresh command 怎样执行。它们关心的是能否构造 authenticated client、account metadata 是否可用、是否必须获取 policy requirements。
 
-## Managed Requirements 与 Fail-Closed
+### Managed Requirements 与 Fail-Closed
 
 Managed requirements 把 account 或 host policy 转成 local constraints。它们可能来自本地 managed configuration、平台管理系统，或 cloud-backed account policy。对于符合条件的 managed accounts，requirements 加载失败可能是 fail-closed 条件。这个选择有意带来不便。如果账号要求中心化策略，本地 runtime 静默跳过策略继续运行，恰好会在最需要策略时削弱可信度。
 
 Requirements layer 也保留来源信息。由 cloud policy 约束的值，应该和由本地 requirements file 约束的值有不同报告方式。Source-aware errors 让系统能向用户、管理员和客户端接入面解释自己。
 
-## Resolved Runtime Envelope
+### Resolved Runtime Envelope
 
 当某个 command surface 真正开始工作时，它应拿到一份 resolved runtime envelope：
 

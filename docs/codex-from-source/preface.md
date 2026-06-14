@@ -3,11 +3,11 @@
 > **Reading Contract:** Use this preface to set the contract for the whole book: source links are audit evidence, not homework. Read for runtime boundaries, durable nouns, and transfer patterns before you chase file names.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/codex-source-reading-contract.png" alt="preface hand-drawn architecture figure" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-contract.png" alt="Reading contract that separates narrative model, pinned source evidence, claim class, and reader audit path" loading="eager" decoding="async" />
   <figcaption>The book starts from a reading contract: public source anchors support the prose, while runtime boundaries and durable nouns carry the main explanation.</figcaption>
 </figure>
 
-This book is a source-equivalent guide to the open-source [OpenAI Codex repository](https://github.com/openai/codex). It is not a description of OpenAI's private model training stack, hosted cloud service, or internal backend. The source snapshot used throughout the book is [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+This book is a source-pinned guide to the open-source [OpenAI Codex repository](https://github.com/openai/codex). It is not a description of OpenAI's private model training stack, hosted cloud service, or internal backend. The source snapshot used throughout the book is [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
 
 The intended default is that you can read the book without opening the source and still learn the architecture, control flow, data contracts, failure paths, policy layers, and client surfaces a source reader would retain. Source links remain available as evidence and for line-level auditing.
 

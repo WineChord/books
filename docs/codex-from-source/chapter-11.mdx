@@ -1,19 +1,19 @@
-import PatchWorkbench from "../../src/components/visual/PatchWorkbench.tsx";
 
 # Chapter 11: Patches as a First-Class Editing Protocol
-
-<PatchWorkbench lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to see patches as a protocol, not a shell trick. Track structured diffs, approval, application, failure feedback, and final evidence.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/patch-protocol-workbench.png" alt="chapter 11 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-protocol-workbench.png" alt="Patch protocol workbench showing structured patch grammar, safety review, approval, application, diff tracking, and failure feedback" loading="lazy" decoding="async" />
   <figcaption>Patch handling turns file edits into a protocol: structured diff, permission check, application, and turn-level attribution stay visible.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 10 showed how shell execution becomes a supervised process. This chapter separates one common editing path from the shell: patch application. Codex treats `apply_patch` as a mutation protocol, not as text piped to a command. The difference is architectural. A protocol can be parsed, verified, assessed, approved, applied through the right filesystem, and recorded as a turn diff before the model sees the final result.
 
 Direct file writes are attractive because they are simple. They are also poor evidence. A direct write says, "make this file contain this content." A patch says, "perform these additions, deletions, updates, and moves at these paths." That structure gives the runtime something to inspect before the side effect happens.
+
 
 ## The Patch Lifecycle
 
@@ -21,13 +21,13 @@ Patch execution has a longer lifecycle than it first appears to have.
 
 The parse step understands the patch grammar. The verify step consults the workspace filesystem to compute the concrete changes that would occur. The assess step decides whether the patch is auto-approved, needs approval, or requires additional permissions. The apply step writes through the selected executor filesystem, not through an assumed local path.
 
-## Grammar Is Only the First Gate
+### Grammar Is Only the First Gate
 
 The patch grammar describes a small edit language: begin the patch, declare one or more file hunks, add/delete/update/move content, then end the patch. Codex's parser can be more forgiving than the human-facing form because model output is not always perfectly wrapped. That lenience does not mean the runtime applies ambiguous edits. It means the runtime tries to recover the intended protocol and then verifies it against the filesystem.
 
 Verification is the real boundary. For an update, the runtime must know the old content that the hunk expects to replace. For a delete, it must read the file that will be removed. For a move, it must reason about both source and destination paths. If those checks fail, the result is a model-visible verification failure rather than a best-effort write.
 
-## Intercepting Shell-Like Patches
+### Intercepting Shell-Like Patches
 
 Models often learn to express patches through shell heredocs. Codex can detect certain top-level forms such as "run the patch tool with this patch body" or "change to this relative workdir and then run the patch tool." When that pattern is recognized, the runtime intercepts it and routes it through the patch protocol.
 
@@ -58,19 +58,19 @@ This is a compatibility bridge, not an endorsement of editing through shell text
 
 This pseudocode avoids implementation details, but it captures the important distinction: recognized shell syntax is transformed into a patch action before mutation.
 
-## Filesystem-Backed Application
+### Filesystem-Backed Application
 
 Patch application uses an executor filesystem. That detail prevents a subtle class of bugs. In a local turn, the executor filesystem may be the local workspace. In a remote turn, it may be the remote environment's filesystem. In both cases, the patch code receives the same kind of filesystem object and an optional sandbox context. The edit goes to the workspace that owns the turn.
 
 The application layer also tracks the delta that was actually committed. A successful add, delete, update, or move becomes a structured delta. If a write fails after a partial mutation, the runtime preserves the committed prefix and marks exactness appropriately. That is more honest than pretending that the operation was either entirely clean or entirely absent.
 
-## Diff Tracking Is Evidence, Not Decoration
+### Diff Tracking Is Evidence, Not Decoration
 
 The turn diff tracker keeps a net textual diff for committed patch mutations. It records baselines, current content, rename origins, and invalidation state. When the tracker can prove the delta, it can render a unified diff without rereading the workspace. When exactness is lost, it invalidates the diff rather than presenting a misleading one.
 
 That behavior is a pattern worth copying. A system that cannot prove its evidence should degrade explicitly. It should not display a confident diff just because a diff-shaped UI is expected.
 
-## Git Patch Support Is a Separate Path
+### Git Patch Support Is a Separate Path
 
 Codex also has helpers for applying ordinary unified diffs through Git. That path writes a temporary patch, can preflight with a dry run, invokes Git with appropriate flags, and parses output into applied, skipped, or conflicted paths. It is related, but it is not the same as the first-class `apply_patch` protocol. The important shared idea is preflight: learn what would change before allowing the mutation to become durable.
 

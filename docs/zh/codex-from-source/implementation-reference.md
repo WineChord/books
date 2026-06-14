@@ -3,11 +3,13 @@
 > **阅读契约：** 把本页用于密集源码审阅。每一行都当成审计目标：owner、data structure、runtime decision 和 failure path。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/implementation-audit-reference.png" alt="implementation-reference page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/implementation-audit-reference.png" alt="实现审计参考图：把子系统 owner、数据结构、runtime decision、failure path 与固定源码锚点连起来" loading="lazy" decoding="async" />
   <figcaption>实现索引故意保持高密度：每一行都指向 owner、data structure、decision、failure branch 和 source anchor。</figcaption>
 </figure>
 
 这一页是本书的“免打开源码速查页”。它收集那些放进章节正文会打断阅读、但只留在源码链接里又会损失关键信息的实现事实。
+
+把它当作 verification surface，而不是替代叙事。只有当链接中的 type、function、test 或 constant 直接展示行为时，该行才是 **verified source**。当一行把多个可见 call sites 连接成架构边界时，它是 **surrounding contract inference**。凡是需要 hosted service internals、private model behavior 或未公开 backend state 才能判断的内容，都不属于本参考页。
 
 ## 快照规则
 
@@ -31,8 +33,8 @@
 | App-server 与 SDKs | [`MessageProcessor`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L272)、[`ThreadState`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/thread_state.rs#L70)、[`transport modes`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57)、[`Python Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72)、[`TypeScript Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11) |
 | TUI | [`ChatWidget`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658)、[`BottomPane`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199)、[`AppServerSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148) |
 | Extensions | [`McpConnectionManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L72)、[`SkillsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L51)、[`PluginManifest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L38)、[`PluginsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L396) |
-| Multi-agent、cloud、memory | [`agent graph types`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7)、[`cloud task API`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22)、[`agent identity`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40)、[`memory citations`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L1)、[`memory write phase 1`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L1) |
-| Build 与 release | [`Cargo workspace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1)、[`Bazel verification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314)、[`Cargo release workflow`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281)、[`npm staging`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L570)、[`governance checks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_tui_core_boundary.py#L1) |
+| Multi-agent、cloud、memory | [`agent graph types`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7)、[`cloud task API`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22)、[`agent identity`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40)、[`memory citations`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6)、[`memory write phase 1`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70) |
+| Build 与 release | [`Cargo workspace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L2)、[`Bazel verification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314)、[`Cargo release workflow`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281)、[`npm staging`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L570)、[`governance checks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_tui_core_boundary.py#L24) |
 
 ## 运行时主干
 
@@ -272,7 +274,7 @@ Sandbox denial 是 policy signal，不只是进程错误。它可能携带 netwo
 | Review mode | review request 通过 protocol events 和 task flow 进入/退出。 |
 | Cloud task support | cloud/remote task 路径会增加 requirements、auth 和运行约束。 |
 
-## 源码等价自检
+## 源码支撑自检
 
 不用打开源码，你应该能回答：
 

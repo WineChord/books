@@ -1,19 +1,19 @@
-import ContainmentBoundaryExplorer from "../../src/components/visual/ContainmentBoundaryExplorer.tsx";
 
 # Chapter 13: Sandboxes, Network Policy, and Platform Boundaries
-
-<ContainmentBoundaryExplorer lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to make containment concrete. Track sandbox selection, network policy, platform boundaries, and the executor that finally touches the outside world.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/sandbox-network-platform-boundary.png" alt="chapter 13 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-network-platform-boundary.png" alt="Sandbox and network boundary map showing permission profiles, platform transforms, macOS Seatbelt, Linux Bubblewrap, Windows identities, and managed proxy policy" loading="lazy" decoding="async" />
   <figcaption>Containment is selected at runtime from requested action, permission profile, network policy, platform sandbox, and executor backend.</figcaption>
 </figure>
 
 Chapter 12 described the gates that decide whether a side effect may proceed. This chapter follows an approved action into the isolation layer. Approval says who authorized the attempt. Sandboxing says what the attempt can still touch. Those are different controls, and Codex keeps them different.
 
 The sandbox architecture has three stages. First, Codex resolves a permission profile into filesystem and network policy. Second, a sandbox manager decides whether the current tool needs a platform sandbox and transforms the command when it does. Third, a platform helper enforces the transformed command as well as that operating system allows.
+
+**Source boundary:** sandbox type selection and platform choice are **verified source** in [`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23), macOS lowering is **verified source** in [`seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L31), Linux execution and proxy routing are **verified source** in [`linux-sandbox`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/main.rs#L4) and [`proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L169), and Windows setup is **verified source** in [`windows-sandbox-rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L85). Any cross-platform equivalence language is intentionally framed as a **surrounding contract inference**; the chapter does not claim the operating systems enforce identical sandboxes.
+
 
 ## Policy, Transform, Enforcement
 
@@ -26,7 +26,7 @@ This is not one sandbox. It is a policy compiler plus several enforcement backen
 | Windows | Restricted token or dedicated sandbox identity with ACLs, firewall, WFP | Firewall and Windows Filtering Platform filters around prepared identities | Refuse when the backend cannot express the requested filesystem/network split. |
 | No platform sandbox | Explicit unsandboxed or unsupported path | Whatever the host process has | Must be marked as unsandboxed; should not masquerade as equivalent containment. |
 
-## Permission Profiles Are the Modern Unit
+### Permission Profiles Are the Modern Unit
 
 Older configuration used direct sandbox modes. Modern Codex treats permission profiles as the primary unit. A profile can describe filesystem access, network behavior, additional granted permissions, and active modifications for a turn or session. The runtime then projects the profile into a filesystem sandbox policy and a network sandbox policy.
 
@@ -59,13 +59,13 @@ Additional permissions are merged before enforcement. A tool may ask for a speci
 
 The important detail is that transformation receives policy. It does not rediscover permissions by inspecting the command string.
 
-## macOS: Seatbelt as a Generated Profile
+### macOS: Seatbelt as a Generated Profile
 
 On macOS, Codex lowers policy into a Seatbelt profile and runs through a fixed platform sandbox runner. The generated profile represents readable roots, writable roots, protected metadata, denied read patterns, allowed sockets, and network proxy allowances. The sandbox runner path is not discovered through the user shell's `PATH`; it is a platform boundary, not a convenience command.
 
 Seatbelt is good at expressing file access and selected socket allowances, but the runtime still has to prepare the policy carefully. Path normalization, protected subpaths, missing paths, and proxy sockets are all resolved before the helper runs. If the transform cannot faithfully express the requested policy on the platform, the safe result is a refusal or a narrower execution, not an unmarked fallback.
 
-## Linux: Bubblewrap, Namespaces, Seccomp, and Proxy Routing
+### Linux: Bubblewrap, Namespaces, Seccomp, and Proxy Routing
 
 On Linux, Codex uses a helper path that prefers Bubblewrap for filesystem layout and namespace isolation. The helper builds a read-only view by default, binds writable roots back in, remounts protected subpaths as read-only, masks denied paths, and handles narrower allow/deny carveouts in path-specificity order. It can also use a legacy Landlock path for compatible legacy policies.
 
@@ -73,19 +73,19 @@ Network isolation is layered. When ordinary restricted networking is enough, the
 
 Linux also has platform boundary checks. WSL environments that cannot provide the required namespace behavior are rejected for sandboxed commands that need Bubblewrap. Missing or unsuitable Bubblewrap support can produce startup warnings or bundled-helper fallbacks, but the runtime still surfaces the boundary instead of pretending all Linux hosts are equivalent.
 
-## Windows: Identities, ACLs, Firewall, and WFP
+### Windows: Identities, ACLs, Firewall, and WFP
 
 Windows has two broad sandbox paths: a legacy restricted-token path and an elevated backend built around dedicated sandbox identities. The elevated path performs setup work such as creating or refreshing users, ACLs, capability SIDs, firewall rules, and Windows Filtering Platform filters. Ordinary command execution can then run under the prepared identity through a runner protocol.
 
 This split matters because Windows cannot always express the same nested filesystem policy shapes as Unix sandboxes. When the selected backend cannot enforce a requested split filesystem policy, Codex should refuse rather than run unsandboxed and call it equivalent. The platform boundary is part of the security model.
 
-## Managed Network Is Not a Universal Firewall
+### Managed Network Is Not a Universal Firewall
 
 Codex's managed network proxy is an application-level boundary. It can run HTTP and SOCKS listeners, inject proxy environment, evaluate host/domain policy, enforce limited methods where visible, ask a decider for approval, and emit audit records. It can also be paired with platform forcing so a sandboxed command has no easy route except through the proxy.
 
 It is not a universal packet firewall. DNS rebinding, non-proxy-aware programs, and host-level networking controls belong to the platform or infrastructure layer. The honest description is: managed proxy plus platform routing can strongly shape application traffic; it should not be advertised as complete network isolation by itself.
 
-## Shell Escalation
+### Shell Escalation
 
 Some shell paths need to request an unsandboxed or escalated execution after a sandbox denial. Codex treats that as a new risk decision. The shell escalation adapter separates the wrapper protocol from the final process spawn, usually through a local socket or inherited channel. That lets the runtime keep approval and audit semantics around the escalation rather than letting the shell silently escape its own sandbox.
 

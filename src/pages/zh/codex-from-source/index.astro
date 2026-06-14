@@ -1,21 +1,21 @@
 ---
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import Header from "../../../components/Header.astro";
-import ArchitectureMap from "../../../components/ArchitectureMap";
 import { chapters, epiloguePage, parts, referencePages, sourceCommit } from "../../../book.config";
-import { assetUrl, pageUrl } from "../../../urls";
+import { pageUrl } from "../../../urls";
 
 const base = import.meta.env.BASE_URL;
+const coverImage = "https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cover-codex-from-source.png";
 ---
 
-<BaseLayout title="Codex 源码剖析" description="一本中英文双语的 OpenAI Codex CLI 源码剖析在线书。" canonicalPath="zh/codex-from-source/" lang="zh">
+<BaseLayout title="Codex 源码剖析" description="一本中英文双语的 OpenAI Codex CLI 源码剖析在线书。" canonicalPath="zh/codex-from-source/" lang="zh" image={coverImage}>
   <Header lang="zh" alternatePath="codex-from-source/" />
   <main class="mx-auto max-w-5xl px-4 py-12 md:px-8 md:py-20">
     <section class="mb-20 grid grid-cols-1 items-center gap-10 md:grid-cols-[1fr_18rem]">
       <div>
         <p class="mb-3 text-sm font-semibold uppercase tracking-wide text-terracotta">Architecture, Patterns, Internals</p>
         <h1 class="book-hero-title mb-6 font-serif text-4xl font-bold leading-tight text-charcoal dark:text-cream md:text-5xl">
-          把 Codex 当作系统阅读，而不是当作文件堆阅读。
+          Codex 源码剖析：把 Codex 当作系统阅读。
         </h1>
         <p class="book-hero-copy mb-8 max-w-2xl text-lg leading-relaxed text-secondary dark:text-muted">
           一本固定到公开源码 commit 的专业技术书：把 Codex 解释为一个事件溯源的 agent runtime，
@@ -32,7 +32,7 @@ const base = import.meta.env.BASE_URL;
       </div>
       <figure class="wc-article-figure m-0" aria-label="Codex From Source cover figure">
         <img
-          src={assetUrl(base, "codex-from-source/assets/cover-codex-from-source.png")}
+          src={coverImage}
           alt="Codex From Source：entry points、protocol、session runtime、tools、clients 和 governance 组成的有边界 agent runtime"
           loading="eager"
           decoding="async"
@@ -59,11 +59,9 @@ const base = import.meta.env.BASE_URL;
       ))}
     </section>
 
-    <ArchitectureMap client:load base={base} lang="zh" />
-
     <section class="mb-20 grid grid-cols-1 gap-4 md:grid-cols-3">
       {[
-        ["源码等价", "默认读书即可理解架构、数据流、契约和取舍；源码链接用于审计，而不是作业。"],
+        ["源码支撑", "默认先读书理解架构、数据流、契约和取舍；固定源码链接用于审计，而不是作业。"],
         ["出版级结构", "章节按技术书组织，不是 API 文档；每一层解决一个问题，并为下一层铺路。"],
         ["源码固定", `所有源码链接都固定到 ${sourceCommit}，避免分支漂移。`],
       ].map(([title, body]) => (

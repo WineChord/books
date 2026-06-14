@@ -1,21 +1,21 @@
-import JsonRpcContractMap from "../../src/components/visual/JsonRpcContractMap.tsx";
 
 # Chapter 14: The App-Server Contract
-
-<JsonRpcContractMap lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to understand app-server as a contract boundary. Track JSON-RPC methods, request serialization, event mapping, and how clients rejoin without owning the runtime.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/app-server-contract-bridge.png" alt="chapter 14 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-contract-bridge.png" alt="JSON-RPC app-server bridge that normalizes transports, serializes resources, maps runtime events, and lets clients rejoin shared threads" loading="lazy" decoding="async" />
   <figcaption>The app-server is a contract bridge: JSON-RPC methods, request processors, thread runtime, event mapping, and client views stay aligned.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 13 ended at the runtime boundary where permissions, sandbox selection, and managed networking decide what a tool attempt may touch. This chapter moves one layer outward. Once the runtime can enforce those decisions, it needs a contract that lets terminal clients, SDK clients, daemon-managed clients, and remote clients share the same threads without sharing an implementation.
 
 The app-server is that contract. It is easy to mistake it for a local web API: requests come in, responses go out, and state lives somewhere behind the server. The source architecture is more interesting. The app-server is a small distributed system running on one machine or across a remote-control bridge. It normalizes transports, serializes work by resource, converts runtime events into client-visible items, remembers enough history to let clients rejoin, and uses server-to-client requests when the runtime needs a human or client decision.
 
 The most useful mental model is not "HTTP wrapper around core." It is "protocol boundary around thread ownership." A client does not own the agent loop. A client owns a connection, capabilities, UI state, and responses to server requests. The server owns thread lifecycle, turn submission, replay, status derivation, and the mapping between core events and the public contract.
+
 
 ## Contract Surface
 
@@ -33,7 +33,7 @@ Those shapes matter because they prevent a common architectural collapse. If a c
 
 The diagram hides many concrete request families, but it shows the governing idea. Incoming bytes are not allowed to reach core directly. They pass through transport normalization, initialization checks, feature gates, resource serialization, and request processors. Outgoing data is also not a raw core event stream. It passes through lifecycle handlers, history builders, pending request tracking, compatibility filtering, and per-connection send queues.
 
-## Transport Normalization
+### Transport Normalization
 
 The app-server can be reached through several transport shapes: standard I/O, a local socket, a WebSocket-like channel, an in-process client, or a remote-control stream. The protocol layer should not care which one carried the message. It wants an incoming message, an outgoing sender, connection metadata, and a way to detect cancellation or disconnect.
 
@@ -41,7 +41,7 @@ Transport normalization is therefore not cosmetic. It gives the rest of the serv
 
 This separation also explains why local app-server work resembles distributed-systems work even when all processes are on the same machine. A client may disconnect. A response may be delayed. A notification may need to be replayed to a rejoining client. A connection may support experimental methods that another connection must not see. A slow receiver can create backpressure. The contract has to make those cases explicit instead of relying on ordinary function-call assumptions.
 
-## Initialization and Capability Gates
+### Initialization and Capability Gates
 
 Before a connection can use the runtime, it must establish what kind of client it is. Initialization records client identity, supported protocol concepts, and feature capability. After that, request handling can apply two classes of checks.
 
@@ -49,7 +49,7 @@ The first class is correctness gating: has the connection initialized, is the me
 
 The important design point is that capability is connection-scoped while threads may be shared. A thread can outlive the client that created it. Another client can resume or observe it later. That means the app-server cannot store "what the client can understand" only on the thread. It must also remember the connection's contract and apply it at the boundary.
 
-## Request Serialization
+### Request Serialization
 
 Not every request can run at the same time. A global settings write, a thread resume, a process operation, and a filesystem watch update can interfere with different resources. The app-server uses resource-scoped serialization so it does not have to choose between unsafe concurrency and a single global lock.
 
@@ -85,7 +85,7 @@ when a transport message arrives:
 
 The pseudocode is deliberately plain. The architectural fact is the queue between validation and execution. That queue is where the server turns a set of concurrent clients into ordered operations over shared runtime state.
 
-## Threads, Turns, and Items
+### Threads, Turns, and Items
 
 The app-server exposes the runtime through a user-visible model: threads contain turns; turns produce items; items can be replayed, updated, or completed. Core may use more detailed internal events, but clients should not have to understand every internal runtime message. They need a stable contract for what a conversation is and how it changes.
 
@@ -95,13 +95,13 @@ The separation between response and notification is essential. A request respons
 
 Request ids are therefore not bookkeeping trivia. They separate "your request was accepted" from "the turn has produced another item" and from "the server is now asking this connection for a decision." Pending server requests carry their own ids so a later approval, elicitation response, or dynamic-tool result can be matched back to the blocked runtime work.
 
-## Event Mapping
+### Event Mapping
 
 The core runtime emits events in its own vocabulary. The app-server maps those events into client-facing notifications and server requests. Some mappings are direct: a turn starts, an item appears, output grows, a command finishes, a turn completes. Other mappings are lifecycle decisions: a thread becomes idle, active, input-pending, or in a system-error state. Still others are bidirectional: a file change or command approval cannot continue until the client answers.
 
 This mapping layer is also where the app-server protects clients from internal churn. The core can add a more detailed event or change its internal rollout representation without forcing every client to change at the same time. The public contract should evolve deliberately: new item kinds, new notification fields, and new server requests must be versioned or gated so clients can survive the transition.
 
-## Replay and Rejoin
+### Replay and Rejoin
 
 Threads are durable enough that clients can leave and come back. Rejoin is not just "open the current transcript." The server has to reconstruct the client view from stored rollout data and then join the live stream without losing or duplicating events.
 
@@ -109,7 +109,7 @@ The ordering problem is subtle. Suppose a client resumes a thread while a turn i
 
 The app-server solves this with listener state and command queues around the thread. A resume operation can ask the loaded thread for ordered replay and subscription behavior instead of rebuilding a second model beside it. The result is event-sourced from runtime facts: loaded state, active turns, pending approvals, pending user input, system errors, and listener history.
 
-## Server-To-Client Requests
+### Server-To-Client Requests
 
 Server requests are the part of the contract that most clearly separates an agent runtime from a conventional service. The server can ask the client to do something before the runtime continues.
 
@@ -125,19 +125,19 @@ Common request families include:
 
 The server tracks these pending requests because they are part of turn state. A client disconnect cannot be treated as a harmless UI event if the runtime is waiting for that client to answer. Depending on the request type and policy, the server may cancel, time out, reassign, replay, or report that the turn is input-pending.
 
-## Backpressure and Overload
+### Backpressure and Overload
 
 The contract must also say what happens when clients or transports cannot keep up. Without backpressure, a fast runtime can build unbounded outbound queues, or a noisy client can flood the processor with work. The app-server treats overload as a protocol concern, not only as a logging concern.
 
 Ingress backpressure protects request processing. Outbound backpressure protects each connection. Resource queues protect shared state. Pending server requests protect bidirectional work from being forgotten. These are mundane mechanisms, but they define the reliability envelope of the product. A well-typed notification is not useful if it can be silently dropped during the state transition it was meant to describe.
 
-## Derived Status
+### Derived Status
 
 Clients want simple status: loaded, idle, active, waiting for input, waiting for approval, or failed. The runtime does not store that status as a single truth field. It is derived from facts: whether the thread is loaded, whether a turn is active, whether pending server requests exist, whether the listener has seen an unrecovered system error, and whether the current operation is waiting for user input.
 
 Derived status is safer than duplicating state. If the server stored an independent "threadStatus" field and updated it manually, every edge case would be a chance for drift. Derivation lets the server rebuild status from the same events and pending-work records that drive replay.
 
-## Trace Ledger
+### Trace Ledger
 
 | Question | Chapter 14 answer |
 | --- | --- |

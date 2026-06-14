@@ -1,13 +1,14 @@
-import BoundedAgentOSMap from "../../src/components/visual/BoundedAgentOSMap.tsx";
 
 # Chapter 1: The Architectural Bet: Agent as a Bounded Operating System
 
 > **Reading Contract:** Use this chapter to name Codex as a bounded operating system. Track the operation/event boundary, layered authority, and the three histories before looking at any specific client.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/bounded-agent-os-map.png" alt="chapter 01 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/bounded-agent-os-map.png" alt="Bounded agent operating-system map separating client surfaces, typed protocol, session runtime, authority gates, sandboxing, and rollout evidence" loading="lazy" decoding="async" />
   <figcaption>Codex is easier to understand as a bounded operating environment: client surfaces, typed protocol, session runtime, authority, sandboxing, and rollout all have separate owners.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 The preface argued that Codex is interesting because it turns a language model product into a system: a local agent that can receive intent, preserve state, call tools, enforce policy, and report evidence. This chapter names the architectural bet behind that system. Codex treats the agent as a bounded operating system: not an operating system for a machine, but a runtime that schedules work, mediates authority, records facts, and exposes stable contracts to several clients.
 
@@ -44,13 +45,11 @@ Policy-gated side effects means model intent is not execution authority. A tool 
 
 Replayable boundaries means the system keeps enough structured evidence to explain or reconstruct the work. Codex can be interactive, but it is not ephemeral.
 
-The interactive model below maps those phrases onto four paths: intent entering as an operation, model output returning as items, authority deciding side effects, and facts becoming rollout evidence. Step through it once, then switch to the authority stack. The most important path is still the one the component refuses to draw: model output never reaches shell or filesystem directly.
+The figure above compresses those phrases into four paths: intent enters as an operation, model output returns as items, authority decides side effects, and facts become rollout evidence. The most important path is still the one absent from the map: model output never reaches shell or filesystem directly.
 
-<BoundedAgentOSMap lang="en" client:visible />
+Notice the distinction the map keeps making. Operations are requests entering the runtime; events are facts leaving it. Clients can change, but the operation/event contract and the runtime boundary remain stable.
 
-Notice the distinction the component keeps making. Operations are requests entering the runtime; events are facts leaving it. Clients can change, but the operation/event contract and the runtime boundary remain stable.
-
-## The Vocabulary
+### The Vocabulary
 
 Part I establishes the language used by the rest of the book. The terms below are not cosmetic; they are the load-bearing nouns of the system.
 
@@ -68,7 +67,7 @@ Part I establishes the language used by the rest of the book. The terms below ar
 
 The distinction between operation and event is the first major boundary. Operations are requests. Events are facts. A request can be denied, delayed, transformed, or routed. A fact should be durable enough that later code can interpret it without asking the original caller what it meant.
 
-## Why Contracts Come First
+### Why Contracts Come First
 
 Many systems are taught from the outside in: install the tool, run a command, look at the screen, then inspect implementation details. That approach is useful for adoption, but it hides the architecture. Codex has several product surfaces, and no single surface is the system.
 
@@ -76,7 +75,7 @@ The terminal UI is a client of the runtime. Headless `exec` is a client of the r
 
 A contract-first reading also prevents a common error in agent systems: treating the model response as the source of truth. In Codex, the model response is input to the runtime. The durable truth is the sequence of accepted operations, emitted events, tool decisions, and rollout records.
 
-## A Turn as a System Call
+### A Turn as a System Call
 
 The OS analogy becomes concrete when a user submits work. A user turn is like a high-level system call: it enters through a controlled boundary and returns through events rather than through direct mutation.
 
@@ -113,7 +112,7 @@ This pseudocode is intentionally generic. It is not a transcription of source. T
 
 The shape will recur in later chapters. Configuration resolves before work starts. Protocol defines what the operation can contain. The session loop schedules the turn. Tool execution evaluates side effects. App-server maps core events into client notifications. The terminal UI renders those notifications.
 
-## The Three Histories
+### The Three Histories
 
 Codex has to keep several histories separate because they answer different questions.
 
@@ -125,17 +124,17 @@ Codex has to keep several histories separate because they answer different quest
 
 A beginner might expect one transcript to serve every purpose. That is tempting but brittle. The model needs selected context, not every internal event. Replay needs structured fidelity, not just a pretty transcript. Clients need quick projections, not full replay for every list view. Separating these histories is one of the reasons Codex behaves like a runtime rather than a script around an API call.
 
-## Authority Is Layered
+### Authority Is Layered
 
 The model can propose actions, but Codex layers authority before anything dangerous happens. The layers are deliberately not collapsed into one boolean.
 
 Configuration expresses user and environment preferences. Managed requirements can restrict those preferences. Permission profiles describe the resulting capability envelope. Policies evaluate concrete actions. Hooks can add organization-specific checks or context. Human approval can be requested when a decision cannot be made silently. Sandboxes and execution backends enforce a second line of defense at the place where work happens.
 
-Switch the model above to **Authority stack** and walk it from tool specification through sandbox and executor. That view is the important replacement for the old static stack: every layer can narrow, block, delay, or explain the request before any observed result exists.
+Read the authority path as a stack that runs from tool specification through sandbox and executor. That view is the important replacement for the old static stack: every layer can narrow, block, delay, or explain the request before any observed result exists.
 
 This layered design creates friction, but it creates useful friction. It lets a workspace run with strict rules without changing the model prompt. It lets a headless client reject interactive approvals without rewriting tool execution. It lets compatibility bridges keep old rollouts readable while newer permission profiles evolve.
 
-## Client Surfaces Are Replaceable
+### Client Surfaces Are Replaceable
 
 The architecture assumes that product surfaces will multiply. A terminal UI needs streaming updates and approval modals. A headless command needs machine readable output and deterministic exit behavior. App-server needs JSON-RPC, request serialization, and rejoin semantics. SDKs need generated models and stable schemas. All of them benefit when the runtime owns threads, turns, items, operations, and events.
 

@@ -1,19 +1,19 @@
-import RemoteTaskContract from "../../src/components/visual/RemoteTaskContract.tsx";
 
 # Chapter 21: Cloud Tasks, Identity, and Remote Work
-
-<RemoteTaskContract lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to read cloud tasks as explicit contracts. Track task identity, remote work state, apply flows, and the local verification that closes the loop.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/cloud-task-remote-work-contract.png" alt="chapter 21 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cloud-task-remote-work-contract.png" alt="Cloud task contract linking remote identity, environment selection, attempts, diff retrieval, and local apply verification" loading="lazy" decoding="async" />
   <figcaption>Cloud tasks are remote work contracts with identity, environment, attempts, diff retrieval, and local apply verification.</figcaption>
 </figure>
 
 Chapter 20 showed that local multi-agent coordination becomes understandable when each relationship is explicit: spawn edges, mailbox deliveries, result edges, and close events. This chapter moves the same discipline to remote work. Cloud tasks are not a second agent loop hidden behind a button. They are a backend task workflow with its own identity, environment, attempts, diffs, and local apply path.
 
 The separation is crucial. Local Codex turns stream model output and execute tools in a local permission context. Cloud tasks submit work to a backend environment, later fetch task state, and may apply a returned patch to the current working tree. Those are related product experiences, but they are not the same execution boundary.
+
+**Source boundary:** the backend task surface is **verified source** in [`cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22), HTTP transport is **verified source** in [`http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L24), and the mock implementation is **verified source** in [`cloud-tasks-mock-client`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-mock-client/src/mock.rs#L18). Claims that connect task identity, remote workflow, and local apply are **surrounding contract inference** from those client shapes, [`agent-identity`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40), and the local diff discipline in [`turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18).
+
 
 ## Task Workflows Are Backend Contracts
 
@@ -33,7 +33,7 @@ The task data model is deliberately compact:
 
 The status vocabulary is small for the same reason the graph store in Chapter 20 is small. Product surfaces need a predictable state machine; detailed backend bodies can still be parsed and mapped behind the client boundary.
 
-## Creating a Task Resolves Environment and Branch
+### Creating a Task Resolves Environment and Branch
 
 A cloud task needs more than a prompt. It needs a target environment and a git reference. Codex resolves both before calling the backend.
 
@@ -70,7 +70,7 @@ procedure resolve_branch(branch_override):
 
 The concrete cloud-task client named in the source map owns the backend request, but the contract is the same: resolve context locally, submit a bounded request remotely, and return a stable task handle.
 
-## Attempts Are First-Class
+### Attempts Are First-Class
 
 Cloud tasks support multiple assistant attempts for the same requested work. The UI therefore cannot treat "task detail" as a single diff and a single message stream. It needs a base task, optional sibling turns, attempt status, attempt placement, prompt text, messages, and an optional diff per attempt.
 
@@ -78,7 +78,7 @@ This is why apply and diff commands accept an attempt selector. Applying an atte
 
 The broader architecture lesson is that remote work often has a result set, not a result. Once a backend can produce alternatives, every local operation that acts on "the answer" must name which answer it means.
 
-## Apply Is Local Patch Work
+### Apply Is Local Patch Work
 
 The most important boundary in cloud tasks is apply. A task may run in the cloud, but applying its diff is a local filesystem operation. Codex fetches or selects a unified diff, validates that it is actually a compatible diff format, and then runs local patch preflight or application. The backend does not get to declare that the user's working tree changed.
 
@@ -86,7 +86,7 @@ Preflight matters because remote output can be stale relative to the local check
 
 The apply outcome reports three classes: success, partial, and error. Partial is not a cosmetic state. It tells the client that some paths were applied or conflicted while others were skipped, which changes how the user should inspect the working tree.
 
-## The Cloud TUI Is a Task Operator
+### The Cloud TUI Is a Task Operator
 
 The cloud TUI is not a thin table. It holds app state for the task list, environment modal, best-of attempt selector, diff overlay, prompt/messages view, background enrichment, preflight spinner, apply spinner, and result modal. That complexity is justified because remote work is asynchronous and multi-result.
 
@@ -94,7 +94,7 @@ However, the TUI still does not own backend semantics. It uses the backend contr
 
 That distinction keeps remote work from leaking into the local turn loop. A local session may still use model streaming, tool execution, approvals, and rollout persistence. Cloud task browsing and application are separate flows that meet the local machine only at auth, git context, and patch application.
 
-## Agent Identity Binds Runtime to Task
+### Agent Identity Binds Runtime to Task
 
 Cloud work also needs identity. Codex uses agent runtime key material, signed task authorization, task registration, encrypted task ids, JWT claims, and an agent bill of materials to bind a running agent to a backend task.
 
@@ -110,7 +110,7 @@ The identity layer has a distinct job from ordinary user authentication:
 
 The design avoids conflating "the user is logged in" with "this runtime may act for this task." User auth can establish account context; agent identity binds a particular runtime key to a particular task authorization. That distinction is what lets a backend reason about remote agents without trusting arbitrary local processes by name.
 
-## Local and Remote Execution Stay Separate
+### Local and Remote Execution Stay Separate
 
 The easiest cloud-task mistake is to describe it as "Codex running somewhere else." That is too vague. A cloud task has a backend lifecycle. A local turn has a runtime lifecycle. They may share concepts such as prompts, diffs, models, and agent identity, but their control planes differ.
 
@@ -124,7 +124,7 @@ The easiest cloud-task mistake is to describe it as "Codex running somewhere els
 
 This separation is why cloud tasks can be integrated without rewriting the core agent loop. The system adds a task operator surface and identity layer around remote work, then uses the existing local patch discipline when remote output comes back to the user's checkout.
 
-## Failure Modes
+### Failure Modes
 
 Cloud task failures cluster around boundary errors. Authentication may be missing or may not use the backend mode required for cloud tasks. Environment detection may find no matching environment or multiple environments with the same label. Branch discovery may fall back because the current directory is not a git checkout. A backend detail response may lack a diff, produce an incompatible diff shape, or expose multiple attempts that the user must choose between. Local preflight may fail because the worktree moved.
 
@@ -152,7 +152,7 @@ Cloud tasks extend Codex beyond one local turn without blurring the runtime boun
 | --- | --- |
 | Cloud task API | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22) |
 | HTTP backend client | [`codex-rs/cloud-tasks-client/src/http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L24) |
-| Mock backend | [`codex-rs/cloud-tasks-mock-client/src/mock.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-mock-client/src/mock.rs#L1) |
+| Mock backend | [`codex-rs/cloud-tasks-mock-client/src/mock.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-mock-client/src/mock.rs#L18) |
 | Agent identity material | [`codex-rs/agent-identity/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40) |
 | Local diff discipline | [`codex-rs/core/src/turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) |
 

@@ -1,15 +1,14 @@
-import TurnLoopTrace from "../../../src/components/visual/TurnLoopTrace.tsx";
 
 # 第 6 章：Turn Loop：Agent 真正发生的地方
-
-<TurnLoopTrace lang="zh" client:visible />
 
 > **阅读契约：** 用本章把一次 turn 从头走到尾。把 context construction、model streaming、tool loops、continuation、cancellation 和 completion 看成一个 scheduler 问题。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/turn-loop-control-board.png" alt="chapter 06 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-loop-control-board.png" alt="Turn loop 控制板：展示 context preparation、model streaming、tool follow-up、pending input、compaction、cancellation 和 completion" loading="lazy" decoding="async" />
   <figcaption>一次 turn 是控制板：context、sampling、tools、continuation、cancellation、compaction、history 和 trace 都在这里相遇。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 5 章区分了 durable thread 和 live session，也说明了客户端 operation 如何进入 runtime。本章跟随其中一个 operation 进入 turn loop：这里把 调度、上下文、流式输出、工具、hooks、compaction 和 cancellation 组合成 真正的 Agent 行为。
 
@@ -19,13 +18,14 @@ import TurnLoopTrace from "../../../src/components/visual/TurnLoopTrace.tsx";
   <p><strong>心智模型：</strong>loop 在两个问题之间切换：模型可以看见什么，runtime 可以执行什么。</p>
 </div>
 
+
 ## 一次 Turn 的形状
 
 当 submission loop 判断用户输入应该成为被调度的工作时，一次 turn 就开始了。 session 解析 `TurnContext`，安装 active turn，并在 cancellation token 之下 运行循环。从这一刻开始，关键子系统都会参与：hooks 检查输入，skills 和 plugins 注入上下文，model client 流式返回事件，tool router 分发副作用， persistence 记录 items，telemetry 观察进展。
 
 这张图有意画成循环。Codex 之所以像 Agent，是因为模型输出可以通过工具、 观察结果、compaction 和 pending user input 改变下一次模型输入。
 
-## Sampling 前的准备
+### Sampling 前的准备
 
 第一次模型请求之前，loop 已经做了大量工作。它先确认确实有输入或 pending work，然后准备 model client session，必要时复用预热好的 transport state。 如果已有上下文已经接近 token 上限，它会先评估 pre-sampling compaction。 随后，turn context update 会被记录下来，让后续 replay 知道这次 turn 处于什么设置之下。
 
@@ -41,7 +41,7 @@ import TurnLoopTrace from "../../../src/components/visual/TurnLoopTrace.tsx";
 
 所以 turn loop 不是“把最新文本丢给模型”。它从已记录的 runtime state 构造 一个可复现的模型请求。
 
-## Loop 的状态机
+### Loop 的状态机
 
 Turn loop 最好理解成状态机，而不是一个长函数。
 
@@ -81,7 +81,7 @@ if decision.added_context:
 complete_turn()
 ```
 
-## Streaming 是 Runtime Input
+### Streaming 是 Runtime Input
 
 流式输出常被说成 UI 特性，但在 Codex 里它也是 runtime input。stream 会携带 assistant text、reasoning summary、response item、tool-call delta、completion signal、rate-limit 信息和 transport error。turn loop 不能等一个最终字符串 回来之后再判断发生了什么。
 
@@ -89,7 +89,7 @@ complete_turn()
 
 这里也是 persistence 与 telemetry 汇合的位置。一次 streamed response 可能同时 产生用户可见输出、durable rollout item、tool runtime record、analytics fact、 OTEL span/metric，以及 trace payload reference。只有 turn loop 同时握有这些 上下文，才能把它们关联起来。
 
-## 工具是 Follow-Up，不是岔路
+### 工具是 Follow-Up，不是岔路
 
 当模型请求工具时，turn 并没有离开 loop。它通过 router 分发工具，把结果记录成 observation，并在模型需要这个 observation 时再次采样。
 
@@ -105,19 +105,19 @@ complete_turn()
 
 第 9 章会深入工具分发。本章只需要抓住一件事：工具调用只是多个 continuation 原因之一。
 
-## Pending Input 与 Interruption
+### Pending Input 与 Interruption
 
 用户和客户端可以在模型工作期间继续发送输入。Codex 不会把这些输入无脑追加到 prompt。pending input 会先进入队列，经过 hook inspection，然后被接受进当前 continuation、重新排到后续边界，或者被阻止并附加额外上下文。
 
 interruption 也遵循同样的纪律。active turn 持有 cancellation state，长时间运行 的工作观察 child cancellation token。model stream、tool call、dynamic client tool、approval request 和 terminal operation 都必须收束到一致的结束状态。 有用的 interrupt 不只是“丢掉 future”，还要留下后续 turn 能理解的 durable record。
 
-## Compaction 是控制流的一部分
+### Compaction 是控制流的一部分
 
 context compaction 不是后台摘要功能，而是 turn 内部的控制流决策。如果线程在 sampling 前就太大，Codex 可以先 compact；如果 follow-up 还必须继续，但当前上下文 已经达到模型限制，它也可以在 mid-turn compact。
 
 compaction 可能替换模型可见 history、重置 transport state、改变 baseline context 的 reinjection 规则，并写入 resume 和 rollback 需要的 durable records。loop 只在 continuation 仍然重要时 compact。如果模型已经完成，就没有必要仅因为 usage 高而 改写历史。
 
-## 停止也可能添加工作
+### 停止也可能添加工作
 
 停止本身也是生命周期阶段。模型看起来完成后，stop hooks 会运行。它们可以允许完成、 停止 turn、失败，或者提供额外上下文并要求再交给模型一次。after-agent hooks 接近 completion 时运行，可以报告 cleanup 或 policy failure。
 

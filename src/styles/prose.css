@@ -38,6 +38,14 @@
   line-height: 1.35;
 }
 
+.chapter-prose h4 {
+  margin: 1.5rem 0 0.5rem;
+  color: var(--color-charcoal);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .chapter-prose p,
 .chapter-prose ul,
 .chapter-prose ol,
@@ -107,6 +115,59 @@
   font-size: 0.8rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+  .chapter-prose table {
+    display: block;
+    width: 100%;
+    overflow: visible;
+    border-collapse: separate;
+    border-spacing: 0 0.85rem;
+  }
+
+  .chapter-prose thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .chapter-prose tbody,
+  .chapter-prose tr,
+  .chapter-prose td {
+    display: block;
+    width: 100%;
+  }
+
+  .chapter-prose tr {
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: rgb(255 255 255 / 42%);
+    padding: 0.65rem 0;
+  }
+
+  .chapter-prose td {
+    display: grid;
+    grid-template-columns: minmax(7rem, 34%) minmax(0, 1fr);
+    gap: 0.75rem;
+    min-width: 0;
+    border-bottom: 0;
+    padding: 0.45rem 0.8rem;
+  }
+
+  .chapter-prose td::before {
+    color: var(--color-secondary);
+    content: attr(data-label);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    text-transform: uppercase;
+  }
 }
 
 .chapter-prose pre {
@@ -807,6 +868,7 @@ html.dark .bounded-os-map__history-lanes strong {
 html.dark .chapter-prose h1,
 html.dark .chapter-prose h2,
 html.dark .chapter-prose h3,
+html.dark .chapter-prose h4,
 html.dark .chapter-prose strong {
   color: var(--color-cream);
 }

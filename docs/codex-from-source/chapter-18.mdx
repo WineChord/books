@@ -1,15 +1,14 @@
-import ExtensionProvenance from "../../src/components/visual/ExtensionProvenance.tsx";
 
 # Chapter 18: Skills, Plugins, Connectors, and Typed Extensions
-
-<ExtensionProvenance lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to read skills, plugins, connectors, and apps as packaged extension planes. Track metadata, trust, loading, and context injection separately.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/extension-packaging-plane.png" alt="chapter 18 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/extension-packaging-plane.png" alt="Extension packaging plane separating skills, plugins, connectors, typed extensions, trust checks, and context injection" loading="lazy" decoding="async" />
   <figcaption>Skills, plugins, connectors, apps, and typed contributors are packaging planes; they enter a turn as governed context or tools.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 17 showed MCP as a runtime tool protocol: external servers are discovered, sanitized, routed, and observed without becoming part of the core turn loop. This chapter moves up a layer. Before a tool can be routed, the system must decide which instructions, packages, hosted app identities, and in-process contributors are allowed to shape a thread.
 
@@ -24,6 +23,7 @@ These surfaces are related but not interchangeable. A skill is primarily a model
 The architecture becomes readable when those planes stay separate.
 
 The diagram is intentionally not a single pipeline. Extension loading is a set of converging planes that meet at thread construction, tool exposure, and runtime policy.
+
 
 ## Skills: Instruction With a Budget
 
@@ -55,7 +55,7 @@ for each mention in user_input:
 
 The pseudocode is generic, but the invariant is concrete: discovery, summary, and full-body loading are different phases.
 
-## Plugins: Packaging and Distribution
+### Plugins: Packaging and Distribution
 
 Plugins answer a different question: how do extension assets arrive and stay updated? A plugin can be installed from a marketplace, loaded from a cache, synced from remote sources, shared, and unpacked into contribution types. That unpacking is the architectural point. A plugin is not itself a runtime tool. It is a package that may contribute skill roots, MCP server definitions, connector IDs, and hooks.
 
@@ -63,19 +63,19 @@ This packaging layer has to be strict about trust. Marketplace names, remote plu
 
 Plugin sync is also eventually consistent. Marketplace lookup may fail. Remote bundles may be stale. A startup refresh can be useful without becoming a hard dependency for every thread. Good extension infrastructure treats those failures as load outcomes: installed, skipped, invalid, unavailable, or warning-producing.
 
-## Connectors: Hosted App Metadata
+### Connectors: Hosted App Metadata
 
 Connectors normalize hosted app directory metadata. They answer questions such as: which app identity is this, what display name should clients show, what tools are known, what logo or directory data exists, and whether the current account can access it. That metadata is related to MCP and hosted app tools, but it is not the same thing as an MCP server.
 
 The important split is directory knowledge versus accessible capability. A directory can describe an app even when the user is not authenticated for it. The runtime can therefore show a connector, ask for authentication, and later expose hosted tools only when access metadata supports that decision.
 
-## Typed Extensions: Compiled Contributions
+### Typed Extensions: Compiled Contributions
 
 Typed extensions are the least dynamic of the four planes. They are in-process contributors registered through explicit types. Instead of loading arbitrary code at runtime, they participate through a narrow API: contribute thread-start state, prompt fragments, or other typed data that the app-server and runtime know how to consume.
 
 That makes typed extensions useful for internal integration points where the extension author and runtime author share a compile-time contract. It also explains why they are not a replacement for plugins. Plugins distribute configuration and workflow assets; typed extensions contribute code through the build.
 
-## Trust and Fail-Soft Loading
+### Trust and Fail-Soft Loading
 
 Extension loading has to be both strict and forgiving. It is strict about the boundary it is validating, and forgiving about optional capabilities that fail. Invalid metadata should not become prompt text. A missing connector should not crash thread startup. A plugin path outside the allowed bundle should not be followed. A remote sync failure should be visible, but ordinary local work should continue when cached state is sufficient.
 
@@ -110,7 +110,7 @@ The loader is a classifier and validator. It should not silently turn every plug
 
 <div class="trace-ledger">
 
-## Trace Ledger
+### Trace Ledger
 
 | Question | Chapter 18 answer |
 | --- | --- |

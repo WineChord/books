@@ -1,15 +1,14 @@
-import DurableThreadLedger from "../../../src/components/visual/DurableThreadLedger.tsx";
 
 # 第 5 章：线程、会话与持久状态
-
-<DurableThreadLedger lang="zh" client:visible />
 
 > **阅读契约：** 用本章理解持久工作。把 thread identity、queues、history、rollout 和 session ownership 分别看成 state、progress 与 resumability 的答案。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/thread-session-durable-state.png" alt="chapter 05 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-session-durable-state.png" alt="持久 thread 状态图：分开 thread identity、session facade、queues、history、rollout、projection、resume、fork 与 rollback" loading="lazy" decoding="async" />
   <figcaption>Thread identity、live session、queues、history 和 rollout evidence 解决不同持久化问题，不能退化成一份 transcript。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 4 章把协议边界讲清楚了：客户端可以提交 operation、接收 event、 交换模型 item，却不需要知道 runtime 内部如何工作。本章越过这条边界， 看 Codex 如何把这些协议消息变成一个可恢复、可 fork、可回滚的活线程。
 
@@ -19,6 +18,7 @@ import DurableThreadLedger from "../../../src/components/visual/DurableThreadLed
   <p><strong>心智模型：</strong>thread 是长期工作账本；session 是当前正在服务这个账本的运行时进程。</p>
 </div>
 
+
 ## Runtime Stack
 
 Codex 不是围绕一个“聊天对象”组织起来的。它更像一组逐层收窄权限的 handle：越靠近外部，接口越小；越靠近内部，状态和调度责任越多。
@@ -27,7 +27,7 @@ Codex 不是围绕一个“聊天对象”组织起来的。它更像一组逐�
 
 这层拆分很关键。客户端不应该直接改调度器内部状态。客户端提交一个 operation；session 决定它是启动新 task、steer 当前 task、记录 pending input、更新持久 metadata，还是关闭线程。
 
-## 第一个事件就是契约
+### 第一个事件就是契约
 
 一个新打开的 runtime，第一个客户端可见事件是 session setup event。它 携带 thread identity、session identity、工作目录、模型、provider、 审批策略、权限 profile、初始消息和其他已解析设置。
 
@@ -51,7 +51,7 @@ function open_runtime_thread(request):
 
 重要的不是源码里每一步的具体位置，而是这个性质：客户端可以把 setup 当作事件流的起点，并且在可选能力还没有全部加载完时，也能先渲染一个 恢复出来的线程。
 
-## 三种历史
+### 三种历史
 
 Agent 架构里很多混乱，都来自把“历史”当成一个东西。Codex 同时维护三种 历史，它们回答的问题不同。
 
@@ -67,7 +67,7 @@ rollout 文件是 replay spine。它按顺序记录持久 runtime 事实：sessi
 
 SQLite state 是 projection layer。它保存 thread metadata、列表和搜索索引、 日志、memory job、graph edge 等适合查询的状态。在设计允许的地方， projection 可以从持久记录修复或重建。rollout 是账本；数据库是索引和 运行时辅助状态。
 
-## 记录一个 Item 可能影响三层
+### 记录一个 Item 可能影响三层
 
 一次 turn 记录一个新 item 时，runtime 必须判断哪些 surface 需要知道它。 一个工具结果可能是模型可见的、可 replay 的、客户端可渲染的、analytics 关心的，也可能需要进入 trace 诊断证据。这些关系很近，但并不是同一件事。
 
@@ -89,7 +89,7 @@ function record_runtime_item(turn, item):
 
 这种设计保护的是 replay。客户端可以断开再重连；数据库行可以过期后修复； 模型请求可以从规范化 context 重新构造，而不是依赖屏幕文本。持久状态是 这些 surface 之间的共同语言。
 
-## Start、Resume、Fork、Rollback
+### Start、Resume、Fork、Rollback
 
 线程操作本质上都是同一个原则的变体：加载或选择一个 replay 前缀，在它 之上构造 session，然后用相同的词汇继续追加未来 item。
 
@@ -97,7 +97,7 @@ resume 不是重新加载一段字符串。它要从 durable items 重建模型�
 
 这就是为什么 turn context snapshot 必须持久化。它告诉后来的 session： 当时的工作目录、权限、模型设置、网络策略、memory mode 和环境选择是什么。 没有这些上下文，replay 就只剩文本，没有执行语义。
 
-## Session State 是分层的
+### Session State 是分层的
 
 live session 内部有多类状态，不应该被揉成一个 map。
 
@@ -111,7 +111,7 @@ live session 内部有多类状态，不应该被揉成一个 map。
 
 这层拆分让 Codex 能回答一个细问题：“这个 operation 改的是 durable thread、 当前 live turn、下一次 turn，还是只是客户端视图？”这些承诺完全不同。 如果 runtime 分不清，迟早会丢输入、重复工具结果，或者让 resume 变得不一致。
 
-## Metadata 是抽取出来的，不是凭空造的
+### Metadata 是抽取出来的，不是凭空造的
 
 线程列表和搜索视图不能每次请求都全量 replay。Codex 因此维护 metadata projection：标题或 preview、model provider、memory mode、archive state、 working directory、git 信息、创建和更新时间、分页 anchor 等。
 

@@ -1,19 +1,19 @@
-import MemorySideChannel from "../../../src/components/visual/MemorySideChannel.tsx";
 
 # 第 22 章：Memories 与用户级状态
-
-<MemorySideChannel lang="zh" client:visible />
 
 > **阅读契约：** 用本章把 memory 保持为受控旁路。跟住 read prompts、write prompts、user-level state、budgets，并记住 memory 不是隐藏 transcript。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/memory-side-channel-governance.png" alt="chapter 22 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-side-channel-governance.png" alt="Memory 旁路治理图：分开 read prompt、write pipeline、citation、lock、redaction、consolidation 与 storage" loading="lazy" decoding="async" />
   <figcaption>Memory 是受控 side channel：reads、writes、budgets、locks、redaction、consolidation 和 storage 被有意拆开。</figcaption>
 </figure>
 
 第 21 章把 cloud tasks 和 local turn execution 分开：远程工作有自己的 task contract、identity layer 和 local apply boundary。Memories 采用同样的 架构纪律。长期上下文不是隐藏的 chat history。它是一个受控 side channel， 有 read path、write path、storage rules、locks、redaction，以及用于 consolidation 的受限 internal agent。
 
 本章解释为什么需要这些额外机制。Memory system 可以让 Agent 在跨 session 时显得连续，但也可能泄漏陈旧事实、过度拟合旧对话，或者把敏感内容偷偷带进 未来 prompt。Codex 把 memory 当成显式子系统，是为了让 runtime 获得长期 context 的好处，同时仍然控制哪些内容能被读、被写、被引用。
+
+**源码边界：** memory usage kinds 是 **verified source**，锚点在 [`usage.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/usage.rs#L8)；citation parsing 是 **verified source**，锚点在 [`citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6)；read-only service 与 write phases 是 **verified source**，锚点在 [`memories/mcp`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/mcp/src)、[`phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70) 和 [`phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L45)。本章的安全动机是从这些可见 rails 得出的 **surrounding contract inference**，不是对隐藏 memory service 行为的断言。
+
 
 ## Memory 有独立 Read Path 和 Write Path
 
@@ -23,7 +23,7 @@ Write path 在 root-session startup 后台运行。它扫描符合条件的过�
 
 这个分离避免了一个常见错误：让当前模型直接改写自己未来会看到的 instructions。Codex 可以使用模型提取和合并 memory，但这些模型运行在有边界 的 pipeline 中，而不是运行在用户的普通 turn 内部。
 
-## Read Path：有用，但只读
+### Read Path：有用，但只读
 
 Read path 有两个职责。第一，它可以把有界 summary 注入当前 session 的 developer instructions，让模型在不扫描目录的情况下看到长期 context 的压缩 视图。第二，MCP memory service 让模型在需要更多证据时 list、read 和 search memory files。
 
@@ -31,7 +31,7 @@ MCP service 被刻意设计成 read-only 且 path-scoped。它拒绝 parent dire
 
 Search 也是结构化的。Request 可以匹配任意 query、要求所有 queries 在同一行， 或要求所有 queries 落在一个 line window 内。Response 包含 matching content、 line numbers、matched queries、pagination 和 truncation flag。这是 tool contract，不是终端 grep output。
 
-## Citations 把 Memory 连回证据
+### Citations 把 Memory 连回证据
 
 Memory 需要 provenance。Codex 会把 citation blocks 解析成结构化 entries， 以及 rollout 或 thread ids。Citation 可以指向 memory artifact 位置，也可以 指向产生该 memory 的 rollouts。这让客户端和后续 runtime logic 能区分“模型 使用了 memory”和“模型提到了某个恰好被记住的事实”。
 
@@ -39,7 +39,7 @@ Citation system 刻意保持窄。它不试图证明每一句话。它给架构�
 
 可以把 citation 理解成一张紧凑收据：这段 memory artifact 来自哪些 rollout 或 thread source，并在 read path 中被使用。它不是模型权限，而是 runtime accounting。后续选择逻辑可以偏向最近被引用、确实有用的 memories；pruning 也能删除既不新鲜也不被使用的 artifacts。
 
-## Stage 1 提取 Per-Rollout Memory
+### Stage 1 提取 Per-Rollout Memory
 
 Stage 1 是并行且有界的。Startup 时，Codex 从 state database claim 符合条件 的 rollout jobs。Eligibility 由 session source、age、idle time、scan limits、 claim limits 和 lease ownership 决定。这可以避免 memory extraction 和 active sessions 竞争，也避免多个 concurrent startups 重复处理同一份工作。
 
@@ -73,7 +73,7 @@ procedure stage_one_startup():
 
 这里使用模型，是因为 memory extraction 是语义任务。围绕模型的确定性护栏同样 重要：claim leases、schema shape、redaction、有界并发、retry accounting 和 database persistence。
 
-## Stage 2 合并全局 Memory
+### Stage 2 合并全局 Memory
 
 Stage 2 是串行的。它先 claim 一个 global lock，然后才触碰 memory workspace。 接着它准备 git-baseline workspace，为 internal agent 构造 locked-down configuration，加载被选中的 Stage 1 outputs，同步 raw memory artifacts 和 rollout summaries，清理 stale generated resources，并让 git 判断 workspace 是否变化。
 
@@ -81,7 +81,7 @@ Stage 2 是串行的。它先 claim 一个 global lock，然后才触碰 memory 
 
 Git baseline 不是为了协同开发。它是 memory workspace 的确定性 diff engine。 Stage 2 用 diff 判断是否需要 consolidation，并给 internal agent 一个有界的 changed artifacts 视图。
 
-## Internal Agent 被刻意限制
+### Internal Agent 被刻意限制
 
 Stage 2 使用 model-guided agent，是因为 consolidation 是编辑工作：合并相关 memories，更新 summaries，维护更高层 memory artifacts。但这个 agent 不是 普通用户 session。
 
@@ -97,7 +97,7 @@ Stage 2 使用 model-guided agent，是因为 consolidation 是编辑工作：�
 
 这就是 memory system 的核心安全模式。Codex 允许模型执行语义部分，但移除 ambient authority。Internal agent 可以编辑 memory artifacts；它不能浏览网络、 调用任意工具、继续委派更多 agents，或制造另一个 memory loop。
 
-## Memory Selection 受 Usage 影响
+### Memory Selection 受 Usage 影响
 
 Stage 2 不会永远合并所有 Stage 1 output。它选择一个有界集合。Outputs 可以 因为长期未使用而老化退出。已有 usage 的条目会按 usage count 和 recency 排序； 没有 usage 的条目可以回退到 generation time，这样 fresh memories 不会仅仅 因为尚未被引用就被忽略。
 
@@ -105,7 +105,7 @@ Selection 会影响 workspace。Raw memories 用稳定顺序渲染，以避免 c
 
 这种设计把 memory 当作有 lifecycle 的 state，而不是 append-only lore。永远 未被使用的 memory 可以从 active set 中消失；经常被使用的 memory 可以继续 保留。系统保留足够 accounting，在模型之外做这个决定。
 
-## 失败模式
+### 失败模式
 
 Memory failures 如果静默发生会很危险。因此 Codex 在 startup integration 上 选择 fail-soft，但在 pipeline 内部做显式 accounting。如果 session 是 ephemeral、memory 被禁用、session 是 sub-agent，或 state database 不可用， startup generation 会被跳过。如果 backend rate limits 太低，generation 会 被跳过，而不是消耗稀缺 tokens。如果 Stage 1 extraction 失败，job 会标记为 failed 并进入 retry backoff。如果 Stage 2 无法持有 global lock，它不会修改 workspace。
 
@@ -137,9 +137,9 @@ Memories 完成了第六部的主题。Multi-agent work 需要 interaction edges
 | 概念 | 源码锚点 |
 | --- | --- |
 | Memory usage kinds | [`codex-rs/memories/read/src/usage.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/usage.rs#L8) |
-| Citation parser | [`codex-rs/memories/read/src/citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L1) |
+| Citation parser | [`codex-rs/memories/read/src/citations.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6) |
 | Read-only MCP memory service | [`codex-rs/memories/mcp/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/mcp/src) |
-| Stage 1 extraction | [`codex-rs/memories/write/src/phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L1) |
-| Stage 2 consolidation | [`codex-rs/memories/write/src/phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L1) |
+| Stage 1 extraction | [`codex-rs/memories/write/src/phase1.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70) |
+| Stage 2 consolidation | [`codex-rs/memories/write/src/phase2.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L45) |
 
 </div>

@@ -1,19 +1,19 @@
-import ReleaseArtifactConveyor from "../../src/components/visual/ReleaseArtifactConveyor.tsx";
 
 # Chapter 24: Packaging, Release, and Native Dependencies
-
-<ReleaseArtifactConveyor lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to follow artifacts from Rust workspace to distributed package. Track native binaries, npm wrappers, release gates, and platform-specific dependency boundaries.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/release-artifact-conveyor.png" alt="chapter 24 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/release-artifact-conveyor.png" alt="Release artifact conveyor moving Rust workspace outputs through native binaries, npm wrappers, platform packages, signatures, and checksums" loading="lazy" decoding="async" />
   <figcaption>Release work is a conveyor: Rust crates, native binaries, wrappers, packages, platform checks, signing, versions, and smoke tests move together.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 23 treated the build as a contract engine: Cargo preserves the developer and shipping-build model, Bazel proves release-build assumptions, and generated schemas keep external clients synchronized. Packaging is the next pressure point. A build artifact is not yet a product. It still has to survive npm installation, standalone installers, platform-specific helper binaries, signing, checksums, and native dependencies that behave differently across operating systems.
 
 This chapter follows the delivery path from Rust binary to user command. The design lesson is that packaging should absorb platform sprawl without letting that sprawl reshape the runtime. Codex can support many install paths because the product architecture is narrow: a native command, a thin distribution wrapper, optional platform packages, and helper artifacts whose complexity is kept near release infrastructure.
+
 
 ## Delivery Is an Architectural Boundary
 
@@ -23,7 +23,7 @@ If npm packaging owned real behavior, every platform package would risk becoming
 
 The meta package and installer are different doors into the same house. The user should not be able to infer which door they used by observing runtime semantics.
 
-## NPM Packages as Native Binary Selection
+### NPM Packages as Native Binary Selection
 
 The npm-facing layer has a modest job: expose a familiar installation surface while selecting the correct native payload. It is deliberately thin because the Rust command is the authoritative product. The meta package can depend on platform-specific optional packages, and the installed wrapper can locate the native executable, but neither layer should implement the agent loop.
 
@@ -44,13 +44,13 @@ The wrapper is small, but its failure mode matters. A packaging error should be 
 
 This is also where DotSlash and helper packages matter. The public package family is not only one binary: it includes platform-specific optional dependencies, selected helper binaries, and release-built tooling used by governance checks. Native packages should make those pieces discoverable without teaching the user which archive, helper, or platform suffix was chosen.
 
-## Standalone Installers Consume Release Artifacts
+### Standalone Installers Consume Release Artifacts
 
 Standalone installers solve a different problem: users may want Codex without depending on a JavaScript package manager at runtime. That does not mean the installer should invent a second artifact model. A stronger pattern is to let the installer consume the same release payloads that packaging produces, then expose a stable command shim.
 
 This keeps delivery paths coupled at the artifact level rather than forked at the behavior level. The installer owns installation mechanics. It should not own runtime semantics. When that rule holds, npm install and standalone install become operational variants of the same product.
 
-## Native Dependencies Belong in Quarantine
+### Native Dependencies Belong in Quarantine
 
 Native dependencies are where release systems often become unmaintainable. Codex has to handle helper binaries, sandbox support, platform-specific linking, and selected vendored or patched dependencies. Some dependencies are ordinary Rust crates. Others need archives, checksums, build scripts, platform conditionals, or compatibility modes.
 
@@ -60,7 +60,7 @@ The reusable pattern is quarantine. Native complexity belongs in `third_party`, 
 
 The design is not free. Quarantine creates a maintenance surface: checksums must be updated, patches must be justified, release assets must be present, and platform selectors must be tested. The benefit is that the maintenance surface is visible and centralized instead of being smeared across runtime code.
 
-## Signing and Checksums as Trust Transfer
+### Signing and Checksums as Trust Transfer
 
 Build reproducibility is not enough if users cannot trust the artifact they downloaded. Release packaging therefore adds a trust transfer layer: checksums, signatures, platform signing, and published metadata. These mechanisms do not make the runtime safer by themselves. They preserve the chain between reviewed source, built artifact, distributed package, and installed command.
 
@@ -81,7 +81,7 @@ publish({
 
 The exact signing provider is less important than the invariant: every published artifact should be verifiable against a release identity and a reviewed build process.
 
-## Delivery Architecture Protects Product Architecture
+### Delivery Architecture Protects Product Architecture
 
 The release system has one product obligation: preserve the runtime's contract while adapting it to messy platforms. It should make install paths boring. It should make helper binaries available without forcing users to learn the helper graph. It should make native dependencies reproducible without forcing core engineers to debug archive selection in the turn loop.
 
@@ -116,12 +116,12 @@ Build and packaging can create a correct artifact, but they cannot by themselves
 
 | Concept | Source anchor |
 | --- | --- |
-| npm wrapper package | [`codex-cli/package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L1) |
-| npm package builder | [`codex-cli/scripts/build_npm_package.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/build_npm_package.py#L1) |
-| Native dependency installer | [`codex-cli/scripts/install_native_deps.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/install_native_deps.py#L1) |
+| npm wrapper package | [`codex-cli/package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L2) |
+| npm package builder | [`codex-cli/scripts/build_npm_package.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/build_npm_package.py#L154) |
+| Native dependency installer | [`codex-cli/scripts/install_native_deps.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/scripts/install_native_deps.py#L161) |
 | Cargo release build workflow | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281) |
 | Release artifact staging | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L373) |
 | npm package staging | [`.github/workflows/rust-release.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L570) |
-| V8 dependency release surface | [`third_party/v8/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/third_party/v8/README.md#L1) |
+| V8 dependency release surface | [`third_party/v8/README.md`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/third_party/v8/README.md#L21) |
 
 </div>

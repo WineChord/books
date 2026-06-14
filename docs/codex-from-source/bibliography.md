@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this bibliography as evidence inventory. Separate public source anchors, product references, and supporting material before citing them in your own notes.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/evidence-inventory-bibliography.png" alt="bibliography hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evidence-inventory-bibliography.png" alt="Bibliography evidence inventory separating pinned source anchors, product references, standards, and supporting background material" loading="lazy" decoding="async" />
   <figcaption>The bibliography separates primary Codex sources from agent, MCP, Rust, TUI, security, and publishing context.</figcaption>
 </figure>
 
@@ -78,7 +78,7 @@
   [Artificial Intelligence Risk Management Framework 1.0](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10),
   January 26, 2023. Used for general risk-management language.
 - containers/bubblewrap,
-  [README](https://github.com/containers/bubblewrap/blob/f4cbeb44f293d21ef93aaf88b9bd2f4e229748ad/README.md).
+  [README](https://github.com/containers/bubblewrap/blob/2f55bae38468d0c50cf5df87b1e481e882b63acb/README.md).
   Used for Linux sandboxing context.
 - GitHub Docs,
   [About custom domains and GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/about-custom-domains-and-github-pages).

@@ -1,19 +1,19 @@
-import SubmissionFlowExplorer from "../../../src/components/visual/SubmissionFlowExplorer.tsx";
 
 # 第 4 章：协议边界
-
-<SubmissionFlowExplorer lang="zh" client:visible />
 
 > **阅读契约：** 用本章进入词汇边界。跟住 operations、events、items、submissions 和 protocol schemas 如何成为 clients、sessions 与 replay 的共同语言。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/protocol-boundary-taxonomy.png" alt="chapter 04 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/protocol-boundary-taxonomy.png" alt="协议边界分类图：覆盖 submissions、operations、events、items、app-server messages、generated schemas 和 compatibility" loading="lazy" decoding="async" />
   <figcaption>协议词汇是共享语言：operations 进入、submissions 排队、events 发出、items 渲染，schemas 保持客户端一致。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 3 章说明，Codex 只有在配置、认证、feature state 和 managed requirements 被解析成受约束的 runtime envelope 之后，才会开始工作。本章解释承载工作的语言。协议边界是这样一个位置：产品意图不再是私有方法调用，而变成持久消息，包括 submissions、events、model items、app-server JSON-RPC requests、server-to-client requests 和 generated schemas。
 
 协议是产品边界，不是序列化附属品。它告诉客户端可以请求什么，告诉 runtime 必须报告什么，也告诉未来版本已经继承了哪些兼容性义务。
+
 
 ## Core Runtime Protocol
 
@@ -30,7 +30,7 @@ Core runtime protocol 的外层形状很简单：
 
 序列图经过简化，但契约准确：只有 runtime 会把提交的意图转换为持久进展。
 
-## Item 不只是 Message
+### Item 不只是 Message
 
 简单聊天应用里，“message”往往足以承载大部分系统。Codex 需要更丰富的 item vocabulary。一个 thread 可能包含用户文本、图片、模型输出、reasoning summary、命令调用、命令输出、文件变化、审批记录、工具观察、plan update、hook activity、realtime transcript 和 collaboration event。
 
@@ -38,7 +38,7 @@ Core runtime protocol 的外层形状很简单：
 
 因此 item model 是架构词汇。它让 runtime、app-server、终端 UI、SDK 和 rollout reducers 能对正在处理的事实类型达成一致。
 
-## App-Server JSON-RPC
+### App-Server JSON-RPC
 
 App-server 引入第二条协议边界。它不是 core runtime protocol 的替代品，而是围绕 threads、turns、items、approvals、filesystem APIs、process APIs、MCP、plugins、account state 和 remote-control flows 的客户端侧分布式系统层。
 
@@ -50,7 +50,7 @@ App-server boundary 加入了本地终端 UI 往往可以隐藏的关注点：co
 
 客户端不应该通过解析 terminal text 来重建这个 projection。Server 统一完成映射，暴露稳定的 item 和 notification shape，并保留足够的 request id 与 pending-request state，把 decision 重新连接回它解锁的 turn。
 
-## 从 App Request 到 Core Operation
+### 从 App Request 到 Core Operation
 
 App-server model 使用 thread、turn、item、environment selection 等用户可见概念。Core runtime 使用 submission 和 operation。因此，一个 start turn 请求必须先验证，再翻译。
 
@@ -82,7 +82,7 @@ function map_core_event(event):
 
 这仍然是伪代码。关键思想是带验证的翻译。App-server 不是把任意 JSON 盲目转发给 core 的隧道。它拥有客户端契约，并把该契约映射到 runtime operations。
 
-## Generated Schemas 作为治理
+### Generated Schemas 作为治理
 
 Generated schemas 让协议可以在 Rust 之外被审计。JSON Schema 和面向 TypeScript 的 artifact，让客户端、测试和 release checks 能发现 drift。它们也迫使 source types 携带足够元数据，从而区分 stable surface 和 experimental surface。
 
@@ -90,7 +90,7 @@ Schema generation 是一种架构治理。没有它，一个字段可能被加�
 
 这尤其重要，因为 Codex 不止一种客户端生成目标。Rust app-server client、Python SDK、generated TypeScript bindings 和 test clients 都需要共享 wire model，即使它们暴露的 ergonomics 并不相同。
 
-## Compatibility 是代码路径
+### Compatibility 是代码路径
 
 Codex 中的协议兼容性是显式的。某些值接受 legacy aliases。旧请求形式和新的 turn-context operation 共存。App-server v1 和 v2 概念有重叠。Experimental fields 由 connection capability gate，并从 stable schema output 过滤。Deprecated fields 即使被忽略，也可能继续被接受，以便旧客户端还能工作。
 
@@ -98,7 +98,7 @@ Codex 中的协议兼容性是显式的。某些值接受 legacy aliases。旧�
 
 有边界操作系统的类比在这里也有帮助。操作系统为了旧应用保留系统调用兼容性。想支持多个客户端的 Agent runtime，也会继承一个较小版本的同样义务。
 
-## 什么能进入，什么能离开
+### 什么能进入，什么能离开
 
 到 Part I 结束，架构已经建立了四道 gate：
 
@@ -124,8 +124,8 @@ Part I 建立了契约：分发层到达 Rust router，router 解析受约束的
 | --- | --- |
 | Core submission 与 event | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L125) |
 | App-server JSON-RPC envelope | [`codex-rs/app-server-protocol/src/jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L37) |
-| V2 协议族 | [`codex-rs/app-server-protocol/src/protocol/v2/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/mod.rs#L1) |
+| V2 协议族 | [`codex-rs/app-server-protocol/src/protocol/v2/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/mod.rs#L3) |
 | Event 到 item 映射 | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L30) |
-| Schema 导出 | [`codex-rs/app-server-protocol/src/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L1) |
+| Schema 导出 | [`codex-rs/app-server-protocol/src/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L54) |
 
 </div>

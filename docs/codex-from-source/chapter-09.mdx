@@ -1,15 +1,14 @@
-import ToolDispatchMap from "../../src/components/visual/ToolDispatchMap.tsx";
 
 # Chapter 9: Tool Specifications, Routing, and Dispatch
-
-<ToolDispatchMap lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to follow a tool from model-visible spec to runtime handler. Track routing, registry lookup, orchestration, and why a spec is never execution authority.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/tool-routing-dispatch-map.png" alt="chapter 09 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-routing-dispatch-map.png" alt="Tool routing and dispatch map separating model-visible specs, registry handlers, router validation, orchestration, policy, and result shaping" loading="lazy" decoding="async" />
   <figcaption>A model-visible tool spec is only the first gate; routing, registry lookup, orchestration, and result shaping decide the real side effect.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 8 established that Codex records runtime facts before trying to interpret them. This chapter moves from observation to action: once the model asks for a tool, Codex must decide whether that request names a real capability, which runtime owns it, how much parallelism it can tolerate, and what result should return to the model and to the durable event stream.
 
@@ -20,6 +19,7 @@ The tool system is easiest to understand as a capability system. A tool specific
   <p><strong>Problem:</strong> a model can name a tool, but naming is not authority to execute it.</p>
   <p><strong>Mental model:</strong> safe side effects require five separate steps: exposure, routing, validation, supervision, and observation.</p>
 </div>
+
 
 ## The Two Planes
 
@@ -37,7 +37,7 @@ The separation is visible in the lifecycle. A session builds a tool registry fro
 
 This diagram is the core of the chapter: the model receives specifications, not handlers. The runtime keeps handlers, not just schemas. The router is the turn-local bridge between them.
 
-## Specification Is Not Authority
+### Specification Is Not Authority
 
 A `ToolSpec` is a contract for model syntax. It can describe ordinary function tools, namespace tools, hosted tools such as search or image generation, local shell-like tools, and freeform tools such as patch application. It can also carry compatibility details that help different model surfaces understand the same capability.
 
@@ -71,7 +71,7 @@ This distinction matters most for tools that are discovered at runtime:
 
 Codex therefore builds a plan rather than a fixed list. The plan can expose a tool directly, hide it behind tool search, coalesce namespace tools, augment descriptions for a mode, or register a handler without showing the handler's spec as the primary model surface.
 
-## Routing a Tool Call
+### Routing a Tool Call
 
 The model returns response items. Some items are messages. Some are tool calls. A tool call must be parsed into a normalized runtime form before dispatch. That normalized form carries a tool name, a call id, and a payload. The payload kind matters because a plain function call, an MCP call, a freeform custom call, and a search-tool call are not interchangeable even when their names look similar.
 
@@ -110,7 +110,7 @@ The runtime then wraps dispatch with cancellation and output shaping. If the use
 
 This pseudocode is deliberately generic. The important architecture is not a particular function body. It is the sequence: normalize, validate, supervise, execute, shape output, and persist.
 
-## Parallelism Is a Capability
+### Parallelism Is a Capability
 
 Parallel tool calls are not safe merely because the model can produce them. Some tools are naturally read-only. Some mutate the workspace. Some depend on a single process session. Some MCP servers declare their own tolerance. Codex therefore treats parallelism as part of the configured tool capability.
 
@@ -118,7 +118,7 @@ For ordinary tools, the configured spec can say whether parallel calls are suppo
 
 This is not only about correctness. It is about making side effects attributable. If two mutating calls interleave without a clear concurrency contract, the rollout can still record events, but the user may not be able to understand which call caused which change.
 
-## Output Belongs to Two Audiences
+### Output Belongs to Two Audiences
 
 Every tool result has two audiences:
 
@@ -151,6 +151,6 @@ Chapter 10 follows the most consequential handler family: shell and filesystem e
 | Tool router | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38) |
 | Tool registry | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L220) |
 | Tool orchestrator | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
-| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L1) |
+| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L28) |
 
 </div>

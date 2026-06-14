@@ -1,19 +1,19 @@
-import ToolDispatchMap from "../../../src/components/visual/ToolDispatchMap.tsx";
 
 # 第 9 章：工具规格、路由与分发
-
-<ToolDispatchMap lang="zh" client:visible />
 
 > **阅读契约：** 用本章跟踪工具如何从 model-visible spec 到 runtime handler。跟住 routing、registry lookup、orchestration，并记住 spec 从来不是执行权限。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/tool-routing-dispatch-map.png" alt="chapter 09 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-routing-dispatch-map.png" alt="工具路由与分发图：分开模型可见 spec、registry handler、router validation、orchestration、policy 和 result shaping" loading="lazy" decoding="async" />
   <figcaption>模型可见的 tool spec 只是第一道门；routing、registry lookup、orchestration 和 result shaping 决定真正的副作用。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 8 章说明了 Codex 为什么先记录运行时事实，再解释这些事实。本章从观察进入行动：当模型请求一个工具时，Codex 必须判断这个请求是否对应真实能力，由哪个运行时负责，是否允许并行，最终又该把什么结果返回给模型和可重放的事件流。
 
 理解工具系统，最稳的方式是把它看成能力系统。工具规格描述模型可以怎样调用；handler 才是能够执行工作的运行时权威；router 在一个具体 turn 中把二者连接起来。这三个概念不能混在一起。模型可见 schema 和执行权限如果变成同一个对象，每新增一个工具，就会同时制造安全例外、UI 例外和重放例外。
+
 
 ## 两个平面
 
@@ -31,7 +31,7 @@ Codex 把工具元数据和执行行为放在不同平面。
 
 这张图就是本章主线：模型拿到的是规格，不是 handler；运行时保留的是 handler，不只是 schema；router 是一个 turn 内部连接二者的桥。
 
-## 规格不是执行授权
+### 规格不是执行授权
 
 `ToolSpec` 是模型语法合同。它可以描述普通 function tool、namespace tool、hosted search 或 image generation、local shell-like tool，以及 `apply_patch` 这种 freeform tool。它还可以携带兼容性信息，让不同模型表面理解同一项能力。
 
@@ -49,7 +49,7 @@ Codex 把工具元数据和执行行为放在不同平面。
 
 所以 Codex 构造的是 plan，而不是固定列表。Plan 可以直接暴露某个工具，也可以把它放到 tool search 后面；可以合并 namespace tools，可以为某个模式增强描述，也可以注册 handler 但不把这个 handler 的 spec 作为主要模型表面。
 
-## 路由一次工具调用
+### 路由一次工具调用
 
 模型返回的是 response items。其中有些是消息，有些是工具调用。工具调用在分发前要先被解析成规范化的运行时形态：工具名、call id 和 payload。Payload kind 很重要，因为普通 function call、MCP call、freeform custom call 和 search-tool call 即使名字相似，也不能互换。
 
@@ -87,7 +87,7 @@ Router 主要做四件事：
 
 这段是伪代码，不对应源码实现。它强调的是顺序：规范化、校验、监督、执行、塑形输出、持久化。
 
-## 并行也是能力
+### 并行也是能力
 
 模型能产生 parallel tool calls，并不表示这些调用天然安全。有些工具是只读的，有些会修改 workspace，有些依赖单个进程会话，有些 MCP server 自己声明并发容忍度。因此 Codex 把并行能力当作工具配置的一部分。
 
@@ -95,7 +95,7 @@ Router 主要做四件事：
 
 这不仅是正确性问题，也是可归因性问题。两个 mutating call 如果没有清晰并发合同就交错执行，rollout 也许仍能记录事件，但用户未必能判断哪个调用造成了哪个改变。
 
-## 输出服务两个读者
+### 输出服务两个读者
 
 每个工具结果都有两个读者：
 
@@ -128,6 +128,6 @@ Shell command 可能把输出流式发给 UI，最后再给模型一个摘要。
 | Tool router | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38) |
 | Tool registry | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L220) |
 | Tool orchestrator | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
-| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L1) |
+| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L28) |
 
 </div>

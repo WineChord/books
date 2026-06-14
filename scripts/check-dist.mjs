@@ -1,15 +1,10 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import {
-  chapterVisualSpecs,
-  sourceSnapshot,
-  visualSpecStatus,
-} from "../src/visual/visual-specs.mjs";
-
 const distDir = path.join(process.cwd(), "dist");
 const base = "/books/";
 const siteOrigin = "https://www.wineandchord.com";
+const codexFigureCdn = "https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/";
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -200,16 +195,10 @@ assert(
 );
 
 const htmlFiles = walk(distDir).filter((file) => file.endsWith(".html"));
-const chapterOneHtml = new Set([
-  path.join("codex-from-source", "chapter-01.html"),
-  path.join("zh", "codex-from-source", "chapter-01.html"),
-]);
 const forbiddenPublicationPattern =
   /book-rewrite-prompt|\/rewrite\/|codex-from-source_rewrite|zh_codex-from-source_rewrite|vitepress/i;
-// Canonical visual-spec component names that have been shipped as Astro
-// islands and are therefore allowed to appear in the published bundles. The
-// rest stay forbidden so internal placeholder names cannot leak through.
-const shippedVisualComponents = new Set([
+const forbiddenCodexDynamicTokens = [
+  "ArchitectureMap",
   "BoundedAgentOSMap",
   "ConstraintEnvelopeBuilder",
   "DurableThreadLedger",
@@ -220,19 +209,22 @@ const shippedVisualComponents = new Set([
   "GeneratedContractDriftViewer",
   "ReleaseArtifactConveyor",
   "PolicyLaneDashboard",
-]);
-
-const forbiddenPublicationTokens = [
-  "chapterVisualSpecs",
-  "visualSpecStatus",
-  "sourceSnapshot",
-  "sourceEvidenceRefs",
-  visualSpecStatus.scope,
-  visualSpecStatus.approvalTarget,
-  ...chapterVisualSpecs.map((spec) => spec.id),
-  ...chapterVisualSpecs
-    .map((spec) => spec.primaryInteractive.component)
-    .filter((component) => !shippedVisualComponents.has(component)),
+  "StartupBootstrapTimeline",
+  "SubmissionFlowExplorer",
+  "StreamingProviderLanes",
+  "RolloutTraceLab",
+  "ToolDispatchMap",
+  "ExecutionBackendBoard",
+  "PatchWorkbench",
+  "ApprovalLadder",
+  "McpTrustPlane",
+  "ExtensionProvenance",
+  "AgentGraphBoard",
+  "RemoteTaskContract",
+  "MemorySideChannel",
+  "ClientReachabilityBoard",
+  "PolicyLaneDashboard",
+  "InteractiveFigure",
 ];
 
 for (const file of walk(distDir)) {
@@ -246,30 +238,36 @@ for (const file of walk(distDir)) {
       && !forbiddenPublicationPattern.test(rel),
     `${rel} exposes internal or obsolete publication material`,
   );
-  for (const token of forbiddenPublicationTokens) {
-    assert(
-      !body.includes(token) && !rel.includes(token),
-      `${rel} exposes internal visual spec token: ${token}`,
-    );
-  }
 }
 
 for (const file of htmlFiles) {
   const html = readFileSync(file, "utf8");
   const rel = path.relative(distDir, file);
-  const isChapterOne = chapterOneHtml.has(rel);
-  const hasChapterOneIsland = html.includes("BoundedAgentOSMap");
-  const hasRenderedMermaid =
-    /class="mermaid\b/.test(html) || /language-mermaid/.test(html);
+  const isCodexFromSource =
+    rel.startsWith(`codex-from-source${path.sep}`) ||
+    rel.startsWith(path.join("zh", "codex-from-source") + path.sep);
 
-  if (isChapterOne) {
-    assert(hasChapterOneIsland, `${rel} is missing the Chapter 1 island`);
-    assert(!hasRenderedMermaid, `${rel} still renders Chapter 1 Mermaid`);
-  } else {
+  if (isCodexFromSource) {
     assert(
-      !hasChapterOneIsland,
-      `${rel} unexpectedly loads the Chapter 1 island`,
+      !/astro-island|client:load|client:visible/.test(html),
+      `${rel} still contains dynamic island markup`,
     );
+    for (const token of forbiddenCodexDynamicTokens) {
+      assert(
+        !html.includes(token),
+        `${rel} exposes a forbidden Codex dynamic visual token: ${token}`,
+      );
+    }
+    assert(
+      !html.includes("/books/codex-from-source/assets/"),
+      `${rel} still publishes local codex-from-source asset paths`,
+    );
+    if (/<img\b/.test(html)) {
+      assert(
+        html.includes(codexFigureCdn),
+        `${rel} is missing PicGo-hosted Codex figure URLs`,
+      );
+    }
   }
 
   const canonical = html.match(/rel="canonical" href="([^"]+)"/)?.[1];

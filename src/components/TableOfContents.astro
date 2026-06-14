@@ -11,7 +11,7 @@ interface Props {
 }
 
 const { headings, lang } = Astro.props;
-const tocHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
+const tocHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 4);
 ---
 
 {tocHeadings.length > 0 && (
@@ -29,6 +29,7 @@ const tocHeadings = headings.filter((heading) => heading.depth >= 2 && heading.d
               class:list={[
                 "block text-sm text-muted transition-colors hover:text-terracotta",
                 heading.depth === 3 ? "pl-3 text-xs" : "",
+                heading.depth === 4 ? "pl-6 text-xs opacity-90" : "",
               ]}
             >
               {heading.text}

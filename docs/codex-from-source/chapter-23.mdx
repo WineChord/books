@@ -1,19 +1,19 @@
-import GeneratedContractDriftViewer from "../../src/components/visual/GeneratedContractDriftViewer.tsx";
 
 # Chapter 23: Build Systems and Generated Contracts
-
-<GeneratedContractDriftViewer lang="en" client:visible />
 
 > **Reading Contract:** Use this chapter to connect generated contracts to governance. Track schemas, bindings, drift detection, and build checks that keep protocol changes visible.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/generated-contract-drift-check.png" alt="chapter 23 hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/generated-contract-drift-check.png" alt="Generated contract drift check connecting Rust types, exported schemas, checked artifacts, CI failure, and client-facing API review" loading="lazy" decoding="async" />
   <figcaption>Generated schemas become governance when source schema, bindings, drift checks, and CI failure all point at the same contract.</figcaption>
 </figure>
+
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
 Chapter 22 ended inside the runtime, where long-term memory is allowed to change only through read paths, write paths, locks, citations, and restricted internal agents. Part VII moves that same discipline out to the repository itself. If the runtime is governed by durable contracts, the source tree needs machinery that keeps those contracts true after every dependency change, schema edit, platform port, and release build.
 
 This chapter explains why Codex carries two build views of the same Rust system, why generated schemas are treated as product contracts, and why test launchers exist just to make hermetic CI feel like ordinary developer tooling. By the end, you should see the build as a second protocol layer: Cargo speaks for local development and the shipping release workflow, Bazel supplies a hermetic verification overlay, and schema generation speaks for every client that integrates with Codex without linking the runtime.
+
 
 ## The Problem This Layer Solves
 
@@ -32,7 +32,7 @@ The clever part is not "use Bazel." The clever part is that Bazel is not allowed
 
 This diagram is the shape to keep in mind. One source graph feeds two build interfaces. One runtime graph emits several public contracts. If those outputs diverge, the architecture has already failed before a user runs a command.
 
-## Cargo as the Developer Source of Truth
+### Cargo as the Developer Source of Truth
 
 Cargo owns the ordinary development loop. It defines the Rust workspace, crate dependencies, binary targets, features, tests, lint expectations, and lockfile resolution that a contributor sees during day-to-day work. That is a pragmatic choice: Rust engineers understand Cargo, IDEs understand Cargo, and most library-level reasoning happens at the crate boundary.
 
@@ -42,7 +42,7 @@ The trade-off is that Cargo alone is not enough for this product. It does not fu
 
 The concrete source surfaces are deliberately split. Root package files and the `justfile` coordinate developer commands. `codex-rs/Cargo.toml` owns the Rust workspace. Root `MODULE.bazel` imports toolchains, Rust crate metadata, third-party archives, and platform repositories. `codex-rs/BUILD.bazel` and shared Bazel macros mirror the crate graph, generate tests, and define release-build verification targets. The public release workflow builds the shipping artifacts with Cargo, then stages and uploads them. Generated app-server, config, and hook schemas sit in checked-in schema directories because external clients depend on them.
 
-## Bazel as a CI and Release-Verification Overlay
+### Bazel as a CI and Release-Verification Overlay
 
 Bazel's job is to make architecture harder to accidentally violate. It imports the Rust dependency graph, defines platform targets, and runs tests in a controlled environment. The pinned source's public release workflow builds the shipped CLI artifacts with Cargo, then stages and uploads those artifacts. Bazel still matters because it verifies release-build assumptions and keeps platform/native-dependency structure executable in CI. It also encodes the awkward details that product crates should not need to know: runfile layout, sharding, snapshot paths, platform toolchains, downloaded native archives, and hermetic verification targets.
 
@@ -65,7 +65,7 @@ The important decision is that the overlay derives from product structure instea
 
 The launcher box is easy to underestimate. Tests often assume a working directory, snapshot path, fixture layout, or environment variable. Bazel breaks those assumptions by design. Codex restores only the assumptions the tests are supposed to have, so the same test can serve both local development and hermetic CI without teaching every test about Bazel internals.
 
-## Generated Schemas Are Product APIs
+### Generated Schemas Are Product APIs
 
 Generated schemas are not build byproducts. They are commitments. Codex uses typed runtime contracts for configuration, hooks, app-server messages, and other client-visible surfaces. When those types are generated into checked-in schemas, the repository turns internal type changes into reviewable product changes.
 
@@ -73,7 +73,7 @@ This is the build-time version of the protocol discipline from Chapter 4. The ru
 
 A stale schema is not merely "docs out of date." It is evidence that the code and contract no longer describe the same product. Codex's build pipeline treats that as a correctness problem because app-server clients, SDKs, hook authors, and config generators may all depend on those schemas.
 
-## Deep Dive: Contract Generation Without Source Leakage
+### Deep Dive: Contract Generation Without Source Leakage
 
 A generated schema has to reveal enough for integration without leaking runtime implementation. That means the generator should speak in product concepts: fields, discriminants, optionality, stable names, and compatibility markers. It should not expose private helper structure or force clients to mirror internal module layout.
 
@@ -94,7 +94,7 @@ write_if_changed("generated-contracts", schema)
 
 The point is not the mechanics of serialization. The point is editorial control over what becomes public. A generated contract can still be curated: stable names are chosen, experimental fields are gated, and old aliases remain where compatibility requires them.
 
-## Why the Build Belongs in the Architecture Book
+### Why the Build Belongs in the Architecture Book
 
 It is tempting to treat build files as peripheral. In Codex, they are where architecture becomes enforceable. The boundary between TUI and core can be checked. Schema drift can fail CI. Native dependencies can be quarantined. Large binary blobs can be rejected. Cargo and Bazel lockfiles can be kept in sync. Release targets can prove that the runtime still builds under the platform assumptions the product claims to support.
 
@@ -129,10 +129,10 @@ The next chapter follows the artifacts that this build system produces. Once Car
 
 | Concept | Source anchor |
 | --- | --- |
-| Cargo workspace | [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1) |
-| Bazel module | [`MODULE.bazel`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/MODULE.bazel#L1) |
+| Cargo workspace | [`codex-rs/Cargo.toml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L2) |
+| Bazel module | [`MODULE.bazel`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/MODULE.bazel#L3) |
 | Bazel crate macros | [`defs.bzl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/defs.bzl#L66) |
 | Bazel release-build verification | [`.github/workflows/bazel.yml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314) |
-| App-server schema export | [`codex-rs/app-server-protocol/src/bin/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/bin/export.rs#L1) |
+| App-server schema export | [`codex-rs/app-server-protocol/src/bin/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/bin/export.rs#L23) |
 
 </div>

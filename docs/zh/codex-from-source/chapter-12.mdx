@@ -1,31 +1,31 @@
-import ApprovalLadder from "../../../src/components/visual/ApprovalLadder.tsx";
 
 # 第 12 章：Hooks 与人工审批
-
-<ApprovalLadder lang="zh" client:visible />
 
 > **阅读契约：** 用本章把 hooks 和 approvals 看成风险前面的门。跟住 humans、policies 与 hooks 什么时候可以延迟、拒绝或标注一个 side effect。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/hooks-approval-gates.png" alt="chapter 12 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-approval-gates.png" alt="Hooks 与审批门：展示 pre-tool hooks、permission policy、自动 review、人工决策、sandbox 和 post-tool feedback" loading="lazy" decoding="async" />
   <figcaption>Hooks 和 approvals 是风险门禁：在不可逆副作用发生前，它们可以 annotate、delay、deny 或 continue。</figcaption>
 </figure>
+
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
 第 11 章展示了文件系统 mutation 如何在应用前被解析和验证。本章研究 runtime 已经理解某个动作之后，仍然可以阻止、修正或解释它的关卡：hooks、approval policy、Guardian review 和 user approval。它们彼此相关，但不是同一层。
 
 Hooks 是配置好的程序，用来观察或影响 runtime events。Approval 是允许或拒绝副作用的控制面决策。Guardian 是可以回答部分 approval requests 的自动 reviewer。用户界面是人工决策表面。Codex 把这些层分开，因此每一层失败时都能给出精确语义。
 
+
 ## Gate Stack
 
 这个 stack 是有顺序的，不是装饰。Hooks 可以添加 context 或阻断特定事件。Permission-request hooks 可以在常规 review path 前回答 approval。Guardian 或用户可以决定剩余未解决的 approvals。只有这些 gate 产出 allowed decision 后，tool attempt 才会发生。
 
-## 一个命令如何穿过 Gate
+### 一个命令如何穿过 Gate
 
 理解这些层分离的最简单方式，是跟随一条 shell command。模型请求一个命令。Codex 先运行匹配的 pre-tool hooks；这些 hooks 可以在 policy 评估副作用前添加 context、给出 warning，或直接 block。如果 hooks 没有阻断，approval policy 会根据当前 permission profile 判断这个命令是否可以运行。如果需要决策，permission-request hook 可以自动回答；如果没有回答，Guardian 或面向用户的 client 会收到请求。只有 allow decision 到达后，shell handler 才会进入 sandbox selection 和 process execution。结果返回后，post-tool hooks 可以观察输出，并把结构化 feedback 喂回 turn。
 
 重点不是 command 本身，而是每一道 gate 拥有不同问题：automation 观察什么，policy 允许什么，reviewer 授权什么，sandbox 包含什么，以及什么结果进入 durable state。
 
-## Hook Discovery 与 Trust
+### Hook Discovery 与 Trust
 
 Codex 可以从多种来源加载 hooks：system 或 managed configuration、user configuration、project configuration、session flags、plugins、cloud requirements，以及 legacy managed files。每个 hook 都有 event identity、matcher state、command text、timeout、source metadata、display order 和 trust status。
 
@@ -33,7 +33,7 @@ Trust 不由“文件存在”推导。Managed hooks 按策略可信。User 或 
 
 这个设计保护两类工作流。运营方可以集中管理用户不需要逐个批准的 hooks。用户也能添加自己的 hooks，但改变后的 hook 必须重新获得信任，才能进入运行时。
 
-## Hook Events 与 Results
+### Hook Events 与 Results
 
 Hook event vocabulary 不只覆盖命令执行。它包括 session start、user prompt submit、pre-tool use、permission request、post-tool use、pre/post compact 和 stop。这些都是架构检查点：工具 mutation 前、工具报告输出后、上下文压缩前、turn 可能停止时，以及 prompt 进入 runtime 时。
 
@@ -59,7 +59,7 @@ Hook handlers 通过 stdin 接收 JSON，通过 stdout 返回结构化 JSON，�
 
 Preview/run 分离让客户端能在 hook 真正完成前展示 pending work。这对 terminal UI、app-server 和 headless context 都重要，因为 hook 可能很慢，也可能阻断动作。
 
-## Approval 是另一道门
+### Approval 是另一道门
 
 当 policy 认为某个工具需要决策，或 sandboxed attempt 失败且可能进行 unsandboxed retry 时，approval 开始。Approval payload 是 tool-specific 的：shell approval 包含 command 和 cwd，patch approval 包含 file changes，MCP approval 包含 server 和 tool metadata，permission request 包含请求的 additional filesystem 或 network access。
 
@@ -67,7 +67,7 @@ Runtime 可以按 key 缓存 session approvals。Shell-like command 通常只有
 
 Approval decisions 比 yes/no 丰富。它们可以是 approve once、approve for session、deny、abort、timeout、approve exec-policy amendment，或 approve network-policy amendment。差异很重要，因为 amendment 会改变未来策略；一次性 approval 只授权当前动作。
 
-## Guardian、Headless Mode 与 UI 中断
+### Guardian、Headless Mode 与 UI 中断
 
 Guardian 是 approval-like requests 的自动 review path。当审批路由选择 automated review 时，runtime 会创建一个和 tool call id 分开的 review id，并等待决策。Denial、timeout 和 abort 是不同结果，这样用户可见消息才能说明发生了什么，而不是统一成“失败”。
 

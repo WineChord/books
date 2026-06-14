@@ -3,11 +3,11 @@
 > **阅读契约：** 用本页先建立全书契约：源码链接是审计证据，不是作业。先读 runtime boundary、durable nouns 和可迁移模式，再去追文件名。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/codex-source-reading-contract.png" alt="preface page hand-drawn architecture figure" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-contract.png" alt="源码阅读契约：分开叙事模型、固定源码证据、论断分类和读者审计路径" loading="eager" decoding="async" />
   <figcaption>本书从阅读契约开始：公开源码链接承担证据职责，运行时边界和持久名词承担主要解释。</figcaption>
 </figure>
 
-本书是对公开 [OpenAI Codex 仓库](https://github.com/openai/codex) 的源码等价导读。 它不是 OpenAI 私有模型训练栈、托管云服务或内部后端的说明。全书使用的源码快照是 [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
+本书是对公开 [OpenAI Codex 仓库](https://github.com/openai/codex) 的源码固定导读。它不是 OpenAI 私有模型训练栈、托管云服务或内部后端的说明。全书使用的源码快照是 [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
 
 默认目标是：你不打开源码，只读本书，也能掌握源码读者会保留下来的架构、控制流、数据合同、失败路径、策略层和客户端接入面。源码链接用于证据和行级审计，不是理解正文的前置条件。
 

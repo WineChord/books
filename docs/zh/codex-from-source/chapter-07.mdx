@@ -1,13 +1,10 @@
-import StreamingProviderLanes from "../../../src/components/visual/StreamingProviderLanes.tsx";
 
 # 第 7 章：模型 Provider、流式传输与 Backend Task
-
-<StreamingProviderLanes lang="zh" client:visible />
 
 > **阅读契约：** 用本章分开 provider transport 与 runtime semantics。跟住 stream normalization、backend tasks、retry/cancel boundaries，以及 provider 差异被隐藏的位置。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/provider-stream-normalization.png" alt="chapter 07 page hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-stream-normalization.png" alt="Provider 流式归一化图：展示 provider data、runtime provider behavior、transport choices、typed events、retry 与 cancellation" loading="lazy" decoding="async" />
   <figcaption>Provider transport 可以变化，但 runtime 需要稳定语义：原始流事件会归一化成 items，并带着有界 retry 与 cancellation。</figcaption>
 </figure>
 
@@ -19,6 +16,9 @@ import StreamingProviderLanes from "../../../src/components/visual/StreamingProv
   <p><strong>心智模型：</strong>provider 决定如何通信；runtime 决定 streamed events 代表什么。</p>
 </div>
 
+**源码边界：** model-client shape 是 **verified source**，锚点在 [`ModelClient`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215)；request prompt shape 是 **verified source**，锚点在 [`client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28)；session-level model client behavior 是 **verified source**，锚点在 [`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232)。Provider fallback 与 backend-task separation 在本章被写成 **surrounding contract inference**：[`agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L20) 和 [`cloud-tasks-client` API](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) 展示了边界分离，但不暴露 provider 私有内部。
+
+
 ## 五层结构
 
 provider 路径最好按五层理解，再加若干专门 integration。
@@ -27,7 +27,7 @@ transport layer 负责 HTTP 细节：request body、headers、compression、 ret
 
 turn loop 不应该知道如何签 AWS request、解析 SSE bytes，或者合并 remote model overlay。它应该拿到 typed response event stream 和足够的 metadata，然后做 runtime 决策。
 
-## Provider Data 不是 Provider Behavior
+### Provider Data 不是 Provider Behavior
 
 Codex 把 provider definition 存成数据：display name、base URL、wire API、auth fields、可选 headers、query parameters、retry settings、stream settings、 WebSocket support 和 provider-specific auth metadata。这些数据可以序列化， 也可以来自 built-in 或用户配置。
 
@@ -35,7 +35,7 @@ runtime provider behavior 是另一层。它解析当前 auth value，暴露 acc
 
 这种拆分是治理选择。配置文件可以描述 provider，但不应该成为可执行策略。runtime provider 在 request time 把数据转换成受控行为。
 
-## 多种 Transport，统一事件词汇
+### 多种 Transport，统一事件词汇
 
 Responses 路径可以走 HTTP streaming，也可以走 Responses WebSocket。两者机制不同， 但在回到 turn loop 之前会收敛成同一种 runtime event vocabulary。
 
@@ -70,13 +70,13 @@ function sample_with_provider(prompt, context):
 
 这段伪代码强调边界：provider 和 transport 的差异在 turn loop 收到 event 之前 已经被处理掉。
 
-## Streaming Event 携带 Runtime 决策信息
+### Streaming Event 携带 Runtime 决策信息
 
 normalized stream event 不只是文本。它可以包含 item creation、message delta、 reasoning summary、function-call argument delta、tool-call completion、usage snapshot、rate-limit metadata、error classification 和 response completion。 turn loop 根据这些 event 决定是否渲染进度、分发工具、更新 rate limit、记录模型可见 item、compact history 或 retry。
 
 因此 model client 更像 typed event adapter。它不拥有 agent policy，而是给 turn loop 提供结构化事实，让 policy 决策留在 runtime 其他位置。
 
-## Model Metadata 是 Runtime Infrastructure
+### Model Metadata 是 Runtime Infrastructure
 
 model metadata 不只是 picker list。它会影响 context limit、auto-compaction threshold、 reasoning controls、支持的输入模态、默认选择、collaboration mode、visibility 和 provider compatibility。
 
@@ -101,7 +101,7 @@ function resolve_model_info(model_name, refresh_strategy):
 
 turn loop 消费的是结果事实。这个事实来自 bundled data、cache，还是 fresh remote overlay，不应该泄露到 turn loop 里。
 
-## Body-Aware Auth 应该留在 Request Boundary
+### Body-Aware Auth 应该留在 Request Boundary
 
 有些 provider 只需要简单 bearer-token header；有些需要 command-backed token、 provider-specific account state，或者 body-aware request signing。Amazon Bedrock 风格的 signing 是典型例子：auth layer 必须看到准备好的 request body 和 canonicalized headers，才能附加有效凭据。
 
@@ -109,13 +109,13 @@ turn loop 消费的是结果事实。这个事实来自 bundled data、cache，�
 
 它也解释了一个 transport 约束：body-aware signing 可能让 WebSocket 不可用，直到 upgrade 路径拥有等价签名语义。provider 可以声明这个限制，而不用改变 agent loop。
 
-## Local Providers 与 Realtime Paths
+### Local Providers 与 Realtime Paths
 
 Ollama、LM Studio 这类 local provider 仍然适合同一个 provider model，但运营关注点不同： 它们可能需要本地可用性检查、model pull progress、兼容性检查或 static catalog。runtime 仍然应该把它们看作能产出 typed response events 的 providers。
 
 realtime 相关但不等同于普通 inference。它有 media plane，用于 audio 或 WebRTC setup； 也有 sideband/control path，用于 session configuration、text handoff、response creation 和 lifecycle event。Codex 把 realtime state 放在 session 旁边，并把 realtime events 映射回 thread event stream，但它不应该与标准 turn sampling path 混为一谈。
 
-## Backend Task 不是 Inference
+### Backend Task 不是 Inference
 
 backend client 处理 task、usage、requirements、rate-limit 和 cloud workflow API。它可以 列出任务、获取任务详情、创建 task attempt、读取 backend-managed requirements，并获取 diff 或 sibling turns。这些 API 可能与 model provider 共享 auth 和 base URL 关注点，但它们不是 Responses stream。
 
@@ -146,7 +146,7 @@ backend client 处理 task、usage、requirements、rate-limit 和 cloud workflo
 | Model client | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215) |
 | Provider prompt shape | [`codex-rs/core/src/client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28) |
 | Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
-| WebSocket behavior tests | [`codex-rs/core/tests/suite/agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L1) |
+| WebSocket behavior tests | [`codex-rs/core/tests/suite/agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L20) |
 | Backend task API contrast | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) |
 
 </div>

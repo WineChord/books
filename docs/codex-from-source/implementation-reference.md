@@ -3,11 +3,13 @@
 > **Reading Contract:** Use this reference for dense source review. Treat each table row as an audit target: owner, data structure, runtime decision, and failure path.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-from-source/assets/implementation-audit-reference.png" alt="implementation-reference hand-drawn architecture figure" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/implementation-audit-reference.png" alt="Implementation audit reference map tying subsystem owners, data structures, runtime decisions, failure paths, and pinned source anchors" loading="lazy" decoding="async" />
   <figcaption>The implementation reference is dense by design: each row points to an owner, a data structure, a decision, a failure branch, and a source anchor.</figcaption>
 </figure>
 
 This appendix is the book's "read this instead of opening the source" page. It collects the implementation facts that are too detailed for a smooth chapter but too important to leave only in source links.
+
+Use it as a verification surface, not as a substitute narrative. A row is **verified source** only when the linked type, function, test, or constant directly shows the behavior. A row becomes **surrounding contract inference** when it connects several visible call sites into an architectural boundary. Anything that would require hosted service internals, private model behavior, or unpublished backend state is outside this reference and should not be read into the tables.
 
 ## Snapshot Rule
 
@@ -31,8 +33,8 @@ Use this table when you want the implementation names behind the conceptual inve
 | App-server and SDKs | [`MessageProcessor`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L272), [`ThreadState`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/thread_state.rs#L70), [`transport modes`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57), [`Python Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72), [`TypeScript Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11) |
 | TUI | [`ChatWidget`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658), [`BottomPane`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199), [`AppServerSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148) |
 | Extensions | [`McpConnectionManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L72), [`SkillsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L51), [`PluginManifest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L38), [`PluginsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L396) |
-| Multi-agent, cloud, memory | [`agent graph types`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7), [`cloud task API`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22), [`agent identity`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40), [`memory citations`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L1), [`memory write phase 1`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L1) |
-| Build and release | [`Cargo workspace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L1), [`Bazel verification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314), [`Cargo release workflow`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281), [`npm staging`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L570), [`governance checks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_tui_core_boundary.py#L1) |
+| Multi-agent, cloud, memory | [`agent graph types`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7), [`cloud task API`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22), [`agent identity`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40), [`memory citations`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6), [`memory write phase 1`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70) |
+| Build and release | [`Cargo workspace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/Cargo.toml#L2), [`Bazel verification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/bazel.yml#L314), [`Cargo release workflow`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L281), [`npm staging`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/workflows/rust-release.yml#L570), [`governance checks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/.github/scripts/verify_tui_core_boundary.py#L24) |
 
 ## Runtime Spine
 
@@ -273,7 +275,7 @@ App-server is therefore both a presentation bridge and a runtime entry surface. 
 | Review mode | Review requests enter and exit through protocol events and task flow. |
 | Cloud task support | Cloud/remote task paths add requirements, auth, and operational constraints. |
 
-## Source-Equivalent Self-Check
+## Source-Grounded Self-Check
 
 You should be able to answer these without opening source:
 
