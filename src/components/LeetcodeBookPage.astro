@@ -2716,13 +2716,10 @@ const shortcutRows = [
     function ensureLingShenRoadmap() {
       if (lingShenTopics.length) return Promise.resolve(true);
       if (lingShenRoadmapPromise) return lingShenRoadmapPromise;
-      lingShenRoadmapPromise = fetch(lingShenRoadmapUrl, {
-        headers: { accept: "application/json" },
-      })
-        .then((response) => {
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return response.json();
-        })
+      lingShenRoadmapPromise = fetchJsonFromUrls(
+        lingShenRoadmapUrls,
+        "LingShen roadmap",
+      )
         .then((payload) => {
           setLingShenRoadmap(payload);
           return true;
@@ -2893,24 +2890,17 @@ const shortcutRows = [
     const editorSizeSelect = document.getElementById("leetcode-editor-size");
     const editorLeadingSelect = document.getElementById("leetcode-editor-leading");
     const leetcodeShell = document.querySelector(".leetcode-shell");
-    const problemDetailBaseUrl =
+    const configuredProblemDetailBaseUrl =
       leetcodeShell?.dataset.problemDetailBaseUrl || "/books/leetcode/data/";
     const problemDataVersion = leetcodeShell?.dataset.problemDataVersion || "";
-    const problemSummaryUrl = withProblemDataVersion(
-      `${problemDetailBaseUrl}summary.json`,
+    const problemDataBaseUrls = problemDataBaseUrlCandidates(
+      configuredProblemDetailBaseUrl,
     );
-    const problemSearchIndexUrl = withProblemDataVersion(
-      `${problemDetailBaseUrl}search.json`,
-    );
-    const problemGuideIndexUrl = withProblemDataVersion(
-      `${problemDetailBaseUrl}guides.json`,
-    );
-    const problemGuideIdeasUrl = withProblemDataVersion(
-      `${problemDetailBaseUrl}guide-ideas.json`,
-    );
-    const lingShenRoadmapUrl = withProblemDataVersion(
-      `${problemDetailBaseUrl}lingshen-roadmap.json`,
-    );
+    const problemSummaryUrls = problemDataUrls("summary.json");
+    const problemSearchIndexUrls = problemDataUrls("search.json");
+    const problemGuideIndexUrls = problemDataUrls("guides.json");
+    const problemGuideIdeasUrls = problemDataUrls("guide-ideas.json");
+    const lingShenRoadmapUrls = problemDataUrls("lingshen-roadmap.json");
     const problemDetailPromises = new Map();
     const problemDetailPrefetchLimit = 0;
     const flowProblemDetailPrefetchLimit = 4;
@@ -4245,10 +4235,36 @@ const shortcutRows = [
       return flowSkipDefaultEnabled;
     }
 
-    function problemDetailUrl(slug) {
-      return withProblemDataVersion(
-        `${problemDetailBaseUrl}${encodeURIComponent(slug)}.json`,
-      );
+    function problemDetailUrls(slug) {
+      return problemDataUrls(`${encodeURIComponent(slug)}.json`);
+    }
+
+    function normalizeProblemDataBaseUrl(url) {
+      const value = String(url || "").trim();
+      if (!value) return "";
+      return value.endsWith("/") ? value : `${value}/`;
+    }
+
+    function addProblemDataBaseCandidate(candidates, url) {
+      const normalized = normalizeProblemDataBaseUrl(url);
+      if (normalized && !candidates.includes(normalized)) {
+        candidates.push(normalized);
+      }
+    }
+
+    function problemDataBaseUrlCandidates(configuredUrl) {
+      const candidates = [];
+      const pageUrl = window.location.href;
+      const relativeCandidates = window.location.pathname.includes("/zh/leetcode")
+        ? ["../../leetcode/data/", "data/"]
+        : ["data/", "../../leetcode/data/"];
+      relativeCandidates.forEach((relativeUrl) => {
+        addProblemDataBaseCandidate(candidates, new URL(relativeUrl, pageUrl).href);
+      });
+      addProblemDataBaseCandidate(candidates, configuredUrl);
+      addProblemDataBaseCandidate(candidates, "/books/leetcode/data/");
+      addProblemDataBaseCandidate(candidates, "/leetcode/data/");
+      return candidates;
     }
 
     function withProblemDataVersion(url) {
@@ -4257,14 +4273,36 @@ const shortcutRows = [
       return `${url}${separator}v=${encodeURIComponent(problemDataVersion)}`;
     }
 
-    async function loadProblemSummary() {
-      const response = await fetch(problemSummaryUrl, {
-        headers: { accept: "application/json" },
-      });
-      if (!response.ok) {
-        throw new Error(`Problem summary request failed: ${response.status}`);
+    function problemDataUrls(fileName) {
+      return problemDataBaseUrls.map((baseUrl) =>
+        withProblemDataVersion(`${baseUrl}${fileName}`),
+      );
+    }
+
+    async function fetchJsonFromUrls(urls, label) {
+      let lastError = null;
+      for (const url of urls) {
+        try {
+          const response = await fetch(url, {
+            headers: { accept: "application/json" },
+          });
+          if (!response.ok) {
+            throw new Error(`${label} request failed: ${response.status}`);
+          }
+          return await response.json();
+        } catch (error) {
+          lastError = error;
+          console.warn(`Could not load ${label} from ${url}`, error);
+        }
       }
-      const payload = await response.json();
+      throw lastError || new Error(`${label} request failed`);
+    }
+
+    async function loadProblemSummary() {
+      const payload = await fetchJsonFromUrls(
+        problemSummaryUrls,
+        "LeetCode problem summary",
+      );
       initializeProblemIndexes(payload);
       if (!problems.length) {
         throw new Error("Problem summary is empty");
@@ -4275,15 +4313,10 @@ const shortcutRows = [
     async function ensureProblemGuideIndex() {
       if (problemGuideIndexLoaded) return true;
       if (problemGuideIndexPromise) return problemGuideIndexPromise;
-      problemGuideIndexPromise = fetch(problemGuideIndexUrl, {
-        headers: { accept: "application/json" },
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Problem guide index request failed: ${response.status}`);
-          }
-          return response.json();
-        })
+      problemGuideIndexPromise = fetchJsonFromUrls(
+        problemGuideIndexUrls,
+        "LeetCode guide index",
+      )
         .then((payload) => {
           initializeProblemGuideIndexes(payload);
           syncFilterButtons();
@@ -4302,15 +4335,10 @@ const shortcutRows = [
     async function ensureProblemSearchIndex() {
       if (problemSearchIndexLoaded) return true;
       if (problemSearchIndexPromise) return problemSearchIndexPromise;
-      problemSearchIndexPromise = fetch(problemSearchIndexUrl, {
-        headers: { accept: "application/json" },
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Problem search index request failed: ${response.status}`);
-          }
-          return response.json();
-        })
+      problemSearchIndexPromise = fetchJsonFromUrls(
+        problemSearchIndexUrls,
+        "LeetCode search index",
+      )
         .then((entries) => {
           if (!Array.isArray(entries)) return false;
           entries.forEach((entry) => {
@@ -4349,15 +4377,10 @@ const shortcutRows = [
     async function ensureProblemGuideIdeas() {
       if (problemGuideIdeasLoaded) return true;
       if (problemGuideIdeasPromise) return problemGuideIdeasPromise;
-      problemGuideIdeasPromise = fetch(problemGuideIdeasUrl, {
-        headers: { accept: "application/json" },
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Problem guide idea request failed: ${response.status}`);
-          }
-          return response.json();
-        })
+      problemGuideIdeasPromise = fetchJsonFromUrls(
+        problemGuideIdeasUrls,
+        "LeetCode guide ideas",
+      )
         .then((entries) => {
           if (!Array.isArray(entries)) return false;
           entries.forEach((entry) => {
@@ -4394,15 +4417,10 @@ const shortcutRows = [
       if (!problem) return null;
       if (isProblemDetailLoaded(problem)) return problem;
       if (problemDetailPromises.has(slug)) return problemDetailPromises.get(slug);
-      const promise = fetch(problemDetailUrl(slug), {
-        headers: { accept: "application/json" },
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Problem detail request failed: ${response.status}`);
-          }
-          return response.json();
-        })
+      const promise = fetchJsonFromUrls(
+        problemDetailUrls(slug),
+        `LeetCode problem detail ${slug}`,
+      )
         .then((detail) => {
           Object.assign(problem, detail, { detailsLoaded: true });
           syncLazyProblemDetails(slug);

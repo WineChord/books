@@ -78,6 +78,14 @@ function canonicalExists(rawTarget) {
   return fileOrIndexExists(path.join(distDir, relativeTarget));
 }
 
+function readDistText(relativePath) {
+  return readFileSync(path.join(distDir, relativePath), "utf8");
+}
+
+function readDistJson(relativePath) {
+  return JSON.parse(readDistText(relativePath));
+}
+
 assert(existsSync(distDir), "dist directory is missing");
 assert(existsSync(path.join(distDir, "_astro")), "Astro asset directory is missing");
 assert(
@@ -100,6 +108,48 @@ assert(
   existsSync(path.join(distDir, "leetcode", "spec.html")),
   "LeetCode spec page is missing",
 );
+const leetcodeDataFiles = [
+  "summary.json",
+  "search.json",
+  "guides.json",
+  "guide-ideas.json",
+  "lingshen-roadmap.json",
+];
+for (const fileName of leetcodeDataFiles) {
+  assert(
+    existsSync(path.join(distDir, "leetcode", "data", fileName)),
+    `LeetCode data file is missing: ${fileName}`,
+  );
+}
+const leetcodeSummary = readDistJson(path.join("leetcode", "data", "summary.json"));
+assert(
+  Array.isArray(leetcodeSummary.keys) && Array.isArray(leetcodeSummary.rows),
+  "LeetCode summary data has an invalid packed shape",
+);
+assert(leetcodeSummary.rows.length > 0, "LeetCode summary data is empty");
+const leetcodeGuides = readDistJson(path.join("leetcode", "data", "guides.json"));
+assert(
+  Array.isArray(leetcodeGuides.series) && leetcodeGuides.series.length > 0,
+  "LeetCode guide data is missing series entries",
+);
+assert(
+  Array.isArray(leetcodeGuides.categories) && leetcodeGuides.categories.length > 0,
+  "LeetCode guide data is missing category entries",
+);
+for (const rel of [
+  path.join("leetcode", "index.html"),
+  path.join("zh", "leetcode", "index.html"),
+]) {
+  const html = readDistText(rel);
+  const dataBase = html.match(/data-problem-detail-base-url="([^"]+)"/)?.[1];
+  assert(dataBase, `${rel} is missing LeetCode problem data base URL`);
+  for (const fileName of ["summary.json", "guides.json"]) {
+    assert(
+      targetExists(path.join(distDir, rel), `${dataBase}${fileName}`),
+      `${rel} points to a missing LeetCode data file: ${dataBase}${fileName}`,
+    );
+  }
+}
 assert(
   existsSync(path.join(distDir, "cc", "index.html")),
   "Claude Code interview book landing page is missing",
