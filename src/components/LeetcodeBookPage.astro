@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "./Header.astro";
 import { leetcodeBook } from "../book.config";
 import { leetcodeCodeTemplateStats } from "../data/leetcode-code-templates";
 import {
@@ -57,6 +58,7 @@ const base = import.meta.env.BASE_URL;
 const book = leetcodeBook;
 const isZh = lang === "zh";
 const homePath = isZh ? `zh/${book.slug}/` : `${book.slug}/`;
+const alternatePath = isZh ? `${book.slug}/` : `zh/${book.slug}/`;
 const detailBaseUrl = `${base.replace(/\/$/, "")}/leetcode/data/`;
 const title = isZh ? book.zhTitle : book.title;
 const description = isZh ? book.zhDescription : book.description;
@@ -1661,6 +1663,14 @@ const shortcutRows = [
   lang={lang}
   titleSuffix={title}
 >
+  <Header
+    lang={lang}
+    alternatePath={alternatePath}
+    homePath={homePath}
+    brandTitle={title}
+    brandShortTitle={isZh ? book.zhShortTitle : book.shortTitle}
+    compact
+  />
   <main
     class="leetcode-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10"
     data-extension-download-url={extensionReleaseDownloadUrl}

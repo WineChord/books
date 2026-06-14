@@ -10,6 +10,9 @@ interface Props {
   brandTitle?: string;
   brandShortTitle?: string;
   compact?: boolean;
+  showLibraryLink?: boolean;
+  libraryPath?: string;
+  siteHomeUrl?: string | null;
 }
 
 const {
@@ -20,6 +23,9 @@ const {
   brandTitle = "Codex From Source",
   brandShortTitle = "Codex",
   compact = false,
+  showLibraryLink = true,
+  libraryPath = "",
+  siteHomeUrl = null,
 } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const homePath = pageUrl(
@@ -34,6 +40,7 @@ const alternate = alternatePath === null
   : lang === "zh"
     ? pageUrl(base, "codex-from-source/")
     : pageUrl(base, "zh/codex-from-source/");
+const libraryHref = pageUrl(base, libraryPath);
 const headerHeightClass = compact ? "h-9" : "h-14";
 const actionPaddingClass = compact ? "p-1" : "p-2";
 const iconSizeClass = compact ? "size-4" : "size-5";
@@ -109,6 +116,16 @@ const brandMarkClass = compact
       {alternate && (
         <a href={alternate} class="language-switch rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-beige hover:text-terracotta dark:hover:bg-dark-surface">
           {lang === "zh" ? "English" : "中文"}
+        </a>
+      )}
+      {showLibraryLink && (
+        <a href={libraryHref} class="header-nav-link rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-beige hover:text-terracotta dark:hover:bg-dark-surface">
+          {lang === "zh" ? "书架" : "Books"}
+        </a>
+      )}
+      {siteHomeUrl && (
+        <a href={siteHomeUrl} class="header-nav-link rounded-md px-3 py-2 text-sm text-muted transition-colors hover:bg-beige hover:text-terracotta dark:hover:bg-dark-surface">
+          WineChord
         </a>
       )}
       <a

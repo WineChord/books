@@ -110,7 +110,8 @@ html.dark .sidebar-link:hover {
 }
 
 .site-title,
-.language-switch {
+.language-switch,
+.header-nav-link {
   white-space: nowrap;
 }
 
@@ -813,5 +814,10 @@ html.dark .books-index-button--primary {
   .language-switch {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+  }
+
+  .header-nav-link {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
   }
 }

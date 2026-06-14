@@ -81,6 +81,8 @@ const articleLinks = [
     homePath=""
     brandTitle="WineChord Books"
     brandShortTitle="Books"
+    showLibraryLink={false}
+    siteHomeUrl="https://www.wineandchord.com"
   />
   <main class="books-index mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-10">
     <section
@@ -101,6 +103,9 @@ const articleLinks = [
           </a>
           <a class="books-index-button" href={pageUrl(base, `${leetcodeBook.slug}/`)}>
             Open LeetCode 888
+          </a>
+          <a class="books-index-button" href="https://www.wineandchord.com">
+            WineChord home
           </a>
         </div>
       </div>

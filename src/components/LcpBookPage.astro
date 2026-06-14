@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Header from "./Header.astro";
 import { lcpBook } from "../book.config";
 import { assetUrl, pageUrl } from "../urls";
 
@@ -361,6 +362,14 @@ const copy = isZh
   lang={lang}
   titleSuffix={title}
 >
+  <Header
+    lang={lang}
+    alternatePath={alternatePath}
+    homePath={homePath}
+    brandTitle={title}
+    brandShortTitle={isZh ? lcpBook.zhShortTitle : lcpBook.shortTitle}
+    compact
+  />
   <main class="lcp-shell mx-auto max-w-6xl px-4 pt-0 pb-8 md:px-8 md:pb-10">
     <section class="lcp-hero">
       <div>
