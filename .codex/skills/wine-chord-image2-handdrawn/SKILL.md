@@ -42,15 +42,17 @@ brand mark placement, and source-accurate labels.
   is requested.
 - The page must reference final raster images, usually PNG. Do not leave source
   diagrams as HTML, Mermaid, or SVG-only illustrations in published articles.
-- Every newly generated or materially regenerated final figure must carry one
-  exact `Wine & Chord` raster mark selected from the approved candidate set in
-  this skill's `assets/` directory. Do not rely on the image model to redraw or
-  reinterpret the logo.
+- Every newly generated or materially regenerated final figure must carry a
+  natural bottom-right `Wine & Chord` mark that feels integrated with the same
+  hand-drawn image. Use the approved candidate images in this skill's `assets/`
+  directory as visual references and element descriptions during generation.
+  Do not mechanically paste a logo patch into the final figure when it looks
+  composited, boxed, or stylistically separate.
 - Existing hand-drawn figures that already form a coherent Wine & Chord visual
   family may keep their original natural bottom-right logo treatment when a
   mechanical overlay would make the image look pasted together. Do not retrofit
   a patch solely for compliance if the figure is otherwise publication-quality.
-  Apply the exact raster mark rule strictly to incremental new figures and to
+  Apply the integrated-mark rule strictly to incremental new figures and to
   figures whose logo area is already being regenerated for visual reasons.
 - Every final generated figure must be uploaded with the local PicGo CLI before
   publication. Published article markup should use the remote URL returned by
@@ -106,9 +108,10 @@ Brand mark candidate set:
     cluster with green leaves at the right.
   - `assets/wine-chord-brand-mark-glass-notes.png`: wine glass, flowing staff
     lines, music notes, and handwritten `Wine & Chord`.
-- Treat these PNGs as authoritative brand assets, not merely style hints. The
-  final published figure should composite one selected exact mark into the
-  image.
+- Treat these PNGs as authoritative visual references, not as patches to force
+  onto every final image. The preferred result is a naturally generated,
+  bottom-right handwritten `Wine & Chord` signature with the same essential
+  elements as the selected reference.
 - For each generated figure, choose exactly one candidate before
   post-processing. Prefer the candidate that best fits the article voice,
   figure topic, visual balance, bottom-right safe area, and surrounding color
@@ -119,19 +122,20 @@ Brand mark candidate set:
   path in the figure brief or generation notes and keep that figure stable
   across later edits unless there is a deliberate visual reason to switch.
 - Do not use a badge, box, stamp, sans-serif wordmark, generic icon, alternate
-  logo treatment, or image-model imitation for newly generated or regenerated
+  logo treatment, or visibly pasted mark for newly generated or regenerated
   figures. The mark must remain visually consistent across new generated
-  figures. For legacy figures with a strong integrated hand-drawn logo, prefer
-  preserving the image over adding an obvious pasted overlay.
+  figures while sharing the same paper, ink, line weight, and perspective as the
+  rest of the image.
 - Keep it legible but secondary: roughly `10%` to `16%` of image width, with at
   least `3%` canvas padding from the right and bottom edges.
-- During image generation, ask for a clean bottom-right paper area reserved for
-  the selected mark. After generation, overlay the selected PNG
-  deterministically. If the model generated any competing logo or text there,
-  cover it with matching paper texture before compositing the selected asset.
-- Do not crop, blur, recolor, or stretch the brand elements. Preserve the
-  handwritten relationship between the text and the accompanying grape cluster,
-  wine glass, staff lines, or music notes.
+- During image generation, describe the selected mark precisely in the prompt:
+  handwritten deep-navy `Wine & Chord`, an underline flourish, and either a
+  small purple grape cluster with green leaves or a wine glass with flowing
+  staff lines and music notes. Ask for it to be drawn directly into the
+  bottom-right paper area at a secondary scale.
+- If post-processing is needed, repair only small defects such as stray marks,
+  spacing, or paper cleanup. Do not crop, blur, recolor, stretch, or paste a
+  separate rectangular logo block into the final figure.
 
 ## Reference Image Roles
 
@@ -239,8 +243,13 @@ Palette: deep navy, Wine & Chord blue, muted forest green, slate gray, small
 amber highlights.
 Subject: [one precise source-level idea].
 Composition: [nodes and arrows in exact order].
-Leave a clean warm-paper safe area in the bottom-right for the selected
-Wine & Chord brand mark candidate that will be composited after generation.
+Draw a small integrated bottom-right Wine & Chord mark directly on the same
+paper: handwritten deep-navy "Wine & Chord", a sweeping underline flourish, and
+[selected candidate elements: purple grape cluster with green leaves OR wine
+glass with flowing staff lines and music notes]. Keep the mark secondary,
+roughly 10% to 16% of canvas width, with 3% right and bottom padding. It must
+share the image's paper texture, ink line, watercolor softness, and perspective;
+do not make it a badge, stamp, box, sticker, pasted logo, or separate patch.
 No process notes, no prompt references, no meta text.
 Use only these short labels: [label list].
 Keep arrows clean and non-crossing; leave generous margins.
@@ -255,31 +264,33 @@ aligned with article prose and source links.
 
 Use deterministic composition when accuracy requires it:
 
-- Keep the image2 output as the background or illustration layer.
+- Keep the image2 output as the primary illustration layer.
 - Overlay exact labels, node titles, arrows, or callouts with a script or design
-  renderer.
-- Always overlay one selected brand asset from the approved candidate set as the
-  final bottom-right mark.
+  renderer only when source accuracy requires it and the result still matches
+  the generated hand-drawn style.
+- Do not mechanically overlay one selected brand asset as the final bottom-right
+  mark. Prefer a generated integrated mark guided by the approved candidate
+  descriptions. If a repair is unavoidable, it must be visually seamless at full
+  size and must not look like a pasted patch.
 - Export one final PNG for publication.
 - Keep source files near the article only when they are useful for regeneration.
 
-Mandatory brand overlay protocol:
+Brand mark generation protocol:
 
-1. Generate the figure body with a clean bottom-right warm-paper safe area.
-2. Select one approved brand mark candidate from this skill's `assets/`
+1. Select one approved brand mark candidate from this skill's `assets/`
    directory based on the figure brief, article voice, and visual fit. Use
    rotation or random selection only when there is no meaningful design reason
    to prefer one candidate. Record the selected path so later revisions can
    reproduce the same final figure.
-3. Load the selected PNG and scale it proportionally to `10%` to `16%` of
-   canvas width.
-4. Place it in the bottom-right safe area with at least `3%` right and bottom
-   padding.
-5. If the selected PNG background differs from the target paper, softly key out
-   the light paper background or blend it into a small matching-paper patch. Do
-   not alter the lettering, underline, grape cluster, leaves, wine glass, staff
-   lines, or music notes.
-6. Save the composited result as the only image referenced by the article.
+2. Translate that candidate into prompt language and, when the tool supports
+   image references, attach only that one candidate as a brand reference rather
+   than the whole asset pack.
+3. Ask for a naturally drawn bottom-right mark at roughly `10%` to `16%` of
+   canvas width, with at least `3%` canvas padding from the right and bottom.
+4. Reject and regenerate if the model draws a badge, stamp, boxed logo,
+   unrelated signature, garbled large text, or a mark that competes with the
+   diagram.
+5. Save the final integrated PNG as the only image referenced by the article.
 
 Recommended final asset layout:
 
@@ -292,8 +303,8 @@ the source package and `docs/public`.
 
 PicGo publication protocol:
 
-1. Finish the image2 generation, deterministic label fixes, and selected
-   `Wine & Chord` brand mark overlay first.
+1. Finish the image2 generation, deterministic label fixes, and integrated
+   `Wine & Chord` brand mark cleanup first.
 2. Save the final PNG locally under the article's assets directory so the source
    package remains reproducible.
 3. Upload that final PNG with the local PicGo CLI, for example
@@ -341,10 +352,10 @@ Inspect every generated figure before publishing:
 - Labels do not escape boxes.
 - Arrows do not cross in confusing ways.
 - The figure matches the article's source claims.
-- The Wine & Chord mark is one exact composited raster asset from the approved
-  candidate set, proportionally scaled and placed in the bottom-right. No
-  image-model imitation, alternate badge, generic icon, distorted crop, recolor,
-  or competing generated logo is visible.
+- The Wine & Chord mark is naturally integrated into the bottom-right paper
+  area, visually follows one approved candidate's essential elements, and does
+  not appear as a pasted logo patch, badge, stamp, generic icon, distorted crop,
+  recolor, or competing generated logo.
 - The published article references the PicGo remote URL for each generated
   figure. The local PNG may remain in the repo as source/backing material, but
   it should not be the published `src` for generated article images.
