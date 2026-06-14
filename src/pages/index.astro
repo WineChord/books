@@ -1,136 +1,165 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "../components/Header.astro";
-import ArchitectureMap from "../components/ArchitectureMap";
-import { books, codexFromSourceBook, siteDescription } from "../book.config";
-import { pageUrl } from "../urls";
+import {
+  ccBook,
+  codexContextManagementBook,
+  codexFromSourceBook,
+  designBook,
+  iqBook,
+  lcpBook,
+  leetcodeBook,
+  suffixArrayBook,
+} from "../book.config";
+import { assetUrl, pageUrl } from "../urls";
 
 const base = import.meta.env.BASE_URL;
+const spotlightImage = assetUrl(
+  base,
+  `${codexContextManagementBook.slug}/assets/cover-codex-context-management.png`,
+);
+
+const libraryBooks = [
+  codexContextManagementBook,
+  leetcodeBook,
+  codexFromSourceBook,
+  designBook,
+  ccBook,
+  iqBook,
+  suffixArrayBook,
+  lcpBook,
+];
+
+const readingTracks = [
+  {
+    title: "Prompt Cache and Context Budget",
+    label: "Featured path",
+    href: pageUrl(base, `${codexContextManagementBook.slug}/chapter-05`),
+    body:
+      "Start from optional context, prompt assembly, typed fragments, and the budget discipline behind long-running agent work.",
+  },
+  {
+    title: leetcodeBook.title,
+    label: "Practice track",
+    href: pageUrl(base, `${leetcodeBook.slug}/`),
+    body:
+      "Use the frequency table, company buckets, local marks, and submit helper when the goal is repeated coding practice.",
+  },
+  {
+    title: codexFromSourceBook.title,
+    label: "Source track",
+    href: pageUrl(base, `${codexFromSourceBook.slug}/`),
+    body:
+      "Read the full runtime map when you want tools, sandboxing, app-server, plugins, and multi-agent work tied back to code.",
+  },
+];
+
+const articleLinks = [
+  {
+    title: "AI Agent Readlist",
+    label: "Research map",
+    href: pageUrl(base, "ai-agent-readlist/"),
+    body:
+      "A curated route through context management, multi-agent systems, sandboxing, self-evolution, harness engineering, and evaluation.",
+  },
+  {
+    title: "DeepSeek V4 Interview Notes",
+    label: "Model systems",
+    href: pageUrl(base, "deepseek/"),
+    body:
+      "A systems-oriented interview note for million-token context, hybrid attention, MoE, evaluation, serving, and cache tradeoffs.",
+  },
+];
 ---
 
-<BaseLayout title="WineChord Books" description="Long-form engineering books." canonicalPath="">
-  <Header />
-  <main class="mx-auto max-w-5xl px-4 py-12 md:px-8 md:py-20">
-    <section class="mb-20 grid grid-cols-1 items-center gap-10 md:grid-cols-[1fr_18rem]">
-      <div>
-        <p class="mb-3 text-sm font-semibold uppercase tracking-wide text-terracotta">WineChord Books</p>
-        <h1 class="book-hero-title mb-6 font-serif text-4xl font-bold leading-tight text-charcoal dark:text-cream md:text-5xl">
-          Codex From Source
-        </h1>
-        <p class="book-hero-copy mb-8 max-w-2xl text-lg leading-relaxed text-secondary dark:text-muted">
-          {siteDescription} Built as a professional technical book, not as documentation.
+<BaseLayout
+  title="WineChord Books"
+  titleSuffix="WineChord Books"
+  description="A curated shelf of WineChord engineering books and long-form technical notes."
+  canonicalPath=""
+  image={spotlightImage}
+>
+  <Header
+    alternatePath={null}
+    homePath=""
+    brandTitle="WineChord Books"
+    brandShortTitle="Books"
+  />
+  <main class="books-index mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-16">
+    <section
+      class="books-index-hero"
+      style={`--books-hero-image: url("${spotlightImage}")`}
+      aria-labelledby="books-index-title"
+    >
+      <div class="books-index-hero__copy">
+        <p class="books-index-kicker">WineChord Books</p>
+        <h1 id="books-index-title">Long-form engineering notes, organized as books.</h1>
+        <p>
+          Source reading, agent runtime, coding practice, system design, and interview
+          preparation live here as structured pages instead of scattered posts.
         </p>
-        <div class="flex flex-wrap gap-3">
-          <a class="rounded-lg bg-terracotta px-5 py-3 font-semibold text-white transition-opacity hover:opacity-90" href={pageUrl(base, "codex-from-source/")}>
-            Start reading
+        <div class="books-index-actions">
+          <a class="books-index-button books-index-button--primary" href={pageUrl(base, `${codexContextManagementBook.slug}/`)}>
+            Start with context
           </a>
-          <a class="rounded-lg border border-border px-5 py-3 font-semibold text-charcoal transition-colors hover:border-terracotta hover:text-terracotta dark:border-[#333] dark:text-cream" href={pageUrl(base, "zh/codex-from-source/")}>
-            中文版
+          <a class="books-index-button" href={pageUrl(base, `${leetcodeBook.slug}/`)}>
+            Open LeetCode 888
           </a>
         </div>
       </div>
-      <div class="book-cover" aria-label="Codex From Source cover">
-        <div class="book-cover__kicker">Architecture, Patterns, Internals</div>
-        <div class="book-cover__title">Codex<br />From<br />Source</div>
-        <div class="book-cover__footer">25 chapters + epilogue</div>
-      </div>
     </section>
 
-    <section class="mb-20">
-      <h2 class="mb-6 font-serif text-2xl font-bold text-charcoal dark:text-cream">Books</h2>
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {books.map((book) => (
-          <a href={pageUrl(base, `${book.slug}/`)} class="group rounded-lg border border-border p-5 transition-colors hover:border-terracotta dark:border-[#333]">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-terracotta">{book.coverKicker}</p>
-            <h3 class="font-serif text-2xl font-bold text-charcoal group-hover:text-terracotta dark:text-cream">{book.title}</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted">{book.description}</p>
-            <span class="mt-4 inline-flex text-sm font-semibold text-terracotta">Read the book</span>
+    <section class="books-index-section" aria-labelledby="books-index-tracks-title">
+      <div class="books-index-section__head">
+        <p class="books-index-kicker">Start Here</p>
+        <h2 id="books-index-tracks-title">Good first paths</h2>
+      </div>
+      <div class="books-index-tracks">
+        {readingTracks.map((track, index) => (
+          <a class={`books-index-track ${index === 0 ? "books-index-track--primary" : ""}`} href={track.href}>
+            <span class="books-index-track__label">{track.label}</span>
+            <strong>{track.title}</strong>
+            <span>{track.body}</span>
           </a>
         ))}
       </div>
     </section>
 
-    <section class="mb-20">
-      <h2 class="mb-6 font-serif text-2xl font-bold text-charcoal dark:text-cream">Articles</h2>
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <a href={pageUrl(base, "ai-agent-readlist/")} class="group rounded-lg border border-border p-5 transition-colors hover:border-terracotta dark:border-[#333]">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-terracotta">AI Agents, Harness Engineering</p>
-          <h3 class="font-serif text-2xl font-bold text-charcoal group-hover:text-terracotta dark:text-cream">AI Agent Readlist</h3>
-          <p class="mt-2 text-sm leading-relaxed text-muted">
-            围绕上下文管理、多智能体、沙箱执行、自进化、测评和 harness 工程，梳理 OpenAI、Anthropic、Cursor 与经典论文。
-          </p>
-          <span class="mt-4 inline-flex text-sm font-semibold text-terracotta">Read the article</span>
+    <section class="books-index-section" aria-labelledby="books-index-library-title">
+      <div class="books-index-section__head books-index-section__head--split">
+        <div>
+          <p class="books-index-kicker">Library</p>
+          <h2 id="books-index-library-title">All current books</h2>
+        </div>
+        <a class="books-index-link" href="https://github.com/WineChord/books" target="_blank" rel="noopener noreferrer">
+          GitHub repository
         </a>
-        <a href={pageUrl(base, "prompt-cache/")} class="group rounded-lg border border-border p-5 transition-colors hover:border-terracotta dark:border-[#333]">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-terracotta">Prompt Cache, Agent Runtime</p>
-          <h3 class="font-serif text-2xl font-bold text-charcoal group-hover:text-terracotta dark:text-cream">Claude Code 和 Codex 的 Prompt Cache 设计</h3>
-          <p class="mt-2 text-sm leading-relaxed text-muted">
-            从模型视图、规则文件、动态上下文和 compaction 出发，解释 Claude Code 与 Codex 在 prompt cache 设计上的差异。
-          </p>
-          <span class="mt-4 inline-flex text-sm font-semibold text-terracotta">Read the article</span>
-        </a>
+      </div>
+      <div class="books-index-library">
+        {libraryBooks.map((book, index) => (
+          <a class={`books-index-book ${index === 0 ? "books-index-book--featured" : ""}`} href={pageUrl(base, `${book.slug}/`)}>
+            <span class="books-index-book__number">{String(index + 1).padStart(2, "0")}</span>
+            <span class="books-index-book__kicker">{book.coverKicker}</span>
+            <strong>{book.title}</strong>
+            <span class="books-index-book__zh">{book.zhTitle}</span>
+            <span class="books-index-book__body">{book.description}</span>
+            <span class="books-index-book__footer">{book.coverFooter}</span>
+          </a>
+        ))}
       </div>
     </section>
 
-    <ArchitectureMap client:load base={base} />
-
-    <section class="mb-20">
-      <h2 class="mb-8 font-serif text-2xl font-bold text-charcoal dark:text-cream">Table of contents</h2>
-      {codexFromSourceBook.parts.map((part) => {
-        const partChapters = codexFromSourceBook.chapters.filter((chapter) => chapter.number && part.chapters.includes(chapter.number));
-        return (
-          <div class="mb-10">
-            <p class="text-xs font-semibold uppercase tracking-wide text-terracotta">Part {part.number}</p>
-            <h3 class="font-serif text-xl font-bold text-charcoal dark:text-cream">{part.title}</h3>
-            <p class="mb-4 text-sm italic text-muted">{part.epigraph}</p>
-            <div class="space-y-2">
-              {partChapters.map((chapter) => (
-                <a href={pageUrl(base, chapter.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
-                  <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">{chapter.number}</span>
-                  <span>
-                    <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{chapter.title}</span>
-                    <span class="block text-sm text-muted">{chapter.description}</span>
-                  </span>
-                </a>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      {codexFromSourceBook.epiloguePage && (
-        <div class="mt-8 border-t border-border pt-6 dark:border-[#333]">
-          <a href={pageUrl(base, codexFromSourceBook.epiloguePage.path)} class="group flex gap-3 rounded-lg p-3 transition-colors hover:bg-beige dark:hover:bg-dark-surface">
-            <span class="w-7 shrink-0 text-right font-mono text-sm text-muted">E</span>
-            <span>
-              <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">{codexFromSourceBook.epiloguePage.title}</span>
-              <span class="block text-sm text-muted">{codexFromSourceBook.epiloguePage.description}</span>
-            </span>
-          </a>
-        </div>
-      )}
-    </section>
-
-    <section class="border-t border-border pt-8 dark:border-[#333]">
-      <h2 class="mb-4 font-serif text-2xl font-bold text-charcoal dark:text-cream">Reference</h2>
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <a
-          href="https://github.com/WineChord/books"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="group rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]"
-        >
-          <span class="flex items-center justify-between gap-3">
-            <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">GitHub repository</span>
-            <svg class="size-4 text-terracotta" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 17 17 7M9 7h8v8" />
-            </svg>
-          </span>
-          <span class="mt-1 block text-sm text-muted">Browse the source, history, and issue tracker for WineChord Books.</span>
-        </a>
-        {codexFromSourceBook.referencePages.map((page) => (
-          <a href={pageUrl(base, page.path)} class="rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]">
-            <span class="font-semibold text-charcoal dark:text-cream">{page.title}</span>
-            <span class="mt-1 block text-sm text-muted">{page.description}</span>
+    <section class="books-index-section books-index-section--compact" aria-labelledby="books-index-articles-title">
+      <div class="books-index-section__head">
+        <p class="books-index-kicker">Articles</p>
+        <h2 id="books-index-articles-title">Long notes outside the shelf</h2>
+      </div>
+      <div class="books-index-articles">
+        {articleLinks.map((article) => (
+          <a class="books-index-article" href={article.href}>
+            <span>{article.label}</span>
+            <strong>{article.title}</strong>
+            <small>{article.body}</small>
           </a>
         ))}
       </div>
