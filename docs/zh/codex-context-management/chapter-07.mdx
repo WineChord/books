@@ -1,8 +1,4 @@
-import RolloutReplayScrubber from "../../../src/components/visual/RolloutReplayScrubber.tsx";
-
 # 第 7 章：Resume、Rollback、Fork 与 Replay
-
-<RolloutReplayScrubber lang="zh" client:visible />
 
 > **阅读契约：** 把本章当作 reconstruction 问题来看 resume、rollback、fork 和 replay。阅读时找出哪些持久事实让 Codex 能在时间流逝或分支之后重建 prompt state。
 
@@ -15,7 +11,7 @@ import RolloutReplayScrubber from "../../../src/components/visual/RolloutReplayS
 <div class="source-equivalence"> 本章对应 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L4">RolloutReconstruction</a>、 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">逆向重建</a>、 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L250">遗留 compaction 处理</a>、 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L26">user-turn rollout 位置</a>，以及 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L57">fork-turn 位置</a>。 </div>
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/rollout-reconstruction-boundaries.png" alt="Rollout reconstruction 逆向扫描 checkpoint、rollback marker、agent envelope、user turn 与 assistant turn 的边界" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/rollout-reconstruction-boundaries.png" alt="Rollout reconstruction 逆向扫描 checkpoint、rollback marker、agent envelope、user turn 与 assistant turn 的边界" loading="lazy" decoding="async" />
   <figcaption>Resume 与 fork 都是投影问题：raw rollout 仍保持 append-only，重建过程选择最新存活 checkpoint、应用 rollback marker，并尊重 agent 触发的边界。</figcaption>
 </figure>
 
@@ -126,8 +122,8 @@ Fork 边界规则很简洁：
 
 ## 应用模式
 
-1. **Replay From Evidence** -> 从 append-only rollout 事实重建上下文，迁移时把 live 内存当作缓存，注意 resume 路径信任过期内存状态。
-2. **Reverse Checkpoint Search** -> 反向扫描找最新存活起点，迁移到事件溯源系统，注意有 checkpoint 时仍重放整段日志。
-3. **Rollback Marker** -> 把 rollback 记录为事件，迁移时在重建时应用 marker，注意破坏性日志编辑抹掉可审计性。
-4. **Semantic Boundaries** -> 显式定义 user、agent 与 fork turn 边界，迁移到每一种工作来源，注意截断只懂人类消息。
-5. **Legacy Bridge** -> 保留兼容路径但清空不安全 baseline，迁移时把正确性放在 prompt 完美形状之前，注意把旧记录当作新 checkpoint。
+1. **Replay From Evidence：** 从 append-only rollout 事实重建上下文；迁移时把 live 内存当作缓存；避免 resume 路径信任过期内存状态。
+2. **Reverse Checkpoint Search：** 反向扫描找最新存活起点；迁移到事件溯源系统；有 checkpoint 能界定工作量时，不要重放整段日志。
+3. **Rollback Marker：** 把 rollback 记录为事件；迁移时在重建时应用 marker；避免破坏性日志编辑抹掉可审计性。
+4. **Semantic Boundaries：** 显式定义 user、agent 与 fork turn 边界；迁移到每一种工作来源；拒绝只懂人类消息的截断。
+5. **Legacy Bridge：** 保留兼容路径但清空不安全 baseline；迁移时把正确性放在 prompt 完美形状之前；不要把旧记录当作新 checkpoint。

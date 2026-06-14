@@ -1,8 +1,4 @@
-import RolloutReplayScrubber from "../../src/components/visual/RolloutReplayScrubber.tsx";
-
-# Chapter 7: Resume, Rollback, Fork, and Replay
-
-<RolloutReplayScrubber lang="en" client:visible />
+# Resume, Rollback, Fork, and Replay
 
 > **Reading Contract:** Use this chapter to read resume, rollback, fork, and replay as reconstruction problems. Track the durable facts that let Codex rebuild prompt state after time or branching.
 
@@ -15,7 +11,7 @@ By the end of this chapter, you should understand why durable context is not the
 <div class="source-equivalence"> This chapter maps to <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L4">RolloutReconstruction</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86">reverse reconstruction</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L250">legacy compaction handling</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L26">user-turn rollout positions</a>, and <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L57">fork-turn positions</a>. </div>
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/rollout-reconstruction-boundaries.png" alt="Rollout reconstruction scans backward through checkpoints, rollback markers, agent envelopes, user turns, and assistant turns" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/rollout-reconstruction-boundaries.png" alt="Rollout reconstruction scans backward through checkpoints, rollback markers, agent envelopes, user turns, and assistant turns" loading="lazy" decoding="async" />
   <figcaption>Resume and fork are projection problems: the raw rollout stays append-only while reconstruction chooses the newest surviving checkpoint, applies rollback markers, and respects agent-triggered boundaries.</figcaption>
 </figure>
 
@@ -129,8 +125,8 @@ The branch never silently produces an inferior prompt; the shape difference is e
 
 ## Apply This
 
-1. **Replay From Evidence** -> rebuild context from append-only rollout facts, adapt it by treating live memory as a cache, and watch for resume paths that trust stale in-memory state.
-2. **Reverse Checkpoint Search** -> scan backward to find the newest surviving base, adapt it for event-sourced systems, and watch for replaying the entire log when a checkpoint can bound work.
-3. **Rollback Marker** -> record rollback as an event, adapt it by applying markers during reconstruction, and watch for destructive log edits that erase auditability.
-4. **Semantic Boundaries** -> define user, agent, and fork turn boundaries explicitly, adapt it to every source of work, and watch for truncation that only understands human messages.
-5. **Legacy Bridge** -> keep compatibility paths but clear unsafe baselines, adapt it by preferring correctness over perfect prompt shape, and watch for old records being treated like new checkpoints.
+1. **Replay From Evidence.** Rebuild context from append-only rollout facts. Treat live memory as a cache, and avoid resume paths that trust stale in-memory state.
+2. **Reverse Checkpoint Search.** Scan backward to find the newest surviving base. Apply the pattern to event-sourced systems, and do not replay the entire log when a checkpoint can bound the work.
+3. **Rollback Marker.** Record rollback as an event. Apply markers during reconstruction, and avoid destructive log edits that erase auditability.
+4. **Semantic Boundaries.** Define user, agent, and fork turn boundaries explicitly. Apply the boundary to every source of work, and reject truncation that only understands human messages.
+5. **Legacy Bridge.** Keep compatibility paths, but clear unsafe baselines. Prefer correctness over perfect prompt shape, and do not treat old records like new checkpoints.

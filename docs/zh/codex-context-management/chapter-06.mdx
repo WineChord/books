@@ -1,8 +1,4 @@
-import CompactionSimulator from "../../../src/components/visual/CompactionSimulator.tsx";
-
 # 第 6 章：把压缩作为 Checkpoint 协议
-
-<CompactionSimulator lang="zh" client:visible />
 
 > **阅读契约：** 把本章当作 checkpoint 安装协议。阅读时跟住谁触发压缩、它替换哪段历史、以及哪些证据会留给后续 turn。
 
@@ -27,7 +23,7 @@ Compaction 可以手动触发、采样前触发，或在 turn 中采样请求达
 Hooks 包住 compaction，因为 compaction 是 thread 语义状态上的副作用。外部策略可能需要阻断或观察它。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/compaction-checkpoint-install.png" alt="Codex compaction checkpoint 安装流程：旧历史经过 compact producer 与 runtime install 变成 replacement history" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/compaction-checkpoint-install.png" alt="Codex compaction checkpoint 安装流程：旧历史经过 compact producer 与 runtime install 变成 replacement history" loading="lazy" decoding="async" />
   <figcaption>生产 compacted 材料的可以是本地模型或远程端点，但语义边界仍在 Codex：过滤、放置、记录与安装 replacement history 都由 runtime 完成。</figcaption>
 </figure>
 
@@ -95,8 +91,8 @@ Codex 仍然带摘要文本，但 checkpoint 才是真正的抽象。
 
 ## 应用模式
 
-1. **Compaction Checkpoint** -> 把压缩输出作为 replacement history 安装，迁移时存压缩后 prompt 起点，注意只摘要的设计无法重建状态。
-2. **Placement Mode** -> 让 turn 前与 turn 中 compaction 的上下文放置显式化，迁移时给放置策略命名，注意"一刀切"摘要插入。
-3. **Hooked Forgetting** -> 在语义历史重写两侧运行策略 hook，迁移时把 compaction 当作状态变更，注意后台无声遗忘。
-4. **Provider-Owned Work, Runtime-Owned Install** -> 让 provider 生产 compacted 历史，但过滤与安装留在本地，迁移到外部摘要器，注意把远端输出当作"已经安全"。
-5. **Token Recompute** -> 替换后重新计算 usage，迁移时让旧计数失效，注意 UI 或 compaction 阈值仍以压缩前总数为基础。
+1. **Compaction Checkpoint：** 把压缩输出作为 replacement history 安装；迁移时存压缩后 prompt 起点；避免只摘要但无法重建状态的设计。
+2. **Placement Mode：** 让 turn 前与 turn 中 compaction 的上下文放置显式化；迁移时给放置策略命名；避免"一刀切"摘要插入。
+3. **Hooked Forgetting：** 在语义历史重写两侧运行策略 hook；迁移时把 compaction 当作状态变更；拒绝后台无声遗忘。
+4. **Provider-Owned Work, Runtime-Owned Install：** 让 provider 生产 compacted 历史，但过滤与安装留在本地；迁移到外部摘要器时保持这条边界；不要把远端输出当作"已经安全"。
+5. **Token Recompute：** 替换后重新计算 usage；迁移时让旧计数失效；避免 UI 或 compaction 阈值仍以压缩前总数为基础。

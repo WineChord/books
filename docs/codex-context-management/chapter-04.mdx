@@ -1,8 +1,4 @@
-import FragmentComposer from "../../src/components/visual/FragmentComposer.tsx";
-
-# Chapter 4: Typed Fragments and Settings Diffs
-
-<FragmentComposer lang="en" client:visible />
+# Typed Fragments and Settings Diffs
 
 > **Reading Contract:** Use this chapter to see runtime facts become typed fragments. Track the baseline, the diff, and the injection point; the key question is why Codex can update state without retelling the whole world.
 
@@ -50,7 +46,7 @@ The fragment layer is one of three rendering disciplines that meet at the prompt
 The three lanes prevent a common bug: runtime state being rendered through inconsistent code paths. Once a fragment exists, every subsystem that wants to inject the same fact uses the same renderer.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/typed-fragment-catalog-board.png" alt="Typed fragment catalog board showing initial context, settings diff, and ContextualUserFragment families" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/typed-fragment-catalog-board.png" alt="Typed fragment catalog board showing initial context, settings diff, and ContextualUserFragment families" loading="lazy" decoding="async" />
   <figcaption>The fragment catalog is an architecture inventory: each family has one renderer, one recognition shape when needed, and one path into model-visible context.</figcaption>
 </figure>
 
@@ -113,8 +109,8 @@ That is the correct bias. In context systems, omissions are worse than redundanc
 
 ## Apply This
 
-1. **Typed Fragment Renderer** -> render context through typed objects, adapt it by giving each fragment a role and recognition markers, and watch for unstructured strings that cannot be identified later.
-2. **Settings Diff** -> compare previous and next runtime state before injecting updates, adapt it by storing a baseline snapshot, and watch for diffs computed against missing history.
-3. **Priority Sections** -> order context updates by semantic dependency, adapt it by placing model-specific guidance before policy or mode details, and watch for instruction order that changes meaning.
-4. **Fallback Reinjection** -> prefer full context when a baseline is uncertain, adapt it by clearing baselines after destructive rewrites, and watch for token-saving logic that omits required state.
-5. **Fragment Catalog Review** -> maintain a visible list of context families, adapt it as an architecture inventory, and watch for new feature context entering through one-off prompt code.
+1. **Typed Fragment Renderer.** Render context through typed objects. Give each fragment a role and recognition markers, and avoid unstructured strings that cannot be identified later.
+2. **Settings Diff.** Compare previous and next runtime state before injecting updates. Store a baseline snapshot, and treat diffs against missing history as unsafe.
+3. **Priority Sections.** Order context updates by semantic dependency. Place model-specific guidance before policy or mode details, and review any instruction order that changes meaning.
+4. **Fallback Reinjection.** Prefer full context when a baseline is uncertain. Clear baselines after destructive rewrites, and do not let token-saving logic omit required state.
+5. **Fragment Catalog Review.** Maintain a visible list of context families. Use it as an architecture inventory, and keep new feature context from entering through one-off prompt code.

@@ -1,13 +1,9 @@
-import HistoryLedgerAnimator from "../../src/components/visual/HistoryLedgerAnimator.tsx";
-
-# Chapter 3: ContextManager: History as Prompt-Ready State
-
-<HistoryLedgerAnimator lang="en" client:visible />
+# ContextManager: History as Prompt-Ready State
 
 > **Reading Contract:** Use this chapter to follow the history ledger. Track how items are recorded, normalized, trimmed, and prepared for a provider without losing the protocol shape needed for replay.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/history-ledger-normalization.png" alt="History ledger records structured evidence, bounds large outputs, normalizes provider invariants, and projects model-ready history" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/history-ledger-normalization.png" alt="History ledger records structured evidence, bounds large outputs, normalizes provider invariants, and projects model-ready history" loading="eager" decoding="async" />
   <figcaption>The ledger records structured evidence first, then derives a provider-safe prompt view; rollback and compaction can clear stale baselines without corrupting the durable record.</figcaption>
 </figure>
 
@@ -94,8 +90,8 @@ The first case is the happy path. The third case is the one that prevents silent
 
 ## Apply This
 
-1. **Prompt Ledger** -> store model-visible history as structured items, adapt it by filtering non-prompt events at insertion time, and watch for UI events leaking into model history.
-2. **Normalize on Projection** -> repair provider-facing invariants when building the prompt view, adapt it by cloning before normalization, and watch for normalization that destroys durable evidence.
-3. **Paired Deletion** -> delete tool calls and outputs as a unit, adapt it to any request/response protocol, and watch for truncation that leaves orphaned protocol frames.
-4. **Baseline Clearing** -> invalidate diff baselines when rollback or compaction removes their source, adapt it by storing explicit baseline metadata, and watch for stale context diffs after history rewrites.
-5. **Coarse Budget Signal** -> use cheap estimates for live decisions and exact counts when available, adapt it with conservative thresholds, and watch for treating estimates as billing-grade truth.
+1. **Prompt Ledger.** Store model-visible history as structured items. Filter non-prompt events at insertion time, and keep UI events out of model history.
+2. **Normalize on Projection.** Repair provider-facing invariants when building the prompt view. Clone before normalization, and keep durable evidence from being rewritten by provider-specific cleanup.
+3. **Paired Deletion.** Delete tool calls and outputs as a unit. Apply the rule to any request/response protocol, and avoid truncation that leaves orphaned protocol frames.
+4. **Baseline Clearing.** Invalidate diff baselines when rollback or compaction removes their source. Store explicit baseline metadata, and clear stale context diffs after history rewrites.
+5. **Coarse Budget Signal.** Use cheap estimates for live decisions and exact counts when available. Choose conservative thresholds, and do not treat estimates as billing-grade truth.

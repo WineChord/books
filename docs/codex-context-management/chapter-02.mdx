@@ -1,13 +1,9 @@
-import ResolutionOrderTimeline from "../../src/components/visual/ResolutionOrderTimeline.tsx";
-
-# Chapter 2: TurnContext: The Envelope Around a Turn
-
-<ResolutionOrderTimeline lang="en" client:visible />
+# TurnContext: The Envelope Around a Turn
 
 > **Reading Contract:** Use this chapter to understand the turn envelope. Track how model identity, workspace facts, instructions, policy, capabilities, modes, and telemetry are resolved before Codex builds prompt context.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/turn-envelope-resolution.png" alt="Turn envelope resolution feeding identity, workspace, instructions, policy, capabilities, modes, and telemetry into TurnContext" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-envelope-resolution.png" alt="Turn envelope resolution feeding identity, workspace, instructions, policy, capabilities, modes, and telemetry into TurnContext" loading="eager" decoding="async" />
   <figcaption>`TurnContext` is useful because prompt construction, tool exposure, sandboxing, compaction, and trace all read the same resolved turn contract.</figcaption>
 </figure>
 
@@ -97,8 +93,8 @@ A useful smell test: if any consumer needs to read state from outside the envelo
 
 ## Apply This
 
-1. **Turn Envelope** -> gather all facts that define one model action, adapt it by passing a single immutable envelope to prompt, tools, policy, and telemetry, and watch for hidden globals that drift from the envelope.
-2. **Effective Limits** -> compute usable capacity from runtime model metadata, adapt it by exposing one effective window to all budget consumers, and watch for subsystems that compare against different limits.
-3. **Model Switch as Context Event** -> treat model changes as prompt-visible state changes, adapt it by diffing model-specific guidance, and watch for stale instructions surviving a switch.
-4. **Policy-Text Alignment** -> derive model-visible policy and executor policy from the same resolved state, adapt it by centralizing permission projection, and watch for tools that enforce a different contract than the prompt describes.
-5. **Envelope Consumers Table** -> document which subsystem consumes which fields, adapt it as an ownership map, and watch for fields added without an explicit consumer.
+1. **Turn Envelope.** Gather all facts that define one model action. Pass a single immutable envelope to prompt, tools, policy, and telemetry, and remove hidden globals that drift from that envelope.
+2. **Effective Limits.** Compute usable capacity from runtime model metadata. Expose one effective window to every budget consumer, and treat mismatched subsystem limits as a correctness risk.
+3. **Model Switch as Context Event.** Treat model changes as prompt-visible state changes. Diff model-specific guidance, and clear stale instructions that would survive a switch.
+4. **Policy-Text Alignment.** Derive model-visible policy and executor policy from the same resolved state. Centralize permission projection, and reject tools that enforce a different contract than the prompt describes.
+5. **Envelope Consumers Table.** Document which subsystem consumes which fields. Keep that table as an ownership map, and avoid fields that enter the envelope without an explicit consumer.

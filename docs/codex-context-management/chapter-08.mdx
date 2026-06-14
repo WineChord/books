@@ -1,8 +1,4 @@
-import ClientFanoutMap from "../../src/components/visual/ClientFanoutMap.tsx";
-
-# Chapter 8: Client-Facing Context
-
-<ClientFanoutMap lang="en" client:visible />
+# Client-Facing Context
 
 > **Reading Contract:** Use this chapter to separate context ownership from context display. Track what TUI, realtime, app-server, token usage, and trace can expose without becoming the source of truth.
 
@@ -75,7 +71,7 @@ Remote compaction records an installed checkpoint payload containing input histo
 Good observability does not just count tokens. It preserves semantic boundaries.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/semantic-trace-boundary.png" alt="Semantic trace boundary separating compact input, checkpoint installation, future sampling, trace reducers, runtime ledger, and client surfaces" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/semantic-trace-boundary.png" alt="Semantic trace boundary separating compact input, checkpoint installation, future sampling, trace reducers, runtime ledger, and client surfaces" loading="lazy" decoding="async" />
   <figcaption>The trace is valuable because it does not collapse compact input, checkpoint installation, and later sampling into one vague event; each phase remains auditable.</figcaption>
 </figure>
 
@@ -83,8 +79,8 @@ Three phases live in the same trace stream: compact, install, sample. A naive tr
 
 ## Apply This
 
-1. **Runtime-Owned Display** -> let clients render context facts but not own them, adapt it by deriving UI state from runtime events, and watch for UI-only context that the model never sees.
-2. **Connection-Scoped Replay** -> replay historical context facts only to the attaching observer, adapt it for resumed clients, and watch for replay events that look like new live events.
-3. **Attribution Fallback** -> attribute restored usage by id first and position second, adapt it to rebuilt timelines, and watch for regenerated ids breaking UI state.
-4. **Mode as Context** -> treat interaction modes as model-visible context when they change behavior, adapt it by diffing mode state, and watch for transport flags hidden from the prompt.
-5. **Semantic Trace Boundary** -> trace context rewrites as install events, adapt it by separating compaction input from later sampling input, and watch for observability that collapses distinct phases into one blob.
+1. **Runtime-Owned Display.** Let clients render context facts, but do not let them own those facts. Derive UI state from runtime events, and keep UI-only context from replacing model-visible state.
+2. **Connection-Scoped Replay.** Replay historical context facts only to the attaching observer. Use the pattern for resumed clients, and mark replay events so they do not look like new live events.
+3. **Attribution Fallback.** Attribute restored usage by id first and position second. Apply the rule to rebuilt timelines, and keep regenerated ids from breaking UI state.
+4. **Mode as Context.** Treat interaction modes as model-visible context when they change behavior. Diff mode state, and do not hide behavior-changing transport flags from the prompt.
+5. **Semantic Trace Boundary.** Trace context rewrites as install events. Separate compaction input from later sampling input, and avoid observability that collapses distinct phases into one blob.

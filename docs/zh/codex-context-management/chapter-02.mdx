@@ -1,13 +1,9 @@
-import ResolutionOrderTimeline from "../../../src/components/visual/ResolutionOrderTimeline.tsx";
-
 # 第 2 章：TurnContext：包住一次 Turn 的信封
-
-<ResolutionOrderTimeline lang="zh" client:visible />
 
 > **阅读契约：** 把本章当作 turn envelope 的解析图。阅读时跟住 model identity、workspace facts、instructions、policy、capabilities、modes 和 telemetry 如何先被解析，再进入 prompt context。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/turn-envelope-resolution.png" alt="Turn envelope 解析图：identity、workspace、instructions、policy、capabilities、modes 与 telemetry 汇入 TurnContext" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-envelope-resolution.png" alt="Turn envelope 解析图：identity、workspace、instructions、policy、capabilities、modes 与 telemetry 汇入 TurnContext" loading="eager" decoding="async" />
   <figcaption>`TurnContext` 的价值在于 prompt、tools、sandbox、compaction 与 trace 都读取同一份已解析的 turn 契约。</figcaption>
 </figure>
 
@@ -96,8 +92,8 @@ Codex 把模型切换当作上下文事件，而不是一次配置赋值。一�
 
 ## 应用模式
 
-1. **Turn Envelope** -> 收集定义一次模型动作的所有事实，迁移时把单个不可变信封传给 prompt、tools、策略和 telemetry，注意脱离信封漂移的隐藏全局变量。
-2. **Effective Limits** -> 从运行时模型元信息计算可用容量，迁移时用一个有效窗口喂给所有预算消费者，注意子系统之间用了不同上限。
-3. **Model Switch as Context Event** -> 把模型变更当作 prompt 可见状态的变更，迁移时 diff 模型相关指引，注意旧指令在切换后残留。
-4. **Policy-Text Alignment** -> 让模型可见策略和 executor 策略来自同一份解析状态，迁移时集中权限 projection，注意 tool 强制与 prompt 描述不同的契约。
-5. **Envelope Consumers Table** -> 记录每个子系统使用的字段，迁移时把它当作 ownership map，注意添加字段时缺少明确消费者。
+1. **Turn Envelope：** 收集定义一次模型动作的所有事实；迁移时把单个不可变信封传给 prompt、tools、策略和 telemetry；清掉脱离信封漂移的隐藏全局变量。
+2. **Effective Limits：** 从运行时模型元信息计算可用容量；迁移时用一个有效窗口喂给所有预算消费者；把子系统之间不同上限视为正确性风险。
+3. **Model Switch as Context Event：** 把模型变更当作 prompt 可见状态的变更；迁移时 diff 模型相关指引；清除切换后仍会残留的旧指令。
+4. **Policy-Text Alignment：** 让模型可见策略和 executor 策略来自同一份解析状态；迁移时集中权限 projection；避免 tool 强制与 prompt 描述不同的契约。
+5. **Envelope Consumers Table：** 记录每个子系统使用的字段；迁移时把它当作 ownership map；避免添加没有明确消费者的字段。

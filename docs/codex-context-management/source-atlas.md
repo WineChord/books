@@ -4,8 +4,10 @@
 
 All links point to public Codex source pinned at [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). The book should stand on its own; this page is for audit.
 
+Use the atlas as an evidence boundary. A linked source line can verify a visible type, function, comment, call site, or record shape. The book's owner/lifetime diagrams are bounded engineering interpretations of those visible contracts, not claims about provider-internal state or unpublished service behavior.
+
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/context-source-atlas-evidence-ladder.png" alt="Source atlas evidence ladder from narrative claim to source map, pinned GitHub line, and audit result" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/context-source-atlas-evidence-ladder.png" alt="Source atlas evidence ladder from narrative claim to source map, pinned GitHub line, and audit result" loading="eager" decoding="async" />
   <figcaption>Use this page after the prose has already made a claim: the atlas turns a narrative statement into a subsystem owner, then into a pinned line anchor that can confirm or correct the book.</figcaption>
 </figure>
 
@@ -50,6 +52,10 @@ All links point to public Codex source pinned at [`569ff6a1c400bd514ff79f5f1050a
   [`memories/read/src/prompts.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/prompts.rs#L24)
 - Memory write truncation:
   [`memories/write/src/prompts.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/prompts.rs#L98)
+- Image modality projection:
+  [`for_prompt`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L115)
+- Tool image replacement:
+  [`replace_last_turn_images`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L187)
 
 ## Compaction
 

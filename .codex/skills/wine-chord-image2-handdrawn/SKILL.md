@@ -42,9 +42,16 @@ brand mark placement, and source-accurate labels.
   is requested.
 - The page must reference final raster images, usually PNG. Do not leave source
   diagrams as HTML, Mermaid, or SVG-only illustrations in published articles.
-- Every final figure must carry one exact `Wine & Chord` raster mark selected
-  from the approved candidate set in this skill's `assets/` directory. Do not
-  rely on the image model to redraw or reinterpret the logo.
+- Every newly generated or materially regenerated final figure must carry one
+  exact `Wine & Chord` raster mark selected from the approved candidate set in
+  this skill's `assets/` directory. Do not rely on the image model to redraw or
+  reinterpret the logo.
+- Existing hand-drawn figures that already form a coherent Wine & Chord visual
+  family may keep their original natural bottom-right logo treatment when a
+  mechanical overlay would make the image look pasted together. Do not retrofit
+  a patch solely for compliance if the figure is otherwise publication-quality.
+  Apply the exact raster mark rule strictly to incremental new figures and to
+  figures whose logo area is already being regenerated for visual reasons.
 - Every final generated figure must be uploaded with the local PicGo CLI before
   publication. Published article markup should use the remote URL returned by
   PicGo, not a repository-relative image path.
@@ -112,8 +119,10 @@ Brand mark candidate set:
   path in the figure brief or generation notes and keep that figure stable
   across later edits unless there is a deliberate visual reason to switch.
 - Do not use a badge, box, stamp, sans-serif wordmark, generic icon, alternate
-  logo treatment, or image-model imitation. The mark must remain visually
-  consistent across every generated figure.
+  logo treatment, or image-model imitation for newly generated or regenerated
+  figures. The mark must remain visually consistent across new generated
+  figures. For legacy figures with a strong integrated hand-drawn logo, prefer
+  preserving the image over adding an obvious pasted overlay.
 - Keep it legible but secondary: roughly `10%` to `16%` of image width, with at
   least `3%` canvas padding from the right and bottom edges.
 - During image generation, ask for a clean bottom-right paper area reserved for

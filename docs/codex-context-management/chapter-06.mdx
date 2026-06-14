@@ -1,8 +1,4 @@
-import CompactionSimulator from "../../src/components/visual/CompactionSimulator.tsx";
-
-# Chapter 6: Compaction as a Checkpoint Protocol
-
-<CompactionSimulator lang="en" client:visible />
+# Compaction as a Checkpoint Protocol
 
 > **Reading Contract:** Use this chapter to treat compaction as checkpoint installation. Track who triggers it, what history it replaces, and what evidence remains for future turns.
 
@@ -28,7 +24,7 @@ This distinction is the heart of the protocol. Compaction is not only "smaller h
 Hooks wrap compaction because compaction is a side effect on the thread's semantic state. External policy may need to block or observe it.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/compaction-checkpoint-install.png" alt="Codex compaction as checkpoint installation from old history through compact producer and runtime install to replacement history" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/compaction-checkpoint-install.png" alt="Codex compaction as checkpoint installation from old history through compact producer and runtime install to replacement history" loading="lazy" decoding="async" />
   <figcaption>The producer can be local or remote, but the semantic boundary stays local: Codex filters, places, records, and installs replacement history as a checkpoint.</figcaption>
 </figure>
 
@@ -96,8 +92,8 @@ Codex still carries summary text, but the checkpoint is the real abstraction.
 
 ## Apply This
 
-1. **Compaction Checkpoint** -> install compacted output as replacement history, adapt it by storing the post-compaction prompt base, and watch for summary-only designs that cannot reconstruct state.
-2. **Placement Mode** -> make context placement explicit for pre-turn and mid-turn compaction, adapt it by naming placement strategies, and watch for one-size-fits-all summary insertion.
-3. **Hooked Forgetting** -> run policy hooks around semantic history rewrites, adapt it by treating compaction like a state-changing operation, and watch for invisible background forgetting.
-4. **Provider-Owned Work, Runtime-Owned Install** -> let a provider produce compacted history but keep filtering and installation local, adapt it to external summarizers, and watch for trusting remote output as already safe.
-5. **Token Recompute** -> recompute usage after replacement, adapt it by invalidating stale counters, and watch for UI or compaction thresholds based on pre-compaction totals.
+1. **Compaction Checkpoint.** Install compacted output as replacement history. Store the post-compaction prompt base, and avoid summary-only designs that cannot reconstruct state.
+2. **Placement Mode.** Make context placement explicit for pre-turn and mid-turn compaction. Name placement strategies, and avoid one-size-fits-all summary insertion.
+3. **Hooked Forgetting.** Run policy hooks around semantic history rewrites. Treat compaction like a state-changing operation, and reject invisible background forgetting.
+4. **Provider-Owned Work, Runtime-Owned Install.** Let a provider produce compacted history, but keep filtering and installation local. Use the same rule with external summarizers, and do not trust remote output as already safe.
+5. **Token Recompute.** Recompute usage after replacement. Invalidate stale counters, and keep UI or compaction thresholds from relying on pre-compaction totals.

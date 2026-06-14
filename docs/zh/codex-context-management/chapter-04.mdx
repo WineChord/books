@@ -1,8 +1,4 @@
-import FragmentComposer from "../../../src/components/visual/FragmentComposer.tsx";
-
 # 第 4 章：类型化片段与设置 Diff
-
-<FragmentComposer lang="zh" client:visible />
 
 > **阅读契约：** 把本章当作 typed fragments 的装配图。阅读时盯住 baseline、diff 和注入点；关键问题是 Codex 为什么能更新运行时事实，而不需要重新讲完整世界。
 
@@ -50,7 +46,7 @@ Fragment 层是 prompt projection 处汇合的三种渲染纪律之一：历史�
 三条泳道避免了一个常见 bug：运行时状态被走多条不一致的代码路径渲染。一旦有了 fragment，任何想注入相同事实的子系统都会复用同一个 renderer。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/typed-fragment-catalog-board.png" alt="Typed fragment catalog：initial context、settings diff 与 ContextualUserFragment 家族的架构清单" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/typed-fragment-catalog-board.png" alt="Typed fragment catalog：initial context、settings diff 与 ContextualUserFragment 家族的架构清单" loading="lazy" decoding="async" />
   <figcaption>Fragment 目录是一份架构清单：每个 context family 有一个 renderer，必要时有一个可识别形状，并通过同一条路径进入模型可见上下文。</figcaption>
 </figure>
 
@@ -113,8 +109,8 @@ Settings update 代码里有一段坦诚的限制：不是 initial context 发�
 
 ## 应用模式
 
-1. **Typed Fragment Renderer** -> 通过 typed 对象渲染上下文，迁移时给每个 fragment 一个 role 和识别 marker，注意无结构字符串后续无法被识别。
-2. **Settings Diff** -> 注入更新前比较上一次与下一次运行时状态，迁移时存 baseline snapshot，注意 diff 算在缺失历史上的情况。
-3. **Priority Sections** -> 按语义依赖排序更新，迁移时把模型相关指引放在策略与模式之前，注意指令顺序改变了语义。
-4. **Fallback Reinjection** -> baseline 不确定时优先完整上下文，迁移时在破坏性重写后清空 baseline，注意省 token 的逻辑漏掉必需状态。
-5. **Fragment Catalog Review** -> 维护一份可见的上下文家族清单，迁移时把它当作架构清单，注意新功能上下文经一次性 prompt 代码进入。
+1. **Typed Fragment Renderer：** 通过 typed 对象渲染上下文；迁移时给每个 fragment 一个 role 和识别 marker；避免后续无法识别的无结构字符串。
+2. **Settings Diff：** 注入更新前比较上一次与下一次运行时状态；迁移时存 baseline snapshot；不要在缺失历史上计算 diff。
+3. **Priority Sections：** 按语义依赖排序更新；迁移时把模型相关指引放在策略与模式之前；复查任何会改变语义的指令顺序。
+4. **Fallback Reinjection：** baseline 不确定时优先完整上下文；迁移时在破坏性重写后清空 baseline；不要让省 token 的逻辑漏掉必需状态。
+5. **Fragment Catalog Review：** 维护一份可见的上下文家族清单；迁移时把它当作架构清单；避免新功能上下文经一次性 prompt 代码进入。

@@ -1,13 +1,9 @@
-import HistoryLedgerAnimator from "../../../src/components/visual/HistoryLedgerAnimator.tsx";
-
 # 第 3 章：ContextManager：把历史变成可提示状态
-
-<HistoryLedgerAnimator lang="zh" client:visible />
 
 > **阅读契约：** 把本章当作 history ledger 的流向图。阅读时跟住 items 如何记录、归一化、裁剪并交给 provider，同时不破坏 replay 需要的协议形状。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/history-ledger-normalization.png" alt="History ledger 从结构化证据记录、输出裁剪、provider 不变量归一化，到模型可用 prompt view 的流程" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/history-ledger-normalization.png" alt="History ledger 从结构化证据记录、输出裁剪、provider 不变量归一化，到模型可用 prompt view 的流程" loading="eager" decoding="async" />
   <figcaption>账本先记录结构化证据，再派生 provider-safe prompt view；rollback 与 compaction 可以清除过期 baseline，而不污染持久记录。</figcaption>
 </figure>
 
@@ -90,8 +86,8 @@ Rollback 才让账本证明自己不只是 vector。删除最近 N 个用户 tur
 
 ## 应用模式
 
-1. **Prompt Ledger** -> 用结构化 items 存储模型可见历史，迁移时在写入时过滤非 prompt 事件，注意 UI 事件渗入模型历史。
-2. **Normalize on Projection** -> 在构造 prompt view 时修复 provider-facing 不变量，迁移时先 clone 再 normalize，注意 normalization 摧毁了持久证据。
-3. **Paired Deletion** -> 把 tool call 与 output 当作一个单元删除，迁移到任何请求/响应协议，注意截断后留下孤立协议帧。
-4. **Baseline Clearing** -> 当 rollback 或 compaction 移除其来源时，让 diff baseline 失效，迁移时存显式 baseline 元信息，注意历史重写后仍用旧 diff。
-5. **Coarse Budget Signal** -> 用便宜估计做实时决策，可用时再用精确计数，迁移时使用保守阈值，注意把估计当作账单级真相。
+1. **Prompt Ledger：** 用结构化 items 存储模型可见历史；迁移时在写入时过滤非 prompt 事件；避免 UI 事件渗入模型历史。
+2. **Normalize on Projection：** 在构造 prompt view 时修复 provider-facing 不变量；迁移时先 clone 再 normalize；不要让 normalization 摧毁持久证据。
+3. **Paired Deletion：** 把 tool call 与 output 当作一个单元删除；迁移到任何请求/响应协议；避免截断后留下孤立协议帧。
+4. **Baseline Clearing：** 当 rollback 或 compaction 移除其来源时，让 diff baseline 失效；迁移时存显式 baseline 元信息；历史重写后不要继续使用旧 diff。
+5. **Coarse Budget Signal：** 用便宜估计做实时决策，可用时再用精确计数；迁移时使用保守阈值；不要把估计当作账单级真相。

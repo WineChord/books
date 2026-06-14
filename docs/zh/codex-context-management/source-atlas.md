@@ -2,10 +2,12 @@
 
 > **阅读契约：** 把本页当作审计索引，而不是预习材料。先读正文把 claim 理清，再打开链接按 pinned commit 核对 owner、函数和行级证据。
 
-所有链接都固定到公开 Codex 源码 commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。 本页用于审计；正文应当可以独立阅读。
+所有链接都固定到公开 Codex 源码 commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。本页用于审计；正文应当可以独立阅读。
+
+把本页当作证据边界使用：固定源码行可以证明可见的 type、function、注释、call site 或 record shape；正文中的 owner、lifetime、projection 图，是对这些可见契约的有界工程解释，不是对 provider 内部状态或未公开服务行为的断言。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/context-source-atlas-evidence-ladder.png" alt="Source atlas evidence ladder：从正文 claim 到 source map、pinned GitHub line 与 audit result" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/context-source-atlas-evidence-ladder.png" alt="Source atlas evidence ladder：从正文 claim 到 source map、pinned GitHub line 与 audit result" loading="eager" decoding="async" />
   <figcaption>本页应该在正文 claim 已经清楚之后使用：源码索引把一条叙事论断落到 subsystem owner，再落到固定 commit 的行级锚点，用于确认或修正文稿。</figcaption>
 </figure>
 
@@ -50,6 +52,10 @@
   [`memories/read/src/prompts.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/prompts.rs#L24)
 - Memory write truncation:
   [`memories/write/src/prompts.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/prompts.rs#L98)
+- Image modality projection:
+  [`for_prompt`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L115)
+- Tool image replacement:
+  [`replace_last_turn_images`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L187)
 
 ## Compaction
 

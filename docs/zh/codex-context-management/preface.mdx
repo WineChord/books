@@ -3,13 +3,15 @@
 > **阅读契约：** 先用本页锁住全书论点：context 是受治理的 runtime state，不是不断增长的 transcript。阅读后续章节时，把 ledger、envelope、fragments、optional planes、compaction 和 replay 六个 owner 分开看。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/context-runtime-overview.png" alt="Codex 上下文的六个 owner：history ledger、turn envelope、typed fragments、optional planes、compaction 与 replay evidence 共同围绕 prompt projection" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/context-runtime-overview.png" alt="Codex 上下文的六个 owner：history ledger、turn envelope、typed fragments、optional planes、compaction 与 replay evidence 共同围绕 prompt projection" loading="eager" decoding="async" />
   <figcaption>整本书可以先读成一张所有权地图：持久证据、turn-local 事实、渲染片段、可选平面、checkpoint 与 replay 都汇入 prompt projection，但它们从不合并成同一种东西。</figcaption>
 </figure>
 
 本书讨论 Codex 中容易被低估的一个部分：上下文管理。大多数关于 agent 的文章谈的是 tools、模型和用户界面。Codex 之所以值得研究，是因为它把上下文当作受治理的运行时状态。发给模型的 prompt 不是一个会一直增长直到失败的字符串，而是一份 thread 账本、一个 turn envelope、typed context fragments、策略 diff、可选知识平面、compaction checkpoint 和 replay 证据共同投影出的视图。
 
-本书使用的源码快照是 [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。本书的设计目标是无需先打开源码就能读懂。源码链接是证据，不是作业。
+本书使用的源码快照是 [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。本书的设计目标是无需先打开源码就能读懂。源码链接是审计锚点，不是作业。
+
+证据分三层阅读：struct、function、field 和源码注释层面的直接陈述，来自固定 commit 的公开源码链接；正文里的 owner、lifetime、projection 语言，是基于这些可见契约的有界工程解释；凡是需要 provider 内部状态或未公开服务行为才能证明的内容，都不属于本书的断言边界。
 
 ## 论点
 
@@ -41,7 +43,7 @@
 
 只有当 Rust 细节能揭示设计时，本书才会引入它们。读到 "struct" 就理解为"有名字的状态包"，读到 "enum" 就理解为"封闭的运行时分支集合"，读到 "async task" 就理解为"在等待模型、tools、hooks 或 I/O 时可以暂停的工作"。
 
-源码链接指向 Codex 公开仓库。叙述刻意不复制专有 prompt 模板或具体实现体；出现伪代码时，它说明的是模式，使用通用名称。
+源码链接指向 Codex 公开仓库。正文描述可见契约，并刻意避开 provider 内部模板或服务实现体；出现伪代码时，它说明的是模式，使用通用名称。
 
 ## 如何使用本书
 

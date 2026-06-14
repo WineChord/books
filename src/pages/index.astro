@@ -11,13 +11,10 @@ import {
   leetcodeBook,
   suffixArrayBook,
 } from "../book.config";
-import { assetUrl, pageUrl } from "../urls";
+import { pageUrl } from "../urls";
 
 const base = import.meta.env.BASE_URL;
-const spotlightImage = assetUrl(
-  base,
-  `${codexContextManagementBook.slug}/assets/cover-codex-context-management.png`,
-);
+const spotlightImage = "https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cover-codex-context-management.png";
 
 const libraryBooks = [
   codexContextManagementBook,

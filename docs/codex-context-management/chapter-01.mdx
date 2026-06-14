@@ -1,13 +1,9 @@
-import ContextLifecycleExplorer from "../../src/components/visual/ContextLifecycleExplorer.tsx";
-
-# Chapter 1: Context Is a Runtime Boundary
-
-<ContextLifecycleExplorer lang="en" client:visible />
+# Context Is a Runtime Boundary
 
 > **Reading Contract:** Use this chapter to set the system boundary. Track what becomes durable, turn-local, injected, optional, and replaceable; by the end, prompt construction should feel like a projection over owned runtime state.
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/runtime-boundary-stack.png" alt="Codex context boundary stack from durable ledger, turn-local envelope, injected fragments, optional planes, and replaceable checkpoints to a model-visible prompt" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/runtime-boundary-stack.png" alt="Codex context boundary stack from durable ledger, turn-local envelope, injected fragments, optional planes, and replaceable checkpoints to a model-visible prompt" loading="eager" decoding="async" />
   <figcaption>The core move is to treat the prompt as a rebuildable view over named owners, rather than as the owner of history, policy, tool output, or compaction state.</figcaption>
 </figure>
 
@@ -116,8 +112,8 @@ This is why the system is worth a book. The knowledge is scattered across module
 
 ## Apply This
 
-1. **Projection Boundary** -> use durable state as the input to prompt construction, adapt it by keeping raw events separate from model-ready messages, and watch for projection code that starts mutating the ledger.
-2. **Lifetime Labels** -> classify every context source by how long it should survive, adapt it by naming session, turn, prompt, and checkpoint lifetimes, and watch for "temporary" data that accidentally becomes durable.
-3. **Context Ownership** -> give each context plane one owner, adapt it by routing all updates through that owner, and watch for clients that bypass the runtime to inject model-visible state.
-4. **Auditable Forgetting** -> make compaction and truncation explicit events, adapt it by storing replacement history or summaries as checkpoints, and watch for summaries that cannot explain what they replaced.
-5. **Prompt as View** -> treat the final model input as a view, adapt it by rebuilding it on demand for each model capability set, and watch for code that assumes all providers accept the same prompt shape.
+1. **Projection Boundary.** Use durable state as the input to prompt construction. Keep raw events separate from model-ready messages, and reject projection code that starts mutating the ledger.
+2. **Lifetime Labels.** Classify every context source by how long it should survive. Name session, turn, prompt, and checkpoint lifetimes, and treat "temporary" data that becomes durable as a design fault.
+3. **Context Ownership.** Give each context plane one owner. Route updates through that owner, and treat client-side injection of model-visible state as an ownership break.
+4. **Auditable Forgetting.** Make compaction and truncation explicit events. Store replacement history or summaries as checkpoints, and avoid summaries that cannot explain what they replaced.
+5. **Prompt as View.** Treat the final model input as a view. Rebuild it on demand for each model capability set, and avoid assuming that every provider accepts the same prompt shape.

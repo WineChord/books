@@ -1,13 +1,9 @@
-import ContextLifecycleExplorer from "../../../src/components/visual/ContextLifecycleExplorer.tsx";
-
 # 第 1 章：上下文是运行时边界
-
-<ContextLifecycleExplorer lang="zh" client:visible />
 
 > **阅读契约：** 把本章当作系统边界说明。阅读时盯住什么是持久的、turn-local 的、注入的、可选的、可替换的；读完后，prompt 构造应当像 runtime state 上的 projection。
 
 <figure class="wc-article-figure">
-  <img src="/books/codex-context-management/assets/runtime-boundary-stack.png" alt="Codex 上下文边界栈：durable ledger、turn-local envelope、injected fragments、optional planes 与 replaceable checkpoints 投影成模型可见 prompt" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/runtime-boundary-stack.png" alt="Codex 上下文边界栈：durable ledger、turn-local envelope、injected fragments、optional planes 与 replaceable checkpoints 投影成模型可见 prompt" loading="eager" decoding="async" />
   <figcaption>关键动作是把 prompt 视为可重建的视图，而不是让它拥有历史、策略、工具输出或 compaction 状态。</figcaption>
 </figure>
 
@@ -106,8 +102,8 @@ sendToModel(baseInstructions, promptInput, toolSpecs)
 
 ## 应用模式
 
-1. **Projection Boundary** -> 用持久状态作为 prompt 构造输入，迁移时把 raw events 和 model-ready messages 分开，注意不要让 projection 代码反向修改 ledger。
-2. **Lifetime Labels** -> 为每类上下文标注生命周期，迁移时命名 session、turn、prompt 和 checkpoint 生命周期，注意临时数据意外变成持久状态。
-3. **Context Ownership** -> 每个上下文平面只设一个 owner，迁移时让更新都经过该 owner，注意客户端绕过 runtime 注入模型可见状态。
-4. **Auditable Forgetting** -> 把 compaction 和 truncation 做成显式事件，迁移时存储 replacement history 或 summary checkpoint，注意无法解释自己替换了什么的摘要。
-5. **Prompt as View** -> 把最终模型输入当作 view，迁移时按模型能力重建它，注意假设所有 provider 都接受同一种 prompt 形状。
+1. **Projection Boundary：** 用持久状态作为 prompt 构造输入；迁移时把 raw events 和 model-ready messages 分开；避免让 projection 代码反向修改 ledger。
+2. **Lifetime Labels：** 为每类上下文标注生命周期；迁移时命名 session、turn、prompt 和 checkpoint 生命周期；把临时数据意外变成持久状态视为设计错误。
+3. **Context Ownership：** 每个上下文平面只设一个 owner；迁移时让更新都经过该 owner；避免客户端绕过 runtime 注入模型可见状态。
+4. **Auditable Forgetting：** 把 compaction 和 truncation 做成显式事件；迁移时存储 replacement history 或 summary checkpoint；避免无法解释自己替换了什么的摘要。
+5. **Prompt as View：** 把最终模型输入当作 view；迁移时按模型能力重建它；不要假设所有 provider 都接受同一种 prompt 形状。
