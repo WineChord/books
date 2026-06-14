@@ -113,6 +113,20 @@ const base = import.meta.env.BASE_URL;
     <section class="border-t border-border pt-8 dark:border-[#333]">
       <h2 class="mb-4 font-serif text-2xl font-bold text-charcoal dark:text-cream">Reference</h2>
       <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <a
+          href="https://github.com/WineChord/books"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]"
+        >
+          <span class="flex items-center justify-between gap-3">
+            <span class="font-semibold text-charcoal group-hover:text-terracotta dark:text-cream">GitHub repository</span>
+            <svg class="size-4 text-terracotta" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 17 17 7M9 7h8v8" />
+            </svg>
+          </span>
+          <span class="mt-1 block text-sm text-muted">Browse the source, history, and issue tracker for WineChord Books.</span>
+        </a>
         {codexFromSourceBook.referencePages.map((page) => (
           <a href={pageUrl(base, page.path)} class="rounded-lg border border-border p-4 transition-colors hover:border-terracotta dark:border-[#333]">
             <span class="font-semibold text-charcoal dark:text-cream">{page.title}</span>
