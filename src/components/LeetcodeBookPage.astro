@@ -4081,12 +4081,12 @@ const shortcutRows = [
         if (!slug) return;
         syncVisibleProgressButtons(slug);
         syncSubmissionStatsUi(slug);
-        syncProblemSignal(slug);
       });
+      scheduleVisibleProblemSignals();
       syncTimingUi();
-      syncSubmissionInsightUi();
+      scheduleSubmissionInsightUi();
       syncOneShotUi();
-      syncAchievementState({ quiet: true });
+      scheduleAchievementUi();
     }
 
     function applyPracticeProjection(projection, options = {}) {
@@ -4097,6 +4097,7 @@ const shortcutRows = [
       );
       oneShotStreak = normalizedOneShotSnapshot(projection.oneShot);
       achievements = normalizedAchievementSnapshot(projection.achievements);
+      invalidateSubmissionInsightCache();
       writePracticeProjectionCache();
       if (options.updateUi) syncVisiblePracticeProjectionUi();
     }
@@ -4176,6 +4177,11 @@ const shortcutRows = [
     let suppressNextEditorFocusRevealSlug = "";
     let submissionInsightUiHydrated = false;
     let submissionInsightUiScheduled = false;
+    let submissionInsightCacheKey = "";
+    let submissionInsightCacheItems = null;
+    let submissionInsightVersion = 0;
+    let visibleProblemSignalScheduled = false;
+    let achievementUiScheduled = false;
     let searchRenderTimer = 0;
     let flowMode = normalizedFlowMode(localStorage.getItem(flowModeKey));
     let flowSkipSql = savedFlowSkipEnabled(flowSkipSqlKey);
@@ -4906,7 +4912,17 @@ const shortcutRows = [
       syncInsightFlowUi();
     }
 
-    function syncInsightFlowUi(hasPick = Boolean(suggestedFlowProblem())) {
+    function hasSuggestedPracticePick() {
+      if (Array.isArray(submissionInsightCacheItems)) {
+        return submissionInsightCacheItems.length > 0;
+      }
+      return Boolean(
+        insightOpen instanceof HTMLElement &&
+          insightOpen.dataset.openInsight,
+      );
+    }
+
+    function syncInsightFlowUi(hasPick = hasSuggestedPracticePick()) {
       insightFlowButtons.forEach((button) => {
         if (!(button instanceof HTMLButtonElement)) return;
         button.classList.toggle("is-on", flowMode === flowModeInsight);
@@ -4956,6 +4972,7 @@ const shortcutRows = [
     function setFlowSkipSql(nextValue) {
       flowSkipSql = Boolean(nextValue);
       setFlowSkipValue(flowSkipSqlKey, flowSkipSql);
+      invalidateSubmissionInsightCache();
       syncFlowSkipUi();
       syncSubmissionInsightUi();
     }
@@ -4970,6 +4987,7 @@ const shortcutRows = [
     function setFlowSkipFrontend(nextValue) {
       flowSkipFrontend = Boolean(nextValue);
       setFlowSkipValue(flowSkipFrontendKey, flowSkipFrontend);
+      invalidateSubmissionInsightCache();
       syncFlowSkipUi();
       syncSubmissionInsightUi();
     }
@@ -5417,11 +5435,18 @@ const shortcutRows = [
       });
     }
 
+    function invalidateSubmissionInsightCache() {
+      submissionInsightVersion += 1;
+      submissionInsightCacheKey = "";
+      submissionInsightCacheItems = null;
+    }
+
     function writeState() {
       rollEditorDraftsForToday();
       localStorage.setItem(progressKey, JSON.stringify(progress));
       localStorage.setItem(clickedKey, JSON.stringify(clicked));
       localStorage.setItem(editorKey, JSON.stringify(editorDrafts));
+      invalidateSubmissionInsightCache();
     }
 
     function writeExtraRunCases() {
@@ -5430,10 +5455,12 @@ const shortcutRows = [
 
     function writeTiming() {
       localStorage.setItem(timingKey, JSON.stringify(timing));
+      invalidateSubmissionInsightCache();
     }
 
     function writeSubmissionStats() {
       localStorage.setItem(submissionStatsKey, JSON.stringify(submissionStats));
+      invalidateSubmissionInsightCache();
     }
 
     function pad2(value) {
@@ -7505,6 +7532,7 @@ const shortcutRows = [
           slug: nextSlug,
           startedAt: nextSlug && isPracticeTimingActive() ? now : 0,
         };
+        submissionInsightCacheKey = "";
       }
       syncTimingUi();
     }
@@ -7517,6 +7545,7 @@ const shortcutRows = [
       if (activePracticeTimer.slug) {
         resetElapsedClock(activePracticeTimer);
       }
+      invalidateSubmissionInsightCache();
       syncTimingUi();
       syncSubmissionInsightUi();
     }
@@ -9318,7 +9347,14 @@ const shortcutRows = [
       `;
     }
 
-    function syncAchievementUi(context = achievementContext()) {
+    function achievementHubIsOpen() {
+      return Boolean(
+        achievementHub instanceof HTMLElement &&
+          achievementHub.classList.contains("is-open"),
+      );
+    }
+
+    function syncAchievementUi(context = achievementContext(), options = {}) {
       const states = achievementStates(context);
       const unlockedCount = states.filter((state) => state.unlocked).length;
       const totalCount = achievementDefinitions.length;
@@ -9347,11 +9383,27 @@ const shortcutRows = [
           ? `真实 AC 成就 ${countText} · ${nextText}`
           : `Real AC badges ${countText} · ${nextText}`;
       }
-      if (achievementList instanceof HTMLElement) {
+      const shouldRenderWall =
+        Boolean(options.renderWall) ||
+        achievementHubIsOpen();
+      if (achievementList instanceof HTMLElement && shouldRenderWall) {
         achievementList.innerHTML = states.length
           ? states.map(renderAchievementCard).join("")
           : `<span>${isChinesePage ? "暂无成就定义。" : "No badges defined."}</span>`;
       }
+    }
+
+    function scheduleAchievementUi() {
+      if (achievementHubIsOpen()) {
+        syncAchievementUi();
+        return;
+      }
+      if (achievementUiScheduled) return;
+      achievementUiScheduled = true;
+      runWhenIdle(() => {
+        achievementUiScheduled = false;
+        syncAchievementUi();
+      }, 1800);
     }
 
     function closeAchievementHub() {
@@ -9899,9 +9951,35 @@ const shortcutRows = [
         ));
     }
 
-    function suggestedPracticeItems() {
-      return submissionInsightItems()
+    function currentSubmissionInsightCacheKey() {
+      const sessionAccepted = Array.from(sessionTiming.acceptedSlugs || [])
+        .sort()
+        .join(",");
+      return [
+        submissionInsightVersion,
+        localDateKey(),
+        activePracticeTimer.slug || "",
+        state.expandedSlug || "",
+        flowSkipSql ? "skip-sql" : "include-sql",
+        flowSkipFrontend ? "skip-fe" : "include-fe",
+        sessionAccepted,
+      ].join("\u0000");
+    }
+
+    function suggestedPracticeItems(options = {}) {
+      const cacheKey = currentSubmissionInsightCacheKey();
+      if (
+        !options.force &&
+        submissionInsightCacheKey === cacheKey &&
+        Array.isArray(submissionInsightCacheItems)
+      ) {
+        return submissionInsightCacheItems;
+      }
+      const items = submissionInsightItems()
         .filter((item) => !shouldSkipRouteProblem(item.problem));
+      submissionInsightCacheKey = cacheKey;
+      submissionInsightCacheItems = items;
+      return items;
     }
 
     function suggestedFlowProblem(excludedSlug = "") {
@@ -10059,6 +10137,21 @@ const shortcutRows = [
       if (signal) tools.insertAdjacentHTML("beforeend", signal);
     }
 
+    function syncVisibleProblemSignals() {
+      visibleProblemSignalScheduled = false;
+      list?.querySelectorAll(".leetcode-row").forEach((row) => {
+        if (!(row instanceof HTMLElement)) return;
+        const slug = row.dataset.slug || "";
+        if (slug) syncProblemSignal(slug);
+      });
+    }
+
+    function scheduleVisibleProblemSignals() {
+      if (visibleProblemSignalScheduled) return;
+      visibleProblemSignalScheduled = true;
+      runWhenIdle(syncVisibleProblemSignals, 1200);
+    }
+
     function renderSubmissionInsightItem(item, index) {
       const problem = item.problem;
       const meta = [
@@ -10102,9 +10195,9 @@ const shortcutRows = [
       `;
     }
 
-    function syncSubmissionInsightUi() {
+    function syncSubmissionInsightUi(options = {}) {
       submissionInsightUiHydrated = true;
-      const items = suggestedPracticeItems();
+      const items = suggestedPracticeItems(options);
       const pick = items[0];
       if (insightPick instanceof HTMLElement) {
         insightPick.textContent = pick
@@ -10136,16 +10229,16 @@ const shortcutRows = [
       syncInsightFlowUi(Boolean(pick));
     }
 
-    function scheduleSubmissionInsightUi() {
-      if (submissionInsightUiHydrated) {
-        syncSubmissionInsightUi();
+    function scheduleSubmissionInsightUi(options = {}) {
+      if (options.immediate) {
+        syncSubmissionInsightUi(options);
         return;
       }
       if (submissionInsightUiScheduled) return;
       submissionInsightUiScheduled = true;
       runWhenIdle(() => {
         submissionInsightUiScheduled = false;
-        syncSubmissionInsightUi();
+        syncSubmissionInsightUi(options);
       }, 2000);
     }
 
@@ -16660,7 +16753,6 @@ const shortcutRows = [
                 </svg>
               </button>
               <span class="leetcode-share-status" data-share-status="${escapeHtml(problem.titleSlug)}" hidden></span>
-              ${submissionCompactSignal(problem)}
             </span>
           </div>
           <div><span class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</span></div>
@@ -16726,9 +16818,10 @@ const shortcutRows = [
       syncManualRunCaseUi();
       syncActivePracticeTimerAfterRender();
       pageItems.forEach((problem) => syncSubmissionStatsUi(problem.titleSlug));
+      scheduleVisibleProblemSignals();
       scheduleSubmissionInsightUi();
       syncOneShotUi();
-      syncAchievementUi();
+      scheduleAchievementUi();
       syncLingShenRoadmapProgress();
       scheduleProblemDetailsPrefetch(pageItems);
       scheduleFlowProblemDetailsPrefetch();
