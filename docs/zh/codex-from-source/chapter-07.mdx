@@ -4,7 +4,7 @@
 > **阅读契约：** 用本章分开 provider transport 与 runtime semantics。跟住 stream normalization、backend tasks、retry/cancel boundaries，以及 provider 差异被隐藏的位置。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-stream-normalization.png" alt="Provider 流式归一化图：展示 provider data、runtime provider behavior、transport choices、typed events、retry 与 cancellation" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-stream-normalization-df64b03.png" alt="Provider 流式归一化图：展示 provider data、runtime provider behavior、transport choices、typed events、retry 与 cancellation" loading="lazy" decoding="async" />
   <figcaption>Provider transport 可以变化，但 runtime 需要稳定语义：原始流事件会归一化成 items，并带着有界 retry 与 cancellation。</figcaption>
 </figure>
 

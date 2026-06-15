@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this reference for dense source review. Treat each table row as an audit target: owner, data structure, runtime decision, and failure path.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/implementation-audit-reference.png" alt="Implementation audit reference map tying subsystem owners, data structures, runtime decisions, failure paths, and pinned source anchors" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/implementation-audit-reference-df64b03.png" alt="Implementation audit reference map tying subsystem owners, data structures, runtime decisions, failure paths, and pinned source anchors" loading="lazy" decoding="async" />
   <figcaption>The implementation reference is dense by design: each row points to an owner, a data structure, a decision, a failure branch, and a source anchor.</figcaption>
 </figure>
 

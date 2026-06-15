@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this page to understand publication discipline. Track how claims, pinned evidence, diagrams, bilingual parity, and automated checks keep a source-pinned book maintainable.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/publication-discipline-pipeline.png" alt="Publication pipeline showing claim discipline, pinned evidence, figure checks, bilingual parity, automated validation, and release gating" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/publication-discipline-pipeline-df64b03.png" alt="Publication pipeline showing claim discipline, pinned evidence, figure checks, bilingual parity, automated validation, and release gating" loading="lazy" decoding="async" />
   <figcaption>Publication discipline keeps the public book maintainable: claims, pinned evidence, visual models, verification gates, and published pages reinforce each other.</figcaption>
 </figure>
 

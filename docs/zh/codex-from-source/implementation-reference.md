@@ -3,7 +3,7 @@
 > **阅读契约：** 把本页用于密集源码审阅。每一行都当成审计目标：owner、data structure、runtime decision 和 failure path。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/implementation-audit-reference.png" alt="实现审计参考图：把子系统 owner、数据结构、runtime decision、failure path 与固定源码锚点连起来" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/implementation-audit-reference-df64b03.png" alt="实现审计参考图：把子系统 owner、数据结构、runtime decision、failure path 与固定源码锚点连起来" loading="lazy" decoding="async" />
   <figcaption>实现索引故意保持高密度：每一行都指向 owner、data structure、decision、failure branch 和 source anchor。</figcaption>
 </figure>
 

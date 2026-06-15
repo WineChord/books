@@ -313,14 +313,22 @@ PicGo publication protocol:
    `Wine & Chord` brand mark cleanup first.
 2. Save the final PNG locally under the article's assets directory so the source
    package remains reproducible.
-3. Upload that final PNG with the local PicGo CLI, for example
+3. When materially regenerating an already published figure, do not rely on
+   overwriting the old CDN basename. Save and upload a unique versioned basename
+   such as `<figure>-<commit>.png`, and rename the local backing PNG to match
+   the published PicGo basename.
+4. Upload that final PNG with the local PicGo CLI, for example
    `picgo upload docs/public/<article>/assets/<figure-name>.png`.
-4. Capture the remote URL printed by PicGo and use that URL in published
+5. Capture the remote URL printed by PicGo and use that URL in published
    Markdown, HTML, MDX, Astro image data, and `og:image` metadata.
-5. Keep a small mapping in the working notes or commit context from local asset
+6. Verify at least the highest-risk regenerated assets through the remote raw
+   source or CDN URL by checking byte size or hash against the local final PNG.
+   A PicGo success line is not enough proof that an existing CDN object was
+   overwritten.
+7. Keep a small mapping in the working notes or commit context from local asset
    path to PicGo URL so future edits know which source file produced the public
    image.
-6. If PicGo is unavailable or upload fails, stop and report the blocker. Do not
+8. If PicGo is unavailable or upload fails, stop and report the blocker. Do not
    silently publish generated figures with local repository paths, except for
    temporary local drafts that are not being published.
 
