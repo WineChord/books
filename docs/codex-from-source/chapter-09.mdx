@@ -1,145 +1,1020 @@
-
 # Chapter 9: Tool Specifications, Routing, and Dispatch
 
-> **Reading Contract:** Use this chapter to follow a tool from model-visible spec to runtime handler. Track routing, registry lookup, orchestration, and why a spec is never execution authority.
+> **Reading Contract:** Use this chapter to follow one tool request from the
+> schema the model can see to the handler that can actually run. Track three
+> owners: the planner advertises capabilities, the router normalizes model
+> items, and the registry decides whether a runtime handler may execute the
+> payload. By the end, you should be able to explain why a visible tool schema
+> can still fail before any side effect happens.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-routing-dispatch-map.webp" alt="Tool routing and dispatch map separating model-visible specs, registry handlers, router validation, orchestration, policy, and result shaping" loading="eager" decoding="async" />
-  <figcaption>A model-visible tool spec is only the first gate; routing, registry lookup, orchestration, and result shaping decide the real side effect.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-routing-dispatch-map.webp" alt="Tool routing and dispatch map separating model-visible specs, registry handlers, router validation, orchestration, policy, and result shaping" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>A model-visible tool spec is only the first gate; routing, registry lookup, orchestration, policy, and result shaping decide the real side effect.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** this chapter explains the public Codex repository at commit
+[`569ff6a1`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+Type names, enum variants, tests, and function behavior are **verified source**
+only where the prose links to that pinned snapshot. Claims about why a boundary
+matters are **surrounding contract inference** from those source shapes. The
+chapter does not infer private OpenAI service behavior, hidden model policy, or
+hosted backend scheduling.
 
-Chapter 8 established that Codex records runtime facts before trying to interpret them. This chapter moves from observation to action: once the model asks for a tool, Codex must decide whether that request names a real capability, which runtime owns it, how much parallelism it can tolerate, and what result should return to the model and to the durable event stream.
+Before Codex can record a tool result, it has to decide whether the requested
+tool may run at all. This chapter turns from observation to action. A model can
+emit a function call, a custom tool call, a hosted-tool request, a local shell
+action, or a tool-search request, but the emitted item is not authority. It is
+only syntax that must be matched against a turn-local capability plan.
 
-The tool system is easiest to understand as a capability system. A tool specification advertises a shape the model may call. A handler is the runtime authority that can perform the work. A router connects the two for a specific turn. These three ideas must stay separate. If the model-visible schema and the execution authority collapse into one object, every new tool becomes a security exception, a UI exception, and a replay exception at the same time.
+The core invariant is simple:
 
-<div class="chapter-lede">
-  <p><strong>You are here:</strong> Part II gave us recorded turns and observable runtime facts.</p>
-  <p><strong>Problem:</strong> a model can name a tool, but naming is not authority to execute it.</p>
-  <p><strong>Mental model:</strong> safe side effects require five separate steps: exposure, routing, validation, supervision, and observation.</p>
-</div>
+> **A tool spec tells the model what shape to produce. A handler proves what the
+> runtime can execute. A registry and router keep those two facts from
+> collapsing into one another.**
 
+That invariant is easy to miss because the UI experience is direct. The model
+asks for a tool; the tool appears to run. In the source, several gates sit
+between those two moments:
 
-## The Two Planes
+1. The planner builds configured specs and handler registrations from
+   configuration, feature flags, MCP state, dynamic tools, hosted tools, and
+   discoverable tools.
+2. The router filters which specs are model-visible for this turn.
+3. The router parses provider response items into a normalized `ToolCall`.
+4. The registry looks up a handler by `ToolName` and checks that the payload
+   kind matches the handler kind.
+5. Dispatch wraps execution with cancellation, parallelism, hooks, telemetry,
+   trace records, and response shaping.
 
-Codex keeps tool metadata and execution behavior on different planes.
+If one of these gates fails, Codex should not "try the closest tool." It should
+return a structured failure or stop the turn with a fatal runtime error,
+depending on which boundary was violated.
 
-| Plane | Question | Examples of data |
-| --- | --- | --- |
-| Specification | What may the model see? | function schemas, namespace tools, freeform patch tools, hosted tools |
-| Registration | Which runtime can handle the call? | shell handler, patch handler, MCP handler, dynamic-tool handler |
-| Routing | Which call belongs to which handler now? | tool name, namespace, call id, payload kind |
-| Dispatch | How is work supervised? | cancellation, hooks, approval, sandboxing, event emission |
-| Output shaping | What goes back into the turn? | function output, custom tool output, failed-call response, events |
+## 1. Tool Specs Are Model Syntax, Not Runtime Authority
 
-The separation is visible in the lifecycle. A session builds a tool registry from configuration, feature flags, model capability, MCP startup state, discoverable tools, dynamic tools, and hosted tool availability. The registry then produces two products: configured specs for internal lookup, and model-visible specs for the request sent to the model.
+The `codex-rs/tools` crate defines the serializable tool vocabulary. In the
+pinned source, [`ToolSpec`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L17-L52)
+contains several public shapes:
 
-This diagram is the core of the chapter: the model receives specifications, not handlers. The runtime keeps handlers, not just schemas. The router is the turn-local bridge between them.
-
-### Specification Is Not Authority
-
-A `ToolSpec` is a contract for model syntax. It can describe ordinary function tools, namespace tools, hosted tools such as search or image generation, local shell-like tools, and freeform tools such as patch application. It can also carry compatibility details that help different model surfaces understand the same capability.
-
-None of that means execution is allowed. The spec says, "this is a call shape the model may produce." The handler says, "this runtime knows how to execute that call." Policy says, "this execution is allowed, denied, or must ask." Those are different claims.
-
-Consider a concrete turn. The model sees a shell-like spec with a schema for `command`, `cwd`, and optional metadata. That spec only tells the model how to format a request. When a response item arrives, Codex still has to verify that the item is really a shell call, that the payload is the shell payload shape rather than an MCP payload using the same public name, that the call id is tracked, and that the current turn registered a shell handler. If any of those checks fails, the correct result is a structured failed tool output, not a best-effort execution.
-
-```text
-// Pseudocode - spec exposure is not execution authority.
-spec = expose_to_model("run_command", shell_schema)
-handler = registry.register("run_command", ShellHandler)
-
-call = normalize_response_item(model_item)
-if call.name != spec.name or call.payload_kind != handler.expected_payload:
-    return failed_tool_result(call.id, "unsupported tool payload")
-
-return handler.run_under_policy(call)
+```rust
+pub enum ToolSpec {
+    #[serde(rename = "function")]
+    Function(ResponsesApiTool),
+    #[serde(rename = "namespace")]
+    Namespace(ResponsesApiNamespace),
+    #[serde(rename = "tool_search")]
+    ToolSearch {
+        execution: String,
+        description: String,
+        parameters: JsonSchema,
+    },
+    #[serde(rename = "local_shell")]
+    LocalShell {},
+    #[serde(rename = "image_generation")]
+    ImageGeneration { output_format: String },
+    #[serde(rename = "web_search")]
+    WebSearch { /* fields omitted */ },
+    #[serde(rename = "custom")]
+    Freeform(FreeformTool),
+}
 ```
 
-The same rule protects MCP. A sanitized public MCP name maps back to a server and raw tool through provenance recorded during discovery. The model never gets to decide which server receives the call merely by embedding a namespace-looking string in the response item.
+This enum is broad on purpose. It covers ordinary function calling, namespace
+tools, deferred tool search, local shell style tools, provider-hosted image and
+web-search tools, and freeform custom tools such as patch application. But it is
+still just a request shape. The next struct makes the distinction sharper:
+[`ConfiguredToolSpec`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L79-L88)
+adds a parallelism flag to a spec.
 
-This distinction matters most for tools that are discovered at runtime:
-
-| Tool family | Why it cannot be hardwired |
-| --- | --- |
-| MCP tools | They arrive from configured or hosted servers and need sanitized names, provenance, and approval metadata. |
-| Dynamic tools | They are supplied by clients and may be directly exposed or deferred until the model searches for them. |
-| Unavailable tools | The model may refer to a previously known tool; the runtime should return a useful unsupported result. |
-| Hosted tools | The provider may execute part of the tool, while Codex still owns the session contract around exposure and events. |
-| Code-mode tools | The visible surface may be nested or augmented without changing the underlying handler boundary. |
-
-Codex therefore builds a plan rather than a fixed list. The plan can expose a tool directly, hide it behind tool search, coalesce namespace tools, augment descriptions for a mode, or register a handler without showing the handler's spec as the primary model surface.
-
-### Routing a Tool Call
-
-The model returns response items. Some items are messages. Some are tool calls. A tool call must be parsed into a normalized runtime form before dispatch. That normalized form carries a tool name, a call id, and a payload. The payload kind matters because a plain function call, an MCP call, a freeform custom call, and a search-tool call are not interchangeable even when their names look similar.
-
-The router performs four jobs:
-
-1. It resolves the tool name, including namespace identity.
-2. It rejects incompatible payload kinds before execution.
-3. It answers whether the tool can run in parallel with other calls.
-4. It creates optional streamed-argument consumers for tools that can report
-   progress before the final call body is complete.
-
-The runtime then wraps dispatch with cancellation and output shaping. If the user interrupts a turn, the tool result must still become a meaningful model-visible interruption rather than a vanished task. If a handler fails in a recoverable way, the model receives a failed tool result. If a handler fails fatally, the turn can stop with a runtime error.
-
-```text
-// Pseudocode - dispatch path.
-  plan = build_tool_plan(configuration, model_capabilities, extensions)
-  specs = plan.visible_specs_for_model()
-  registry = plan.runtime_handlers()
-
-  for each response_item from model:
-      if response_item is not a tool call:
-          continue
-
-      call = normalize_tool_call(response_item)
-      handler = registry.find(call.name)
-
-      if handler is missing or payload_kind_mismatches(call, handler):
-          return failed_tool_result(call)
-
-      run_with_cancellation:
-          emit_pre_tool_hooks_when_applicable(call)
-          result = handler.handle(call)
-          emit_post_tool_hooks_when_applicable(call, result)
-          persist_events_and_output(call, result)
+```rust
+pub struct ConfiguredToolSpec {
+    pub spec: ToolSpec,
+    pub supports_parallel_tool_calls: bool,
+}
 ```
 
-This pseudocode is deliberately generic. The important architecture is not a particular function body. It is the sequence: normalize, validate, supervise, execute, shape output, and persist.
+Even that is not execution authority. It says, "if this tool appears in the
+configured set, this is the model-facing schema and its parallel-call contract."
+The actual runtime authority lives in a handler registered under a `ToolName`.
+That split prevents three common mistakes:
 
-### Parallelism Is a Capability
-
-Parallel tool calls are not safe merely because the model can produce them. Some tools are naturally read-only. Some mutate the workspace. Some depend on a single process session. Some MCP servers declare their own tolerance. Codex therefore treats parallelism as part of the configured tool capability.
-
-For ordinary tools, the configured spec can say whether parallel calls are supported. For MCP, the decision can be per server, because two tools with similar names may belong to different servers with different concurrency contracts. For tools without explicit support, the runtime serializes dispatch.
-
-This is not only about correctness. It is about making side effects attributable. If two mutating calls interleave without a clear concurrency contract, the rollout can still record events, but the user may not be able to understand which call caused which change.
-
-### Output Belongs to Two Audiences
-
-Every tool result has two audiences:
-
-| Audience | Needs |
+| Mistake | Why it fails |
 | --- | --- |
-| Model | a compact response item that can guide the next reasoning step |
-| Runtime clients | structured events, lifecycle status, progress updates, and durable replay facts |
+| Treating the schema as permission | A model-visible JSON schema does not answer whether a handler exists, whether policy allows the call, or whether the current turn can run it. |
+| Treating a name as provenance | `calendar.create_event`, a namespaced MCP tool, and a plain local function can have similar public names but different owners. |
+| Treating parallelism as a model feature | The model may emit multiple calls, but Codex must decide whether the specific handler or server can tolerate concurrency. |
 
-A shell command may stream output to the UI and later return a summary to the model. A patch may emit progress while arguments stream, ask for approval, and then return the final application result. An MCP tool may require approval or elicitation before it can produce the provider's result. These flows are different, but the runtime normalizes them into one dispatch contract.
+The rest of the chapter is the machinery that keeps those mistakes from
+becoming side effects.
 
-That is why tool execution is not a switch statement over tool names. A switch statement can call functions. It cannot express model exposure, runtime authority, streamed argument progress, approval hooks, cancellation, parallel contracts, telemetry, and replay in one coherent boundary.
+## 2. Planning Builds Two Products
 
-## Apply This
+The planner's job is not to make one flat list of tools. It builds two related
+products:
 
-1. **Separate advertising from authority.** Let schemas tell the model what to call, and let handlers prove what can run.
-2. **Build a plan, not a list.** Merge config, model capability, dynamic tools, hosted tools, and MCP state before exposing tools.
-3. **Normalize before dispatch.** Convert provider response items into one internal call shape before policy or execution.
-4. **Treat parallelism as explicit capability.** Serialize by default unless a handler or server declares safe concurrency.
-5. **Shape output for both audiences.** Return compact model results while emitting structured events for users and replay.
+1. **Configured specs** that the router can inspect.
+2. **Runtime handlers** that the registry can dispatch.
 
-Chapter 10 follows the most consequential handler family: shell and filesystem execution. It shows how command parsing, exec policy, `exec-server`, and environment selection turn a tool call into a supervised process.
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-spec-planner-569ff6a1.webp" alt="Tool spec planner taking config, features, MCP, dynamic, and hosted inputs and splitting model specs from registry handlers" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The planner keeps schema exposure and runtime ownership on separate lanes: model specs go to the request, handlers stay in the registry.</figcaption>
+</figure>
+
+The public entry point for this planning layer is
+[`build_specs_with_discoverable_tools`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L66-L73).
+It receives the visible planning inputs: tool configuration, MCP tools,
+deferred MCP tools, unavailable tools that the model has already tried to call,
+discoverable tools, and dynamic tools.
+
+```rust
+pub(crate) fn build_specs_with_discoverable_tools(
+    config: &ToolsConfig,
+    mcp_tools: Option<Vec<ToolInfo>>,
+    deferred_mcp_tools: Option<Vec<ToolInfo>>,
+    unavailable_called_tools: Vec<ToolName>,
+    discoverable_tools: Option<Vec<DiscoverableTool>>,
+    dynamic_tools: &[DynamicToolSpec],
+) -> ToolRegistryBuilder {
+    /* planning body omitted */
+}
+```
+
+The first important move happens before the lower-level registry builder is
+called. MCP tools are converted into plan inputs that preserve canonical names
+and namespace descriptions; deferred MCP tools are converted into source
+records for tool search; deferred dynamic tools are collected so they can be
+discoverable without necessarily being visible as direct calls.
+
+```rust
+let deferred_mcp_tool_sources = deferred_mcp_tools.as_ref().map(|tools| {
+    tools
+        .iter()
+        .map(|tool| ToolRegistryBuildDeferredTool {
+            name: tool.canonical_tool_name(),
+            server_name: tool.server_name.as_str(),
+            connector_name: tool.connector_name.as_deref(),
+            description: tool.namespace_description.as_deref(),
+        })
+        .collect::<Vec<_>>()
+});
+
+let deferred_dynamic_tools = dynamic_tools
+    .iter()
+    .filter(|tool| tool.defer_loading && (config.namespace_tools || tool.namespace.is_none()))
+    .cloned()
+    .collect::<Vec<_>>();
+```
+
+That is already an architectural statement. A deferred tool is not absent. It
+can have a handler, search metadata, and provenance, while still being withheld
+from the immediate model-visible spec list. This is how Codex can keep a model
+from seeing every possible capability up front without losing the ability to
+resolve a selected capability later. Deferred MCP tools make that explicit:
+the planner later registers
+[`McpHandler` entries for deferred tools that were not already registered
+directly](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L425-L435),
+so discovery can still route back to a runtime handler.
+
+The lower-level
+[`build_tool_registry_builder`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69-L74)
+then registers concrete families. Shell exposure is gated by environment mode
+and shell type:
+
+```rust
+if config.environment_mode.has_environment() {
+    let include_environment_id =
+        matches!(config.environment_mode, ToolEnvironmentMode::Multiple);
+    match &config.shell_type {
+        ConfigShellToolType::Default => {
+            builder.register_handler(Arc::new(ShellHandler::new(ShellToolOptions {
+                exec_permission_approvals_enabled,
+            })));
+        }
+        ConfigShellToolType::UnifiedExec => {
+            builder.register_handler(Arc::new(ExecCommandHandler::new(
+                ExecCommandHandlerOptions {
+                    allow_login_shell: config.allow_login_shell,
+                    exec_permission_approvals_enabled,
+                    include_environment_id,
+                },
+            )));
+            builder.register_handler(Arc::new(WriteStdinHandler));
+        }
+        /* other shell modes omitted */
+    }
+}
+```
+
+The same builder adds plan, goal, request-input, permission, patch, test,
+hosted web search, image generation, view-image, multi-agent, agent-job, MCP,
+and dynamic-tool handlers based on configuration and feature state. The result
+is not a universal tool surface. It is a turn-specific capability set.
+
+### 2.1 Deferred Tool Search Is a First-Class Planning Path
+
+When tool search is enabled and either a deferred MCP source list is present or
+deferred dynamic tools exist, the builder registers a
+[`ToolSearchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L223-L248):
+
+```rust
+if config.search_tool
+    && (deferred_mcp_tools_for_search.is_some() || !deferred_dynamic_tools.is_empty())
+{
+    let mut search_source_infos = deferred_mcp_tools_for_search
+        .map(|deferred_mcp_tools| {
+            collect_tool_search_source_infos(deferred_mcp_tools.iter().map(|tool| {
+                ToolSearchSource {
+                    server_name: tool.server_name,
+                    connector_name: tool.connector_name,
+                    description: tool.description,
+                }
+            }))
+        })
+        .unwrap_or_default();
+
+    if !deferred_dynamic_tools.is_empty() {
+        search_source_infos.push(ToolSearchSourceInfo {
+            name: "Dynamic tools".to_string(),
+            description: Some("Tools provided by the current Codex thread.".to_string()),
+        });
+    }
+
+    builder.register_handler(Arc::new(ToolSearchHandler::new(
+        params.tool_search_entries.to_vec(),
+        search_source_infos,
+    )));
+}
+```
+
+The protected invariant is practical: a hidden capability can still be
+discoverable through an explicit search action. The model should not have to
+carry every dynamic or external schema in its initial tool list, and the runtime
+should not lose the original source metadata when the model later selects one.
+
+### 2.2 Unavailable Tools Still Need a Controlled Result
+
+Unavailable tools are the opposite edge case. The model may refer to a tool
+that existed earlier, was present in a different session, or was discovered
+under different auth. The builder handles that by inserting an unavailable-tool
+placeholder or a handler without a spec, depending on whether the name already
+exists. In
+[`spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L139-L165),
+the placeholder description explicitly says the call returns an error.
+
+```rust
+for unavailable_tool in unavailable_called_tools {
+    let tool_name = flat_tool_name(&unavailable_tool).into_owned();
+    if existing_spec_names.insert(tool_name.clone()) {
+        let spec = codex_tools::ToolSpec::Function(ResponsesApiTool {
+            name: tool_name.clone(),
+            description: unavailable_tool_message(
+                &tool_name,
+                "Calling this placeholder returns an error explaining that the tool is unavailable.",
+            ),
+            strict: false,
+            parameters: JsonSchema::object(
+                Default::default(),
+                /*required*/ None,
+                Some(AdditionalProperties::Boolean(false)),
+            ),
+            output_schema: None,
+            defer_loading: None,
+        });
+        builder.register_handler(Arc::new(UnavailableToolHandler::new(
+            unavailable_tool,
+            spec,
+        )));
+    } else {
+        builder.register_handler(Arc::new(UnavailableToolHandler::without_spec(
+            unavailable_tool,
+        )));
+    }
+}
+```
+
+That is better than silently dropping the call. The model receives a structured
+reason, and the user gets an auditable failure instead of a mysterious missing
+tool.
+
+## 3. Provenance Survives Model-Friendly Naming
+
+External and client-owned tools complicate the name problem. A raw MCP tool
+name may not be suitable as a model-facing Responses API tool name. A dynamic
+tool may live under a namespace supplied by a client. A deferred tool may be
+known to the registry but hidden from the immediate model list.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-provenance-deferred-569ff6a1.webp" alt="MCP and client tools passing through canonical names, provenance, direct spec, deferred tool_search, unavailable placeholder, and route-back handler lookup" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>External and deferred tools need provenance: the public callable name is only useful if the runtime can route it back to the owning server or client.</figcaption>
+</figure>
+
+In the planner, MCP tools are sorted by namespace and converted with
+[`mcp_tool_to_responses_api_tool`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L340-L383).
+For each converted tool, Codex registers an `McpHandler` under the canonical
+tool name.
+
+```rust
+for (namespace, mut entries) in namespace_entries {
+    entries.sort_by_key(|tool| tool.name.name.clone());
+    let mut tools = Vec::new();
+    for tool in entries {
+        match mcp_tool_to_responses_api_tool(&tool.name, tool.tool) {
+            Ok(converted_tool) => {
+                tools.push(ResponsesApiNamespaceTool::Function(converted_tool));
+                builder.register_handler(Arc::new(McpHandler::new(tool.name)));
+            }
+            Err(error) => {
+                let tool_name = &tool.name;
+                tracing::error!(
+                    "Failed to convert `{tool_name}` MCP tool to OpenAI tool: {error:?}"
+                );
+            }
+        }
+    }
+
+    if config.namespace_tools && !tools.is_empty() {
+        builder.push_spec(
+            ToolSpec::Namespace(ResponsesApiNamespace {
+                name: namespace,
+                description,
+                tools,
+            }),
+            /*supports_parallel_tool_calls*/ false,
+        );
+    }
+}
+```
+
+The key idea is that the model-facing representation and the route-back identity
+are related, but not identical concepts. The response item must later be
+resolved against session state so an MCP call becomes a payload with a server,
+a raw tool name, and raw arguments.
+
+Dynamic tools follow the same architecture in a different family. For each
+successfully converted dynamic tool, the planner creates a loadable spec and
+registers a `DynamicToolHandler` under the namespaced or plain handler name:
+
+```rust
+let mut dynamic_tool_specs = Vec::new();
+for tool in params.dynamic_tools {
+    match dynamic_tool_to_loadable_tool_spec(tool) {
+        Ok(loadable_tool) => {
+            let handler_name = ToolName::new(tool.namespace.clone(), tool.name.clone());
+            dynamic_tool_specs.push(loadable_tool);
+            builder.register_handler(Arc::new(DynamicToolHandler::new(handler_name)));
+        }
+        Err(error) => {
+            tracing::error!(
+                "Failed to convert dynamic tool {:?} to OpenAI tool: {error:?}",
+                tool.name
+            );
+        }
+    }
+}
+```
+
+The takeaway is not "MCP and dynamic tools are the same." They are not. The
+takeaway is that both pass through a planning boundary that records enough
+identity for later routing.
+
+## 4. The Router Filters What the Model Sees
+
+Once the builder returns configured specs and a registry, the
+[`ToolRouter`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38-L42)
+keeps both:
+
+```rust
+pub struct ToolRouter {
+    registry: ToolRegistry,
+    specs: Vec<ConfiguredToolSpec>,
+    model_visible_specs: Vec<ToolSpec>,
+    parallel_mcp_server_names: HashSet<String>,
+}
+```
+
+`ToolRouter::from_config` builds the registry, computes deferred dynamic tool
+names, filters specs for the model-visible list, and stores the exact MCP
+servers that support parallel tool calls:
+
+```rust
+let (specs, registry) = builder.build();
+let deferred_dynamic_tools = dynamic_tools
+    .iter()
+    .filter(|tool| tool.defer_loading)
+    .map(|tool| ToolName::new(tool.namespace.clone(), tool.name.clone()))
+    .collect::<HashSet<_>>();
+let model_visible_specs = specs
+    .iter()
+    .filter_map(|configured_tool| {
+        if config.code_mode_only_enabled
+            && codex_code_mode::is_code_mode_nested_tool(configured_tool.name())
+        {
+            return None;
+        }
+
+        filter_deferred_dynamic_tool_spec(
+            configured_tool.spec.clone(),
+            &deferred_dynamic_tools,
+        )
+    })
+    .collect();
+```
+
+The important detail is that `model_visible_specs` is derived from `specs`; it
+does not replace `specs`. A deferred dynamic tool can remain in the configured
+set so `find_spec` and routing logic can still reason about it, while the
+initial request hides it from the model.
+
+The filter itself is explicit:
+[`filter_deferred_dynamic_tool_spec`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L299-L330)
+removes deferred function tools or prunes deferred namespace members. If a
+namespace becomes empty, it disappears from the model-visible list.
+
+```rust
+fn filter_deferred_dynamic_tool_spec(
+    spec: ToolSpec,
+    deferred_dynamic_tools: &HashSet<ToolName>,
+) -> Option<ToolSpec> {
+    if deferred_dynamic_tools.is_empty() {
+        return Some(spec);
+    }
+
+    match spec {
+        ToolSpec::Function(tool) => {
+            if deferred_dynamic_tools.contains(&ToolName::plain(tool.name.as_str())) {
+                None
+            } else {
+                Some(ToolSpec::Function(tool))
+            }
+        }
+        ToolSpec::Namespace(mut namespace) => {
+            let namespace_name = namespace.name.clone();
+            namespace.tools.retain(|tool| match tool {
+                ResponsesApiNamespaceTool::Function(tool) => !deferred_dynamic_tools.contains(
+                    &ToolName::namespaced(namespace_name.as_str(), tool.name.as_str()),
+                ),
+            });
+            if namespace.tools.is_empty() {
+                None
+            } else {
+                Some(ToolSpec::Namespace(namespace))
+            }
+        }
+        spec => Some(spec),
+    }
+}
+```
+
+The test
+[`model_visible_specs_filter_deferred_dynamic_tools`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router_tests.rs#L143-L198)
+locks down this behavior. It builds a hidden and visible dynamic tool in the
+same namespace, then verifies that both remain in `router.specs()` while only
+the visible one remains in `router.model_visible_specs()`.
+
+That is the kind of boundary a large agent runtime needs. Visibility is a turn
+surface. Capability is a runtime fact. Search is a discovery path between them.
+
+## 5. Response Items Become Typed Tool Calls
+
+After the model responds, the router no longer deals with specs. It deals with
+response items. A response item can be a normal message, a function call, a tool
+search call, a custom call, a local shell call, or something else. Codex
+normalizes only the tool-call cases into a [`ToolCall`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L31-L36):
+
+```rust
+pub struct ToolCall {
+    pub tool_name: ToolName,
+    pub call_id: String,
+    pub payload: ToolPayload,
+}
+```
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-router-payload-gate-569ff6a1.webp" alt="Tool router converting function, custom, local shell, tool_search, and MCP response items into payload kinds before handler matching" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The router turns provider response items into payload kinds before the registry is allowed to dispatch them.</figcaption>
+</figure>
+
+The payload enum is the first line of defense against name-only dispatch.
+[`ToolPayload`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L59-L78)
+has distinct variants for function, tool search, custom, local shell, and MCP
+calls:
+
+```rust
+pub enum ToolPayload {
+    Function {
+        arguments: String,
+    },
+    ToolSearch {
+        arguments: SearchToolCallParams,
+    },
+    Custom {
+        input: String,
+    },
+    LocalShell {
+        params: ShellToolCallParams,
+    },
+    Mcp {
+        server: String,
+        tool: String,
+        raw_arguments: String,
+    },
+}
+```
+
+The router's
+[`build_tool_call`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L174-L245)
+then maps response variants into this payload vocabulary. The function-call
+branch is especially important because it first checks whether the tool name
+resolves to MCP provenance:
+
+```rust
+ResponseItem::FunctionCall {
+    name,
+    namespace,
+    arguments,
+    call_id,
+    ..
+} => {
+    let tool_name = ToolName::new(namespace, name);
+    if let Some(tool_info) = session.resolve_mcp_tool_info(&tool_name).await {
+        Ok(Some(ToolCall {
+            tool_name: tool_info.canonical_tool_name(),
+            call_id,
+            payload: ToolPayload::Mcp {
+                server: tool_info.server_name,
+                tool: tool_info.tool.name.to_string(),
+                raw_arguments: arguments,
+            },
+        }))
+    } else {
+        Ok(Some(ToolCall {
+            tool_name,
+            call_id,
+            payload: ToolPayload::Function { arguments },
+        }))
+    }
+}
+```
+
+Tool search is also special. A `ToolSearchCall` only becomes a client-side
+`ToolCall` when `execution == "client"` and a `call_id` is present. Other
+tool-search items are ignored by this router path:
+
+```rust
+ResponseItem::ToolSearchCall {
+    call_id: Some(call_id),
+    execution,
+    arguments,
+    ..
+} if execution == "client" => {
+    let arguments: SearchToolCallParams =
+        serde_json::from_value(arguments).map_err(|err| {
+            FunctionCallError::RespondToModel(format!(
+                "failed to parse tool_search arguments: {err}"
+            ))
+        })?;
+    Ok(Some(ToolCall {
+        tool_name: ToolName::plain("tool_search"),
+        call_id,
+        payload: ToolPayload::ToolSearch { arguments },
+    }))
+}
+ResponseItem::ToolSearchCall { .. } => Ok(None),
+```
+
+Custom calls and local shell calls get their own payload variants. That matters
+because a custom freeform patch body and a JSON function call should never be
+interchanged merely because both have a string-like body.
+
+## 6. Registry Lookup Rejects Missing and Wrong-Kind Calls
+
+The registry owns the runtime handler map. It is not just a place to call a
+function by name. This shortened excerpt from the
+[`ToolHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L38-L96)
+trait shows the runtime boundary:
+
+```rust
+pub trait ToolHandler: Send + Sync {
+    type Output: ToolOutput + 'static;
+
+    fn tool_name(&self) -> ToolName;
+
+    fn spec(&self) -> Option<ToolSpec> {
+        None
+    }
+
+    fn supports_parallel_tool_calls(&self) -> bool {
+        false
+    }
+
+    fn kind(&self) -> ToolKind;
+
+    fn matches_kind(&self, payload: &ToolPayload) -> bool {
+        matches!(
+            (self.kind(), payload),
+            (ToolKind::Function, ToolPayload::Function { .. })
+                | (ToolKind::Function, ToolPayload::ToolSearch { .. })
+                | (ToolKind::Mcp, ToolPayload::Mcp { .. })
+        )
+    }
+
+    /* mutation, hook, and streaming-diff methods omitted */
+
+    fn handle(
+        &self,
+        invocation: ToolInvocation,
+    ) -> impl std::future::Future<Output = Result<Self::Output, FunctionCallError>> + Send;
+}
+```
+
+`kind()` and `matches_kind()` are the quiet guardrails. A handler that expects
+MCP payloads should not receive a custom payload. A function handler should not
+receive an MCP server payload just because the name looks close. `ToolSearch`
+is allowed to route through function-kind handling because it is a client-side
+runtime tool, but it still carries its own payload variant.
+
+The core dispatch path begins in
+[`ToolRegistry::dispatch_any`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L263-L353).
+It prepares telemetry tags, starts a dispatch trace, looks up the handler, and
+then rejects missing or incompatible calls before any handler runs:
+
+```rust
+let dispatch_trace = ToolDispatchTrace::start(&invocation);
+
+let handler = match self.handler(&tool_name) {
+    Some(handler) => handler,
+    None => {
+        let message = unsupported_tool_call_message(&invocation.payload, &tool_name);
+        otel.tool_result_with_tags(
+            tool_name_flat.as_ref(),
+            &call_id_owned,
+            log_payload.as_ref(),
+            Duration::ZERO,
+            /*success*/ false,
+            &message,
+            &metric_tags,
+            mcp_server_ref,
+            mcp_server_origin_ref,
+        );
+        let err = FunctionCallError::RespondToModel(message);
+        dispatch_trace.record_failed(&err);
+        return Err(err);
+    }
+};
+
+if !handler.matches_kind(&invocation.payload) {
+    let message = format!("tool {tool_name} invoked with incompatible payload");
+    otel.tool_result_with_tags(
+        tool_name_flat.as_ref(),
+        &call_id_owned,
+        log_payload.as_ref(),
+        Duration::ZERO,
+        /*success*/ false,
+        &message,
+        &metric_tags,
+        mcp_server_ref,
+        mcp_server_origin_ref,
+    );
+    let err = FunctionCallError::Fatal(message);
+    dispatch_trace.record_failed(&err);
+    return Err(err);
+}
+```
+
+Those two branches have different semantics. An unsupported call is turned into
+a model-facing failure when possible; an incompatible payload is fatal because
+it means the routing layer and handler boundary disagree about the runtime
+contract.
+
+The tests in
+[`tool_dispatch_trace_tests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace_tests.rs#L131-L207)
+also show that both unsupported and incompatible calls are recorded as failed
+dispatch traces. Failure is still an observable runtime fact.
+
+## 7. Dispatch Is Supervised Work, Not a Switch Statement
+
+Once the handler and payload kind match, dispatch still has to supervise the
+work. The registry handles pre-tool hooks, mutating-tool gates, telemetry,
+post-tool hooks, goal accounting, and trace completion. The parallel runtime
+handles cancellation and read/write locking.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-dispatch-runtime-569ff6a1.webp" alt="Tool dispatch runtime using parallel read locks, serialized write locks, cancellation, pre and post hooks, telemetry, model output, and runtime events" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Dispatch is supervised work: parallelism, cancellation, hooks, telemetry, and output shaping all sit around the handler call.</figcaption>
+</figure>
+
+The registry first runs optional pre-tool hooks. If a hook returns a blocking
+message, the call fails before handler execution:
+
+```rust
+if let Some(pre_tool_use_payload) = handler.pre_tool_use_payload(&invocation)
+    && let Some(message) = run_pre_tool_use_hooks(
+        &invocation.session,
+        &invocation.turn,
+        invocation.call_id.clone(),
+        &pre_tool_use_payload.tool_name,
+        &pre_tool_use_payload.tool_input,
+    )
+    .await
+{
+    let err = FunctionCallError::RespondToModel(message);
+    dispatch_trace.record_failed(&err);
+    return Err(err);
+}
+```
+
+Then it executes the handler inside telemetry logging. Mutating tools wait on a
+turn-level gate before running:
+
+```rust
+let is_mutating = handler.is_mutating(&invocation).await;
+let response_cell = tokio::sync::Mutex::new(None);
+let invocation_for_tool = invocation.clone();
+
+let result = otel
+    .log_tool_result_with_tags(
+        tool_name_flat.as_ref(),
+        &call_id_owned,
+        log_payload.as_ref(),
+        &metric_tags,
+        mcp_server_ref,
+        mcp_server_origin_ref,
+        || {
+            let handler = handler.clone();
+            let response_cell = &response_cell;
+            async move {
+                if is_mutating {
+                    invocation_for_tool.turn.tool_call_gate.wait_ready().await;
+                }
+                match handler.handle_any(invocation_for_tool).await {
+                    Ok(result) => {
+                        let preview = result.result.log_preview();
+                        let success = result.result.success_for_logging();
+                        let mut guard = response_cell.lock().await;
+                        *guard = Some(result);
+                        Ok((preview, success))
+                    }
+                    Err(err) => Err(err),
+                }
+            }
+        },
+    )
+    .await;
+```
+
+After a successful handler result,
+[`post-tool hooks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L435-L461)
+may add context or replace the stored response body before it is converted into
+a model or code-mode response item. That hook path is not cosmetic: it means
+tool output is still a runtime-owned value that can be shaped before the next
+consumer sees it.
+
+Finally, the dispatch trace is completed or failed:
+
+```rust
+match result {
+    Ok(_) => {
+        let mut guard = response_cell.lock().await;
+        let result = guard.take().ok_or_else(|| {
+            FunctionCallError::Fatal("tool produced no output".to_string())
+        })?;
+        dispatch_trace.record_completed(
+            &invocation,
+            &result.call_id,
+            &result.payload,
+            result.result.as_ref(),
+        );
+        Ok(result)
+    }
+    Err(err) => {
+        dispatch_trace.record_failed(&err);
+        Err(err)
+    }
+}
+```
+
+### 7.1 Parallelism Uses Runtime Locks
+
+Parallelism is evaluated before dispatch. In
+[`ToolCallRuntime`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L27-L49),
+each runtime owns an `RwLock<()>` named `parallel_execution`. The
+[`handle_tool_call_with_source`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L82-L142)
+path asks the router whether the call supports parallel execution, then uses a
+read lock for parallel-safe calls and a write lock for serialized calls.
+
+```rust
+let supports_parallel = self.router.tool_supports_parallel(&call);
+let lock = Arc::clone(&self.parallel_execution);
+
+let handle: AbortOnDropHandle<Result<AnyToolResult, FunctionCallError>> =
+    AbortOnDropHandle::new(tokio::spawn(async move {
+        tokio::select! {
+            _ = cancellation_token.cancelled() => {
+                let secs = started.elapsed().as_secs_f32().max(0.1);
+                dispatch_span.record("aborted", true);
+                Ok(Self::aborted_response(&call, secs))
+            },
+            res = async {
+                let _guard = if supports_parallel {
+                    Either::Left(lock.read().await)
+                } else {
+                    Either::Right(lock.write().await)
+                };
+
+                router
+                    .dispatch_tool_call_with_code_mode_result(
+                        session,
+                        turn,
+                        invocation_cancellation_token,
+                        tracker,
+                        call.clone(),
+                        source,
+                    )
+                    .instrument(dispatch_span.clone())
+                    .await
+            } => res,
+        }
+    }));
+```
+
+This is not about trusting the model to decide concurrency. The model may emit
+parallel calls. Codex decides which calls can actually share a read lock.
+
+The router's parallel decision has two branches. For non-MCP tools, it checks
+configured specs that explicitly support parallel calls. For MCP, it checks the
+payload's server name against `parallel_mcp_server_names`:
+
+```rust
+pub fn tool_supports_parallel(&self, call: &ToolCall) -> bool {
+    match &call.payload {
+        ToolPayload::Mcp { server, .. } => self.parallel_mcp_server_names.contains(server),
+        _ => self.configured_tool_supports_parallel(&call.tool_name),
+    }
+}
+```
+
+The test
+[`mcp_parallel_support_uses_exact_payload_server`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router_tests.rs#L104-L139)
+captures the reason: similarly named MCP tools from different servers must not
+inherit each other's concurrency contract.
+
+### 7.2 Output Has Multiple Audiences
+
+Tool output is not just a string. The [`ToolOutput`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L92-L112)
+trait asks each output type to provide a telemetry preview, a success signal, a
+model-facing `ResponseInputItem`, optional post-tool hook data, and a code-mode
+result.
+
+```rust
+pub trait ToolOutput: Send {
+    fn log_preview(&self) -> String;
+
+    fn success_for_logging(&self) -> bool;
+
+    fn to_response_item(&self, call_id: &str, payload: &ToolPayload) -> ResponseInputItem;
+
+    fn post_tool_use_response(&self, _call_id: &str, _payload: &ToolPayload) -> Option<JsonValue> {
+        None
+    }
+
+    fn code_mode_result(&self, payload: &ToolPayload) -> JsonValue {
+        response_input_to_code_mode_result(self.to_response_item("", payload))
+    }
+}
+```
+
+The same handler result can therefore satisfy different consumers:
+
+| Consumer | Source mechanism |
+| --- | --- |
+| The next model request | `to_response_item` produces a `ResponseInputItem`. |
+| Telemetry | `log_preview` and `success_for_logging` produce bounded logging data. |
+| Hooks | `post_tool_use_response` exposes stable hook-facing data when the handler opts in. |
+| Code mode | `code_mode_result` can return a JS/runtime-friendly value. |
+| Rollout trace | `ToolDispatchTrace` stores invocation and result payloads for replay. |
+
+`ToolSearchOutput` is a compact example. Its
+[`to_response_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L237-L252)
+does not pretend to be a normal function output. It returns
+`ResponseInputItem::ToolSearchOutput` with `execution: "client"` and a list of
+loadable tool specs.
+
+```rust
+fn to_response_item(&self, call_id: &str, _payload: &ToolPayload) -> ResponseInputItem {
+    ResponseInputItem::ToolSearchOutput {
+        call_id: call_id.to_string(),
+        status: "completed".to_string(),
+        execution: "client".to_string(),
+        tools: self
+            .tools
+            .iter()
+            .map(|tool| {
+                serde_json::to_value(tool).unwrap_or_else(|err| {
+                    JsonValue::String(format!("failed to serialize tool_search output: {err}"))
+                })
+            })
+            .collect(),
+    }
+}
+```
+
+That shape matters because the model is not the only observer. The runtime can
+also emit events, log telemetry, feed post-tool hooks, and preserve trace
+evidence.
+
+## 8. Dispatch Trace Makes Tool Calls Replayable
+
+The dispatch trace adapter is where this execution path becomes replay evidence.
+The registry starts a
+[`ToolDispatchTrace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace.rs#L19-L31)
+before early returns, so unsupported or incompatible calls still receive trace
+end events:
+
+```rust
+pub(crate) struct ToolDispatchTrace {
+    context: ToolDispatchTraceContext,
+}
+
+impl ToolDispatchTrace {
+    pub(crate) fn start(invocation: &ToolInvocation) -> Self {
+        let context = invocation
+            .session
+            .services
+            .rollout_thread_trace
+            .start_tool_dispatch_trace(|| tool_dispatch_invocation(invocation));
+        Self { context }
+    }
+}
+```
+
+The invocation payload records thread id, turn id, tool-call id, tool name,
+namespace, requester, and the typed payload:
+
+```rust
+fn tool_dispatch_invocation(invocation: &ToolInvocation) -> Option<ToolDispatchInvocation> {
+    let requester = match &invocation.source {
+        ToolCallSource::Direct => ToolDispatchRequester::Model {
+            model_visible_call_id: invocation.call_id.clone(),
+        },
+        ToolCallSource::CodeMode {
+            cell_id,
+            runtime_tool_call_id,
+        } => ToolDispatchRequester::CodeCell {
+            runtime_cell_id: cell_id.clone(),
+            runtime_tool_call_id: runtime_tool_call_id.clone(),
+        },
+    };
+
+    Some(ToolDispatchInvocation {
+        thread_id: invocation.session.conversation_id.to_string(),
+        codex_turn_id: invocation.turn.sub_id.clone(),
+        tool_call_id: invocation.call_id.clone(),
+        tool_name: invocation.tool_name.name.clone(),
+        tool_namespace: invocation.tool_name.namespace.clone(),
+        requester,
+        payload: tool_dispatch_payload(&invocation.payload),
+    })
+}
+```
+
+The source-visible contract is therefore stronger than "a tool returned text."
+It is "a specific requester asked for a named tool with a typed payload; a
+handler path completed or failed; a response payload was recorded for the
+appropriate consumer." That is the evidence later replay and debugging can
+consume.
+
+## 9. Common Misreadings
+
+| Misreading | Correction |
+| --- | --- |
+| "The model owns tools because it emits tool calls." | The model emits syntax. The runtime owns handler lookup, payload validation, policy, hooks, cancellation, and output shaping. |
+| "The request tool list is the registry." | `model_visible_specs` is filtered from configured specs. The registry can still contain handlers that are not exposed directly. |
+| "A namespaced name is enough to route MCP." | MCP routing depends on canonical tool identity and payload provenance, not just a string that looks namespaced. |
+| "Parallel tool calls are safe if the provider supports them." | Codex still checks handler/server concurrency support and uses read/write locks around dispatch. |
+| "Failure means nothing happened." | Unsupported, incompatible, aborted, and hook-blocked calls still create structured model responses or trace facts. |
+| "Tool output is one string." | Output is shaped for model continuation, telemetry, hooks, code-mode callers, and rollout traces. |
+
+## 10. Apply This
+
+1. **Separate syntax from authority.** Model-visible schemas describe call
+   shape. Runtime handlers own execution.
+2. **Plan from all capability sources before exposure.** Config, feature flags,
+   MCP tools, deferred tools, dynamic tools, hosted tools, and unavailable
+   placeholders all affect the final plan; hidden tools still need search
+   metadata and handlers when they are meant to be discovered later.
+3. **Normalize before dispatch.** Convert provider response items into a typed
+   `ToolCall`, then reject calls whose payload kind does not match the handler
+   kind.
+4. **Make parallelism a runtime decision.** Let explicit handler/server
+   contracts choose read-lock concurrency; serialize everything else.
+5. **Treat output as multi-audience.** A result must satisfy the model,
+   code-mode callers, hooks, telemetry, and replay without pretending those
+   audiences are the same.
+
+Chapter 10 follows the most consequential handler family: shell and filesystem
+execution. There the abstract boundary becomes concrete process supervision:
+command parsing, approval, sandbox selection, `exec-server`, ordered output, and
+filesystem operations.
 
 <div class="source-equivalence">
 
@@ -147,10 +1022,25 @@ Chapter 10 follows the most consequential handler family: shell and filesystem e
 
 | Concept | Source anchor |
 | --- | --- |
-| Tool spec planner | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69) |
-| Tool router | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38) |
-| Tool registry | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L220) |
-| Tool orchestrator | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
-| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L28) |
+| Tool spec enum | [`codex-rs/tools/src/tool_spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L17-L52) |
+| Configured tool spec | [`codex-rs/tools/src/tool_spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L79-L88) |
+| Public planning entry | [`codex-rs/core/src/tools/spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L66-L73) |
+| Registry builder | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69-L74) |
+| Deferred tool search | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L223-L248) |
+| Deferred MCP handlers | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L425-L435) |
+| Unavailable placeholders | [`codex-rs/core/src/tools/spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L139-L165) |
+| Router state | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38-L42) |
+| Deferred dynamic filtering | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L299-L330) |
+| Tool call normalization | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L174-L245) |
+| Payload enum | [`codex-rs/core/src/tools/context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L59-L78) |
+| Handler trait | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L38-L96) |
+| Registry dispatch | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L263-L353) |
+| Post-tool hook shaping | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L435-L461) |
+| Parallel runtime | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L82-L142) |
+| Output trait | [`codex-rs/core/src/tools/context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L92-L112) |
+| Tool search output | [`codex-rs/core/src/tools/context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L237-L252) |
+| Dispatch trace adapter | [`codex-rs/core/src/tools/tool_dispatch_trace.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace.rs#L19-L110) |
+| Router tests | [`codex-rs/core/src/tools/router_tests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router_tests.rs#L104-L198) |
+| Dispatch trace tests | [`codex-rs/core/src/tools/tool_dispatch_trace_tests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace_tests.rs#L49-L207) |
 
 </div>

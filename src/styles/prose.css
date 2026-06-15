@@ -89,6 +89,32 @@
   font-style: italic;
 }
 
+.chapter-prose figure {
+  max-width: 100%;
+  margin: 2rem 0 2.5rem;
+}
+
+.chapter-prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+.chapter-prose figure > img {
+  display: block;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: 0.5rem;
+  background: #fffaf0;
+  box-shadow: 0 1px 2px rgb(36 27 8 / 4%), 0 16px 44px rgb(36 27 8 / 9%);
+}
+
+.chapter-prose figcaption {
+  margin-top: 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
 .chapter-prose table {
   display: block;
   width: 100%;
@@ -893,6 +919,12 @@ html.dark .copy-button {
 
 html.dark .mermaid-scroll {
   background: rgb(30 30 28 / 60%);
+}
+
+html.dark .chapter-prose figure > img {
+  border-color: #333;
+  background: #fffaf0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 35%), 0 16px 44px rgb(0 0 0 / 30%);
 }
 
 @media (max-width: 767px) {

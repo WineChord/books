@@ -1,122 +1,946 @@
-
 # 第 9 章：工具规格、路由与分发
 
-> **阅读契约：** 用本章跟踪工具如何从 model-visible spec 到 runtime handler。跟住 routing、registry lookup、orchestration，并记住 spec 从来不是执行权限。
+> **阅读契约：** 用本章跟踪一次 tool request 如何从模型可见的
+> schema 走到真正能执行的 handler。请盯住三个 owner：planner 负责暴露能力，
+> router 负责规范化模型 item，registry 负责判断 runtime handler 是否能执行这类
+> payload。读完后，你应该能解释：为什么一个已经暴露给模型的 tool schema，仍然可能在产生副作用前失败。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-routing-dispatch-map.webp" alt="工具路由与分发图：分开模型可见 spec、registry handler、router validation、orchestration、policy 和 result shaping" loading="eager" decoding="async" />
-  <figcaption>模型可见的 tool spec 只是第一道门；routing、registry lookup、orchestration 和 result shaping 决定真正的副作用。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-routing-dispatch-map.webp" alt="工具路由与分发图：分开模型可见 spec、registry handler、router validation、orchestration、policy 和 result shaping" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>模型可见的 tool spec 只是第一道门；routing、registry lookup、orchestration、policy 和 result shaping 才决定真正的副作用。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章解释的是公开 Codex 仓库在 commit
+[`569ff6a1`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)
+下的源码。type、enum variant、test、function 行为只有在链接到这个固定快照时，才视为
+**verified source**。关于边界为什么重要的判断，是从这些可见源码形状得出的
+**surrounding contract inference**。本章不推断 OpenAI 私有服务实现、隐藏模型策略或托管后端调度。
 
-第 8 章说明了 Codex 为什么先记录运行时事实，再解释这些事实。本章从观察进入行动：当模型请求一个工具时，Codex 必须判断这个请求是否对应真实能力，由哪个运行时负责，是否允许并行，最终又该把什么结果返回给模型和可重放的事件流。
+Codex 要记录 tool result 之前，必须先判断这次请求的工具到底能不能运行。本章从观察进入行动。模型可以产出
+function call、custom tool call、hosted-tool request、local shell action 或 tool-search
+request，但这个 item 本身不是授权。它只是语法，必须和当前 turn 的 capability plan 匹配。
 
-理解工具系统，最稳的方式是把它看成能力系统。工具规格描述模型可以怎样调用；handler 才是能够执行工作的运行时权威；router 在一个具体 turn 中把二者连接起来。这三个概念不能混在一起。模型可见 schema 和执行权限如果变成同一个对象，每新增一个工具，就会同时制造安全例外、UI 例外和重放例外。
+核心不变量可以压缩成一句话：
 
+> **Tool spec 告诉模型应该产出什么形状；handler 证明 runtime 能执行什么；registry
+> 和 router 防止这两件事混成一件事。**
 
-## 两个平面
+这个不变量很容易被 UI 体验掩盖。模型请求一个工具，然后工具看起来运行了。但源码里二者之间有多道门：
 
-Codex 把工具元数据和执行行为放在不同平面。
+1. Planner 根据配置、feature flag、MCP 状态、dynamic tools、hosted tools 和
+   discoverable tools 构造 configured specs 与 handler registrations。
+2. Router 过滤出本 turn 的 model-visible specs。
+3. Router 把 provider response items 解析成规范化的 `ToolCall`。
+4. Registry 用 `ToolName` 查找 handler，并确认 payload kind 和 handler kind 匹配。
+5. Dispatch 用 cancellation、parallelism、hooks、telemetry、trace records 和 response
+   shaping 包住真正的 handler 执行。
 
-| 平面 | 要回答的问题 | 典型数据 |
-| --- | --- | --- |
-| 规格 | 模型能看见什么？ | function schema、namespace tool、freeform patch tool、hosted tool |
-| 注册 | 哪个运行时能处理调用？ | shell handler、patch handler、MCP handler、dynamic-tool handler |
-| 路由 | 当前调用属于哪个 handler？ | tool name、namespace、call id、payload kind |
-| 分发 | 工作如何被监督？ | cancellation、hooks、approval、sandboxing、event emission |
-| 输出塑形 | 什么会回到 turn？ | function output、custom tool output、failed-call response、events |
+如果其中一层失败，Codex 不应该“猜一个最接近的工具试试”。正确结果要么是结构化失败，要么是在 runtime
+contract 被破坏时让 turn 以 fatal error 停止。
 
-这个分离体现在生命周期中。Session 会根据配置、feature flag、模型能力、MCP 启动状态、discoverable tools、dynamic tools 和 hosted tool 可用性构造工具 registry。Registry 产出两类结果：供内部查找的 configured specs，以及发给模型请求的 model-visible specs。
+## 一、Tool Spec 是模型语法，不是运行时权限
 
-这张图就是本章主线：模型拿到的是规格，不是 handler；运行时保留的是 handler，不只是 schema；router 是一个 turn 内部连接二者的桥。
+`codex-rs/tools` crate 定义可序列化的工具词汇。在固定源码里，
+[`ToolSpec`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L17-L52)
+包含多种公开形状：
 
-### 规格不是执行授权
-
-`ToolSpec` 是模型语法合同。它可以描述普通 function tool、namespace tool、hosted search 或 image generation、local shell-like tool，以及 `apply_patch` 这种 freeform tool。它还可以携带兼容性信息，让不同模型表面理解同一项能力。
-
-但规格并不等于允许执行。规格说的是“模型可以生成这种调用形状”；handler 说的是“这个运行时知道如何执行这种调用”；policy 说的是“这次执行被允许、被拒绝，还是必须询问”。这三句话不是同一个判断。
-
-这种区别在运行时发现的工具上最重要：
-
-| 工具族 | 为什么不能硬编码 |
-| --- | --- |
-| MCP tools | 它们来自配置或 hosted server，需要名称清洗、来源记录和审批元数据。 |
-| Dynamic tools | 它们由客户端提供，可能直接暴露，也可能延迟到模型搜索后再加载。 |
-| Unavailable tools | 模型可能引用之前存在的工具；运行时应返回有用的 unsupported 结果。 |
-| Hosted tools | Provider 可能执行其中一部分，但 Codex 仍负责 session 里的暴露和事件合同。 |
-| Code-mode tools | 可见工具面可以被嵌套或增强，而不改变底层 handler 边界。 |
-
-所以 Codex 构造的是 plan，而不是固定列表。Plan 可以直接暴露某个工具，也可以把它放到 tool search 后面；可以合并 namespace tools，可以为某个模式增强描述，也可以注册 handler 但不把这个 handler 的 spec 作为主要模型表面。
-
-### 路由一次工具调用
-
-模型返回的是 response items。其中有些是消息，有些是工具调用。工具调用在分发前要先被解析成规范化的运行时形态：工具名、call id 和 payload。Payload kind 很重要，因为普通 function call、MCP call、freeform custom call 和 search-tool call 即使名字相似，也不能互换。
-
-Router 主要做四件事：
-
-1. 解析工具名，包括 namespace identity。
-2. 在执行前拒绝不匹配的 payload kind。
-3. 判断这个工具是否能和其他调用并行运行。
-4. 为能展示参数流式进度的工具创建 argument diff consumer。
-
-随后 runtime 用取消和输出塑形包住分发过程。用户中断 turn 时，工具结果不能凭空消失，而应变成模型可见的中断结果。Handler 发生可恢复失败时，模型收到失败的工具结果；发生 fatal 失败时，turn 可以以运行时错误停止。
-
-```text
-// Pseudocode - simplified for clarity.
-  plan = build_tool_plan(configuration, model_capabilities, extensions)
-  specs = plan.visible_specs_for_model()
-  registry = plan.runtime_handlers()
-
-  for each response_item from model:
-      if response_item is not a tool call:
-          continue
-
-      call = normalize_tool_call(response_item)
-      handler = registry.find(call.name)
-
-      if handler is missing or payload_kind_mismatches(call, handler):
-          return failed_tool_result(call)
-
-      run_with_cancellation:
-          emit_pre_tool_hooks_when_applicable(call)
-          result = handler.handle(call)
-          emit_post_tool_hooks_when_applicable(call, result)
-          persist_events_and_output(call, result)
+```rust
+pub enum ToolSpec {
+    #[serde(rename = "function")]
+    Function(ResponsesApiTool),
+    #[serde(rename = "namespace")]
+    Namespace(ResponsesApiNamespace),
+    #[serde(rename = "tool_search")]
+    ToolSearch {
+        execution: String,
+        description: String,
+        parameters: JsonSchema,
+    },
+    #[serde(rename = "local_shell")]
+    LocalShell {},
+    #[serde(rename = "image_generation")]
+    ImageGeneration { output_format: String },
+    #[serde(rename = "web_search")]
+    WebSearch { /* fields omitted */ },
+    #[serde(rename = "custom")]
+    Freeform(FreeformTool),
+}
 ```
 
-这段是伪代码，不对应源码实现。它强调的是顺序：规范化、校验、监督、执行、塑形输出、持久化。
+这个 enum 覆盖面很广：普通 function calling、namespace tools、deferred tool search、local
+shell 风格工具、provider-hosted image/web search，以及 patch 这类 freeform custom tool。
+但它仍然只是 request shape。下一个结构体把区别讲得更清楚：
+[`ConfiguredToolSpec`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L79-L88)
+在 spec 上增加了 parallelism flag。
 
-### 并行也是能力
+```rust
+pub struct ConfiguredToolSpec {
+    pub spec: ToolSpec,
+    pub supports_parallel_tool_calls: bool,
+}
+```
 
-模型能产生 parallel tool calls，并不表示这些调用天然安全。有些工具是只读的，有些会修改 workspace，有些依赖单个进程会话，有些 MCP server 自己声明并发容忍度。因此 Codex 把并行能力当作工具配置的一部分。
+即使这样，它也还不是执行权限。它只说明：“如果这个工具出现在 configured set 中，这就是模型侧 schema，
+以及它的 parallel-call contract。”真正的运行时权限在按 `ToolName` 注册的 handler 里。
+这个拆分避免三类常见错误：
 
-普通工具可以在 configured spec 中说明是否支持并行。MCP 的并行能力可以按 server 判断，因为名字相似的工具可能来自不同 server，拥有不同并发合同。没有显式支持时，runtime 会串行分发。
-
-这不仅是正确性问题，也是可归因性问题。两个 mutating call 如果没有清晰并发合同就交错执行，rollout 也许仍能记录事件，但用户未必能判断哪个调用造成了哪个改变。
-
-### 输出服务两个读者
-
-每个工具结果都有两个读者：
-
-| 读者 | 需要什么 |
+| 误读 | 为什么会错 |
 | --- | --- |
-| 模型 | 简洁的 response item，用来决定下一步 |
-| Runtime clients | 结构化事件、生命周期状态、进度更新和可重放事实 |
+| 把 schema 当权限 | 模型可见 JSON schema 不说明 handler 是否存在、policy 是否允许、当前 turn 是否能运行。 |
+| 把名字当 provenance | `calendar.create_event`、namespaced MCP tool 和 plain local function 可能名字相近，但 owner 不同。 |
+| 把并行当模型特性 | 模型可以产出多个调用，但 Codex 必须判断具体 handler 或 server 是否能承受并发。 |
 
-Shell command 可能把输出流式发给 UI，最后再给模型一个摘要。Patch 可能在参数流式形成时发进度，随后请求审批，再返回最终应用结果。MCP tool 可能先经历审批或 elicitation，才能产生 provider 的结果。流程不同，但 runtime 会把它们归一到同一个 dispatch contract。
+后面的所有机制，都是为了防止这些误读变成真实副作用。
 
-这就是为什么工具执行不是按工具名写一个 switch。Switch 可以调用函数，但表达不了模型暴露、运行时权限、参数流式进度、approval hooks、cancellation、parallel contracts、telemetry 和 replay 这些边界。
+## 二、Planner 会产出两类结果
 
-## 应用到实践
+Planner 的任务不是拼一个扁平工具列表。它会产出两类相互关联但不能混同的结果：
 
-1. **区分展示和授权。** Schema 告诉模型能怎么调用，handler 才证明什么能运行。
-2. **构造 plan，而不是列表。** 在暴露工具前合并配置、模型能力、dynamic tools、hosted tools 和 MCP 状态。
-3. **先规范化再分发。** 把 provider response items 转成统一内部调用形态，再进入 policy 或执行。
-4. **把并行视为显式能力。** 默认串行，只有 handler 或 server 声明安全时才并行。
-5. **为两个读者塑形输出。** 给模型简洁结果，同时为用户和 replay 发结构化事件。
+1. **Configured specs**，供 router 检查。
+2. **Runtime handlers**，供 registry 分发。
 
-第 10 章会进入最重要的 handler 家族：shell 与 filesystem 执行。它会展示 command parsing、exec policy、`exec-server` 和 environment selection 如何把工具调用变成受监督的进程。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-spec-planner-569ff6a1.webp" alt="Tool spec planner 接收 config、features、MCP、dynamic 和 hosted 输入，并把 model specs 与 registry handlers 分成两条输出" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Planner 把 schema exposure 和 runtime ownership 放在不同通道：model specs 进入请求，handlers 留在 registry。</figcaption>
+</figure>
+
+这层规划的公开入口是
+[`build_specs_with_discoverable_tools`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L66-L73)。
+它接收的输入正好是 planner 需要考虑的所有可见维度：tool configuration、MCP tools、deferred
+MCP tools、模型已经尝试调用但当前不可用的工具、discoverable tools，以及 dynamic tools。
+
+```rust
+pub(crate) fn build_specs_with_discoverable_tools(
+    config: &ToolsConfig,
+    mcp_tools: Option<Vec<ToolInfo>>,
+    deferred_mcp_tools: Option<Vec<ToolInfo>>,
+    unavailable_called_tools: Vec<ToolName>,
+    discoverable_tools: Option<Vec<DiscoverableTool>>,
+    dynamic_tools: &[DynamicToolSpec],
+) -> ToolRegistryBuilder {
+    /* planning body omitted */
+}
+```
+
+在调用更底层的 registry builder 前，函数先做几件关键映射。MCP tools 被转成 plan inputs，
+保留 canonical name 和 namespace description；deferred MCP tools 被转成 tool search 的 source
+records；deferred dynamic tools 被收集起来，让它们可以被发现，但不一定直接出现在模型初始工具列表里。
+
+```rust
+let deferred_mcp_tool_sources = deferred_mcp_tools.as_ref().map(|tools| {
+    tools
+        .iter()
+        .map(|tool| ToolRegistryBuildDeferredTool {
+            name: tool.canonical_tool_name(),
+            server_name: tool.server_name.as_str(),
+            connector_name: tool.connector_name.as_deref(),
+            description: tool.namespace_description.as_deref(),
+        })
+        .collect::<Vec<_>>()
+});
+
+let deferred_dynamic_tools = dynamic_tools
+    .iter()
+    .filter(|tool| tool.defer_loading && (config.namespace_tools || tool.namespace.is_none()))
+    .cloned()
+    .collect::<Vec<_>>();
+```
+
+这已经是一条架构结论：deferred tool 并不是“不存在”。它可以有 handler、search metadata 和
+provenance，只是暂时不进入 immediate model-visible spec list。这样 Codex 可以避免把所有
+dynamic 或 external schema 一次性塞给模型，同时仍然保留后续解析能力。Deferred MCP tools 把这件事说得更直：
+planner 后面还会为那些尚未直接注册的 deferred tools
+[`注册 McpHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L425-L435)，
+这样 search 发现之后仍然能回到 runtime handler。
+
+更底层的
+[`build_tool_registry_builder`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69-L74)
+会根据配置注册具体工具族。Shell exposure 受 environment mode 和 shell type 约束：
+
+```rust
+if config.environment_mode.has_environment() {
+    let include_environment_id =
+        matches!(config.environment_mode, ToolEnvironmentMode::Multiple);
+    match &config.shell_type {
+        ConfigShellToolType::Default => {
+            builder.register_handler(Arc::new(ShellHandler::new(ShellToolOptions {
+                exec_permission_approvals_enabled,
+            })));
+        }
+        ConfigShellToolType::UnifiedExec => {
+            builder.register_handler(Arc::new(ExecCommandHandler::new(
+                ExecCommandHandlerOptions {
+                    allow_login_shell: config.allow_login_shell,
+                    exec_permission_approvals_enabled,
+                    include_environment_id,
+                },
+            )));
+            builder.register_handler(Arc::new(WriteStdinHandler));
+        }
+        /* other shell modes omitted */
+    }
+}
+```
+
+同一个 builder 还会根据配置和 feature 状态添加 plan、goal、request-input、permission、patch、
+test、hosted web search、image generation、view-image、multi-agent、agent-job、MCP 和
+dynamic-tool handlers。最终产物不是一个全局工具面，而是当前 turn 的 capability set。
+
+### 2.1 Deferred tool search 是规划路径，不是补丁
+
+当 tool search 开启，并且 deferred MCP source list 存在，或确实有 deferred dynamic tools 时，builder 会注册
+[`ToolSearchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L223-L248)：
+
+```rust
+if config.search_tool
+    && (deferred_mcp_tools_for_search.is_some() || !deferred_dynamic_tools.is_empty())
+{
+    let mut search_source_infos = deferred_mcp_tools_for_search
+        .map(|deferred_mcp_tools| {
+            collect_tool_search_source_infos(deferred_mcp_tools.iter().map(|tool| {
+                ToolSearchSource {
+                    server_name: tool.server_name,
+                    connector_name: tool.connector_name,
+                    description: tool.description,
+                }
+            }))
+        })
+        .unwrap_or_default();
+
+    if !deferred_dynamic_tools.is_empty() {
+        search_source_infos.push(ToolSearchSourceInfo {
+            name: "Dynamic tools".to_string(),
+            description: Some("Tools provided by the current Codex thread.".to_string()),
+        });
+    }
+
+    builder.register_handler(Arc::new(ToolSearchHandler::new(
+        params.tool_search_entries.to_vec(),
+        search_source_infos,
+    )));
+}
+```
+
+这里保护的不变量很实际：隐藏能力可以通过显式 search action 被发现。模型不需要在初始工具列表里背上每一个
+dynamic 或 external schema，runtime 也不会在模型选中某个能力后丢掉原始来源信息。
+
+### 2.2 Unavailable tools 也要有受控结果
+
+Unavailable tool 是相反的边界情况。模型可能引用之前存在、在另一个 session 中存在、或在不同 auth 状态下发现过的工具。
+Builder 会根据名字是否已经存在，插入 unavailable-tool placeholder 或无 spec 的 handler。在
+[`spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L139-L165)
+中，placeholder description 明确说明调用它会返回 error。
+
+```rust
+for unavailable_tool in unavailable_called_tools {
+    let tool_name = flat_tool_name(&unavailable_tool).into_owned();
+    if existing_spec_names.insert(tool_name.clone()) {
+        let spec = codex_tools::ToolSpec::Function(ResponsesApiTool {
+            name: tool_name.clone(),
+            description: unavailable_tool_message(
+                &tool_name,
+                "Calling this placeholder returns an error explaining that the tool is unavailable.",
+            ),
+            strict: false,
+            parameters: JsonSchema::object(
+                Default::default(),
+                /*required*/ None,
+                Some(AdditionalProperties::Boolean(false)),
+            ),
+            output_schema: None,
+            defer_loading: None,
+        });
+        builder.register_handler(Arc::new(UnavailableToolHandler::new(
+            unavailable_tool,
+            spec,
+        )));
+    } else {
+        builder.register_handler(Arc::new(UnavailableToolHandler::without_spec(
+            unavailable_tool,
+        )));
+    }
+}
+```
+
+这比静默丢弃更好。模型得到结构化原因，用户也能看到可审计的失败，而不是一个凭空消失的工具调用。
+
+## 三、模型友好的名字背后仍要保留 provenance
+
+外部和客户端拥有的工具让命名问题变得复杂。Raw MCP tool name 未必适合作为 Responses API 的模型可见工具名。
+Dynamic tool 可能位于客户端提供的 namespace 下。Deferred tool 可能 registry 知道，但不在 immediate
+model list 里。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-provenance-deferred-569ff6a1.webp" alt="MCP 与 client tools 经过 canonical name、provenance、direct spec、deferred tool_search、unavailable placeholder 和 route-back handler lookup" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>External 和 deferred tools 必须保留 provenance：公开可调用名字只有在 runtime 能路由回原 server 或 client 时才有意义。</figcaption>
+</figure>
+
+在 planner 中，MCP tools 会按 namespace 排序，并通过
+[`mcp_tool_to_responses_api_tool`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L340-L383)
+转换。每个转换成功的工具，都会在 canonical tool name 下注册 `McpHandler`。
+
+```rust
+for (namespace, mut entries) in namespace_entries {
+    entries.sort_by_key(|tool| tool.name.name.clone());
+    let mut tools = Vec::new();
+    for tool in entries {
+        match mcp_tool_to_responses_api_tool(&tool.name, tool.tool) {
+            Ok(converted_tool) => {
+                tools.push(ResponsesApiNamespaceTool::Function(converted_tool));
+                builder.register_handler(Arc::new(McpHandler::new(tool.name)));
+            }
+            Err(error) => {
+                let tool_name = &tool.name;
+                tracing::error!(
+                    "Failed to convert `{tool_name}` MCP tool to OpenAI tool: {error:?}"
+                );
+            }
+        }
+    }
+
+    if config.namespace_tools && !tools.is_empty() {
+        builder.push_spec(
+            ToolSpec::Namespace(ResponsesApiNamespace {
+                name: namespace,
+                description,
+                tools,
+            }),
+            /*supports_parallel_tool_calls*/ false,
+        );
+    }
+}
+```
+
+重点不是“模型可见表示”和“route-back identity”完全相同。它们相关，但不是一回事。后续 response item
+必须根据 session state 解析，这样一个 MCP call 才会变成带 server、raw tool name 和 raw arguments
+的 payload。
+
+Dynamic tools 是另一族工具，但架构相似。每个成功转换的 dynamic tool，都会变成 loadable spec，并在
+namespaced 或 plain handler name 下注册 `DynamicToolHandler`：
+
+```rust
+let mut dynamic_tool_specs = Vec::new();
+for tool in params.dynamic_tools {
+    match dynamic_tool_to_loadable_tool_spec(tool) {
+        Ok(loadable_tool) => {
+            let handler_name = ToolName::new(tool.namespace.clone(), tool.name.clone());
+            dynamic_tool_specs.push(loadable_tool);
+            builder.register_handler(Arc::new(DynamicToolHandler::new(handler_name)));
+        }
+        Err(error) => {
+            tracing::error!(
+                "Failed to convert dynamic tool {:?} to OpenAI tool: {error:?}",
+                tool.name
+            );
+        }
+    }
+}
+```
+
+这不意味着 MCP 和 dynamic tools 是同一个东西。它们不是。真正共同的点是：两者都经过一个 planning boundary，
+这个边界会记录足够的身份信息，供后续 routing 使用。
+
+## 四、Router 过滤模型能看见什么
+
+Builder 返回 configured specs 和 registry 后，
+[`ToolRouter`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38-L42)
+会同时保留两者：
+
+```rust
+pub struct ToolRouter {
+    registry: ToolRegistry,
+    specs: Vec<ConfiguredToolSpec>,
+    model_visible_specs: Vec<ToolSpec>,
+    parallel_mcp_server_names: HashSet<String>,
+}
+```
+
+`ToolRouter::from_config` 会 build registry、计算 deferred dynamic tool names、过滤 model-visible
+list，并保存支持 parallel tool calls 的精确 MCP server 集合：
+
+```rust
+let (specs, registry) = builder.build();
+let deferred_dynamic_tools = dynamic_tools
+    .iter()
+    .filter(|tool| tool.defer_loading)
+    .map(|tool| ToolName::new(tool.namespace.clone(), tool.name.clone()))
+    .collect::<HashSet<_>>();
+let model_visible_specs = specs
+    .iter()
+    .filter_map(|configured_tool| {
+        if config.code_mode_only_enabled
+            && codex_code_mode::is_code_mode_nested_tool(configured_tool.name())
+        {
+            return None;
+        }
+
+        filter_deferred_dynamic_tool_spec(
+            configured_tool.spec.clone(),
+            &deferred_dynamic_tools,
+        )
+    })
+    .collect();
+```
+
+关键是：`model_visible_specs` 从 `specs` 派生，但不会替换 `specs`。Deferred dynamic tool 可以继续留在
+configured set 中，供 `find_spec` 和 routing 逻辑使用，同时从初始模型请求里隐藏。
+
+过滤函数本身也很直接：
+[`filter_deferred_dynamic_tool_spec`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L299-L330)
+会移除 deferred function tools，或剪掉 namespace 内部的 deferred members。如果 namespace 被剪空，它也会从
+model-visible list 中消失。
+
+```rust
+fn filter_deferred_dynamic_tool_spec(
+    spec: ToolSpec,
+    deferred_dynamic_tools: &HashSet<ToolName>,
+) -> Option<ToolSpec> {
+    if deferred_dynamic_tools.is_empty() {
+        return Some(spec);
+    }
+
+    match spec {
+        ToolSpec::Function(tool) => {
+            if deferred_dynamic_tools.contains(&ToolName::plain(tool.name.as_str())) {
+                None
+            } else {
+                Some(ToolSpec::Function(tool))
+            }
+        }
+        ToolSpec::Namespace(mut namespace) => {
+            let namespace_name = namespace.name.clone();
+            namespace.tools.retain(|tool| match tool {
+                ResponsesApiNamespaceTool::Function(tool) => !deferred_dynamic_tools.contains(
+                    &ToolName::namespaced(namespace_name.as_str(), tool.name.as_str()),
+                ),
+            });
+            if namespace.tools.is_empty() {
+                None
+            } else {
+                Some(ToolSpec::Namespace(namespace))
+            }
+        }
+        spec => Some(spec),
+    }
+}
+```
+
+测试
+[`model_visible_specs_filter_deferred_dynamic_tools`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router_tests.rs#L143-L198)
+固定了这个行为：同一个 namespace 下构造 hidden 和 visible 两个 dynamic tool，然后确认
+`router.specs()` 中两个都在，而 `router.model_visible_specs()` 只剩 visible 那一个。
+
+这正是大型 agent runtime 需要的边界。Visibility 是 turn surface；capability 是 runtime fact；
+search 是二者之间的发现路径。
+
+## 五、Response Item 会先变成 typed ToolCall
+
+模型响应回来之后，router 不再处理 specs，而是处理 response items。一个 response item 可能是普通消息、
+function call、tool search call、custom call、local shell call，或其他类型。Codex 只把工具调用类 item
+规范化成 [`ToolCall`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L31-L36)：
+
+```rust
+pub struct ToolCall {
+    pub tool_name: ToolName,
+    pub call_id: String,
+    pub payload: ToolPayload,
+}
+```
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-router-payload-gate-569ff6a1.webp" alt="Tool router 把 function、custom、local shell、tool_search 和 MCP response items 转成 payload kinds，再进入 handler matching" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Router 先把 provider response items 转成 payload kinds，registry 才能判断是否允许分发。</figcaption>
+</figure>
+
+Payload enum 是防止“只按名字分发”的第一道防线。
+[`ToolPayload`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L59-L78)
+把 function、tool search、custom、local shell 和 MCP calls 分开：
+
+```rust
+pub enum ToolPayload {
+    Function {
+        arguments: String,
+    },
+    ToolSearch {
+        arguments: SearchToolCallParams,
+    },
+    Custom {
+        input: String,
+    },
+    LocalShell {
+        params: ShellToolCallParams,
+    },
+    Mcp {
+        server: String,
+        tool: String,
+        raw_arguments: String,
+    },
+}
+```
+
+Router 的
+[`build_tool_call`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L174-L245)
+会把 response variants 映射到这个 payload vocabulary。Function-call 分支尤其重要：它先检查 tool name
+是否能解析到 MCP provenance。
+
+```rust
+ResponseItem::FunctionCall {
+    name,
+    namespace,
+    arguments,
+    call_id,
+    ..
+} => {
+    let tool_name = ToolName::new(namespace, name);
+    if let Some(tool_info) = session.resolve_mcp_tool_info(&tool_name).await {
+        Ok(Some(ToolCall {
+            tool_name: tool_info.canonical_tool_name(),
+            call_id,
+            payload: ToolPayload::Mcp {
+                server: tool_info.server_name,
+                tool: tool_info.tool.name.to_string(),
+                raw_arguments: arguments,
+            },
+        }))
+    } else {
+        Ok(Some(ToolCall {
+            tool_name,
+            call_id,
+            payload: ToolPayload::Function { arguments },
+        }))
+    }
+}
+```
+
+Tool search 也有特殊逻辑。只有当 `ToolSearchCall` 的 `execution == "client"` 且存在 `call_id` 时，
+它才会变成 client-side `ToolCall`。其他 tool-search items 在这个 router path 中会被忽略：
+
+```rust
+ResponseItem::ToolSearchCall {
+    call_id: Some(call_id),
+    execution,
+    arguments,
+    ..
+} if execution == "client" => {
+    let arguments: SearchToolCallParams =
+        serde_json::from_value(arguments).map_err(|err| {
+            FunctionCallError::RespondToModel(format!(
+                "failed to parse tool_search arguments: {err}"
+            ))
+        })?;
+    Ok(Some(ToolCall {
+        tool_name: ToolName::plain("tool_search"),
+        call_id,
+        payload: ToolPayload::ToolSearch { arguments },
+    }))
+}
+ResponseItem::ToolSearchCall { .. } => Ok(None),
+```
+
+Custom calls 和 local shell calls 也各自有 payload variants。原因很简单：freeform patch body 和 JSON
+function call 都可能是字符串，但它们不应该因为“都像字符串”就互换。
+
+## 六、Registry lookup 会拒绝缺失和 wrong-kind 调用
+
+Registry 拥有 runtime handler map。它不是“按名字调用函数”的 switch。下面这个节选来自
+[`ToolHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L38-L96)
+trait，展示了运行时边界：
+
+```rust
+pub trait ToolHandler: Send + Sync {
+    type Output: ToolOutput + 'static;
+
+    fn tool_name(&self) -> ToolName;
+
+    fn spec(&self) -> Option<ToolSpec> {
+        None
+    }
+
+    fn supports_parallel_tool_calls(&self) -> bool {
+        false
+    }
+
+    fn kind(&self) -> ToolKind;
+
+    fn matches_kind(&self, payload: &ToolPayload) -> bool {
+        matches!(
+            (self.kind(), payload),
+            (ToolKind::Function, ToolPayload::Function { .. })
+                | (ToolKind::Function, ToolPayload::ToolSearch { .. })
+                | (ToolKind::Mcp, ToolPayload::Mcp { .. })
+        )
+    }
+
+    /* mutation, hook, and streaming-diff methods omitted */
+
+    fn handle(
+        &self,
+        invocation: ToolInvocation,
+    ) -> impl std::future::Future<Output = Result<Self::Output, FunctionCallError>> + Send;
+}
+```
+
+`kind()` 和 `matches_kind()` 是安静但很关键的护栏。期望 MCP payload 的 handler 不该收到 custom
+payload；function handler 不该因为名字相近就收到 MCP server payload。`ToolSearch` 允许通过
+function-kind handling，因为它是 client-side runtime tool，但它仍有自己的 payload variant。
+
+核心分发路径从
+[`ToolRegistry::dispatch_any`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L263-L353)
+开始。它准备 telemetry tags，启动 dispatch trace，查 handler，并在真正执行前拒绝 missing 或
+incompatible calls：
+
+```rust
+let dispatch_trace = ToolDispatchTrace::start(&invocation);
+
+let handler = match self.handler(&tool_name) {
+    Some(handler) => handler,
+    None => {
+        let message = unsupported_tool_call_message(&invocation.payload, &tool_name);
+        otel.tool_result_with_tags(
+            tool_name_flat.as_ref(),
+            &call_id_owned,
+            log_payload.as_ref(),
+            Duration::ZERO,
+            /*success*/ false,
+            &message,
+            &metric_tags,
+            mcp_server_ref,
+            mcp_server_origin_ref,
+        );
+        let err = FunctionCallError::RespondToModel(message);
+        dispatch_trace.record_failed(&err);
+        return Err(err);
+    }
+};
+
+if !handler.matches_kind(&invocation.payload) {
+    let message = format!("tool {tool_name} invoked with incompatible payload");
+    otel.tool_result_with_tags(
+        tool_name_flat.as_ref(),
+        &call_id_owned,
+        log_payload.as_ref(),
+        Duration::ZERO,
+        /*success*/ false,
+        &message,
+        &metric_tags,
+        mcp_server_ref,
+        mcp_server_origin_ref,
+    );
+    let err = FunctionCallError::Fatal(message);
+    dispatch_trace.record_failed(&err);
+    return Err(err);
+}
+```
+
+这两个分支语义不同。Unsupported call 在可能时会变成 model-facing failure；incompatible payload
+是 fatal，因为这说明 routing layer 和 handler boundary 对 runtime contract 的理解已经不一致。
+
+[`tool_dispatch_trace_tests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace_tests.rs#L131-L207)
+里的测试还说明：unsupported 和 incompatible calls 都会被记录成 failed dispatch traces。失败本身也是可观测的运行事实。
+
+## 七、Dispatch 是受监督的工作，不是 switch statement
+
+一旦 handler 和 payload kind 匹配，dispatch 仍然要监督这项工作。Registry 负责 pre-tool hooks、
+mutating-tool gates、telemetry、post-tool hooks、goal accounting 和 trace completion。Parallel
+runtime 则负责 cancellation 和 read/write locking。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-dispatch-runtime-569ff6a1.webp" alt="Tool dispatch runtime 使用 parallel read locks、serialized write locks、cancellation、pre/post hooks、telemetry、model output 和 runtime events" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Dispatch 是受监督的工作：parallelism、cancellation、hooks、telemetry 和 output shaping 都围绕在 handler call 外层。</figcaption>
+</figure>
+
+Registry 会先运行可选的 pre-tool hooks。如果 hook 返回 blocking message，调用会在 handler 执行前失败：
+
+```rust
+if let Some(pre_tool_use_payload) = handler.pre_tool_use_payload(&invocation)
+    && let Some(message) = run_pre_tool_use_hooks(
+        &invocation.session,
+        &invocation.turn,
+        invocation.call_id.clone(),
+        &pre_tool_use_payload.tool_name,
+        &pre_tool_use_payload.tool_input,
+    )
+    .await
+{
+    let err = FunctionCallError::RespondToModel(message);
+    dispatch_trace.record_failed(&err);
+    return Err(err);
+}
+```
+
+随后 handler 在 telemetry logging 中执行。Mutating tools 在运行前还要等待 turn-level gate：
+
+```rust
+let is_mutating = handler.is_mutating(&invocation).await;
+let response_cell = tokio::sync::Mutex::new(None);
+let invocation_for_tool = invocation.clone();
+
+let result = otel
+    .log_tool_result_with_tags(
+        tool_name_flat.as_ref(),
+        &call_id_owned,
+        log_payload.as_ref(),
+        &metric_tags,
+        mcp_server_ref,
+        mcp_server_origin_ref,
+        || {
+            let handler = handler.clone();
+            let response_cell = &response_cell;
+            async move {
+                if is_mutating {
+                    invocation_for_tool.turn.tool_call_gate.wait_ready().await;
+                }
+                match handler.handle_any(invocation_for_tool).await {
+                    Ok(result) => {
+                        let preview = result.result.log_preview();
+                        let success = result.result.success_for_logging();
+                        let mut guard = response_cell.lock().await;
+                        *guard = Some(result);
+                        Ok((preview, success))
+                    }
+                    Err(err) => Err(err),
+                }
+            }
+        },
+    )
+    .await;
+```
+
+成功得到 handler result 后，
+[`post-tool hooks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L435-L461)
+可以添加上下文，或者在结果被转换成 model/code-mode response item 前替换已保存的 response body。这不是装饰路径：
+它意味着 tool output 在下一个 consumer 看到之前，仍然是 runtime-owned value。
+
+最后，dispatch trace 会被标记为 completed 或 failed：
+
+```rust
+match result {
+    Ok(_) => {
+        let mut guard = response_cell.lock().await;
+        let result = guard.take().ok_or_else(|| {
+            FunctionCallError::Fatal("tool produced no output".to_string())
+        })?;
+        dispatch_trace.record_completed(
+            &invocation,
+            &result.call_id,
+            &result.payload,
+            result.result.as_ref(),
+        );
+        Ok(result)
+    }
+    Err(err) => {
+        dispatch_trace.record_failed(&err);
+        Err(err)
+    }
+}
+```
+
+### 7.1 并行用 runtime locks 决定
+
+Parallelism 在 dispatch 前判断。在
+[`ToolCallRuntime`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L27-L49)
+里，每个 runtime 持有一个叫 `parallel_execution` 的 `RwLock<()>`。
+[`handle_tool_call_with_source`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L82-L142)
+先问 router 这个 call 是否支持 parallel execution，然后对 parallel-safe calls 使用 read lock，对需要串行的
+calls 使用 write lock。
+
+```rust
+let supports_parallel = self.router.tool_supports_parallel(&call);
+let lock = Arc::clone(&self.parallel_execution);
+
+let handle: AbortOnDropHandle<Result<AnyToolResult, FunctionCallError>> =
+    AbortOnDropHandle::new(tokio::spawn(async move {
+        tokio::select! {
+            _ = cancellation_token.cancelled() => {
+                let secs = started.elapsed().as_secs_f32().max(0.1);
+                dispatch_span.record("aborted", true);
+                Ok(Self::aborted_response(&call, secs))
+            },
+            res = async {
+                let _guard = if supports_parallel {
+                    Either::Left(lock.read().await)
+                } else {
+                    Either::Right(lock.write().await)
+                };
+
+                router
+                    .dispatch_tool_call_with_code_mode_result(
+                        session,
+                        turn,
+                        invocation_cancellation_token,
+                        tracker,
+                        call.clone(),
+                        source,
+                    )
+                    .instrument(dispatch_span.clone())
+                    .await
+            } => res,
+        }
+    }));
+```
+
+这不是相信模型来决定并发。模型可以产出 parallel calls；Codex 决定哪些调用真正能共享 read lock。
+
+Router 的 parallel decision 有两条分支。非 MCP 工具检查 configured specs 中显式支持 parallel
+calls 的项；MCP 则使用 payload 中的 server name 去查 `parallel_mcp_server_names`：
+
+```rust
+pub fn tool_supports_parallel(&self, call: &ToolCall) -> bool {
+    match &call.payload {
+        ToolPayload::Mcp { server, .. } => self.parallel_mcp_server_names.contains(server),
+        _ => self.configured_tool_supports_parallel(&call.tool_name),
+    }
+}
+```
+
+测试
+[`mcp_parallel_support_uses_exact_payload_server`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router_tests.rs#L104-L139)
+解释了原因：来自不同 server 的相似 MCP tools 不能继承彼此的并发合同。
+
+### 7.2 输出服务多个读者
+
+Tool output 不是一个字符串。[`ToolOutput`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L92-L112)
+trait 要求每个 output type 提供 telemetry preview、success signal、model-facing
+`ResponseInputItem`、可选 post-tool hook data，以及 code-mode result。
+
+```rust
+pub trait ToolOutput: Send {
+    fn log_preview(&self) -> String;
+
+    fn success_for_logging(&self) -> bool;
+
+    fn to_response_item(&self, call_id: &str, payload: &ToolPayload) -> ResponseInputItem;
+
+    fn post_tool_use_response(&self, _call_id: &str, _payload: &ToolPayload) -> Option<JsonValue> {
+        None
+    }
+
+    fn code_mode_result(&self, payload: &ToolPayload) -> JsonValue {
+        response_input_to_code_mode_result(self.to_response_item("", payload))
+    }
+}
+```
+
+同一个 handler result 因而可以服务不同 consumer：
+
+| Consumer | Source mechanism |
+| --- | --- |
+| 下一次模型请求 | `to_response_item` 产出 `ResponseInputItem`。 |
+| Telemetry | `log_preview` 和 `success_for_logging` 产出有边界的 logging data。 |
+| Hooks | `post_tool_use_response` 在 handler opt in 时暴露稳定 hook-facing data。 |
+| Code mode | `code_mode_result` 可以返回适合 JS/runtime 的 value。 |
+| Rollout trace | `ToolDispatchTrace` 保存 invocation 和 result payloads，供 replay 使用。 |
+
+`ToolSearchOutput` 是一个紧凑例子。它的
+[`to_response_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L237-L252)
+不会伪装成普通 function output，而是返回 `ResponseInputItem::ToolSearchOutput`，带
+`execution: "client"` 和 loadable tool specs 列表。
+
+```rust
+fn to_response_item(&self, call_id: &str, _payload: &ToolPayload) -> ResponseInputItem {
+    ResponseInputItem::ToolSearchOutput {
+        call_id: call_id.to_string(),
+        status: "completed".to_string(),
+        execution: "client".to_string(),
+        tools: self
+            .tools
+            .iter()
+            .map(|tool| {
+                serde_json::to_value(tool).unwrap_or_else(|err| {
+                    JsonValue::String(format!("failed to serialize tool_search output: {err}"))
+                })
+            })
+            .collect(),
+    }
+}
+```
+
+这个形状很重要，因为模型不是唯一观察者。Runtime 还可以发事件、记录 telemetry、喂给 post-tool hooks，并保留 trace
+evidence。
+
+## 八、Dispatch trace 让 tool calls 可回放
+
+Dispatch trace adapter 是这条执行路径变成 replay evidence 的地方。Registry 在 early returns 前就启动
+[`ToolDispatchTrace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace.rs#L19-L31)，
+所以 unsupported 或 incompatible calls 也会有 trace end events：
+
+```rust
+pub(crate) struct ToolDispatchTrace {
+    context: ToolDispatchTraceContext,
+}
+
+impl ToolDispatchTrace {
+    pub(crate) fn start(invocation: &ToolInvocation) -> Self {
+        let context = invocation
+            .session
+            .services
+            .rollout_thread_trace
+            .start_tool_dispatch_trace(|| tool_dispatch_invocation(invocation));
+        Self { context }
+    }
+}
+```
+
+Invocation payload 会记录 thread id、turn id、tool-call id、tool name、namespace、requester 和
+typed payload：
+
+```rust
+fn tool_dispatch_invocation(invocation: &ToolInvocation) -> Option<ToolDispatchInvocation> {
+    let requester = match &invocation.source {
+        ToolCallSource::Direct => ToolDispatchRequester::Model {
+            model_visible_call_id: invocation.call_id.clone(),
+        },
+        ToolCallSource::CodeMode {
+            cell_id,
+            runtime_tool_call_id,
+        } => ToolDispatchRequester::CodeCell {
+            runtime_cell_id: cell_id.clone(),
+            runtime_tool_call_id: runtime_tool_call_id.clone(),
+        },
+    };
+
+    Some(ToolDispatchInvocation {
+        thread_id: invocation.session.conversation_id.to_string(),
+        codex_turn_id: invocation.turn.sub_id.clone(),
+        tool_call_id: invocation.call_id.clone(),
+        tool_name: invocation.tool_name.name.clone(),
+        tool_namespace: invocation.tool_name.namespace.clone(),
+        requester,
+        payload: tool_dispatch_payload(&invocation.payload),
+    })
+}
+```
+
+源码可见的 contract 因而比“工具返回了一段文本”更强。它是：“一个具体 requester 用 typed payload 请求了某个命名工具；
+handler path completed 或 failed；response payload 被记录给合适的 consumer。”后续 replay 和 debug
+可以消费的就是这种证据。
+
+## 九、常见误读
+
+| 误读 | 修正 |
+| --- | --- |
+| “模型拥有工具，因为它产出 tool calls。” | 模型产出语法。Runtime 拥有 handler lookup、payload validation、policy、hooks、cancellation 和 output shaping。 |
+| “request 里的 tool list 就是 registry。” | `model_visible_specs` 是从 configured specs 过滤出来的。Registry 可以包含没有直接暴露的 handlers。 |
+| “有 namespaced name 就足够路由 MCP。” | MCP routing 依赖 canonical tool identity 和 payload provenance，不只是看起来像 namespace 的字符串。 |
+| “Provider 支持 parallel tool calls 就安全。” | Codex 仍要检查 handler/server concurrency support，并在 dispatch 外使用 read/write locks。 |
+| “失败表示什么都没发生。” | Unsupported、incompatible、aborted、hook-blocked calls 仍会产生结构化模型响应或 trace facts。 |
+| “Tool output 就是一段字符串。” | Output 会被塑形成 model continuation、telemetry、hooks、code-mode callers 和 rollout traces 各自需要的值。 |
+
+## 十、应用到实践
+
+1. **把语法和权限分开。** Model-visible schema 描述 call shape；runtime handler 拥有执行权。
+2. **暴露前先从所有能力源规划。** Config、feature flags、MCP tools、deferred tools、dynamic tools、hosted tools
+   和 unavailable placeholders 都会影响最终 plan；如果 hidden tool 未来要被发现，它仍然需要 search
+   metadata 和 handler。
+3. **先规范化再分发。** 把 provider response items 转成带 `ToolPayload` 的 typed `ToolCall`，再拒绝
+   payload kind 与 handler kind 不匹配的调用。
+4. **把 parallelism 作为 runtime decision。** 只有明确 handler/server contract 才能选择 read-lock
+   concurrency；其他都串行。
+5. **把 output 当成多读者值。** 结果要同时服务模型、code-mode caller、hooks、telemetry 和 replay，不能假装这些读者是同一个。
+
+第 10 章进入最重要的 handler 家族：shell 与 filesystem execution。那里，抽象边界会变成具体 process
+supervision：command parsing、approval、sandbox selection、`exec-server`、ordered output 和 filesystem
+operations。
 
 <div class="source-equivalence">
 
@@ -124,10 +948,25 @@ Shell command 可能把输出流式发给 UI，最后再给模型一个摘要。
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Tool spec planner | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69) |
-| Tool router | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38) |
-| Tool registry | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L220) |
-| Tool orchestrator | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
-| Parallel dispatch rules | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L28) |
+| Tool spec enum | [`codex-rs/tools/src/tool_spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L17-L52) |
+| Configured tool spec | [`codex-rs/tools/src/tool_spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tools/src/tool_spec.rs#L79-L88) |
+| Public planning entry | [`codex-rs/core/src/tools/spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L66-L73) |
+| Registry builder | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L69-L74) |
+| Deferred tool search | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L223-L248) |
+| Deferred MCP handlers | [`codex-rs/core/src/tools/spec_plan.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec_plan.rs#L425-L435) |
+| Unavailable placeholders | [`codex-rs/core/src/tools/spec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/spec.rs#L139-L165) |
+| Router state | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L38-L42) |
+| Deferred dynamic filtering | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L299-L330) |
+| Tool call normalization | [`codex-rs/core/src/tools/router.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router.rs#L174-L245) |
+| Payload enum | [`codex-rs/core/src/tools/context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L59-L78) |
+| Handler trait | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L38-L96) |
+| Registry dispatch | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L263-L353) |
+| Post-tool hook shaping | [`codex-rs/core/src/tools/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/registry.rs#L435-L461) |
+| Parallel runtime | [`codex-rs/core/src/tools/parallel.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/parallel.rs#L82-L142) |
+| Output trait | [`codex-rs/core/src/tools/context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L92-L112) |
+| Tool search output | [`codex-rs/core/src/tools/context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/context.rs#L237-L252) |
+| Dispatch trace adapter | [`codex-rs/core/src/tools/tool_dispatch_trace.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace.rs#L19-L110) |
+| Router tests | [`codex-rs/core/src/tools/router_tests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/router_tests.rs#L104-L198) |
+| Dispatch trace tests | [`codex-rs/core/src/tools/tool_dispatch_trace_tests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/tool_dispatch_trace_tests.rs#L49-L207) |
 
 </div>

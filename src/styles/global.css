@@ -797,13 +797,12 @@ html.dark .books-index-button--primary {
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 480px) {
   .header-actions {
-    gap: 0.125rem;
+    gap: 0.25rem;
   }
 
-  .site-title-full,
-  .header-github {
+  .site-title-full {
     display: none;
   }
 
@@ -819,5 +818,15 @@ html.dark .books-index-button--primary {
   .header-nav-link {
     padding-left: 0.45rem;
     padding-right: 0.45rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .header-actions {
+    gap: 0.125rem;
+  }
+
+  .header-github {
+    display: none;
   }
 }
