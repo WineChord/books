@@ -1,126 +1,503 @@
+# Configuration, Authentication, and Managed Requirements
 
-# Chapter 3: Configuration, Authentication, and Managed Requirements
-
-> **Reading Contract:** Use this chapter to read configuration as constraints. Track how auth, policy, managed requirements, profiles, and environment facts become the envelope that later code must obey.
+> **Reading Contract:** Read configuration as an authority boundary, not as
+> preferences sprinkled across the process. Track which layer owns provenance,
+> which layer owns requirements, which layer owns permission profiles, and which
+> layer owns auth refresh. After this chapter, you should be able to explain why
+> a Codex turn starts only after one resolved envelope exists.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/config-auth-constraint-stack.webp" alt="Configuration and authentication constraint stack showing defaults, trusted project config, auth snapshot, managed requirements, and resolved permissions" loading="eager" decoding="async" />
-  <figcaption>Configuration is not decoration; it compiles defaults, profiles, auth, managed requirements, and permissions into the contract a turn must obey.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/config-layer-stack-569ff6a1.webp" alt="Configuration layers flowing into ConfigLayerStack, provenance, source-aware errors, and a resolved runtime envelope" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Configuration becomes usable only after layers, provenance, profiles, project trust, and overrides have been compiled into one source-aware runtime envelope.</figcaption>
 </figure>
 
-Chapter 2 followed startup from a distribution wrapper into the Rust command router. Once the router knows which surface is being launched, it still cannot start the agent safely. It must first resolve the operating envelope: effective configuration, authenticated identity, feature state, and managed requirements.
+**Source boundary:** direct source claims in this chapter are pinned to OpenAI
+Codex commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+`ConfigBuilder`, `Config`, `Permissions`, `ManagedFeatures`, permission profile
+compilation, and `AuthManager` behavior are **verified source** where linked.
+The terms "runtime envelope", "constraint clamp", and "same answer before
+tools" are **surrounding contract inference** from those source shapes and the
+public app-server permission schema; they are not claims about hidden OpenAI
+service internals.
 
-This chapter is about that envelope. Codex does not let every subsystem read whatever configuration file or environment variable it prefers. The system builds a resolved, source-aware view and hands later layers constrained runtime settings. That invariant is essential: the session loop, model provider, tools, app-server, hooks, and sandboxing code should consume the same answer to "what is allowed here?"
-
-**Source boundary:** claims about resolved permissions are **verified source** through [`config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L236), permission compilation is **verified source** through [`permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L300), and managed feature gates are **verified source** through [`managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L25). The chapter's "runtime envelope" language is a **surrounding contract inference** from those resolved shapes and from the public permission profile in [`app-server-protocol`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L375), not a claim about hidden service internals.
-
-
-## Configuration Is a Stack, Not a File
-
-Codex configuration is layered. Some layers come from system or managed settings. Some come from the user's home configuration. Some come from a project. Some come from command-line overrides, session state, or thread-level choices. The important point is not only precedence; it is provenance.
-
-The disabled layer in the diagram is important. Project-local configuration may be visible even when trust prevents it from affecting runtime behavior. This is better than pretending the layer does not exist. A client can explain why a value was ignored, and a user can decide whether to trust the project.
-
-Layering also makes diagnostics possible. If a requested setting fails, Codex can distinguish "unknown field," "overridden by a higher-precedence layer," "disabled because the project is untrusted," and "rejected by requirements." Those are different problems with different remedies.
-
-### Preferences Versus Requirements
-
-A common configuration mistake is to treat all settings as preferences. Codex does not. A preference says what a user or surface would like. A requirement says what the environment permits. Requirements are restrictive overlays.
-
-For example, a user preference may request a permissive sandbox mode. A managed requirement may allow only a more restrictive permission profile. The correct result is not to merge the two as peers. The requirement constrains the preference and should produce a source-aware failure if the preference cannot be made legal.
-
-| Concept | Role |
-| --- | --- |
-| Config layer | Expresses desired defaults or overrides. |
-| Feature flag | Controls staged behavior, aliases, warnings, and dependencies. |
-| Requirement | Restricts the set of legal resolved values. |
-| Constrained value | Carries both allowed choices and the source of the constraint. |
-| Resolution error | Explains which source made the requested value invalid. |
-
-This is where Codex starts to look like an enterprise-ready local runtime. A managed account or host policy can constrain network behavior, filesystem access, approval style, hooks, plugins, MCP servers, web search, residency, and permission profiles without changing every product surface.
-
-### Trust-Gated Project Configuration
-
-Project configuration is useful because different repositories need different defaults. It is also dangerous because a repository can be supplied by someone else. A local agent that blindly honors project config would let the workspace configure the tool that is about to inspect and modify that same workspace.
-
-Codex therefore treats project config as trust-gated. The loader can discover the project layer, preserve its source, and show that it exists, but unsafe project-local values require trust before they become effective. This is a design pattern rather than a special case. The system does not have to know which UI will display the trust state; it only has to preserve enough information for any client to explain the outcome.
+Chapter 2 stopped at the Rust command router. The router can now decide whether
+the invocation is the TUI, `exec`, review, app-server, MCP, plugin, or another
+surface. That is still not enough to start an agent turn. Before any surface can
+run tools or call a model, Codex has to answer a different question:
 
 ```text
-// Pseudocode - illustrative pattern.
-function load_effective_settings(inputs):
-    layers = []
-    layers.add(load_system_layer())
-    layers.add(load_user_layer())
-
-    project_layer = discover_project_layer(inputs.cwd)
-    if project_layer.exists and project_is_trusted(project_layer):
-        layers.add(project_layer)
-    else:
-        layers.add_disabled(project_layer, reason = "project_not_trusted")
-
-    layers.add(make_cli_override_layer(inputs.flags))
-    preferences = merge_by_precedence(layers.enabled_only())
-
-    requirements = load_requirements(inputs.auth, inputs.host)
-    return constrain(preferences, requirements)
+What is allowed in this process, for this workspace, under this identity,
+with these managed requirements?
 ```
 
-The pseudocode avoids source details, but it shows the key ordering: ordinary preferences merge first; requirements constrain after.
+Calling that answer "configuration" understates the boundary. Model choice,
+provider settings, approval mode, permission profile, filesystem roots, network
+policy, feature state, web search mode, managed hooks, MCP server requirements,
+and auth state all shape what later code may do. If each subsystem reread files
+and environment variables for itself, one component could think the workspace is
+writable, another could treat it as read-only, and a third could keep using a
+token after the auth layer has refreshed.
 
-### Feature Flags as Lifecycle Management
+Codex instead compiles an envelope early. Later subsystems can still receive
+scoped updates, but those updates pass through constrained values and known
+owners. That is the difference between a pile of settings and a runtime
+contract.
 
-Feature flags in Codex are not scattered string checks. They have names, defaults, stages, aliases, warnings, dependencies, and sometimes structured configuration. That centralization lets the product evolve without turning every subsystem into a compatibility table.
+## 1. The Stack Is Compiled, Not Sampled
 
-A feature may be experimental, staged, renamed, deprecated, or requirements only. A user-facing command may need to warn about an alias. App-server schema generation may need to filter experimental fields. Runtime code may need to test a normalized feature state rather than a raw string.
+The central source path starts in
+[`ConfigBuilder::build_inner`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L936-L1038).
+The builder resolves the Codex home directory, resolves the effective working
+directory, passes CLI overrides into the loader, and receives a
+`ConfigLayerStack`. Only then does it deserialize the merged TOML into
+`ConfigToml`.
 
-This is another example of bounded-OS thinking. A general program can check an environment variable wherever it wants. A runtime with multiple clients and generated contracts needs one normalized feature vocabulary.
+```rust
+let config_layer_stack = load_config_layers_state(
+    LOCAL_FS.as_ref(),
+    &codex_home,
+    Some(cwd),
+    &cli_overrides,
+    loader_overrides,
+    cloud_requirements,
+    thread_config_loader
+        .as_deref()
+        .unwrap_or(&codex_config::NoopThreadConfigLoader),
+)
+.await?;
+let merged_toml = config_layer_stack.effective_config();
 
-### Authentication as a Snapshot
+// Each layer already resolved relative paths against its config file.
+let config_toml: ConfigToml = match merged_toml.try_into() {
+    Ok(config_toml) => config_toml,
+    Err(err) => {
+        if let Some(config_error) = codex_config::first_layer_config_error::<ConfigToml>(
+            &config_layer_stack,
+            codex_config::CONFIG_TOML_FILE,
+        )
+        .await
+        {
+            return Err(codex_config::io_error_from_config_error(
+                std::io::ErrorKind::InvalidData,
+                config_error,
+                Some(err),
+            ));
+        }
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, err));
+    }
+};
+```
 
-Configuration says what the process wants to do. Authentication says who is doing it and which backend capabilities can be used. Codex supports several auth shapes: API-key auth, ChatGPT OAuth, externally supplied bearer tokens, and agent identity flows used by task-oriented integrations.
+Two details matter. First, the stack is not just a map of final values. The
+`Config` struct keeps the
+[`config_layer_stack`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L387-L423)
+as provenance for how the final config was derived. Second, relative path
+resolution happens before final deserialization. A path from a project layer and
+a path from a home layer must not be interpreted against the wrong directory.
 
-The architecture hides those storage and refresh differences behind an auth manager. The goal is not only convenience. It prevents one subsystem from using an old credential while another subsystem has refreshed or invalidated it. A long-running process needs a stable way to ask, "what is the current auth state, and can it recover from unauthorized responses?"
+| Layer role | What it can express | Why provenance matters |
+| --- | --- | --- |
+| Built-in defaults | Baseline behavior when no user layer exists. | Defaulted values should not be blamed on a user file. |
+| User/home config | Persistent personal defaults. | Errors can point back to the user-owned layer. |
+| Profile config | Named mode choices. | A profile can be selected without losing source identity. |
+| Project config | Workspace-specific settings. | Trust decides whether the workspace may affect the runtime. |
+| CLI overrides | Invocation-specific choices. | The current command can override lower layers without erasing them. |
+| Requirements | Managed constraints. | Illegal choices should explain which policy source rejected them. |
 
-The snapshot can represent different auth modes, but later layers should not care where a token was stored or how a refresh command was executed. They care whether an authenticated client can be constructed, whether account metadata is available, and whether policy requirements must be fetched.
+This is why a simple "last writer wins" config merge would be too weak. It can
+produce a value, but it cannot reliably explain it.
 
-### Managed Requirements and Fail-Closed Behavior
+### 1.1 Project Trust Changes the Default Envelope
 
-Managed requirements turn account or host policy into local constraints. They may be loaded from local managed configuration, platform management systems, or cloud-backed account policy. For eligible managed accounts, failure to load requirements can be a fail-closed condition. That choice is inconvenient by design. If the account requires centralized policy, silently proceeding without that policy would make the local runtime less trustworthy precisely when policy matters most.
+Project config is powerful because repositories need local defaults. It is also
+dangerous because a repository is input data. In the pinned source,
+[`ProjectConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_toml.rs#L529-L543)
+stores an optional `TrustLevel`, and the config builder resolves the active
+project from the current working directory and repository root before choosing
+permission defaults.
 
-The requirements layer also preserves source information. A value constrained by cloud policy should be reported differently from a value constrained by a local requirements file. Source-aware errors make the system explainable to users, administrators, and client surfaces.
+```rust
+let repo_root = resolve_root_git_project_for_trust(fs, &resolved_cwd).await;
+let active_project = cfg
+    .get_active_project(
+        resolved_cwd.as_path(),
+        repo_root.as_ref().map(AbsolutePathBuf::as_path),
+    )
+    .unwrap_or(ProjectConfig { trust_level: None });
+```
 
-### The Resolved Runtime Envelope
+The default permission profile then depends on that active project and the
+platform sandbox situation. In
+[`default_builtin_permission_profile_name`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L35-L43),
+a project with an explicit trusted or untrusted decision normally defaults to
+`:workspace`; otherwise Codex falls back to `:read-only`. On Windows with no
+usable sandbox, the default remains conservative.
 
-By the time a command surface starts real work, it should receive a resolved runtime envelope:
+The important reading is not "trusted means safe." The important reading is
+"trust is a first-class input to the envelope." A project can influence
+workspace defaults only through a resolved trust decision, not by silently
+becoming another global config file.
 
-| Envelope field | Why it must be resolved early |
+Trust answers whether the project may contribute defaults. Requirements answer
+which resolved values are legal after every preference layer has spoken.
+
+## 2. Requirements Clamp Preferences
+
+Preferences say what the user, profile, or surface asked for. Requirements say
+what the environment permits. Codex keeps that distinction visible in
+[`ConfigRequirements`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L81-L100).
+The struct carries constrained values for approval policy, reviewer choice,
+permission profile, web search mode, residency, network and filesystem
+constraints, feature requirements, hooks, MCP servers, plugins, and exec policy,
+plus the source for Guardian policy config.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/requirements-clamp-569ff6a1.webp" alt="Managed requirements clamping preferences for approval, web search, sandbox, feature pins, residency, and illegal requests" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Requirements are restrictive overlays: a requested setting must pass the allowed policy set before it becomes part of the runtime envelope.</figcaption>
+</figure>
+
+The TOML-facing shape,
+[`ConfigRequirementsToml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L637-L657),
+shows the policy vocabulary. A managed layer can restrict approval policies,
+reviewers, sandbox modes, web search modes, features, hooks, MCP servers,
+plugins, apps, exec rules, residency, network behavior, permissions, and
+Guardian policy config.
+
+```rust
+pub struct ConfigRequirements {
+    pub approval_policy: ConstrainedWithSource<AskForApproval>,
+    pub approvals_reviewer: ConstrainedWithSource<ApprovalsReviewer>,
+    pub permission_profile: ConstrainedWithSource<PermissionProfile>,
+    pub web_search_mode: ConstrainedWithSource<WebSearchMode>,
+    pub feature_requirements: Option<Sourced<FeatureRequirementsToml>>,
+    pub managed_hooks: Option<ConstrainedWithSource<ManagedHooksRequirementsToml>>,
+    pub mcp_servers: Option<Sourced<BTreeMap<String, McpServerRequirement>>>,
+    pub plugins: Option<Sourced<BTreeMap<String, PluginRequirementsToml>>>,
+    pub exec_policy: Option<Sourced<RequirementsExecPolicy>>,
+    pub enforce_residency: ConstrainedWithSource<Option<ResidencyRequirement>>,
+    pub network: Option<Sourced<NetworkConstraints>>,
+    pub filesystem: Option<Sourced<FilesystemConstraints>>,
+    pub guardian_policy_config_source: Option<RequirementSource>,
+}
+```
+
+The source wrapper is not ornamental. `ConfigRequirementsWithSources` uses
+[`Sourced<T>`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L665-L677)
+so that a rejected value can say which requirement source rejected it. The test
+[`constraint_error_includes_cloud_requirements_source`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L1796-L1820)
+locks that behavior: trying to set `AskForApproval::Never` against cloud
+requirements that allow only `OnRequest` returns an invalid-value error with
+`RequirementSource::CloudRequirements`.
+
+That small test captures the larger rule: preference resolution is incomplete
+until managed policy either admits the value or produces an attributable
+rejection.
+
+### 2.1 The Final Config Must Consume Every Requirement Field
+
+Inside
+[`Config::load_config_with_layer_stack`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2088-L2217),
+Codex destructures `ConfigRequirements` into local bindings. The comment is
+blunt: every field must be applied to the final `Config`.
+
+```rust
+// Ensure that every field of ConfigRequirements is applied to the final
+// Config.
+let ConfigRequirements {
+    approval_policy: mut constrained_approval_policy,
+    approvals_reviewer: mut constrained_approvals_reviewer,
+    permission_profile: mut constrained_permission_profile,
+    web_search_mode: mut constrained_web_search_mode,
+    feature_requirements,
+    managed_hooks: _,
+    mcp_servers,
+    plugins: _,
+    exec_policy: _,
+    enforce_residency,
+    network: network_requirements,
+    filesystem: filesystem_requirements,
+    guardian_policy_config_source: _,
+} = config_layer_stack.requirements().clone();
+```
+
+That destructuring pattern is a maintenance guard. If a new requirements field
+appears, the compiler makes the construction site confront it. A policy field
+should not exist in a managed requirements file while the runtime forgets to
+apply it.
+
+### 2.2 Source-Aware Errors Are Product Behavior
+
+Source-aware errors are a user-experience feature and a safety feature at the
+same time. A user who sees "approval policy rejected" needs to know whether the
+rejection came from a local file, cloud policy, system management, or another
+layer. Without that, the only available fixes are guesswork: edit the wrong
+file, loosen the wrong setting, or assume the product is broken.
+
+The code path also makes policy auditable.
+[`ConfigRequirementsWithSources::merge_unset_fields`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L705-L776)
+fills only missing fields, tags accepted values with their `RequirementSource`,
+and gives app enablement a restrictive merge path when disablement appears in a
+lower-precedence source. The final `Config` can then carry constrained values
+forward instead of flattening policy into anonymous booleans.
+
+## 3. Permission Profile Is the Canonical Security Shape
+
+The chapter title says "configuration", but the most security-sensitive part is
+permission resolution. In the pinned source,
+[`Permissions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L234-L263)
+does not store only a legacy sandbox mode. It stores a constrained canonical
+`PermissionProfile`, an optional active profile identity, network proxy config,
+login-shell policy, shell environment policy, and Windows sandbox settings.
+
+The public app-server schema mirrors the same architectural split. In
+[`app-server-protocol`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L371-L390),
+`PermissionProfile` has three variants:
+
+| Public shape | Meaning |
 | --- | --- |
-| Working directory and roots | Tool execution and project trust depend on them. |
-| Model and provider settings | Turn construction and auth may depend on provider choice. |
-| Approval behavior | Tool routing needs to know when interaction is possible. |
-| Permission profile and sandbox | Side-effect policy depends on a consistent capability model. |
-| Feature state | Protocol, UI, runtime, and schema filtering must agree. |
-| Auth state | Backend calls, cloud requirements, and model calls need a coherent identity. |
-| Managed requirements | Later subsystems should not reinterpret policy. |
+| `Managed` | Codex owns sandbox construction for filesystem and network. |
+| `Disabled` | No outer sandbox should be applied. |
+| `External` | Filesystem isolation is enforced by an external caller, while network policy remains represented. |
 
-This envelope is not static forever. A thread or turn may update selected settings. But updates pass through the same idea: preserve origin, validate constraints, and make later execution consume resolved values.
+That schema is important because clients need to talk about permissions without
+reconstructing private core types. A UI can display an active profile. An
+app-server client can receive a profile snapshot. A session can later add a
+bounded writable-root modification. All of those are different from "the model
+asked to run a command."
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/permission-profile-compiler-569ff6a1-v2.webp" alt="Permission profile compiler turning builtin and custom profiles into filesystem policy, network policy, writable roots, deny globs, and startup warnings" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Permission profiles are compiled into concrete filesystem and network policy before tool execution sees them.</figcaption>
+</figure>
+
+### 3.1 Built-In Profiles Short-Circuit to Runtime Permissions
+
+The compiler entry point is
+[`compile_permission_profile_selection`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L237-L256).
+Built-in profiles are converted directly to runtime permissions. Custom
+profiles must exist under `[permissions]`, must not use reserved built-in
+prefixes, and must compile their filesystem and network entries.
+
+```rust
+pub(crate) fn compile_permission_profile_selection(
+    permissions: Option<&PermissionsToml>,
+    profile_name: &str,
+    workspace_write: Option<&SandboxWorkspaceWrite>,
+    policy_cwd: &Path,
+    startup_warnings: &mut Vec<String>,
+) -> io::Result<(FileSystemSandboxPolicy, NetworkSandboxPolicy)> {
+    if let Some(permission_profile) = builtin_permission_profile(profile_name, workspace_write) {
+        return Ok(permission_profile.to_runtime_permissions());
+    }
+    reject_unknown_builtin_permission_profile(profile_name)?;
+
+    let permissions = permissions.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "default_permissions requires a `[permissions]` table",
+        )
+    })?;
+    compile_permission_profile(permissions, profile_name, policy_cwd, startup_warnings)
+}
+```
+
+The lower-level
+[`compile_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L175-L235)
+starts from restricted policy, compiles filesystem entries, validates glob scan
+depth, and resolves network policy. If no filesystem entries are present, it
+pushes a startup warning rather than pretending a profile means something it
+does not say.
+
+### 3.2 The Active Profile Is a Stable Client Contract
+
+Once profiles are active, the config builder chooses the default profile,
+compiles it, constructs a canonical `PermissionProfile`, and records an
+`ActivePermissionProfile` when doing so is safe. The source around
+[`default_permissions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2352-L2372)
+and
+[`active_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2417-L2443)
+is worth reading together.
+
+If the profile is implicit and legacy workspace-write customizations are active,
+Codex avoids advertising a re-selectable active profile because doing so would
+lose roots, network, or temp settings. If additional writable roots were
+requested and the profile remains managed, it records those roots as active
+profile modifications. That is the subtle part: client-visible state must be
+round-trippable, not merely descriptive.
+
+Once permission resolution has a canonical shape, the same pattern appears in
+less obvious places: feature state and auth state also need owners before the
+runtime can treat them as facts.
+
+## 4. Managed Features Are Lifecycle Policy
+
+Feature flags look softer than permission profiles, but in a multi-surface
+runtime they still need an owner. Codex wraps feature state in
+[`ManagedFeatures`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L20-L27).
+The wrapper stores a constrained value and a map of pinned features.
+
+The construction path is short and revealing:
+
+```rust
+let (pinned_features, source) = match feature_requirements {
+    Some(Sourced {
+        value: feature_requirements,
+        source,
+    }) => (
+        parse_feature_requirements(feature_requirements, &source, startup_warnings),
+        Some(source),
+    ),
+    None => (BTreeMap::new(), None),
+};
+
+let normalized_features = normalize_candidate(configured_features, &pinned_features);
+validate_pinned_features(&normalized_features, &pinned_features, source.as_ref())?;
+```
+
+That source comes from
+[`ManagedFeatures::from_configured_with_optional_warnings`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L66-L87).
+The helper
+[`normalize_candidate`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L152-L160)
+sets pinned values and then normalizes dependencies. The validator reports an
+invalid-value error when a normalized candidate violates a sourced requirement.
+The nearby
+[`parse_feature_requirements`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L207-L242)
+path keeps compatibility visible: canonical keys are accepted, legacy keys warn
+and map forward, and unknown requirement keys warn instead of becoming hidden
+runtime facts.
+
+| Feature state pressure | Mechanism | Invariant |
+| --- | --- | --- |
+| A profile and global config both set feature values. | [`Features::from_sources`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/features/src/lib.rs#L454-L476) merges sources before management. | One normalized feature object enters config. |
+| A managed requirement pins a feature. | `ManagedFeatures` stores `pinned_features`. | Later mutation cannot silently violate policy. |
+| A legacy feature key appears. | `parse_feature_requirements` maps or warns. | Compatibility is visible, not hidden. |
+| A feature implies another feature. | [`normalize_dependencies`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/features/src/lib.rs#L484-L526). | Runtime sees a dependency-consistent set. |
+
+This is lifecycle management. A feature can be renamed, aliased, pinned,
+warned, or staged without making every downstream subsystem understand every
+historical spelling.
+
+## 5. Auth Is a Coherent Snapshot
+
+Configuration says what the process is allowed to try. Auth says which identity
+and backend capabilities the process can use. Codex keeps that concern in
+`codex-login`, and `Config` implements
+[`AuthManagerConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L863-L879)
+so the auth manager can be created from the already-resolved config without
+depending on core internals.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/auth-manager-snapshot-569ff6a1.webp" alt="AuthManager snapshot with API key, ChatGPT OAuth, external bearer, cached auth, guarded reload, refresh lock, consumers, and unauthorized recovery" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>AuthManager gives later layers a coherent auth snapshot and serializes refresh so different clients do not observe competing identities.</figcaption>
+</figure>
+
+The source comment above
+[`AuthManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1240-L1254)
+states the design directly: external modifications to `auth.json` are not
+observed until explicit reload, matching the goal of avoiding inconsistent auth
+data mid-run.
+
+```rust
+pub async fn auth(&self) -> Option<CodexAuth> {
+    if let Some(auth) = self.resolve_external_api_key_auth().await {
+        return Some(auth);
+    }
+
+    let auth = self.auth_cached()?;
+    if Self::is_stale_for_proactive_refresh(&auth)
+        && let Err(err) = self.refresh_token().await
+    {
+        tracing::error!("Failed to refresh token: {}", err);
+        return Some(auth);
+    }
+    self.auth_cached()
+}
+```
+
+This
+[`auth`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1401-L1417)
+method first resolves external API-key auth if configured, then reads the cached
+auth snapshot, refreshes stale managed ChatGPT auth when possible, and returns
+the current cached value. It does not invite every caller to parse storage.
+
+### 5.1 Refresh Is Guarded by Account Identity
+
+The refresh path is also snapshot-oriented. In
+[`refresh_token`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1652-L1690),
+Codex acquires a refresh lock, skips API-key auth, records the expected account
+id, reloads only when the persisted account id still matches, and refreshes from
+the authority only if the on-disk value did not already change.
+
+That prevents a common long-running-process bug. Suppose one surface notices a
+401 and begins refresh while another sign-in action changes the account. A
+naive refresh could overwrite or reuse credentials for the wrong identity. The
+guarded reload path treats the auth snapshot as scoped state, not as a global
+string.
+
+The lower-level
+[`refresh_token_from_authority_impl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1707-L1738)
+then chooses the correct authority behavior: external ChatGPT tokens refresh
+through the external auth provider; managed ChatGPT auth refreshes and persists
+new token data; API key and agent identity auth are already terminal for this
+path.
+
+## 6. The Envelope Is Handed Off Once
+
+By the end of config construction, the runtime has one envelope with several
+owners:
+
+| Owner | Resolved value | Later consumers |
+| --- | --- | --- |
+| Config loader | Layered, source-aware settings. | TUI, exec, app-server, session startup. |
+| Requirements engine | Constrained approval, permissions, features, web search, residency, hooks, MCP, and plugins. | Config construction and client-visible errors. |
+| Permission compiler | Canonical permission profile plus filesystem/network policy. | Tool runtime, sandbox selection, app-server permissions schema. |
+| Managed features | Dependency-normalized feature state with pinned requirements. | UI behavior, schema filtering, runtime feature checks. |
+| Auth manager | Cached identity and guarded refresh path. | Model clients, backend APIs, unauthorized recovery. |
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/runtime-envelope-handoff-569ff6a1.webp" alt="Resolved envelope handed to session loop, model provider, tool runtime, and app-server with invalid envelope blocked before execution" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The protected invariant is simple: the session loop, model provider, tool runtime, and app-server should consume the same answer before tools run.</figcaption>
+</figure>
+
+That handoff is why later chapters can talk about tools, sandboxes, sessions,
+protocol messages, hooks, and MCP as separate boundaries. They are separate
+owners, but they do not get to invent separate answers to the permission and
+identity questions. If the envelope is invalid, execution should fail before
+side effects. If it is valid, downstream code can specialize the answer without
+reopening the whole configuration stack.
+
+## Common Misreadings
+
+| Misreading | Correction |
+| --- | --- |
+| "Config is just user preference." | Requirements are restrictive constraints, and several fields carry requirement source. |
+| "Project config is either ignored or fully trusted." | Project trust is a resolved input that changes defaults and effective project behavior. |
+| "`sandbox_mode` is the security model." | Modern code centers the canonical `PermissionProfile`, then projects compatibility sandbox policy where needed. |
+| "Feature flags are plain booleans." | `ManagedFeatures` normalizes dependencies and enforces pinned requirement values. |
+| "Auth refresh is just fetching a new token." | Auth refresh is guarded by snapshot equality, account identity, and a refresh lock. |
 
 ## Apply This
 
-1. **Preserve provenance with values.** Configuration without source metadata
-   cannot explain why a runtime behaved the way it did.
-2. **Separate preferences from constraints.** Merge desired settings first, then
-   apply requirements as restrictive policy.
-3. **Gate untrusted local configuration.** Discover project config without
-   automatically letting the project control the agent.
-4. **Normalize auth behind one manager.** Storage, refresh, OAuth, and external
-   token commands should produce a coherent process-level auth snapshot.
-5. **Fail early on illegal envelopes.** Do not let tools, models, or clients
-   discover policy conflicts after side-effect execution has begun.
+1. **Carry provenance with config values.** The final value is not enough when a
+   user must debug why a policy rejected it.
+2. **Merge preferences before applying requirements.** Requirements should
+   constrain the result, not compete as another peer preference layer.
+3. **Make trust an explicit input.** Project config should not silently control
+   the agent that is about to operate inside the project.
+4. **Prefer canonical permission profiles.** Legacy sandbox modes are
+   compatibility projections; tooling should reason over the profile when
+   possible.
+5. **Treat auth as scoped state.** Long-running processes need cached snapshots,
+   explicit reloads, and guarded refresh, not ad hoc token reads.
 
 ## Closing
 
-The router from Chapter 2 can now launch a surface with a resolved operating envelope. Chapter 4 turns to the boundary that lets those surfaces and the runtime speak the same durable language: operations, events, model items, app-server messages, and generated protocol schemas.
+Chapter 2 explained how startup narrows a package command into a typed Rust
+surface. This chapter explained why that surface still waits for a resolved
+envelope. Chapter 4 moves to the next boundary: once the envelope exists, work
+has to cross process and client boundaries as durable protocol messages rather
+than private method calls.
 
 <div class="source-equivalence">
 
@@ -128,9 +505,22 @@ The router from Chapter 2 can now launch a surface with a resolved operating env
 
 | Concept | Source anchor |
 | --- | --- |
-| Resolved permissions | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L236) |
-| Permission compilation | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L300) |
-| Managed feature gates | [`codex-rs/core/src/config/managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L25) |
-| Public permission profile | [`codex-rs/app-server-protocol/src/protocol/v2/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L375) |
+| Config builder and layer stack | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L936-L1038) |
+| `Config` and `Permissions` shapes | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L234-L263) |
+| Requirements shape and source tracking | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L81-L100) |
+| Requirements TOML vocabulary | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L637-L657) |
+| Requirement source merge | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L705-L776) |
+| Requirement source error test | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L1796-L1820) |
+| Project trust | [`codex-rs/config/src/config_toml.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_toml.rs#L529-L543) |
+| Active project resolution | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2244-L2250) |
+| Default permission profile | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L35-L43) |
+| Permission profile compilation | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L237-L256) |
+| Active profile round-trip behavior | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2417-L2443) |
+| Public permission profile schema | [`codex-rs/app-server-protocol/src/protocol/v2/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L371-L390) |
+| Managed features | [`codex-rs/core/src/config/managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L20-L27) |
+| Feature source merge | [`codex-rs/features/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/features/src/lib.rs#L454-L476) |
+| Feature requirement parsing | [`codex-rs/core/src/config/managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L207-L242) |
+| Auth manager snapshot | [`codex-rs/login/src/auth/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1240-L1254) |
+| Guarded auth refresh | [`codex-rs/login/src/auth/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1652-L1690) |
 
 </div>
