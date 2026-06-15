@@ -332,6 +332,36 @@ PicGo publication protocol:
    silently publish generated figures with local repository paths, except for
    temporary local drafts that are not being published.
 
+Why versioned basenames are mandatory for regenerated public figures:
+
+- jsDelivr `https://cdn.jsdelivr.net/gh/<owner>/<repo>/...` URLs are cached by
+  URL and may point through GitHub branch state plus several CDN/browser edges.
+  Reusing an old basename after replacing an image can continue serving the old
+  bytes even when local files, repository commits, or build output are correct.
+- PicGo's success output proves that the upload command completed and produced
+  a URL; it does not prove that an existing remote object was overwritten, that
+  GitHub raw content changed, or that every CDN edge now serves the new bytes.
+- A regenerated figure must therefore use a fresh basename before publication.
+  The local backing PNG filename, the PicGo URL basename, article image `src`,
+  landing page image data, and social preview image URL must all match that
+  fresh basename.
+
+Remote verification checklist for regenerated public figures:
+
+1. Upload the versioned local PNG with PicGo.
+2. Fetch either `raw.githubusercontent.com/.../<basename>.png` or the jsDelivr
+   URL and compare byte size or SHA-256 with the local PNG for at least one
+   representative regenerated figure, plus the cover image when present.
+3. Run `npm run check:visual-spec` so every local backing PNG basename is
+   referenced through its PicGo URL and every PicGo URL has a local backing PNG.
+4. Run `npm run build` or `npm run verify`, then grep `dist/` for the versioned
+   basenames to ensure generated HTML uses the new URLs.
+5. After pushing, wait for the Pages deploy to finish, then fetch the live page
+   HTML and confirm it contains the versioned basenames. When visual confidence
+   matters, open the live page in a browser automation pass, wait for image
+   decode/lazy loading, and screenshot at least the cover plus one chapter
+   figure.
+
 When wiring legacy local assets into Astro pages in the Books repository, do not
 use a page-link helper for images and do not assume `import.meta.env.BASE_URL`
 has a trailing slash. Use the repository asset URL helper, for example
