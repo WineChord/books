@@ -1,137 +1,893 @@
+# Threads, Sessions, and Durable State
 
-# Chapter 5: Threads, Sessions, and Durable State
-
-> **Reading Contract:** Use this chapter to understand durable work. Track thread identity, queues, history, rollout, and session ownership as separate answers to state, progress, and resumability.
+> **Reading Contract:** Treat this chapter as the durable-state map. Follow the
+> difference between a thread id, a live session, the queue-pair facade, the
+> model-visible history, rollout replay facts, and query projections. After the
+> chapter, you should be able to answer which owner must change when Codex
+> resumes, forks, rolls back, or starts a new turn.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-session-durable-state-569ff6a1-v2.webp" alt="Durable thread state map separating thread identity, session facade, queues, history, rollout, projections, resume, fork, and rollback" loading="eager" decoding="async" />
-  <figcaption>Thread identity, live session ownership, queues, history, and rollout evidence solve different persistence problems and should not collapse into one transcript.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-runtime-record-569ff6a1.webp" alt="Codex live runtime handles mapped to durable thread records, rollout, and state database" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>A Codex thread is not one chat object. Live handles serve the running process; durable records keep the work recoverable after that process changes.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** direct claims in this chapter are pinned to OpenAI Codex
+commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+`ThreadStore`, `LiveThread`, `ThreadManager`, `Codex`, `Session`,
+`ContextManager`, `RolloutItem`, `InitialHistory`, `TurnContext`, and
+`TurnContextItem` are **verified source** where linked. The phrases "durable
+ledger", "runtime projection", "execution envelope", and "history surface" are
+**surrounding contract inference** from those visible source shapes; they are
+not claims about private OpenAI service internals.
 
-Chapter 4 ended at the protocol boundary: clients can submit operations, receive events, and exchange model items without knowing how the runtime works. This chapter steps behind that boundary and shows the durable machinery that turns those messages into a live agent thread.
+Start at the protocol boundary. A client can submit an operation and receive
+correlated events, but that narrow surface does not explain how a conversation
+survives a process restart, how a fork chooses its prefix, or why a rollback is
+not just a screen delete.
+
+The durable-state problem is harder than a transcript problem. A coding agent
+has live work in flight, pending user input, tool approvals, model-visible
+history, UI events, rollout files, thread metadata, search indexes, and
+per-turn execution settings. If all of that is forced into one "messages" list,
+resume becomes lossy, fork becomes ambiguous, and rollback becomes dangerous.
+
+Codex avoids that collapse by splitting ownership:
 
 <div class="chapter-lede">
-  <p><strong>Problem:</strong> an agent must be resumable, forkable, interruptible, and observable while still feeling like one continuous conversation.</p>
-  <p><strong>Thesis:</strong> Codex achieves that by separating the live runtime handle from the durable thread record.</p>
-  <p><strong>Mental model:</strong> a thread is the long-lived work ledger; a session is the running process currently serving it.</p>
+  <p><strong>Problem:</strong> one user-visible thread must be resumable, forkable, interruptible, and queryable while live tasks continue to run through a narrow event protocol.</p>
+  <p><strong>Thesis:</strong> Codex keeps durable thread identity separate from the live session and then rebuilds model-visible history from replayable rollout facts.</p>
+  <p><strong>Mental model:</strong> a thread is the long-lived work ledger; a session is the active process currently serving it; a turn is scheduled work inside that session.</p>
+  <p><strong>Guiding questions:</strong> Which owner answers this fact? Which surface is replayable? Which state is only a live handle?</p>
 </div>
 
+## 1. The Thread Is the Durable Boundary
 
-## The Runtime Stack
+### 1.1 `ThreadStore` Is Storage-Neutral
 
-Codex is not organized around a single "chat object." The runtime is a stack of handles, each narrowing the authority of the layer above it.
+The first important source shape is not `Session`. It is
+[`ThreadStore`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/store.rs#L21-L70),
+the trait that describes what durable thread storage must do. The full trait is
+larger than the excerpt below, but its shape is clear: open live persistence,
+append ordered facts, force queued writes to become readable, recover failed
+initialization, and load history for resume/fork/rollback. The read APIs at the
+bottom of the trait are omitted here.
 
-`ThreadManager` owns the set of live threads and the shared services needed to create new sessions. `CodexThread` is the stable external handle clients use after a thread is created or resumed. `Codex` is intentionally narrow: it exposes a submission path and an event path. `Session` is the large interior object that holds resolved configuration, persistent identity, active turn state, mailbox state, realtime state, goals, review state, and service handles.
+```rust
+/// Storage-neutral thread persistence boundary.
+#[async_trait]
+pub trait ThreadStore: Any + Send + Sync {
+    /// Return this store as [`Any`] for implementation-owned escape hatches.
+    fn as_any(&self) -> &dyn Any;
 
-This separation matters because clients should not be able to accidentally reach into the scheduler. They submit an operation. The session decides whether that operation starts a new task, steers an active one, records pending input, updates durable metadata, or shuts the thread down.
+    /// Creates a new live thread.
+    async fn create_thread(&self, params: CreateThreadParams) -> ThreadStoreResult<()>;
 
-### The First Event Is a Contract
+    /// Reopens an existing thread for live appends.
+    async fn resume_thread(&self, params: ResumeThreadParams) -> ThreadStoreResult<()>;
 
-The first client-visible event in a newly opened runtime is the session setup event. It carries the thread identity, session identity, working directory, model choice, provider identifier, approval policy, permission profile, initial messages, and other resolved settings.
+    /// Appends items to a live thread.
+    async fn append_items(&self, params: AppendThreadItemsParams) -> ThreadStoreResult<()>;
 
-That ordering is deliberate. Some startup work can continue after the session is visible: MCP servers may initialize, plugins may report delayed capability, and prewarm work may run in the background. The setup event gives every client a deterministic anchor before those later events arrive.
+    /// Materializes the thread if persistence is lazy, then persists all queued items.
+    async fn persist_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-```text
-// Pseudocode - illustrative pattern.
-function open_runtime_thread(request):
-    resolved = resolve_configuration(request)
-    live_store = open_thread_persistence(resolved.thread_identity)
-    session = build_session(resolved, live_store)
+    /// Flushes all queued items and returns once they are durable/readable.
+    async fn flush_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-    emit_event(SessionConfigured(resolved.public_metadata))
+    /// Flushes pending items and closes the live thread writer.
+    async fn shutdown_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-    record_initial_history_if_resuming(session)
-    start_background_capability_initialization(session)
-    start_submission_loop(session)
+    /// Discards the live thread writer without forcing pending in-memory items to become durable.
+    async fn discard_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-    return client_thread_handle(session)
+    /// Loads persisted history for resume, fork, rollback, and memory jobs.
+    async fn load_history(
+        &self,
+        params: LoadThreadHistoryParams,
+    ) -> ThreadStoreResult<StoredThreadHistory>;
+
+    // ...
+}
 ```
 
-The important property is not the exact implementation order. The important property is that clients can treat setup as the beginning of the event stream and can render a resumed thread without waiting for every optional capability to finish loading.
+That trait is the durable contract. The live process does not need to know
+whether the backing store is a local rollout file, a state database, or a remote
+service. The visible invariant is simpler: once a live thread exists, future
+runtime facts can be appended in order, flushed, and later replayed.
 
-### Three Histories
+The parameters make the split explicit. New and resumed persistence both carry
+thread-scoped metadata. In
+[`thread-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/types.rs#L30-L79),
+that metadata includes the effective working directory, model provider, and
+memory mode. A resumed thread may also bring an already-loaded rollout history
+and a rollout path. The excerpt skips `CreateThreadParams` between the two
+structs.
 
-Most mistakes in agent architecture begin by treating "history" as one thing. Codex keeps three histories with different purposes.
+```rust
+pub struct ThreadPersistenceMetadata {
+    pub cwd: Option<PathBuf>,
+    pub model_provider: String,
+    pub memory_mode: MemoryMode,
+}
 
-| History | Primary owner | What it answers |
-| --- | --- | --- |
-| Model-visible context | `ContextManager` | What should the next model request see? |
-| Rollout JSONL | thread persistence | What happened, in replay order, so this thread can resume or fork? |
-| SQLite projections | state layer | What can be queried efficiently without replaying every line? |
+// ...
 
-The model-visible context is normalized into model items. It is not a UI transcript and not a raw log. It contains the items that should participate in future inference, filtered by model modality and adjusted by compaction, context injection, tool observations, and pending input.
-
-The rollout file is the replay spine. It records durable runtime facts in order: session metadata, turn context snapshots, model-visible items, event records, compaction records, rollback markers, and other replayable items. It is the source of truth for reconstructing a thread.
-
-The SQLite state is a projection layer. It stores thread metadata, list/search indexes, logs, memory jobs, graph edges, and other query-friendly state. A projection can be repaired or rebuilt from the durable record when the design allows it. The rollout is the ledger; the database is the index and operational state.
-
-### Recording One Item May Touch All Three
-
-When a turn records a new item, the runtime has to decide which surfaces should learn about it. A tool result might be model-visible, replayable, useful for client rendering, relevant to analytics, and relevant to trace diagnostics. Those are related, but they are not identical.
-
-```text
-// Pseudocode - illustrative pattern.
-function record_runtime_item(turn, item):
-    if item.belongs_in_model_context:
-        context_manager.append(item.as_model_item)
-
-    if item.belongs_in_replay:
-        rollout.append(item.as_rollout_item)
-
-    if item.updates_queryable_state:
-        sqlite_projection.apply(item.as_projection_delta)
-
-    if item.should_be_seen_by_clients:
-        event_stream.emit(item.as_event)
+pub struct ResumeThreadParams {
+    pub thread_id: ThreadId,
+    pub rollout_path: Option<PathBuf>,
+    pub history: Option<Vec<RolloutItem>>,
+    pub include_archived: bool,
+    pub metadata: ThreadPersistenceMetadata,
+    pub event_persistence_mode: ThreadEventPersistenceMode,
+}
 ```
 
-This design protects replay. A client can disappear and rejoin. A database row can be stale and refreshed. A model request can be rebuilt from normalized context instead of screen text. Durable state remains the common language among those surfaces.
+This is why a thread id is not just a UI key. It is the handle through which
+future writes and replay reads are addressed.
 
-### Start, Resume, Fork, Roll Back
+### 1.2 `LiveThread` Keeps the Session Narrow
 
-Thread operations are variations on the same principle: load or choose a replay prefix, build a session over it, then append future items in the same vocabulary.
+Codex wraps the store in
+[`LiveThread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L22-L31).
+The comment states the intent: session code should only need a live-thread
+handle for the active thread, while storage details remain inside the store.
 
-Resume is not a string reload. It reconstructs model history and session metadata from durable items. Fork is not a copy of a UI transcript. It selects a coherent prefix and opens a new thread whose future diverges from the source. Rollback is not merely deleting visible messages. It rebuilds the active model context from the surviving durable record, taking compaction and incomplete turns into account.
+```rust
+/// Handle for an active thread's persistence lifecycle.
+///
+/// `LiveThread` keeps lifecycle decisions with the caller while delegating storage details to
+/// [`ThreadStore`]. Local stores may use a rollout file internally and remote stores may use a
+/// service, but session code should only need this handle for the active thread.
+#[derive(Clone)]
+pub struct LiveThread {
+    thread_id: ThreadId,
+    thread_store: Arc<dyn ThreadStore>,
+}
+```
 
-This is why turn context snapshots are durable. They let a later session know which working directory, permissions, model settings, network policy, memory mode, and environment choices surrounded a turn. Without that context, replay would be text without execution semantics.
+The wrapper exposes the verbs a running session needs:
+[`create`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L82-L98),
+[`resume`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L95-L105),
+[`append_items`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L107-L114),
+[`persist`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L116-L118),
+[`flush`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L120-L122),
+and `shutdown` / `discard`. Failed initialization has its own guard:
+[`LiveThreadInitGuard`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L33-L63)
+discards the live writer if session construction fails after persistence was
+opened.
 
-### Session State Is Layered
+The practical rule is sharp: creating a live writer is not the same thing as
+successfully exposing a session. Initialization has to be reversible until the
+session owns the handle.
 
-The live session holds several kinds of state that should not be collapsed.
+## 2. The Running Stack Is a Set of Handles
 
-| Layer | Lifetime | Examples |
-| --- | --- | --- |
-| Configuration | session lifetime with controlled updates | model, provider, permissions, working directory, service tier |
-| Mutable session state | session lifetime | token usage, current metadata, connector selection, rate limits |
-| Active turn state | one in-flight task | cancellation token, tool futures, pending approvals, streamed items |
-| Mailbox and pending input | across scheduling boundaries | messages that arrive while another turn is running |
-| Durable store handles | thread lifetime | rollout writer, thread metadata, state database handle |
+### 2.1 `ThreadManager` Owns Live Threads
 
-The layering lets Codex answer a subtle question: "Did this operation change the durable thread, the current live turn, the next turn, or only a client view?" Those are different commitments. A runtime that cannot separate them will eventually lose user input, duplicate tool results, or make resume incoherent.
+The next layer is
+[`ThreadManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L166-L215).
+It owns a map from `ThreadId` to
+[`CodexThread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98-L124)
+plus shared services: auth,
+models, environments, skills, plugins, MCP, extensions, the thread store,
+attestation, analytics, and optional state DB.
 
-### Metadata Is Extracted, Not Invented
+```rust
+/// [`ThreadManager`] is responsible for creating threads and maintaining
+/// them in memory.
+pub struct ThreadManager {
+    state: Arc<ThreadManagerState>,
+    _test_codex_home_guard: Option<TempCodexHomeGuard>,
+}
 
-Thread lists and search views should not require full replay on every request. Codex therefore maintains metadata projections: title or preview fields, model provider, memory mode, archive state, working directory, git information, created and updated positions, and pagination anchors.
+// ...
 
-The projection is useful because it is queryable. It is safe because the durable rollout still exists behind it. When a listing row is missing or stale, the system can scan the corresponding rollout head or replay metadata-bearing items to repair the index. That is the durable-state pattern: optimize reads with projections, but keep the event record authoritative.
+pub(crate) struct ThreadManagerState {
+    threads: Arc<RwLock<HashMap<ThreadId, Arc<CodexThread>>>>,
+    thread_created_tx: broadcast::Sender<ThreadId>,
+    auth_manager: Arc<AuthManager>,
+    models_manager: SharedModelsManager,
+    environment_manager: Arc<EnvironmentManager>,
+    skills_manager: Arc<SkillsManager>,
+    plugins_manager: Arc<PluginsManager>,
+    mcp_manager: Arc<McpManager>,
+    extensions: Arc<ExtensionRegistry<Config>>,
+    thread_store: Arc<dyn ThreadStore>,
+    state_db: Option<StateDbHandle>,
+    // ...
+}
+```
+
+That field list matters because it puts live ownership in one place. A client
+does not mutate `Session` directly. It asks the manager to start, resume, fork,
+or retrieve a thread; the manager decides whether there is already a running
+handle and whether a new session must be spawned. The protected invariant is
+one live writer per durable future.
+
+For resumed threads, that invariant starts before a `Session` is exposed. In
+[`spawn_thread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1085-L1166),
+an already-running resumed thread is returned if its rollout path matches; a
+stopped entry is removed before a new `Codex` session is spawned. That protects
+against two live writers appending divergent futures to the same durable record.
+
+### 2.2 `Codex` Is Only a Queue Pair
+
+The public runtime handle is intentionally small. In
+[`session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364-L375),
+`Codex` is documented as a high-level interface that operates as a queue pair:
+send submissions, receive events.
+
+```rust
+/// The high-level interface to the Codex system.
+/// It operates as a queue pair where you send submissions and receive events.
+pub struct Codex {
+    pub(crate) tx_sub: Sender<Submission>,
+    pub(crate) rx_event: Receiver<Event>,
+    pub(crate) agent_status: watch::Receiver<AgentStatus>,
+    pub(crate) session: Arc<Session>,
+    pub(crate) session_loop_termination: SessionLoopTermination,
+}
+```
+
+`Session`, by contrast, is the large interior object. Its definition says a
+session has at most one running task and can be interrupted by user input; its
+fields include event output, session state, active turn, mailbox, pending input,
+goal runtime, review session, and service handles
+([`session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L11-L37)).
+
+```rust
+/// Context for an initialized model agent
+///
+/// A session has at most 1 running task at a time, and can be interrupted by user input.
+pub(crate) struct Session {
+    pub(crate) conversation_id: ThreadId,
+    pub(crate) installation_id: String,
+    pub(super) tx_event: Sender<Event>,
+    pub(super) agent_status: watch::Sender<AgentStatus>,
+    pub(super) out_of_band_elicitation_paused: watch::Sender<bool>,
+    pub(super) state: Mutex<SessionState>,
+    pub(super) managed_network_proxy_refresh_lock: Semaphore,
+    pub(super) features: ManagedFeatures,
+    pub(super) pending_mcp_server_refresh_config: Mutex<Option<McpServerRefreshConfig>>,
+    pub(crate) conversation: Arc<RealtimeConversationManager>,
+    pub(crate) active_turn: Mutex<Option<ActiveTurn>>,
+    pub(super) mailbox: Mailbox,
+    pub(super) mailbox_rx: Mutex<MailboxReceiver>,
+    pub(super) idle_pending_input: Mutex<Vec<ResponseInputItem>>,
+    pub(crate) goal_runtime: GoalRuntimeState,
+    pub(crate) guardian_review_session: GuardianReviewSessionManager,
+    pub(crate) services: SessionServices,
+    pub(super) next_internal_sub_id: AtomicU64,
+}
+```
+
+This is the runtime stack in one sentence: `ThreadManager` owns the map,
+`CodexThread` is the stable external handle, `Codex` is the submission/event
+queue pair, `Session` is the live scheduler, and `ThreadStore` is the durable
+boundary behind it.
+
+## 3. Startup Has a First Event Invariant
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/session-configured-startup-569ff6a1.webp" alt="Codex session startup timeline where configuration, persistence, and session construction emit SessionConfigured before later history, MCP, and prewarm work" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`SessionConfigured` is the event-stream anchor. Later startup work may continue, but clients first receive the resolved thread/session envelope.</figcaption>
+</figure>
+
+### 3.1 `SessionConfigured` Opens the Stream
+
+Once `Codex::spawn` returns, the manager does not immediately publish the new
+thread. It first reads the next event and requires it to be
+`SessionConfigured`. In
+[`finalize_thread_spawn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1168-L1209),
+anything else is an error.
+
+```rust
+async fn finalize_thread_spawn(
+    &self,
+    codex: Codex,
+    thread_id: ThreadId,
+    session_source: SessionSource,
+) -> CodexResult<NewThread> {
+    let event = codex.next_event().await?;
+    let session_configured = match event {
+        Event {
+            id,
+            msg: EventMsg::SessionConfigured(session_configured),
+        } if id == INITIAL_SUBMIT_ID => session_configured,
+        _ => {
+            return Err(CodexErr::SessionConfiguredNotFirstEvent);
+        }
+    };
+
+    {
+        let mut threads = self.threads.write().await;
+        if let std::collections::hash_map::Entry::Vacant(e) = threads.entry(thread_id) {
+            let thread = Arc::new(CodexThread::new(
+                codex,
+                session_configured.clone(),
+                session_configured.rollout_path.clone(),
+                session_source,
+            ));
+            e.insert(thread.clone());
+            return Ok(NewThread { thread_id, thread, session_configured });
+        }
+    }
+
+    // ...
+
+    Err(CodexErr::InvalidRequest(format!("thread {thread_id} is already running")))
+}
+```
+
+The invariant is not aesthetic. The omitted duplicate-thread branch shuts down
+the extra `Codex` handle before returning the duplicate-thread error. A client
+that receives events before it knows the thread id, session id, model, provider,
+permission profile, cwd, initial messages, and rollout path would have to guess
+which durable thread those facts belong to. Codex makes the setup event the
+stream anchor instead.
+
+### 3.2 Optional Startup Continues After the Anchor
+
+The session sends that setup event before later startup work reports its own
+facts. In
+[`session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L917-L945),
+the first event includes `session_id`, `thread_id`, `forked_from_id`, source
+classification, thread name, model, provider, service tier, approval reviewer,
+permission profiles, cwd, reasoning effort, initial messages, network proxy,
+and rollout path. Immediately after that, the code chains any post-setup events
+into the same stream.
+
+```rust
+// Dispatch the SessionConfiguredEvent first and then report any errors.
+// If resuming, include converted initial messages in the payload so UIs can render them immediately.
+let initial_messages = initial_history.get_event_msgs();
+let events = std::iter::once(Event {
+    id: INITIAL_SUBMIT_ID.to_owned(),
+    msg: EventMsg::SessionConfigured(SessionConfiguredEvent {
+        session_id,
+        thread_id,
+        forked_from_id,
+        thread_source: session_configuration.thread_source,
+        thread_name: session_configuration.thread_name.clone(),
+        model: session_configuration.collaboration_mode.model().to_string(),
+        model_provider_id: config.model_provider_id.clone(),
+        service_tier: session_configuration.service_tier.clone(),
+        approval_policy: session_configuration.approval_policy.value(),
+        approvals_reviewer: session_configuration.approvals_reviewer,
+        permission_profile: session_configuration.permission_profile(),
+        active_permission_profile: session_configuration.active_permission_profile(),
+        cwd: session_configuration.cwd.clone(),
+        reasoning_effort: session_configuration.collaboration_mode.reasoning_effort(),
+        initial_messages,
+        network_proxy: session_network_proxy.filter(|_| {
+            Self::managed_network_proxy_active_for_permission_profile(
+                session_configuration.permission_profile.get(),
+            )
+        }),
+        rollout_path,
+    }),
+})
+.chain(post_session_configured_events.into_iter());
+for event in events {
+    sess.send_event_raw(event).await;
+}
+```
+
+MCP initialization, startup prewarm, and initial-history recording then continue
+after the setup event
+([`session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L945-L1065)).
+That ordering creates a practical UX property: a resumed thread can render its
+identity and initial messages before every optional runtime capability has
+finished loading.
+
+## 4. History Has Three Owners
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/history-surface-fanout-569ff6a1.webp" alt="One Codex runtime item fans out to ContextManager model view, rollout JSONL replay facts, State DB query projection, and client events" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>A single runtime fact may update the model view, the replay ledger, the query projection, and the client stream, but those surfaces answer different questions.</figcaption>
+</figure>
+
+### 4.1 `ContextManager` Owns the Model-Visible View
+
+The first history owner is
+[`ContextManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32-L51).
+It stores `ResponseItem`s, tracks a `history_version`, carries token usage, and
+remembers a `reference_context_item` used for future settings diffs.
+
+```rust
+/// Transcript of thread history
+#[derive(Debug, Clone, Default)]
+pub(crate) struct ContextManager {
+    /// The oldest items are at the beginning of the vector.
+    items: Vec<ResponseItem>,
+    /// Bumped whenever history is rewritten, such as compaction or rollback.
+    history_version: u64,
+    token_info: Option<TokenUsageInfo>,
+    /// Reference context snapshot used for diffing and producing model-visible
+    /// settings update items.
+    reference_context_item: Option<TurnContextItem>,
+}
+```
+
+The method name
+[`for_prompt`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L114-L126)
+is the key. It returns history prepared for the model, after normalization and
+modality filtering. That is not the same thing as a UI transcript and not the
+same thing as the durable JSONL record.
+
+```rust
+/// Returns the history prepared for sending to the model. This applies a proper
+/// normalization and drops un-suited items. When `input_modalities` does not
+/// include `InputModality::Image`, images are stripped from messages and tool
+/// outputs.
+pub(crate) fn for_prompt(mut self, input_modalities: &[InputModality]) -> Vec<ResponseItem> {
+    self.normalize_history(input_modalities);
+    self.items
+}
+```
+
+If a rollback or compaction rewrites history, `ContextManager` is the model-side
+surface that must change. The UI may still show evidence of what happened, and
+the durable record may still keep replay facts, but the next model request must
+see the reconstructed view.
+
+### 4.2 `RolloutItem` Owns Replay Facts
+
+The second owner is the rollout vocabulary. In
+[`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2764-L2772),
+`RolloutItem` has five variants: session metadata, response items, compacted
+items, turn context snapshots, and event messages.
+
+```rust
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, TS)]
+#[serde(tag = "type", content = "payload", rename_all = "snake_case")]
+pub enum RolloutItem {
+    SessionMeta(SessionMetaLine),
+    ResponseItem(ResponseItem),
+    Compacted(CompactedItem),
+    TurnContext(TurnContextItem),
+    EventMsg(EventMsg),
+}
+```
+
+The local writer makes the storage format plain. `RolloutRecorder` says rollouts
+are recorded as JSONL, and its command channel accepts `AddItems`, `Persist`,
+`Flush`, and `Shutdown`
+([`rollout/src/recorder.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/recorder.rs#L75-L118)).
+
+```rust
+#[derive(Clone)]
+pub struct RolloutRecorder {
+    tx: Sender<RolloutCmd>,
+    writer_task: Arc<RolloutWriterTask>,
+    pub(crate) rollout_path: PathBuf,
+    event_persistence_mode: EventPersistenceMode,
+}
+```
+
+That means the durable record is not "whatever the model saw." It is a replay
+ledger that can include session metadata, event records, context snapshots, and
+compaction facts that are not all direct model input.
+
+### 4.3 The State DB Owns Query Projections
+
+The third owner is the state database. Local storage wires a
+[`StateDbHandle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/local/mod.rs#L40-L57)
+into `LocalThreadStore`, and the state runtime opens a SQLite-backed handle,
+applies rollout metadata backfills, and returns the initialized handle
+([`rollout/src/state_db.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/state_db.rs#L37-L57)).
+
+```rust
+#[derive(Clone)]
+pub struct LocalThreadStore {
+    pub(super) config: LocalThreadStoreConfig,
+    live_recorders: Arc<Mutex<HashMap<ThreadId, RolloutRecorder>>>,
+    state_db: Option<StateDbHandle>,
+}
+```
+
+Metadata is derived from replayable facts, not invented independently. The
+metadata extractor looks for `RolloutItem::SessionMeta` and builds thread
+metadata from it; if that is absent, it falls back to filename-derived legacy
+metadata
+([`rollout/src/metadata.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/metadata.rs#L39-L95)).
+
+```rust
+pub fn builder_from_items(
+    items: &[RolloutItem],
+    rollout_path: &Path,
+) -> Option<ThreadMetadataBuilder> {
+    if let Some(session_meta) = items.iter().find_map(|item| match item {
+        RolloutItem::SessionMeta(meta_line) => Some(meta_line),
+        RolloutItem::ResponseItem(_)
+        | RolloutItem::Compacted(_)
+        | RolloutItem::TurnContext(_)
+        | RolloutItem::EventMsg(_) => None,
+    }) && let Some(builder) = builder_from_session_meta(session_meta, rollout_path)
+    {
+        return Some(builder);
+    }
+
+    // Legacy fallback derives thread metadata from the rollout filename.
+    // ...
+}
+```
+
+That gives the three-history rule:
+
+| Surface | Owner | Main question | Failure if collapsed |
+| --- | --- | --- | --- |
+| Model-visible view | `ContextManager` | What should the next model request see? | Resume can leak stale, compacted, or rolled-back items into inference. |
+| Replay ledger | `RolloutItem` JSONL / store | What happened in durable order? | Fork and rollback lose the facts needed to reconstruct state. |
+| Query projection | State DB / metadata builders | What can be listed, searched, or indexed quickly? | Thread lists require full replay or drift away from the durable record. |
+| Client stream | `Event` / `EventMsg` | What should a client render now? | UI timing becomes the source of truth instead of durable replay. |
+
+## 5. Resume and Fork Are Replay Choices
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/replay-resume-fork-569ff6a1.webp" alt="Codex resume and fork reconstruct history from rollout scan, compaction, rollback, surviving prefix, and replacement history" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Resume and fork are not transcript copies. They choose a replay span, apply compaction and rollback semantics, and install a reconstructed model-visible history.</figcaption>
+</figure>
+
+### 5.1 `InitialHistory` Names the Start Mode
+
+The protocol-visible start modes are
+[`InitialHistory`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2363-L2376):
+new, cleared, resumed with a conversation id/history/rollout path, or forked
+from rollout items.
+
+```rust
+pub struct ResumedHistory {
+    pub conversation_id: ThreadId,
+    pub history: Vec<RolloutItem>,
+    pub rollout_path: Option<PathBuf>,
+}
+
+pub enum InitialHistory {
+    New,
+    Cleared,
+    Resumed(ResumedHistory),
+    Forked(Vec<RolloutItem>),
+}
+```
+
+The session then records that initial history differently for each mode. In
+[`record_initial_history`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L1157-L1241),
+new and cleared sessions defer initial context insertion until the first real
+turn. Resumed sessions reconstruct history, seed token usage, and flush rollout
+if needed. Forked sessions reconstruct history, seed token usage, persist the
+forked rollout items, materialize the rollout, and flush.
+
+```rust
+match conversation_history {
+    InitialHistory::New | InitialHistory::Cleared => {
+        // Defer initial context insertion until the first real turn starts.
+        self.set_previous_turn_settings(/*previous_turn_settings*/ None).await;
+    }
+    InitialHistory::Resumed(resumed_history) => {
+        let rollout_items = resumed_history.history;
+        let previous_turn_settings = self
+            .apply_rollout_reconstruction(&turn_context, &rollout_items)
+            .await;
+
+        // ...
+
+        if let Some(info) = Self::last_token_info_from_rollout(&rollout_items) {
+            let mut state = self.state.lock().await;
+            state.set_token_info(Some(info));
+        }
+
+        if !is_subagent {
+            let _ = self.flush_rollout().await;
+        }
+    }
+    InitialHistory::Forked(rollout_items) => {
+        self.apply_rollout_reconstruction(&turn_context, &rollout_items).await;
+
+        // ...
+
+        if !rollout_items.is_empty() {
+            self.persist_rollout_items(&rollout_items).await;
+        }
+        self.ensure_rollout_materialized().await;
+        if !is_subagent {
+            let _ = self.flush_rollout().await;
+        }
+    }
+}
+```
+
+The important distinction is that a resumed thread appends future writes to an
+existing identity, while a fork installs a selected replay prefix into a new
+thread future. Both depend on the same rollout vocabulary.
+
+### 5.2 Reconstruction Scans Newest to Oldest
+
+`apply_rollout_reconstruction` calls
+[`reconstruct_history_from_rollout`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L1244-L1261),
+then replaces `ContextManager` history and restores previous turn settings.
+
+```rust
+async fn apply_rollout_reconstruction(
+    &self,
+    turn_context: &TurnContext,
+    rollout_items: &[RolloutItem],
+) -> Option<PreviousTurnSettings> {
+    let reconstructed_rollout = self
+        .reconstruct_history_from_rollout(turn_context, rollout_items)
+        .await;
+    let previous_turn_settings = reconstructed_rollout.previous_turn_settings.clone();
+    self.replace_history(
+        reconstructed_rollout.history,
+        reconstructed_rollout.reference_context_item,
+    )
+    .await;
+    self.set_previous_turn_settings(previous_turn_settings.clone()).await;
+    previous_turn_settings
+}
+```
+
+The reconstruction module explains the replay shape. It scans rollout items
+from newest to oldest, looking for the newest surviving replacement-history
+checkpoint, latest surviving turn settings, and latest surviving context
+baseline
+([`rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86-L120)).
+
+```rust
+// Replay metadata should already match the shape of the future lazy reverse loader, even
+// while history materialization still uses an eager bridge. Scan newest-to-oldest,
+// stopping once a surviving replacement-history checkpoint and the required resume metadata
+// are both known; then replay only the buffered surviving tail forward to preserve exact
+// history semantics.
+let mut base_replacement_history: Option<&[ResponseItem]> = None;
+let mut previous_turn_settings = None;
+let mut reference_context_item = TurnReferenceContextItem::NeverSet;
+// Rollback is "drop the newest N user turns". While scanning in reverse, that becomes
+// "skip the next N user-turn segments we finalize".
+let mut pending_rollback_turns = 0usize;
+```
+
+Later, the suffix is replayed forward into a fresh `ContextManager`. Response
+items are recorded into model history, replacement compaction can replace the
+base history, `ThreadRolledBack` events drop user turns, and other rollout
+items are ignored for direct model history materialization
+([`rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L234-L299)).
+
+```rust
+for item in rollout_suffix {
+    match item {
+        RolloutItem::ResponseItem(response_item) => {
+            history.record_items(
+                std::iter::once(response_item),
+                turn_context.truncation_policy,
+            );
+        }
+        RolloutItem::Compacted(compacted) => {
+            if let Some(replacement_history) = &compacted.replacement_history {
+                history.replace(replacement_history.clone());
+            } else {
+                // Legacy compaction fallback rebuilds compacted history.
+                // ...
+            }
+        }
+        RolloutItem::EventMsg(EventMsg::ThreadRolledBack(rollback)) => {
+            history.drop_last_n_user_turns(rollback.num_turns);
+        }
+        RolloutItem::EventMsg(_)
+        | RolloutItem::TurnContext(_)
+        | RolloutItem::SessionMeta(_) => {}
+    }
+}
+```
+
+That is the core durable-state lesson. Rollback is not a UI delete. Compaction
+is not a display summary. Fork is not a copied DOM. They are replay choices
+over the durable ledger, and the reconstructed result becomes the next
+model-visible history.
+
+### 5.3 Fork Truncation Preserves Turn Boundaries
+
+Forking also has to choose where a prefix ends. The helper module
+[`thread_rollout_truncation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L1-L17)
+exists for that exact boundary: finding user message positions, applying
+rollback markers, and truncating before a selected user turn. The thread manager
+uses that logic when forking from rollout history
+([`thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L733-L829)).
+
+The visible contract is bounded. The source shows prefix selection and replay
+reconstruction; it does not need to claim that a fork is a byte-for-byte copy of
+every UI artifact. The durable thing is the replayable prefix and its future
+append path.
+
+## 6. Turn Context Is the Execution Envelope
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-context-envelope-569ff6a1.webp" alt="TurnContext persists cwd, permissions, model, and network into TurnContextItem as a reference baseline for the next turn" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`TurnContextItem` is the durable execution envelope. It lets replay recover not just text, but the settings that surrounded a real user turn.</figcaption>
+</figure>
+
+### 6.1 `TurnContext` Carries Runtime Semantics
+
+`TurnContext` is the per-turn bundle that makes a model request executable. In
+[`turn_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L55-L100),
+it includes the current sub id, trace id, realtime state, config, auth, model,
+provider, session source, thread source, resolved environments, cwd, date,
+timezone, developer and user instructions, collaboration mode, approval policy,
+permission profile, network proxy, shell policy, tool config, feature state,
+dynamic tools, skills context, and truncation policy.
+
+```rust
+pub struct TurnContext {
+    pub(crate) sub_id: String,
+    pub(crate) trace_id: Option<String>,
+    pub(crate) realtime_active: bool,
+    pub config: Arc<Config>,
+    // ...
+    pub(crate) model_info: ModelInfo,
+    pub(crate) provider: SharedModelProvider,
+    // ...
+    pub(crate) session_source: SessionSource,
+    pub(crate) thread_source: Option<ThreadSource>,
+    pub(crate) environments: ResolvedTurnEnvironments,
+    /// The session's absolute working directory.
+    pub(crate) cwd: AbsolutePathBuf,
+    pub(crate) current_date: Option<String>,
+    pub(crate) timezone: Option<String>,
+    // ...
+    pub(crate) developer_instructions: Option<String>,
+    pub(crate) user_instructions: Option<String>,
+    // ...
+    pub(crate) approval_policy: Constrained<AskForApproval>,
+    pub(crate) permission_profile: PermissionProfile,
+    pub(crate) network: Option<NetworkProxy>,
+    // ...
+    pub(crate) truncation_policy: TruncationPolicy,
+    // ...
+}
+```
+
+This is why replay cannot be just "messages." A future turn needs to know which
+cwd relative paths were resolved against, which sandbox and approval rules were
+active, which model was used, whether network policy mattered, and which
+instructions or schema were in force.
+
+### 6.2 `TurnContextItem` Persists the Baseline
+
+The durable form is produced by
+[`to_turn_context_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L347-L390).
+
+```rust
+pub(crate) fn to_turn_context_item(&self) -> TurnContextItem {
+    TurnContextItem {
+        turn_id: Some(self.sub_id.clone()),
+        trace_id: self.trace_id.clone(),
+        cwd: self.cwd.to_path_buf(),
+        current_date: self.current_date.clone(),
+        timezone: self.timezone.clone(),
+        approval_policy: self.approval_policy.value(),
+        sandbox_policy: self.sandbox_policy(),
+        permission_profile: Some(self.permission_profile()),
+        network: self.turn_context_network_item(),
+        file_system_sandbox_policy: self.non_legacy_file_system_sandbox_policy(),
+        model: self.model_info.slug.clone(),
+        personality: self.personality,
+        collaboration_mode: Some(self.collaboration_mode.clone()),
+        realtime_active: Some(self.realtime_active),
+        effort: self.reasoning_effort,
+        summary: self.reasoning_summary,
+        user_instructions: self.user_instructions.clone(),
+        developer_instructions: self.developer_instructions.clone(),
+        final_output_json_schema: self.final_output_json_schema.clone(),
+        truncation_policy: Some(self.truncation_policy),
+    }
+}
+```
+
+The protocol struct says the same thing in storage language. `TurnContextItem`
+is persisted once per real user turn after the turn's model-visible context
+updates, and again after mid-turn compaction when replacement history
+re-establishes full context
+([`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2800-L2825)).
+
+The runtime path is
+[`record_context_updates_and_set_reference_context_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2817-L2860).
+It either injects full initial context when no baseline exists, or emits only
+settings diffs when a baseline exists. It then appends a `RolloutItem::TurnContext`
+and advances the in-memory reference baseline.
+
+```rust
+let should_inject_full_context = reference_context_item.is_none();
+let context_items = if should_inject_full_context {
+    self.build_initial_context(turn_context).await
+} else {
+    self.build_settings_update_items(reference_context_item.as_ref(), turn_context)
+        .await
+};
+let turn_context_item = turn_context.to_turn_context_item();
+if !context_items.is_empty() {
+    self.record_conversation_items(turn_context, &context_items).await;
+}
+// Persist one `TurnContextItem` per real user turn so resume/lazy replay can recover the
+// latest durable baseline even when this turn emitted no model-visible context diffs.
+self.persist_rollout_items(&[RolloutItem::TurnContext(turn_context_item.clone())])
+    .await;
+
+let mut state = self.state.lock().await;
+state.set_reference_context_item(Some(turn_context_item));
+```
+
+This is the execution-envelope invariant: the model-visible history can be
+rebuilt, but the rebuilt turn should not lose the settings that made the
+original work meaningful.
+
+## 7. What Each Owner Is Allowed to Forget
+
+Durable systems are not built by storing everything everywhere. They are built
+by deciding which owner is authoritative for which question.
+
+| Pressure | Simple but wrong design | Codex owner split | Protected invariant |
+| --- | --- | --- | --- |
+| A client reconnects | Re-render from current screen state | `SessionConfigured` plus event stream | Clients anchor on thread/session identity before later events. |
+| A process resumes a thread | Load a messages array | `InitialHistory::Resumed` plus rollout reconstruction | Model-visible history is rebuilt from replay facts. |
+| A user forks work | Copy the UI transcript | Prefix selection plus `InitialHistory::Forked` | New thread future diverges from a coherent replay prefix. |
+| A rollback removes work | Delete latest visible cards | `ThreadRolledBack` during replay plus `ContextManager` rewrite | The next model request sees surviving history only. |
+| A thread list needs pagination | Replay every JSONL file for every view | State DB and metadata projection | Query speed improves without replacing the durable ledger. |
+| Settings change between turns | Assume text carries execution semantics | `TurnContextItem` reference baseline | Resume/fork can recover cwd, model, permissions, and diffs. |
+
+The cost of this design is more ceremony. Codex has to persist, flush, project,
+reconstruct, and baseline. The benefit is that each failure mode has a clear
+owner: if the model sees the wrong context, inspect `ContextManager` and
+rollout reconstruction; if a list is stale, inspect state projection; if a
+client renders events before setup, inspect the first-event invariant; if a
+resumed turn has the wrong execution semantics, inspect `TurnContextItem`.
+
+## Common Misreadings
+
+**"The rollout is the model prompt."** No. The rollout is a durable replay
+ledger. It may contain response items that become prompt history, but it also
+contains session metadata, turn context, compaction records, and events.
+
+**"The state database is the source of truth."** Not for replay. It is a query
+projection and operational state surface. The local implementation can backfill
+metadata from rollout items when needed.
+
+**"`SessionConfigured` is just UI metadata."** It is the first-event contract
+used by the manager before inserting the live `CodexThread` into the running
+thread map.
+
+**"Fork means copying all visible messages."** Fork means opening a new future
+from a selected replay prefix. Visible UI cards are not the semantic boundary.
+
+**"`TurnContextItem` duplicates prose."** It carries execution semantics:
+cwd, model, approval and sandbox policy, network constraints, instructions,
+schema, and truncation policy. Those fields are not recoverable from plain
+message text.
 
 <div class="apply-this">
 
 ## Apply This
 
-1. Keep the live-handle stack explicit, so clients submit operations rather than mutating scheduler internals.
-2. Separate thread identity from session execution, because one durable thread may have many runtime lifetimes.
-3. Emit a deterministic setup event before optional startup work, so every client has the same stream anchor.
-4. Maintain separate model, replay, and query histories instead of forcing one transcript to serve all purposes.
-5. Implement resume, fork, and rollback over the same replay vocabulary used by normal turns.
+1. Name the owner before naming the data: model view, replay ledger, query projection, client stream, or live scheduler.
+2. Keep live handles narrow. Let clients submit operations and receive events instead of mutating session internals.
+3. Require a setup event before later runtime facts so every client has a stable stream anchor.
+4. Treat resume, fork, compaction, and rollback as replay operations over durable items, not as transcript edits.
+5. Persist execution context and query projections separately, keeping projections repairable from replay facts whenever the design allows it.
 
 </div>
 
 ## Closing
 
-Chapter 5 turns the protocol from Chapter 4 into a living runtime. The thread is durable; the session is active; the turn is scheduled work inside that session. Chapter 6 follows one scheduled turn through the loop where Codex builds context, samples the model, executes tools, handles interruptions, and decides whether the agent is done.
+The durable runtime model is a set of owners, not a single transcript. A thread
+owns identity and replay; a session owns live scheduling; `Codex` exposes a
+queue pair; `ContextManager` owns the model-visible view; rollout items keep the
+replay ledger; the state DB accelerates queries; `TurnContextItem` preserves
+execution semantics.
+
+Once those owners are separated, a live turn has a stable envelope to run
+inside. User input can become scheduled work, tools and approvals can interleave
+with model output, and the runtime can decide that the agent is done without
+making the UI transcript carry every durable responsibility.
 
 <div class="source-equivalence">
 
@@ -139,10 +895,26 @@ Chapter 5 turns the protocol from Chapter 4 into a living runtime. The thread is
 
 | Concept | Source anchor |
 | --- | --- |
-| Thread manager boundary | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L168) |
-| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98) |
-| Queue-pair runtime facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
-| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
-| Accepted prompt recording | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2980) |
+| Thread store boundary | [`codex-rs/thread-store/src/store.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/store.rs#L21-L70) |
+| Thread persistence metadata and resume params | [`codex-rs/thread-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/types.rs#L30-L79) |
+| Live thread handle and init guard | [`codex-rs/thread-store/src/live_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L22-L63) |
+| Thread manager live map and shared services | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L166-L215) |
+| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98-L124) |
+| Resume-aware thread spawn | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1085-L1166) |
+| `SessionConfigured` first-event check | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1168-L1209) |
+| Queue-pair `Codex` facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364-L375) |
+| Live `Session` fields | [`codex-rs/core/src/session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L11-L37) |
+| Startup setup event ordering | [`codex-rs/core/src/session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L917-L1065) |
+| Model-visible history manager | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32-L126) |
+| Rollout item vocabulary | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2764-L2772) |
+| Local rollout writer | [`codex-rs/rollout/src/recorder.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/recorder.rs#L75-L118) |
+| Local state DB and metadata backfill | [`codex-rs/rollout/src/state_db.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/state_db.rs#L37-L57), [`metadata.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/metadata.rs#L39-L95) |
+| Initial history modes | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2363-L2376) |
+| Initial history recording and reconstruction install | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L1157-L1261) |
+| Rollout reconstruction and rollback replay | [`codex-rs/core/src/session/rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L1-L120), [`rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L234-L299) |
+| Fork rollout truncation | [`codex-rs/core/src/thread_rollout_truncation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L1-L149) |
+| Turn context runtime fields | [`codex-rs/core/src/session/turn_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L55-L100) |
+| Turn context persisted item | [`codex-rs/core/src/session/turn_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L347-L390), [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2800-L2825) |
+| Turn context baseline persistence | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2817-L2860) |
 
 </div>

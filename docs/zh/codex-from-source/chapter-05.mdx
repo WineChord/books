@@ -1,137 +1,851 @@
+# 线程、会话与持久状态
 
-# 第 5 章：线程、会话与持久状态
-
-> **阅读契约：** 用本章理解持久工作。把 thread identity、queues、history、rollout 和 session ownership 分别看成 state、progress 与 resumability 的答案。
+> **阅读契约：** 把本章当作 Codex 持久状态地图。重点区分 thread id、live
+> session、queue-pair facade、模型可见 history、rollout replay facts 和 query
+> projection。读完后，你应该能判断：resume、fork、rollback 或启动新 turn
+> 时，到底是哪一个 owner 必须改变。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-session-durable-state-569ff6a1-v2.webp" alt="持久 thread 状态图：分开 thread identity、session facade、queues、history、rollout、projection、resume、fork 与 rollback" loading="eager" decoding="async" />
-  <figcaption>Thread identity、live session、queues、history 和 rollout evidence 解决不同持久化问题，不能退化成一份 transcript。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-runtime-record-569ff6a1.webp" alt="Codex live runtime handles mapped to durable thread records, rollout, and state database" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Codex thread 不是一个聊天对象。live handle 服务当前进程；durable record 让工作在进程变化后仍可恢复。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章直接源码判断固定在 OpenAI Codex commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
+`ThreadStore`、`LiveThread`、`ThreadManager`、`Codex`、`Session`、
+`ContextManager`、`RolloutItem`、`InitialHistory`、`TurnContext` 与
+`TurnContextItem` 只有在正文链接到固定源码时才作为 **verified source**。
+“durable ledger”“runtime projection”“execution envelope”“history surface”
+这些说法是从可见源码形状得出的 **surrounding contract inference**，不是对
+OpenAI 私有服务内部的断言。
 
-第 4 章把协议边界讲清楚了：客户端可以提交 operation、接收 event、 交换模型 item，却不需要知道 runtime 内部如何工作。本章越过这条边界， 看 Codex 如何把这些协议消息变成一个可恢复、可 fork、可回滚的活线程。
+先从协议边界开始。客户端可以提交 operation，并接收带有关联 id 的事件；
+但这条窄接口本身解释不了：一段对话如何跨进程恢复，fork 如何选择前缀，
+rollback 为什么不是删除屏幕上的几张卡片。
+
+持久状态问题比 transcript 问题更难。一个 coding agent 同时有 in-flight
+live work、pending user input、tool approval、模型可见 history、UI event、
+rollout file、thread metadata、search index，以及每个 turn 的执行设置。
+如果把这些全部塞进一个 messages 列表，resume 会丢语义，fork 会变得含混，
+rollback 会变得危险。
+
+Codex 的答案是拆 owner：
 
 <div class="chapter-lede">
-  <p><strong>问题：</strong>Agent 必须既像一段连续对话，又能恢复、分叉、中断和观测。</p>
-  <p><strong>主张：</strong>Codex 通过区分 live runtime handle 与 durable thread record 来做到这一点。</p>
-  <p><strong>心智模型：</strong>thread 是长期工作账本；session 是当前正在服务这个账本的运行时进程。</p>
+  <p><strong>问题：</strong>一个用户可见 thread 必须能 resume、fork、interrupt 和 query，同时 live task 仍然通过窄事件协议运行。</p>
+  <p><strong>主张：</strong>Codex 把 durable thread identity 与 live session 分开，再从可 replay 的 rollout facts 重建模型可见 history。</p>
+  <p><strong>心智模型：</strong>thread 是长期工作账本；session 是当前服务它的活进程；turn 是 session 内被调度的一段工作。</p>
+  <p><strong>导读问题：</strong>这个事实由哪个 owner 回答？哪个 surface 可 replay？哪个 state 只是 live handle？</p>
 </div>
 
+## 一、Thread 是持久边界
 
-## Runtime Stack
+### 1.1 `ThreadStore` 是存储无关契约
 
-Codex 不是围绕一个“聊天对象”组织起来的。它更像一组逐层收窄权限的 handle：越靠近外部，接口越小；越靠近内部，状态和调度责任越多。
+第一个关键源码形状不是 `Session`，而是
+[`ThreadStore`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/store.rs#L21-L70)。
+这个 trait 描述 durable thread storage 必须提供什么：打开 live persistence，
+追加有序事实，让排队写入变得可读，处理初始化失败时的 discard，并为
+resume/fork/rollback 加载历史。下面是节选；trait 后半部分的 read/list/update
+接口在这里省略。
 
-`ThreadManager` 拥有 live threads 集合，以及创建 session 所需的共享服务。 `CodexThread` 是线程创建或恢复之后交给客户端的稳定 handle。`Codex` 本身刻意保持很小：一条提交路径，一条事件路径。`Session` 才是内部的 大对象，保存解析后的配置、持久身份、active turn、mailbox、realtime 状态、目标状态、review 状态和各种 service handle。
+```rust
+/// Storage-neutral thread persistence boundary.
+#[async_trait]
+pub trait ThreadStore: Any + Send + Sync {
+    /// Return this store as [`Any`] for implementation-owned escape hatches.
+    fn as_any(&self) -> &dyn Any;
 
-这层拆分很关键。客户端不应该直接改调度器内部状态。客户端提交一个 operation；session 决定它是启动新 task、steer 当前 task、记录 pending input、更新持久 metadata，还是关闭线程。
+    /// Creates a new live thread.
+    async fn create_thread(&self, params: CreateThreadParams) -> ThreadStoreResult<()>;
 
-### 第一个事件就是契约
+    /// Reopens an existing thread for live appends.
+    async fn resume_thread(&self, params: ResumeThreadParams) -> ThreadStoreResult<()>;
 
-一个新打开的 runtime，第一个客户端可见事件是 session setup event。它 携带 thread identity、session identity、工作目录、模型、provider、 审批策略、权限 profile、初始消息和其他已解析设置。
+    /// Appends items to a live thread.
+    async fn append_items(&self, params: AppendThreadItemsParams) -> ThreadStoreResult<()>;
 
-这个顺序不是偶然的。有些启动工作可以在 session 已经可见后继续进行： MCP server 可能还在初始化，plugin 能力可能稍后才报告，prewarm 工作也 可能在后台运行。setup event 给所有客户端一个确定的流式锚点，后续事件 才有共同参照。
+    /// Materializes the thread if persistence is lazy, then persists all queued items.
+    async fn persist_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-```text
-// Pseudocode - illustrative pattern.
-function open_runtime_thread(request):
-    resolved = resolve_configuration(request)
-    live_store = open_thread_persistence(resolved.thread_identity)
-    session = build_session(resolved, live_store)
+    /// Flushes all queued items and returns once they are durable/readable.
+    async fn flush_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-    emit_event(SessionConfigured(resolved.public_metadata))
+    /// Flushes pending items and closes the live thread writer.
+    async fn shutdown_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-    record_initial_history_if_resuming(session)
-    start_background_capability_initialization(session)
-    start_submission_loop(session)
+    /// Discards the live thread writer without forcing pending in-memory items to become durable.
+    async fn discard_thread(&self, thread_id: ThreadId) -> ThreadStoreResult<()>;
 
-    return client_thread_handle(session)
+    /// Loads persisted history for resume, fork, rollback, and memory jobs.
+    async fn load_history(
+        &self,
+        params: LoadThreadHistoryParams,
+    ) -> ThreadStoreResult<StoredThreadHistory>;
+
+    // ...
+}
 ```
 
-重要的不是源码里每一步的具体位置，而是这个性质：客户端可以把 setup 当作事件流的起点，并且在可选能力还没有全部加载完时，也能先渲染一个 恢复出来的线程。
+这个 trait 是 durable contract。live process 不需要知道背后是本地 rollout
+文件、state database，还是远端服务。可见 invariant 更简单：live thread
+一旦打开，后续 runtime facts 就可以按顺序 append、flush，并在之后 replay。
 
-### 三种历史
+参数也把这层拆分写得很清楚。
+[`thread-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/types.rs#L30-L79)
+里，new 和 resumed persistence 都携带 thread-scoped metadata，包括有效
+working directory、model provider 和 memory mode。resumed thread 还可以带
+已加载的 rollout history 与 rollout path。下面节选省略了夹在中间的
+`CreateThreadParams`。
 
-Agent 架构里很多混乱，都来自把“历史”当成一个东西。Codex 同时维护三种 历史，它们回答的问题不同。
+```rust
+pub struct ThreadPersistenceMetadata {
+    pub cwd: Option<PathBuf>,
+    pub model_provider: String,
+    pub memory_mode: MemoryMode,
+}
 
-| 历史 | 主要 owner | 回答的问题 |
-| --- | --- | --- |
-| 模型可见上下文 | `ContextManager` | 下一次模型请求应该看到什么？ |
-| Rollout JSONL | thread persistence | 按 replay 顺序到底发生了什么，以便恢复或 fork？ |
-| SQLite projection | state layer | 哪些信息需要高效查询，而不是每次 replay 全量文件？ |
+// ...
 
-模型可见上下文会被规范化为 model items。它不是 UI transcript，也不是 raw log。它只包含未来 inference 应该参与的内容，并且会受到模型输入 模态、compaction、context injection、工具观察结果和 pending input 的影响。
-
-rollout 文件是 replay spine。它按顺序记录持久 runtime 事实：session metadata、turn context snapshot、模型可见 item、event record、compaction record、rollback marker，以及其他可 replay 的 item。线程恢复时，它是 重建过程的事实来源。
-
-SQLite state 是 projection layer。它保存 thread metadata、列表和搜索索引、 日志、memory job、graph edge 等适合查询的状态。在设计允许的地方， projection 可以从持久记录修复或重建。rollout 是账本；数据库是索引和 运行时辅助状态。
-
-### 记录一个 Item 可能影响三层
-
-一次 turn 记录一个新 item 时，runtime 必须判断哪些 surface 需要知道它。 一个工具结果可能是模型可见的、可 replay 的、客户端可渲染的、analytics 关心的，也可能需要进入 trace 诊断证据。这些关系很近，但并不是同一件事。
-
-```text
-// Pseudocode - illustrative pattern.
-function record_runtime_item(turn, item):
-    if item.belongs_in_model_context:
-        context_manager.append(item.as_model_item)
-
-    if item.belongs_in_replay:
-        rollout.append(item.as_rollout_item)
-
-    if item.updates_queryable_state:
-        sqlite_projection.apply(item.as_projection_delta)
-
-    if item.should_be_seen_by_clients:
-        event_stream.emit(item.as_event)
+pub struct ResumeThreadParams {
+    pub thread_id: ThreadId,
+    pub rollout_path: Option<PathBuf>,
+    pub history: Option<Vec<RolloutItem>>,
+    pub include_archived: bool,
+    pub metadata: ThreadPersistenceMetadata,
+    pub event_persistence_mode: ThreadEventPersistenceMode,
+}
 ```
 
-这种设计保护的是 replay。客户端可以断开再重连；数据库行可以过期后修复； 模型请求可以从规范化 context 重新构造，而不是依赖屏幕文本。持久状态是 这些 surface 之间的共同语言。
+所以 thread id 不只是 UI key。它是未来写入和 replay 读取共同指向的 durable
+handle。
 
-### Start、Resume、Fork、Rollback
+### 1.2 `LiveThread` 让 session 保持窄边界
 
-线程操作本质上都是同一个原则的变体：加载或选择一个 replay 前缀，在它 之上构造 session，然后用相同的词汇继续追加未来 item。
+Codex 用
+[`LiveThread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L22-L31)
+包装 store。源码注释说得很直白：session code 只应该需要 active thread 的
+live handle，storage details 留在 `ThreadStore` 里面。
 
-resume 不是重新加载一段字符串。它要从 durable items 重建模型历史和 session metadata。fork 不是复制 UI transcript。它选择一个一致的前缀， 打开一个新的 thread，让未来从源线程分叉。rollback 也不是简单删除可见 消息；它要从保留下来的 durable record 重建 active model context，并考虑 compaction 和未完成 turn。
+```rust
+/// Handle for an active thread's persistence lifecycle.
+///
+/// `LiveThread` keeps lifecycle decisions with the caller while delegating storage details to
+/// [`ThreadStore`]. Local stores may use a rollout file internally and remote stores may use a
+/// service, but session code should only need this handle for the active thread.
+#[derive(Clone)]
+pub struct LiveThread {
+    thread_id: ThreadId,
+    thread_store: Arc<dyn ThreadStore>,
+}
+```
 
-这就是为什么 turn context snapshot 必须持久化。它告诉后来的 session： 当时的工作目录、权限、模型设置、网络策略、memory mode 和环境选择是什么。 没有这些上下文，replay 就只剩文本，没有执行语义。
+这个 wrapper 暴露 running session 需要的动词：
+[`create`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L82-L98)、
+[`resume`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L95-L105)、
+[`append_items`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L107-L114)、
+[`persist`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L116-L118)、
+[`flush`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L120-L122)，
+以及 `shutdown` / `discard`。初始化失败还有单独的
+[`LiveThreadInitGuard`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L33-L63)：
+如果 persistence 已经打开，但 session 构建失败，guard 会 discard live writer。
 
-### Session State 是分层的
+这里的实际规则很硬：打开 live writer 不等于 session 已经成功暴露。直到
+session 真正接管 handle 之前，初始化都必须可回滚。
 
-live session 内部有多类状态，不应该被揉成一个 map。
+## 二、运行时栈是一组 handle
 
-| 层次 | 生命周期 | 示例 |
-| --- | --- | --- |
-| 配置 | session 生命周期，可受控更新 | model、provider、permissions、cwd、service tier |
-| 可变 session state | session 生命周期 | token usage、当前 metadata、connector selection、rate limits |
-| Active turn state | 一个 in-flight task | cancellation token、tool futures、pending approvals、streamed items |
-| Mailbox 与 pending input | 跨调度边界 | 另一个 turn 正在运行时到达的消息 |
-| Durable store handle | thread 生命周期 | rollout writer、thread metadata、state database handle |
+### 2.1 `ThreadManager` 拥有 live threads
 
-这层拆分让 Codex 能回答一个细问题：“这个 operation 改的是 durable thread、 当前 live turn、下一次 turn，还是只是客户端视图？”这些承诺完全不同。 如果 runtime 分不清，迟早会丢输入、重复工具结果，或者让 resume 变得不一致。
+下一层是
+[`ThreadManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L166-L215)。
+它持有 `ThreadId` 到
+[`CodexThread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98-L124)
+的 map，以及 auth、models、environments、
+skills、plugins、MCP、extensions、thread store、attestation、analytics 和
+可选 state DB 等共享服务。
 
-### Metadata 是抽取出来的，不是凭空造的
+```rust
+/// [`ThreadManager`] is responsible for creating threads and maintaining
+/// them in memory.
+pub struct ThreadManager {
+    state: Arc<ThreadManagerState>,
+    _test_codex_home_guard: Option<TempCodexHomeGuard>,
+}
 
-线程列表和搜索视图不能每次请求都全量 replay。Codex 因此维护 metadata projection：标题或 preview、model provider、memory mode、archive state、 working directory、git 信息、创建和更新时间、分页 anchor 等。
+// ...
 
-projection 的价值在于可查询；它的安全性来自背后仍然有 durable rollout。 当列表行缺失或过期时，系统可以扫描对应 rollout 的头部，或者 replay 携带 metadata 的 items 来修复索引。这就是持久状态模式：用 projection 优化读取，但让 event record 保持权威。
+pub(crate) struct ThreadManagerState {
+    threads: Arc<RwLock<HashMap<ThreadId, Arc<CodexThread>>>>,
+    thread_created_tx: broadcast::Sender<ThreadId>,
+    auth_manager: Arc<AuthManager>,
+    models_manager: SharedModelsManager,
+    environment_manager: Arc<EnvironmentManager>,
+    skills_manager: Arc<SkillsManager>,
+    plugins_manager: Arc<PluginsManager>,
+    mcp_manager: Arc<McpManager>,
+    extensions: Arc<ExtensionRegistry<Config>>,
+    thread_store: Arc<dyn ThreadStore>,
+    state_db: Option<StateDbHandle>,
+    // ...
+}
+```
+
+这个 field list 的意义是 live ownership 集中在一个地方。客户端不直接改
+`Session`，而是请求 manager start、resume、fork 或 retrieve thread；
+manager 决定是否已有 running handle，以及是否需要 spawn 新 session。它保护的
+invariant 是：一个 durable future 不应该同时有两个 live writer。
+
+对于 resumed thread，这个 invariant 在 `Session` 暴露之前就开始执行。
+[`spawn_thread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1085-L1166)
+里，如果 resumed thread 已经 running 且 rollout path 匹配，manager 直接返回
+现有 thread；如果 map 里是 stopped entry，则先移除再 spawn 新 `Codex`
+session。这样可以避免两个 live writer 给同一个 durable record 追加不同未来。
+
+### 2.2 `Codex` 只是 queue pair
+
+对外 runtime handle 刻意很小。
+[`session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364-L375)
+把 `Codex` 描述为一个高层接口：send submissions，receive events。
+
+```rust
+/// The high-level interface to the Codex system.
+/// It operates as a queue pair where you send submissions and receive events.
+pub struct Codex {
+    pub(crate) tx_sub: Sender<Submission>,
+    pub(crate) rx_event: Receiver<Event>,
+    pub(crate) agent_status: watch::Receiver<AgentStatus>,
+    pub(crate) session: Arc<Session>,
+    pub(crate) session_loop_termination: SessionLoopTermination,
+}
+```
+
+`Session` 则是大的内部对象。它的定义说明 session 同时最多只有一个 running
+task，并且可以被 user input interrupt；字段包含 event output、session state、
+active turn、mailbox、pending input、goal runtime、review session 和 service
+handles
+([`session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L11-L37))。
+
+```rust
+/// Context for an initialized model agent
+///
+/// A session has at most 1 running task at a time, and can be interrupted by user input.
+pub(crate) struct Session {
+    pub(crate) conversation_id: ThreadId,
+    pub(crate) installation_id: String,
+    pub(super) tx_event: Sender<Event>,
+    pub(super) agent_status: watch::Sender<AgentStatus>,
+    pub(super) out_of_band_elicitation_paused: watch::Sender<bool>,
+    pub(super) state: Mutex<SessionState>,
+    pub(super) managed_network_proxy_refresh_lock: Semaphore,
+    pub(super) features: ManagedFeatures,
+    pub(super) pending_mcp_server_refresh_config: Mutex<Option<McpServerRefreshConfig>>,
+    pub(crate) conversation: Arc<RealtimeConversationManager>,
+    pub(crate) active_turn: Mutex<Option<ActiveTurn>>,
+    pub(super) mailbox: Mailbox,
+    pub(super) mailbox_rx: Mutex<MailboxReceiver>,
+    pub(super) idle_pending_input: Mutex<Vec<ResponseInputItem>>,
+    pub(crate) goal_runtime: GoalRuntimeState,
+    pub(crate) guardian_review_session: GuardianReviewSessionManager,
+    pub(crate) services: SessionServices,
+    pub(super) next_internal_sub_id: AtomicU64,
+}
+```
+
+把运行时栈压成一句话：`ThreadManager` 管 live map，`CodexThread` 是稳定外部
+handle，`Codex` 是 submission/event queue pair，`Session` 是 live scheduler，
+`ThreadStore` 是背后的持久边界。
+
+## 三、启动顺序有第一个事件 invariant
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/session-configured-startup-569ff6a1.webp" alt="Codex session startup timeline where configuration, persistence, and session construction emit SessionConfigured before later history, MCP, and prewarm work" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`SessionConfigured` 是事件流锚点。后续启动工作可以继续，但客户端先拿到已解析的 thread/session envelope。</figcaption>
+</figure>
+
+### 3.1 `SessionConfigured` 打开事件流
+
+`Codex::spawn` 返回后，manager 不会立刻发布新 thread。它先读取下一个 event，
+并要求它是 `SessionConfigured`。
+[`finalize_thread_spawn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1168-L1209)
+里，任何其他 event 都是错误。
+
+```rust
+async fn finalize_thread_spawn(
+    &self,
+    codex: Codex,
+    thread_id: ThreadId,
+    session_source: SessionSource,
+) -> CodexResult<NewThread> {
+    let event = codex.next_event().await?;
+    let session_configured = match event {
+        Event {
+            id,
+            msg: EventMsg::SessionConfigured(session_configured),
+        } if id == INITIAL_SUBMIT_ID => session_configured,
+        _ => {
+            return Err(CodexErr::SessionConfiguredNotFirstEvent);
+        }
+    };
+
+    let mut threads = self.threads.write().await;
+    if let std::collections::hash_map::Entry::Vacant(e) = threads.entry(thread_id) {
+        let thread = Arc::new(CodexThread::new(
+            codex,
+            session_configured.clone(),
+            session_configured.rollout_path.clone(),
+            session_source,
+        ));
+        e.insert(thread.clone());
+        return Ok(NewThread { thread_id, thread, session_configured });
+    }
+
+    Err(CodexErr::InvalidRequest(format!("thread {thread_id} is already running")))
+}
+```
+
+这个 invariant 不是 UI 美学。如果客户端在知道 thread id、session id、model、
+provider、permission profile、cwd、initial messages 和 rollout path 之前就收到
+后续事件，它只能猜这些事实属于哪一个 durable thread。Codex 把 setup event
+固定成 stream anchor。
+
+### 3.2 可选启动工作在 anchor 之后继续
+
+session 会先发送 setup event，再报告其他启动事实。
+[`session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L917-L945)
+里，第一个 event 包含 `session_id`、`thread_id`、`forked_from_id`、source
+classification、model、provider、service tier、approval policy、permission
+profile、cwd、reasoning effort、initial messages、network proxy 和 rollout path。
+之后才把 post-setup events 接到同一条 stream 上。
+
+```rust
+// Dispatch the SessionConfiguredEvent first and then report any errors.
+// If resuming, include converted initial messages in the payload so UIs can render them immediately.
+let initial_messages = initial_history.get_event_msgs();
+let events = std::iter::once(Event {
+    id: INITIAL_SUBMIT_ID.to_owned(),
+    msg: EventMsg::SessionConfigured(SessionConfiguredEvent {
+        session_id,
+        thread_id,
+        forked_from_id,
+        thread_source: session_configuration.thread_source,
+        thread_name: session_configuration.thread_name.clone(),
+        model: session_configuration.collaboration_mode.model().to_string(),
+        model_provider_id: config.model_provider_id.clone(),
+        service_tier: session_configuration.service_tier.clone(),
+        approval_policy: session_configuration.approval_policy.value(),
+        approvals_reviewer: session_configuration.approvals_reviewer,
+        permission_profile: session_configuration.permission_profile(),
+        active_permission_profile: session_configuration.active_permission_profile(),
+        cwd: session_configuration.cwd.clone(),
+        reasoning_effort: session_configuration.collaboration_mode.reasoning_effort(),
+        initial_messages,
+        network_proxy: session_network_proxy.filter(|_| {
+            Self::managed_network_proxy_active_for_permission_profile(
+                session_configuration.permission_profile.get(),
+            )
+        }),
+        rollout_path,
+    }),
+})
+.chain(post_session_configured_events.into_iter());
+for event in events {
+    sess.send_event_raw(event).await;
+}
+```
+
+MCP initialization、startup prewarm 和 initial-history recording 之后继续
+([`session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L945-L1065))。
+于是 resumed thread 可以先渲染 identity 和 initial messages，不必等每个可选
+runtime capability 都完成加载。
+
+## 四、History 有三个 owner
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/history-surface-fanout-569ff6a1.webp" alt="One Codex runtime item fans out to ContextManager model view, rollout JSONL replay facts, State DB query projection, and client events" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>一个 runtime fact 可以同时影响 model view、replay ledger、query projection 和 client stream，但它们回答的问题不同。</figcaption>
+</figure>
+
+### 4.1 `ContextManager` 拥有模型可见视图
+
+第一个 history owner 是
+[`ContextManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32-L51)。
+它保存 `ResponseItem`，跟踪 `history_version`，携带 token usage，并记住未来
+settings diff 使用的 `reference_context_item`。
+
+```rust
+/// Transcript of thread history
+#[derive(Debug, Clone, Default)]
+pub(crate) struct ContextManager {
+    /// The oldest items are at the beginning of the vector.
+    items: Vec<ResponseItem>,
+    /// Bumped whenever history is rewritten, such as compaction or rollback.
+    history_version: u64,
+    token_info: Option<TokenUsageInfo>,
+    /// Reference context snapshot used for diffing and producing model-visible
+    /// settings update items.
+    reference_context_item: Option<TurnContextItem>,
+}
+```
+
+[`for_prompt`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L114-L126)
+这个方法名就是关键。它返回准备发送给模型的 history，而且会先做 normalization
+与 modality filtering。这不是 UI transcript，也不是 durable JSONL record。
+
+```rust
+/// Returns the history prepared for sending to the model. This applies a proper
+/// normalization and drops un-suited items. When `input_modalities` does not
+/// include `InputModality::Image`, images are stripped from messages and tool
+/// outputs.
+pub(crate) fn for_prompt(mut self, input_modalities: &[InputModality]) -> Vec<ResponseItem> {
+    self.normalize_history(input_modalities);
+    self.items
+}
+```
+
+如果 rollback 或 compaction 改写 history，`ContextManager` 是必须改变的
+model-side surface。UI 可以继续显示发生过什么，durable record 可以保留 replay
+facts，但下一次模型请求必须看到重建后的视图。
+
+### 4.2 `RolloutItem` 拥有 replay facts
+
+第二个 owner 是 rollout vocabulary。
+[`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2764-L2772)
+里，`RolloutItem` 有五类：session metadata、response items、compacted items、
+turn context snapshots 和 event messages。
+
+```rust
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, TS)]
+#[serde(tag = "type", content = "payload", rename_all = "snake_case")]
+pub enum RolloutItem {
+    SessionMeta(SessionMetaLine),
+    ResponseItem(ResponseItem),
+    Compacted(CompactedItem),
+    TurnContext(TurnContextItem),
+    EventMsg(EventMsg),
+}
+```
+
+本地 writer 把存储格式说得很清楚。`RolloutRecorder` 说明 rollouts 被记录为
+JSONL，它的命令通道接收 `AddItems`、`Persist`、`Flush` 和 `Shutdown`
+([`rollout/src/recorder.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/recorder.rs#L75-L118))。
+
+```rust
+/// Rollouts are recorded as JSONL and can be inspected with tools such as:
+///
+/// ```ignore
+/// $ jq -C . ~/.codex/sessions/rollout-2025-05-07T17-24-21-5973b6c0-94b8-487b-a530-2aeb6098ae0e.jsonl
+/// ```
+#[derive(Clone)]
+pub struct RolloutRecorder {
+    tx: Sender<RolloutCmd>,
+    writer_task: Arc<RolloutWriterTask>,
+    pub(crate) rollout_path: PathBuf,
+    event_persistence_mode: EventPersistenceMode,
+}
+```
+
+所以 durable record 不是“模型看到过什么”。它是 replay ledger，可以包含 session
+metadata、event records、context snapshots 和 compaction facts，其中很多并不是
+直接模型输入。
+
+### 4.3 State DB 拥有 query projections
+
+第三个 owner 是 state database。Local storage 把
+[`StateDbHandle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/local/mod.rs#L40-L57)
+挂进 `LocalThreadStore`；state runtime 打开 SQLite-backed handle，按需做 rollout
+metadata backfill，并返回初始化后的 handle
+([`rollout/src/state_db.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/state_db.rs#L37-L57))。
+
+```rust
+#[derive(Clone)]
+pub struct LocalThreadStore {
+    pub(super) config: LocalThreadStoreConfig,
+    live_recorders: Arc<Mutex<HashMap<ThreadId, RolloutRecorder>>>,
+    state_db: Option<StateDbHandle>,
+}
+```
+
+Metadata 是从 replayable facts 抽出来的，不是独立编造的。metadata extractor
+会寻找 `RolloutItem::SessionMeta` 并从它构造 thread metadata；如果没有，就回退到
+从文件名推导的 legacy metadata
+([`rollout/src/metadata.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/metadata.rs#L39-L95))。
+
+```rust
+pub fn builder_from_items(
+    items: &[RolloutItem],
+    rollout_path: &Path,
+) -> Option<ThreadMetadataBuilder> {
+    if let Some(session_meta) = items.iter().find_map(|item| match item {
+        RolloutItem::SessionMeta(meta_line) => Some(meta_line),
+        RolloutItem::ResponseItem(_)
+        | RolloutItem::Compacted(_)
+        | RolloutItem::TurnContext(_)
+        | RolloutItem::EventMsg(_) => None,
+    }) && let Some(builder) = builder_from_session_meta(session_meta, rollout_path)
+    {
+        return Some(builder);
+    }
+
+    // Legacy fallback derives thread metadata from the rollout filename.
+    // ...
+}
+```
+
+三种 history 的规则可以压成这张表：
+
+| Surface | Owner | 主要问题 | 如果混成一个东西 |
+| --- | --- | --- | --- |
+| 模型可见视图 | `ContextManager` | 下一次模型请求应该看到什么？ | resume 可能把 stale、compacted 或 rolled-back item 泄进 inference。 |
+| Replay ledger | `RolloutItem` JSONL / store | durable order 里发生过什么？ | fork 和 rollback 缺少重建事实。 |
+| Query projection | State DB / metadata builders | 什么信息要高效 list/search/index？ | thread list 要么全量 replay，要么 drift。 |
+| Client stream | `Event` / `EventMsg` | 客户端现在应该渲染什么？ | UI timing 变成事实来源，替代 durable replay。 |
+
+## 五、Resume 与 fork 是 replay 选择
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/replay-resume-fork-569ff6a1.webp" alt="Codex resume and fork reconstruct history from rollout scan, compaction, rollback, surviving prefix, and replacement history" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Resume 和 fork 不是复制 transcript。它们选择 replay span，应用 compaction 与 rollback 语义，再安装重建后的模型可见 history。</figcaption>
+</figure>
+
+### 5.1 `InitialHistory` 命名启动模式
+
+协议可见的启动模式是
+[`InitialHistory`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2363-L2376)：
+new、cleared、带 conversation id/history/rollout path 的 resumed，以及来自 rollout
+items 的 forked。
+
+```rust
+pub struct ResumedHistory {
+    pub conversation_id: ThreadId,
+    pub history: Vec<RolloutItem>,
+    pub rollout_path: Option<PathBuf>,
+}
+
+pub enum InitialHistory {
+    New,
+    Cleared,
+    Resumed(ResumedHistory),
+    Forked(Vec<RolloutItem>),
+}
+```
+
+session 会按不同模式记录 initial history。
+[`record_initial_history`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L1157-L1241)
+里，new 与 cleared session 会把 initial context insertion 延迟到第一个真实 turn；
+resumed session 会 reconstruct history、seed token usage，并在需要时 flush rollout；
+forked session 会 reconstruct history、seed token usage、persist forked rollout
+items、materialize rollout，再 flush。
+
+```rust
+match conversation_history {
+    InitialHistory::New | InitialHistory::Cleared => {
+        // Defer initial context insertion until the first real turn starts.
+        self.set_previous_turn_settings(/*previous_turn_settings*/ None).await;
+    }
+    InitialHistory::Resumed(resumed_history) => {
+        let rollout_items = resumed_history.history;
+        let previous_turn_settings = self
+            .apply_rollout_reconstruction(&turn_context, &rollout_items)
+            .await;
+
+        if let Some(info) = Self::last_token_info_from_rollout(&rollout_items) {
+            let mut state = self.state.lock().await;
+            state.set_token_info(Some(info));
+        }
+
+        if !is_subagent {
+            let _ = self.flush_rollout().await;
+        }
+    }
+    InitialHistory::Forked(rollout_items) => {
+        self.apply_rollout_reconstruction(&turn_context, &rollout_items).await;
+        if !rollout_items.is_empty() {
+            self.persist_rollout_items(&rollout_items).await;
+        }
+        self.ensure_rollout_materialized().await;
+        if !is_subagent {
+            let _ = self.flush_rollout().await;
+        }
+    }
+}
+```
+
+关键区别是：resumed thread 给已有 identity 追加未来写入；fork 则把选定 replay
+prefix 安装进一个新的未来。两者都依赖同一套 rollout vocabulary。
+
+### 5.2 Reconstruction 从新到旧扫描
+
+`apply_rollout_reconstruction` 调用
+[`reconstruct_history_from_rollout`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L1244-L1261)，
+然后替换 `ContextManager` history，并恢复 previous turn settings。
+
+```rust
+async fn apply_rollout_reconstruction(
+    &self,
+    turn_context: &TurnContext,
+    rollout_items: &[RolloutItem],
+) -> Option<PreviousTurnSettings> {
+    let reconstructed_rollout = self
+        .reconstruct_history_from_rollout(turn_context, rollout_items)
+        .await;
+    let previous_turn_settings = reconstructed_rollout.previous_turn_settings.clone();
+    self.replace_history(
+        reconstructed_rollout.history,
+        reconstructed_rollout.reference_context_item,
+    )
+    .await;
+    self.set_previous_turn_settings(previous_turn_settings.clone()).await;
+    previous_turn_settings
+}
+```
+
+reconstruction 模块解释了 replay shape。它从 newest 到 oldest 扫描 rollout items，
+寻找最新的 surviving replacement-history checkpoint、最新的 surviving turn
+settings，以及最新的 surviving context baseline
+([`rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L86-L120))。
+
+```rust
+// Replay metadata should already match the shape of the future lazy reverse loader, even
+// while history materialization still uses an eager bridge. Scan newest-to-oldest,
+// stopping once a surviving replacement-history checkpoint and the required resume metadata
+// are both known; then replay only the buffered surviving tail forward to preserve exact
+// history semantics.
+let mut base_replacement_history: Option<&[ResponseItem]> = None;
+let mut previous_turn_settings = None;
+let mut reference_context_item = TurnReferenceContextItem::NeverSet;
+// Rollback is "drop the newest N user turns". While scanning in reverse, that becomes
+// "skip the next N user-turn segments we finalize".
+let mut pending_rollback_turns = 0usize;
+```
+
+之后 suffix 被正向 replay 到新的 `ContextManager`。response item 进入模型 history；
+replacement compaction 可以替换 base history；`ThreadRolledBack` event 会 drop user
+turn；其他 rollout item 不直接 materialize 成模型 history
+([`rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L234-L299))。
+
+```rust
+for item in rollout_suffix {
+    match item {
+        RolloutItem::ResponseItem(response_item) => {
+            history.record_items(
+                std::iter::once(response_item),
+                turn_context.truncation_policy,
+            );
+        }
+        RolloutItem::Compacted(compacted) => {
+            if let Some(replacement_history) = &compacted.replacement_history {
+                history.replace(replacement_history.clone());
+            } else {
+                // Legacy compaction fallback rebuilds compacted history.
+                // ...
+            }
+        }
+        RolloutItem::EventMsg(EventMsg::ThreadRolledBack(rollback)) => {
+            history.drop_last_n_user_turns(rollback.num_turns);
+        }
+        RolloutItem::EventMsg(_)
+        | RolloutItem::TurnContext(_)
+        | RolloutItem::SessionMeta(_) => {}
+    }
+}
+```
+
+这就是 durable-state 的核心：rollback 不是 UI delete，compaction 不是显示摘要，
+fork 不是复制 DOM。它们都是对 durable ledger 的 replay 选择，重建结果会成为下一次
+模型可见 history。
+
+### 5.3 Fork truncation 保留 turn 边界
+
+fork 还要决定 prefix 在哪里结束。
+[`thread_rollout_truncation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L1-L17)
+就是这个边界的 helper：找到 user message positions、应用 rollback markers，并在
+选定 user turn 之前 truncate。thread manager 在从 rollout history fork 时使用这套
+逻辑
+([`thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L733-L829))。
+
+可见契约是有限的。源码展示了 prefix selection 和 replay reconstruction；它并不
+需要声称 fork 是每个 UI artifact 的字节级复制。真正 durable 的，是可 replay 的
+prefix 以及它之后的新 append path。
+
+## 六、Turn context 是执行语义信封
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-context-envelope-569ff6a1.webp" alt="TurnContext persists cwd, permissions, model, and network into TurnContextItem as a reference baseline for the next turn" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`TurnContextItem` 是 durable execution envelope。replay 恢复的不只是文本，还包括真实 user turn 周围的执行设置。</figcaption>
+</figure>
+
+### 6.1 `TurnContext` 携带 runtime semantics
+
+`TurnContext` 是让一次模型请求可执行的 per-turn bundle。
+[`turn_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L55-L100)
+里，它包含当前 sub id、trace id、realtime state、config、auth、model、provider、
+session source、thread source、resolved environments、cwd、date、timezone、
+developer/user instructions、collaboration mode、approval policy、permission
+profile、network proxy、shell policy、tool config、feature state、dynamic tools、
+skills context 和 truncation policy。
+
+```rust
+pub struct TurnContext {
+    pub(crate) sub_id: String,
+    pub(crate) trace_id: Option<String>,
+    pub(crate) realtime_active: bool,
+    pub config: Arc<Config>,
+    // ...
+    pub(crate) model_info: ModelInfo,
+    pub(crate) provider: SharedModelProvider,
+    // ...
+    pub(crate) session_source: SessionSource,
+    pub(crate) thread_source: Option<ThreadSource>,
+    pub(crate) environments: ResolvedTurnEnvironments,
+    /// The session's absolute working directory.
+    pub(crate) cwd: AbsolutePathBuf,
+    pub(crate) current_date: Option<String>,
+    pub(crate) timezone: Option<String>,
+    // ...
+    pub(crate) developer_instructions: Option<String>,
+    pub(crate) user_instructions: Option<String>,
+    // ...
+    pub(crate) approval_policy: Constrained<AskForApproval>,
+    pub(crate) permission_profile: PermissionProfile,
+    pub(crate) network: Option<NetworkProxy>,
+    // ...
+    pub(crate) truncation_policy: TruncationPolicy,
+    // ...
+}
+```
+
+所以 replay 不能只是“messages”。后续 turn 需要知道相对路径基于哪个 cwd 解析，
+当时 sandbox 与 approval 规则是什么，使用了哪个 model，network policy 是否相关，
+以及哪些 instructions 或 schema 生效。
+
+### 6.2 `TurnContextItem` 持久化 baseline
+
+durable 形式由
+[`to_turn_context_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L347-L390)
+生成。
+
+```rust
+pub(crate) fn to_turn_context_item(&self) -> TurnContextItem {
+    TurnContextItem {
+        turn_id: Some(self.sub_id.clone()),
+        trace_id: self.trace_id.clone(),
+        cwd: self.cwd.to_path_buf(),
+        current_date: self.current_date.clone(),
+        timezone: self.timezone.clone(),
+        approval_policy: self.approval_policy.value(),
+        sandbox_policy: self.sandbox_policy(),
+        permission_profile: Some(self.permission_profile()),
+        network: self.turn_context_network_item(),
+        file_system_sandbox_policy: self.non_legacy_file_system_sandbox_policy(),
+        model: self.model_info.slug.clone(),
+        personality: self.personality,
+        collaboration_mode: Some(self.collaboration_mode.clone()),
+        realtime_active: Some(self.realtime_active),
+        effort: self.reasoning_effort,
+        summary: self.reasoning_summary,
+        user_instructions: self.user_instructions.clone(),
+        developer_instructions: self.developer_instructions.clone(),
+        final_output_json_schema: self.final_output_json_schema.clone(),
+        truncation_policy: Some(self.truncation_policy),
+    }
+}
+```
+
+protocol struct 用存储语言表达了同一个意思。`TurnContextItem` 会在每个真实 user
+turn 计算完模型可见 context updates 后持久化一次；mid-turn compaction 重新建立 full
+context 时也会再持久化一次
+([`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2800-L2825))。
+
+runtime path 是
+[`record_context_updates_and_set_reference_context_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2817-L2860)。
+如果没有 baseline，它注入 full initial context；如果已有 baseline，它只生成
+settings diffs。然后它追加 `RolloutItem::TurnContext`，并推进内存里的 reference
+baseline。
+
+```rust
+let should_inject_full_context = reference_context_item.is_none();
+let context_items = if should_inject_full_context {
+    self.build_initial_context(turn_context).await
+} else {
+    self.build_settings_update_items(reference_context_item.as_ref(), turn_context)
+        .await
+};
+let turn_context_item = turn_context.to_turn_context_item();
+if !context_items.is_empty() {
+    self.record_conversation_items(turn_context, &context_items).await;
+}
+// Persist one `TurnContextItem` per real user turn so resume/lazy replay can recover the
+// latest durable baseline even when this turn emitted no model-visible context diffs.
+self.persist_rollout_items(&[RolloutItem::TurnContext(turn_context_item.clone())])
+    .await;
+
+let mut state = self.state.lock().await;
+state.set_reference_context_item(Some(turn_context_item));
+```
+
+这就是 execution-envelope invariant：模型可见 history 可以重建，但重建后的 turn
+不应该丢掉原本让那次工作有意义的执行设置。
+
+## 七、每个 owner 允许忘掉什么
+
+持久系统不是把所有东西存到所有地方，而是明确哪个 owner 对哪个问题权威。
+
+| 压力 | 简单但错误的设计 | Codex 的 owner 拆分 | 保护的 invariant |
+| --- | --- | --- | --- |
+| 客户端重连 | 从当前屏幕状态重渲染 | `SessionConfigured` + event stream | 后续事件之前，客户端先锚定 thread/session identity。 |
+| 进程 resume thread | 加载 messages array | `InitialHistory::Resumed` + rollout reconstruction | 模型可见 history 从 replay facts 重建。 |
+| 用户 fork 工作 | 复制 UI transcript | prefix selection + `InitialHistory::Forked` | 新 thread future 从一致 replay prefix 分叉。 |
+| rollback 移除工作 | 删除最新可见卡片 | replay 中的 `ThreadRolledBack` + `ContextManager` rewrite | 下一次模型请求只看 surviving history。 |
+| thread list 需要分页 | 每个 view 全量 replay JSONL | State DB + metadata projection | 查询速度提升，但不替代 durable ledger。 |
+| turn 间设置变化 | 假设文本包含执行语义 | `TurnContextItem` reference baseline | resume/fork 可以恢复 cwd、model、permissions 和 diffs。 |
+
+代价是 ceremony 更多：Codex 必须 persist、flush、project、reconstruct 和 baseline。
+收益是每类失败都有明确 owner：模型看错 context，就看 `ContextManager` 与 rollout
+reconstruction；列表过期，就看 state projection；客户端在 setup 前渲染 event，就看
+first-event invariant；resumed turn 执行语义不对，就看 `TurnContextItem`。
+
+## 常见误读
+
+**“rollout 就是模型 prompt。”** 不是。rollout 是 durable replay ledger。它可以
+包含会进入 prompt history 的 response item，但也包含 session metadata、turn
+context、compaction record 和 event。
+
+**“state database 是 source of truth。”** 对 replay 不是。它是 query projection
+和 operational state surface。本地实现可以在需要时从 rollout items backfill metadata。
+
+**“`SessionConfigured` 只是 UI metadata。”** 不是。manager 会在把 live
+`CodexThread` 插入 running thread map 之前，检查它是不是第一条 event。
+
+**“fork 就是复制所有可见消息。”** fork 是从选定 replay prefix 打开一个新的未来。
+可见 UI cards 不是语义边界。
+
+**“`TurnContextItem` 只是重复正文。”** 它携带执行语义：cwd、model、approval 与
+sandbox policy、network constraints、instructions、schema 和 truncation policy。
+这些字段无法从纯 message text 恢复。
 
 <div class="apply-this">
 
 ## 应用到实践
 
-1. 明确 live-handle stack，让客户端提交 operation，而不是直接修改调度器内部。
-2. 区分 thread identity 与 session execution，因为一个 durable thread 可能经历多次 runtime 生命周期。
-3. 在可选启动工作之前先发确定的 setup event，让所有客户端拥有同一个事件流锚点。
-4. 分开维护模型历史、replay 历史和查询历史，不要强迫一个 transcript 承担所有职责。
-5. 让 resume、fork 和 rollback 复用正常 turn 使用的 replay vocabulary。
+1. 先命名 owner，再命名数据：model view、replay ledger、query projection、client stream，还是 live scheduler。
+2. 让 live handle 保持窄边界；客户端提交 operation、接收 event，而不是直接修改 session 内部。
+3. 在后续 runtime facts 之前强制 setup event，让每个客户端都有稳定 stream anchor。
+4. 把 resume、fork、compaction 和 rollback 当成 durable items 上的 replay 操作，而不是 transcript edit。
+5. 分开持久化 execution context 和 query projection，并在设计允许时让 projection 可从 replay facts 修复。
 
 </div>
 
 ## 小结
 
-第 5 章把第 4 章的协议变成了活的 runtime：thread 是持久的，session 是 运行中的，turn 是 session 内被调度的工作。第 6 章会进入一次 turn， 看 Codex 如何构造上下文、采样模型、执行工具、处理 interruption，并判断 Agent 是否真的完成。
+第 5 章把 Codex 的协议词汇变成了 durable runtime model。thread 拥有 identity
+和 replay；session 拥有 live scheduling；`Codex` 暴露 queue pair；`ContextManager`
+拥有模型可见视图；rollout items 保存 replay ledger；state DB 加速 query；
+`TurnContextItem` 保留执行语义。
+
+下一步进入一次 live turn。session 已经存在，history 已经有 owner，但 Codex 还要
+决定 user submission 如何变成 turn，tools 与 approvals 如何插入 model output，以及
+runtime 如何判断 agent 是否真的完成。
 
 <div class="source-equivalence">
 
@@ -139,10 +853,26 @@ projection 的价值在于可查询；它的安全性来自背后仍然有 durab
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Thread manager boundary | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L168) |
-| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98) |
-| Queue-pair runtime facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
-| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
-| Accepted prompt recording | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2980) |
+| Thread store boundary | [`codex-rs/thread-store/src/store.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/store.rs#L21-L70) |
+| Thread persistence metadata and resume params | [`codex-rs/thread-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/types.rs#L30-L79) |
+| Live thread handle and init guard | [`codex-rs/thread-store/src/live_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src/live_thread.rs#L22-L63) |
+| Thread manager live map and shared services | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L166-L215) |
+| Client-facing thread handle | [`codex-rs/core/src/codex_thread.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/codex_thread.rs#L98-L124) |
+| Resume-aware thread spawn | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1085-L1166) |
+| `SessionConfigured` first-event check | [`codex-rs/core/src/thread_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_manager.rs#L1168-L1209) |
+| Queue-pair `Codex` facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364-L375) |
+| Live `Session` fields | [`codex-rs/core/src/session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L11-L37) |
+| Startup setup event ordering | [`codex-rs/core/src/session/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/session.rs#L917-L1065) |
+| Model-visible history manager | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32-L126) |
+| Rollout item vocabulary | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2764-L2772) |
+| Local rollout writer | [`codex-rs/rollout/src/recorder.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/recorder.rs#L75-L118) |
+| Local state DB and metadata backfill | [`codex-rs/rollout/src/state_db.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/state_db.rs#L37-L57), [`metadata.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout/src/metadata.rs#L39-L95) |
+| Initial history modes | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2363-L2376) |
+| Initial history recording and reconstruction install | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L1157-L1261) |
+| Rollout reconstruction and rollback replay | [`codex-rs/core/src/session/rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L1-L120), [`rollout_reconstruction.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/rollout_reconstruction.rs#L234-L299) |
+| Fork rollout truncation | [`codex-rs/core/src/thread_rollout_truncation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/thread_rollout_truncation.rs#L1-L149) |
+| Turn context runtime fields | [`codex-rs/core/src/session/turn_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L55-L100) |
+| Turn context persisted item | [`codex-rs/core/src/session/turn_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn_context.rs#L347-L390), [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L2800-L2825) |
+| Turn context baseline persistence | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L2817-L2860) |
 
 </div>
