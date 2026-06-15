@@ -18,14 +18,32 @@ const spotlightImage = "https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/
 
 const libraryBooks = [
   codexContextManagementBook,
-  leetcodeBook,
   codexFromSourceBook,
   designBook,
   ccBook,
   iqBook,
+  leetcodeBook,
   suffixArrayBook,
   lcpBook,
 ];
+
+const bookIndexCopy = new Map([
+  [
+    leetcodeBook.slug,
+    {
+      title: "LeetCode Practice Workbook",
+      zhTitle: "力扣练习题册",
+      description:
+        "A filterable coding-practice workbook with Hot 100, company buckets, previews, local marks, and submit helper.",
+      coverFooter: "practice filters + local marks",
+      coverKicker: "Coding Practice",
+    },
+  ],
+]);
+
+function indexBookCopy(book: typeof libraryBooks[number]) {
+  return bookIndexCopy.get(book.slug) ?? book;
+}
 
 const readingTracks = [
   {
@@ -36,18 +54,18 @@ const readingTracks = [
       "Start from optional context, prompt assembly, typed fragments, and the budget discipline behind long-running agent work.",
   },
   {
-    title: leetcodeBook.title,
-    label: "Practice track",
-    href: pageUrl(base, `${leetcodeBook.slug}/`),
-    body:
-      "Use the frequency table, company buckets, local marks, and submit helper when the goal is repeated coding practice.",
-  },
-  {
     title: codexFromSourceBook.title,
     label: "Source track",
     href: pageUrl(base, `${codexFromSourceBook.slug}/`),
     body:
       "Read the full runtime map when you want tools, sandboxing, app-server, plugins, and multi-agent work tied back to code.",
+  },
+  {
+    title: designBook.title,
+    label: "Systems track",
+    href: pageUrl(base, `${designBook.slug}/`),
+    body:
+      "Use the ChatGPT case study when you want product, backend, inference, and safety design in one interview loop.",
   },
 ];
 
@@ -101,8 +119,8 @@ const articleLinks = [
           <a class="books-index-button books-index-button--primary" href={pageUrl(base, `${codexContextManagementBook.slug}/`)}>
             Start with context
           </a>
-          <a class="books-index-button" href={pageUrl(base, `${leetcodeBook.slug}/`)}>
-            Open LeetCode 888
+          <a class="books-index-button" href={pageUrl(base, `${codexFromSourceBook.slug}/`)}>
+            Read Codex source
           </a>
           <a class="books-index-button" href="https://www.wineandchord.com">
             WineChord home
@@ -138,16 +156,19 @@ const articleLinks = [
         </a>
       </div>
       <div class="books-index-library">
-        {libraryBooks.map((book, index) => (
-          <a class={`books-index-book ${index === 0 ? "books-index-book--featured" : ""}`} href={pageUrl(base, `${book.slug}/`)}>
-            <span class="books-index-book__number">{String(index + 1).padStart(2, "0")}</span>
-            <span class="books-index-book__kicker">{book.coverKicker}</span>
-            <strong>{book.title}</strong>
-            <span class="books-index-book__zh">{book.zhTitle}</span>
-            <span class="books-index-book__body">{book.description}</span>
-            <span class="books-index-book__footer">{book.coverFooter}</span>
-          </a>
-        ))}
+        {libraryBooks.map((book, index) => {
+          const copy = indexBookCopy(book);
+          return (
+            <a class={`books-index-book ${index === 0 ? "books-index-book--featured" : ""}`} href={pageUrl(base, `${book.slug}/`)}>
+              <span class="books-index-book__number">{String(index + 1).padStart(2, "0")}</span>
+              <span class="books-index-book__kicker">{copy.coverKicker}</span>
+              <strong>{copy.title}</strong>
+              <span class="books-index-book__zh">{copy.zhTitle}</span>
+              <span class="books-index-book__body">{copy.description}</span>
+              <span class="books-index-book__footer">{copy.coverFooter}</span>
+            </a>
+          );
+        })}
       </div>
     </section>
 
