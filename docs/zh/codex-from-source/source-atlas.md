@@ -3,7 +3,7 @@
 > **阅读契约：** 只有在叙事已经清楚后再用本页。打开 pinned links 是为了核对 owner、boundary 和 evidence，不是从源码里重新发现故事。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-df64b03.png" alt="固定源码证据索引：把章节论断映射到已核验 owner、公开源码锚点和审计规则" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-df64b03.webp" alt="固定源码证据索引：把章节论断映射到已核验 owner、公开源码锚点和审计规则" loading="eager" decoding="async" />
   <figcaption>在正文已经提出论断之后使用源码索引：它把叙事语句映射到 subsystem owner、固定源码行和审计结果。</figcaption>
 </figure>
 

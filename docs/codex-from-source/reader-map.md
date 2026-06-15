@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this page to choose depth before you start. The recurring audit question is how a user request moves through operations, turns, model streams, tools, durable events, and client projections.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-routes.png" alt="Reader route map for moving from runtime contracts through side effects, client surfaces, extensions, and governance" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-routes.webp" alt="Reader route map for moving from runtime contracts through side effects, client surfaces, extensions, and governance" loading="eager" decoding="async" />
   <figcaption>Pick a path before you read: a fast architecture route, a full implementation route, or a source-audit route after the narrative is clear.</figcaption>
 </figure>
 

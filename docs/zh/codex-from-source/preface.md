@@ -3,7 +3,7 @@
 > **阅读契约：** 用本页先建立全书契约：源码链接是审计证据，不是作业。先读 runtime boundary、durable nouns 和可迁移模式，再去追文件名。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-contract.png" alt="源码阅读契约：分开叙事模型、固定源码证据、论断分类和读者审计路径" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-contract.webp" alt="源码阅读契约：分开叙事模型、固定源码证据、论断分类和读者审计路径" loading="eager" decoding="async" />
   <figcaption>本书从阅读契约开始：公开源码链接承担证据职责，运行时边界和持久名词承担主要解释。</figcaption>
 </figure>
 

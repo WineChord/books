@@ -3,7 +3,7 @@
 > **阅读契约：** 用本页理解出版纪律。跟住论断、固定证据、图示、中英文一致性和自动校验如何让固定源码的书长期可维护。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/publication-discipline-pipeline-df64b03.png" alt="出版纪律流水线：展示论断纪律、固定证据、图示检查、中英文一致性、自动验证和发布门" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/publication-discipline-pipeline-df64b03.webp" alt="出版纪律流水线：展示论断纪律、固定证据、图示检查、中英文一致性、自动验证和发布门" loading="eager" decoding="async" />
   <figcaption>出版纪律让公开书籍可维护：论断、固定证据、视觉模型、校验门禁和发布页面彼此支撑。</figcaption>
 </figure>
 

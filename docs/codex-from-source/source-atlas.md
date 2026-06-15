@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this atlas only after the narrative is clear. Open pinned links to verify owners, boundaries, and evidence rather than to discover the story from scratch.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-df64b03.png" alt="Pinned source evidence atlas mapping chapter claims to verified owners, public source anchors, and audit rules" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-df64b03.webp" alt="Pinned source evidence atlas mapping chapter claims to verified owners, public source anchors, and audit rules" loading="eager" decoding="async" />
   <figcaption>Use the atlas after the prose has made a claim: it maps narrative statements to subsystem owners, pinned source lines, and audit results.</figcaption>
 </figure>
 

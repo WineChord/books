@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this bibliography as evidence inventory. Separate public source anchors, product references, and supporting material before citing them in your own notes.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evidence-inventory-bibliography-df64b03.png" alt="Bibliography evidence inventory separating pinned source anchors, product references, standards, and supporting background material" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evidence-inventory-bibliography-df64b03.webp" alt="Bibliography evidence inventory separating pinned source anchors, product references, standards, and supporting background material" loading="eager" decoding="async" />
   <figcaption>The bibliography separates primary Codex sources from agent, MCP, Rust, TUI, security, and publishing context.</figcaption>
 </figure>
 

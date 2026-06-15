@@ -309,6 +309,10 @@ When explaining source code:
 - Distinguish public API contract from inferred service internals.
 - Name files and functions only after verifying them in the repository or in
   official documentation.
+- Use real, verified source excerpts when they materially improve the article.
+  Prefer short fenced code blocks with the correct language tag, nearby pinned
+  source links, and prose that explains why the excerpt matters. Do not replace
+  source-backed explanation with screenshots of code.
 - Do not overfit a diagram to implementation details that are not visible.
 - If a mechanism exists only through surrounding contracts, say so in prose and
   keep the figure abstract.

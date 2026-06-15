@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this preface to set the contract for the whole book: source links are audit evidence, not homework. Read for runtime boundaries, durable nouns, and transfer patterns before you chase file names.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-contract.png" alt="Reading contract that separates narrative model, pinned source evidence, claim class, and reader audit path" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-contract.webp" alt="Reading contract that separates narrative model, pinned source evidence, claim class, and reader audit path" loading="eager" decoding="async" />
   <figcaption>The book starts from a reading contract: public source anchors support the prose, while runtime boundaries and durable nouns carry the main explanation.</figcaption>
 </figure>
 

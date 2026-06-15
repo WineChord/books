@@ -3,7 +3,7 @@
 > **阅读契约：** 把本页当作证据清单。引用到自己的笔记前，先分清 public source anchors、product references 和 supporting material。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evidence-inventory-bibliography-df64b03.png" alt="参考文献证据清单：分开固定源码锚点、产品资料、标准和背景材料" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evidence-inventory-bibliography-df64b03.webp" alt="参考文献证据清单：分开固定源码锚点、产品资料、标准和背景材料" loading="eager" decoding="async" />
   <figcaption>书目把 Codex 一手来源与 Agent、MCP、Rust、TUI、安全和发布背景材料分开。</figcaption>
 </figure>
 

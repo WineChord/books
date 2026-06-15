@@ -40,8 +40,9 @@ brand mark placement, and source-accurate labels.
 
 - Use Codex image generation for the visual base whenever a new editorial image
   is requested.
-- The page must reference final raster images, usually PNG. Do not leave source
-  diagrams as HTML, Mermaid, or SVG-only illustrations in published articles.
+- The page must reference final raster images, usually PNG or WebP. Do not leave
+  source diagrams as HTML, Mermaid, or SVG-only illustrations in published
+  articles.
 - Every newly generated or materially regenerated final figure must carry a
   natural bottom-right `Wine & Chord` mark that feels integrated with the same
   hand-drawn image. Use the approved candidate images in this skill's `assets/`
@@ -62,6 +63,9 @@ brand mark placement, and source-accurate labels.
 - Do not let generated text invent source facts. If exact identifiers, arrows,
   or labels matter, compose them deterministically into the final raster image
   after generating the hand-drawn base.
+- This image-text rule does not prohibit real source-code excerpts in article
+  prose. Put verified code in syntax-highlighted fenced blocks with pinned
+  source links; keep generated figure text short and source-safe.
 - For evidence, bibliography, source atlas, audit-reference, or cover figures,
   the prompt must explicitly forbid synthetic commit hashes, dates, person names,
   repository paths, file paths, line ranges, issue numbers, or version numbers
@@ -296,12 +300,15 @@ Brand mark generation protocol:
 4. Reject and regenerate if the model draws a badge, stamp, boxed logo,
    unrelated signature, garbled large text, or a mark that competes with the
    diagram.
-5. Save the final integrated PNG as the only image referenced by the article.
+5. Save the final integrated PNG as the reproducible source asset. Published
+   pages may reference the optimized WebP derivative when it preserves visual
+   quality and materially reduces transfer size.
 
 Recommended final asset layout:
 
 ```text
 docs/public/<article>/assets/<figure-name>.png
+docs/public/<article>/assets/<figure-name>.webp
 ```
 
 When mirroring a standalone source article, keep the same filename under both
@@ -313,14 +320,20 @@ PicGo publication protocol:
    `Wine & Chord` brand mark cleanup first.
 2. Save the final PNG locally under the article's assets directory so the source
    package remains reproducible.
+   For public page loading, also export a same-dimension WebP derivative unless
+   visual inspection shows unacceptable artifacts. Keep the PNG as the source
+   backing asset and publish the WebP when it is materially smaller.
 3. When materially regenerating an already published figure, do not rely on
    overwriting the old CDN basename. Save and upload a unique versioned basename
-   such as `<figure>-<commit>.png`, and rename the local backing PNG to match
-   the published PicGo basename.
-4. Upload that final PNG with the local PicGo CLI, for example
+   such as `<figure>-<commit>.png`, and use the corresponding
+   `<figure>-<commit>.webp` basename for the optimized published derivative.
+   Rename local backing assets to match the published PicGo basenames.
+4. Upload the final PNG and, when used by the published page, the WebP
+   derivative with the local PicGo CLI, for example
    `picgo upload docs/public/<article>/assets/<figure-name>.png`.
-5. Capture the remote URL printed by PicGo and use that URL in published
-   Markdown, HTML, MDX, Astro image data, and `og:image` metadata.
+5. Capture the remote URLs printed by PicGo. Use the WebP URL in published page
+   images when it is the chosen optimized asset, while keeping PNG URLs for
+   `og:image` metadata or consumers that need PNG compatibility.
 6. Verify at least the highest-risk regenerated assets through the remote raw
    source or CDN URL by checking byte size or hash against the local final PNG.
    A PicGo success line is not enough proof that an existing CDN object was

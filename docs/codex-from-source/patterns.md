@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this reference as a decision checklist. Start from the problem you are solving, then jump back to the chapter that explains the pattern and its failure mode.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/reusable-agent-pattern-index-df64b03.png" alt="Reusable agent pattern index connecting typed boundaries, queue-pair runtime, tools, approvals, sandboxes, extensions, and shared surfaces" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/reusable-agent-pattern-index-df64b03.webp" alt="Reusable agent pattern index connecting typed boundaries, queue-pair runtime, tools, approvals, sandboxes, extensions, and shared surfaces" loading="eager" decoding="async" />
   <figcaption>The pattern index turns recurring design moves into a checklist that stays attached to the chapters and source evidence.</figcaption>
 </figure>
 

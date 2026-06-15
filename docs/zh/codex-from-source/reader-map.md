@@ -3,7 +3,7 @@
 > **阅读契约：** 用本页先选择阅读深度。反复追问一个用户请求如何穿过 operations、turns、model streams、tools、durable events 和 client projections。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-routes.png" alt="阅读路线图：从 runtime 契约穿过副作用、客户端表面、扩展和治理" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-source-reading-routes.webp" alt="阅读路线图：从 runtime 契约穿过副作用、客户端表面、扩展和治理" loading="eager" decoding="async" />
   <figcaption>先选阅读路径：快速架构路线、完整实现路线，或在叙事清楚以后再走源码审计路线。</figcaption>
 </figure>
 
