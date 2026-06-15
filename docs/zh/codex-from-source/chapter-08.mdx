@@ -1,136 +1,806 @@
+# 可观测性：先捕获事实，再解释运行
 
-# 第 8 章：Observability 与 Rollout Trace
-
-> **阅读契约：** 用本章把 observability 当作 replay evidence。分清哪些 runtime facts 进入 rollout trace，哪些成为 client projections，哪些仍然留在内部。
+> **阅读契约：** 把本章当作一次 Codex 运行的证据地图。区分 replay
+> persistence、diagnostic trace bundle、reduced graph state、product
+> analytics、OTEL telemetry、response debug context 和有界 local logs。读完
+> 之后，你应该能解释为什么 transcript 只是运行的一个 projection。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-rollout-evidence-569ff6a1-v2.webp" alt="可观测证据通道：分开 rollout persistence、trace bundles、reducers、analytics、OTEL 和 response debug context" loading="eager" decoding="async" />
-  <figcaption>Codex 先记录事实再生成投影：runtime events、rollout trace、client views 和 replay audits 相关但不同。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-rollout-evidence-569ff6a1-v2.webp" alt="可观测证据通道：分开 rollout persistence、trace bundles、reducers、analytics、OTEL 和 response debug context" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Codex 先记录 runtime evidence，再让不同视图解释运行。Rollout persistence、trace bundle、reducer、analytics、OTEL 和 debug context 回答的是不同问题。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章直接源码结论都固定到 OpenAI Codex commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
+`TraceWriter`、`TraceBundleManifest`、`RawTraceEvent`、`RolloutTrace`、
+`replay_bundle`、`protocol_event`、`parse_turn_item`、`AnalyticsFact`、
+`AnalyticsReducer`、`SessionTelemetry`、`ResponseDebugContext` 和
+`StateRuntime::insert_logs` 只有在链接到锚点时才视为 **verified source**。
+关于为什么这些 owner 要分开，是从可见 types、functions、comments 和
+tests 推导出的 **surrounding contract inference**，不是对 OpenAI 私有服务
+内部的断言。
 
-第 7 章说明了 provider 和 transport 的差异如何收敛成统一的模型事件流。 本章继续追踪这些事件进入 runtime 之后的命运：哪些事实会为 replay 持久化， 哪些会被 reduce 成 product analytics，哪些成为 operational telemetry， 哪些作为 raw diagnostic evidence 进入 rollout trace。
+四个本章术语会反复出现。**Runtime fact** 指 turn、inference、tool、
+compaction、protocol event 或 log observation 在被某个受众友好化之前的事实。
+**Trace bundle** 指本地 diagnostic artifact，由 `manifest.json`、`trace.jsonl`
+和 `payloads/` 组成。**Reduced graph** 指通过 replay raw events 和 payload
+references 得到的 `RolloutTrace` 对象。**Projection** 指面向某个消费者的视图：
+transcript、client event、analytics event、OTEL span、support context 或 log
+query。
+
+第 7 章停在 provider boundary：HTTP streaming、WebSocket streaming、local
+providers、Bedrock signing、realtime setup 和 backend tasks 都必须先变成 typed
+runtime events，turn loop 才能继续。本章继续追踪这些 events 进入 runtime 之后
+的命运。有些证据用于 resume 或 replay thread；有些证据用于解释一次失败的
+rollout；有些证据用于跨产品使用聚合；有些证据用于诊断 transport performance。
+系统之所以可调试，是因为这些任务没有被塞进同一个 transcript。
 
 <div class="chapter-lede">
-  <p><strong>问题：</strong>仅凭最终 assistant message，无法调试一个 Agent runtime。</p>
-  <p><strong>主张：</strong>Codex 先观察 runtime facts，再为不同受众派生 replay、analytics、traces、logs 和 graph views。</p>
-  <p><strong>心智模型：</strong>transcript 只是一次运行的一个 projection，不是运行本身。</p>
+  <p><strong>问题：</strong>Agent runtime 不能只靠最终 assistant message 调试，也不能把每个内部字节都推给 product analytics。</p>
+  <p><strong>主张：</strong>Codex 先捕获有序事实，再让 replay、trace reduction、analytics、OTEL、debug context 和 logs 只解释各自应该拥有的子集。</p>
+  <p><strong>心智模型：</strong>transcript history 是一个 projection；trace evidence 是另一个本地 artifact；telemetry 和 analytics 是 retention/privacy 规则不同的更窄 projection。</p>
+  <p><strong>引导问题：</strong>观察到了什么事实？哪个 owner 存储它？哪个 reducer 解释它？哪些 payload 被刻意挡在 public view 外面？</p>
 </div>
 
+## 1. 不存在唯一的 Observability Plane
 
-## 多个 Observation Plane
+第一条纪律是：不要让一个 artifact 回答所有问题。同一次 tool call 可能同时表现为
+model-visible response item、protocol event、raw trace payload、reduced tool
+object、client notification、analytics event、OTEL span 和 local log line。只要
+每个 plane 有清晰 owner 和 retention model，这就不是重复。
 
-Codex 有多个 observability plane，因为每个 plane 回答的问题不同。
+| Plane | 主要问题 | 典型消费者 | 不应该变成什么 |
+| --- | --- | --- | --- |
+| Rollout persistence | thread 能否 resume、fork 或 replay？ | runtime reconstruction | 无边界 debug dump |
+| Rollout trace bundle | 哪些 raw evidence 能解释这次运行？ | local trace reducer 与 graph viewer | product analytics stream |
+| Reduced trace graph | 存在哪些 semantic objects？ | offline debugging 与 audit | raw payload store |
+| Product analytics | 跨 sessions 发生了什么？ | aggregate product analysis | exact replay source of truth |
+| OTEL telemetry | runtime operations 表现如何？ | engineering diagnostics | durable transcript |
+| Response debug context | 哪个 upstream request 失败？ | support 与 failure triage | 被复制的 HTTP response body |
+| Local state logs | 本地可检查哪些 process logs？ | feedback 与 local inspection | 无限 log archive |
 
-| Plane | 主要问题 | 典型消费者 |
+这套分层的收益很实际。用户问为什么 thread 用错 history resume，就看 rollout
+reconstruction 和 reduced trace graph。工程侧问 provider streaming 为什么慢，就看
+OTEL counters、histograms 和 spans。产品想看 app/plugin 使用趋势，就看 analytics
+facts。支持侧要关联 upstream 401，就看 response debug context。Transcript 本身不
+应该意外承担这些工作。
+
+## 2. Trace Bundle 让 Capture 保持简单
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-trace-writer-569ff6a1.webp" alt="TraceWriter 把 runtime facts 捕获到 manifest、trace log、payloads、sequence order 和 reducer input" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`TraceWriter` 是 capture owner：它写 manifest、append-only event log 和 payload files。它不会在 hot path 上构造最终 graph。</figcaption>
+</figure>
+
+### 2.1 本地 Layout 本身就是 Contract
+
+Trace bundle 的布局小到可以直接审计。在
+[`codex-rs/rollout-trace/src/bundle.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/bundle.rs#L1-L49)
+里，constants 定义了 manifest、raw event log、payload directory 和 reduced state
+cache。`TraceBundleManifest` 记录 trace identity、rollout identity、root thread、
+start time 和标准本地路径。
+
+```rust
+pub(crate) const MANIFEST_FILE_NAME: &str = "manifest.json";
+pub(crate) const RAW_EVENT_LOG_FILE_NAME: &str = "trace.jsonl";
+pub(crate) const PAYLOADS_DIR_NAME: &str = "payloads";
+pub const REDUCED_STATE_FILE_NAME: &str = "state.json";
+
+pub(crate) struct TraceBundleManifest {
+    pub(crate) schema_version: u32,
+    pub(crate) trace_id: String,
+    pub(crate) rollout_id: String,
+    pub(crate) root_thread_id: AgentThreadId,
+    pub(crate) started_at_unix_ms: i64,
+    pub(crate) raw_event_log: String,
+    pub(crate) payloads_dir: String,
+}
+```
+
+源码注释里有一个重要判断：replay 应该失败，而不是编一个 placeholder root
+thread。也就是说，root thread 是必需的 identity anchor，不是 viewer 的便利字段。
+每个 reduced object 都要回到这棵 thread tree。
+
+### 2.2 Writer 只捕获，不解释
+
+[`TraceWriter`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/writer.rs#L1-L40)
+在文件注释和结构体注释里直接声明边界：它是 hot-path trace bundle writer；它
+append raw events、写 payload files；它不在内存里维护 reduced `RolloutTrace`。
+Replay 属于 reducer。
+
+创建路径会写 manifest、以 append mode 打开 `trace.jsonl`，并初始化两个单调计数器：
+
+```rust
+let payloads_dir = bundle_dir.join(PAYLOADS_DIR_NAME);
+std::fs::create_dir_all(&payloads_dir)?;
+
+let started_at_unix_ms = unix_time_ms();
+let manifest =
+    TraceBundleManifest::new(trace_id, rollout_id, root_thread_id, started_at_unix_ms);
+write_json_file(&bundle_dir.join(MANIFEST_FILE_NAME), &manifest)?;
+
+let event_log_path = bundle_dir.join(RAW_EVENT_LOG_FILE_NAME);
+let event_log = OpenOptions::new()
+    .create(true)
+    .append(true)
+    .open(&event_log_path)?;
+
+next_seq: 1,
+next_payload_ordinal: 1,
+```
+
+payload 路径更关键。大的 model request、response、tool payload 或 protocol payload
+可以先写成单独 JSON file；raw event 只携带引用。writer 会先创建 payload file，再
+append 引用它的 event
+([`writer.rs#L85-L106`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/writer.rs#L85-L106))：
+
+```rust
+let ordinal = inner.next_payload_ordinal;
+inner.next_payload_ordinal += 1;
+let raw_payload_id = format!("raw_payload:{ordinal}");
+let relative_path = format!("{PAYLOADS_DIR_NAME}/{ordinal}.json");
+let absolute_path = inner.payloads_dir.join(format!("{ordinal}.json"));
+
+// Payload files are created before the event that references them.
+write_json_file(&absolute_path, value)?;
+Ok(RawPayloadRef {
+    raw_payload_id,
+    kind,
+    path: relative_path,
+})
+```
+
+这个顺序非常关键。如果 session 在 event append 之后被中断，replay 不应该指向一个
+writer 原计划写、但实际还没写出的 payload file。同一个文件还会在写入每条 JSONL
+event 后 flush
+([`writer.rs#L108-L133`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/writer.rs#L108-L133))。
+即使 tracing code panic 导致 mutex poisoned，writer 也会恢复锁，避免在最需要诊断的
+session 里丢掉后续事件
+([`writer.rs#L136-L140`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/writer.rs#L136-L140))。
+
+这里的 invariant 很简单：hot path 捕获稳定事实和 raw payload references；运行还活着
+的时候，不在这里做 graph interpretation。
+
+## 3. Raw Events 先保留顺序，再谈意义
+
+### 3.1 `RawTraceEvent` 是共享 Envelope
+
+[`RawTraceEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/raw_event.rs#L21-L49)
+是 append-only envelope。它记录 writer-local sequence、wall-clock time、rollout
+identity、可选 thread/turn context，以及 typed payload。
+
+```rust
+pub type RawEventSeq = u64;
+pub(crate) const RAW_TRACE_EVENT_SCHEMA_VERSION: u32 = 1;
+
+pub struct RawTraceEvent {
+    pub schema_version: u32,
+    pub seq: RawEventSeq,
+    pub wall_time_unix_ms: i64,
+    pub rollout_id: String,
+    pub thread_id: Option<AgentThreadId>,
+    pub codex_turn_id: Option<CodexTurnId>,
+    pub payload: RawTraceEventPayload,
+}
+
+pub struct RawTraceEventContext {
+    pub thread_id: Option<AgentThreadId>,
+    pub codex_turn_id: Option<CodexTurnId>,
+}
+```
+
+源码注释解释了为什么每个 event 用同一套 envelope：partial replay 和 corruption
+checks 可以在 reducer 理解 event-specific payload 之前先跑。这正是 diagnostic 的
+正确顺序。Writer 先分配 sequence numbers 和通用 envelope；reducer 再通用地解析 log、
+保留 payload references，并且只有在某个 semantic arm 实际读取 payload body 时，才暴露
+缺失或格式错误的 payload file。
+
+### 3.2 Payload Variants 是 Runtime Boundaries
+
+`RawTraceEventPayload` 不是 transcript enum。它命名的是 runtime boundaries：rollout
+start/end、thread start/end、Codex turn start/end、inference lifecycle、tool
+lifecycle、code-cell lifecycle、compaction requests、compaction installation、agent
+result delivery、protocol breadcrumbs，以及用于早期 instrumentation 的 `Other`
+arm
+([`raw_event.rs#L65-L226`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/raw_event.rs#L65-L226))。
+
+```rust
+pub enum RawTraceEventPayload {
+    RolloutStarted { trace_id: String, root_thread_id: AgentThreadId },
+    ThreadStarted {
+        thread_id: AgentThreadId,
+        agent_path: String,
+        metadata_payload: Option<RawPayloadRef>,
+    },
+    CodexTurnStarted {
+        codex_turn_id: CodexTurnId,
+        thread_id: AgentThreadId,
+    },
+    InferenceStarted {
+        inference_call_id: InferenceCallId,
+        thread_id: AgentThreadId,
+        codex_turn_id: CodexTurnId,
+        model: String,
+        provider_name: String,
+        request_payload: RawPayloadRef,
+    },
+    ToolCallStarted {
+        tool_call_id: ToolCallId,
+        model_visible_call_id: Option<String>,
+        code_mode_runtime_tool_id: Option<String>,
+        requester: RawToolCallRequester,
+        kind: ToolCallKind,
+        summary: ToolCallSummary,
+        invocation_payload: Option<RawPayloadRef>,
+    },
+    ProtocolEventObserved {
+        event_type: String,
+        event_payload: RawPayloadRef,
+    },
+    Other {
+        kind: String,
+        summary: String,
+        payloads: Vec<RawPayloadRef>,
+        metadata: Value,
+    },
+    // ...
+}
+```
+
+这里有些字段刻意不是 model-facing。`RawToolCallRequester` 使用 runtime-local
+identifier 来区分 model-triggered call 与 code-cell-triggered call；只有 reducer
+负责把这些 handles 映射成 `CodeCellId` 之类的 graph identity
+([`raw_event.rs#L51-L63`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/raw_event.rs#L51-L63))。
+这样 raw capture 能忠实于 runtime，而 reduced graph 仍然可以使用稳定的 semantic ID。
+
+### 3.3 Protocol Events 可以喂给 Trace，但不是整个 Trace
+
+trace layer 复用 session protocol events，而不是在 core 里再加第二套 hook system。
+[`protocol_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L1-L13)
+的 module comment 说得很清楚：长的 `EventMsg` match 是有意的，因为大多数 protocol
+events 并不是 trace runtime boundaries；新 protocol variant 应该在 compile time 促使
+开发者决定 trace 是否要捕获它。
+
+borrowed payload enum 保留 exact protocol payload shape 用于端到端 debugging，而 typed
+trace events 仍然提供 reducer boundary
+([`protocol_event.rs#L92-L135`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L92-L135))：
+
+```rust
+pub(crate) enum ToolRuntimePayload<'a> {
+    ExecCommandBegin(&'a ExecCommandBeginEvent),
+    ExecCommandEnd(&'a ExecCommandEndEvent),
+    PatchApplyBegin(&'a PatchApplyBeginEvent),
+    PatchApplyEnd(&'a PatchApplyEndEvent),
+    McpToolCallBegin(&'a McpToolCallBeginEvent),
+    McpToolCallEnd(&'a McpToolCallEndEvent),
+    CollabAgentSpawnBegin(&'a codex_protocol::protocol::CollabAgentSpawnBeginEvent),
+    CollabAgentSpawnEnd(&'a codex_protocol::protocol::CollabAgentSpawnEndEvent),
+    CollabAgentInteractionBegin(&'a codex_protocol::protocol::CollabAgentInteractionBeginEvent),
+    CollabAgentInteractionEnd(&'a codex_protocol::protocol::CollabAgentInteractionEndEvent),
+    // ...
+}
+```
+
+这是第二个关键分离：protocol breadcrumb 是 evidence，但 reduced graph 仍然应该由 typed
+trace semantics 构建。raw `ExecCommandEndEvent` 对调试有用，但 graph 还需要知道它属于
+哪个 tool call、code cell、terminal operation、turn 和 thread。
+
+## 4. Reducer 负责解释
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-reducer-graph-569ff6a1.webp" alt="Raw trace events 和 payload references 进入 strict reducer，输出带 pending queues 和 raw links 的 RolloutTrace graph" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Reducer 必须严格，因为它把 append-only evidence 变成 semantic graph objects。Pending queues 解决真实的 ordering gap，而不是假装缺失 owner 已经存在。</figcaption>
+</figure>
+
+### 4.1 Reduced Model 是 Graph，不是 Chat Log
+
+reduced model 声明在
+[`codex-rs/rollout-trace/src/model/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/mod.rs#L1-L88)。
+文件注释说明这些类型描述 deterministic replay output，并且有意把
+model-visible conversation 与 runtime/debug objects 分开。
+
+```rust
+pub struct RolloutTrace {
+    pub schema_version: u32,
+    pub trace_id: String,
+    pub rollout_id: String,
+    pub started_at_unix_ms: i64,
+    pub ended_at_unix_ms: Option<i64>,
+    pub status: RolloutStatus,
+    pub root_thread_id: AgentThreadId,
+    pub threads: BTreeMap<AgentThreadId, AgentThread>,
+    pub codex_turns: BTreeMap<CodexTurnId, CodexTurn>,
+    pub conversation_items: BTreeMap<ConversationItemId, ConversationItem>,
+    pub inference_calls: BTreeMap<InferenceCallId, InferenceCall>,
+    pub code_cells: BTreeMap<CodeCellId, CodeCell>,
+    pub tool_calls: BTreeMap<ToolCallId, ToolCall>,
+    pub terminal_sessions: BTreeMap<TerminalId, TerminalSession>,
+    pub terminal_operations: BTreeMap<TerminalOperationId, TerminalOperation>,
+    pub compactions: BTreeMap<CompactionId, Compaction>,
+    pub compaction_requests: BTreeMap<CompactionRequestId, CompactionRequest>,
+    pub interaction_edges: BTreeMap<EdgeId, InteractionEdge>,
+    pub raw_payloads: BTreeMap<RawPayloadId, RawPayloadRef>,
+}
+```
+
+这个对象回答的是 transcript 很难准确回答的问题：哪个 thread spawn 了哪个 child？哪次
+inference request 使用了哪个 provider 和 model？哪个 runtime-local code cell 产生了
+nested tool call？哪个 terminal operation 是 command，哪个是 poll？哪个 compaction 安装了
+replacement history？哪个 raw payload 能解释 reduced object？
+
+### 4.2 Sequence 是 Causal Order，Wall Clock 只是展示
+
+session model 把 ordering 规则写得很直白。`ExecutionWindow` 同时存 wall-clock
+timestamps 和 raw event sequence numbers；源码注释说 sequence numbers 是 causal
+ordering primitive，用于配对 observations 或打破同毫秒并列
+([`session.rs#L68-L80`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L68-L80))。
+`CodexTurn` 又提醒：一个 Codex turn 是某个 thread 的 runtime activation，不是
+user/assistant message pair
+([`session.rs#L98-L110`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L98-L110))。
+
+```rust
+pub struct ExecutionWindow {
+    pub started_at_unix_ms: i64,
+    pub started_seq: RawEventSeq,
+    pub ended_at_unix_ms: Option<i64>,
+    pub ended_seq: Option<RawEventSeq>,
+    pub status: ExecutionStatus,
+}
+
+pub struct CodexTurn {
+    pub codex_turn_id: CodexTurnId,
+    pub thread_id: AgentThreadId,
+    pub execution: ExecutionWindow,
+    pub input_item_ids: Vec<ConversationItemId>,
+}
+```
+
+这能纠正调试 Agent 运行时的常见误解。一个用户可见 turn 可能包含多次 model requests、
+tool lifecycles、compactions、pending inputs 和 child agent interactions。反过来，一个
+protocol turn lifecycle event 也不等于 chat transcript 里的一行。
+
+### 4.3 Replay 是 Deterministic 且 Deferred
+
+[`replay_bundle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/mod.rs#L43-L85)
+加载 manifest，初始化空的 `RolloutTrace`，逐行读取 `trace.jsonl`，解析每个
+`RawTraceEvent`，apply 它，最后再 resolve pending spawn-edge fallbacks：
+
+```rust
+pub fn replay_bundle(bundle_dir: impl AsRef<Path>) -> Result<RolloutTrace> {
+    let manifest: TraceBundleManifest =
+        serde_json::from_reader(File::open(bundle_dir.join(MANIFEST_FILE_NAME))?)?;
+    let mut reducer = TraceReducer {
+        rollout: RolloutTrace::new(
+            REDUCED_TRACE_SCHEMA_VERSION,
+            manifest.trace_id,
+            manifest.rollout_id,
+            manifest.root_thread_id,
+            manifest.started_at_unix_ms,
+        ),
+        pending_code_cell_starts: BTreeMap::new(),
+        pending_code_cell_lifecycle_events: BTreeMap::new(),
+        pending_agent_interaction_edges: Vec::new(),
+        // ...
+    };
+
+    for (line_index, line) in BufReader::new(event_log).lines().enumerate() {
+        let event: RawTraceEvent = serde_json::from_str(&line?)?;
+        reducer.apply_event(event)?;
+    }
+    reducer.resolve_pending_spawn_edge_fallbacks()?;
+    Ok(reducer.rollout)
+}
+```
+
+pending queues 不是宽松处理。
+[`TraceReducer`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/mod.rs#L88-L136)
+旁边的注释解释了真实 ordering gaps：core 可以在 stream-completion hook 记录请求该
+tool 的 response payload 之前开始执行 tools；fast code cell 可以在证明其
+model-visible source item 的 inference response payload reduced 之前返回；agent tool
+delivery 可以在 recipient thread 的 transcript materialize mailbox item 之前到达。Reducer
+先排队这些事实，等 replay 暴露 precise owner 后再挂上去。
+
+apply path 会先把 raw payload references 作为 reducer-wide evidence 保留下来，再进入 typed
+interpretation：
+
+```rust
+fn apply_event(&mut self, event: RawTraceEvent) -> Result<()> {
+    for payload in event.payload.raw_payload_refs() {
+        self.insert_raw_payload(payload);
+    }
+
+    match event.payload {
+        RawTraceEventPayload::RolloutStarted { trace_id, root_thread_id } => {
+            self.rollout.trace_id = trace_id;
+            self.rollout.root_thread_id = root_thread_id;
+        }
+        RawTraceEventPayload::InferenceStarted { inference_call_id, thread_id,
+            codex_turn_id, model, provider_name, request_payload } => {
+            self.start_inference_call(
+                event.seq,
+                event.wall_time_unix_ms,
+                StartedInferenceCall {
+                    inference_call_id,
+                    thread_id,
+                    codex_turn_id,
+                    model,
+                    provider_name,
+                    request_payload,
+                },
+            )?;
+        }
+        RawTraceEventPayload::ProtocolEventObserved { .. } => {
+            // Protocol wrappers are raw debug breadcrumbs.
+        }
+        // ...
+    }
+}
+```
+
+因此 strict typed replay error 很有价值。它说明 semantic owner 缺失、producer emit 的
+event 无法挂到已知 graph、typed reduction 读取 payload 时发现文件不可用，或者 reducer
+还没理解新的 event shape。源码并没有承诺一个单独的全局 sequence-gap 或
+payload-existence pass；这里的纪律是：当 reducer 需要某份 evidence 时应该失败，而不是
+静默编造 owner。
+
+## 5. Model-Visible Conversation 只是一个 Projection
+
+Reduced graph 有 `conversation_items`，但它仍然不会把每个 runtime byte 都等同于
+model-visible history。公开 event mapper 在
+[`codex-rs/core/src/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/event_mapping.rs#L27-L209)
+里过滤 contextual messages、image wrappers、system messages 和 unsupported items，并把
+`ResponseItem` 转成 client turn items。
+
+```rust
+pub fn parse_turn_item(item: &ResponseItem) -> Option<TurnItem> {
+    match item {
+        ResponseItem::Message { role, content, id, phase, .. } => match role.as_str() {
+            "user" => parse_visible_hook_prompt_message(id.as_ref(), content)
+                .map(TurnItem::HookPrompt)
+                .or_else(|| parse_user_message(content).map(TurnItem::UserMessage)),
+            "assistant" => Some(TurnItem::AgentMessage(parse_agent_message(
+                id.as_ref(),
+                content,
+                phase.clone(),
+            ))),
+            "system" => None,
+            _ => None,
+        },
+        ResponseItem::Reasoning { id, summary, content, .. } => {
+            let summary_text = summary
+                .iter()
+                .map(|entry| match entry {
+                    ReasoningItemReasoningSummary::SummaryText { text } => text.clone(),
+                })
+                .collect();
+            let raw_content = content
+                .clone()
+                .unwrap_or_default()
+                .into_iter()
+                .map(|entry| match entry {
+                    ReasoningItemContent::ReasoningText { text }
+                    | ReasoningItemContent::Text { text } => text,
+                })
+                .collect();
+            Some(TurnItem::Reasoning(ReasoningItem {
+                id: id.clone(),
+                summary_text,
+                raw_content,
+            }))
+        }
+        ResponseItem::WebSearchCall { id, action, .. } => { /* ... */ }
+        ResponseItem::ImageGenerationCall { id, result, .. } => { /* ... */ }
+        _ => None,
+    }
+}
+```
+
+这个函数不是 rollout trace reducer，但它体现的是同一种源码习惯：把宽泛的
+runtime/API input 转成面向特定受众的 view。模型可能看到了 tool call；client 可能渲染成
+card；trace 可能保留 raw protocol payload；analytics reducer 可能发出 track event。这些
+projection 相关，但每个 owner 都要决定对自己的受众来说什么有意义、什么安全。
+
+最常见的调试错误，是要求 transcript 解释它从未拥有过的 runtime state。terminal
+operation 失败时，transcript 里可能只有总结后的 observation。trace graph 仍然可以指回
+raw payload、runtime lifecycle、terminal operation IDs 和 sequence order。产品指标缺失
+时，analytics reducer 可能是因为 thread metadata 不可用而有意 drop。这是不同的 failure
+class。
+
+## 6. Analytics 与 OTEL 从 Evidence Stream 分支
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-analytics-otel-569ff6a1.webp" alt="Runtime facts 分支进入 analytics reducer 与 track events/missing context，以及 OTEL 的 spans、metrics 和 logs" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Analytics 与 OTEL 是 sibling projections。Analytics 把 product facts reduce 成 track events；OTEL 记录 spans、counters、histograms 和 runtime timing。</figcaption>
+</figure>
+
+### 6.1 Analytics Facts 是 Product Inputs，不是 Replay Truth
+
+analytics input vocabulary 在
+[`codex-rs/analytics/src/facts.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/facts.rs#L276-L326)。
+它包含 app-server JSON-RPC requests/responses、server notifications，以及无法自然存在于
+protocol surface 上的 custom facts。
+
+```rust
+pub(crate) enum AnalyticsFact {
+    Initialize { connection_id: u64, params: InitializeParams, /* ... */ },
+    ClientRequest { connection_id: u64, request_id: RequestId, request: Box<ClientRequest> },
+    ClientResponse { connection_id: u64, request_id: RequestId, response: Box<ClientResponsePayload> },
+    ErrorResponse { connection_id: u64, request_id: RequestId, error_type: Option<AnalyticsJsonRpcError>, /* ... */ },
+    ServerRequest { connection_id: u64, request: Box<ServerRequest> },
+    ServerResponse { completed_at_ms: u64, response: Box<ServerResponse> },
+    Notification(Box<ServerNotification>),
+    Custom(CustomAnalyticsFact),
+}
+
+pub(crate) enum CustomAnalyticsFact {
+    SubAgentThreadStarted(SubAgentThreadStartedInput),
+    Compaction(Box<CodexCompactionEvent>),
+    GuardianReview(Box<GuardianReviewEventParams>),
+    TurnResolvedConfig(Box<TurnResolvedConfigFact>),
+    TurnTokenUsage(Box<TurnTokenUsageFact>),
+    SkillInvoked(SkillInvokedInput),
+    AppMentioned(AppMentionedInput),
+    AppUsed(AppUsedInput),
+    HookRun(HookRunInput),
+    PluginUsed(PluginUsedInput),
+    PluginStateChanged(PluginStateChangedInput),
+}
+```
+
+`TurnResolvedConfigFact` 说明 analytics 为什么有价值但不是 replay truth：它携带 model、
+provider、permission profile、approval policy、sandbox network access、collaboration
+mode、personality 和其他 resolved turn settings
+([`facts.rs#L63-L84`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/facts.rs#L63-L84))。
+这些事实适合回答 aggregate product questions；不应该拿它们重建 exact thread history
+或 raw provider payload。
+
+### 6.2 Analytics Reducer 可以 Drop Events
+
+`AnalyticsReducer` 保存 request、turn、connection、thread 和 tool-start state
+([`reducer.rs#L114-L121`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/reducer.rs#L114-L121))。
+主 `ingest` 方法把 facts 分发给 specialized reducers
+([`reducer.rs#L283-L330`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/reducer.rs#L283-L330))。
+
+drop behavior 是显式的。对 tool item analytics 来说，如果 completion 找不到匹配的 start
+notification，就直接忽略
+([`reducer.rs#L758-L791`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/reducer.rs#L758-L791))：
+
+```rust
+let key = ToolItemKey {
+    thread_id: notification.thread_id.clone(),
+    turn_id: notification.turn_id.clone(),
+    item_id: item_id.to_string(),
+};
+let Some(started_at_ms) = self.tool_items_started_at_ms.remove(&key) else {
+    tracing::warn!(
+        thread_id = %notification.thread_id,
+        turn_id = %notification.turn_id,
+        item_id,
+        "dropping tool item analytics event: missing item started notification"
+    );
+    return;
+};
+```
+
+context helpers 对 missing thread connection、connection state 或 thread metadata 也是
+同样策略
+([`reducer.rs#L1071-L1131`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/reducer.rs#L1071-L1131))。
+这对 analytics 是正确的：缺少上下文的 aggregate event 应该 warn 后 drop，而不是补造
+context。但 replay reducer 在 evidence 一致性要求高的地方不能采用同一套策略。
+
+### 6.3 OTEL 测量 Runtime Operations
+
+OTEL 的 contract 又不同。在
+[`session_telemetry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L71-L104)
+里，`SessionTelemetryMetadata` 存 conversation ID、auth mode/env metadata、account
+hints、originator、session source、model、app version 和 terminal type。telemetry object
+持有可选 metrics，并知道是否使用 metadata tags。
+
+Responses event recorder 会把 event kind、function-call tool names 和 token usage 写进
+span fields
+([`session_telemetry.rs#L292-L329`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L292-L329))：
+
+```rust
+pub fn record_responses(&self, handle_responses_span: &Span, event: &ResponseEvent) {
+    handle_responses_span.record("otel.name", SessionTelemetry::responses_type(event));
+
+    match event {
+        ResponseEvent::OutputItemDone(item) => {
+            handle_responses_span.record("from", "output_item_done");
+            if let ResponseItem::FunctionCall { name, .. } = item {
+                handle_responses_span.record("tool_name", name.as_str());
+            }
+        }
+        ResponseEvent::OutputItemAdded(item) => {
+            handle_responses_span.record("from", "output_item_added");
+            if let ResponseItem::FunctionCall { name, .. } = item {
+                handle_responses_span.record("tool_name", name.as_str());
+            }
+        }
+        ResponseEvent::Completed { token_usage: Some(token_usage), .. } => {
+            handle_responses_span.record("gen_ai.usage.input_tokens", token_usage.input_tokens);
+            handle_responses_span.record(
+                "gen_ai.usage.cache_read.input_tokens",
+                token_usage.cached_input(),
+            );
+            handle_responses_span.record("gen_ai.usage.output_tokens", token_usage.output_tokens);
+            handle_responses_span.record(
+                "codex.usage.reasoning_output_tokens",
+                token_usage.reasoning_output_tokens,
+            );
+            handle_responses_span.record("codex.usage.total_tokens", token_usage.total_tokens);
+        }
+        _ => {}
+    }
+}
+```
+
+API request recorder 会增加 counters、记录 duration histograms，并 log/trace transport
+metadata，例如 status、duration、retry/auth recovery state、endpoint、request ID、
+Cloudflare ray 和 auth error fields
+([`session_telemetry.rs#L407-L468`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L407-L468))。
+SSE logger 会验证特殊 event shapes，并记录 failures，包括 idle timeout waiting for SSE
+([`session_telemetry.rs#L689-L736`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L689-L736))。
+
+这个 plane 是 operational evidence。它告诉工程师一次 model call、WebSocket request、SSE
+event 或 tool result 表现如何。它不是 durable conversation record，也不是 product truth
+的 analytics source。
+
+## 7. Debug Context 与 Logs 必须有边界
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-debug-logs-569ff6a1.webp" alt="Response debug context 抽取 request id、cf-ray 和 auth code，同时 local logs 执行 thread/process caps" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Support evidence 刻意很窄：response debug context 只抽取 identifiers 与 sanitized status；local logs 则强制 per-thread 和 per-process caps。</figcaption>
+</figure>
+
+### 7.1 Response Debug Context 抽身份，不复制 Body
+
+response debug crate 很小，但边界清晰。在
+[`response-debug-context/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/response-debug-context/src/lib.rs#L11-L54)
+里，`ResponseDebugContext` 保存 request ID、Cloudflare ray、auth error 和 auth error
+code。它只从 `TransportError::Http` 提取这些字段；其他 transport errors 返回空 context。
+
+```rust
+pub struct ResponseDebugContext {
+    pub request_id: Option<String>,
+    pub cf_ray: Option<String>,
+    pub auth_error: Option<String>,
+    pub auth_error_code: Option<String>,
+}
+
+pub fn extract_response_debug_context(transport: &TransportError) -> ResponseDebugContext {
+    let mut context = ResponseDebugContext::default();
+
+    let TransportError::Http { headers, body: _, .. } = transport else {
+        return context;
+    };
+
+    let extract_header = |name: &str| {
+        headers
+            .as_ref()
+            .and_then(|headers| headers.get(name))
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_string)
+    };
+
+    context.request_id =
+        extract_header(REQUEST_ID_HEADER).or_else(|| extract_header(OAI_REQUEST_ID_HEADER));
+    context.cf_ray = extract_header(CF_RAY_HEADER);
+    context.auth_error = extract_header(AUTH_ERROR_HEADER);
+    context.auth_error_code = extract_header(X_ERROR_JSON_HEADER).and_then(|encoded| {
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .ok()?;
+        let parsed = serde_json::from_slice::<serde_json::Value>(&decoded).ok()?;
+        parsed
+            .get("error")
+            .and_then(|error| error.get("code"))
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string)
+    });
+
+    context
+}
+```
+
+telemetry error helpers 比 raw transport errors 更窄。HTTP transport errors 变成
+`"http <status>"`，而不是 serialized bodies
+([`lib.rs#L63-L87`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/response-debug-context/src/lib.rs#L63-L87))。
+名为
+[`telemetry_error_messages_omit_http_bodies`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/response-debug-context/src/lib.rs#L134-L147)
+的测试构造了包含 `"secret token leaked"` 的 body，并断言 telemetry 仍然只报告
+`"http 401"`。
+
+这就是 support boundary。你需要足够的 identity 去关联一次失败；你不需要把 upstream
+response body 复制进 telemetry。
+
+### 7.2 Local Logs 可读，但有上限
+
+local logs 属于 state runtime。在
+[`state/src/runtime/logs.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/logs.rs#L10-L47)
+里，`insert_logs` 将 rows 批量写入 SQLite `logs` table，字段包括 timestamp、level、
+target、feedback body、thread ID、process UUID、module path、file、line 和 estimated
+byte count。源码注释说 runtime 每个 partition 保留大约 10 MiB reader-visible log
+content，并且 `query_logs` 与 `/feedback` 都读取 persisted `feedback_log_body`。
+
+```rust
+pub async fn insert_logs(&self, entries: &[LogEntry]) -> anyhow::Result<()> {
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let mut tx = self.logs_pool.begin().await?;
+    let mut builder = QueryBuilder::<Sqlite>::new(
+        "INSERT INTO logs (ts, ts_nanos, level, target, feedback_log_body, \
+         thread_id, process_uuid, module_path, file, line, estimated_bytes) ",
+    );
+    builder.push_values(entries, |mut row, entry| {
+        let feedback_log_body = entry.feedback_log_body.as_ref().or(entry.message.as_ref());
+        let estimated_bytes = feedback_log_body.map_or(0, String::len) as i64
+            + entry.level.len() as i64
+            + entry.target.len() as i64
+            + entry.module_path.as_ref().map_or(0, String::len) as i64
+            + entry.file.as_ref().map_or(0, String::len) as i64;
+        // ...
+    });
+    builder.build().execute(&mut *tx).await?;
+    self.prune_logs_after_insert(entries, &mut tx).await?;
+    tx.commit().await?;
+    Ok(())
+}
+```
+
+pruning 与 insertion 在同一个 transaction 里执行
+([`logs.rs#L49-L73`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/logs.rs#L49-L73))。
+thread logs 按 `thread_id` cap；threadless logs 按 `process_uuid` cap；没有 process UUID
+的 rows 也形成自己的 threadless partition
+([`logs.rs#L49-L286`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/logs.rs#L49-L286))。
+这和 debug-context helper 是同一种设计品味：保留足够本地证据用于检查问题，但把边界写
+清楚。
+
+## 8. 用正确 Owner 调试
+
+实操习惯是：把问题路由给能回答它的 owner。
+
+| 问题 | 先看哪里 | 原因 |
 | --- | --- | --- |
-| Rollout persistence | 这个 thread 能否 resume、fork 或 replay？ | runtime 与客户端 history reconstruction |
-| Rollout trace | 哪些 raw evidence 能解释这次运行？ | 本地 debugging 与 offline graph viewer |
-| Product analytics | 发生了哪些产品事件？ | 产品指标与聚合分析 |
-| OTEL traces/metrics | runtime operation 表现如何？ | 运行维护与工程诊断 |
-| Response debug context | 哪个 upstream request 失败了？ | 支持与 failure triage |
-| Local state logs | 进程本地输出了哪些 logs？ | 本地 inspection 与 feedback bundle |
+| thread resume 后 history 不对？ | rollout reconstruction 与 `RolloutTrace` graph | replay facts 和 graph state 拥有 durable history |
+| tool 是否在没有 model-visible source item 时运行？ | trace reducer pending queues | runtime start 可能早于 response payload reduction |
+| provider stream 是否卡住？ | OTEL SSE/WebSocket metrics 与 API request spans | transport timing 是 operational evidence |
+| product metric 为什么消失？ | analytics reducer warnings | analytics 可以 drop missing-context events |
+| upstream request 是否有 auth identity？ | response debug context | support context 抽取 request/ray/auth code |
+| local logs 是否过大？ | state runtime log pruning | local logs 受 thread/process partitions 限制 |
+| user-visible transcript 为什么缺细节？ | raw payload refs 与 reduced graph | transcript 是 projection，不是 raw evidence store |
 
-这些 plane 会有意重叠。一次工具调用可能同时是 rollout item、client event、 analytics fact、OTEL span、trace payload 和 local log line。只要每个 plane 的 retention、privacy、query 和 interpretation model 不同，这种重叠就不是坏事。
-
-### Rollout Persistence 是 Replay Spine
-
-rollout file 是第 5 章讲过的 durable record。它按顺序写入 items，用来重建 thread history、session metadata、turn context、compaction boundary、rollback behavior 和选定的 event surface。它为 replay 和兼容性优化，而不是为任意 debugging 优化。
-
-```text
-// Pseudocode - illustrative pattern.
-function handle_runtime_event(event):
-    if event.should_be_persisted_for_replay:
-        rollout.append(event.as_rollout_item)
-
-    if event.should_update_thread_projection:
-        state_database.apply(event.as_metadata_delta)
-
-    if event.should_notify_client:
-        event_stream.emit(event.as_client_event)
-```
-
-replay spine 必须保守。它要保存未来 Codex 版本理解一个 thread 所需的事实，但不应该变成 无边界的内部字节 dump。需要更深证据时，Codex 使用 rollout trace。
-
-### Rollout Trace 捕获 Raw Evidence
-
-rollout trace 是 opt-in diagnostic path。启用后，runtime 会记录 ordered raw events， 并把较大的 raw payload 分开保存。hot path 不会在 session 运行时构造最终 explanation graph；它只捕获事实，把解释工作交给 offline reducer。
-
-raw trace data 可能包含 prompts、model responses、tool inputs/outputs、terminal output、runtime payloads 和 paths。因此它属于本地诊断，而不是普通 telemetry。这个设计的 价值在于：当 reduced graph 不足以解释 failure 时，raw payload 仍然可用。
-
-### Raw Events 与 Reduced Graph
-
-reduced trace graph 不是 transcript。它包含 semantic objects：agent threads、Codex turns、 model-visible conversation items、inference calls、tool calls、code cells、terminal operations、compactions 和 interaction edges。每个 object 都可以保留指向 raw payload 的引用。
-
-这个区分能避免常见 debugging 错误：runtime output 不自动等于 model-visible output。 terminal operation 可能在本地 process log 里产出大量字节，而模型只看到了一个总结后的 tool result。nested runtime call 可能属于 code-mode execution object，而模型可见 transcript 只包含外围 tool boundary。trace graph 同时保留两种视图，但不把它们混在一起。
-
-### Reducer 故意严格
-
-reducer 按顺序 replay raw events，并构建 semantic state。它在一致性重要的地方保持严格： 被引用的 payload 必须存在；sequence order 必须被遵守；tool start 和 completion 必须匹配； terminal operation 必须挂到已知 runtime object；turn 必须属于已知 thread；pending edges 最终必须找到 source 或 target。
-
-```text
-// Pseudocode - illustrative pattern.
-function reduce_trace_bundle(bundle):
-    state = empty_graph()
-    pending = empty_pending_queue()
-
-    for raw_event in bundle.events_ordered_by_sequence:
-        assert_payloads_exist(raw_event.payload_refs)
-
-        if raw_event.references_unknown_object:
-            pending.queue(raw_event)
-            continue
-
-        object = interpret_raw_event(raw_event)
-        state.apply(object)
-        pending.flush_items_now_unblocked_by(state)
-
-    if pending.has_unresolved_items:
-        raise strict_replay_error(pending.summary)
-
-    write_reduced_state(state)
-```
-
-strict replay error 是有价值的。它说明 capture stream 内部不一致，或者 reducer 还不理解某种 新 event shape。静默丢弃这些事实会让 graph 更容易生成，但更不可信。
-
-### Analytics Reduce 产品事实
-
-product analytics 的目标不同。它把 client requests、responses、notifications、custom runtime facts、app/plugin invocations、compaction events、Guardian review outcomes、token usage 和 turn completion state reduce 成可追踪的产品事件。
-
-analytics 不应该成为 replay truth。它可以丢弃缺失必要上下文的事件，可以聚合值，可以 hash identifier，也可以专注产品问题。它回答的是“很多 session 中发生了什么”，而不是“如何重建 这个 exact thread”。
-
-### OTEL 观测 Runtime Operations
-
-OTEL traces、logs、metrics 和 trace-context propagation 服务于 operational debugging。它们 可以测量 request latency、stream polling behavior、WebSocket events、retry behavior、 session-scoped events、counters、histograms 和 exported spans。trace context 可以跨边界传播， 让一个 submission、model call 和 downstream runtime operation 保持关联。
-
-这个 plane 关注性能与可靠性。它不应该被当成 durable transcript，也不应该要求 product analytics model 去解释低层 runtime 行为。
-
-### Response Debug Context 与 Local Logs
-
-response debug context 从 upstream API failure 中抽取身份信息，比如 request identifier 和 status details。它刻意保持小而面向支持：帮助把用户可见 failure 关联到 upstream request， 但不暴露完整 runtime trace。
-
-local state logs 则把 process logs 通过有界队列和批量插入写进 database-backed sink。它们 服务本地 inspection 和 feedback flow。和 OTEL 一样，logs 是 operational evidence，不是 replay spine。
-
-### 先观察，后解释
-
-可迁移的架构原则是 capture 与 meaning 的分离。hot-path code 记录带稳定 identifier 的 durable 或 raw facts；reducers 和 projections 再按某个受众解释这些 facts。新的 UI 需要 graph，就从 trace evidence reduce；thread list 需要标题，就读或修复 metadata projection；产品指标需要 turn completion status，就 reduce analytics facts。不要让一个 transcript 承担所有职责。
+这张表就是架构的缩影。Codex 不需要一个万能 observability object。它需要稳定的 capture
+points，需要在自洽性重要的地方使用严格 reducers，也需要在 privacy、retention 或
+aggregation 更重要的地方使用更窄 projections。
 
 <div class="apply-this">
 
 ## 应用到实践
 
-1. 先捕获 raw 或 replayable facts，再派生 summary、graph 或 aggregate metrics。
-2. 把 replay persistence 与 diagnostic tracing 分开，避免 durable thread 变成无边界 debug dump。
-3. 在 evidence 必须自洽的地方让 reducer 保持严格，用失败暴露缺失的 event semantics。
-4. 按受众拆分 observability：replay、本地 debugging、product analytics、operations、support 和 logs。
-5. 在 reduced objects 背后保留 raw payload references，让解释可以回到原始证据。
+1. 先捕获有序 runtime facts，再派生 transcripts、dashboards 或 aggregate metrics。
+2. 把 durable replay persistence 与 opt-in diagnostic trace bundles 分开，尤其当 raw
+   payloads 可能包含 prompts、responses、paths、terminal output 或 tool data 时。
+3. 把 sequence numbers 和 payload references 当作 causal evidence，并在 typed replay
+   需要 owner、payload body 或 pending edge materialize 时让 trace reducer 保持严格。
+4. 让 analytics 与 OTEL 成为 sibling projections：analytics 面向 product facts，OTEL
+   面向 runtime operation 与 transport behavior。
+5. 给 support/debug surfaces 设边界：抽取 request identity 与 sanitized status，并按
+   thread 或 process cap local logs，而不是无限存储 bodies。
 
 </div>
 
 ## 小结
 
-Part II 至此建立了 runtime core：durable threads、live sessions、turn loop、provider streams、 backend boundaries 和 observation planes。下一部分会从调度与证据转向副作用：Codex 如何暴露 tools、执行 shell commands、应用 patches、请求 approval，并把风险限制在明确边界内。
+Part II 至此建立了 runtime core：durable threads、live sessions、turn loop、provider
+streams、backend boundaries 和 observation planes。共同模式已经很清楚：Codex 先用明确
+owner 记录事实，再从这些事实构造面向不同受众的 views。这就是为什么同一次运行可以
+resumable、debuggable、measurable、supportable，并且仍然有边界。
+
+Part III 会从 evidence 转向 side effects：Codex 如何暴露 tools、执行 commands、应用
+patches、请求 approval，并把风险限制在明确 authority boundaries 内。
 
 <div class="source-equivalence">
 
@@ -138,9 +808,30 @@ Part II 至此建立了 runtime core：durable threads、live sessions、turn lo
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Trace session model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L33) |
-| Codex turn trace model | [`codex-rs/rollout-trace/src/model/session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L104) |
-| Runtime trace payloads | [`codex-rs/rollout-trace/src/protocol_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L32) |
-| Core event mapping | [`codex-rs/core/src/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/event_mapping.rs#L135) |
+| Trace bundle layout | [`bundle.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/bundle.rs#L1-L49) |
+| Hot-path trace writer | [`TraceWriter`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/writer.rs#L1-L40) |
+| Payload-before-event write rule | [`write_json_payload`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/writer.rs#L85-L106) |
+| Raw event envelope | [`RawTraceEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/raw_event.rs#L21-L49) |
+| Raw payload variants | [`RawTraceEventPayload`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/raw_event.rs#L65-L226) |
+| Protocol-to-trace mapping rationale | [`protocol_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L1-L13) |
+| Tool runtime payload capture | [`ToolRuntimePayload`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/protocol_event.rs#L92-L135) |
+| Reduced graph model | [`RolloutTrace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/mod.rs#L52-L88) |
+| Trace session model | [`AgentThread`, `ExecutionWindow`, `CodexTurn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/session.rs#L33-L110) |
+| Deterministic replay | [`replay_bundle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/mod.rs#L43-L85) |
+| Reducer pending queues | [`TraceReducer`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/mod.rs#L88-L136) |
+| Reducer event application | [`apply_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/mod.rs#L150-L260) |
+| Client turn item projection | [`parse_turn_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/event_mapping.rs#L135-L209) |
+| Analytics fact vocabulary | [`AnalyticsFact`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/facts.rs#L276-L326) |
+| Turn resolved config facts | [`TurnResolvedConfigFact`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/facts.rs#L63-L84) |
+| Analytics reducer state | [`AnalyticsReducer`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/reducer.rs#L114-L121) |
+| Analytics missing-context drops | [`thread_context_or_warn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/analytics/src/reducer.rs#L1071-L1131) |
+| OTEL session metadata | [`SessionTelemetryMetadata`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L71-L104) |
+| Response event telemetry | [`record_responses`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L292-L329) |
+| API request telemetry | [`record_api_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L407-L468) |
+| SSE event telemetry | [`log_sse_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/otel/src/events/session_telemetry.rs#L689-L736) |
+| Response debug context | [`extract_response_debug_context`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/response-debug-context/src/lib.rs#L11-L54) |
+| HTTP body omission test | [`telemetry_error_messages_omit_http_bodies`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/response-debug-context/src/lib.rs#L134-L147) |
+| Local log insertion and pruning | [`state/src/runtime/logs.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/logs.rs#L10-L73) |
+| Thread and process log caps | [`prune_logs_after_insert`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/logs.rs#L49-L286) |
 
 </div>
