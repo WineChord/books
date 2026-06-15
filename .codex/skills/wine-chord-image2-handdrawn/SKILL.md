@@ -63,6 +63,15 @@ brand mark placement, and source-accurate labels.
 - Do not let generated text invent source facts. If exact identifiers, arrows,
   or labels matter, compose them deterministically into the final raster image
   after generating the hand-drawn base.
+- Do not publish figures whose labels look like separate post-processing
+  patches: white rounded rectangles, floating text pills, misaligned caption
+  strips, labels that ignore the perspective of a plaque/card/shelf, or text
+  that sits on top of an empty generated nameplate without sharing its ink,
+  paper texture, shadow, wobble, and perspective. This remains forbidden even
+  when the final artifact is a single PNG/WebP rather than live HTML. If a
+  deterministic label overlay is used, it must be visually integrated enough
+  that the final image reads as one coherent hand-drawn raster; otherwise
+  regenerate the base or redesign the figure with fewer labels.
 - This image-text rule does not prohibit real source-code excerpts in article
   prose. Put verified code in syntax-highlighted fenced blocks with pinned
   source links; keep generated figure text short and source-safe.
@@ -278,6 +287,12 @@ Use deterministic composition when accuracy requires it:
 - Overlay exact labels, node titles, arrows, or callouts with a script or design
   renderer only when source accuracy requires it and the result still matches
   the generated hand-drawn style.
+- Do not use deterministic composition to paste text pills onto empty generated
+  plaques, tags, shelves, panels, or cards. The label's baseline, rotation,
+  stroke weight, fill opacity, shadow, and surrounding paper grain must match
+  the surface it labels. If that cannot be achieved quickly and convincingly,
+  remove the label from the artwork, move the explanation to the caption/prose,
+  or regenerate the whole figure with simpler built-in labels.
 - Do not mechanically overlay one selected brand asset as the final bottom-right
   mark. Prefer a generated integrated mark guided by the approved candidate
   descriptions. If a repair is unavoidable, it must be visually seamless at full
@@ -404,6 +419,10 @@ Plan figures from the article argument, not from existing assets:
 Inspect every generated figure before publishing:
 
 - Text is readable and not misspelled.
+- Labels must be visually integrated with the drawing. Reject figures with
+  pasted-looking white text strips, overlay boxes that cover generated borders,
+  label baselines that do not follow the underlying perspective, or labels that
+  visibly float apart from the hand-drawn object they describe.
 - No missing-glyph boxes, clipped words, accidental line breaks inside code
   identifiers, or forced wraps such as splitting `observation` across lines.
 - Labels do not escape boxes.
