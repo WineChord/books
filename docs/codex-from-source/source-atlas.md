@@ -3,7 +3,7 @@
 > **Reading Contract:** Use this atlas only after the narrative is clear. Open pinned links to verify owners, boundaries, and evidence rather than to discover the story from scratch.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-df64b03.webp" alt="Pinned source evidence atlas mapping chapter claims to verified owners, public source anchors, and audit rules" loading="eager" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-569ff6a1-v2.webp" alt="Pinned source evidence atlas mapping chapter claims to verified owners, public source anchors, and audit rules" loading="eager" decoding="async" />
   <figcaption>Use the atlas after the prose has made a claim: it maps narrative statements to subsystem owners, pinned source lines, and audit results.</figcaption>
 </figure>
 
@@ -87,11 +87,22 @@ Audit rule: open an anchor only to confirm the claim class. Direct type, functio
 
 ### Chapter 10: Shell, Exec Server, and Filesystem Tools
 
-- Shell handler: [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L31)
-- Unified exec handler: [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L48)
-- Exec policy manager: [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251)
-- Exec-server RPC client: [`codex-rs/exec-server/src/rpc.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/rpc.rs#L234)
-- Executor filesystem handler: [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L38)
+- Shell handler request shaping: [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L42-L63)
+- Shared shell execution path: [`codex-rs/core/src/tools/handlers/shell.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell.rs#L110-L260)
+- Exec policy approval conversion: [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L272-L379)
+- Unmatched command fallback: [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L631-L745)
+- Tool orchestrator approval and attempt flow: [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L260)
+- Sandbox denial retry branch: [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379)
+- Sandbox attempt transform: [`codex-rs/core/src/tools/sandboxing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421)
+- Unified exec handler request binding: [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L163-L317)
+- Unified exec request shape: [`codex-rs/core/src/unified_exec/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/mod.rs#L90-L114)
+- Unified exec process manager: [`codex-rs/core/src/unified_exec/process_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L370-L737)
+- Unified exec runtime adapter: [`codex-rs/core/src/tools/runtimes/unified_exec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/unified_exec.rs#L56-L76)
+- Exec-server protocol methods and process output: [`codex-rs/exec-server/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L13-L124)
+- Exec-server client calls: [`codex-rs/exec-server/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/client.rs#L318-L397)
+- Remote process adapter: [`codex-rs/exec-server/src/remote_process.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_process.rs#L34-L83)
+- Executor filesystem handler: [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L33-L161)
+- Remote filesystem sandbox forwarding: [`codex-rs/exec-server/src/remote_file_system.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_file_system.rs#L41-L94)
 
 ### Chapter 11: Patches as a First-Class Editing Protocol
 

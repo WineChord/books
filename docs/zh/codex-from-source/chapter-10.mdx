@@ -1,109 +1,254 @@
-
 # 第 10 章：Shell、Exec Server 与文件系统工具
 
-> **阅读契约：** 用本章把 shell 和文件系统访问读成有边界能力。把 exec-server boundary、command policy、filesystem mutation 和 result reporting 放在一起看。
+> **阅读契约：** 用本章把 shell execution 读成受治理的副作用，而不是一个裸 subprocess。请同时跟踪四个 owner：handler 负责塑形请求，exec policy 负责决定 approval requirement，orchestrator 负责选择 sandbox attempt，`exec-server` 负责 process 与 filesystem 的 placement。读完后，你应该能解释为什么 `process_id` 是逻辑协议句柄而不是 OS pid，为什么 approval 不等于 sandbox，以及为什么远端文件系统写入必须携带 sandbox context。
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/shell-exec-filesystem-boundary.webp" alt="Shell 与文件系统执行边界：展示 tool calls、exec policy、approval、sandbox selection、exec-server process、filesystem handler 和有序输出" loading="eager" decoding="async" />
-  <figcaption>Shell 和文件系统访问之所以可控，是因为命令经过 parse、policy、approval、sandbox、execution、sequencing 和 recording。</figcaption>
+  <figcaption>Shell 和文件系统访问之所以可控，是因为命令会经过 request shaping、policy、approval、sandbox selection、executor placement、ordered output 和 filesystem mediation。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、placement boundary、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
 
-第 9 章把工具暴露和工具权限分开了。本章沿着最能体现这种分离的 handler 家族继续往下看：shell-like tools。对模型来说，shell 工具看起来只是“运行一个命令”；对运行时来说，它必须解析命令、分类风险、应用策略、运行 hooks、必要时请求审批、选择环境、执行 sandbox 规则、流式输出，并留下可重放记录。
+第 9 章解释了 Codex 如何暴露工具，同时不让模型凭空获得工具权限。本章沿着第一个真正把这件事落到运行时的工具家族继续往下看：shell 和 filesystem access。从模型能看到的表面看，`shell` 或 `exec_command` 很像一句“运行这个命令”。但在 runtime 里，这句话会变成一个受治理的请求，其权限被分散到 parsing、policy、approval、sandboxing、process management、output sequencing 和 filesystem mediation 中。
 
-关键设计点是：Codex 不把“运行命令”当成单个原语。它把命令执行看成一条 pipeline。最终进程可能在本机运行，可能在平台 sandbox 中运行，也可能通过 `exec-server` 抽象表示远端 executor 及其文件系统。
+核心心智模型是：**Codex 不是在运行“一条 shell 命令”；它是在接收一个 side-effect request，并逐步证明这个副作用可以在哪里发生。** 一条命令最终可能变成本机 child process、一个保留给后续 stdin 的 PTY、一个经过 sandbox transform 的 execution request，也可能变成针对远端 executor 的 `exec-server` request。这些不是后端实现细节，而是在定义哪个文件系统是权威、哪些输出可以 replay、哪个 permission profile 必须随操作一起传递。
 
+## 一、Shell 是受治理的请求
 
-## Shell 工具只是入口
+Codex 有多个 shell 相邻入口，是因为不同客户端需要不同的交互形状。经典 `shell` 工具返回一次捕获结果；`exec_command` 可以让进程保持存活，并在之后接受 `write_stdin`；还有一些 shell surface 用于兼容、host-local execution 或 shell-aware command routing。关键不是入口有多少，而是这些入口本身都不是权限边界。
 
-Codex 有多个 shell 相邻入口，因为不同客户端和模型表面需要的交互形状不同。
+### 1.1 Request Surface 不是权限边界
 
-| 入口 | 架构角色 |
-| --- | --- |
-| `shell` | 经典 function-style command execution，携带 workdir、timeout、approval hints 和输出捕获 |
-| `local_shell` | 面向旧表面或特殊表面的 host-local command shape |
-| `shell_command` | shell-aware command surface，可选择 direct 或 shell-escalation 等 backend |
-| `exec_command` | unified exec surface，可选择 environment，并保留 process identity 供后续读写 |
-| `write_stdin` | 写入已存在 managed process stdin 的 continuation tool |
+| 入口 | 表面需要什么 | 仍然必须治理什么 |
+| --- | --- | --- |
+| `shell` | 一条 command、cwd、timeout、可选 approval hint | command classification、approval、sandbox、output shaping |
+| `exec_command` | command、selected environment、可选 TTY | process identity、output buffering、stdin continuation、retry |
+| `write_stdin` | 和已有 process 交互 | process liveness、stdin support、output polling、exit cleanup |
+| filesystem helpers | 对 selected workspace 执行 read/write/remove/copy | executor placement 与 sandbox context |
 
-这些入口最终汇聚到同一项责任：把模型请求转成可治理的 execution request。汇聚非常重要，因为命令策略、沙箱和审批不应取决于某个客户端表面恰好暴露了哪种命令工具。
+这层拆分能避免一种误导性的 API 叙事。Tool name 只说明客户端想怎样交互；它并不说明哪个 filesystem 是权威、是否需要 prompt、后续 stdin write 是否还能找到同一个 runtime object。
 
-这就是 shell execution chain。任何单个节点都不足以让命令执行安全或可解释；安全性来自顺序，也来自每个决策都有结构化表达。
+### 1.2 Handler Shaping 建立第一份 Contract
 
-### 先解析，再做策略判断
+经典 shell handler 展示了第一层翻译。[`ShellHandler::to_exec_params`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L42-L63) 并不启动进程，而是把模型请求塑形成 `ExecParams`：里面有 cwd resolution、timeout policy、capture policy、environment、network、sandbox permissions 和 justification。
 
-Shell command text 不是可靠的 policy boundary。Runtime 会先尝试抽取 shell 和 script，把常见 shell 形式降解成 command tokens，并识别已知安全的只读模式。目标不是理解所有 shell 程序，而是构造足够结构，让策略判断不必假装原始字符串已经是决策。
-
-解析后，Codex 会咨询 exec policy。当前 policy engine 使用 prefix rules、可选 host-executable metadata，以及 allow、prompt、forbid 等显式决策。旧的 policy engine 仍用于兼容，但架构要点一样：显式规则先于 fallback heuristics。
-
-| 决策来源 | 提供什么 |
-| --- | --- |
-| Prefix rules | 对已知命令族给出稳定的组织策略 |
-| Host executable metadata | 当命令使用绝对程序路径时，让 basename matching 更安全 |
-| Known-safe heuristics | 为普通只读命令提供保守默认值 |
-| Approval policy | 决定何时询问、重试或拒绝 |
-| Runtime sandbox mode | 决定第一次 attempt 能触碰什么 |
-
-Allow 并不总是表示“自由运行”。它可能表示“在当前 sandbox 下无需提示即可运行”。策略也可以显式表示 bypass sandbox，但那是更强的声明，必须被单独表达。
-
-### `exec-server` 定义工作发生在哪里
-
-`exec-server` 是让执行位置不泄漏到 tool handler 的边界。它提供小型 JSON-RPC 进程和文件系统服务：初始化连接、启动 managed process、按 sequence 读取输出、在支持时写 stdin、终止进程，并通过 executor filesystem interface 执行文件系统操作。
-
-本地执行和远端执行共享这个形状。本地 executor 可以在用户机器上 spawn process；远端 executor 可以向服务注册，并通过 rendezvous channel 重新连接。Tool runtime 不应该因为进程位于不同执行环境，就重写 approval、sandbox 或 output 逻辑。
-
-```text
-// Pseudocode - simplified for clarity.
-  request = parse_shell_tool_arguments(tool_call)
-  command = normalize_shell_command(request.command)
-  policy_result = evaluate_exec_policy(command, request.cwd)
-
-  if policy_result is forbidden:
-      return rejected_result(policy_result.reason)
-
-  approval_requirement = derive_approval(policy_result, approval_policy)
-  sandbox_attempt = choose_initial_sandbox(permission_profile, request)
-
-  if approval_requirement needs a decision:
-      decision = ask_hooks_guardian_or_user(request)
-      stop_unless_approved(decision)
-
-  environment = select_execution_environment(request.environment_id)
-  process = environment.exec_server.start(command, sandbox_attempt)
-  stream_output_until_exit(process)
-  return shaped_exec_result(process.output, process.exit_status)
+```rust
+ExecParams {
+    command: params.command.clone(),
+    cwd: turn_context.resolve_path(params.workdir.clone()),
+    expiration: params.timeout_ms.into(),
+    capture_policy: ExecCapturePolicy::ShellTool,
+    env: create_env(&turn_context.shell_environment_policy, Some(thread_id)),
+    sandbox_permissions: params.sandbox_permissions.unwrap_or_default(),
+    // additional fields omitted
+}
 ```
 
-伪代码省略了很多平台细节，但保留了治理形状：parse、policy、approval、sandbox、environment、process、output。
+这个小对象已经是一个 contract。命令还没有被信任，但 runtime 已经知道它属于哪个 working directory、environment policy、capture mode 和 sandbox request。handler 后面的 [`handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L111-L149) 会把塑形后的请求交给 `run_exec_like`，由共享 shell execution path 继续处理 environment 与 approval。handler 是入口，不是最终授权者。
 
-### 文件系统访问经过 Executor
+如果跳过这一步，后续 policy code 就只能从未结构化字符串里猜 cwd、environment、network 和 sandbox intent。Codex 的做法是先把副作用变成 typed request，再讨论它能不能运行。
 
-文件系统修改不只是 shell 的问题。Patch application、file reads、remote workspace operations 和 command execution 都需要一致方式访问拥有这些文件的 workspace。Codex 使用 executor filesystem traits，让调用方可以 read、write、create directory、remove path 或检查 metadata，而不假设文件一定在本机。
+## 二、Policy 先于 Sandbox
 
-这个抽象带来两个好处。第一，remote execution 会把 patch 应用到远端 workspace，而不是误改客户端机器。第二，sandbox context 可以和文件系统操作一起传递。Filesystem API 因而能拒绝违反 effective permission profile 的操作，而不是让每个调用方都重新实现 path check。
+一个常见误读是把 sandbox 当作第一道防线。Codex 源码里的顺序更细：先把 command 变得更结构化，再匹配 policy，再转换成 approval requirement，最后才由 orchestrator 选择 sandbox attempt。
 
-### 输出是有序状态
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/shell-policy-approval-ladder-569ff6a1.webp" alt="命令执行梯：从 tool call 经过 parsing、exec policy、approval gate、sandbox attempt、retry 到 result record" loading="lazy" decoding="async" />
+  <figcaption>Exec policy 先决定命令是 forbidden、needs approval 还是可以 skip approval，然后 runtime 才选择并执行 sandbox attempt。</figcaption>
+</figure>
 
-终端输出不是一个 blob。长进程可能不断产生 chunks，接收 stdin，更新 terminal state，退出，并在稍后被客户端再次读取。Runtime 因此用 sequence cursor 跟踪输出。调用方可以请求某个 sequence 之后的 chunks，等待更多输出，或得知进程已经退出。
+共享 shell path 会先在 [`run_exec_like`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell.rs#L110-L194) 中抽取 command 并应用 environment facts。真正有意义的治理发生在 command policy 层：解析或 lowering 常见 shell 形式，匹配 prefix rules，在必要时参考 host executable metadata，并在没有规则命中时回退到保守 heuristics。
 
-这对 replay 和 UI 正确性都重要。Terminal UI、headless exec client 和 app-server client 都能观察进度，而不必各自发明 terminal transcript 格式。模型仍收到简洁的 tool result，但客户端获得足够结构来渲染进度、截断、exit status 和 failure。
+### 2.1 Policy 生成 Approval Shape
 
-### Environment 是合同的一部分
+核心转换在 [`ExecPolicyManager::create_exec_approval_requirement_for_command`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L272-L379)。简化后，源码把 policy decision 映射成三种 approval shape：
 
-Shell execution 还依赖 environment management：当前工作目录、选定 environment、显式环境变量、shell snapshot、proxy variables、timeout、TTY mode 和 process identity。Codex 把这些事实放在 turn context 或 selected environment 中，而不是在 handler 边界临时猜测。
+```rust
+match evaluation.decision {
+    Decision::Forbidden => ExecApprovalRequirement::Forbidden { /* reason */ },
+    Decision::Prompt => ExecApprovalRequirement::NeedsApproval { /* reason */ },
+    Decision::Allow => ExecApprovalRequirement::Skip { /* bypass_sandbox */ },
+}
+```
 
-架构含义很直接：`exec-server` 不只是 helper binary。它是运行时关于“工作发生在哪里”“哪个文件系统是权威”“进程输出如何排序”的抽象。
+这个 shape 很重要，因为 allow 不总是“无 sandbox 自由运行”。源码会在每个 parsed command segment 都被 exec policy 显式 allow 时，才计算出 `bypass_sandbox`。所以一条命令可以安全到无需提示，但仍然在当前 sandbox 下执行。反过来，如果当前 approval policy 不允许对某类命令发起 prompt，一个 prompt decision 也可能变成 forbidden。
+
+| Policy result | Runtime 含义 | 常见误读 |
+| --- | --- | --- |
+| `Forbidden` | 执行前停止并返回 policy reason。 | “是 sandbox 拦住了。”其实进程不一定会启动。 |
+| `NeedsApproval` | 在尝试副作用前询问 hooks、guardian 或用户。 | “审批通过就是全权限。”它只授权这条 operation path。 |
+| `Skip` | 这个 request shape 不需要 prompt。 | “所有控制都跳过了。”除非 policy 显式允许 bypass，否则 sandbox 仍可生效。 |
+
+### 2.2 Fallback 保持保守
+
+[`render_decision_for_unmatched_command`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L631-L745) 这条 fallback path 也很保守：它会区分 known-safe commands 和 dangerous commands，并把 approval policy 与 sandbox kind 一起纳入判断。所以本章必须把 command classification 和 process execution 分开讲。
+
+这种设计的成本是：一个陌生但无害的命令也可能需要 approval。这是有意为之的边界，而不是缺陷；fallback 保护的是“未知副作用不会因为写在 shell 语法里就自动可信”这个不变量。
+
+## 三、Orchestrator 拥有 Attempts
+
+工具拿到 approval requirement 后，会进入共享的 [`ToolOrchestrator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L214)。Orchestrator 负责把 approval、network approval、sandbox selection、guardian review 和 retry semantics 组合起来。它不是 `spawn` 外面的一层薄包装。
+
+### 3.1 Attempt 是 Runtime State
+
+用形状描述，这条链路是：
+
+```text
+tool request
+  -> exec approval requirement
+  -> hook / guardian / user decision when needed
+  -> initial sandbox attempt
+  -> runtime run
+  -> optional retry without sandbox when policy permits
+  -> tool output or structured denial
+```
+
+第一次 attempt 会根据 turn 的 permission profile 和 sandbox policy 在 [`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L216-L260) 中构造。如果 sandbox 拒绝这次 attempt，后续分支会检查 tool 是否允许 escalation、当前 approval policy 是否允许 no-sandbox retry、是否存在 network-denial approval context，然后才会再次请求审批或直接返回 denial。第二次 attempt 是显式的：只有这些检查通过后，源码才会创建一个 `SandboxType::None` 的新 `SandboxAttempt`。
+
+### 3.2 Retry 不是静默 Fallback
+
+这就是为什么 approval 和 sandboxing 不能混在一起：
+
+| 边界 | 源码 owner | 回答的问题 |
+| --- | --- | --- |
+| approval requirement | exec policy 与 tool runtime | 这个副作用需要审批、禁止，还是可以跳过审批？ |
+| approval decision | hooks、guardian、cached approval 或 user request | 是否有授权决策批准这个 request？ |
+| sandbox attempt | `ToolOrchestrator` 与 `SandboxAttempt` | 这次 attempt 应受哪些 filesystem/network 限制？ |
+| retry | `ToolOrchestrator` | sandbox denial 后，是否允许 no-sandbox retry？ |
+
+更底层的 sandbox transform 在 [`SandboxAttempt::env_for`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421) 完成。这里 sandbox manager 会用当前 sandbox type、cwd、permission profile 和 network setting 转换 `ExecRequest`。也就是在这里，一个受治理的请求才变成可执行环境。
+
+这个 failure boundary 很关键：命令已经被 approval，并不表示 sandbox denial 一定会被绕过。Approval 回答 runtime 是否可以尝试副作用；sandbox attempt 回答这次尝试受到怎样的约束。
+
+## 四、Unified Exec 增加 Process Identity
+
+`exec_command` 相比简单 shell 工具有一个关键新增概念：逻辑 process session。命令可能输出一段后立即返回，也可能继续运行。Runtime 必须持有 session、限制 output buffers、发出 events，并允许后续 `write_stdin` 和同一个 process 交互。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/unified-exec-process-session-569ff6a1.webp" alt="Unified exec 生命周期：从 exec_command 经过 cwd 与 environment resolution、process id allocation、process manager、output chunks、result snapshot、write_stdin 到 alive or exited state" loading="lazy" decoding="async" />
+  <figcaption>`exec_command` 创建 managed process session；`write_stdin` 后续通过逻辑 process id 定位这个 session，而不是定位某个 OS pid。</figcaption>
+</figure>
+
+### 4.1 Handler 绑定 Environment、Cwd 与 Process Id
+
+unified exec handler 会先解析 selected environment、cwd、executor filesystem、shell command、TTY mode、yield time、output token limits 和 permission request，再调用 process manager。源码中可见的 handoff 发生在 [`ExecCommandHandler::handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L163-L317)：它先解析 environment 并分配 process id，再构造 request。这个形状可以在 [`ExecCommandRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/mod.rs#L90-L106) 里看到：
+
+```rust
+pub(crate) struct ExecCommandRequest {
+    pub command: Vec<String>,
+    pub hook_command: String,
+    pub process_id: i32,
+    pub yield_time_ms: u64,
+    pub max_output_tokens: Option<usize>,
+    pub cwd: AbsolutePathBuf,
+    pub environment: Arc<Environment>,
+    pub network: Option<NetworkProxy>,
+    pub tty: bool,
+    pub sandbox_permissions: SandboxPermissions,
+    pub additional_permissions: Option<AdditionalPermissionProfile>,
+    pub additional_permissions_preapproved: bool,
+    pub justification: Option<String>,
+    pub prefix_rule: Option<Vec<String>>,
+}
+```
+
+handler 会通过 [`UnifiedExecProcessManager::allocate_process_id`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L332-L358) 分配 process id，然后把 request 交给 [`exec_command`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L370-L593)。这个 manager 会通过 orchestrated sandbox path 打开 process，启动 output streaming，在 initial yield wait 之前存储 live sessions，并返回 `ExecCommandToolOutput`：里面有 raw output、已知时的 exit code、wall time、chunk id，以及可能仍然存活的 `process_id`。
+
+### 4.2 Manager 拥有 Continuation
+
+所以 `write_stdin` 不是第二个命令启动器。[`WriteStdinRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/mod.rs#L108-L114) 携带 process id、input、yield time 和 output limit。manager 的 [`write_stdin`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L595-L737) 会为已有 process 准备 handles，只在 stdin 支持时写入 input，轮询 bounded output，刷新 process state，并清理已经退出的 sessions。
+
+这也是 UI 必须尊重的边界。如果 tool result 返回了 `process_id`，说明这个 process 仍然是 managed runtime object；如果只返回 `exit_code`，它已经变成完成态输出。把 `process_id` 当作 OS pid 是错的；后面的 protocol 会把这点写得更明确。
+
+## 五、`exec-server` 把 Placement 变成 Protocol
+
+`exec-server` crate 负责把 placement 做成 protocol，而不是散落的一堆特殊分支。它的 protocol file 命名了用于 start、read、write、terminate、接收 output notifications 和执行 filesystem operations 的 JSON-RPC methods。同一套 client shape 可以面对本地 executor，也可以面对远端 executor。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/exec-server-rpc-boundary-569ff6a1-v2.webp" alt="Codex core 与 executor 之间的 exec-server RPC 边界：展示 process API start/read/write、output、stdin、exit、sequence chunks 和本地或远端 placement 图标" loading="lazy" decoding="async" />
+  <figcaption>`exec-server` 用 JSON-RPC contract 包住 process placement：Codex core 发送 process 与 filesystem request，executor 拥有 process，output 以 sequenced chunks 返回。</figcaption>
+</figure>
+
+### 5.1 Process 与 Filesystem Method 共用一层 Contract
+
+这些 method constants 很小，但很关键。[`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L13-L30) 把 process 和 filesystem methods 放在同一个协议面：
+
+```rust
+pub const INITIALIZE_METHOD: &str = "initialize";
+pub const INITIALIZED_METHOD: &str = "initialized";
+pub const EXEC_METHOD: &str = "process/start";
+pub const EXEC_READ_METHOD: &str = "process/read";
+pub const EXEC_WRITE_METHOD: &str = "process/write";
+pub const EXEC_TERMINATE_METHOD: &str = "process/terminate";
+pub const EXEC_OUTPUT_DELTA_METHOD: &str = "process/output";
+pub const EXEC_EXITED_METHOD: &str = "process/exited";
+pub const EXEC_CLOSED_METHOD: &str = "process/closed";
+pub const FS_READ_FILE_METHOD: &str = "fs/readFile";
+pub const FS_WRITE_FILE_METHOD: &str = "fs/writeFile";
+pub const FS_CREATE_DIRECTORY_METHOD: &str = "fs/createDirectory";
+pub const FS_GET_METADATA_METHOD: &str = "fs/getMetadata";
+pub const FS_READ_DIRECTORY_METHOD: &str = "fs/readDirectory";
+pub const FS_REMOVE_METHOD: &str = "fs/remove";
+pub const FS_COPY_METHOD: &str = "fs/copy";
+pub const HTTP_REQUEST_METHOD: &str = "http/request";
+pub const HTTP_REQUEST_BODY_DELTA_METHOD: &str = "http/request/bodyDelta";
+```
+
+### 5.2 Output 是有序协议状态
+
+process 参数也澄清了一个常见误会。[`ExecParams`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L64-L80) 说明 `process_id` 是“client-chosen logical process handle scoped to this connection/session”，并且明确不是 OS pid。Output 也不是 blob：[`ProcessOutputChunk`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L107-L113) 携带 `seq`、`stream` 和 `chunk`；[`ReadResponse`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L115-L124) 返回 chunks、`next_seq`、exit state、closed state 和 failure。
+
+client 侧也镜像了这个协议。[`ExecServerClient`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/client.rs#L318-L397) 有 `exec`、`read`、`write`、`terminate` 和 filesystem operations 的 request methods。远端 process adapter 在 [`remote_process.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_process.rs#L34-L83) 中先 register session，再发送 `client.exec(params)`，并通过 session 实现 `read`、`write` 和 `terminate`。因此本地与远端 placement 可以共享 process semantics，而不需要 shell handler 知道 child process 实际在哪里。
+
+## 六、Filesystem Operations 也经过 Executor Boundary
+
+Filesystem access 遵循同样的 placement rule。如果 selected executor 拥有 workspace，那么 reads、writes、copies、removals 和 metadata checks 都必须经过这个 executor。否则就会出现一种危险错位：remote command 修改一个文件系统，而 patch 或 file read 却误触另一个文件系统。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/executor-filesystem-sandbox-569ff6a1-v2.webp" alt="Executor filesystem boundary：sandbox context 经过分组 filesystem operations，进入 permission profile 后面的 local 或 remote workspace" loading="lazy" decoding="async" />
+  <figcaption>Executor filesystem calls 会把 sandbox context 带到真正拥有 workspace 的文件系统，因此 local 和 remote operations 共享同一个 permission boundary。</figcaption>
+</figure>
+
+### 6.1 Server Handler 应用 Sandbox Context
+
+server-side handler 把可用操作列得很清楚。[`FileSystemHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L33-L161) 包装一个 `ExecutorFileSystem`，并暴露 `read_file`、`write_file`、`create_directory`、`get_metadata`、`read_directory`、`remove` 和 `copy`。远端 client path 会在 forwarding 时保留 sandbox context。下面是 [`RemoteFileSystem`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_file_system.rs#L41-L94) 的简化片段：
+
+```rust
+self.client.get().await?
+    .fs_read_file(FsReadFileParams {
+        path: path.clone(),
+        sandbox: remote_sandbox_context(sandbox),
+    })
+    .await?;
+```
+
+### 6.2 Executor 拥有 Workspace
+
+这里真正的 owner 不是“Codex 当前运行的机器”，而是本轮或本次操作选择的 executor environment。这也是为什么核心 shell path 会在 [`run_exec_like`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell.rs#L110-L176) 中解析 executor filesystem，以及为什么 patch interception 可以在退回 opaque shell execution 之前处理。文件编辑也是副作用；第 11 章会把 patch path 作为自己的协议来讲。
+
+## 七、不要混在一起的概念
+
+本章的实用价值，主要是把相邻概念分开。一旦混在一起，故障就很难定位。
+
+| 不要混在一起 | 更好的区分 | 为什么重要 |
+| --- | --- | --- |
+| command text 与 command policy | raw shell text 会先 parse 或 lower，再做 policy decision | 一个字符串可能隐藏多个 command segment 或 shell semantics |
+| approval 与 sandboxing | approval 授权一条 side-effect path；sandbox 限制一次 attempt | 经过审批的命令仍可能在 sandbox 内运行 |
+| `process_id` 与 OS pid | `process_id` 是 Codex/exec-server logical handle | remote process 与 retained session 需要协议身份 |
+| output blob 与 output stream | output 有 `seq`、stream、exit、closed 和 failure state | UI replay 与 `write_stdin` polling 依赖顺序 |
+| local files 与 executor files | filesystem operations 面向 selected executor | remote workspace 不能和 client machine 混淆 |
+
+贯穿本章的不变量很简单：**副作用只能作为结构化请求穿过权限边界。** Shell execution、process continuation 和 filesystem mutation 都在用不同方式维护这个不变量。
 
 ## 应用到实践
 
-1. **先解析再决策。** 有结构化 command facts 时，不要直接对原始 shell 文本套 policy。
-2. **显式规则先于启发式。** 组织策略应覆盖 fallback safety guesses。
-3. **抽象执行位置。** 用同一套 process 和 filesystem contract 包住本地与远端执行。
-4. **给输出排序。** 把 terminal output 当作有序状态，而不是最终字符串。
-5. **显式携带环境事实。** cwd、env、timeout、TTY 和 selected executor 都应属于 request。
+1. **先塑形，再 spawn。** 先把 tool arguments 转成 typed execution requests，不要把任何文本直接当成可运行事实。
+2. **让 policy 决定 approval shape。** 不要用 sandbox denial 代替显式的 allow、prompt 或 forbid decision。
+3. **把 sandbox attempt 当成 runtime state。** 无 sandbox retry 是第二次受治理 attempt，不是静默 fallback。
+4. **保持 process identity 的逻辑性。** `process_id` 属于 Codex/exec-server session contract，不是 OS pid。
+5. **把 filesystem work 送到 executor。** Reads、writes、copies、removals 必须面向拥有 selected workspace 的文件系统，并携带 sandbox context。
 
-第 11 章会把一种修改路径从 shell stream 中拿出来，作为独立协议讨论：patch。这个分离让 Codex 能审查并应用文件编辑，而不是把编辑降级成不透明命令文本。
+第 11 章会从 shell stream 收窄到一条文件编辑路径：patch。这个分离不是形式主义。它让 Codex 可以把 edit 当作结构化 mutation 来审查和应用，而不是把编辑藏进任意 shell 文本。
 
 <div class="source-equivalence">
 
@@ -111,10 +256,21 @@ Shell execution 还依赖 environment management：当前工作目录、选定 e
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Shell handler | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L31) |
-| Unified exec handler | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L48) |
-| Exec policy manager | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251) |
-| Exec-server RPC client | [`codex-rs/exec-server/src/rpc.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/rpc.rs#L234) |
-| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L38) |
+| Shell handler request shaping | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L42-L63) |
+| Shared shell execution path | [`codex-rs/core/src/tools/handlers/shell.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell.rs#L110-L260) |
+| Exec policy approval conversion | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L272-L379) |
+| Unmatched command fallback | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L631-L745) |
+| Tool orchestrator approval and attempt flow | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L260) |
+| Sandbox denial retry branch | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379) |
+| Sandbox attempt transform | [`codex-rs/core/src/tools/sandboxing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421) |
+| Unified exec handler request binding | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L163-L317) |
+| Unified exec request shape | [`codex-rs/core/src/unified_exec/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/mod.rs#L90-L114) |
+| Unified exec process manager | [`codex-rs/core/src/unified_exec/process_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L370-L737) |
+| Unified exec runtime adapter | [`codex-rs/core/src/tools/runtimes/unified_exec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/unified_exec.rs#L56-L76) |
+| Exec-server protocol methods and process output | [`codex-rs/exec-server/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L13-L124) |
+| Exec-server client calls | [`codex-rs/exec-server/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/client.rs#L318-L397) |
+| Remote process adapter | [`codex-rs/exec-server/src/remote_process.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_process.rs#L34-L83) |
+| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L33-L161) |
+| Remote filesystem sandbox forwarding | [`codex-rs/exec-server/src/remote_file_system.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_file_system.rs#L41-L94) |
 
 </div>

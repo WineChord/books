@@ -1,109 +1,254 @@
-
 # Chapter 10: Shell, Exec Server, and Filesystem Tools
 
-> **Reading Contract:** Use this chapter to read shell and filesystem access as bounded capabilities. Track exec-server boundaries, command policy, filesystem mutation, and result reporting together.
+> **Reading Contract:** Use this chapter to read shell execution as a governed side effect, not as a raw subprocess. Track four owners: the handler that shapes the request, exec policy that decides the approval requirement, the orchestrator that selects sandbox attempts, and `exec-server` that owns process and filesystem placement. After reading, you should be able to explain why `process_id` is a logical protocol handle, why approval is not the same thing as sandboxing, and why remote filesystem writes must carry sandbox context.
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/shell-exec-filesystem-boundary.webp" alt="Shell and filesystem execution boundary showing tool calls, exec policy, approval, sandbox selection, exec-server processes, filesystem handlers, and ordered output" loading="eager" decoding="async" />
-  <figcaption>Shell and filesystem access remain bounded because commands move through parsing, policy, approval, sandboxing, execution, sequencing, and recording.</figcaption>
+  <figcaption>Shell and filesystem access remain bounded because a command passes through request shaping, policy, approval, sandbox selection, executor placement, ordered output, and filesystem mediation.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "placement boundary", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
 
-Chapter 9 separated tool exposure from tool authority. This chapter follows the handler family that makes the distinction most concrete: shell-like tools. A shell tool looks simple from the model's point of view, but the runtime must parse the command, classify risk, apply policy, run hooks, ask for approval when required, choose an environment, enforce sandbox rules, stream output, and leave a replayable record.
+Chapter 9 explained how Codex exposes tools without letting the model invent tool authority. This chapter follows the first tool family where that distinction becomes operational: shell and filesystem access. From the model-visible surface, `shell` or `exec_command` can look like a simple instruction to run a command. In the runtime, that instruction becomes a governed request whose authority is distributed across parsing, policy, approval, sandboxing, process management, output sequencing, and filesystem mediation.
 
-The key design point is that Codex does not treat "run this command" as a single primitive. It treats command execution as a pipeline whose final process may run locally, inside a platform sandbox, or through an `exec-server` abstraction that can represent a remote executor and its filesystem.
+The key mental model is: **Codex does not run "a shell command"; it accepts a side-effect request and gradually proves where that side effect is allowed to happen.** A command may end as a local child process, a PTY held open for later stdin, a sandbox-transformed execution request, or an `exec-server` request against a remote executor. Those are not cosmetic backend choices. They define which filesystem is authoritative, what output can be replayed, and which permission profile has to travel with the operation.
 
+## 1. Shell Is a Governed Request
 
-## Shell Tools Are Front Doors
+Codex has several shell-adjacent entry points because different clients need different interaction shapes. The classic `shell` tool returns one captured result. `exec_command` can keep a process alive and later accept `write_stdin`. Other shell surfaces exist for compatibility, host-local execution, or shell-aware command routing. The important point is that none of those surfaces is the authority boundary by itself.
 
-Codex has several shell-adjacent front doors because clients and model surfaces do not all want the same interaction shape.
+### 1.1 Request Surfaces Are Not Authority
 
-| Front door | Architectural role |
-| --- | --- |
-| `shell` | classic function-style command execution with workdir, timeout, approval hints, and output capture |
-| `local_shell` | host-local command shape used by older or specialized surfaces |
-| `shell_command` | shell-aware command surface with backend choices such as direct or shell-escalation paths |
-| `exec_command` | unified exec surface that can select an environment and keep process identity for later reads/writes |
-| `write_stdin` | continuation tool for a managed process that already exists |
+| Entry point | What the surface needs | What must still be governed |
+| --- | --- | --- |
+| `shell` | One command, cwd, timeout, optional approval hint | command classification, approval, sandbox, output shaping |
+| `exec_command` | A command plus selected environment and optional TTY | process identity, output buffering, stdin continuation, retry |
+| `write_stdin` | Interaction with a process that already exists | process liveness, stdin support, output polling, exit cleanup |
+| filesystem helpers | Read/write/remove/copy against the selected workspace | executor placement and sandbox context |
 
-These tools converge on the same responsibility: turn a model request into an execution request that can be governed. The convergence is important because command policy, sandboxing, and approval should not depend on which client surface happened to expose the command.
+The split protects readers from a misleading API-level story. A tool name says how a client wants to interact; it does not say which filesystem is authoritative, whether a prompt is needed, or whether a later stdin write can reach the same runtime object.
 
-This is the shell execution chain in one picture. No single box is enough to make command execution safe or explainable; the safety comes from the order and the fact that each decision has a structured representation.
+### 1.2 Handler Shaping Creates the First Contract
 
-### Parsing Before Policy
+The classic shell handler shows the first translation. [`ShellHandler::to_exec_params`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L42-L63) does not spawn a process. It shapes the model request into `ExecParams` with cwd resolution, timeout policy, capture policy, environment, network, sandbox permissions, and justification.
 
-Shell command text is not a reliable policy boundary. The runtime first tries to extract the shell and script, lower common shell forms into command tokens, and identify known-safe read-only patterns. The goal is not to understand every possible shell program. The goal is to build enough structure to apply policy without pretending that a raw string is already a decision.
-
-After parsing, Codex consults exec policy. The current policy engine uses prefix rules, optional host-executable metadata, and explicit decisions such as allow, prompt, or forbid. It can also represent network-related amendments. The older policy engine remains for compatibility, but the important architecture is the same: explicit rules run before fallback heuristics.
-
-| Decision source | What it contributes |
-| --- | --- |
-| Prefix rules | stable organization policy for known command families |
-| Host executable metadata | safer basename matching when an absolute program path is used |
-| Known-safe heuristics | conservative defaults for ordinary read-only commands |
-| Approval policy | when to ask, retry, or deny |
-| Runtime sandbox mode | what the first attempt is allowed to touch |
-
-An allow decision does not always mean "run freely." It may mean "run without prompt under the current sandbox." A policy can also intentionally bypass the sandbox, but that is a stronger claim and must be represented explicitly.
-
-### `exec-server` Defines Where Work Happens
-
-`exec-server` is the boundary that keeps execution placement from leaking into the tool handler. It provides a small JSON-RPC process and filesystem service: initialize a connection, start a managed process, read output by sequence, write stdin when supported, terminate a process, and perform filesystem operations through an executor filesystem interface.
-
-Local execution and remote execution share this shape. A local executor can spawn processes on the user's machine. A remote executor can register with a service and reconnect through a rendezvous channel. The tool runtime should not need to rewrite approval, sandboxing, or output logic merely because the process lives in a different execution environment.
-
-```text
-// Pseudocode - simplified for clarity.
-  request = parse_shell_tool_arguments(tool_call)
-  command = normalize_shell_command(request.command)
-  policy_result = evaluate_exec_policy(command, request.cwd)
-
-  if policy_result is forbidden:
-      return rejected_result(policy_result.reason)
-
-  approval_requirement = derive_approval(policy_result, approval_policy)
-  sandbox_attempt = choose_initial_sandbox(permission_profile, request)
-
-  if approval_requirement needs a decision:
-      decision = ask_hooks_guardian_or_user(request)
-      stop_unless_approved(decision)
-
-  environment = select_execution_environment(request.environment_id)
-  process = environment.exec_server.start(command, sandbox_attempt)
-  stream_output_until_exit(process)
-  return shaped_exec_result(process.output, process.exit_status)
+```rust
+ExecParams {
+    command: params.command.clone(),
+    cwd: turn_context.resolve_path(params.workdir.clone()),
+    expiration: params.timeout_ms.into(),
+    capture_policy: ExecCapturePolicy::ShellTool,
+    env: create_env(&turn_context.shell_environment_policy, Some(thread_id)),
+    sandbox_permissions: params.sandbox_permissions.unwrap_or_default(),
+    // additional fields omitted
+}
 ```
 
-The pseudocode hides many platform details, but it preserves the governing shape: parse, policy, approval, sandbox, environment, process, output.
+That small object is already a contract. The command is still not trusted, but the runtime now knows which working directory, environment policy, capture mode, and sandbox request belong to it. The handler's later [`handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L111-L149) method forwards the shaped request into `run_exec_like`, where the common shell execution path applies environment and approval logic. The handler is therefore a front door, not a permission decision.
 
-### Filesystem Access Goes Through the Executor
+Without this shaping step, later policy code would have to infer cwd, environment, network, and sandbox intent from an unstructured string. Codex avoids that by making the side effect typed before it is runnable.
 
-Filesystem mutation is not only a shell concern. Patch application, file reads, remote workspace operations, and command execution all need a consistent way to reach the workspace that owns the files. Codex uses executor filesystem traits so a caller can read, write, create directories, remove paths, or check metadata without assuming that the files are local.
+## 2. Policy Runs Before Sandbox
 
-That abstraction pays off in two ways. First, remote execution can apply a patch to the remote workspace rather than accidentally editing the client machine. Second, sandbox context can travel with filesystem operations. The filesystem API can therefore reject an operation that violates the effective permission profile instead of leaving every caller to reimplement path checks.
+The most dangerous shortcut is to think "sandbox" is the first line of defense. In Codex's source, the command is first made more structured, then matched against policy, then converted into an approval requirement, and only then does the orchestrator decide the sandbox attempt.
 
-### Output Is Sequenced State
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/shell-policy-approval-ladder-569ff6a1.webp" alt="Command execution ladder moving from tool call through parsing, exec policy, approval gate, sandbox attempt, retry, and result record" loading="lazy" decoding="async" />
+  <figcaption>Exec policy decides whether a command is forbidden, needs approval, or can skip approval before the runtime chooses and executes a sandbox attempt.</figcaption>
+</figure>
 
-Terminal output is not just a blob. A long-running process may emit chunks, accept stdin, update terminal state, exit, and later be read again by a client. The runtime therefore tracks output with sequence cursors. A caller can ask for chunks after a known sequence number, wait for more output, or learn that the process has exited.
+The shared shell path starts by extracting the command and applying environment facts in [`run_exec_like`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell.rs#L110-L194). The command policy layer then does the more meaningful work: parse or lower common shell forms, match prefix rules, consult host executable metadata when appropriate, and fall back to conservative heuristics when no rule matches.
 
-This matters for replay and UI correctness. A terminal UI, a headless exec client, and an app-server client can all observe progress without each inventing a terminal transcript format. The model still receives a compact tool result, but clients get enough structure to render progress, truncation, exit status, and failure.
+### 2.1 Policy Produces an Approval Shape
 
-### Environment Is Part of the Contract
+The central conversion happens in [`ExecPolicyManager::create_exec_approval_requirement_for_command`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L272-L379). In reduced form, the source maps policy decisions into three approval shapes:
 
-Shell execution also depends on environment management: current working directory, selected environment, explicit environment variables, shell snapshots, proxy variables, timeouts, TTY mode, and process identity. Codex keeps these facts in the turn context or selected environment so they are not guessed at the handler boundary.
+```rust
+match evaluation.decision {
+    Decision::Forbidden => ExecApprovalRequirement::Forbidden { /* reason */ },
+    Decision::Prompt => ExecApprovalRequirement::NeedsApproval { /* reason */ },
+    Decision::Allow => ExecApprovalRequirement::Skip { /* bypass_sandbox */ },
+}
+```
 
-The architecture implication is simple: `exec-server` is not merely a helper binary. It is the runtime abstraction for where work happens, which filesystem is authoritative, and how process output is sequenced.
+That shape matters because "allowed" is not always "unsandboxed". The source explicitly computes `bypass_sandbox` only when every parsed command segment is explicitly allowed by exec policy. A command may therefore be safe enough to skip a prompt while still running under the current sandbox. Conversely, a prompt decision can become forbidden if the current approval policy rejects prompting for that command class.
+
+| Policy result | Runtime meaning | Common misreading |
+| --- | --- | --- |
+| `Forbidden` | Stop before execution and return the policy reason. | "The sandbox blocked it." The process never has to start. |
+| `NeedsApproval` | Ask hooks, guardian, or the user before attempting the side effect. | "Approval grants full access." It only authorizes the attempted operation path. |
+| `Skip` | No prompt is needed for this request shape. | "It bypasses all controls." Sandbox may still apply unless policy explicitly allows bypass. |
+
+### 2.2 Fallbacks Stay Conservative
+
+The fallback path in [`render_decision_for_unmatched_command`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L631-L745) is also deliberately conservative. It treats known-safe commands differently from dangerous commands and takes the approval policy and sandbox kind into account. That is why the article's mental model has to separate command classification from process execution.
+
+The cost of this design is that an unfamiliar but harmless command may still require approval. That is a feature, not a bug: the fallback boundary protects the invariant that unknown side effects do not become trusted just because they fit inside shell syntax.
+
+## 3. The Orchestrator Owns Attempts
+
+Once a tool has an approval requirement, Codex runs it through the shared [`ToolOrchestrator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L214). The orchestrator is the place where the runtime combines approval, network approval, sandbox selection, guardian review, and retry semantics. It is not just a helper around `spawn`.
+
+### 3.1 Attempts Are Runtime State
+
+At a shape level, the flow is:
+
+```text
+tool request
+  -> exec approval requirement
+  -> hook / guardian / user decision when needed
+  -> initial sandbox attempt
+  -> runtime run
+  -> optional retry without sandbox when policy permits
+  -> tool output or structured denial
+```
+
+The first attempt is built from the turn's permission profile and sandbox policy in [`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L216-L260). If the sandbox denies the attempt, the later branch checks whether the tool can escalate, whether the approval policy allows a no-sandbox retry, and whether a network-denial approval context is present before asking again or returning the denial. The second attempt is explicit: it creates a new `SandboxAttempt` with `SandboxType::None` only after those checks pass.
+
+### 3.2 Retry Is Not Silent Fallback
+
+That is why approval and sandboxing should not be collapsed:
+
+| Boundary | Owner in source | Question answered |
+| --- | --- | --- |
+| approval requirement | exec policy and tool runtime | Must this side effect be approved, forbidden, or skipped? |
+| approval decision | hooks, guardian, cached approval, or user request | Did an authorized decision approve this request? |
+| sandbox attempt | `ToolOrchestrator` plus `SandboxAttempt` | What filesystem and network restrictions apply to this attempt? |
+| retry | `ToolOrchestrator` | Is a no-sandbox retry allowed after a denial? |
+
+The sandbox transform itself happens lower down. [`SandboxAttempt::env_for`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421) asks the sandbox manager to transform an `ExecRequest` using the current sandbox type, cwd, permission profile, and network setting. That is the point where a governed request becomes an executable environment.
+
+The failure boundary is important: a sandbox denial can remain the final result even when a command was approved. Approval answers whether the runtime may attempt the side effect; the sandbox attempt answers how constrained that attempt is.
+
+## 4. Unified Exec Adds Process Identity
+
+The `exec_command` tool adds an important concept that the simpler shell tool does not need: a logical process session. A command may produce enough output to return immediately, or it may keep running. The runtime must hold the session, keep output buffers bounded, emit events, and let a later `write_stdin` interact with the same process.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/unified-exec-process-session-569ff6a1.webp" alt="Unified exec lifecycle from exec_command through cwd and environment resolution, process id allocation, process manager, output chunks, result snapshot, write_stdin, and alive or exited state" loading="lazy" decoding="async" />
+  <figcaption>`exec_command` creates a managed process session; `write_stdin` later addresses that session through the logical process id, not an operating-system pid.</figcaption>
+</figure>
+
+### 4.1 The Handler Binds Environment, Cwd, and Process Id
+
+The unified exec handler resolves the selected environment, cwd, executor filesystem, shell command, TTY mode, yield time, output token limits, and permission request before it calls the process manager. The visible handoff in [`ExecCommandHandler::handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L163-L317) constructs the request only after it has resolved the environment and allocated a process id. You can see the request shape in [`ExecCommandRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/mod.rs#L90-L106):
+
+```rust
+pub(crate) struct ExecCommandRequest {
+    pub command: Vec<String>,
+    pub hook_command: String,
+    pub process_id: i32,
+    pub yield_time_ms: u64,
+    pub max_output_tokens: Option<usize>,
+    pub cwd: AbsolutePathBuf,
+    pub environment: Arc<Environment>,
+    pub network: Option<NetworkProxy>,
+    pub tty: bool,
+    pub sandbox_permissions: SandboxPermissions,
+    pub additional_permissions: Option<AdditionalPermissionProfile>,
+    pub additional_permissions_preapproved: bool,
+    pub justification: Option<String>,
+    pub prefix_rule: Option<Vec<String>>,
+}
+```
+
+The handler allocates the process id through [`UnifiedExecProcessManager::allocate_process_id`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L332-L358), then sends the request into [`exec_command`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L370-L593). That manager opens the process through the orchestrated sandbox path, starts output streaming, stores live sessions before the initial yield wait, and returns an `ExecCommandToolOutput` with raw output, exit code when known, wall time, chunk id, and possibly a live `process_id`.
+
+### 4.2 The Manager Owns Continuation
+
+`write_stdin` is therefore not a second command launcher. [`WriteStdinRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/mod.rs#L108-L114) carries a process id, input, yield time, and output limit. The manager's [`write_stdin`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L595-L737) then prepares handles for the existing process, writes input only when stdin is supported, polls bounded output, refreshes process state, and cleans up exited sessions.
+
+This is the boundary a UI has to respect. If a tool result returns a `process_id`, the process is still a managed runtime object. If it returns only an `exit_code`, the process has already crossed into completed output. Treating `process_id` as an OS pid would be wrong; the protocol later makes this explicit.
+
+## 5. `exec-server` Turns Placement Into Protocol
+
+The `exec-server` crate is where placement becomes protocol instead of a pile of special cases. Its protocol file names the JSON-RPC methods for starting, reading, writing, terminating, receiving output notifications, and executing filesystem operations. The same client shape can talk to a local executor or a remote executor.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/exec-server-rpc-boundary-569ff6a1-v2.webp" alt="Exec-server RPC boundary between Codex core and an executor, showing process API start/read/write, output, stdin, exit, sequence chunks, and local or remote placement icons" loading="lazy" decoding="async" />
+  <figcaption>`exec-server` keeps process placement behind a JSON-RPC contract: Codex core sends process and filesystem requests, the executor owns the process, and output returns as sequenced chunks.</figcaption>
+</figure>
+
+### 5.1 Process and Filesystem Methods Share One Contract
+
+The method constants are small but decisive. [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L13-L30) exposes process and filesystem methods side by side:
+
+```rust
+pub const INITIALIZE_METHOD: &str = "initialize";
+pub const INITIALIZED_METHOD: &str = "initialized";
+pub const EXEC_METHOD: &str = "process/start";
+pub const EXEC_READ_METHOD: &str = "process/read";
+pub const EXEC_WRITE_METHOD: &str = "process/write";
+pub const EXEC_TERMINATE_METHOD: &str = "process/terminate";
+pub const EXEC_OUTPUT_DELTA_METHOD: &str = "process/output";
+pub const EXEC_EXITED_METHOD: &str = "process/exited";
+pub const EXEC_CLOSED_METHOD: &str = "process/closed";
+pub const FS_READ_FILE_METHOD: &str = "fs/readFile";
+pub const FS_WRITE_FILE_METHOD: &str = "fs/writeFile";
+pub const FS_CREATE_DIRECTORY_METHOD: &str = "fs/createDirectory";
+pub const FS_GET_METADATA_METHOD: &str = "fs/getMetadata";
+pub const FS_READ_DIRECTORY_METHOD: &str = "fs/readDirectory";
+pub const FS_REMOVE_METHOD: &str = "fs/remove";
+pub const FS_COPY_METHOD: &str = "fs/copy";
+pub const HTTP_REQUEST_METHOD: &str = "http/request";
+pub const HTTP_REQUEST_BODY_DELTA_METHOD: &str = "http/request/bodyDelta";
+```
+
+### 5.2 Output Is a Sequenced Protocol State
+
+The process parameters then clarify a common confusion. [`ExecParams`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L64-L80) says the `process_id` is a "client-chosen logical process handle scoped to this connection/session" and explicitly not an OS pid. Output is equally structured: [`ProcessOutputChunk`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L107-L113) carries `seq`, `stream`, and `chunk`, while [`ReadResponse`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L115-L124) returns chunks, `next_seq`, exit state, closed state, and failure.
+
+That protocol is mirrored by the client. [`ExecServerClient`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/client.rs#L318-L397) has request methods for `exec`, `read`, `write`, `terminate`, and the filesystem operations. The remote process adapter in [`remote_process.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_process.rs#L34-L83) starts by registering a session, sends `client.exec(params)`, and implements `read`, `write`, and `terminate` by delegating through that session. Local and remote placement can therefore share process semantics without making the shell handler know where the child process lives.
+
+## 6. Filesystem Operations Use the Executor Boundary
+
+Filesystem access follows the same placement rule. If the selected executor owns the workspace, then reads, writes, copies, removals, and metadata checks must go through that executor. Otherwise a remote command could edit one filesystem while a patch or file read accidentally touches another.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/executor-filesystem-sandbox-569ff6a1-v2.webp" alt="Executor filesystem boundary carrying sandbox context through grouped filesystem operations toward local or remote workspaces behind a permission profile" loading="lazy" decoding="async" />
+  <figcaption>Executor filesystem calls carry sandbox context to the filesystem that owns the workspace, so local and remote operations share the same permission boundary.</figcaption>
+</figure>
+
+### 6.1 The Server Handler Applies Sandbox Context
+
+The server-side handler makes the operation set explicit. [`FileSystemHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L33-L161) wraps an `ExecutorFileSystem` and exposes `read_file`, `write_file`, `create_directory`, `get_metadata`, `read_directory`, `remove`, and `copy`. The remote client path preserves sandbox context when forwarding calls. A reduced excerpt from [`RemoteFileSystem`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_file_system.rs#L41-L94) shows the shape:
+
+```rust
+self.client.get().await?
+    .fs_read_file(FsReadFileParams {
+        path: path.clone(),
+        sandbox: remote_sandbox_context(sandbox),
+    })
+    .await?;
+```
+
+### 6.2 The Executor Owns the Workspace
+
+The important owner is not "the machine Codex is currently running on." The owner is the executor environment selected for the turn or operation. That is why the core shell path also resolves an executor filesystem in [`run_exec_like`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell.rs#L110-L176), and why patch interception can be handled before falling back to opaque shell execution. File edits are side effects too; Chapter 11 will give the patch path its own protocol.
+
+## 7. What Not To Collapse
+
+The chapter's practical value is mostly in keeping nearby concepts separate. When those concepts collapse, failures become hard to diagnose.
+
+| Do not collapse | Better distinction | Why it matters |
+| --- | --- | --- |
+| command text and command policy | raw shell text is parsed or lowered before policy decisions | a string can hide multiple command segments or shell semantics |
+| approval and sandboxing | approval authorizes a side-effect path; sandbox constrains an attempt | an approved command can still run inside a sandbox |
+| `process_id` and OS pid | `process_id` is a Codex/exec-server logical handle | remote processes and retained sessions need protocol identity |
+| output blob and output stream | output has `seq`, stream, exit, closed, and failure state | UI replay and `write_stdin` polling require ordering |
+| local files and executor files | filesystem operations target the selected executor | remote workspaces must not be confused with the client machine |
+
+The governing invariant is simple: **side effects cross authority boundaries only as structured requests.** Shell execution, process continuation, and filesystem mutation all preserve that invariant in different ways.
 
 ## Apply This
 
-1. **Parse before deciding.** Do not apply policy to raw shell text when structured command facts are available.
-2. **Run explicit rules before heuristics.** Make organization policy override fallback safety guesses.
-3. **Abstract placement.** Put local and remote execution behind the same process and filesystem contract.
-4. **Sequence output.** Treat terminal output as ordered state, not a single final string.
-5. **Carry environment facts explicitly.** Make cwd, env, timeout, TTY, and selected executor part of the request.
+1. **Shape first, spawn later.** Convert tool arguments into typed execution requests before treating anything as runnable.
+2. **Let policy decide the approval shape.** Do not use sandbox denial as a substitute for explicit allow, prompt, or forbid decisions.
+3. **Treat sandbox attempts as runtime state.** A retry without sandbox is a second governed attempt, not a silent fallback.
+4. **Keep process identity logical.** `process_id` belongs to the Codex/exec-server session contract; do not read it as an OS pid.
+5. **Send filesystem work to the executor.** Reads, writes, copies, and removals must target the filesystem that owns the selected workspace and carry sandbox context.
 
-Chapter 11 takes one mutation path out of the shell stream and gives it its own protocol: patches. That separation is why Codex can review and apply file edits without reducing them to opaque command text.
+Chapter 11 narrows from the shell stream to one file-editing path: patches. The separation is not cosmetic. It lets Codex review and apply edits as structured mutations instead of hiding them inside arbitrary shell text.
 
 <div class="source-equivalence">
 
@@ -111,10 +256,21 @@ Chapter 11 takes one mutation path out of the shell stream and gives it its own 
 
 | Concept | Source anchor |
 | --- | --- |
-| Shell handler | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L31) |
-| Unified exec handler | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L48) |
-| Exec policy manager | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L251) |
-| Exec-server RPC client | [`codex-rs/exec-server/src/rpc.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/rpc.rs#L234) |
-| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L38) |
+| Shell handler request shaping | [`codex-rs/core/src/tools/handlers/shell/shell_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell/shell_handler.rs#L42-L63) |
+| Shared shell execution path | [`codex-rs/core/src/tools/handlers/shell.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/shell.rs#L110-L260) |
+| Exec policy approval conversion | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L272-L379) |
+| Unmatched command fallback | [`codex-rs/core/src/exec_policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/exec_policy.rs#L631-L745) |
+| Tool orchestrator approval and attempt flow | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L260) |
+| Sandbox denial retry branch | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379) |
+| Sandbox attempt transform | [`codex-rs/core/src/tools/sandboxing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421) |
+| Unified exec handler request binding | [`codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs#L163-L317) |
+| Unified exec request shape | [`codex-rs/core/src/unified_exec/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/mod.rs#L90-L114) |
+| Unified exec process manager | [`codex-rs/core/src/unified_exec/process_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/unified_exec/process_manager.rs#L370-L737) |
+| Unified exec runtime adapter | [`codex-rs/core/src/tools/runtimes/unified_exec.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/unified_exec.rs#L56-L76) |
+| Exec-server protocol methods and process output | [`codex-rs/exec-server/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/protocol.rs#L13-L124) |
+| Exec-server client calls | [`codex-rs/exec-server/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/client.rs#L318-L397) |
+| Remote process adapter | [`codex-rs/exec-server/src/remote_process.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_process.rs#L34-L83) |
+| Executor filesystem handler | [`codex-rs/exec-server/src/server/file_system_handler.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/server/file_system_handler.rs#L33-L161) |
+| Remote filesystem sandbox forwarding | [`codex-rs/exec-server/src/remote_file_system.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/exec-server/src/remote_file_system.rs#L41-L94) |
 
 </div>

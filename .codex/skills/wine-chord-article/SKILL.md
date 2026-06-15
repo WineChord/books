@@ -566,6 +566,10 @@ that covers the edit:
   GitHub line anchors.
 - Run repository content/build checks when the touched files participate in the
   Astro build.
+- In repositories deployed under a non-root base path, validate rendered pages
+  with the project's preview command and configured base URL. Do not use a
+  generic static server rooted at `dist/` for layout or asset validation when
+  CSS, JS, images, or routes depend on a base path such as `/books`.
 
 ## Evolution
 
