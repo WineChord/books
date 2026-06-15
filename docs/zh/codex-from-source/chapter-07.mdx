@@ -1,141 +1,433 @@
+# Provider Boundary：Transport 会变，Event 保持稳定
 
-# 第 7 章：模型 Provider、流式传输与 Backend Task
-
-> **阅读契约：** 用本章分开 provider transport 与 runtime semantics。跟住 stream normalization、backend tasks、retry/cancel boundaries，以及 provider 差异被隐藏的位置。
+> **阅读契约：** 把本章当作 model provider 与 Codex runtime 之间的源码地图。
+> 重点跟住 provider data、runtime provider behavior、turn-local transport
+> state，以及旁路运行的 runtime path。读完后，你应该能解释为什么 HTTP streaming、
+> Responses-over-WebSocket、local provider、Bedrock signing、model catalog、
+> realtime session 和 backend task 不该合并成同一个“模型调用”。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-stream-normalization-df64b03.webp" alt="Provider 流式归一化图：展示 provider data、runtime provider behavior、transport choices、typed events、retry 与 cancellation" loading="eager" decoding="async" />
-  <figcaption>Provider transport 可以变化，但 runtime 需要稳定语义：原始流事件会归一化成 items，并带着有界 retry 与 cancellation。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-runtime-boundary-569ff6a1.webp" alt="Provider data 进入 runtime provider，runtime provider 负责 auth、capabilities、model manager、typed API 和 turn loop 边界" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Provider configuration 一开始只是数据；turn loop 真正接触的是 runtime provider，它能解析 auth、capabilities、model metadata 和 typed API 行为。</figcaption>
 </figure>
 
-第 6 章跟随一次 turn 走到模型 sampling 边界。本章打开这个边界，解释 Codex 如何分离 provider configuration、runtime provider behavior、typed API、 streaming transport、model catalog、realtime session 和 backend task workflow。
+**源码边界：** 本章直接源码判断固定在 OpenAI Codex commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
+`ModelProviderInfo`、`ModelProvider`、`ModelClientSession`、`ResponseEvent`、
+`ModelsManager`、Bedrock auth、Ollama readiness、realtime conversation startup
+和 `CloudBackend` 以正文里的固定源码锚点为 **verified source**。
+“为什么 runtime 要把 transport mechanics 压到同一套事件词汇之下”这类判断，
+是从可见类型与调用点得出的 **surrounding contract inference**，不是对 provider
+私有内部的断言。
+
+本文会反复使用四个局部术语。**Provider data** 指可序列化的
+`ModelProviderInfo`：URL、auth fields、retry policy、headers、wire API 和
+WebSocket support。**Runtime provider** 指 `ModelProvider` trait object：它在
+运行时解析 account state、auth、capabilities、API-provider shape 和 model
+manager，并把这些数据变成当前进程可执行的行为。**Typed event vocabulary** 指
+transport 解析之后交给 turn loop 的 `ResponseEvent`。**Adjacent runtime path** 指可能共享
+credential 或 base URL、但生命周期不同的路径，例如 realtime media/session setup
+或 cloud backend tasks。
+
+第 6 章把一次 turn 追到 sampling 边界。本章打开这个边界。真正的压力很直接：
+turn loop 只想消费一条稳定的 runtime 事实流，但 provider 的差异会落在 auth、
+signing、transport、catalog、locality 和 cloud workflow 上。Codex 的做法不是让
+turn loop 学会所有方言，而是在 scheduler policy 继续运行之前，先把这些差异收束到
+一个较小的 runtime contract。
 
 <div class="chapter-lede">
-  <p><strong>问题：</strong>turn loop 想要的是同一种 response event stream，但不同 provider 在 URL、auth、catalog、transport、capability 和 backend task API 上都不同。</p>
-  <p><strong>主张：</strong>Codex 把 inference 做成分层 client system，并让 transport 差异在事件回到 turn loop 之前收敛。</p>
-  <p><strong>心智模型：</strong>provider 决定如何通信；runtime 决定 streamed events 代表什么。</p>
+  <p><strong>问题：</strong>provider 差异会落到 URL、credential、request signing、stream framing、retry、model visibility、local readiness 和 cloud task 上，但 turn loop 不能理解每一种 provider dialect。</p>
+  <p><strong>主张：</strong>Codex 会先把 provider-specific mechanics 转成 runtime provider behavior、typed API request 和 normalized response events，然后才让 turn scheduler 继续做 policy decision。</p>
+  <p><strong>心智模型：</strong>provider data 描述通信的可能形态；runtime provider behavior 决定当前 session 怎样通信；turn loop 接收 typed events 和 adjacent task results。</p>
+  <p><strong>导读问题：</strong>什么只是配置？什么是运行时行为？当前 turn 激活了哪种 transport？哪些路径根本不是 model inference？</p>
 </div>
 
-**源码边界：** model-client shape 是 **verified source**，锚点在 [`ModelClient`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215)；request prompt shape 是 **verified source**，锚点在 [`client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28)；session-level model client behavior 是 **verified source**，锚点在 [`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232)。Provider fallback 与 backend-task separation 在本章被写成 **surrounding contract inference**：[`agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L20) 和 [`cloud-tasks-client` API](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) 展示了边界分离，但不暴露 provider 私有内部。
+## 一、Provider Data 不是 Runtime Behavior
 
+### 1.1 `ModelProviderInfo` 是可序列化契约
 
-## 五层结构
+数据层在
+[`codex-rs/model-provider-info/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L80-L135)
+里非常明确。`ModelProviderInfo` 是可序列化的 provider definition。它可以保存
+base URL、API key 环境变量、不推荐但可用的 literal bearer token、command-backed
+auth、AWS SigV4 auth、wire API、query parameters、静态或环境变量驱动的 headers、
+retry settings、stream idle timeout、WebSocket connect timeout、是否需要 OpenAI
+auth，以及是否支持 Responses-over-WebSocket。下面是为本章论证裁剪过的 excerpt，
+只保留 provider boundary 需要看的字段：
 
-provider 路径最好按五层理解，再加若干专门 integration。
-
-transport layer 负责 HTTP 细节：request body、headers、compression、 retry policy、idle timeout、自定义证书、stream framing 和 telemetry hook。 typed API layer 负责 endpoint shape：Responses、compaction、model listing、 file upload、memory summarization、realtime setup 和 WebSocket session。 provider runtime 负责 account state、auth resolution、capabilities、 model-manager selection，以及 provider-specific behavior。model catalog 负责有哪些模型可用，以及哪些默认值适合当前环境。
-
-turn loop 不应该知道如何签 AWS request、解析 SSE bytes，或者合并 remote model overlay。它应该拿到 typed response event stream 和足够的 metadata，然后做 runtime 决策。
-
-### Provider Data 不是 Provider Behavior
-
-Codex 把 provider definition 存成数据：display name、base URL、wire API、auth fields、可选 headers、query parameters、retry settings、stream settings、 WebSocket support 和 provider-specific auth metadata。这些数据可以序列化， 也可以来自 built-in 或用户配置。
-
-runtime provider behavior 是另一层。它解析当前 auth value，暴露 account state， 声明 capability，选择 model manager，构造 API provider，并适配 body-signing 这类特殊 provider。
-
-这种拆分是治理选择。配置文件可以描述 provider，但不应该成为可执行策略。runtime provider 在 request time 把数据转换成受控行为。
-
-### 多种 Transport，统一事件词汇
-
-Responses 路径可以走 HTTP streaming，也可以走 Responses WebSocket。两者机制不同， 但在回到 turn loop 之前会收敛成同一种 runtime event vocabulary。
-
-WebSocket 路径可以复用 session state，减少每轮 setup 成本。HTTP 路径仍然必要： 有些 provider 不支持 WebSocket；连接失败后可能需要 fallback；某些 auth mode 也无法给 WebSocket upgrade 做等价签名。runtime 可以对临时 stream failure 做 retry， 在合适时刷新 auth，并从 WebSocket fallback 到 HTTP-style streaming，而不改变 turn loop。
-
-```text
-// Pseudocode - illustrative pattern.
-function sample_with_provider(prompt, context):
-    provider = resolve_runtime_provider(context.provider_id)
-    api = provider.make_typed_api_client()
-    transport = choose_transport(provider.capabilities, context.session_state)
-
-    repeat until retry_budget_exhausted:
-        request = build_responses_request(prompt, context.model_options)
-        signed_request = provider.auth.attach_credentials(request)
-        stream = transport.open(signed_request)
-
-        for event in normalize_stream(stream):
-            yield event
-
-        if stream.completed:
-            return
-
-        if transport.can_fallback_after_failure:
-            transport = fallback_transport()
-            continue
-
-        backoff_and_retry()
-
-    raise stream_failure
+```rust
+pub struct ModelProviderInfo {
+    pub name: String,
+    pub base_url: Option<String>,
+    pub env_key: Option<String>,
+    // ...
+    pub experimental_bearer_token: Option<String>,
+    pub auth: Option<ModelProviderAuthInfo>,
+    pub aws: Option<ModelProviderAwsAuthInfo>,
+    pub wire_api: WireApi,
+    pub query_params: Option<HashMap<String, String>>,
+    pub http_headers: Option<HashMap<String, String>>,
+    pub env_http_headers: Option<HashMap<String, String>>,
+    pub request_max_retries: Option<u64>,
+    pub stream_max_retries: Option<u64>,
+    pub stream_idle_timeout_ms: Option<u64>,
+    pub websocket_connect_timeout_ms: Option<u64>,
+    pub requires_openai_auth: bool,
+    pub supports_websockets: bool,
+}
 ```
 
-这段伪代码强调边界：provider 和 transport 的差异在 turn loop 收到 event 之前 已经被处理掉。
+这个结构是描述性的。它说明什么可以配置；它自己不会获取 account state、签名
+request、检查本地 server，也不会选择 model catalog。同一个文件还校验不兼容
+组合。例如 AWS 分支会拒绝 `supports_websockets`，因为这个快照还没有实现 WebSocket
+upgrade request 的 SigV4 signing
+([`lib.rs#L147-L170`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L147-L170))。
 
-### Streaming Event 携带 Runtime 决策信息
+第一条 invariant 是：provider config 可以描述有风险或特殊的形状，但 runtime 必须在
+任何 turn 依赖它之前先把形状 gate 住。
 
-normalized stream event 不只是文本。它可以包含 item creation、message delta、 reasoning summary、function-call argument delta、tool-call completion、usage snapshot、rate-limit metadata、error classification 和 response completion。 turn loop 根据这些 event 决定是否渲染进度、分发工具、更新 rate limit、记录模型可见 item、compact history 或 retry。
+### 1.2 `ModelProvider` 在请求时拥有行为
 
-因此 model client 更像 typed event adapter。它不拥有 agent policy，而是给 turn loop 提供结构化事实，让 policy 决策留在 runtime 其他位置。
+运行时行为进入
+[`ModelProvider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L73-L130)
+trait。这个 trait 仍然暴露 metadata，但也拥有 capability upper bounds、attestation
+support、auth-manager access、current auth、account state、API-provider conversion、
+runtime base URL、request auth provider 和 model manager construction。
 
-### Model Metadata 是 Runtime Infrastructure
-
-model metadata 不只是 picker list。它会影响 context limit、auto-compaction threshold、 reasoning controls、支持的输入模态、默认选择、collaboration mode、visibility 和 provider compatibility。
-
-Codex 把 model metadata 当作 cache plus overlay。bundled catalog 给 runtime 一个 baseline；符合条件的 provider 可以刷新 remote model list，并把 overlay 合并进 cache。 model manager 可以在线、离线，或者只在 cache 缺失时联网，并按当前 auth mode 和 visibility rules 过滤 model presets。
-
-```text
-// Pseudocode - illustrative pattern.
-function resolve_model_info(model_name, refresh_strategy):
-    bundled = load_bundled_catalog()
-    cached = read_model_cache_if_fresh()
-
-    if refresh_strategy.allows_network and cache_is_stale(cached):
-        remote, etag = provider_endpoint.list_models()
-        cache.write(remote, etag)
-    else:
-        remote = cached.models
-
-    catalog = merge_catalogs(bundled, remote)
-    visible = filter_by_auth_and_visibility(catalog)
-    return choose_model_info(visible, model_name)
+```rust
+pub trait ModelProvider: fmt::Debug + Send + Sync {
+    fn info(&self) -> &ModelProviderInfo;
+    fn capabilities(&self) -> ProviderCapabilities;
+    fn supports_attestation(&self) -> bool;
+    fn auth_manager(&self) -> Option<Arc<AuthManager>>;
+    async fn auth(&self) -> Option<CodexAuth>;
+    fn account_state(&self) -> ProviderAccountResult;
+    async fn api_provider(&self) -> Result<Provider>;
+    async fn runtime_base_url(&self) -> Result<Option<String>>;
+    async fn api_auth(&self) -> Result<SharedAuthProvider>;
+    fn models_manager(&self, codex_home: PathBuf, catalog: Option<ModelsResponse>)
+        -> SharedModelsManager;
+}
 ```
 
-turn loop 消费的是结果事实。这个事实来自 bundled data、cache，还是 fresh remote overlay，不应该泄露到 turn loop 里。
+工厂函数
+[`create_model_provider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L136-L145)
+展示了这个拆分为什么必要：大多数 provider data 会变成 `ConfiguredModelProvider`，
+但 Amazon Bedrock 会变成专门的 `AmazonBedrockModelProvider`。这不是形式上的分支。
+Bedrock 需要 AWS account state、runtime base URL、body-aware signing 和 static
+model manager，所以 Codex 不应该只因为 request surface 看起来像 OpenAI-compatible
+endpoint，就把它当作普通 bearer-token endpoint。
 
-### Body-Aware Auth 应该留在 Request Boundary
+## 二、Transport choice 在 event 进入 turn loop 前结束
 
-有些 provider 只需要简单 bearer-token header；有些需要 command-backed token、 provider-specific account state，或者 body-aware request signing。Amazon Bedrock 风格的 signing 是典型例子：auth layer 必须看到准备好的 request body 和 canonicalized headers，才能附加有效凭据。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-stream-normalization-569ff6a1.webp" alt="HTTP SSE 和 WebSocket stream 进入 stream mapper，并输出 ResponseEvent 给 turn loop" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>HTTP SSE 与 Responses-over-WebSocket 的机制不同，但它们会在 turn loop 做 policy decision 之前收敛成 `ResponseEvent`。</figcaption>
+</figure>
 
-这个要求解释了为什么 Codex 把 auth 放在 typed API request boundary 附近。如果 signing 逻辑泄露到 turn loop，每条 sampling path 都会继承 provider-specific rules。更好的做法是 让 provider 的 auth implementation 修改准备好的 request，transport 只发送结果。
+### 2.1 Turn loop 消费的是 `ResponseEvent`
 
-它也解释了一个 transport 约束：body-aware signing 可能让 WebSocket 不可用，直到 upgrade 路径拥有等价签名语义。provider 可以声明这个限制，而不用改变 agent loop。
+稳定的事件词汇在
+[`codex-rs/codex-api/src/common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/common.rs#L72-L111)。
+Response stream 可以报告 creation、output items、server model metadata、verification
+requirements、past reasoning 是否已经由 server 计入、completion、text delta、tool-call
+argument delta、reasoning delta、rate limits 和 models ETag。下面的 excerpt 经过裁剪，
+但保留了本节依赖的事件类别：
 
-### Local Providers 与 Realtime Paths
+```rust
+pub enum ResponseEvent {
+    Created,
+    OutputItemDone(ResponseItem),
+    OutputItemAdded(ResponseItem),
+    ServerModel(String),
+    ModelVerifications(Vec<ModelVerification>),
+    ServerReasoningIncluded(bool),
+    Completed { response_id: String, token_usage: Option<TokenUsage>, end_turn: Option<bool> },
+    OutputTextDelta(String),
+    ToolCallInputDelta { item_id: String, call_id: Option<String>, delta: String },
+    ReasoningSummaryDelta { delta: String, summary_index: i64 },
+    ReasoningContentDelta { delta: String, content_index: i64 },
+    ReasoningSummaryPartAdded { summary_index: i64 },
+    RateLimits(RateLimitSnapshot),
+    ModelsEtag(String),
+}
+```
 
-Ollama、LM Studio 这类 local provider 仍然适合同一个 provider model，但运营关注点不同： 它们可能需要本地可用性检查、model pull progress、兼容性检查或 static catalog。runtime 仍然应该把它们看作能产出 typed response events 的 providers。
+这个 enum 是边界：provider transport 不能以 raw SSE line、WebSocket frame 或
+provider-specific chunk 的形态泄露到上层。一旦 event 跨过这个边界，turn loop 就能决定
+是否渲染进度、记录 completed item、更新 rate limits、分发 tool call、继续 sampling
+或结束 turn。
 
-realtime 相关但不等同于普通 inference。它有 media plane，用于 audio 或 WebRTC setup； 也有 sideband/control path，用于 session configuration、text handoff、response creation 和 lifecycle event。Codex 把 realtime state 放在 session 旁边，并把 realtime events 映射回 thread event stream，但它不应该与标准 turn sampling path 混为一谈。
+### 2.2 HTTP 和 WebSocket 共享解析边界
 
-### Backend Task 不是 Inference
+HTTP 路径会构造 Responses request，请求 `text/event-stream`，并在
+[`endpoint/responses.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses.rs#L70-L151)
+里生成 response stream。SSE parsing 会通过
+[`process_responses_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/sse/responses.rs#L297-L430)
+和
+[`process_sse`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/sse/responses.rs#L435-L520)
+映射 event kinds。
 
-backend client 处理 task、usage、requirements、rate-limit 和 cloud workflow API。它可以 列出任务、获取任务详情、创建 task attempt、读取 backend-managed requirements，并获取 diff 或 sibling turns。这些 API 可能与 model provider 共享 auth 和 base URL 关注点，但它们不是 Responses stream。
+WebSocket 路径会创建
+[`ResponsesWebsocketConnection`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L162-L321)，
+用合并后的 provider headers 和 auth 建连
+([`responses_websocket.rs#L340-L452`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L340-L452))，
+然后运行 WebSocket response stream
+([`responses_websocket.rs#L574-L685`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L574-L685))。
+这个 WebSocket loop 也会把 response events 送进同一套 Responses event processing
+边界。
 
-把 backend task 分开，可以避免一个常见架构错误：把 cloud workflow state 当成另一种 model transport。cloud task 有 lifecycle、environment、attempt、diff 和 apply semantics。 model stream 有 response events。它们可能在产品流程里相遇，但不应该共享同一个 runtime 抽象。
+所以重点不是“WebSocket 更好”。重点是：只有当两种 transport 最终变成同一条 typed
+stream，Codex 才能安全切换 transport path。
+
+### 2.3 `ModelClientSession` 让 transport state 属于当前 turn
+
+`ModelClient` 是 session-scoped，而
+[`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L219-L246)
+是 turn-scoped。源码注释写得很清楚：`ModelClientSession` 会懒加载 Responses
+WebSocket，在同一 turn 内复用连接，记住上一份 full request 以支持 incremental
+WebSocket payload，并保存 `x-codex-turn-state` token。它不能跨 turn 复用。
+
+Transport selection 又把这个 ownership 落到代码里。只有当 provider 支持
+WebSocket、session fallback 没有禁用 WebSocket、并且 SSE fixture 不活跃时，model
+client 才会启用 Responses-over-WebSocket
+([`client.rs#L767-L779`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L767-L779))。
+
+```rust
+pub fn responses_websocket_enabled(&self) -> bool {
+    if !self.state.provider.info().supports_websockets
+        || self.state.disable_websockets.load(Ordering::Relaxed)
+        || (*CODEX_RS_SSE_FIXTURE).is_some()
+    {
+        return false;
+    }
+    true
+}
+```
+
+每个 turn 调用的
+[`stream`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L1552-L1611)
+会优先选择 Responses WebSocket；如果 WebSocket 路径返回 `FallbackToHttp`，它会切换
+到 HTTP，再走 HTTP Responses API。`try_switch_fallback_transport`
+([`client.rs#L1614-L1630`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L1614-L1630))
+随后会强制当前 Codex session 的后续请求使用 HTTP，并重置 turn-local WebSocket state。
+
+第二条 invariant 是：transport optimization 不能变成隐藏的 global state，不能悄悄改变
+后续 turn 的含义。
+
+## 三、Model Metadata 是 Runtime Infrastructure
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-model-catalog-569ff6a1.webp" alt="Bundled model catalog、models cache、remote models endpoint、model manager、visible presets 和 model info 输入 turn loop" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Model metadata 是 cache-plus-overlay infrastructure：turn loop 需要 model facts，而不是硬编码的 picker list。</figcaption>
+</figure>
+
+### 3.1 Model manager 产出 runtime facts
+
+Model manager 不只是 UI picker 支撑。
+[`ModelsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/manager.rs#L74-L173)
+trait 会列出 available models、返回 raw catalog、暴露 cached remote models、按 auth mode
+和 visibility 过滤 picker presets、选择 default model、解析 `ModelInfo`，并在 ETag
+变化时刷新。
+
+```rust
+async fn list_models(&self, refresh_strategy: RefreshStrategy) -> Vec<ModelPreset> {
+    let catalog = self.raw_model_catalog(refresh_strategy).await;
+    self.build_available_models(catalog.models)
+}
+
+fn build_available_models(&self, mut remote_models: Vec<ModelInfo>) -> Vec<ModelPreset> {
+    remote_models.sort_by(|a, b| a.priority.cmp(&b.priority));
+    let mut presets: Vec<ModelPreset> = remote_models.into_iter().map(Into::into).collect();
+    let uses_codex_backend = self.auth_manager().is_some_and(
+        AuthManager::current_auth_uses_codex_backend,
+    );
+    presets = ModelPreset::filter_by_auth(presets, uses_codex_backend);
+    ModelPreset::mark_default_by_picker_visibility(&mut presets);
+    presets
+}
+```
+
+这些事实不只影响下拉框。`ModelInfo` 会影响 context limit、auto-compaction threshold、
+reasoning controls、model visibility，以及当前 auth mode 下合适的默认值。第 6 章已经
+展示过 turn loop 会在 compaction 和 sampling 之前读取 model info；本章补上这些 info
+从哪里来。
+
+### 3.2 Catalog 有 baseline、cache 和 ETag 边界
+
+OpenAI model manager 可以组合 bundled catalog、可选 config catalog、disk cache 和 remote
+`/models` endpoint。刷新路径在
+[`manager.rs#L225-L359`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/manager.rs#L225-L359)
+附近。Cache helper 在
+[`cache.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/cache.rs#L14-L123)
+里管理路径、TTL、freshness 和 persist。Provider endpoint 通过有界 timeout 拉取 remote catalog
+([`models_endpoint.rs#L31-L110`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/models_endpoint.rs#L31-L110))，
+API endpoint 在调用 `models` 时附带 `client_version`
+([`endpoint/models.rs#L31-L73`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/models.rs#L31-L73))。
+
+这是一个运行时折中：bundled catalog 让 Codex 能启动并离线工作；cache 避免每个 turn
+都付网络成本；ETag 让 stream 可以通知 runtime model metadata 已变化；remote refresh
+让 backend 不发新版二进制也能更新 model presets。代价是：解释“model list”时，
+provider identity、auth mode、visibility、cache freshness 和 remote catalog state 都不能被忽略。
+
+## 四、Auth 在 Request 存在之后才应用
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-body-signing-569ff6a1.webp" alt="Provider auth modes、prepared request、body signing、signed request、provider API 和 no WebSocket boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>有些 auth mode 可以较早附加 header；Bedrock 风格 SigV4 必须签 prepared body，所以 auth boundary 位于 request construction 之后、transport send 之前。</figcaption>
+</figure>
+
+### 4.1 Simple token 和 command auth 在发送前解析
+
+通用 auth 路径通过
+[`auth_manager_for_provider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/auth.rs#L65-L76)
+和
+[`resolve_provider_auth`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/auth.rs#L78-L120)
+路由。它可以创建 bearer-token auth provider，也可以为 local/test case 创建 unauthenticated
+provider。重点不是 credential 的具体形态，而是 request sender 拿到 `SharedAuthProvider`
+后，不需要知道 credential 来自 ChatGPT auth、API key、command、local provider，还是根本没有 auth。
+
+### 4.2 Bedrock 说明为什么 request body 很关键
+
+Amazon Bedrock 是让这个边界变明显的例子。它的 provider implementation 声明 provider
+account state，在 capability upper bounds 里关闭 namespace tools、image generation 和
+web search，计算 runtime base URL，解析 AWS auth，并使用 static model manager
+([`amazon_bedrock/mod.rs#L51-L103`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/mod.rs#L51-L103))。
+
+SigV4 auth provider 随后会修改 prepared request：
+
+```rust
+async fn apply_auth(&self, request: Request) -> Result<Request, AuthError> {
+    let mut request = request;
+    remove_headers_not_preserved_by_bedrock_mantle(&mut request.headers);
+    let prepared = request.prepare_body_for_send().map_err(AuthError::Build)?;
+    let signed = self.context.sign(AwsRequestToSign {
+        method: request.method.clone(),
+        url: request.url.clone(),
+        headers: prepared.headers.clone(),
+        body: prepared.body_bytes(),
+    }).await?;
+
+    request.url = signed.url;
+    request.headers = signed.headers;
+    request.body = prepared.body.map(RequestBody::Raw);
+    request.compression = RequestCompression::None;
+    Ok(request)
+}
+```
+
+完整代码在
+[`amazon_bedrock/auth.rs#L88-L139`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/auth.rs#L88-L139)。
+两个细节很重要。第一，签名覆盖 method、URL、headers 和 body，所以 auth 不能在 request
+构造前就最终确定。第二，代码在 prepare body 之后把 `RequestCompression::None` 写回去，
+因为被签名的 bytes 必须就是发送出去的 bytes。
+
+这解释了为什么这个源码快照会拒绝 AWS 加 `supports_websockets`。这不是在说 Bedrock
+永远不能支持 WebSocket，而是一个 verified source boundary：当前实现还没有 WebSocket
+upgrade request 的 SigV4 signing。
+
+## 五、Local Provider 仍然适合同一个 Contract
+
+### 5.1 Ollama 增加 readiness work，不增加新的 agent loop
+
+Local provider 的失败形态不同：可能没有本地 server，可能缺 model，可能本地 API 版本不兼容。
+Ollama 路径把这些 operational work 编进
+[`ensure_oss_ready`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ollama/src/lib.rs#L15-L46)
+和
+[`ensure_responses_supported`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ollama/src/lib.rs#L51-L76)。
+它会检查本地 Ollama server 是否可达，拉取本地 models，缺默认 model 时 pull，并拒绝低于
+Responses API 最低要求的版本。
+
+这里的不变量不变：local readiness 是 provider work。一旦 model call 开始，runtime
+想要的仍然是 typed response events，而不是 Ollama-specific agent policy。
+
+### 5.2 LM Studio 是另一种 provider surface，不是另一套 runtime
+
+LM Studio 有自己的 client checks：provider construction、server availability、model loading、
+model listing，以及通过 `lms` 下载 model，都在
+[`codex-rs/lmstudio/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/lmstudio/src/client.rs#L14-L124)。
+这些检查与 Ollama 的 operational work 不同，但架构位置相同。它们为 model client 准备
+provider surface；它们不重写 turn loop 处理 response item、tool、history 或 continuation
+的方式。
+
+## 六、Backend Tasks 与 Realtime 是相邻 Runtime Paths
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-runtime-split-569ff6a1.webp" alt="Turn sampling 的 ResponseEvent 进入 runtime boundary，旁路分出 realtime sideband、backend tasks、task lifecycle 和 apply diff" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Realtime session 和 backend task 可以位于 model sampling 旁边，但它们携带不同生命周期，不应该被当作普通 provider transport。</figcaption>
+</figure>
+
+### 6.1 Cloud backend task 有 task semantics
+
+Cloud task client 暴露的是 task lifecycle，不是 model stream。
+[`CloudBackend`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L133-L170)
+trait 可以列 task、取 summary、取 diff 和 messages、读取创建 prompt 及 assistant messages、
+列 sibling attempts、dry-run apply、apply task diff，以及创建 task。下面的 excerpt
+只保留足以区分 task lifecycle 和 response stream 的方法：
+
+```rust
+pub trait CloudBackend: Send + Sync {
+    async fn list_tasks(&self, env: Option<&str>, limit: Option<i64>, cursor: Option<&str>)
+        -> Result<TaskListPage>;
+    async fn get_task_summary(&self, id: TaskId) -> Result<TaskSummary>;
+    async fn get_task_diff(&self, id: TaskId) -> Result<Option<String>>;
+    async fn get_task_messages(&self, id: TaskId) -> Result<Vec<String>>;
+    async fn get_task_text(&self, id: TaskId) -> Result<TaskText>;
+    async fn list_sibling_attempts(&self, task: TaskId, turn_id: String)
+        -> Result<Vec<TurnAttempt>>;
+    async fn apply_task_preflight(&self, id: TaskId, diff_override: Option<String>)
+        -> Result<ApplyOutcome>;
+    async fn apply_task(&self, id: TaskId, diff_override: Option<String>)
+        -> Result<ApplyOutcome>;
+    async fn create_task(&self, env_id: &str, prompt: &str, git_ref: &str,
+        qa_mode: bool, best_of_n: usize) -> Result<CreatedTask>;
+}
+```
+
+HTTP implementation 会在
+[`cloud-tasks-client/src/http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L64-L360)
+里单独构造 task URLs 和 payloads。Backend tasks 可能与 backend client 共享 auth 和 base URL
+关注点
+([`backend-client/src/client.rs#L143-L225`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/backend-client/src/client.rs#L143-L225))，
+但它们的生命周期是 task state、attempts、diffs 和 apply outcomes。Task diff 不是
+`ResponseEvent`。
+
+### 6.2 Realtime 有 media plane 和 sideband
+
+Realtime 的相邻性来自另一种原因。它在
+[`realtime_conversation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/realtime_conversation.rs#L266-L340)
+里的 startup path 会创建有界 audio、text、handoff 和 event channels，构造
+`RealtimeWebsocketClient`，然后选择 WebRTC call 加 sideband input task，或者直接建立
+realtime WebSocket connection。Startup context 另外由
+[`realtime_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/realtime_context.rs#L58-L125)
+组装，WebRTC call creation 在
+[`endpoint/realtime_call.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/realtime_call.rs#L116-L183)。
+
+这不意味着 realtime 是普通 Responses stream 的另一个版本。它有 media input、session
+configuration、handoff output、sideband headers 和 event fanout。Runtime 可以把它接回同一套产品体验，
+但源码把生命周期分开了。
 
 <div class="apply-this">
 
 ## 应用到实践
 
-1. 把 transport mechanics 放在 typed event vocabulary 之下，让 agent loop 消费同一种 stream shape。
-2. provider definition 用数据表示，但把 account state、auth 和 capabilities 放进 runtime provider object。
-3. 把 model metadata 当作 cache-plus-overlay infrastructure，而不是静态 picker 常量。
-4. 把 body-aware signing 等特殊 auth 限定在 prepared-request boundary。
-5. 即使 backend task API 与 inference 共享 credential 或 host，也要把它们与 inference transport 分开。
+1. Provider definition 用数据保存，但 account state、auth、capabilities 和 model-manager choice 要留在 runtime provider behavior。
+2. HTTP streaming 和 Responses-over-WebSocket 可以在解析边界以下不同，最终必须收敛到 `ResponseEvent`。
+3. `ModelClientSession` 是 turn-local transport state，不要跨 turn 复用 sticky routing token。
+4. Model catalog 是 runtime infrastructure：baseline、cache、remote overlay、visibility filtering 和 ETag refresh 都属于这条边界。
+5. Body-aware auth 要在 request construction 之后应用；local provider readiness、realtime setup 和 cloud task APIs 也应贴近 inference，而不是塞进核心 model-stream abstraction。
 
 </div>
 
 ## 小结
 
-第 7 章说明了 turn loop 如何接收模型事件，而不继承每个 provider 的细节。第 8 章转向 执行之后的证据：rollout persistence、diagnostic trace bundle、reducer、analytics、 OTEL、response debug context，以及 Codex “先观察，后解释”的设计原则。
+Provider boundary 让第 6 章的 turn scheduler 能专心处理 agent work。一次 turn 可以请求模型
+stream，而不必理解 AWS signing、Ollama pull、LM Studio download、`/models` cache refresh、
+WebSocket upgrade state、realtime sideband 或 cloud task apply semantics。这些细节仍然存在；
+只是由能验证、能归一化它们的层来拥有。
+
+第 8 章会从 sampling 转向 evidence：rollout persistence、trace bundle、reducer、analytics、
+OTEL span 和 debug context 如何让 provider 差异被归一化之后的 runtime 变得可观察。
 
 <div class="source-equivalence">
 
@@ -143,10 +435,22 @@ backend client 处理 task、usage、requirements、rate-limit 和 cloud workflo
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Model client | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215) |
-| Provider prompt shape | [`codex-rs/core/src/client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28) |
-| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
-| WebSocket behavior tests | [`codex-rs/core/tests/suite/agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L20) |
-| Backend task API contrast | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) |
+| Provider data shape | [`codex-rs/model-provider-info/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L80-L135) |
+| AWS/WebSocket validation boundary | [`ModelProviderInfo::validate`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L147-L170) |
+| Runtime provider trait | [`codex-rs/model-provider/src/provider.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L73-L130) |
+| Provider factory | [`create_model_provider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L136-L145) |
+| Response event vocabulary | [`ResponseEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/common.rs#L72-L111) |
+| HTTP Responses stream | [`endpoint/responses.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses.rs#L70-L151) |
+| WebSocket Responses stream | [`endpoint/responses_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L574-L685) |
+| Turn-scoped model client session | [`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L219-L246) |
+| Transport selection and fallback | [`ModelClientSession::stream`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L1552-L1630) |
+| Model manager contract | [`ModelsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/manager.rs#L74-L173) |
+| Model cache | [`models-manager/src/cache.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/cache.rs#L14-L123) |
+| Bedrock runtime provider | [`amazon_bedrock/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/mod.rs#L51-L103) |
+| Bedrock body signing | [`amazon_bedrock/auth.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/auth.rs#L88-L139) |
+| Ollama readiness and version gate | [`codex-rs/ollama/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ollama/src/lib.rs#L15-L76) |
+| LM Studio local client checks | [`codex-rs/lmstudio/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/lmstudio/src/client.rs#L14-L124) |
+| Cloud task lifecycle | [`CloudBackend`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L133-L170) |
+| Realtime startup | [`realtime_conversation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/realtime_conversation.rs#L266-L340) |
 
 </div>

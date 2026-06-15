@@ -1,143 +1,470 @@
+# Provider Boundary: Transport Changes, Events Stay Stable
 
-# Chapter 7: Model Providers, Streaming, and Backend Tasks
-
-> **Reading Contract:** Use this chapter to separate provider transport from runtime semantics. Track stream normalization, backend tasks, retry and cancel boundaries, and the places where provider differences are hidden.
+> **Reading Contract:** Treat this chapter as a source map for the boundary
+> between model providers and the Codex runtime. Track provider data, runtime
+> provider behavior, turn-local transport state, and adjacent runtime paths.
+> After the chapter, you should be able to explain why HTTP streaming,
+> Responses-over-WebSocket, local providers, Bedrock signing, model catalogs,
+> realtime sessions, and backend tasks do not collapse into one "model call."
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-stream-normalization-df64b03.webp" alt="Provider streaming normalization map showing provider data, runtime provider behavior, transport choices, typed events, retry, and cancellation" loading="eager" decoding="async" />
-  <figcaption>Provider transports can vary, but the runtime needs stable event semantics: raw stream events become normalized items with bounded retry and cancellation behavior.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-runtime-boundary-569ff6a1.webp" alt="Provider data feeding a runtime provider with auth, capabilities, model manager, typed API, and turn loop boundary" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Provider configuration begins as data; the turn loop only talks to a runtime provider that can resolve auth, capabilities, model metadata, and typed API behavior.</figcaption>
 </figure>
 
-Chapter 6 followed a turn until it needed to sample the model. This chapter opens that sampling boundary and explains how Codex separates provider configuration, runtime provider behavior, typed API calls, streaming transports, model catalogs, realtime sessions, and backend task workflows.
+**Source boundary:** direct source claims in this chapter are pinned to OpenAI
+Codex commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+`ModelProviderInfo`, `ModelProvider`, `ModelClientSession`, `ResponseEvent`,
+`ModelsManager`, Bedrock auth, Ollama readiness, realtime conversation startup,
+and `CloudBackend` are **verified source** at the linked anchors. Claims about
+why the runtime keeps transport mechanics below one event vocabulary are
+**surrounding contract inference** from those visible types and call sites, not
+claims about private provider internals.
+
+Four local terms will carry the argument. **Provider data** is the serializable
+`ModelProviderInfo` record: URL, auth fields, retry policy, headers, wire API,
+and WebSocket support. **Runtime provider** is the `ModelProvider` trait object
+that resolves account state, auth, capabilities, API-provider shape, and model
+manager choice for the current process. **Typed event vocabulary** is the
+`ResponseEvent` enum that the turn loop sees after a transport-specific stream
+has been parsed. **Adjacent runtime path** means a path that may share
+credentials or base URLs with model calls but has its own lifecycle, such as
+realtime media/session setup or cloud backend tasks.
+
+Chapter 6 followed a turn until sampling became necessary. This chapter opens
+that boundary. The practical pressure is simple: the turn loop wants a stable
+stream of runtime facts, while providers vary across auth, signing, transport,
+catalog, locality, and cloud workflow concerns. Codex keeps that variety below
+a small runtime contract before scheduler policy resumes.
 
 <div class="chapter-lede">
-  <p><strong>Problem:</strong> the turn loop wants one stream of response events, but providers differ in URLs, auth, catalogs, transports, capabilities, and backend task APIs.</p>
-  <p><strong>Thesis:</strong> Codex keeps inference as a layered client system and makes transport differences converge before events return to the turn loop.</p>
-  <p><strong>Mental model:</strong> providers decide how to talk; the runtime decides what streamed events mean.</p>
+  <p><strong>Problem:</strong> provider differences touch URLs, credentials, request signing, stream framing, retry, model visibility, local readiness, and cloud tasks, but the turn loop cannot afford to learn every provider dialect.</p>
+  <p><strong>Thesis:</strong> Codex converts provider-specific mechanics into runtime provider behavior, typed API requests, and normalized response events before the turn scheduler resumes policy decisions.</p>
+  <p><strong>Mental model:</strong> provider data describes possible communication; runtime provider behavior chooses how this session communicates; the turn loop receives typed events and adjacent task results.</p>
+  <p><strong>Guiding questions:</strong> What is configuration, what is behavior, which transport is active for this turn, and which paths are not model inference at all?</p>
 </div>
 
-**Source boundary:** the model-client shape is **verified source** in [`ModelClient`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215), the request prompt shape is **verified source** in [`client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28), and session-level model client behavior is **verified source** in [`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232). The chapter treats provider fallback and backend-task separation as **surrounding contract inference** where visible tests such as [`agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L20) and the [`cloud-tasks-client` API](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) show separate boundaries but not private provider internals.
+## 1. Provider Data Is Not Runtime Behavior
 
+### 1.1 `ModelProviderInfo` Is a Serialized Contract
 
-## Five Layers
+The data layer is explicit in
+[`codex-rs/model-provider-info/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L80-L135).
+`ModelProviderInfo` is a serializable provider definition. It can hold a base
+URL, an environment variable for a key, a discouraged literal bearer token,
+command-backed auth, AWS SigV4 auth, the wire API, query parameters, static or
+environment-driven headers, retry settings, stream idle timeout, WebSocket
+connect timeout, OpenAI-auth requirement, and whether Responses-over-WebSocket
+is supported. This trimmed excerpt keeps only the fields needed for the
+provider-boundary argument:
 
-The provider path is easiest to understand as five layers plus specialized integrations.
-
-The transport layer owns HTTP details: request bodies, headers, compression, retry policy, idle timeouts, custom certificates, stream framing, and telemetry hooks. The typed API layer owns endpoint shapes: Responses, compaction, model listing, file upload, memory summarization, realtime setup, and WebSocket sessions. The provider runtime owns account state, auth resolution, capabilities, model-manager selection, and provider-specific behavior. The model catalog owns what models are available and which defaults are suitable.
-
-The turn loop should not know how to sign an AWS request, parse SSE bytes, or merge a remote model overlay. It should receive a typed stream of response events and enough metadata to make runtime decisions.
-
-This layering is clean, but the source is not frictionless. The typed API has to tolerate backend-generated models and provider-specific response quirks. The HTTP layer carries custom certificate, cookie, proxy, and retry behavior because model calls run in real developer networks. The WebSocket path can reduce setup overhead, but it does not automatically work for every auth scheme; body-aware signing is the obvious constraint. The model cache is also an operational compromise: it improves startup and offline behavior, but model identity still depends on provider, auth, visibility, and refresh policy.
-
-### Provider Data Is Not Provider Behavior
-
-Codex stores provider definitions as data: display name, base URL, wire API, auth fields, optional headers, query parameters, retry settings, stream settings, WebSocket support, and provider-specific auth metadata. That data is serializable and can come from built-ins or user configuration.
-
-Runtime provider behavior is a separate layer. It resolves the current auth value, exposes account state, declares capabilities, chooses the model manager, builds the API provider, and adapts special providers such as body-signing providers.
-
-This split is a governance choice. A configuration file can describe a provider, but it should not become executable policy. The runtime provider converts data into safe behavior at request time.
-
-### One Event Vocabulary, Multiple Transports
-
-The Responses path can travel over HTTP streaming or over a Responses WebSocket. Those transports have different mechanics, but they converge on the same runtime event vocabulary before returning to the turn loop.
-
-The WebSocket path can reuse session state and reduce per-turn setup cost. The HTTP path remains necessary for providers that do not support WebSockets, for fallback after connection failures, and for auth modes that cannot sign a WebSocket upgrade. The runtime can retry transient stream failures, refresh auth where appropriate, and fall back from WebSocket to HTTP-style streaming without changing the rest of the turn loop.
-
-```text
-// Pseudocode - illustrative pattern.
-function sample_with_provider(prompt, context):
-    provider = resolve_runtime_provider(context.provider_id)
-    api = provider.make_typed_api_client()
-    transport = choose_transport(provider.capabilities, context.session_state)
-
-    repeat until retry_budget_exhausted:
-        request = build_responses_request(prompt, context.model_options)
-        signed_request = provider.auth.attach_credentials(request)
-        stream = transport.open(signed_request)
-
-        for event in normalize_stream(stream):
-            yield event
-
-        if stream.completed:
-            return
-
-        if transport.can_fallback_after_failure:
-            transport = fallback_transport()
-            continue
-
-        backoff_and_retry()
-
-    raise stream_failure
+```rust
+pub struct ModelProviderInfo {
+    pub name: String,
+    pub base_url: Option<String>,
+    pub env_key: Option<String>,
+    // ...
+    pub experimental_bearer_token: Option<String>,
+    pub auth: Option<ModelProviderAuthInfo>,
+    pub aws: Option<ModelProviderAwsAuthInfo>,
+    pub wire_api: WireApi,
+    pub query_params: Option<HashMap<String, String>>,
+    pub http_headers: Option<HashMap<String, String>>,
+    pub env_http_headers: Option<HashMap<String, String>>,
+    pub request_max_retries: Option<u64>,
+    pub stream_max_retries: Option<u64>,
+    pub stream_idle_timeout_ms: Option<u64>,
+    pub websocket_connect_timeout_ms: Option<u64>,
+    pub requires_openai_auth: bool,
+    pub supports_websockets: bool,
+}
 ```
 
-The pseudocode shows the boundary: provider and transport differences are resolved before the turn loop receives events.
+The shape is deliberately descriptive. It says what can be configured; it does
+not fetch account state, sign a request, check a local server, or choose a model
+catalog. The file also validates incompatible combinations. For example, the
+AWS branch rejects `supports_websockets` because SigV4 signing for WebSocket
+upgrade requests is not supported in that snapshot
+([`lib.rs#L147-L170`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L147-L170)).
 
-### Streaming Events Carry Runtime Decisions
+This is the first invariant: a provider config may describe a risky or special
+shape, but the runtime gates that shape before any turn depends on it.
 
-A normalized stream event is more than text. It can contain item creation, message deltas, reasoning summaries, function-call argument deltas, tool-call completion, usage snapshots, rate-limit metadata, error classifications, and response completion. The turn loop uses those events to decide whether to render progress, dispatch tools, update rate limits, record model-visible items, compact history, or retry.
+### 1.2 `ModelProvider` Owns Behavior at Request Time
 
-The model client therefore acts like a typed event adapter. It does not own the agent policy. It gives the turn loop structured facts with enough fidelity to make policy decisions elsewhere.
+Runtime behavior lives in the
+[`ModelProvider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L73-L130)
+trait. The trait still exposes metadata, but it also owns capability upper
+bounds, attestation support, auth-manager access, current auth, account state,
+API-provider conversion, runtime base URL, request auth provider, and model
+manager construction.
 
-### Model Metadata Is Runtime Infrastructure
-
-Model metadata is not just a picker list. It shapes context limits, auto-compaction thresholds, reasoning controls, supported input modalities, default choices, collaboration modes, visibility, and provider compatibility.
-
-Codex treats model metadata as cache plus overlay. A bundled catalog gives the runtime a baseline. Eligible providers can refresh remote model lists and merge overlays into the cache. The model manager can operate online, offline, or online only when uncached, and it filters model presets based on the current auth mode and visibility rules.
-
-```text
-// Pseudocode - illustrative pattern.
-function resolve_model_info(model_name, refresh_strategy):
-    bundled = load_bundled_catalog()
-    cached = read_model_cache_if_fresh()
-
-    if refresh_strategy.allows_network and cache_is_stale(cached):
-        remote, etag = provider_endpoint.list_models()
-        cache.write(remote, etag)
-    else:
-        remote = cached.models
-
-    catalog = merge_catalogs(bundled, remote)
-    visible = filter_by_auth_and_visibility(catalog)
-    return choose_model_info(visible, model_name)
+```rust
+pub trait ModelProvider: fmt::Debug + Send + Sync {
+    fn info(&self) -> &ModelProviderInfo;
+    fn capabilities(&self) -> ProviderCapabilities;
+    fn supports_attestation(&self) -> bool;
+    fn auth_manager(&self) -> Option<Arc<AuthManager>>;
+    async fn auth(&self) -> Option<CodexAuth>;
+    fn account_state(&self) -> ProviderAccountResult;
+    async fn api_provider(&self) -> Result<Provider>;
+    async fn runtime_base_url(&self) -> Result<Option<String>>;
+    async fn api_auth(&self) -> Result<SharedAuthProvider>;
+    fn models_manager(&self, codex_home: PathBuf, catalog: Option<ModelsResponse>)
+        -> SharedModelsManager;
+}
 ```
 
-The turn loop consumes the result as runtime fact. It should not care whether that fact came from bundled data, cache, or a fresh remote overlay.
+The factory
+[`create_model_provider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L136-L145)
+shows why this split matters: most provider data becomes a
+`ConfiguredModelProvider`, while Amazon Bedrock becomes a dedicated
+`AmazonBedrockModelProvider`. That distinction is not cosmetic. Bedrock needs
+AWS account state, a runtime base URL, body-aware signing, and a static model
+manager, so Codex should not treat it like a bearer-token OpenAI-compatible
+endpoint just because the request surface looks similar.
 
-### Body-Aware Auth Belongs at the Request Boundary
+## 2. Transport Choice Ends Before the Turn Loop Sees Events
 
-Some providers can use simple bearer-token headers. Others need command-backed tokens, provider-specific account state, or body-aware request signing. Amazon Bedrock-style signing is the useful example: the auth layer must see the prepared request body and canonicalized headers before it can attach valid credentials.
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-stream-normalization-569ff6a1.webp" alt="HTTP SSE and WebSocket streams entering a stream mapper that emits ResponseEvent items for the turn loop" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>HTTP SSE and Responses-over-WebSocket have different mechanics, but they converge on `ResponseEvent` before the turn loop makes policy decisions.</figcaption>
+</figure>
 
-That requirement explains why Codex keeps auth close to the typed API request boundary. If signing logic leaked into the turn loop, every sampling path would inherit provider-specific rules. Instead, the provider's auth implementation mutates a prepared request, and the transport sends the result.
+### 2.1 The Turn Loop Consumes `ResponseEvent`
 
-It also explains a transport constraint: body-aware signing can make WebSocket support unavailable until the upgrade path has equivalent signing semantics. The provider can declare that limitation without changing the agent loop.
+The stable vocabulary is in
+[`codex-rs/codex-api/src/common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/common.rs#L72-L111).
+A response stream can report creation, output items, server model metadata,
+verification requirements, whether past reasoning was included, completion,
+text deltas, tool-call argument deltas, reasoning deltas, rate limits, and a
+models ETag. The excerpt below is shortened, but it keeps the event categories
+this section relies on:
 
-### Local Providers and Realtime Paths
+```rust
+pub enum ResponseEvent {
+    Created,
+    OutputItemDone(ResponseItem),
+    OutputItemAdded(ResponseItem),
+    ServerModel(String),
+    ModelVerifications(Vec<ModelVerification>),
+    ServerReasoningIncluded(bool),
+    Completed { response_id: String, token_usage: Option<TokenUsage>, end_turn: Option<bool> },
+    OutputTextDelta(String),
+    ToolCallInputDelta { item_id: String, call_id: Option<String>, delta: String },
+    ReasoningSummaryDelta { delta: String, summary_index: i64 },
+    ReasoningContentDelta { delta: String, content_index: i64 },
+    ReasoningSummaryPartAdded { summary_index: i64 },
+    RateLimits(RateLimitSnapshot),
+    ModelsEtag(String),
+}
+```
 
-Local providers such as Ollama or LM Studio fit the same provider model but have different operational concerns. They may need local availability checks, model pull progress, compatibility checks, or static catalogs. The runtime should still see them as providers that produce typed response events.
+This enum is the boundary that keeps provider transport from leaking upward as
+raw SSE lines, WebSocket frames, or provider-specific chunks. Once an event has
+crossed it, the turn loop can decide whether to render progress, record a
+completed item, update rate limits, dispatch a tool call, continue sampling, or
+settle the turn.
 
-Realtime is related but not identical to normal inference. It has a media plane for audio or WebRTC setup and a sideband/control path for session configuration, text handoff, response creation, and lifecycle events. Codex keeps realtime state beside the session and maps realtime events back into the thread event stream, but it should not be confused with the standard turn sampling path.
+### 2.2 HTTP and WebSocket Share the Parsing Boundary
 
-### Backend Tasks Are Not Inference
+The HTTP path builds a Responses request, asks for `text/event-stream`, and
+spawns a response stream in
+[`endpoint/responses.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses.rs#L70-L151).
+SSE parsing then maps event kinds through
+[`process_responses_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/sse/responses.rs#L297-L430)
+and
+[`process_sse`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/sse/responses.rs#L435-L520).
 
-The backend client speaks task, usage, requirements, rate-limit, and cloud workflow APIs. It can list tasks, fetch task details, create task attempts, read backend-managed requirements, and retrieve diffs or sibling turns. Those APIs may share auth and base URL concerns with model providers, but they are not the Responses stream.
+The WebSocket path creates a
+[`ResponsesWebsocketConnection`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L162-L321),
+connects with merged provider headers and auth
+([`responses_websocket.rs#L340-L452`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L340-L452)),
+then runs a WebSocket response stream
+([`responses_websocket.rs#L574-L685`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L574-L685)).
+That WebSocket loop also feeds response events into the same Responses event
+processing boundary.
 
-Keeping backend tasks separate prevents a common architecture error: treating cloud workflow state as another model transport. A cloud task has lifecycle, environment, attempts, diffs, and apply semantics. A model stream has response events. They may meet in product flows, but they should not share the same runtime abstraction.
+The useful conclusion is not "WebSocket is better." It is that Codex can switch
+transport paths only because both paths become the same typed stream before the
+rest of the agent sees them.
+
+### 2.3 `ModelClientSession` Makes Transport State Turn-Local
+
+`ModelClient` is session-scoped, while
+[`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L219-L246)
+is turn-scoped. The comment explains the rule: a `ModelClientSession` lazily
+establishes a Responses WebSocket, reuses it across multiple requests within
+the turn, remembers the last full request for incremental WebSocket payloads,
+and stores the `x-codex-turn-state` token. It must not be reused across turns.
+
+Transport selection enforces the same ownership. The model client only enables
+Responses-over-WebSocket when the provider supports it, session fallback has
+not disabled it, and the SSE fixture is not active
+([`client.rs#L767-L779`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L767-L779)).
+
+```rust
+pub fn responses_websocket_enabled(&self) -> bool {
+    if !self.state.provider.info().supports_websockets
+        || self.state.disable_websockets.load(Ordering::Relaxed)
+        || (*CODEX_RS_SSE_FIXTURE).is_some()
+    {
+        return false;
+    }
+    true
+}
+```
+
+The per-turn
+[`stream`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L1552-L1611)
+method prefers WebSocket for the Responses wire API, but if the WebSocket path
+returns `FallbackToHttp`, it switches the session to HTTP and then calls the
+HTTP Responses API path. `try_switch_fallback_transport`
+([`client.rs#L1614-L1630`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L1614-L1630))
+then forces subsequent requests in the Codex session onto HTTP and resets the
+turn-local WebSocket state.
+
+This is the second invariant: a transport optimization must not become hidden
+global state that changes the meaning of later turns.
+
+## 3. Model Metadata Is Runtime Infrastructure
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-model-catalog-569ff6a1.webp" alt="Bundled model catalog, models cache, remote models endpoint, model manager, visible presets, and model info feeding the turn loop" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Model metadata is cache-plus-overlay infrastructure: the turn loop needs model facts, not a hard-coded picker list.</figcaption>
+</figure>
+
+### 3.1 A Model Manager Produces Runtime Facts
+
+The model manager is not merely UI support. The
+[`ModelsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/manager.rs#L74-L173)
+trait lists available models, returns a raw catalog, exposes cached remote
+models, filters picker presets by auth mode and visibility, chooses a default
+model, resolves `ModelInfo`, and refreshes when an ETag changes.
+
+```rust
+async fn list_models(&self, refresh_strategy: RefreshStrategy) -> Vec<ModelPreset> {
+    let catalog = self.raw_model_catalog(refresh_strategy).await;
+    self.build_available_models(catalog.models)
+}
+
+fn build_available_models(&self, mut remote_models: Vec<ModelInfo>) -> Vec<ModelPreset> {
+    remote_models.sort_by(|a, b| a.priority.cmp(&b.priority));
+    let mut presets: Vec<ModelPreset> = remote_models.into_iter().map(Into::into).collect();
+    let uses_codex_backend = self.auth_manager().is_some_and(
+        AuthManager::current_auth_uses_codex_backend,
+    );
+    presets = ModelPreset::filter_by_auth(presets, uses_codex_backend);
+    ModelPreset::mark_default_by_picker_visibility(&mut presets);
+    presets
+}
+```
+
+Those facts affect more than a dropdown. `ModelInfo` influences context limits,
+auto-compaction thresholds, reasoning controls, model visibility, and which
+defaults make sense for the current auth mode. Chapter 6 already showed that
+the turn loop reads model info before deciding compaction and sampling behavior;
+this chapter explains where that info comes from.
+
+### 3.2 The Catalog Has a Baseline, a Cache, and an ETag Boundary
+
+The OpenAI model manager can combine a bundled catalog, an optional configured
+catalog, a disk cache, and a remote `/models` endpoint. The refresh path lives
+around
+[`manager.rs#L225-L359`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/manager.rs#L225-L359).
+The cache helpers track path, TTL, freshness, and persistence in
+[`cache.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/cache.rs#L14-L123).
+The provider endpoint fetches remote catalog data with a bounded timeout in
+[`models_endpoint.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/models_endpoint.rs#L31-L110),
+and the API endpoint attaches `client_version` when calling `models`
+([`endpoint/models.rs#L31-L73`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/models.rs#L31-L73)).
+
+This is an operational compromise. A bundled catalog lets Codex start and work
+offline. A cache avoids paying network cost every turn. An ETag lets the stream
+notify the runtime that model metadata changed. Remote refresh gives the
+backend a way to update model presets without shipping a new binary. The cost
+is that provider identity, auth mode, visibility, cache freshness, and remote
+catalog state all matter when interpreting a "model list."
+
+## 4. Auth Is Applied After the Request Exists
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-body-signing-569ff6a1.webp" alt="Provider auth modes, prepared request, body signing, signed request, provider API, and no WebSocket boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Some auth modes can attach headers early; Bedrock-style SigV4 must sign the prepared body, so the auth boundary sits after request construction and before transport send.</figcaption>
+</figure>
+
+### 4.1 Simple Tokens and Command Auth Resolve Before Send
+
+The generic auth path is routed through
+[`auth_manager_for_provider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/auth.rs#L65-L76)
+and
+[`resolve_provider_auth`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/auth.rs#L78-L120).
+That layer can create bearer-token auth providers or unauthenticated providers
+for local/test cases. The important design point is not which credential form is
+used; it is that the request sender receives a `SharedAuthProvider` without
+knowing whether the credential came from ChatGPT auth, an API key, a command, a
+local provider, or no auth at all.
+
+### 4.2 Bedrock Shows Why the Request Body Matters
+
+Amazon Bedrock is the case that makes the boundary obvious. Its provider
+implementation declares provider account state, disables namespace tools, image
+generation, and web search in its capability upper bounds, computes a runtime
+base URL, resolves AWS auth, and uses a static model manager
+([`amazon_bedrock/mod.rs#L51-L103`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/mod.rs#L51-L103)).
+
+The SigV4 auth provider then mutates a prepared request:
+
+```rust
+async fn apply_auth(&self, request: Request) -> Result<Request, AuthError> {
+    let mut request = request;
+    remove_headers_not_preserved_by_bedrock_mantle(&mut request.headers);
+    let prepared = request.prepare_body_for_send().map_err(AuthError::Build)?;
+    let signed = self.context.sign(AwsRequestToSign {
+        method: request.method.clone(),
+        url: request.url.clone(),
+        headers: prepared.headers.clone(),
+        body: prepared.body_bytes(),
+    }).await?;
+
+    request.url = signed.url;
+    request.headers = signed.headers;
+    request.body = prepared.body.map(RequestBody::Raw);
+    request.compression = RequestCompression::None;
+    Ok(request)
+}
+```
+
+The full code is in
+[`amazon_bedrock/auth.rs#L88-L139`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/auth.rs#L88-L139).
+Two details matter. First, the signature covers method, URL, headers, and body,
+so auth cannot be finalized until the request has been built. Second, the code
+sets `RequestCompression::None` after preparing the body, because the signed
+bytes must be the bytes sent.
+
+This is why provider validation rejects AWS plus `supports_websockets` in this
+snapshot. That is not a claim that Bedrock can never support WebSockets. It is a
+verified source boundary: this implementation does not yet support SigV4
+signing for WebSocket upgrade requests.
+
+## 5. Local Providers Still Fit the Contract
+
+### 5.1 Ollama Adds Readiness Work, Not a New Agent Loop
+
+Local providers have a different failure shape. They may be missing a server,
+missing a model, or running an incompatible local API version. The Ollama path
+encodes that operational work in
+[`ensure_oss_ready`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ollama/src/lib.rs#L15-L46)
+and
+[`ensure_responses_supported`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ollama/src/lib.rs#L51-L76).
+It checks that a local Ollama server is reachable, fetches local models, pulls
+the default model when needed, and rejects versions older than the Responses
+API minimum.
+
+The invariant is the same: local readiness is provider work. Once the model call
+begins, the runtime wants typed response events, not "Ollama-specific agent
+policy."
+
+### 5.2 LM Studio Is Another Provider Surface, Not a Separate Runtime
+
+LM Studio has its own client checks: provider construction, server availability,
+model loading, model listing, and model download through `lms` live in
+[`codex-rs/lmstudio/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/lmstudio/src/client.rs#L14-L124).
+Those checks differ operationally from Ollama, but their architectural
+placement is the same. They prepare a provider surface for the model client;
+they do not rewrite how the turn loop handles response items, tools, history,
+or continuation.
+
+## 6. Backend Tasks and Realtime Are Adjacent Runtime Paths
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-runtime-split-569ff6a1.webp" alt="Turn sampling response events entering runtime boundary and splitting toward realtime sideband, backend tasks, task lifecycle, and apply diff paths" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Realtime sessions and backend tasks may sit beside model sampling, but they carry different lifecycles and should not be treated as ordinary provider transports.</figcaption>
+</figure>
+
+### 6.1 Cloud Backend Tasks Have Task Semantics
+
+The cloud task client exposes a task lifecycle, not a model stream. Its
+[`CloudBackend`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L133-L170)
+trait can list tasks, fetch summaries, fetch diffs and messages, read the
+creating prompt plus assistant messages, list sibling attempts, dry-run an
+apply, apply a task diff, and create a task. This excerpt keeps the lifecycle
+methods that distinguish tasks from response streams:
+
+```rust
+pub trait CloudBackend: Send + Sync {
+    async fn list_tasks(&self, env: Option<&str>, limit: Option<i64>, cursor: Option<&str>)
+        -> Result<TaskListPage>;
+    async fn get_task_summary(&self, id: TaskId) -> Result<TaskSummary>;
+    async fn get_task_diff(&self, id: TaskId) -> Result<Option<String>>;
+    async fn get_task_messages(&self, id: TaskId) -> Result<Vec<String>>;
+    async fn get_task_text(&self, id: TaskId) -> Result<TaskText>;
+    async fn list_sibling_attempts(&self, task: TaskId, turn_id: String)
+        -> Result<Vec<TurnAttempt>>;
+    async fn apply_task_preflight(&self, id: TaskId, diff_override: Option<String>)
+        -> Result<ApplyOutcome>;
+    async fn apply_task(&self, id: TaskId, diff_override: Option<String>)
+        -> Result<ApplyOutcome>;
+    async fn create_task(&self, env_id: &str, prompt: &str, git_ref: &str,
+        qa_mode: bool, best_of_n: usize) -> Result<CreatedTask>;
+}
+```
+
+The HTTP implementation builds task URLs and payloads separately in
+[`cloud-tasks-client/src/http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L64-L360).
+Backend tasks may share authentication and base URL concerns with the backend
+client
+([`backend-client/src/client.rs#L143-L225`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/backend-client/src/client.rs#L143-L225)),
+but their lifecycle is task state, attempts, diffs, and apply outcomes. A task
+diff is not a `ResponseEvent`.
+
+### 6.2 Realtime Has a Media Plane and a Sideband
+
+Realtime is adjacent for a different reason. Its startup path in
+[`realtime_conversation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/realtime_conversation.rs#L266-L340)
+creates bounded audio, text, handoff, and event channels; builds a
+`RealtimeWebsocketClient`; and then chooses either a WebRTC call with a
+sideband input task or a direct realtime WebSocket connection. Startup context
+is assembled separately in
+[`realtime_context.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/realtime_context.rs#L58-L125),
+and WebRTC call creation lives in
+[`endpoint/realtime_call.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/realtime_call.rs#L116-L183).
+
+That does not make realtime another version of the normal Responses stream. It
+has media input, session configuration, handoff output, sideband headers, and
+event fanout. The runtime can bridge it into the same product experience, but
+the source keeps the lifecycle separate.
 
 <div class="apply-this">
 
 ## Apply This
 
-1. Keep transport mechanics below a typed event vocabulary so the agent loop consumes one stream shape.
-2. Store provider definitions as data, but put account state, auth, and capabilities in runtime provider objects.
-3. Treat model metadata as cache-plus-overlay infrastructure, not as a static picker constant.
-4. Localize special auth such as body-aware signing at the prepared-request boundary.
-5. Keep backend task APIs separate from inference transports, even when they share credentials or hosts.
+1. Store provider definitions as data, but keep account state, auth,
+   capabilities, and model-manager choice in runtime provider behavior.
+2. Let HTTP streaming and Responses-over-WebSocket differ below the parsing
+   boundary, then converge on `ResponseEvent`.
+3. Treat `ModelClientSession` as turn-local transport state; do not reuse sticky
+   routing tokens across turns.
+4. Treat model catalogs as runtime infrastructure with baseline, cache, remote
+   overlay, visibility filtering, and ETag refresh.
+5. Apply body-aware auth after request construction, and keep local readiness,
+   realtime setup, and cloud task APIs adjacent to inference rather than inside
+   the core model-stream abstraction.
 
 </div>
 
 ## Closing
 
-Chapter 7 shows how the turn loop receives model events without inheriting every provider detail. Chapter 8 turns from execution to evidence: rollout persistence, diagnostic trace bundles, reducers, analytics, OTEL, response debug context, and the principle that Codex observes first and interprets later.
+The provider boundary is what lets Chapter 6's turn scheduler stay focused on
+agent work. A turn can ask for a model stream without learning AWS signing,
+Ollama pulls, LM Studio downloads, `/models` cache refresh, WebSocket upgrade
+state, realtime sidebands, or cloud task apply semantics. Those details still
+exist; they are just owned by the layer that can verify and normalize them.
+
+Chapter 8 moves from sampling to evidence: how rollout persistence, trace
+bundles, reducers, analytics, OTEL spans, and debug context make the runtime
+observable after provider differences have been normalized.
 
 <div class="source-equivalence">
 
@@ -145,10 +472,22 @@ Chapter 7 shows how the turn loop receives model events without inheriting every
 
 | Concept | Source anchor |
 | --- | --- |
-| Model client | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L215) |
-| Provider prompt shape | [`codex-rs/core/src/client_common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client_common.rs#L28) |
-| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
-| WebSocket behavior tests | [`codex-rs/core/tests/suite/agent_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/tests/suite/agent_websocket.rs#L20) |
-| Backend task API contrast | [`codex-rs/cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L9) |
+| Provider data shape | [`codex-rs/model-provider-info/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L80-L135) |
+| AWS/WebSocket validation boundary | [`ModelProviderInfo::validate`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider-info/src/lib.rs#L147-L170) |
+| Runtime provider trait | [`codex-rs/model-provider/src/provider.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L73-L130) |
+| Provider factory | [`create_model_provider`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/provider.rs#L136-L145) |
+| Response event vocabulary | [`ResponseEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/common.rs#L72-L111) |
+| HTTP Responses stream | [`endpoint/responses.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses.rs#L70-L151) |
+| WebSocket Responses stream | [`endpoint/responses_websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-api/src/endpoint/responses_websocket.rs#L574-L685) |
+| Turn-scoped model client session | [`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L219-L246) |
+| Transport selection and fallback | [`ModelClientSession::stream`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L1552-L1630) |
+| Model manager contract | [`ModelsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/manager.rs#L74-L173) |
+| Model cache | [`models-manager/src/cache.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/models-manager/src/cache.rs#L14-L123) |
+| Bedrock runtime provider | [`amazon_bedrock/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/mod.rs#L51-L103) |
+| Bedrock body signing | [`amazon_bedrock/auth.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/model-provider/src/amazon_bedrock/auth.rs#L88-L139) |
+| Ollama readiness and version gate | [`codex-rs/ollama/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ollama/src/lib.rs#L15-L76) |
+| LM Studio local client checks | [`codex-rs/lmstudio/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/lmstudio/src/client.rs#L14-L124) |
+| Cloud task lifecycle | [`CloudBackend`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L133-L170) |
+| Realtime startup | [`realtime_conversation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/realtime_conversation.rs#L266-L340) |
 
 </div>
