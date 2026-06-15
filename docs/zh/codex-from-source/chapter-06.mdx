@@ -1,143 +1,563 @@
+# Turn Loop：Agent 真正发生的地方
 
-# 第 6 章：Turn Loop：Agent 真正发生的地方
-
-> **阅读契约：** 用本章把一次 turn 从头走到尾。把 context construction、model streaming、tool loops、continuation、cancellation 和 completion 看成一个 scheduler 问题。
+> **阅读契约：** 把本章当作一次 Codex turn 的执行地图。重点跟踪哪个
+> owner 决定模型能看见什么、哪些东西会变成 runtime work、哪些事实会进入
+> durable history，以及 loop 为什么继续或落定。读完后，你应该能回答：
+> 为什么 coding agent 的一次 turn 是 scheduler，而不是一次 request/response。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-loop-control-board.webp" alt="Turn loop 控制板：展示 context preparation、model streaming、tool follow-up、pending input、compaction、cancellation 和 completion" loading="eager" decoding="async" />
-  <figcaption>一次 turn 是控制板：context、sampling、tools、continuation、cancellation、compaction、history 和 trace 都在这里相遇。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-loop-scheduler-569ff6a1.webp" alt="Codex turn loop scheduler with input, run_turn, stream, tools, history, continuation, cancellation, and completion" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Turn loop 是调度者：model streaming、tool work、history、continuation、cancellation 和 completion 都在同一个 owner 下收束。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章直接源码判断固定在 OpenAI Codex commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。
+`run_turn`、`ModelClientSession`、`run_sampling_request`、
+`try_run_sampling_request`、`handle_output_item_done`、`ContextManager`、
+`run_user_prompt_submit_hooks`、`inspect_pending_input` 和
+`run_auto_compact` 只有在正文链接到固定源码时才作为 **verified source**。
+“scheduler”“continuation reason”“model-visible view”“runtime fact” 这些
+说法是从可见源码形状得出的 **surrounding contract inference**，不是对
+OpenAI 私有服务内部的断言。
 
-第 5 章区分了 durable thread 和 live session，也说明了客户端 operation 如何进入 runtime。本章跟随其中一个 operation 进入 turn loop：这里把 调度、上下文、流式输出、工具、hooks、compaction 和 cancellation 组合成 真正的 Agent 行为。
+本文会反复使用四个局部术语。**Durable history** 指已经记录下来的 conversation
+items，之后会由
+[`ContextManager::record_items`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L98-L122)
+筛成 API 可用的记录。**Model-visible view** 指
+[`for_prompt`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L115-L122)
+返回、真正送进 sampling 的 normalized history。**Runtime fact** 指 streamed item
+或 tool result 已经进入 recorded history 或 emitted turn events，例如
+[`record_completed_response_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/stream_events_utils.rs#L125-L150)
+和
+[`drain_in_flight`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1794-L1814)
+做的事。**Continuation reason** 是本章给可见 loop gate 起的名字：model
+`needs_follow_up`、pending input、compaction recovery，或 hook context。
+
+第 5 章把 durable thread 和 live session 分开了。本章进入 session 接受输入
+之后真正执行工作的地方：turn 被安装，模型看到规范化后的 history，stream
+event 变成 runtime action，tool observation 被写回 history，然后 loop 判断
+是否还有理由再发起一次模型请求。
+
+如果把 turn 说成“把最新 prompt 发给模型”，最关键的压力会被抹掉。一次 coding
+agent turn 可能在模型 streaming 时被中断，可能在 in-flight work 中收到新的
+用户输入，可能调用工具并需要把 observation 放进下一次模型请求，可能在下一次
+follow-up 前触达 context limit，也可能被 hooks 在输入前阻止，或在 assistant
+看似完成后重新注入上下文。
+
+Codex 把这些生命周期显式化：
 
 <div class="chapter-lede">
-  <p><strong>问题：</strong>一次用户 turn 不能实现成一次模型请求，因为模型可能请求工具，hook 可能添加工作，用户可能中断，上下文也可能需要修复。</p>
-  <p><strong>主张：</strong>turn 是一个受控状态机；它的产物既是用户可见回答，也是可持久化的 runtime facts。</p>
-  <p><strong>心智模型：</strong>loop 在两个问题之间切换：模型可以看见什么，runtime 可以执行什么。</p>
+  <p><strong>问题：</strong>一次用户提交可能要经过多次模型请求、tool future、hook decision、pending input drain 和 compaction boundary，才算真正完成。</p>
+  <p><strong>主张：</strong>`run_turn` 是围绕明确 continuation reason 运行的状态机：model follow-up、pending input、context repair，以及 hook-provided context。</p>
+  <p><strong>心智模型：</strong>turn 反复把 durable history 转成 model prompt，把 streamed model output 转成 runtime facts，再把 runtime observation 写回 model-visible history。</p>
+  <p><strong>导读问题：</strong>active turn 由谁拥有？什么可以进入 history？哪个 event 造成 follow-up？什么条件让 loop 停止？</p>
 </div>
 
+## 一、Turn 先拥有执行包络
 
-## 一次 Turn 的形状
+### 1.1 `run_turn` 是 owner 边界
 
-当 submission loop 判断用户输入应该成为被调度的工作时，一次 turn 就开始了。 session 解析 `TurnContext`，安装 active turn，并在 cancellation token 之下 运行循环。从这一刻开始，关键子系统都会参与：hooks 检查输入，skills 和 plugins 注入上下文，model client 流式返回事件，tool router 分发副作用， persistence 记录 items，telemetry 观察进展。
+第一个有用锚点是
+[`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139-L145)
+的签名。它接收 live `Session`、已经解析好的 `TurnContext`、提交进来的
+`UserInput`、可选的预热 `ModelClientSession`，以及 `CancellationToken`。
+这在看任何分支之前就说明了 owner：turn 不只属于 UI、不只属于 provider、
+也不只属于 tool router。它把 context、input、model transport 和 cancellation
+关联在一起。
 
-这张图有意画成循环。Codex 之所以像 Agent，是因为模型输出可以通过工具、 观察结果、compaction 和 pending user input 改变下一次模型输入。
+[`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139-L168)
+开头还展示了两道早期 gate：
 
-### Sampling 前的准备
+```rust
+pub(crate) async fn run_turn(
+    sess: Arc<Session>,
+    turn_context: Arc<TurnContext>,
+    input: Vec<UserInput>,
+    prewarmed_client_session: Option<ModelClientSession>,
+    cancellation_token: CancellationToken,
+) -> Option<String> {
+    if input.is_empty() && !sess.has_pending_input().await {
+        return None;
+    }
 
-第一次模型请求之前，loop 已经做了大量工作。它先确认确实有输入或 pending work，然后准备 model client session，必要时复用预热好的 transport state。 如果已有上下文已经接近 token 上限，它会先评估 pre-sampling compaction。 随后，turn context update 会被记录下来，让后续 replay 知道这次 turn 处于什么设置之下。
+    let model_info = turn_context.model_info.clone();
+    let auto_compact_limit = model_info.auto_compact_token_limit().unwrap_or(i64::MAX);
+    let mut client_session =
+        prewarmed_client_session.unwrap_or_else(|| sess.services.model_client.new_session());
+    let pre_sampling_compact =
+        match run_pre_sampling_compact(&sess, &turn_context, &mut client_session).await {
+            Ok(pre_sampling_compact) => pre_sampling_compact,
+            Err(_) => {
+                error!("Failed to run pre-sampling compact");
+                return None;
+            }
+        };
+    if pre_sampling_compact.reset_client_session {
+        client_session.reset_websocket_session();
+    }
+```
 
-接着，runtime 解析 turn-scoped extension context。显式提到的 skill 可能变成 注入指令；plugin 和 app mention 可能要求读取工具或 connector inventory； dependency prompt 可能让客户端补齐缺失环境变量或能力；user-prompt hook 则可以在模型看到输入之前接受、增强或阻止本次 turn。
+这已经不是“调用模型”。没有 fresh input 的 turn 仍然可以因为 pending input 而
+运行；第一次模型请求之前，turn 还会检查 pre-sampling compaction。如果这次
+compaction 改变了 transport baseline，model client session 会在任何 stream
+开始前被重置。
 
-| 准备事项 | 为什么必须在 sampling 前完成 |
+### 1.2 Model client session 是 turn-scoped
+
+[`ModelClientSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L219-L246)
+的注释非常直接：它为每个 turn 创建，懒加载 Responses WebSocket connection，
+记住上一份完整 request 以支持 incremental websocket payload，并保存
+`x-codex-turn-state` sticky-routing token。源码还明确提醒：跨 turn 复用它会把
+上一个 turn 的 sticky-routing token 带进后续 turn，破坏 client/server contract。
+
+这解释了为什么 transport state 要放在 turn loop 内，而不是放进全局 model-client
+cache。retry、fallback transport、incremental request 和 continuation request
+可以共享 turn-local state；下一次用户 turn 不能继承这些状态。
+
+构造函数
+[`new_session`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L353-L363)
+本身不做网络 I/O。它创建 turn-scoped handle，把连接建立推迟到第一次 stream。
+这样安装 turn 的成本很低，同时 stream lifetime 仍然对 scheduler 可见。
+
+## 二、准备阶段决定什么能进入 history
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-pre-sampling-gate-569ff6a1.webp" alt="Codex pre-sampling gate with context updates, skill injection, plugin injection, prompt hook, accepted prompt, blocked prompt, and history" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>第一次 sampling 之前，Codex 会记录 context update、解析 turn-scoped skill/plugin guidance、运行 prompt hooks，然后才记录 accepted prompt history。</figcaption>
+</figure>
+
+### 2.1 Context update 早于 prompt recording
+
+Pre-sampling compaction 之后，`run_turn` 会先记录 turn-context updates 和
+reference context item，再解析 skill/plugin injection。相关序列从
+[`turn.rs#L170-L279`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L170-L279)
+开始：显式 mention 的 skills 会被收集，plugin/connector mention 会根据已加载的
+capability summaries 解析，必要时读取 MCP/app inventory，dependency prompt 可能
+运行，skill 和 plugin guidance 最终都被转换成 `ResponseItem`。
+
+这就是为什么 turn loop 必须看到的不只是用户文本。同一句输入在不同 model、cwd、
+approval、sandbox、skill、plugin、app 或 feature settings 下可能意味着不同的工作。
+先记录 context update，再记录 prompt history，可以让 replay/resume 看到当时真实
+支配这次 turn 的设置。
+
+### 2.2 Prompt hooks 位于 accepted user prompt 之前
+
+Prompt-submit hook path 是下一条 ordering invariant。在
+[`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L305-L342)
+里，session-start hooks 可以先停止 turn；然后 fresh user prompt 被转成 response
+item，交给 `run_user_prompt_submit_hooks` 检查；只有 hook 不停止时，它才被记录：
+
+```rust
+if run_pending_session_start_hooks(&sess, &turn_context).await {
+    return None;
+}
+let additional_contexts = if input.is_empty() {
+    Vec::new()
+} else {
+    let initial_input_for_turn: ResponseInputItem = ResponseInputItem::from(input.clone());
+    let response_item: ResponseItem = initial_input_for_turn.clone().into();
+    let user_prompt_submit_outcome = run_user_prompt_submit_hooks(
+        &sess,
+        &turn_context,
+        UserMessageItem::new(&input).message(),
+    )
+    .await;
+    if user_prompt_submit_outcome.should_stop {
+        record_additional_contexts(
+            &sess,
+            &turn_context,
+            user_prompt_submit_outcome.additional_contexts,
+        )
+        .await;
+        return None;
+    }
+    sess.record_user_prompt_and_emit_turn_item(turn_context.as_ref(), &input, response_item)
+        .await;
+    user_prompt_submit_outcome.additional_contexts
+};
+```
+
+重点不是泛泛地说 hooks 是 middleware，而是源码规则更具体：被拦截的 fresh input
+不会被记录成 accepted user prompt。additional context 仍然可以被记录，让用户或
+后续 runtime 理解这次决策；但 model-visible conversation 不会假装 rejected prompt
+正常进入了对话。
+
+### 2.3 History 是 normalized model view，不是 raw transcript
+
+当 loop 准备 sampling 时，它不会直接转发 UI cells 或 rollout bytes。它 clone
+conversation history，然后向
+[`ContextManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L98-L122)
+请求 prompt view。`record_items` 会过滤 non-API items 并应用 truncation policy；
+`for_prompt` 会 normalize history，并在模型不支持对应 modality 时移除图片，再返回
+`Vec<ResponseItem>`。
+
+这也是本书反复出现的局部规则：UI view、durable record、model-visible view 有关
+联，但不是同一个 owner。Turn loop 在需要模型 sampling 的那一刻，向 history owner
+请求 request-shaped view。
+
+## 三、主循环只围绕明确 continuation reason 运行
+
+### 3.1 Pending input 只能在受控边界 drain
+
+主 `loop` 从
+[`turn.rs#L383`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L383)
+开始。每次模型请求之前，它可能 drain pending input，但前提是
+`can_drain_pending_input` 允许。源码在
+[`turn.rs#L375-L381`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L375-L381)
+注释了两个延迟场景：turn 开始时 fresh user prompt 应先被 sampling；auto-compact
+之后，model/tool continuation 应该先恢复，不能立刻被 pending steer 打断。
+
+所以 pending input 不是“到达就 append”。Loop 会通过
+[`inspect_pending_input`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L346-L371)
+检查每个 pending item，通过
+[`record_pending_input`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L373-L390)
+记录 accepted input；如果某个 blocked item 打断 drain，还会用
+[`prepend_pending_input`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L3166-L3175)
+把剩下的 tail 放回去。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-pending-cancel-boundary-569ff6a1.webp" alt="Codex active turn with pending input queue, hook inspection, accepted input, blocked input, requeued input, cancellation token, and settle flag" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Pending input 只在 turn boundary 经过 hook inspection 后进入。Cancellation 也由 turn 拥有，因此 stream、tool、approval 和 terminal work 能一致收束。</figcaption>
+</figure>
+
+[`turn.rs#L388-L435`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L388-L435)
+展示了三种结果：
+
+```rust
+let pending_input = if can_drain_pending_input {
+    sess.get_pending_input().await
+} else {
+    Vec::new()
+};
+
+let mut blocked_pending_input = false;
+let mut blocked_pending_input_contexts = Vec::new();
+let mut requeued_pending_input = false;
+let mut accepted_pending_input = Vec::new();
+if !pending_input.is_empty() {
+    let mut pending_input_iter = pending_input.into_iter();
+    while let Some(pending_input_item) = pending_input_iter.next() {
+        match inspect_pending_input(&sess, &turn_context, pending_input_item).await {
+            PendingInputHookDisposition::Accepted(pending_input) => {
+                accepted_pending_input.push(*pending_input);
+            }
+            PendingInputHookDisposition::Blocked {
+                additional_contexts,
+            } => {
+                let remaining_pending_input = pending_input_iter.collect::<Vec<_>>();
+                if !remaining_pending_input.is_empty() {
+                    let _ = sess.prepend_pending_input(remaining_pending_input).await;
+                    requeued_pending_input = true;
+                }
+                blocked_pending_input_contexts = additional_contexts;
+                blocked_pending_input = true;
+                break;
+            }
+        }
+    }
+}
+```
+
+这套纪律保护了两个不变量。第一，用户 steer 只有经过 hook 接受后才进入模型视图。
+第二，被 blocked 的输入不会把后续 queued input 吞掉；剩余 tail 可以回到队列，等
+后续边界处理。
+
+### 3.2 Prompt 每次 sampling 都从 history 重建
+
+当前迭代的 pending input 落定后，`run_turn` 从 normalized history 构造 sampling
+input，并调用
+[`run_sampling_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L453-L463)。
+在这个函数内部，Codex 会构建 tool router，取得 base instructions，在需要时启动
+code-mode worker，然后用当前 input、模型可见 tool specs、base instructions、
+personality 和可选 output schema 构造
+[`Prompt`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L976-L993)。
+
+[`run_sampling_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1004-L1143)
+里的 retry loop 也是 turn-level responsibility。它会 retry 可恢复的 stream error，
+向 UI 通知 reconnecting，并在 turn-scoped session 判断允许时从 WebSocket fallback
+到 HTTPS。Provider disconnect 不会变成新的用户 turn；它仍在当前 scheduler boundary
+里处理。
+
+### 3.3 Tool exposure 为这一次 prompt 计算
+
+工具可见性不是静态全局列表。
+[`built_tools`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1149-L1274)
+会读取 MCP tools、plugin connectors、显式启用的 connector ids、app/tool-suggest
+配置、dynamic tools，以及 unavailable-called-tool 处理，然后构造 `ToolRouter`。
+
+这对源码解释很关键。模型后面发出的 tool call，其含义绑定在这个 prompt 和这个
+turn context 构造出的 router 上。于是 loop 可以把 tool call 当成 continuation
+reason，而不是无 owner 的外部 callback。
+
+## 四、Streaming 把 provider event 转成 runtime fact
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-stream-tool-followup-569ff6a1.webp" alt="Codex model stream producing message, tool call, completion, telemetry, observation, history, and follow-up sampling" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Stream 不只是 UI 文本。它会产生 response item、tool future、usage data、history record、telemetry 和 follow-up reason。</figcaption>
+</figure>
+
+### 4.1 `try_run_sampling_request` 拥有 stream
+
+Provider stream 由
+[`try_run_sampling_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1828-L1868)
+打开。这个函数把 prompt、model info、telemetry context、reasoning settings、
+service tier、turn metadata header 和 inference trace 交给 turn-scoped
+`client_session.stream(...)`，并用 turn 的 cancellation token 包裹 await。
+
+```rust
+let mut stream = client_session
+    .stream(
+        prompt,
+        &turn_context.model_info,
+        &turn_context.session_telemetry,
+        turn_context.reasoning_effort,
+        turn_context.reasoning_summary,
+        turn_context.config.service_tier.clone(),
+        turn_metadata_header,
+        &inference_trace,
+    )
+    .instrument(trace_span!("stream_request"))
+    .or_cancel(&cancellation_token)
+    .await??;
+let mut in_flight: FuturesOrdered<BoxFuture<'static, CodexResult<ResponseInputItem>>> =
+    FuturesOrdered::new();
+let mut needs_follow_up = false;
+let mut last_agent_message: Option<String> = None;
+```
+
+这些局部变量已经暴露了 stream contract。一次 sampling attempt 可能产生 tool
+futures，设置 `needs_follow_up`，并更新 last assistant message。输出不是一个
+最终字符串。
+
+### 4.2 Output item 和 tool result 完成时立刻记录
+
+当 `ResponseEvent::OutputItemDone(item)` 到达时，`try_run_sampling_request` 会把
+item 交给
+[`handle_output_item_done`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1922-L1999)。
+这个 helper 位于
+[`stream_events_utils.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/stream_events_utils.rs#L222-L349)，
+核心是 tool/non-tool split：
+
+```rust
+match ToolRouter::build_tool_call(ctx.sess.as_ref(), item.clone()).await {
+    // The model emitted a tool call; log it, persist the item immediately, and queue the tool execution.
+    Ok(Some(call)) => {
+        ctx.sess
+            .accept_mailbox_delivery_for_current_turn(&ctx.turn_context.sub_id)
+            .await;
+
+        record_completed_response_item(ctx.sess.as_ref(), ctx.turn_context.as_ref(), &item)
+            .await;
+
+        let cancellation_token = ctx.cancellation_token.child_token();
+        let tool_future: InFlightFuture<'static> = Box::pin(
+            ctx.tool_runtime
+                .clone()
+                .handle_tool_call(call, cancellation_token),
+        );
+
+        output.needs_follow_up = true;
+        output.tool_future = Some(tool_future);
+    }
+    // No tool call: convert messages/reasoning into turn items and mark them as complete.
+    Ok(None) => {
+        /* emit completed turn item, record item, and capture last assistant message */
+    }
+```
+
+这里有两个后面还会反复用到的事实。第一，completed response item 会立即记录，
+这样即使 turn 后面被取消，history 和 rollout 也能保持同步；
+[`stream_events_utils.rs#L202-L204`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/stream_events_utils.rs#L202-L204)
+的注释直接说明了这个意图。第二，tool call 不会离开 turn。它会在同一棵
+cancellation tree 下创建 future，并把 sampling result 标记为需要 follow-up。
+
+Observation 这一侧也有自己的源码锚点。Stream loop 退出后，
+[`try_run_sampling_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L2245-L2263)
+会调用
+[`drain_in_flight`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1794-L1814)。
+这个 helper 会等待 queued tool futures，把每个 `ResponseInputItem` 转成
+`ResponseItem`，记录进 conversation；如果记录下来的 response 带有 external
+context，还会标记 memory mode polluted。这就是本文把 tool observation 视为回到
+model-visible history 的 runtime fact，而不是 side-channel log 的源码依据。
+
+记录路径
+[`record_completed_response_item`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/stream_events_utils.rs#L125-L150)
+会持久化 item，必要时把 mailbox delivery 延迟到下一 turn，在出现 external context
+时标记 memory mode polluted，并记录 memory-citation usage。也就是说，“streaming
+output”这个说法太窄了。completed item 同时可能是 UI event、model-history fact、
+rollout fact，甚至 memory/accounting fact。
+
+### 4.3 Completion 只是 stream 里的一个 event
+
+同一个 match 还处理 `OutputItemAdded`、`OutputTextDelta`、`ToolCallInputDelta`、
+reasoning deltas、rate limits、model warnings，以及最终 `Completed` events。
+最终 completion 分支在
+[`turn.rs#L2107-L2129`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L2107-L2129)：
+它更新 token usage，记录本轮应发出 turn diff，并把 `end_turn: Some(false)` 当成
+另一个 follow-up reason。
+
+```rust
+ResponseEvent::Completed {
+    response_id,
+    token_usage,
+    end_turn,
+} => {
+    flush_assistant_text_segments_all(
+        &sess,
+        &turn_context,
+        plan_mode_state.as_mut(),
+        &mut assistant_message_stream_parsers,
+    )
+    .await;
+    sess.update_token_usage_info(&turn_context, token_usage.as_ref())
+        .await;
+    should_emit_turn_diff = true;
+    if let Some(false) = end_turn {
+        needs_follow_up = true;
+    }
+    completed_response_id = Some(response_id);
+    break Ok(SamplingRequestResult {
+        needs_follow_up,
+        last_agent_message,
+    });
+}
+```
+
+所以 provider 可以说“这个 response completed”，同时告诉 client “turn 还应该继续”。
+Codex 用 `SamplingRequestResult` 同时返回 `needs_follow_up` 和 `last_agent_message`，
+保留了这个区别。
+
+## 五、Continuation 来自 tools、pending input、compaction 或 hooks
+
+### 5.1 Post-sampling logic 汇总 follow-up reason
+
+回到 `run_turn`，一次成功 sampling 的结果会和当前 pending-input state 合并：
+
+```rust
+let SamplingRequestResult {
+    needs_follow_up: model_needs_follow_up,
+    last_agent_message: sampling_request_last_agent_message,
+} = sampling_request_output;
+can_drain_pending_input = true;
+let has_pending_input = sess.has_pending_input().await;
+let needs_follow_up = model_needs_follow_up || has_pending_input;
+let total_usage_tokens = sess.get_total_token_usage().await;
+let token_limit_reached = total_usage_tokens >= auto_compact_limit;
+```
+
+这段来自
+[`turn.rs#L466-L475`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L466-L475)。
+它是“turn 为什么继续”的浓缩答案：要么模型请求 follow-up，要么 session 还有
+pending input 等待安全 drain boundary。
+
+### 5.2 Compaction 只在 continuation 仍然重要时运行
+
+如果 token pressure 已经很高，而且 loop 仍然需要继续，
+[`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L492-L512)
+会执行 mid-turn compaction：
+
+```rust
+if token_limit_reached && needs_follow_up {
+    let reset_client_session = match run_auto_compact(
+        &sess,
+        &turn_context,
+        &mut client_session,
+        InitialContextInjection::BeforeLastUserMessage,
+        CompactionReason::ContextLimit,
+        CompactionPhase::MidTurn,
+    )
+    .await
+    {
+        Ok(reset_client_session) => reset_client_session,
+        Err(_) => return None,
+    };
+    if reset_client_session {
+        client_session.reset_websocket_session();
+    }
+    can_drain_pending_input = !model_needs_follow_up;
+    continue;
+}
+```
+
+这里的 `needs_follow_up` 条件就是设计线索。Compaction 不是后台清洁任务；只有当
+后续工作仍然需要一个能放得下的 prompt 时，loop 才会改写 model-visible history。
+如果 turn 已经完成，这个分支不会仅因为 usage 高就强行改写历史。
+
+Pre-turn compaction 由
+[`run_pre_sampling_compact`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L721-L756)
+单独处理 already-over-limit 场景。旁边的
+[`maybe_run_previous_model_inline_compact`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L758-L805)
+负责检查 model-downshift 条件，并使用 `CompactionReason::ModelDownshift`。共同 helper
+[`run_auto_compact`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L807-L847)
+则根据 provider 和 feature state 选择 remote compaction v2、remote compaction 或
+inline local compaction。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/turn-compact-stop-hooks-569ff6a1.webp" alt="Codex token pressure, compaction, client-session reset, stop hooks, hook context, after-agent hooks, and completion gates" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Compaction 和 stop hooks 都是 continuation gates。它们要么修复 model view 以便继续工作，要么把 context 注回 loop，要么让 turn 落定。</figcaption>
+</figure>
+
+### 5.3 Stop hooks 可以把 completion 变回 work
+
+如果没有 follow-up reason，turn 也不是马上结束。
+[`turn.rs#L514-L630`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L514-L630)
+里的 stop hook path 会构造 `StopRequest`，preview stop-hook runs，执行 hooks，
+emit hook-completed events，然后评估两类决策。
+
+如果 `stop_outcome.should_block` 带有 continuation fragments，
+`build_hook_prompt_message` 会把这些 fragments 转成 model-visible context，记录这条
+message，设置 `stop_hook_active`，然后继续 loop。如果 `stop_outcome.should_stop`，
+turn 会 break。否则，Codex 会 dispatch `AfterAgent` hooks：failed-continue 会 warn
+后继续，failed-abort 会 emit error 并 abort completion。
+
+这意味着“assistant 产出 final message”和“turn completed”不是同一个 event。
+Stop hook 仍然可以注入 context 要求再过一轮模型；after-agent hook 仍然可以 abort
+completion。只有这些 gate 都通过后，loop 才会 break 并返回 last assistant message。
+
+## 六、常见误读
+
+| 误读 | 源码实际显示 |
 | --- | --- |
-| Turn context | 模型请求必须反映已解析 runtime 设置，而不是陈旧默认值。 |
-| Initial compaction | loop 不应该发起一个注定放不进上下文窗口的请求。 |
-| Context injection | skills、plugins 和 additional context 必须可持久化、可见。 |
-| Hook inspection | 策略和扩展点需要在采样前阻止或修改工作。 |
-| Accepted prompt recording | hook 接受之后，prompt 和上下文才进入 replay。 |
+| 一次 turn 就是一次 provider request。 | `run_turn` 会因为 tool follow-up、pending input、compaction 或 hook context 反复调用 `run_sampling_request`。 |
+| Streaming 只是 UI 装饰。 | Stream events 会创建 runtime events、durable response items、tool futures、token accounting、telemetry 和 follow-up state。 |
+| Tool call 是 turn 外部的 callback。 | `handle_output_item_done` 在 turn cancellation tree 下排入 tool future，并立刻记录 tool-call item。 |
+| Pending input 到达就 append。 | Pending input 只在允许的边界 drain，经过 hooks 后才会 accepted、blocked 或 requeued。 |
+| Compaction 是后台摘要 pass。 | Pre-turn 和 mid-turn compaction 都是显式 control-flow decision；mid-turn compaction 只在 follow-up 仍然重要时运行。 |
+| Completion 意味着 runtime 已无 gate。 | 模型看似完成后，stop hooks 和 after-agent hooks 仍可能 continue、stop、warn 或 abort。 |
 
-所以 turn loop 不是“把最新文本丢给模型”。它从已记录的 runtime state 构造 一个可复现的模型请求。
+## 七、可迁移规则
 
-### Loop 的状态机
-
-Turn loop 最好理解成状态机，而不是一个长函数。
-
-这张图比完整伪代码更准确，因为核心不在某一段实现，而在继续条件。只有存在 明确原因时 loop 才继续：工具 follow-up、accepted pending input、compaction， 或者 stop hook 添加了新的模型可见工作。没有原因，turn 就应当落定。
-
-准备阶段的概念路径很短，但顺序严格：
-
-```text
-// Pseudocode - preparation gate.
-session = prepare_model_transport()
-maybe_compact_before_first_sample(session)
-context = resolve_turn_context_candidates()
-reject_if_prompt_hooks_block(input, context)
-record_accepted_inputs_and_context(input, context)
-```
-
-这个顺序很重要。prompt-submit hook 可以在用户 prompt 成为已接受 runtime history 之前停止 turn。发生这种情况时，持久记录应该解释 hook 决定，而不是 假装被拦截的 prompt 已经进入模型可见对话。
-
-采样阶段是唯一直接接触 provider 的地方，但它马上把 provider event 转回 runtime fact：
-
-```text
-// Pseudocode - sampling continuation.
-events = sample_model(recorded_history(context), tool_specs(context))
-persist_stream_items(events.items)
-observations = dispatch_completed_tool_calls(events.tool_calls)
-record_observations(observations)
-```
-
-停止不是被动返回，而是另一道可能继续添加工作的关卡：
-
-```text
-// Pseudocode - stop hook continuation.
-decision = run_stop_hooks(last_assistant_message)
-if decision.added_context:
-    record_hook_context(decision.added_context)
-    continue_sampling()
-complete_turn()
-```
-
-### Streaming 是 Runtime Input
-
-流式输出常被说成 UI 特性，但在 Codex 里它也是 runtime input。stream 会携带 assistant text、reasoning summary、response item、tool-call delta、completion signal、rate-limit 信息和 transport error。turn loop 不能等一个最终字符串 回来之后再判断发生了什么。
-
-随着 stream event 到达，Codex 会把它们映射成 runtime event 和模型可见 item。 需要时启动客户端可见的 message item，累计工具参数，分发已经完成的工具调用， 记录完成的 response item，更新 usage accounting，并在 stream 路径变化时发出 warning 或 error。
-
-这里也是 persistence 与 telemetry 汇合的位置。一次 streamed response 可能同时 产生用户可见输出、durable rollout item、tool runtime record、analytics fact、 OTEL span/metric，以及 trace payload reference。只有 turn loop 同时握有这些 上下文，才能把它们关联起来。
-
-### 工具是 Follow-Up，不是岔路
-
-当模型请求工具时，turn 并没有离开 loop。它通过 router 分发工具，把结果记录成 observation，并在模型需要这个 observation 时再次采样。
-
-这个区别很重要。工具执行不是外部 callback 之后再回到一段被遗忘的对话。它仍然 属于同一个被调度的 turn，受同一棵 cancellation tree、approval policy、 turn context、diff tracker、telemetry context 和 rollout recorder 管理。
-
-| 工具结果 | Loop 后果 |
-| --- | --- |
-| 成功 observation | 记录输出，通常继续 sampling。 |
-| 可恢复工具失败 | 记录结构化失败，让模型可以反应。 |
-| 审批被拒 | 记录拒绝事实，必要时转成模型可见结果。 |
-| Cancellation | 根据发生位置返回 aborted observation 或停止 turn。 |
-| Fatal runtime error | 发出 error，并安全地落定 active task。 |
-
-第 9 章会深入工具分发。本章只需要抓住一件事：工具调用只是多个 continuation 原因之一。
-
-### Pending Input 与 Interruption
-
-用户和客户端可以在模型工作期间继续发送输入。Codex 不会把这些输入无脑追加到 prompt。pending input 会先进入队列，经过 hook inspection，然后被接受进当前 continuation、重新排到后续边界，或者被阻止并附加额外上下文。
-
-interruption 也遵循同样的纪律。active turn 持有 cancellation state，长时间运行 的工作观察 child cancellation token。model stream、tool call、dynamic client tool、approval request 和 terminal operation 都必须收束到一致的结束状态。 有用的 interrupt 不只是“丢掉 future”，还要留下后续 turn 能理解的 durable record。
-
-### Compaction 是控制流的一部分
-
-context compaction 不是后台摘要功能，而是 turn 内部的控制流决策。如果线程在 sampling 前就太大，Codex 可以先 compact；如果 follow-up 还必须继续，但当前上下文 已经达到模型限制，它也可以在 mid-turn compact。
-
-compaction 可能替换模型可见 history、重置 transport state、改变 baseline context 的 reinjection 规则，并写入 resume 和 rollback 需要的 durable records。loop 只在 continuation 仍然重要时 compact。如果模型已经完成，就没有必要仅因为 usage 高而 改写历史。
-
-### 停止也可能添加工作
-
-停止本身也是生命周期阶段。模型看起来完成后，stop hooks 会运行。它们可以允许完成、 停止 turn、失败，或者提供额外上下文并要求再交给模型一次。after-agent hooks 接近 completion 时运行，可以报告 cleanup 或 policy failure。
-
-goal-driven continuation 也是同一种思想。一次 turn completion 之后，如果 runtime 发现目标状态还没有满足，可以继续调度工作。所以 Agent 不是围绕“assistant text” 循环，而是围绕“明确的继续理由”进行调度。
+| 设计压力 | Codex 机制 | 保护的不变量 |
+| --- | --- | --- |
+| 同一输入会在不同 settings 下运行。 | 先记录 context updates 和 reference context，再记录 prompt。 | Replay 能看到当时真正支配工作的 turn settings。 |
+| Extensions 可以阻止或增强输入。 | Accepted prompt history 之前运行 prompt hooks。 | Rejected input 不会静默进入 model-visible conversation。 |
+| Model output 可能请求 side effect。 | Completed response item 转成 tool future 和 observation。 | Tools 仍属于 turn owner 和 cancellation boundary。 |
+| 用户可能在工作运行时继续 steer。 | 只在受控 loop boundary drain pending input。 | Fresh work、tool continuation 和 compact recovery 不会意外交错。 |
+| Context pressure 可能出现在工作前或工作中。 | 用明确 phase/reason 执行 pre-turn 或 mid-turn auto-compaction。 | History 只在 loop 理解的 recovery boundary 被改写。 |
+| Assistant 可能完成，但 policy 尚未完成。 | Settling 前运行 stop 和 after-agent hooks。 | Completion 是 runtime decision，而不只是 provider text event。 |
 
 <div class="apply-this">
 
 ## 应用到实践
 
-1. 把 turn 建模为有明确 continuation reason 的状态机，而不是一次 request 和一次 response。
-2. 从 recorded context 推导 prompt，让 streaming、tools 和 replay 共享同一个事实来源。
-3. 在 hooks、extension context 和 pending input 影响模型历史之前先检查它们。
-4. 把 tool result、compaction 和 stop-hook context 当成普通 loop input，而不是特殊出口。
-5. 让 turn owner 管理 cancellation，使 streams、tools、approvals 和后台工作能一致收束。
+1. 把 agent turn 建模为有命名 continuation reason 的显式状态机。
+2. 从已记录 history 重建 prompt，而不是维护临时 append-only request buffer。
+3. 把 stream item 在完成的瞬间当成 runtime fact，而不是事后再解析文本。
+4. 让 tool execution、pending input、compaction 和 hooks 共用同一个 cancellation owner。
+5. 只有 provider completion、hook gates、pending input 与 follow-up work 全部同意时，turn 才真正停止。
 
 </div>
 
 ## 小结
 
-第 6 章展示了 Agent 活动真正发生的位置：turn 不断把 recorded context 转成模型请求， 把模型事件转成 runtime work，再把 runtime observation 写回 context。第 7 章会向下一层， 解释模型侧的 provider、transport、stream event normalization、model metadata、 realtime path 和 backend task API。
+Turn loop 是 Codex 变成 agent 的地方，因为它不断在三种视图之间翻译：durable
+history、model-visible prompt 和 runtime work。它不需要一个神秘的“agent brain”。
+真正有意思的行为来自严格 ownership：accepted input 进入 history，history 变成
+prompt，stream 变成 facts，tool observation 变成新 history，compaction 修复 prompt
+view，hooks 增加或阻止 context，loop 只有在能说清理由时才继续。
+
+第 7 章会从 scheduler 下探到模型侧：provider selection、transport normalization、
+stream mapping、model metadata，以及让这个 turn loop 成立的 client contracts。
 
 <div class="source-equivalence">
 
@@ -145,10 +565,22 @@ goal-driven continuation 也是同一种思想。一次 turn completion 之后�
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Turn loop implementation | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139) |
-| Prompt hook ordering | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L313) |
-| Accepted prompt recording | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L328) |
-| Model client session | [`codex-rs/core/src/client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L232) |
-| Context manager | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
+| Turn owner and pre-sampling compact | [`codex-rs/core/src/session/turn.rs#L139-L168`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139-L168) |
+| Context, skills, plugins, and connector injections | [`codex-rs/core/src/session/turn.rs#L170-L279`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L170-L279) |
+| Prompt hook before accepted prompt | [`codex-rs/core/src/session/turn.rs#L305-L342`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L305-L342) |
+| Pending input loop | [`codex-rs/core/src/session/turn.rs#L375-L442`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L375-L442) |
+| Sampling request and retry/fallback | [`codex-rs/core/src/session/turn.rs#L1004-L1143`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1004-L1143) |
+| Prompt construction | [`codex-rs/core/src/session/turn.rs#L976-L993`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L976-L993) |
+| Tool router construction | [`codex-rs/core/src/session/turn.rs#L1149-L1274`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1149-L1274) |
+| Stream ownership and event handling | [`codex-rs/core/src/session/turn.rs#L1828-L2245`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1828-L2245) |
+| In-flight tool result drain | [`codex-rs/core/src/session/turn.rs#L1794-L1814`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L1794-L1814) |
+| Tool call and response item handling | [`codex-rs/core/src/stream_events_utils.rs#L222-L349`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/stream_events_utils.rs#L222-L349) |
+| Completed item persistence | [`codex-rs/core/src/stream_events_utils.rs#L125-L150`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/stream_events_utils.rs#L125-L150) |
+| ContextManager prompt view | [`codex-rs/core/src/context_manager/history.rs#L98-L122`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L98-L122) |
+| Pending input hook runtime | [`codex-rs/core/src/hook_runtime.rs#L321-L390`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L321-L390) |
+| Pending input storage boundary | [`codex-rs/core/src/session/mod.rs#L3166-L3195`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L3166-L3195) |
+| Pre-turn and mid-turn compaction | [`codex-rs/core/src/session/turn.rs#L721-L847`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L721-L847) |
+| Stop and after-agent hooks | [`codex-rs/core/src/session/turn.rs#L514-L630`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L514-L630) |
+| Turn-scoped model client session | [`codex-rs/core/src/client.rs#L219-L246`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/client.rs#L219-L246) |
 
 </div>
