@@ -62,6 +62,12 @@ brand mark placement, and source-accurate labels.
 - Do not let generated text invent source facts. If exact identifiers, arrows,
   or labels matter, compose them deterministically into the final raster image
   after generating the hand-drawn base.
+- For evidence, bibliography, source atlas, audit-reference, or cover figures,
+  the prompt must explicitly forbid synthetic commit hashes, dates, person names,
+  repository paths, file paths, line ranges, issue numbers, or version numbers
+  unless those exact values are verified from the article sources. Use abstract
+  labels such as `source anchor`, `line anchor`, `commit pin`, or intentionally
+  illegible microtext strokes instead.
 - A figure must faithfully teach the mechanism it represents. It may be lively
   and metaphorical, but the node order, ownership boundary, data flow, and
   failure/recovery path must match the article's verified claims.
