@@ -115,7 +115,7 @@ const codexFromSourcePages: PageConfig[] = [
   chapter(5, "Threads, Sessions, and Durable State", "线程、会话与持久状态", "Ownership, queues, history, rollout, and resumability.", "解释所有权、队列、历史、rollout 和可恢复性。"),
   chapter(6, "The Turn Loop", "Turn Loop", "Where context, model streaming, tools, and continuation meet.", "说明上下文、模型流、工具和续跑如何汇合。"),
   chapter(7, "Model Providers, Streaming, and Backend Tasks", "模型 Provider、流式传输与 Backend Task", "Provider transport, event normalization, and backend-task boundaries.", "解释 provider 传输、事件归一化和后台任务边界。"),
-  chapter(8, "Observability and Rollout Trace", "Observability 与 Rollout Trace", "How raw runtime facts become replayable and inspectable.", "说明原始运行时事实如何变成可回放、可检查的证据。"),
+  chapter(8, "Observability: Capture Facts Before You Interpret Them", "可观测性：先捕获事实，再解释运行", "How rollout traces capture runtime facts before reducer projections, analytics, and debug context interpret them.", "说明 rollout trace 如何先捕获运行事实，再由 reducer、analytics 和 debug context 做投影解释。"),
   chapter(9, "Tool Specifications, Routing, and Dispatch", "工具规格、路由与分发", "How model-visible tools become governed side effects.", "解释模型可见工具如何变成受治理的副作用。"),
   chapter(10, "Shell, Exec Server, and Filesystem Tools", "Shell、Exec Server 与文件系统工具", "Process and filesystem capabilities under runtime policy.", "说明进程与文件系统能力如何受运行时策略约束。"),
   chapter(11, "Patches as a First-Class Editing Protocol", "把 Patch 作为一等编辑协议", "Structured mutation instead of opaque shell edits.", "把结构化 patch 作为替代不透明 shell 编辑的协议。"),
