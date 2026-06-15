@@ -1,88 +1,179 @@
-
 # Chapter 11: Patches as a First-Class Editing Protocol
 
-> **Reading Contract:** Use this chapter to see patches as a protocol, not a shell trick. Track structured diffs, approval, application, failure feedback, and final evidence.
+> **Reading Contract:** Read this chapter to separate file mutation from shell execution. Track five owners: the patch grammar, the verified action, the approval decision, the executor filesystem, and the turn diff evidence. Afterward, you should be able to answer why a patch failure can still carry useful evidence.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-protocol-workbench-df64b03.webp" alt="Patch protocol workbench showing structured patch grammar, safety review, approval, application, diff tracking, and failure feedback" loading="eager" decoding="async" />
-  <figcaption>Patch handling turns file edits into a protocol: structured diff, permission check, application, and turn-level attribution stay visible.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-protocol-workbench-569ff6a1-v2.webp" alt="Patch protocol workbench showing patch grammar, verified action, safety gate, executor filesystem, turn diff, and failure feedback as one governed edit lane" loading="eager" decoding="async" />
+  <figcaption>Patch handling is not a shell shortcut. It is a governed edit lane: parse the grammar, verify the action, decide safety, apply through the owning filesystem, and preserve evidence.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** source-level claims in this chapter refer to the pinned Codex snapshot at commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3`. File names, function names, enums, request shapes, and tests are **verified source** where linked. The short code blocks below are trimmed excerpts or shape-level examples; follow the pinned anchors for complete definitions. Design claims such as "patch is a protocol" are **surrounding contract inference** from the visible handler, parser, runtime, safety, and diff-tracking code. This chapter does not claim anything about private OpenAI service internals.
 
-Chapter 10 showed how shell execution becomes a supervised process. This chapter separates one common editing path from the shell: patch application. Codex treats `apply_patch` as a mutation protocol, not as text piped to a command. The difference is architectural. A protocol can be parsed, verified, assessed, approved, applied through the right filesystem, and recorded as a turn diff before the model sees the final result.
+Chapter 10 showed how shell execution becomes a supervised process. Patch application looks adjacent because users often type edits in terminal-shaped syntax, but Codex gives it a different owner. The runtime does not have to treat a patch as arbitrary bytes sent to a shell. It can parse a small edit language, verify that the edit matches the current filesystem, compute the paths that would be written, ask for approval when needed, write through the turn's executor filesystem, and then record the exact delta that actually committed.
 
-Direct file writes are attractive because they are simple. They are also poor evidence. A direct write says, "make this file contain this content." A patch says, "perform these additions, deletions, updates, and moves at these paths." That structure gives the runtime something to inspect before the side effect happens.
+That distinction is practical. A direct write says, "make this file contain this content." A patch says, "add, delete, update, or move these path-scoped hunks against this old content." The second form is narrow enough to review before mutation and rich enough to explain after failure.
 
+## 1. The Tool Surface Makes Mutation Explicit
 
-## The Patch Lifecycle
+The user-facing `apply_patch` tool enters Codex as a custom freeform tool rather than a normal shell command. The handler starts as a small [`ApplyPatchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55), and its [`ToolHandler` implementation](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L286-L335) names the tool, exposes the freeform spec, declares matching payloads as function calls, marks the operation as mutating, creates a streaming diff consumer, and supplies pre-tool and post-tool hook payloads for the patch body.
 
-Patch execution has a longer lifecycle than it first appears to have.
+The important point is not the UI name. The handler owns a mutation-specific lifecycle. It can feed pre-tool and post-tool hook payloads with a command-shaped patch body, stream patch updates as hunks are produced, and refuse unsupported payloads before any filesystem write begins.
 
-The parse step understands the patch grammar. The verify step consults the workspace filesystem to compute the concrete changes that would occur. The assess step decides whether the patch is auto-approved, needs approval, or requires additional permissions. The apply step writes through the selected executor filesystem, not through an assumed local path.
+```rust
+pub struct ApplyPatchHandler;
 
-### Grammar Is Only the First Gate
-
-The patch grammar describes a small edit language: begin the patch, declare one or more file hunks, add/delete/update/move content, then end the patch. Codex's parser can be more forgiving than the human-facing form because model output is not always perfectly wrapped. That lenience does not mean the runtime applies ambiguous edits. It means the runtime tries to recover the intended protocol and then verifies it against the filesystem.
-
-Verification is the real boundary. For an update, the runtime must know the old content that the hunk expects to replace. For a delete, it must read the file that will be removed. For a move, it must reason about both source and destination paths. If those checks fail, the result is a model-visible verification failure rather than a best-effort write.
-
-### Intercepting Shell-Like Patches
-
-Models often learn to express patches through shell heredocs. Codex can detect certain top-level forms such as "run the patch tool with this patch body" or "change to this relative workdir and then run the patch tool." When that pattern is recognized, the runtime intercepts it and routes it through the patch protocol.
-
-This is a compatibility bridge, not an endorsement of editing through shell text. The runtime can warn the model to use the patch tool directly, but it still governs the mutation as a patch: parse, verify, compute paths, run approval, apply through the executor filesystem, emit events, and update the turn diff.
-
-```text
-// Pseudocode - simplified for clarity.
-  if tool_call is the patch tool:
-      patch_body = tool_call.freeform_input
-  else if command_invocation is a recognized patch heredoc:
-      patch_body, effective_cwd = extract_patch_body(command_invocation)
-  else:
-      continue with ordinary shell execution
-
-  action = parse_and_verify_patch(patch_body, effective_cwd, executor_filesystem)
-  permissions = compute_required_file_permissions(action.paths)
-  decision = assess_patch_safety(action, permissions)
-
-  if decision requires approval:
-      approval = request_patch_approval(action.summary)
-      stop_unless_approved(approval)
-
-  delta = apply_patch_to_executor_filesystem(action, permissions)
-  record_patch_events(action, delta)
-  update_turn_diff_tracker(delta)
-  return patch_result_for_model(delta)
+fn tool_name(&self) -> ToolName { ... }
+async fn is_mutating(&self, ...) -> bool { true }
 ```
 
-This pseudocode avoids implementation details, but it captures the important distinction: recognized shell syntax is transformed into a patch action before mutation.
+The handler later re-parses and verifies the patch inside [`handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L337-L458). That re-parse is not redundant ceremony. It lets Codex derive concrete path permissions and a patch summary from the same body that will eventually mutate the workspace.
 
-### Filesystem-Backed Application
+## 2. Grammar Is Small; Verification Is the Contract
 
-Patch application uses an executor filesystem. That detail prevents a subtle class of bugs. In a local turn, the executor filesystem may be the local workspace. In a remote turn, it may be the remote environment's filesystem. In both cases, the patch code receives the same kind of filesystem object and an optional sandbox context. The edit goes to the workspace that owns the turn.
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-grammar-action-569ff6a1.webp" alt="Patch grammar flowing through a parser into an action ledger with path pins and filesystem verification" loading="lazy" decoding="async" />
+  <figcaption>The grammar is deliberately small. The verified action is richer: paths are resolved, update chunks become diffs, deletes read old content, and moves include both source and destination.</figcaption>
+</figure>
 
-The application layer also tracks the delta that was actually committed. A successful add, delete, update, or move becomes a structured delta. If a write fails after a partial mutation, the runtime preserves the committed prefix and marks exactness appropriately. That is more honest than pretending that the operation was either entirely clean or entirely absent.
+The parser file starts with the visible grammar contract: a patch begins, contains one or more add/delete/update hunks, and ends. The [parser module](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L1-L24) also states that this parser does not by itself check whether the patch can be applied to the filesystem. That boundary matters.
 
-### Diff Tracking Is Evidence, Not Decoration
+At the syntax layer, the [`Hunk` enum](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L61-L79) keeps the core shape small. Trimmed to variants, it looks like this:
 
-The turn diff tracker keeps a net textual diff for committed patch mutations. It records baselines, current content, rename origins, and invalidation state. When the tracker can prove the delta, it can render a unified diff without rereading the workspace. When exactness is lost, it invalidates the diff rather than presenting a misleading one.
+```rust
+pub enum Hunk {
+    AddFile { ... },
+    DeleteFile { ... },
+    UpdateFile { ... },
+}
+```
 
-That behavior is a pattern worth copying. A system that cannot prove its evidence should degrade explicitly. It should not display a confident diff just because a diff-shaped UI is expected.
+Parsing turns text into hunks. Verification turns hunks into an action. [`maybe_parse_apply_patch_verified`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L132-L224) resolves the effective working directory, resolves hunk paths against it, reads deleted files, derives update diffs from the current file contents, and records move destinations. If any update hunk cannot find the expected old lines, verification returns a correctness error instead of inventing a best-effort edit.
 
-### Git Patch Support Is a Separate Path
+Shape-level, the transition looks like this:
 
-Codex also has helpers for applying ordinary unified diffs through Git. That path writes a temporary patch, can preflight with a dry run, invokes Git with appropriate flags, and parses output into applied, skipped, or conflicted paths. It is related, but it is not the same as the first-class `apply_patch` protocol. The important shared idea is preflight: learn what would change before allowing the mutation to become durable.
+```text
+patch body
+  -> hunks: add | delete | update | move
+  -> verified action:
+       cwd
+       absolute paths
+       proposed file changes
+       raw patch body
+```
+
+Here, "verified" should be read narrowly. It means verified against the visible filesystem state available through the executor filesystem. It does not mean the runtime has proved the edit is semantically correct for the project. That remains a review problem.
+
+### 2.1 Why Deletes and Updates Need the Filesystem
+
+An add hunk can be represented mostly from the patch body. A delete hunk needs the old content to create evidence for what was removed. An update hunk needs the current file content so Codex can derive a concrete unified diff and the resulting new content. The verification function therefore accepts an [`ExecutorFileSystem`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L134-L139), not just a string parser.
+
+That prevents a common mistake in patch systems: treating parse success as apply success. A patch can be syntactically valid while still failing because the expected old lines are gone, the target file cannot be read, or the destination path is outside the policy boundary.
+
+## 3. Shell Compatibility Is Intercepted, Not Trusted
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-shell-intercept-569ff6a1-v2.webp" alt="Shell heredoc and workdir patch forms passing through a parser gate into patch action, while unrelated shell commands are rejected from the patch lane" loading="lazy" decoding="async" />
+  <figcaption>Recognized shell forms are compatibility inputs. Once detected, they are governed as patch actions, not as ordinary shell text.</figcaption>
+</figure>
+
+Models and users often express patches as heredocs. Codex recognizes a narrow set of forms rather than treating all shell text as patch text. [`maybe_parse_apply_patch`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L104-L130) handles direct invocation such as `apply_patch <patch>` and shell-script forms that can be extracted. The comments for [`extract_apply_patch_from_bash`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L226-L245) describe two supported top-level patterns: an `apply_patch` heredoc, and a `cd <path> && apply_patch` heredoc.
+
+The enum makes the boundary explicit:
+
+```rust
+Body(ApplyPatchArgs)
+ShellParseError(...)
+NotApplyPatch
+```
+
+The verified path adds one more guard: a raw patch body without an explicit `apply_patch` invocation is reported as an implicit invocation error. That prevents a patch-shaped string from being silently applied just because it appears in a command position.
+
+When shell interception succeeds inside the main handler, [`intercept_apply_patch`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L462-L565) records a model warning that the patch was requested through another tool and tells the model to use `apply_patch` directly. Then it continues through the same permission, event, runtime, and diff path as a normal patch tool call.
+
+That is the compatibility rule worth copying: tolerate nearby syntax when it clearly maps to the protocol, but immediately normalize it into the governed protocol.
+
+## 4. Safety Runs Before the Write
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-safety-runtime-gate-569ff6a1.webp" alt="Patch action entering a safety gate that checks writable roots, asks the user, rejects, or runs through sandbox toward executor filesystem" loading="lazy" decoding="async" />
+  <figcaption>Patch safety is path-aware. Codex compares the verified action with writable roots and approval policy before the executor filesystem writes.</figcaption>
+</figure>
+
+The handler computes affected absolute paths and additional permissions before runtime execution. [`file_paths_for_action`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L188-L206) includes move destinations as well as source paths. [`write_permissions_for_paths`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L212-L242) derives read-write roots for paths that are not already writable under the current sandbox policy.
+
+The safety decision itself lives in [`assess_patch_safety`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33-L116). Its output shape is intentionally small:
+
+```rust
+pub enum SafetyCheck {
+    AutoApprove { ... },
+    AskUser,
+    Reject { reason: String },
+}
+```
+
+This stage protects against two different shortcuts. The first shortcut is assuming that a patch is safe because it is structured. It is not; structured edits can still target dangerous paths. The second shortcut is assuming that sandboxing replaces approval. It does not; sandbox availability and approval policy both influence whether Codex can auto-approve, ask, or reject.
+
+The source also calls out a hard-link concern: even when a patch appears constrained to writable paths, the runtime may still run it in a sandbox because paths could be hard links to files outside writable roots. That is a useful example of a local filesystem fact that cannot be solved by pretty diff rendering.
+
+## 5. Runtime Writes Through the Owning Filesystem
+
+Approval does not directly write files. The approved request is passed to [`ApplyPatchRuntime`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L39-L58), whose request carries the verified action, affected paths, protocol changes, approval requirement, and additional permissions.
+
+```rust
+pub struct ApplyPatchRequest {
+    pub action: ApplyPatchAction,
+    pub file_paths: Vec<AbsolutePathBuf>,
+    ...
+}
+```
+
+Inside [`run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L200-L251), the runtime takes the primary turn environment, obtains its filesystem, builds a filesystem sandbox context for the current attempt, and calls the apply-patch library. That is why patch application works as a turn-owned operation. In a local turn, the filesystem can be local. In a remote turn, the environment can supply a remote filesystem. The patch protocol does not have to assume which one it is writing.
+
+The apply library then uses the filesystem abstraction for actual reads, writes, directory creation, and removals. [`apply_hunks_to_files`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/lib.rs#L360-L551) handles add, delete, update, and move hunks. It also updates an `AppliedPatchDelta` as work commits.
+
+That explains why patch failure is not always empty. A move can write a destination and then fail to remove the source. A write can fail after truncation. The library therefore returns an `ApplyPatchFailure` with the delta that was definitely committed before the failure boundary. The runtime appends that committed delta and lets the event emitter finish with the evidence it has.
+
+## 6. Diff Tracking Is Evidence, Not Decoration
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-delta-evidence-569ff6a1.webp" alt="Committed patch deltas entering a turn diff tracker, with exact evidence rendering a diff and uncertain evidence invalidating the display" loading="lazy" decoding="async" />
+  <figcaption>The turn diff tracker is intentionally conservative. It renders when deltas are exact and invalidates when the evidence can no longer prove the net diff.</figcaption>
+</figure>
+
+The [`AppliedPatchDelta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/lib.rs#L183-L216) model stores committed changes plus an `exact` flag. The [`TurnDiffTracker`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L16-L24) keeps baselines, current content, rename origins, and a validity bit.
+
+```rust
+pub struct TurnDiffTracker {
+    valid: bool,
+    baseline_by_path: HashMap<...>,
+    current_by_path: HashMap<...>,
+}
+```
+
+The tracker only accepts exact deltas. [`track_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L49-L58) invalidates when a delta is not exact. [`get_unified_diff`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L64-L107) returns nothing when the tracker is invalid.
+
+That is the final reason patch is a protocol. The output is not only "success" or "failure." It is a structured mutation record with an honesty boundary. When evidence is exact, Codex can show a net diff. When evidence is not exact, the right behavior is to stop presenting a confident diff rather than reread unknown state and pretend the turn-level proof is still intact.
+
+## 7. What This Design Buys
+
+| Pressure | Simpler design | Codex patch design | Invariant protected |
+| --- | --- | --- | --- |
+| Model emits shell heredoc | Run the shell command | Detect narrow forms and route to patch protocol | Mutation remains governed |
+| Patch syntax parses | Apply immediately | Verify expected old content and paths first | No best-effort edit from stale context |
+| Path is outside writable roots | Let sandbox catch it late | Assess patch safety before runtime | Approval and policy stay visible |
+| Local vs remote workspace | Assume local files | Use the turn environment filesystem | Edits land in the owning workspace |
+| Partial failure | Report only failure | Preserve committed delta and exactness | Evidence survives failure honestly |
+| Diff UI expected | Always show a diff | Render only while tracker is valid | Diff is proof, not decoration |
 
 ## Apply This
 
-1. **Prefer structured edits over opaque writes.** Make paths, operations, and context visible before mutation.
-2. **Verify against the filesystem.** Parse success is not enough; confirm the intended old state exists.
-3. **Intercept compatibility forms into the protocol.** When shell text clearly means patch, govern it as patch.
-4. **Track committed deltas honestly.** Preserve exact evidence and invalidate when exactness is lost.
-5. **Apply through the owning filesystem.** Local and remote workspaces must share the same mutation semantics.
+1. **Make edit intent structured before mutation.** A patchable action should name paths, operations, and expected old content.
+2. **Treat compatibility syntax as an input adapter.** Intercept shell-like forms only when they clearly map to the protocol, then normalize them immediately.
+3. **Run safety before runtime.** Approval policy, writable roots, and sandbox availability belong before the write, not after a failure.
+4. **Write through the owner.** The runtime should use the filesystem that owns the turn, whether local or remote.
+5. **Preserve exact evidence and invalidate honestly.** A diff that cannot be proven should disappear rather than become theater.
 
-Chapter 12 explains the human and automated gates around these mutations: hooks, approval requests, Guardian review, and the client surfaces that may interrupt execution while a decision is pending.
+Chapter 12 moves outward from the patch lane to the human and automated gates around all side effects: hooks, approval requests, Guardian review, and client surfaces that can pause execution while a decision is pending.
 
 <div class="source-equivalence">
 
@@ -90,10 +181,14 @@ Chapter 12 explains the human and automated gates around these mutations: hooks,
 
 | Concept | Source anchor |
 | --- | --- |
-| Patch tool handler | [`codex-rs/core/src/tools/handlers/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55) |
-| Patch runtime | [`codex-rs/core/src/tools/runtimes/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L50) |
-| Patch grammar parser | [`codex-rs/apply-patch/src/parser.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L126) |
-| Patch safety assessment | [`codex-rs/core/src/safety.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33) |
-| Turn diff tracker | [`codex-rs/core/src/turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) |
+| Patch handler struct and tool surface | [`ApplyPatchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55), [`ToolHandler` impl](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L286-L335) |
+| Handler verification and orchestration | [`ApplyPatchHandler::handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L337-L458) |
+| Shell interception path | [`intercept_apply_patch`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L462-L565) |
+| Patch grammar and hunk model | [`parser.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L1-L79) |
+| Invocation verifier | [`maybe_parse_apply_patch_verified`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L132-L224) |
+| Patch safety assessment | [`assess_patch_safety`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33-L116) |
+| Patch runtime | [`ApplyPatchRuntime::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L200-L251) |
+| Hunk application and committed delta | [`apply_hunks_to_files`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/lib.rs#L360-L551) |
+| Turn diff tracker | [`turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L16-L107) |
 
 </div>

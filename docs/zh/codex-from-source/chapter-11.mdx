@@ -1,88 +1,179 @@
-
 # 第 11 章：把 Patch 作为一等编辑协议
 
-> **阅读契约：** 用本章把 patch 看成协议，而不是 shell 技巧。跟住 structured diff、approval、application、failure feedback 和最终 evidence。
+> **阅读契约：** 读这一章时，不要把文件修改和 shell execution 混在一起。跟住五个 owner：patch grammar、verified action、approval decision、executor filesystem、turn diff evidence。读完后，你应该能回答：为什么一次 patch 失败仍然可能携带有用证据？
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-protocol-workbench-df64b03.webp" alt="Patch 协议工作台：展示结构化 patch grammar、safety review、approval、application、diff tracking 和 failure feedback" loading="eager" decoding="async" />
-  <figcaption>Patch handling 把文件编辑变成协议：structured diff、permission check、application 和 turn-level attribution 都保持可见。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-protocol-workbench-569ff6a1-v2.webp" alt="Patch protocol workbench：把 patch grammar、verified action、safety gate、executor filesystem、turn diff 与 failure feedback 放进同一条受治理编辑链路" loading="eager" decoding="async" />
+  <figcaption>Patch handling 不是 shell shortcut，而是一条受治理的编辑链路：解析 grammar、验证 action、做 safety decision、通过 owner filesystem 应用，并保留 evidence。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章的源码级论断都指向 Codex 固定快照 `569ff6a1c400bd514ff79f5f1050a684dc3afde3`。文件、函数、enum、request shape、测试行为只有在链接到 pinned source 时才算 **verified source**。下面的短代码块是裁剪后的源码摘录或 shape-level 示例；完整定义以 pinned anchors 为准。像“patch 是 protocol”这类设计判断，是从可见 handler、parser、runtime、safety 和 diff tracking 代码得出的 **surrounding contract inference**，不是对 OpenAI 私有服务内部的断言。
 
-第 10 章说明了 shell execution 如何成为受监督的进程。本章把一条常见编辑路径从 shell 中拆出来：patch application。Codex 把 `apply_patch` 当作 mutation protocol，而不是传给命令的一段文本。这个差别是架构性的。协议可以被解析、验证、评估、审批，通过正确的文件系统应用，并在模型看到最终结果前记录为 turn diff。
+第 10 章说明了 shell execution 如何成为受监督的 process。Patch application 看起来离 shell 很近，因为用户和模型经常用 terminal 形状的语法表达编辑。但在 Codex 里，它有不同的 owner。Runtime 不必把 patch 当作发给 shell 的任意 bytes；它可以解析一门很小的编辑语言，验证这次编辑是否匹配当前 filesystem，计算即将写入的 paths，必要时请求 approval，通过当前 turn 的 executor filesystem 写入，然后记录实际 committed 的 delta。
 
-直接写文件很诱人，因为简单。但它作为证据很差。直接写只表达“让这个文件变成这些内容”。Patch 表达的是“在这些路径上执行添加、删除、更新、移动和这些 hunk”。这个结构让 runtime 在副作用发生前有东西可检查。
+这个区别很实用。直接写文件表达的是：“让这个文件变成这些内容。” Patch 表达的是：“在这些路径上，针对这些旧内容，执行 add、delete、update 或 move hunk。”后者足够窄，能在 mutation 前 review；也足够丰富，能在 failure 后解释发生了什么。
 
+## 一、Tool Surface 先把 Mutation 说清楚
 
-## Patch 生命周期
+用户可见的 `apply_patch` 进入 Codex 时，是一个 custom freeform tool，而不是普通 shell command。Handler 从很小的 [`ApplyPatchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55) 开始；它的 [`ToolHandler` 实现](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L286-L335) 会命名这个 tool，暴露 freeform spec，把匹配 payload 识别为 function call，把这次操作标记为 mutating，创建 streaming diff consumer，并为 patch body 提供 pre-tool 与 post-tool hook payload。
 
-Patch execution 的生命周期比表面看起来更长。
+关键不在 UI 名字，而在 handler 拥有一条 mutation-specific lifecycle。它可以给 pre-tool 和 post-tool hook 提供 command-shaped patch body，可以把正在生成的 patch hunk 以事件形式流出去，也可以在任何 filesystem write 前拒绝 unsupported payload。
 
-Parse step 理解 patch grammar。Verify step 访问 workspace filesystem，计算实际会发生的具体 changes。Assess step 判断 patch 是 auto-approved、需要 approval，还是需要 additional permissions。Apply step 通过 selected executor filesystem 写入，而不是假设本地路径就是目标。
+```rust
+pub struct ApplyPatchHandler;
 
-### Grammar 只是第一道门
-
-Patch grammar 描述的是一门很小的编辑语言：开始 patch，声明一个或多个 file hunk，添加、删除、更新或移动内容，最后结束 patch。Codex 的 parser 可以比用户文档中的形式更宽容，因为模型输出不总是完美包裹。宽容不等于应用模糊编辑；它只表示 runtime 尝试恢复出意图协议，然后再用文件系统验证。
-
-真正的边界是 verification。Update 需要知道 hunk 期望替换的旧内容。Delete 需要读出即将删除的文件。Move 需要同时考虑 source 和 destination path。如果这些检查失败，结果应是模型可见的 verification failure，而不是 best-effort write。
-
-### 拦截 Shell 形式的 Patch
-
-模型经常学会用 shell heredoc 表达 patch。Codex 可以识别某些顶层形式，例如“运行 patch 工具并传入这段 patch body”，或“先切到某个相对工作目录，再运行 patch 工具”。当模式被识别出来时，runtime 会拦截它，并把它路由到 patch protocol。
-
-这是兼容桥，不是鼓励通过 shell 文本编辑。Runtime 可以提醒模型直接使用 patch tool，但仍会按 patch 治理这次修改：parse、verify、compute paths、run approval、apply through executor filesystem、emit events、update turn diff。
-
-```text
-// Pseudocode - simplified for clarity.
-  if tool_call is the patch tool:
-      patch_body = tool_call.freeform_input
-  else if command_invocation is a recognized patch heredoc:
-      patch_body, effective_cwd = extract_patch_body(command_invocation)
-  else:
-      continue with ordinary shell execution
-
-  action = parse_and_verify_patch(patch_body, effective_cwd, executor_filesystem)
-  permissions = compute_required_file_permissions(action.paths)
-  decision = assess_patch_safety(action, permissions)
-
-  if decision requires approval:
-      approval = request_patch_approval(action.summary)
-      stop_unless_approved(approval)
-
-  delta = apply_patch_to_executor_filesystem(action, permissions)
-  record_patch_events(action, delta)
-  update_turn_diff_tracker(delta)
-  return patch_result_for_model(delta)
+fn tool_name(&self) -> ToolName { ... }
+async fn is_mutating(&self, ...) -> bool { true }
 ```
 
-这段伪代码不对应具体源码，但保留了关键区别：被识别出的 shell syntax 会先转成 patch action，再发生 mutation。
+后面的 [`handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L337-L458) 还会重新 parse 并 verify patch。这个 re-parse 不是形式主义；Codex 需要从即将写入的同一份 body 推导 concrete path permissions 和 patch summary。
 
-### 通过文件系统抽象应用
+## 二、Grammar 很小，Verification 才是真 Contract
 
-Patch application 使用 executor filesystem。这个细节能避免一类隐蔽错误。在 local turn 中，executor filesystem 可能就是本地 workspace；在 remote turn 中，它可能是远端环境的 filesystem。两种情况下，patch code 都接收同类 filesystem object 和可选 sandbox context。编辑会落到拥有当前 turn 的 workspace。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-grammar-action-569ff6a1.webp" alt="Patch grammar 经过 parser 进入 action ledger：path pins 与 filesystem verification 把 hunk 转成 verified action" loading="lazy" decoding="async" />
+  <figcaption>Grammar 故意很小。Verified action 更丰富：path 被解析，update chunk 变成 diff，delete 读取旧内容，move 同时携带 source 与 destination。</figcaption>
+</figure>
 
-应用层还会跟踪实际 committed delta。成功的 add、delete、update 或 move 会变成结构化 delta。如果某次写入在部分修改后失败，runtime 会保留已经确定 committed 的前缀，并相应标记 exactness。这样比假装操作完全成功或完全没发生更诚实。
+Parser 文件开头给出了可见的 grammar contract：patch 有 begin marker，包含一个或多个 add/delete/update hunk，然后 end。[parser module](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L1-L24) 同时明说，这个 parser 本身不检查 patch 是否真的能应用到 filesystem。这个边界很重要。
 
-### Diff Tracking 是证据，不是装饰
+在 syntax 层，[`Hunk` enum](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L61-L79) 让核心形状保持很小。裁剪到 variants 后，它长这样：
 
-Turn diff tracker 为 committed patch mutations 维护净文本 diff。它记录 baseline、current content、rename origins 和 invalidation state。当 tracker 能证明 delta 时，它可以不重新读取 workspace 就渲染 unified diff。当 exactness 丢失时，它会让 diff 失效，而不是显示一个误导性的自信 diff。
+```rust
+pub enum Hunk {
+    AddFile { ... },
+    DeleteFile { ... },
+    UpdateFile { ... },
+}
+```
 
-这种行为值得复用。一个系统如果不能证明自己的证据，就应该显式降级，而不是因为 UI 需要 diff 形状就硬展示。
+Parsing 把文本变成 hunks；verification 把 hunks 变成 action。[`maybe_parse_apply_patch_verified`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L132-L224) 会解析 effective working directory，把 hunk paths 解析到这个目录下，读取被删除文件，基于当前文件内容推导 update diff，并记录 move destination。只要某个 update hunk 找不到期望的旧行，verification 就返回 correctness error，而不是发起 best-effort edit。
 
-### Git Patch 是另一条路径
+用 shape-level 的方式看，转换是这样的：
 
-Codex 也有辅助逻辑，用 Git 应用普通 unified diff。这条路径会写临时 patch，可以用 dry run 做 preflight，调用 Git，并把输出解析成 applied、skipped 或 conflicted paths。它和一等 `apply_patch` protocol 相关，但不是同一条路径。两者共享的重要思想是 preflight：在 mutation 变成 durable 之前，先知道它会改什么。
+```text
+patch body
+  -> hunks: add | delete | update | move
+  -> verified action:
+       cwd
+       absolute paths
+       proposed file changes
+       raw patch body
+```
+
+这里的 “verified” 要读得很窄：它表示 patch 已经用 executor filesystem 可见的状态核过。它不表示 runtime 已经证明这次编辑在项目语义上正确；那仍然是 review 的问题。
+
+### 2.1 为什么 Delete 和 Update 需要 Filesystem
+
+Add hunk 基本可以从 patch body 表示。Delete hunk 需要旧内容，才能说明到底删掉了什么。Update hunk 需要当前文件内容，才能推导 concrete unified diff 和最终 new content。所以 verification function 接收的是 [`ExecutorFileSystem`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L134-L139)，而不只是一个 string parser。
+
+这能挡住 patch system 里最常见的错误：把 parse success 当成 apply success。Patch 可以语法合法，但仍因为 expected old lines 已经消失、target file 读不出来、destination path 超出 policy boundary 而失败。
+
+## 三、Shell Compatibility 是 Intercept，不是 Trust
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-shell-intercept-569ff6a1-v2.webp" alt="Shell heredoc 与 workdir patch 形式经过 parser gate 进入 patch action；无关 shell command 被挡在 patch 链路外" loading="lazy" decoding="async" />
+  <figcaption>被识别出的 shell 形式只是兼容输入。一旦识别成功，它们会按 patch action 治理，而不是按普通 shell text 执行。</figcaption>
+</figure>
+
+模型和用户经常用 heredoc 表达 patch。Codex 识别的是一组很窄的形式，而不是把所有 shell text 都当作 patch text。[`maybe_parse_apply_patch`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L104-L130) 支持 `apply_patch <patch>` 这种 direct invocation，也支持可抽取的 shell-script forms。[`extract_apply_patch_from_bash`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L226-L245) 的注释写得很具体：支持顶层 `apply_patch` heredoc，以及 `cd <path> && apply_patch` heredoc。
+
+这个 enum 把边界说清楚：
+
+```rust
+Body(ApplyPatchArgs)
+ShellParseError(...)
+NotApplyPatch
+```
+
+Verified path 还多了一道 guard：如果只有 raw patch body，却没有显式 `apply_patch` invocation，它会被当作 implicit invocation error。这避免了一个 patch-shaped string 仅仅因为出现在 command 位置就被静默应用。
+
+当 shell interception 在主 handler 里成功时，[`intercept_apply_patch`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L462-L565) 会记录 model warning，提醒模型直接使用 `apply_patch` tool。然后它仍然走同一套 permission、event、runtime 和 diff 路径。
+
+值得复用的规则是：可以容忍明确映射到 protocol 的邻近语法，但一旦识别出来，就立刻 normalize 回受治理的 protocol。
+
+## 四、Safety 在 Write 之前运行
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-safety-runtime-gate-569ff6a1.webp" alt="Patch action 进入 safety gate：检查 writable roots，必要时 ask user，reject，或通过 sandbox 走向 executor filesystem" loading="lazy" decoding="async" />
+  <figcaption>Patch safety 是 path-aware 的。Codex 会先把 verified action 与 writable roots、approval policy 对齐，再让 executor filesystem 写入。</figcaption>
+</figure>
+
+Handler 会在 runtime execution 前计算受影响的 absolute paths 和 additional permissions。[`file_paths_for_action`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L188-L206) 不只收 source path，也会把 move destination 纳入考虑。[`write_permissions_for_paths`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L212-L242) 会为当前 sandbox policy 下还不可写的路径推导 read-write roots。
+
+Safety decision 本身在 [`assess_patch_safety`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33-L116)。它的输出形状刻意很小：
+
+```rust
+pub enum SafetyCheck {
+    AutoApprove { ... },
+    AskUser,
+    Reject { reason: String },
+}
+```
+
+这个阶段挡住两个 shortcut。第一个 shortcut 是以为 patch 有结构，所以天然安全。不是；structured edit 仍可能指向危险路径。第二个 shortcut 是以为 sandbox 可以替代 approval。也不是；sandbox availability 和 approval policy 会共同决定 Codex 能 auto-approve、ask，还是 reject。
+
+源码里还特别提到 hard link 风险：即使 patch 看起来只落在 writable paths 里，runtime 仍可能需要在 sandbox 中运行，因为这些 path 可能是指向 writable roots 外文件的 hard links。这是一个很好的例子：local filesystem fact 不能靠漂亮 diff UI 解决。
+
+## 五、Runtime 通过 Owner Filesystem 写入
+
+Approval 本身不会直接写文件。被批准的 request 会进入 [`ApplyPatchRuntime`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L39-L58)，request 携带 verified action、affected paths、protocol changes、approval requirement 和 additional permissions。
+
+```rust
+pub struct ApplyPatchRequest {
+    pub action: ApplyPatchAction,
+    pub file_paths: Vec<AbsolutePathBuf>,
+    ...
+}
+```
+
+在 [`run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L200-L251) 里，runtime 取 primary turn environment，拿到它的 filesystem，为当前 attempt 构造 filesystem sandbox context，然后调用 apply-patch library。这就是 patch application 能成为 turn-owned operation 的原因：local turn 可以给 local filesystem，remote turn 可以给 remote filesystem，patch protocol 不需要假设自己写的是哪一个。
+
+Apply library 随后通过 filesystem abstraction 完成 read、write、directory creation 和 remove。[`apply_hunks_to_files`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/lib.rs#L360-L551) 分别处理 add、delete、update、move hunk，并在 work commit 时更新 `AppliedPatchDelta`。
+
+这解释了为什么 patch failure 不总是空的。一次 move 可能已经写入 destination，然后在 remove source 时失败。一次 write 也可能在 truncate 后失败。Library 因此会返回带有 committed delta 的 `ApplyPatchFailure`，表示 failure boundary 前已经确定发生的文本 mutation。Runtime 会 append 这份 committed delta，并让 event emitter 用现有 evidence 结束。
+
+## 六、Diff Tracking 是 Evidence，不是 Decoration
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-delta-evidence-569ff6a1.webp" alt="Committed patch deltas 进入 turn diff tracker；exact evidence 渲染 diff，不确定 evidence 让 display invalidate" loading="lazy" decoding="async" />
+  <figcaption>Turn diff tracker 很保守：delta exact 时才渲染；一旦 evidence 不能证明净 diff，就 invalidate。</figcaption>
+</figure>
+
+[`AppliedPatchDelta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/lib.rs#L183-L216) 保存 committed changes 和 `exact` flag。[`TurnDiffTracker`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L16-L24) 保存 baselines、current content、rename origins 和 validity bit。
+
+```rust
+pub struct TurnDiffTracker {
+    valid: bool,
+    baseline_by_path: HashMap<...>,
+    current_by_path: HashMap<...>,
+}
+```
+
+Tracker 只接受 exact delta。[`track_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L49-L58) 在 delta 不 exact 时直接 invalidate。[`get_unified_diff`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L64-L107) 会在 tracker invalid 时返回 nothing。
+
+这就是 patch 是 protocol 的最后一层理由：输出不只是 success 或 failure，而是一份带 honesty boundary 的 structured mutation record。Evidence exact 时，Codex 可以展示 net diff；evidence 不 exact 时，正确做法是不再展示 confident diff，而不是 reread unknown state 然后假装 turn-level proof 还完整。
+
+## 七、这套设计换来了什么
+
+| Pressure | 简单做法 | Codex patch design | 保护的 invariant |
+| --- | --- | --- | --- |
+| 模型输出 shell heredoc | 直接执行 shell command | 识别窄形式并转入 patch protocol | Mutation 仍受治理 |
+| Patch syntax parse 成功 | 立刻 apply | 先验证旧内容与 path | 不从 stale context 做 best-effort edit |
+| Path 超出 writable roots | 让 sandbox 后置兜底 | Runtime 前先 assess patch safety | Approval 与 policy 可见 |
+| Local vs remote workspace | 假设本地文件 | 使用 turn environment filesystem | Edit 落到 owner workspace |
+| Partial failure | 只报告失败 | 保留 committed delta 和 exactness | Failure 后 evidence 仍诚实 |
+| UI 需要 diff | 永远显示 diff | 只在 tracker valid 时渲染 | Diff 是 proof，不是 decoration |
 
 ## 应用到实践
 
-1. **优先使用结构化编辑。** 在 mutation 前暴露 paths、operations 和 context。
-2. **用文件系统验证。** Parse success 不够，还要确认预期旧状态存在。
-3. **把兼容形式转回协议。** Shell 文本如果明确表示 patch，就按 patch 治理。
-4. **诚实跟踪 committed delta。** 保留 exact evidence，无法证明时就 invalidate。
-5. **通过拥有者文件系统应用。** Local 与 remote workspace 应共享同一套 mutation semantics。
+1. **Mutation 前先结构化 edit intent。** 一个可治理的 edit action 应该命名 paths、operations 和 expected old content。
+2. **把兼容语法当 input adapter。** 只有 shell-like form 明确映射到 protocol 时才 intercept，然后立即 normalize。
+3. **Safety 放在 runtime 之前。** Approval policy、writable roots、sandbox availability 不应该等 failure 后才补救。
+4. **通过 owner 写入。** Runtime 应使用拥有当前 turn 的 filesystem，无论 local 还是 remote。
+5. **保留 exact evidence，不可证明就 invalidate。** 无法证明的 diff 应该消失，而不是变成表演。
 
-第 12 章会解释围绕这些 mutation 的人类和自动化关卡：hooks、approval requests、Guardian review，以及等待决策时可能打断执行的客户端表面。
+第 12 章会从 patch lane 向外扩展，解释围绕所有 side effects 的人类和自动化关卡：hooks、approval requests、Guardian review，以及等待决策时可能暂停 execution 的 client surfaces。
 
 <div class="source-equivalence">
 
@@ -90,10 +181,14 @@ Codex 也有辅助逻辑，用 Git 应用普通 unified diff。这条路径会�
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Patch tool handler | [`codex-rs/core/src/tools/handlers/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55) |
-| Patch runtime | [`codex-rs/core/src/tools/runtimes/apply_patch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L50) |
-| Patch grammar parser | [`codex-rs/apply-patch/src/parser.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L126) |
-| Patch safety assessment | [`codex-rs/core/src/safety.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33) |
-| Turn diff tracker | [`codex-rs/core/src/turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) |
+| Patch handler struct 与 tool surface | [`ApplyPatchHandler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L55), [`ToolHandler` impl](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L286-L335) |
+| Handler verification and orchestration | [`ApplyPatchHandler::handle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L337-L458) |
+| Shell interception path | [`intercept_apply_patch`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/apply_patch.rs#L462-L565) |
+| Patch grammar 与 hunk model | [`parser.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/parser.rs#L1-L79) |
+| Invocation verifier | [`maybe_parse_apply_patch_verified`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/invocation.rs#L132-L224) |
+| Patch safety assessment | [`assess_patch_safety`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/safety.rs#L33-L116) |
+| Patch runtime | [`ApplyPatchRuntime::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/runtimes/apply_patch.rs#L200-L251) |
+| Hunk application and committed delta | [`apply_hunks_to_files`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/apply-patch/src/lib.rs#L360-L551) |
+| Turn diff tracker | [`turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L16-L107) |
 
 </div>
