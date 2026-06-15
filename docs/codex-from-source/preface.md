@@ -28,7 +28,7 @@ The second trap is to treat public source as a window into every product behavio
 The third trap is to reduce an agent to "a prompt plus tools." That description misses the hard part. A useful coding agent must keep intent, authority, side effects, observations, transcript state, client projections, and audit evidence from collapsing into one mutable blob. Codex is worth reading because its public source exposes those separations.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/bounded-agent-os-map-df64b03.webp" alt="Bounded agent operating-system map separating client surfaces, typed protocol, session runtime, authority gates, sandboxing, and rollout evidence" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/bounded-agent-os-map-569ff6a1-v2.webp" alt="Bounded agent operating-system map separating client surfaces, typed protocol, session runtime, authority gates, sandboxing, and rollout evidence" loading="lazy" decoding="async" />
   <figcaption>Read Codex as a bounded operating environment: clients submit intent, the runtime owns the turn, authority gates side effects, and durable evidence outlives any one UI.</figcaption>
 </figure>
 

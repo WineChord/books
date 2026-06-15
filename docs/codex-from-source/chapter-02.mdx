@@ -1,127 +1,622 @@
+# From Distribution Wrapper to Rust Router
 
-# Chapter 2: From Distribution Wrapper to Rust Router
-
-> **Reading Contract:** Use this chapter to follow startup as narrowing. Track how distribution wrappers, CLI parsing, and Rust routing turn a user command into a typed path without letting packaging own architecture.
+> **Reading Contract:** Follow one `codex` invocation from the package entry
+> point into the Rust command router. Track which layer may decide delivery,
+> which layer may expose helper aliases, and which layer owns product intent.
+> After this chapter, you should be able to explain why the JavaScript wrapper
+> is intentionally behavior-poor while the Rust router is intentionally typed.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/startup-router-narrowing-df64b03.webp" alt="Startup router narrowing path from npm wrapper through invocation dispatch, Rust CLI router, product surfaces, and shared runtime crates" loading="eager" decoding="async" />
-  <figcaption>Startup narrows a broad command into one typed runtime path: wrapper, Rust CLI, command router, then the selected surface.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/startup-router-narrowing-569ff6a1-v2.webp" alt="Startup router narrowing path from npm wrapper through invocation dispatch, Rust CLI router, product surfaces, and shared runtime crates" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Startup narrows a broad installed command into one typed runtime path: package entry, native executable, helper dispatch, Rust command router, then the selected product surface.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** direct source facts in this chapter are anchored to OpenAI
+Codex commit
+[`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3).
+Named files, constants, structs, enum variants, functions, and branch behavior
+are **verified source** where linked. The higher-level terms "delivery
+contract", "product owner", "helper alias", and "startup invariant" are
+**surrounding contract inference** from those public anchors, not claims about
+private OpenAI service internals.
 
-Chapter 1 described Codex as a bounded operating system whose runtime accepts typed operations, emits events, and gates side effects. This chapter moves to the first boundary a user touches: the installed command. The design is deliberately asymmetric. JavaScript owns distribution mechanics; Rust owns product routing and runtime integration.
+The first architectural boundary a Codex user touches is not a model request.
+It is a command installed by a package manager. That command has to work across
+operating systems, CPU architectures, optional native packages, vendored
+artifacts, helper executables, terminal signals, and shell exit semantics. A
+large CLI can easily let that bootstrap script grow into a second product
+router.
 
-That split is easy to underestimate. Many command-line products begin as a script that grows behavior over time. Codex resists that shape. The npm-facing entry point chooses the correct native artifact, adjusts the process environment, forwards signals, and then gets out of the way. The Rust binary parses commands, resolves shared startup state, and dispatches into product surfaces.
+Codex does the narrower thing. The npm package exposes
+[`codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L5-L7)
+as `bin/codex.js`, and that JavaScript file finds and launches the native
+binary. Once Rust starts, [`arg0_dispatch_or_else`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L175)
+handles helper aliases before
+[`MultitoolCli::parse`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L803-L810)
+turns the remaining invocation into a typed command. The split is small in
+code, but large in design: packaging may decide **where** the binary is;
+Rust decides **what** Codex means.
 
-The result is not merely a faster executable. It is an architectural boundary: delivery is allowed to know how the binary is found, but not how the agent works.
+## 1. Delivery Contract
 
+The package entry point is allowed to answer one practical question: given this
+host and this installation layout, which native executable should run? It is
+not allowed to decide configuration semantics, authentication behavior, remote
+mode, sandbox policy, thread state, or tool authority.
 
-## The Startup Chain
+That contract starts at the package manifest:
 
-The startup path has four conceptual stages:
-
-The distribution wrapper exists because users install Codex through package channels that need platform-specific artifacts. It detects the host platform, finds the matching native package or vendored binary, adds bundled helper paths when needed, marks the install context, spawns the native executable, and mirrors process termination. None of those tasks require knowledge of threads, turns, approvals, models, or tools.
-
-The Rust binary then performs the work that belongs to the product. It can start the terminal UI, run headless execution, manage login, expose MCP commands, run app-server, inspect feature flags, apply a produced diff, resume or fork a thread, launch sandbox helpers, or invoke hidden internal tools. The router is broad, but the breadth is explicit.
-
-| Layer | Owns | Must not own |
-| --- | --- | --- |
-| Package wrapper | Platform selection, binary location, signal forwarding, install marker. | Runtime behavior, config semantics, auth flow, tool execution. |
-| Invocation-name dispatch | Helper aliases and single-binary multiplexing. | Product policy or user-facing decisions. |
-| Rust command router | Root flags, subcommands, hidden internal commands, dispatch. | Long-lived session behavior that belongs in shared crates. |
-| Product surface | TUI, exec, app-server, login, review, cloud, plugin, MCP. | Duplicate implementations of config, auth, or runtime loops. |
-| Shared runtime crates | Config, auth, protocol, sessions, tools, state, sandboxing. | Distribution-channel assumptions. |
-
-### JavaScript as Delivery Glue
-
-The wrapper's job is mechanical but important. It translates "the user ran the installed command" into "the correct native executable is running with the right environment." This includes platform selection, optional dependency lookup, fallback to vendored artifacts, additional helper paths, package manager markers, and signal handling.
-
-In architectural terms, the wrapper is a bootloader. A bootloader is not less important because it is small; it is important because it is constrained. If the wrapper began interpreting feature flags, reading project configuration, or deciding approval behavior, the product would acquire a second control plane. The Rust runtime would no longer be the single place where command behavior is defined.
-
-```text
-// Pseudocode - illustrative pattern.
-function wrapper_main(argv, environment):
-    target = detect_platform_target(environment)
-    binary = locate_native_binary(target)
-    helper_paths = discover_packaged_helper_paths(target)
-    child_environment = environment.with_path_prefix(helper_paths)
-    child_environment.set("install_origin", detected_package_manager())
-    result = spawn_and_forward_signals(binary, argv, child_environment)
-    exit_like_child(result)
+```json
+"bin": {
+  "codex": "bin/codex.js"
+}
 ```
 
-The pseudocode captures the boundary. The wrapper does not parse "start a thread" or "approve a patch." It forwards arguments and preserves process behavior.
+The manifest does not expose a family of JavaScript commands. It exposes one
+installed command. The pressure is that package channels are wide while runtime
+semantics should stay narrow.
 
-### Invocation Name as a Router
+| Startup pressure | Simpler design that fails | Source mechanism | Protected invariant |
+| --- | --- | --- | --- |
+| One npm package must launch many native artifacts. | Ship one script that grows product behavior per platform. | [`PLATFORM_PACKAGE_BY_TARGET`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15-L22) plus target selection. | Platform choice remains delivery data. |
+| Optional native packages may be absent or vendored. | Assume one install layout and fail opaquely. | Optional dependency lookup and [`localVendorRoot`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L87-L118) fallback. | Binary discovery is explicit and diagnosable. |
+| Helpers may need to be found by child processes. | Bake helper paths into product commands. | [`pathDir`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L161-L166) prepended to `PATH`. | Helper discovery stays installation metadata. |
+| Parent shells need correct termination semantics. | Spawn a child and let Node exit independently. | Signal forwarding and exit mirroring. | Scripts observe the native process result. |
 
-After the native binary starts, Codex performs a second form of dispatch based on how the executable was invoked. On Unix-like systems, one binary can behave like several helper tools when reached through different names or controlled arguments. Codex uses this pattern for helper paths such as sandbox launch, patch application, filesystem helper execution, and shell escalation support.
+This is why the wrapper should be read as a boot boundary, not as the beginning
+of the agent runtime. The wrapper prepares the native child; it does not become
+the child.
 
-This is a pragmatic delivery decision. Shipping many executables increases packaging complexity, version skew, and path discovery problems. Shipping one binary with controlled helper aliases keeps release artifacts simpler while still giving internal subsystems stable executable names.
+## 2. JavaScript Wrapper
 
-The pattern has a cost: startup must inspect invocation metadata before ordinary command parsing. That inspection must be narrow and deterministic. If it grows into product-level command handling, it competes with the command router. Used carefully, it lets the runtime pass stable helper paths to later subsystems without hard-coding installation layouts.
+### 2.1 Platform Target Is Delivery Data
 
-### The Rust Router
+The wrapper begins with a finite map from Rust target triples to platform
+packages:
 
-The command router is the first place where the product becomes visible. Its root command accepts global configuration overrides, feature toggles, remote options, and the default interactive prompt. Its subcommands represent the supported product surfaces:
+```javascript
+const PLATFORM_PACKAGE_BY_TARGET = {
+  "x86_64-unknown-linux-musl": "@openai/codex-linux-x64",
+  "aarch64-unknown-linux-musl": "@openai/codex-linux-arm64",
+  "x86_64-apple-darwin": "@openai/codex-darwin-x64",
+  "aarch64-apple-darwin": "@openai/codex-darwin-arm64",
+  "x86_64-pc-windows-msvc": "@openai/codex-win32-x64",
+  "aarch64-pc-windows-msvc": "@openai/codex-win32-arm64",
+};
+```
 
-| Surface | Architectural role |
-| --- | --- |
-| Interactive UI | Inline terminal client over the shared runtime. |
-| Headless execution | Non-interactive client for prompts, review, and machine output. |
-| Login and logout | Credential lifecycle and status inspection. |
-| MCP commands | Configuration and server entry points for tool protocol integration. |
-| App-server | JSON-RPC boundary for richer clients and SDKs. |
-| Plugin and marketplace commands | Extension packaging and discovery flows. |
-| Sandbox and exec-server helpers | Execution-location and isolation support. |
-| Resume and fork | Thread lifecycle operations over durable state. |
-| Debug and feature commands | Inspection surfaces for generated catalogs, traces, and flags. |
+The map is followed by a [`process.platform` and `process.arch`
+switch](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L24-L76)
+that either selects a known target triple or throws an unsupported-platform
+error. The product point is not "Codex is JavaScript first." The opposite is
+true: JavaScript translates package-manager reality into one native target and
+then stops making product decisions.
 
-The router does not make all of those flows simple. It makes them explicit. A reader can inspect the command tree and see which product surfaces exist before reading a single session-loop detail.
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/js-wrapper-handoff-569ff6a1.webp" alt="JavaScript wrapper handoff showing platform target, vendor root, PATH helpers, native spawn, signal mirror, and delivery-only boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The JavaScript entry point owns delivery mechanics: platform target, vendor root, helper path, child spawn, and parent/child termination semantics.</figcaption>
+</figure>
 
-### Hidden Commands Are Still Contracts
+### 2.2 Binary Discovery Has Two Layouts
 
-Some commands are hidden from ordinary help output because they support internal or experimental flows. Hidden does not mean informal. A hidden command still has parsed arguments, tests, and a place in the startup model. That is safer than burying the same behavior behind ad hoc environment variables or unstructured shell snippets.
+The native package may arrive as an optional dependency, or the binary may live
+under the local `vendor` directory. The wrapper makes that choice visible:
 
-This matters for helper processes. Sandboxes, app-server proxies, schema generation, trace reduction, and internal relays often need command-line entry points. Treating them as first-class parsed commands gives the release system, tests, and other crates a stable way to invoke them.
+```javascript
+let vendorRoot;
+try {
+  const packageJsonPath = require.resolve(`${platformPackage}/package.json`);
+  vendorRoot = path.join(path.dirname(packageJsonPath), "vendor");
+} catch {
+  if (existsSync(localBinaryPath)) {
+    vendorRoot = localVendorRoot;
+  } else {
+    const packageManager = detectPackageManager();
+    const updateCommand =
+      packageManager === "bun"
+        ? "bun install -g @openai/codex@latest"
+        : "npm install -g @openai/codex@latest";
+    throw new Error(
+      `Missing optional dependency ${platformPackage}. Reinstall Codex: ${updateCommand}`,
+    );
+  }
+}
+```
 
-### Thin Product Surfaces
+The code is deliberately mundane. It does not read `config.toml`, inspect
+account state, or branch on command intent. It only discovers a `vendorRoot`
+and then forms [`binaryPath`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L117-L118)
+from `archRoot`, `codex`, and the platform-specific binary name. A failed
+optional dependency becomes an install diagnostic, not a partial runtime.
 
-The router's main design discipline is that product surfaces should be thin over shared runtime crates. Interactive mode should not own a separate config resolver. Headless execution should not own a separate auth model. App-server should not invent a second thread store. Review should not become an unrelated agent loop.
+### 2.3 Spawn Preserves the Native Child
 
-This discipline is what lets later chapters explain Codex as one system. Each surface has special behavior, but the common behavior sits behind shared contracts:
+The handoff point is the most important wrapper code in the file:
 
-The foundation is not a convenience library. It is the architecture's defense against product-surface drift.
+```javascript
+const additionalDirs = [];
+const pathDir = path.join(archRoot, "path");
+if (existsSync(pathDir)) {
+  additionalDirs.push(pathDir);
+}
+const updatedPath = getUpdatedPath(additionalDirs);
 
-### Install Context as Metadata
+const env = { ...process.env, PATH: updatedPath };
+const packageManagerEnvVar =
+  detectPackageManager() === "bun"
+    ? "CODEX_MANAGED_BY_BUN"
+    : "CODEX_MANAGED_BY_NPM";
+env[packageManagerEnvVar] = "1";
 
-Codex also preserves install context. A binary launched from npm, Bun, Homebrew, a standalone archive, a desktop app, or an unknown source may need different update hints, bundled helper discovery, or diagnostics. The key is that install context is metadata, not behavior authority. It should explain how the process arrived and where packaged resources live; it should not decide whether a model may edit a file.
+const child = spawn(binaryPath, process.argv.slice(2), {
+  stdio: "inherit",
+  env,
+});
+```
 
-This separation keeps delivery concerns from leaking into policy. A managed account requirement should constrain runtime settings regardless of how the binary was installed. A sandbox helper should be discoverable regardless of which product surface is running. Startup carries install facts forward so later layers can use them without re-detecting the world.
+`process.argv.slice(2)` is the product-intent clue. The wrapper forwards user
+arguments rather than interpreting them. It adds helper directories and package
+manager markers to the environment, then lets the native binary parse the
+command.
 
-### Why the Router Matters Later
+The wrapper also keeps shell behavior faithful:
 
-The next chapters rely on this startup split. Configuration and authentication can be taught once because every major command path reaches the same foundation. Protocol can be taught as a product boundary because app-server, TUI, and exec are surfaces over shared runtime concepts. Tool execution can be taught as a runtime capability because the wrapper never bypasses it.
+```javascript
+const forwardSignal = (signal) => {
+  if (child.killed) {
+    return;
+  }
+  try {
+    child.kill(signal);
+  } catch {
+    /* ignore */
+  }
+};
 
-The router therefore plays two roles: it dispatches commands, and it protects the shape of the system.
+["SIGINT", "SIGTERM", "SIGHUP"].forEach((sig) => {
+  process.on(sig, () => forwardSignal(sig));
+});
+```
+
+When the child exits, the parent mirrors whether termination came from a signal
+or an exit code. That matters for scripts and terminals, but it still does not
+turn JavaScript into the runtime owner. It preserves the native process as the
+observable authority.
+
+## 3. Arg0 Helper Dispatch
+
+Once the native binary starts, Codex still has one pre-router job: helper
+dispatch by invocation name and controlled first argument. The
+[`arg0`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L152-L175)
+module states the reason directly in comments: Codex wants to deploy one CLI
+binary while exposing some functionality as distinct helper CLIs on Unix-like
+systems.
+
+That is not a second product router. It is a helper boundary for cases where a
+later subsystem needs a stable executable name such as `apply_patch` or a
+sandbox helper.
+
+Read `arg0` as the last place where executable identity is allowed to change
+control flow. If the process was invoked as a helper, the helper branch is
+evaluated before product parsing. If it was invoked as ordinary `codex`, the
+alias machinery only prepares names that later children can find.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/arg0-alias-lifecycle-569ff6a1.webp" alt="Arg0 helper dispatch showing argv0 check, direct helper branch, temporary alias directory, PATH prepend, main runtime, and guard cleanup" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`arg0` splits direct helper invocations from ordinary startup: one binary can expose stable helper names while the main runtime still reaches the Rust command router.</figcaption>
+</figure>
+
+### 3.1 Direct Helpers Stop Before Normal Parsing
+
+The first branch checks how the executable was invoked:
+
+```rust
+pub fn arg0_dispatch() -> Option<Arg0PathEntryGuard> {
+    // Determine if we were invoked via the special alias.
+    let mut args = std::env::args_os();
+    let argv0 = args.next().unwrap_or_default();
+    let exe_name = Path::new(&argv0)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+
+    #[cfg(unix)]
+    if exe_name == EXECVE_WRAPPER_ARG0 {
+        let mut args = std::env::args();
+        let _ = args.next();
+        let file = match args.next() {
+            Some(file) => file,
+            None => std::process::exit(1),
+        };
+        let argv = args.collect::<Vec<_>>();
+```
+
+The pattern is deliberately pre-parser. It inspects the executable name, peels
+off helper-specific arguments, and hands control to helper code before the
+ordinary command tree can see the invocation.
+
+The same function later recognizes the Linux sandbox name, `apply_patch`, the
+misspelled compatibility name `applypatch`, and first-argument helper modes:
+
+```rust
+if exe_name == CODEX_LINUX_SANDBOX_ARG0 {
+    // Safety: [`run_main`] never returns.
+    codex_linux_sandbox::run_main();
+} else if exe_name == APPLY_PATCH_ARG0 || exe_name == MISSPELLED_APPLY_PATCH_ARG0 {
+    codex_apply_patch::main();
+}
+
+let argv1 = args.next().unwrap_or_default();
+if argv1 == CODEX_FS_HELPER_ARG1 {
+    codex_exec_server::run_fs_helper_main();
+}
+```
+
+These branches are intentionally early. A helper invocation should not fall
+through to `codex exec`, `codex login`, or app-server parsing. The helper name
+already is the contract.
+
+### 3.2 Ordinary Startup Creates Temporary Aliases
+
+If no direct helper has consumed the process, startup prepares helper aliases
+for child re-execs. The source is explicit about why the path entry exists:
+
+```rust
+/// This temporary directory is prepended to the PATH environment variable so
+/// that `apply_patch` can be on the PATH without requiring the user to
+/// install a separate `apply_patch` executable, simplifying the deployment of
+/// Codex CLI.
+/// Note: In debug builds the temp-dir guard is disabled to ease local testing.
+///
+/// IMPORTANT: This function modifies the PATH environment variable, so it MUST
+/// be called before multiple threads are spawned.
+pub fn prepend_path_entry_for_codex_aliases() -> std::io::Result<Arg0PathEntryGuard> {
+```
+
+The comment carries two startup invariants. Alias availability is scoped to the
+current process lifetime, and `PATH` must be mutated before Codex starts work
+that may introduce multiple threads.
+
+On Unix, the function symlinks selected helper names to the current executable:
+
+```rust
+for filename in &[
+    APPLY_PATCH_ARG0,
+    MISSPELLED_APPLY_PATCH_ARG0,
+    #[cfg(target_os = "linux")]
+    CODEX_LINUX_SANDBOX_ARG0,
+    #[cfg(unix)]
+    EXECVE_WRAPPER_ARG0,
+] {
+    let exe = std::env::current_exe()?;
+
+    #[cfg(unix)]
+    {
+        let link = path.join(filename);
+        symlink(&exe, &link)?;
+    }
+```
+
+Then it prepends the temporary directory to `PATH` and returns stable helper
+paths through `Arg0DispatchPaths`:
+
+```rust
+unsafe {
+    std::env::set_var("PATH", updated_path_env_var);
+}
+
+let paths = Arg0DispatchPaths {
+    codex_self_exe: std::env::current_exe().ok(),
+    codex_linux_sandbox_exe: {
+        #[cfg(target_os = "linux")]
+        {
+            Some(path.join(CODEX_LINUX_SANDBOX_ARG0))
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            None
+        }
+    },
+    main_execve_wrapper_exe: {
+        #[cfg(unix)]
+        {
+            Some(path.join(EXECVE_WRAPPER_ARG0))
+        }
+```
+
+The temporary directory is not a loose side effect. `Arg0PathEntryGuard` holds
+the tempdir and lock for the process lifetime, and
+[`run_main_with_arg0_guard`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L195-L220)
+drops that guard only after the async main function finishes. That is the
+startup invariant: helper names are available while the runtime may need them,
+without permanently installing a second executable family.
+
+## 4. Rust Command Router
+
+By this point distribution and helper identity have already been resolved. What
+remains is user intent as arguments. The Rust router's job is to turn that
+argument vector into one typed surface, carrying root-level facts only as far as
+that surface can honor them.
+
+### 4.1 Root Flags Are Collected Once
+
+After helper dispatch, `main` calls
+[`cli_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L796-L803),
+and `cli_main` parses one root command. The parser shape is the first product
+surface in Rust:
+
+```rust
+/// Codex CLI
+///
+/// If no subcommand is specified, options will be forwarded to the interactive CLI.
+#[derive(Debug, Parser)]
+#[clap(
+    author,
+    version,
+    // If a sub-command is given, ignore requirements of the default args.
+    subcommand_negates_reqs = true,
+    // The executable is sometimes invoked via a platform-specific name like
+    // `codex-x86_64-unknown-linux-musl`, but the help output should always use
+    // the generic `codex` command name that users run.
+    bin_name = "codex",
+    override_usage = "codex [OPTIONS] [PROMPT]\n       codex [OPTIONS] <COMMAND> [ARGS]"
+)]
+struct MultitoolCli {
+    #[clap(flatten)]
+    pub config_overrides: CliConfigOverrides,
+
+    #[clap(flatten)]
+    pub feature_toggles: FeatureToggles,
+```
+
+Root config overrides and feature toggles are collected before the selected
+subcommand runs. That does not mean the wrapper owns configuration. It means
+the Rust parser has one place to accept root-level startup facts and then pass
+them into the selected product surface.
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/rust-command-router-569ff6a1-v2.webp" alt="Rust command router showing root flags, subcommand enum, remote guard, typed product surfaces, and shared crates" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The Rust router owns product intent: root flags are folded once, subcommands are typed, remote restrictions are checked, and selected surfaces call shared crates.</figcaption>
+</figure>
+
+### 4.2 Subcommands Are the Public Surface Map
+
+The [`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L105-L182)
+enum is a readable map of Codex's command surfaces. Some variants are ordinary
+user-facing entries:
+
+```rust
+#[derive(Debug, clap::Subcommand)]
+enum Subcommand {
+    /// Run Codex non-interactively.
+    #[clap(visible_alias = "e")]
+    Exec(ExecCli),
+
+    /// Run a code review non-interactively.
+    Review(ReviewArgs),
+
+    /// Manage login.
+    Login(LoginCommand),
+
+    /// Remove stored authentication credentials.
+    Logout(LogoutCommand),
+
+    /// Manage external MCP servers for Codex.
+    Mcp(McpCli),
+```
+
+Other variants expose app-server, desktop app, completion, update, sandbox,
+debug, resume, fork, cloud tasks, exec-server, and feature inspection. The
+important design point is not that every command is simple. It is that command
+intent is represented as typed Rust variants before behavior runs.
+
+### 4.3 Dispatch Narrows to One Owner
+
+The main dispatch first parses the root command and folds feature toggles into
+config overrides:
+
+```rust
+async fn cli_main(arg0_paths: Arg0DispatchPaths) -> anyhow::Result<()> {
+    let MultitoolCli {
+        config_overrides: mut root_config_overrides,
+        feature_toggles,
+        remote,
+        mut interactive,
+        subcommand,
+    } = MultitoolCli::parse();
+
+    // Fold --enable/--disable into config overrides so they flow to all subcommands.
+    let toggle_overrides = feature_toggles.to_overrides()?;
+    root_config_overrides.raw_overrides.extend(toggle_overrides);
+    let root_remote = remote.remote;
+    let root_remote_auth_token_env = remote.remote_auth_token_env;
+
+    match subcommand {
+```
+
+Then each branch chooses a concrete owner. With no subcommand, the TUI runs.
+For `exec`, Codex rejects remote-only root flags for that subcommand, inherits
+shared exec options, prepends root config flags, and calls `codex_exec`:
+
+```rust
+Some(Subcommand::Exec(mut exec_cli)) => {
+    reject_remote_mode_for_subcommand(
+        root_remote.as_deref(),
+        root_remote_auth_token_env.as_deref(),
+        "exec",
+    )?;
+    exec_cli
+        .shared
+        .inherit_exec_root_options(&interactive.shared);
+    prepend_config_flags(
+        &mut exec_cli.config_overrides,
+        root_config_overrides.clone(),
+    );
+    codex_exec::run_main(exec_cli, arg0_paths.clone()).await?;
+}
+```
+
+That branch is a good example of the router's discipline. It can adapt root
+facts to one surface, but it still hands work to that surface's crate rather
+than implementing headless execution inline.
+
+App-server follows the same pattern with a different owner:
+
+```rust
+Some(Subcommand::AppServer(app_server_cli)) => {
+    let AppServerCommand {
+        subcommand,
+        listen,
+        analytics_default_enabled,
+        auth,
+    } = app_server_cli;
+    reject_remote_mode_for_app_server_subcommand(
+        root_remote.as_deref(),
+        root_remote_auth_token_env.as_deref(),
+        subcommand.as_ref(),
+    )?;
+    match subcommand {
+        None => {
+            let transport = listen;
+            let auth = auth.try_into_settings()?;
+            codex_app_server::run_main_with_transport(
+```
+
+The router is broad because the command surface is broad. It remains a router
+because each branch picks one downstream owner instead of executing every
+surface inline.
+
+## 5. Visible and Hidden Contracts
+
+Hidden commands are easy to misread. They are hidden from normal help output,
+not informal shell hacks. The source uses the same Clap machinery for hidden
+variants:
+
+```rust
+/// Execpolicy tooling.
+#[clap(hide = true)]
+Execpolicy(ExecpolicyCommand),
+```
+
+The same enum also contains hidden internal relay surfaces:
+
+```rust
+/// Internal: run the responses API proxy.
+#[clap(hide = true)]
+ResponsesApiProxy(ResponsesApiProxyArgs),
+
+/// Internal: relay stdio to a Unix domain socket.
+#[clap(hide = true, name = "stdio-to-uds")]
+StdioToUds(StdioToUdsCommand),
+```
+
+App-server has its own hidden schema-generation variant:
+
+```rust
+/// [internal] Generate internal JSON Schema artifacts for Codex tooling.
+#[clap(hide = true)]
+GenerateInternalJsonSchema(GenerateInternalJsonSchemaCommand),
+```
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/visible-hidden-command-contracts-569ff6a1-v2.webp" alt="Visible and hidden command contracts sharing the same parser, typed arguments, and stable command contract" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Hidden commands still pass through typed command definitions. The contract is source-visible even when the command is not meant for ordinary help output.</figcaption>
+</figure>
+
+That distinction protects maintainability. Internal helpers can be hidden from
+casual users while still being parsed, reviewed, tested, and routed as normal
+Rust commands. If the same behavior lived in ad hoc environment variables or
+unstructured shell snippets, release tooling and later readers would have less
+surface to reason about.
+
+The remote-mode rejection helpers show the same discipline. The source does
+not let `--remote` silently leak into every subcommand:
+
+```rust
+fn reject_remote_mode_for_subcommand(
+    remote: Option<&str>,
+    remote_auth_token_env: Option<&str>,
+    subcommand: &str,
+) -> anyhow::Result<()> {
+    if let Some(remote) = remote {
+        anyhow::bail!(
+            "`--remote {remote}` is only supported for interactive TUI commands, not `codex {subcommand}`"
+        );
+    }
+    if remote_auth_token_env.is_some() {
+        anyhow::bail!(
+            "`--remote-auth-token-env` is only supported for interactive TUI commands, not `codex {subcommand}`"
+        );
+    }
+    Ok(())
+}
+```
+
+A broad router without negative checks becomes a permissive router. Codex uses
+typed variants plus explicit rejection to keep root-level affordances from
+accidentally becoming global behavior.
+
+## 6. What This Boundary Protects
+
+Taken in execution order, startup has four jobs: resolve the installed command
+to a native executable, expose helper aliases when that executable needs stable
+names, parse root flags and subcommands once, and reject root modes that a
+surface cannot honor. It is not building a session, choosing a model, deciding
+approvals, executing tools, or owning app-server protocol behavior. It is
+progressively narrowing an invocation until one typed owner is selected.
+
+| Fact seen during startup | Runtime owner after narrowing | Wrong placement | Failure mode avoided |
+| --- | --- | --- | --- |
+| Host platform and CPU architecture. | JavaScript wrapper. | Rust product parser. | Native package selection leaks into command semantics. |
+| Optional package or local vendor layout. | JavaScript wrapper. | User-facing subcommands. | Every product surface repeats install probing. |
+| Helper executable names. | `arg0` dispatch and temporary PATH guard. | Permanent extra binaries or ad hoc scripts. | Helper version drift and path skew. |
+| Root config flags and feature toggles. | `MultitoolCli` and `cli_main`. | npm wrapper. | Packaging becomes a policy/config control plane. |
+| Remote mode constraints. | Rust dispatch rejection helpers. | Individual downstream crates only. | Unsupported root flags reach surfaces that cannot honor them. |
+| Hidden internal tools. | Typed hidden Clap variants. | Environment-variable backdoors. | Internal tools become invisible to source review. |
+
+Three common misreadings are worth cutting off early.
+
+First, "the wrapper finds the binary" does not mean "the wrapper owns startup
+semantics." It owns target selection, binary discovery, PATH adjustment,
+package-manager markers, spawn, and signal mirroring. The moment it forwards
+`process.argv.slice(2)`, product intent has left JavaScript.
+
+Second, "arg0 dispatch happens before Clap" does not mean "there are two
+public CLIs." `arg0` handles helper aliases and first-argument helper modes
+that must stop before ordinary parsing. Ordinary user intent still flows into
+`MultitoolCli`.
+
+Third, "hidden command" does not mean "private behavior without a contract."
+The hidden variants are source-visible typed commands. They are hidden from
+help output because they serve internal or specialized workflows, not because
+they bypass the router.
 
 ## Apply This
 
-1. **Keep distribution glue behavior-poor.** Let wrappers find and launch the
-   product binary, but keep product semantics in the main implementation.
-2. **Use one router for product intent.** A broad command tree is easier to
-   reason about than scattered startup paths with hidden behavior.
-3. **Make helper entry points explicit.** Internal tools should still have typed
-   arguments and deterministic dispatch.
-4. **Carry install facts as facts.** Preserve package origin and helper paths as
-   metadata, not as a second policy system.
-5. **Push shared behavior below surfaces.** TUI, headless execution, app-server,
-   and plugins should reuse the same config, auth, protocol, and runtime
-   foundations.
+1. **Keep package wrappers behavior-poor.** Let them select artifacts, prepare
+   helper paths, preserve signals, and launch the native binary; keep product
+   semantics in the implementation language that owns the runtime.
+2. **Treat helper aliases as contracts, not shortcuts.** If one binary must
+   present multiple helper names, make the dispatch deterministic and keep its
+   lifetime explicit.
+3. **Parse product intent once.** Root flags, feature toggles, and subcommands
+   should enter one typed router instead of being reinterpreted by every
+   surface.
+4. **Reject unsupported root modes early.** A shared flag should be allowed on
+   a surface only when that surface can honor it; otherwise fail before the
+   downstream crate starts work.
+5. **Make internal commands typed even when hidden.** Hidden help output is
+   fine; hidden structure is not. Internal tools should still have named
+   variants, arguments, and source-visible dispatch.
 
 ## Closing
 
-The command reaches Rust with distribution concerns stripped down to metadata and helper paths. Chapter 3 follows what the router must resolve before any surface can safely start work: configuration, authentication, feature state, and managed requirements.
+By the time Codex reaches a product surface, startup has already done its
+narrowing work. JavaScript resolved delivery. `arg0` exposed helper aliases
+without creating a separate product CLI. Rust parsed one command tree and
+selected one owner. Chapter 3 follows what that owner needs next: configuration
+and authentication facts that must be resolved before runtime work can safely
+begin.
 
 <div class="source-equivalence">
 
@@ -129,9 +624,21 @@ The command reaches Rust with distribution concerns stripped down to metadata an
 
 | Concept | Source anchor |
 | --- | --- |
-| npm launch wrapper | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L175) |
-| Rust command router | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) |
-| App command boundary | [`codex-rs/cli/src/app_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/app_cmd.rs#L5) |
-| App-server daemon commands | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L417) |
+| npm `codex` binary mapping | [`codex-cli/package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L5-L7) |
+| Platform target package map | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15-L22) |
+| Host platform target selection | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L24-L76) |
+| Optional dependency and local vendor fallback | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L87-L118) |
+| PATH helper injection and native spawn | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L161-L178) |
+| Signal forwarding and exit mirroring | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L189-L228) |
+| `Arg0DispatchPaths` helper path carrier | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L21-L31) |
+| Direct `argv0` and `argv1` helper dispatch | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L54-L135) |
+| Arg0 trick design comment and wrapper | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L152-L175) |
+| Temporary helper alias directory and PATH prepend | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L270-L409) |
+| Root CLI parser | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L73-L103) |
+| Command surface enum | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L105-L182) |
+| Main parse and dispatch entry | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L796-L846) |
+| App-server transport dispatch | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L898-L920) |
+| Hidden app-server schema command | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L472-L489) |
+| Remote-mode rejection helpers | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L1607-L1654) |
 
 </div>

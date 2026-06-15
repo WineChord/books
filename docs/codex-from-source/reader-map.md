@@ -48,7 +48,7 @@ The pressure point is therefore not "which folder is most important?" It is
 | CI and release | Generated schemas and policy checks are visible. | You may treat governance as packaging instead of architecture. |
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/bounded-agent-os-map-df64b03.webp" alt="Bounded agent operating-system map separating client surfaces, typed protocol, session runtime, authority gates, sandboxing, and rollout evidence" loading="lazy" decoding="async" />
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/bounded-agent-os-map-569ff6a1-v2.webp" alt="Bounded agent operating-system map separating client surfaces, typed protocol, session runtime, authority gates, sandboxing, and rollout evidence" loading="lazy" decoding="async" />
   <figcaption>The file tree becomes useful only after each folder is tied to an owner: entry surfaces, typed protocol, session runtime, authority gates, client projections, and release evidence.</figcaption>
 </figure>
 
