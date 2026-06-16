@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Artifacts：AI Agent 如何把聊天变成交付物</title>
+  <meta name="description" content="从 Claude Code、Codex、OpenClaw、Hermes 到 OpenWebUI、LibreChat、Vercel Chatbot、Open Canvas、A2A、AG-UI、ADK、E2B，系统拆解 AI artifacts 的生命周期、存储、预览、沙箱、协议和开源能力排序。">
+  <link rel="canonical" href="https://www.wineandchord.com/books/artifacts/">
+  <meta property="og:title" content="Artifacts：AI Agent 如何把聊天变成交付物">
+  <meta property="og:description" content="系统拆解 AI artifacts 的生命周期、开源实现、沙箱底座、协议边界和能力排序。">
+  <meta property="og:url" content="https://www.wineandchord.com/books/artifacts/">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b1477434819aa6d08571c5629faa.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  <style>
+    :root {
+      --bg: #f7f8f4;
+      --paper: #fffffb;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --blue: #0f4c81;
+      --green: #1f7a4d;
+      --amber: #b7791f;
+      --red: #9b2c2c;
+      --code-bg: #f3f6f8;
+      --font-book: "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+      --font-code: Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-book);
+      line-height: 1.78;
+      text-rendering: optimizeLegibility;
+    }
+    .page-shell {
+      width: min(100%, 1400px);
+      margin: 0 auto;
+      padding: 48px 22px 88px;
+      display: grid;
+      grid-template-columns: minmax(0, 300px) minmax(0, 1020px);
+      gap: 28px;
+      align-items: start;
+    }
+    main { width: 100%; min-width: 0; margin: 0; padding: 0; }
+    .toc-panel {
+      position: sticky;
+      top: 24px;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 16px 10px;
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 8px;
+      background: rgba(255, 255, 251, 0.92);
+      box-shadow: 0 12px 34px rgba(16, 42, 67, 0.07);
+    }
+    .toc-title {
+      margin: 0 0 10px;
+      padding: 0 8px 10px;
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+      color: #102a43;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .toc-list, .toc-sublist { list-style: none; margin: 0; padding: 0; }
+    .toc-list li { margin: 0; font-size: 14px; }
+    .toc-link {
+      display: block;
+      position: relative;
+      border-radius: 7px;
+      padding: 6px 8px;
+      color: var(--muted);
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .toc-link:hover, .toc-link.active { background: rgba(31, 122, 77, 0.11); color: #14532d; }
+    .toc-level-2 {
+      margin-top: 11px;
+      padding: 8px 10px;
+      color: #102a43;
+      background: rgba(15, 76, 129, 0.055);
+      border-left: 3px solid rgba(15, 76, 129, 0.55);
+      font-weight: 700;
+    }
+    .toc-level-2.active { background: rgba(15, 76, 129, 0.10); color: #0b3558; }
+    .toc-level-3 { margin-left: 10px; padding: 5px 8px 5px 18px; font-size: 13px; }
+    .toc-level-4 { margin-left: 26px; padding: 4px 6px 4px 16px; color: #66788a; font-size: 12.5px; line-height: 1.32; }
+    .toc-level-3::before, .toc-level-4::before {
+      content: "";
+      position: absolute;
+      top: 0.95em;
+      left: 6px;
+      width: 7px;
+      border-top: 1px solid rgba(82, 96, 109, 0.32);
+    }
+    article {
+      background: var(--paper);
+      border: 1px solid rgba(15, 76, 129, 0.12);
+      border-radius: 8px;
+      padding: clamp(24px, 4vw, 58px);
+      box-shadow: 0 14px 40px rgba(16, 42, 67, 0.08);
+    }
+    h1, h2, h3, h4 {
+      line-height: 1.28;
+      color: #102a43;
+      letter-spacing: 0;
+      scroll-margin-top: 24px;
+    }
+    h1 { margin: 0 0 24px; font-size: clamp(26px, 3vw, 40px); max-width: 940px; }
+    h2 {
+      margin: 86px 0 26px;
+      padding: 22px 0 12px;
+      font-size: clamp(25px, 2.7vw, 32px);
+      border-top: 3px solid rgba(15, 76, 129, 0.22);
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+    }
+    h3 {
+      margin: 46px 0 14px;
+      padding-left: 14px;
+      font-size: clamp(19px, 2vw, 23px);
+      border-left: 4px solid var(--green);
+    }
+    h4 {
+      margin: 30px 0 10px;
+      padding-left: 12px;
+      color: #243b53;
+      font-size: clamp(16px, 1.6vw, 18px);
+      border-left: 2px solid rgba(15, 76, 129, 0.35);
+    }
+    p, li { font-size: 18px; overflow-wrap: break-word; }
+    p { margin: 18px 0; }
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.14em;
+    }
+    a code { color: var(--blue); background: rgba(15, 76, 129, 0.08); }
+    strong { color: #102a43; }
+    figure { margin: 32px 0; }
+    figure img {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+      border-radius: 8px;
+      border: 1px solid rgba(16, 42, 67, 0.08);
+      background: #fff;
+    }
+    figcaption {
+      margin: 10px auto 0;
+      max-width: 860px;
+      color: #66788a;
+      font-size: 14px;
+      line-height: 1.55;
+      text-align: center;
+    }
+    code {
+      font-family: var(--font-code);
+      font-size: 0.9em;
+      color: var(--red);
+      background: rgba(155, 44, 44, 0.08);
+      border-radius: 5px;
+      padding: 0.12em 0.32em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 22px 0;
+      padding: 18px 20px;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.62;
+    }
+    pre code {
+      display: block;
+      padding: 0;
+      color: #243b53;
+      background: transparent;
+      font-size: 15px;
+      white-space: pre;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    ul, ol { padding-left: 1.35em; margin: 16px 0 22px; }
+    li + li { margin-top: 8px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 28px 0;
+      font-size: 16px;
+      display: block;
+      overflow-x: auto;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      min-width: 145px;
+      overflow-wrap: break-word;
+    }
+    th { background: #e6f0f8; color: #102a43; text-align: left; }
+    blockquote {
+      margin: 26px 0;
+      padding: 2px 0 2px 20px;
+      border-left: 4px solid var(--green);
+      color: var(--muted);
+    }
+    .lede {
+      color: #334e68;
+      font-size: 19px;
+    }
+    .note {
+      margin: 26px 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(31, 122, 77, 0.18);
+      border-radius: 8px;
+      background: #f8fbfb;
+      color: #334e68;
+    }
+    .rank-good { color: var(--green); font-weight: 700; }
+    .rank-mid { color: var(--amber); font-weight: 700; }
+    .rank-risk { color: var(--red); font-weight: 700; }
+    @media (max-width: 1180px) {
+      .page-shell { width: min(100%, 1080px); display: block; }
+      .toc-panel { position: relative; top: auto; max-height: 360px; margin: 0 0 18px; }
+      .toc-level-3 { margin-left: 6px; }
+      .toc-level-4 { margin-left: 18px; }
+    }
+    @media (max-width: 720px) {
+      .page-shell { padding: 20px 12px 56px; }
+      .toc-panel { max-height: 260px; margin-bottom: 14px; padding: 12px 10px; }
+      .toc-title { font-size: 14px; }
+      .toc-link { padding: 5px 6px; font-size: 13px; }
+      article { padding: 22px 16px; }
+      p, li { font-size: 16px; }
+      .lede { font-size: 17px; }
+      pre code { font-size: 13px; }
+      table {
+        display: block;
+        width: 100%;
+        overflow: visible;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 15px;
+      }
+      table thead { display: none; }
+      table tbody, table tr, table td { display: block; width: 100%; min-width: 0; }
+      table tr {
+        margin: 14px 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      table td {
+        position: relative;
+        border: 0;
+        border-top: 1px solid var(--line);
+        padding: 10px 12px 10px 94px;
+      }
+      table td:first-child {
+        border-top: 0;
+        padding-left: 12px;
+        background: rgba(15, 76, 129, 0.07);
+        color: #102a43;
+        font-weight: 700;
+      }
+      table td:not(:first-child)::before {
+        content: attr(data-label);
+        position: absolute;
+        top: 10px;
+        left: 12px;
+        width: 70px;
+        color: #52606d;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+      h2 { margin-top: 54px; }
+      h3 { margin-top: 34px; padding-left: 10px; }
+      h4 { margin-top: 24px; padding-left: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="toc-panel" aria-label="文章目录">
+      <div class="toc-title">目录</div>
+      <nav id="toc" class="toc-nav"></nav>
+    </aside>
+    <main>
+      <article>
+        <h1>Artifacts：AI Agent 如何把聊天变成交付物</h1>
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b1477434819aa6d08571c5629faa.png" alt="AI artifact 生命周期：从聊天到文档、代码、表格、应用预览、沙箱和版本化存储">
+          <figcaption>Artifact 不是“右侧弹出一张卡片”，而是从模型输出、工具执行、文件系统、预览窗口到持久化存储的一条交付物生命周期。</figcaption>
+        </figure>
+
+        <p class="lede">这篇文章讨论的 artifacts，不只指 Claude.ai 里那种可以单独打开的可视化窗口。更宽一点看，artifact 是 agent 工作过程中产生的、可以被预览、恢复、编辑、复用、导出、分享或再次喂回模型的交付物。它可能是一段 HTML、一个 React 组件、一张图、一个表格、一份文档、一次命令输出、一个补丁、一个文件树、一个沙箱里的运行结果，也可能是协议流里一个带版本、带 MIME、带 owner 的对象。</p>
+
+        <p>如果只把 artifact 理解成 UI 组件，很容易低估它的工程难度。真正困难的地方不在“把代码放进 iframe”，而在十个更底层的问题：谁拥有它？什么时候生成？生成过程中能不能流式更新？模型下一轮还能不能看到？用户能不能编辑？编辑后是否形成新版本？预览代码跑在哪里？权限怎么隔离？会话恢复后路径还有效吗？最终能不能导出、发布或共享？</p>
+
+        <p>本文以四条源码主线为骨架：<a href="https://github.com/openai/codex">Codex</a>、<a href="https://docs.anthropic.com/en/docs/claude-code/sdk">Claude Code / Agent SDK</a>、<a href="https://github.com/openclaw/openclaw">OpenClaw</a>、<a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>。它们不是都把产物叫作 <code>artifact</code>，但都在处理同一类问题：agent 输出怎样从一次聊天里的临时文本，变成可追踪、可恢复、可操作的对象。</p>
+
+        <p>然后再把视角拉到热门开源实践：<a href="https://github.com/open-webui/open-webui">OpenWebUI</a>、<a href="https://github.com/danny-avila/LibreChat">LibreChat</a>、<a href="https://github.com/vercel/chatbot">Vercel Chatbot</a>、<a href="https://github.com/langchain-ai/open-canvas">Open Canvas</a>、<a href="https://github.com/e2b-dev/fragments">E2B Fragments</a>、<a href="https://github.com/google/adk-go">Google ADK</a>、<a href="https://github.com/a2aproject/A2A">A2A</a>、<a href="https://github.com/ag-ui-protocol/ag-ui">AG-UI</a>。这些项目分别代表产品 canvas、沙箱底座、agent 文件系统和协议层四种方向。</p>
+
+        <div class="note">
+          <strong>证据边界。</strong>表格里的 GitHub star 来自 2026-06-16 的 GitHub API 查询，适合表示当时的开源可见热度，不表示生产采用率或设计质量。Claude Code 的源码级讨论引用固定 commit 的公开源码镜像；Claude 产品 Artifacts 行为只引用 Anthropic 帮助中心和官方文档。其他源码链接都固定到本文调研时的 commit。
+        </div>
+
+        <h2>一、为什么 artifact 不是一张卡片，而是一条生命周期</h2>
+
+        <p>Artifact 的最小定义可以写成一句话：它是一个有身份、有类型、有归属、有生命周期的 agent 产物。这个定义故意不把 artifact 绑定到某个 UI，因为同一个产物在不同系统里会落在不同层级。</p>
+
+        <p>在 Claude.ai、OpenWebUI、LibreChat、Vercel Chatbot 这类产品里，artifact 通常是聊天之外的一块工作区：右侧画布、独立窗口、版本页、复制下载按钮、预览 iframe、编辑器或 diff 模式。用户会直觉地把它理解成“模型做出来的一件东西”。</p>
+
+        <p>在 Codex、Claude Code、Hermes 这类 coding agent 里，artifact 更常表现为文件 diff、命令输出、持久化 tool result、截图、图片生成结果、补丁、checkpoint、文件树或 sandbox 里的临时文件。它不一定有漂亮的 canvas，但它必须能被 resume、rollback、inspect 或继续修改。</p>
+
+        <p>在 A2A、ADK、AG-UI 这类协议或 SDK 里，artifact 又变成了更抽象的 contract：一个 task 可以产生 artifact；artifact 可以有 parts；更新可以是 append，也可以标记 last chunk；artifact service 负责 Save、Load、List、Versions；UI 协议负责把 agent 事件变成前端可渲染的状态。</p>
+
+        <h3>1.1 五层 artifact 栈</h3>
+
+        <p>要避免概念混乱，最有用的分层是下面这五层：</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>层级</th>
+              <th>典型对象</th>
+              <th>核心问题</th>
+              <th>代表实现</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>流式生成层</td>
+              <td>delta、chunk、tool args、partial document</td>
+              <td>用户是否能看到产物逐步成形，失败时是否能保留半成品</td>
+              <td>A2A artifact update、Vercel data stream、Open Canvas graph state</td>
+            </tr>
+            <tr>
+              <td>会话项目层</td>
+              <td>message item、thread item、document id、artifact id</td>
+              <td>产物是否能被定位、引用、重放、恢复</td>
+              <td>Codex <code>ThreadItem</code>、Vercel <code>UIArtifact</code>、LibreChat artifact block</td>
+            </tr>
+            <tr>
+              <td>持久化层</td>
+              <td>文件、数据库记录、版本、checkpoint</td>
+              <td>产物是否跨轮次、跨会话、跨设备仍然存在</td>
+              <td>Claude Code tool-results、Hermes checkpoint、ADK artifact service</td>
+            </tr>
+            <tr>
+              <td>执行预览层</td>
+              <td>iframe、Pyodide worker、container、preview URL</td>
+              <td>不可信代码在哪里运行，权限、网络、资源和清理如何控制</td>
+              <td>OpenWebUI iframe/Pyodide、E2B Fragments、Daytona、OpenSandbox</td>
+            </tr>
+            <tr>
+              <td>发布协作层</td>
+              <td>share link、public artifact、organization artifact、embed</td>
+              <td>产物能否从私有会话进入多人协作或公开分发</td>
+              <td>Claude published artifacts、OpenWebUI shared scopes、AG-UI app bridge</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>这五层不是每个项目都要全部实现。一个 terminal coding agent 可以没有发布层，但它不能没有可恢复的文件和命令产物；一个聊天产品可以没有容器级执行，但如果它允许 HTML/JS artifact，就必须认真处理 iframe sandbox 和 CSP；一个协议可以不负责 UI，但必须把 artifact 的 identity、parts、append、final 等语义说清楚。</p>
+
+        <h3>1.2 Artifact 的生命周期</h3>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b1e8d04c819aa251cb9eac3d8740.png" alt="四条终端 agent artifact 主线：线程项目、工具结果落盘、媒体桥接、沙箱和 checkpoint">
+          <figcaption>终端 agent 不一定提供“画布”，但会把文件改动、工具输出、媒体附件、checkpoint 和 sandbox 文件变成可追踪产物。</figcaption>
+        </figure>
+
+        <p>一个成熟 artifact runtime 通常会经历下面的状态机：</p>
+
+        <pre><code class="language-text">intent
+  -> draft
+  -> streamed update
+  -> preview
+  -> persisted version
+  -> edited or regenerated
+  -> exported, shared, or garbage-collected
+</code></pre>
+
+        <p>这里最容易被忽略的是 <code>draft</code> 和 <code>preview</code>。模型生成 HTML 时，草稿内容不应该一开始就被当作可信应用；命令输出过大时，完整输出不应该直接塞回模型上下文；沙箱生成文件时，路径不能天然等同于可分享链接。真正可靠的实现，会在每一次状态转换上加 contract：MIME、owner、权限、版本、资源限制、清理策略和恢复方式。</p>
+
+        <h3>1.3 三个常见误区</h3>
+
+        <p>第一个误区是把 artifact 等同于“富文本消息”。富文本消息仍然依附聊天流；artifact 应该有独立身份。没有身份，就很难更新、引用、比较版本或授权。</p>
+
+        <p>第二个误区是把 artifact 等同于“文件”。文件是最常见的持久化形态，但不是完整语义。一次 artifact 更新可能包含多个 part：正文、图片、数据、URL、元信息。A2A 的 helper 就把 text、data、raw bytes、URL 都包装成 artifact parts，并允许通过 <code>TaskArtifactUpdateEvent</code> 增量更新。</p>
+
+        <p>第三个误区是把 artifact 等同于“代码执行”。代码执行只是 artifact 的一种能力。文档、表格、图像、报告、patch、测试日志都是 artifacts；其中有些永远不需要执行，但仍然需要版本、权限和恢复。</p>
+
+        <h2>二、四条主线：Codex、Claude Code、OpenClaw、Hermes 怎样处理产物</h2>
+
+        <p>这四个项目代表 agent runtime 里 artifact 的四种核心能力：线程事件投影、上下文减压与工具结果落盘、媒体桥和 live preview、沙箱文件与 checkpoint。它们的共同点是都不满足于“把模型输出显示出来”，而是把输出接入了运行时的恢复和操作系统边界。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b825e7d8819abf4a1b35fa11ffee.png" alt="四条 agent runtime artifact 机制对照：typed thread item、工具结果落盘、媒体预览最终化、沙箱 checkpoint">
+          <figcaption>四条 runtime 机制的差异：Codex 把事件投影为 typed thread item；Claude Code 和 Hermes 把大工具输出变成可寻址文件；OpenClaw 把媒体和 live preview 放进受控边界；Hermes 还用 checkpoint 保护文件系统状态。</figcaption>
+        </figure>
+
+        <h3>2.1 Codex：artifact 是 typed thread item，而不是单一类名</h3>
+
+        <p>Codex 源码里并没有把所有产物统一命名为 <code>Artifact</code>。它更像一个 typed thread item 系统：用户消息、agent 消息、reasoning、web search、image view、image generation、file change、MCP tool call、context compaction 都是 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/protocol/src/items.rs#L38-L54"><code>TurnItem</code></a> 的变体。这里值得关注的是设计方向：产物不是一段不可结构化的 transcript，而是可以被客户端重放和渲染的 typed event projection。</p>
+
+        <p>例如，<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/protocol/src/items.rs#L143-L172"><code>ImageGenerationItem</code> 和 <code>FileChangeItem</code></a> 都是 thread item。前者有 status、revised prompt、result、saved path；后者有 changes、status、stdout、stderr。文件改动本身又被建模成 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/protocol/src/protocol.rs#L3824-L3838"><code>FileChange</code></a>，区分 add、delete、update 和 move path。</p>
+
+        <p>Codex 的 app-server protocol 还把底层事件投影成客户端可消费的 thread items。<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/app-server-protocol/src/protocol/item_builders.rs#L1-L12"><code>item_builders.rs</code></a> 的注释说得很清楚：core protocol events 保持通用，app-server protocol 决定怎样把这些事件展示为 <code>ThreadItem</code>。同一个文件里，patch begin/end 会构造成 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/app-server-protocol/src/protocol/item_builders.rs#L40-L63"><code>ThreadItem::FileChange</code></a>，exec begin/end 会构造成 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/app-server-protocol/src/protocol/item_builders.rs#L88-L132"><code>ThreadItem::CommandExecution</code></a>。</p>
+
+        <p>这对 artifact 设计的启发是：不要急着设计一个万能 <code>Artifact</code> 表。对于 coding agent，文件改动、命令执行、图片、MCP 工具调用、上下文压缩本来就是不同对象。统一的是它们都能进入 thread history，被 rebuild、resume、render，而不是统一成同一种 payload。</p>
+
+        <h4>Codex 的特点</h4>
+
+        <ul>
+          <li><strong>强项：</strong>事件类型清晰，适合多客户端重放；文件改动、命令执行、图片生成都有结构。</li>
+          <li><strong>限制：</strong>它不是产品级 artifact canvas；对 HTML/React/表格这类产物的编辑预览，不是它的主设计目标。</li>
+          <li><strong>适用：</strong>需要把 agent 工作流变成可审计、可恢复、可协作的 coding thread。</li>
+        </ul>
+
+        <h3>2.2 Claude Code：大工具结果先落盘，再把引用留给模型</h3>
+
+        <p>Claude Code 的可见源码里，最像 artifact substrate 的一块，是 large tool result persistence。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/toolResultStorage.ts#L26-L31"><code>toolResultStorage.ts</code></a> 定义了 <code>tool-results</code> 子目录和 <code>&lt;persisted-output&gt;</code> 标签；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/toolResultStorage.ts#L80-L87"><code>PersistedToolResult</code></a> 包含 filepath、original size、isJson、preview、hasMore。</p>
+
+        <p>关键点不是“输出太大就截断”，而是“完整输出变成文件 artifact，模型上下文里只保留可寻址引用和预览”。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/toolResultStorage.ts#L137-L184"><code>persistToolResult</code></a> 会把文本或 JSON 写到 session-scoped 路径，并生成 preview；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/utils/toolResultStorage.ts#L189-L198"><code>buildLargeToolResultMessage</code></a> 则把路径和预览封装成模型能理解的替代消息。</p>
+
+        <p>在 query 主流程里，这个动作发生在 microcompact 之前。源码注释显示，<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L365-L394"><code>applyToolResultBudget</code></a> 先对工具结果做预算控制；随后才进入 snip、microcompact 和 context-collapse。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L396-L447">同一段流程</a> 还说明 collapse 是 read-time projection，summary 存在 collapse store，而不是直接把 REPL 全量历史抹掉。</p>
+
+        <p>这套机制给 artifact runtime 的启发非常直接：大产物不要靠“更长上下文”硬扛。它应该有一个 storage identity，并通过可读预览接回模型。否则一次测试日志、一次搜索结果、一次代码生成，就能把后续所有推理污染掉。</p>
+
+        <h4>Claude Code 的特点</h4>
+
+        <ul>
+          <li><strong>强项：</strong>把长工具输出从上下文压力里解耦出来，兼顾恢复和模型可访问性。</li>
+          <li><strong>限制：</strong>本文使用的是公开镜像里的可见源码，不把它当作官方发行版承诺；Claude.ai 产品 Artifacts 的发布、分享和可视化能力需要按 Anthropic 帮助中心理解。</li>
+          <li><strong>适用：</strong>需要长时间运行工具、搜索、测试、构建，并希望保留完整输出的 agent runtime。</li>
+        </ul>
+
+        <h3>2.3 OpenClaw：媒体、附件和 live preview 是 artifact 边界</h3>
+
+        <p>OpenClaw 的 artifact 味道不在一个单独的 <code>Artifact</code> 类里，而在媒体存储、附件解析和 live preview finalizer 之间。</p>
+
+        <p><a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/media/store.ts#L25-L31"><code>src/media/store.ts</code></a> 定义了 media 目录、默认 5MB 上限、2 分钟 TTL，以及一个很重要的权限边界：文件本身用较宽的 read mode 方便 Docker sandbox 访问，但包含目录仍然是 owner-only 的信任边界。随后，<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/media/store.ts#L47-L93">subdir、id 和 path</a> 都做了防逃逸校验。</p>
+
+        <p>这不是普通上传逻辑，而是 agent artifact 必须具备的边界感。一个图片、文件或媒体 URL 一旦可以流入 sandbox，就会同时涉及 SSRF、路径穿越、文件权限、大小限制、TTL、cleanup 和 MIME 判断。</p>
+
+        <p>OpenClaw 的 outbound attachment 也体现了这个思路。<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/media/outbound-attachment.ts#L5-L30"><code>resolveOutboundAttachmentFromUrl</code></a> 会根据访问选项加载 web media，再保存为本地 outbound media，并返回本地 path 和 content type。它把外部 URL 转成受控本地产物，而不是把任意远程资源直接交给后续链路。</p>
+
+        <p>另一个关键点是 preview finalization。<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/channels/draft-preview-finalizer.ts#L23-L50"><code>deliverFinalizableDraftPreview</code></a> 包了一层 live preview finalizer：先发可最终化的 preview，最后要么编辑成 final，要么按普通消息交付。对 artifact 来说，这是很实用的抽象：用户应该看到产物流动，但最终状态必须收束成可引用对象。</p>
+
+        <h4>OpenClaw 的特点</h4>
+
+        <ul>
+          <li><strong>强项：</strong>媒体和附件链路边界清楚，适合多通道 assistant；live preview 思路适合把草稿产物转成最终产物。</li>
+          <li><strong>限制：</strong>它更像 agent channel runtime，不是专门的 artifacts canvas 产品。</li>
+          <li><strong>适用：</strong>需要处理图片、文件、外部 URL、sandbox 访问和多通道消息的 personal assistant。</li>
+        </ul>
+
+        <h3>2.4 Hermes：工具结果、沙箱临时目录和 checkpoint 组成恢复层</h3>
+
+        <p>Hermes 的 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/tool_result_storage.py#L1-L23"><code>tool_result_storage.py</code></a> 把大工具输出控制写成三层防线：工具自身上限、单个结果落盘、单轮 aggregate budget。它和 Claude Code 的思路相似，但强调写入 sandbox temp dir，使不同 backend 上的模型都可以通过 read file 访问完整输出。</p>
+
+        <p>实现里一个很工程化的细节是写入方式。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/tool_result_storage.py#L78-L94"><code>_write_to_sandbox</code></a> 通过 stdin 把内容写入 sandbox，而不是把大文本塞进命令参数。这样避免 Linux 单个 argv 元素长度限制。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/tool_result_storage.py#L122-L178"><code>maybe_persist_tool_result</code></a> 则在超过阈值时返回预览和路径引用，失败时才退回 inline truncation。</p>
+
+        <p>Hermes 的另一块 artifact 基建是 checkpoint。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/checkpoint_manager.py#L1-L49"><code>checkpoint_manager.py</code></a> 用单个共享 shadow git store 做透明文件系统快照，触发点是写文件、patch、破坏性 terminal 等操作。它强调 dedup、per-project refs、独立 index、默认排除依赖和大二进制文件，并通过 prune / gc / size cap 做维护。</p>
+
+        <p>这说明 terminal agent 的 artifact 不只是“最终生成了哪个文件”。中间的工具输出、临时文件、工作区快照、回滚点，都是用户真正依赖的产物。没有 checkpoint，artifact 的编辑能力就缺一条关键后路。</p>
+
+        <h4>Hermes 的特点</h4>
+
+        <ul>
+          <li><strong>强项：</strong>大输出落盘和 checkpoint 很扎实，尤其适合长任务、破坏性操作和多 backend sandbox。</li>
+          <li><strong>限制：</strong>产品级可视化 canvas 不是主轴，artifact 体验更多体现在文件和恢复能力。</li>
+          <li><strong>适用：</strong>需要可靠执行、回滚、保留工具输出的本地/远程 coding agent。</li>
+        </ul>
+
+        <h2>三、产品型 artifacts：OpenWebUI、Vercel Chatbot、LibreChat、Open Canvas</h2>
+
+        <p>产品型 artifacts 的核心不是“能不能生成 HTML”，而是用户能不能在聊天之外持续工作。这里要看四个能力：专门的 artifact view、版本和编辑、预览安全、持久化和共享。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b23834c4819ab673c03c1809ae1e.png" alt="产品型 AI artifacts：聊天界面、侧边 canvas、版本时间线、预览和编辑循环">
+          <figcaption>产品型 artifact 的关键是把“回答”变成“工作区”：生成、预览、编辑、版本、复制、下载、分享都要进入同一条体验链路。</figcaption>
+        </figure>
+
+        <h3>3.1 OpenWebUI：最像 Claude Artifacts 的开源产品面</h3>
+
+        <p>OpenWebUI 的官方文档直接把 Artifacts 描述为受 Claude.ai 启发的功能，用于在聊天之外处理可复用的独立内容。README 也列出 <a href="https://github.com/open-webui/open-webui/blob/02dc3e689ceac915a870b373318b99c029ddf603/README.md#L46-L49">Native Python Function Calling Tool 和 Persistent Artifact Storage</a>：后者是 artifact 的内置 key-value storage API，支持 personal / shared scopes。</p>
+
+        <p>源码里，<a href="https://github.com/open-webui/open-webui/blob/02dc3e689ceac915a870b373318b99c029ddf603/src/lib/components/chat/Artifacts.svelte#L94-L115"><code>Artifacts.svelte</code></a> 订阅 artifact contents，并在新内容增加时切到最新版本；<a href="https://github.com/open-webui/open-webui/blob/02dc3e689ceac915a870b373318b99c029ddf603/src/lib/components/chat/Artifacts.svelte#L243-L258">HTML artifact</a> 通过 iframe <code>srcdoc</code> 渲染，带 sandbox 属性，并通过 <a href="https://github.com/open-webui/open-webui/blob/02dc3e689ceac915a870b373318b99c029ddf603/src/lib/utils/csp.ts#L1-L12"><code>injectCsp</code></a> 注入 CSP meta。</p>
+
+        <p>代码执行方面，OpenWebUI 还能在前端用 Pyodide worker 执行 Python。<a href="https://github.com/open-webui/open-webui/blob/02dc3e689ceac915a870b373318b99c029ddf603/src/routes/+layout.svelte#L246-L295"><code>executePythonAsWorker</code></a> 会根据 import 自动选择包，获取上传文件内容，再把 code、packages、files 发给 worker。这让它不仅能展示 artifact，还能让部分 artifact 在浏览器侧执行。</p>
+
+        <h4>评价</h4>
+
+        <p>OpenWebUI 的优势是产品完整度高：artifact panel、版本导航、iframe sandbox、CSP、Pyodide、持久化 storage 都覆盖到。它的风险也正来自能力丰富：一旦允许 HTML/JS、文件、Python、共享 scope，权限和资源边界就必须持续维护。作为 self-hosted 产品，它是本文调研里产品型 artifact 综合能力最强的一档。</p>
+
+        <h3>3.2 Vercel Chatbot：把 artifact 抽象成 document handler</h3>
+
+        <p>Vercel Chatbot 的实现很值得看，因为它没有把 artifact 写成一段 prompt hack，而是抽象成 document handler。<a href="https://github.com/vercel/chatbot/blob/2becdb4a56e7683ae08aef927cec1c6c52dfad5e/lib/artifacts/server.ts#L35-L99"><code>createDocumentHandler</code></a> 为不同 kind 提供 <code>onCreateDocument</code> 和 <code>onUpdateDocument</code>，并把生成内容保存成 document。当前 artifact kinds 包括 text、code、sheet。</p>
+
+        <p>模型侧通过工具创建产物。<a href="https://github.com/vercel/chatbot/blob/2becdb4a56e7683ae08aef927cec1c6c52dfad5e/lib/ai/tools/create-document.ts#L17-L89"><code>createDocument</code></a> 要求模型指定 title 和 kind，并向 data stream 写入 kind、id、title、clear、finish 等事件；<a href="https://github.com/vercel/chatbot/blob/2becdb4a56e7683ae08aef927cec1c6c52dfad5e/lib/ai/tools/update-document.ts#L14-L76"><code>updateDocument</code></a> 则先取 document，检查 user id，再调用对应 handler 重写。</p>
+
+        <p>前端的 <a href="https://github.com/vercel/chatbot/blob/2becdb4a56e7683ae08aef927cec1c6c52dfad5e/components/chat/artifact.tsx#L32-L53"><code>UIArtifact</code></a> 明确包含 title、document id、kind、content、visible、status、bounding box。组件通过 SWR 拉取 document versions，<a href="https://github.com/vercel/chatbot/blob/2becdb4a56e7683ae08aef927cec1c6c52dfad5e/components/chat/artifact.tsx#L127-L142">默认选最新版本</a>；用户编辑时，<a href="https://github.com/vercel/chatbot/blob/2becdb4a56e7683ae08aef927cec1c6c52dfad5e/components/chat/artifact.tsx#L150-L199">前端会 POST 新内容</a>，并用 debounce 管理保存；版本切换和 diff/edit 模式在 <a href="https://github.com/vercel/chatbot/blob/2becdb4a56e7683ae08aef927cec1c6c52dfad5e/components/chat/artifact.tsx#L237-L258">version handler</a> 里处理。</p>
+
+        <h4>评价</h4>
+
+        <p>Vercel Chatbot 的强项是设计清晰：artifact = document + kind + handler + data stream + version UI。它很适合作为产品工程模板学习。限制是它本质是一个模板，部署者还要自己处理真实多租户、安全策略、执行环境和生产运维。</p>
+
+        <h3>3.3 LibreChat：prompt-level artifact 协议加解析器</h3>
+
+        <p>LibreChat 的 README 明确把 Artifacts 列进产品能力。它的 artifact prompt 定义了“什么内容适合 artifact”：独立、较长、用户可能修改或复用、可脱离对话使用。<a href="https://github.com/danny-avila/LibreChat/blob/055585f9f1f43c71b8f883a2c89e905d124d0721/api/app/clients/prompts/artifacts.js#L120-L195">prompt 中的协议</a> 用 <code>:::artifact{identifier=... type=... title=...}</code> 包裹内容，并支持 HTML、SVG、Markdown、Mermaid、React 等 MIME 类型。</p>
+
+        <p>更重要的是，LibreChat 不是只靠 prompt 文本。<a href="https://github.com/danny-avila/LibreChat/blob/055585f9f1f43c71b8f883a2c89e905d124d0721/packages/api/src/artifacts/update.ts#L1-L3"><code>packages/api/src/artifacts/update.ts</code></a> 定义 artifact block 的起止标记；<a href="https://github.com/danny-avila/LibreChat/blob/055585f9f1f43c71b8f883a2c89e905d124d0721/packages/api/src/artifacts/update.ts#L84-L118"><code>findArtifactClose</code></a> 会识别 artifact close 和 code fence 的边界，避免简单字符串搜索被代码块里的 <code>:::</code> 干扰；<a href="https://github.com/danny-avila/LibreChat/blob/055585f9f1f43c71b8f883a2c89e905d124d0721/packages/api/src/artifacts/update.ts#L216-L260"><code>findAllArtifacts</code></a> 同时支持 message content parts 和 fallback text。</p>
+
+        <h4>评价</h4>
+
+        <p>LibreChat 的优势是兼容性和自托管生态：它把 artifact 作为聊天协议的一层，使不同模型都能生成可解析的 block。它的风险也在这里：prompt-level 协议必须靠解析器持续兜底，复杂 UI 和执行安全需要更多产品层约束。综合看，它是“通用聊天产品接入 artifacts”的代表实现。</p>
+
+        <h3>3.4 Open Canvas：把 artifact 放进 LangGraph 状态机</h3>
+
+        <p>Open Canvas 的定位更窄，但实现很干净。它把 artifact 放进 graph state，而不是只把它当成消息渲染。<a href="https://github.com/langchain-ai/open-canvas/blob/0310cecd51f31b3d37a52d6d1060137da3405280/apps/agents/src/open-canvas/nodes/generate-artifact/schemas.ts#L4-L33"><code>ARTIFACT_TOOL_SCHEMA</code></a> 定义 type、language、isValidReact、artifact、title；<a href="https://github.com/langchain-ai/open-canvas/blob/0310cecd51f31b3d37a52d6d1060137da3405280/apps/agents/src/open-canvas/nodes/generate-artifact/index.ts#L22-L83"><code>generateArtifact</code></a> 绑定 tool，让模型输出结构化 args，然后创建 <code>ArtifactV3</code>。</p>
+
+        <p>更新逻辑更能体现版本设计。<a href="https://github.com/langchain-ai/open-canvas/blob/0310cecd51f31b3d37a52d6d1060137da3405280/apps/agents/src/open-canvas/nodes/updateArtifact.ts#L25-L149"><code>updateArtifact</code></a> 会读取当前 artifact、获取高亮代码片段、只重写选中区域附近的内容，再把新 content 追加到 <code>contents</code> 数组，并把 <code>currentIndex</code> 移到新版本。共享工具里的 <a href="https://github.com/langchain-ai/open-canvas/blob/0310cecd51f31b3d37a52d6d1060137da3405280/packages/shared/src/utils/artifacts.ts#L41-L54"><code>getArtifactContent</code></a> 则按 current index 取当前版本。</p>
+
+        <h4>评价</h4>
+
+        <p>Open Canvas 的强项是 artifact lifecycle 被纳入 agent graph：生成、局部更新、版本选择都是状态机的一部分。限制是类型范围较窄，生态热度也低于 OpenWebUI、LibreChat、Vercel Chatbot。但如果要学习“artifact 不是消息，而是 agent state”，它是很好的样本。</p>
+
+        <h2>四、沙箱底座：artifact 能不能运行，取决于执行边界</h2>
+
+        <p>只要 artifact 可以执行代码，它就从 UI 问题变成 sandbox 问题。这里的核心不是“能不能运行”，而是在哪里运行、怎样写入文件、怎样安装依赖、怎样返回 preview URL、怎样限制资源、怎样清理。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b27fd228819a92d3bc996972da0b.png" alt="AI artifact 的沙箱底座：文件写入、依赖安装、代码执行、输出结果、预览 URL、权限网关和清理">
+          <figcaption>代码型 artifact 的真实边界在 sandbox：写文件、装依赖、运行进程、产出结果、暴露预览 URL，每一步都需要资源和权限控制。</figcaption>
+        </figure>
+
+        <h3>4.1 E2B Fragments：从生成片段到 sandbox preview URL</h3>
+
+        <p>E2B Fragments 是“AI 生成应用 + 沙箱预览”这条路线的代表。<a href="https://vercel.com/templates/next.js/open-source-ai-artifacts">Vercel 模板页</a>也把它作为 open-source AI artifacts and code execution 模板推荐。</p>
+
+        <p>源码里，<a href="https://github.com/e2b-dev/fragments/blob/2e5fd62f3070ded782f3722ae381b85262bbbf0b/app/api/sandbox/route.ts#L25-L85"><code>app/api/sandbox/route.ts</code></a> 会按 fragment template 创建 E2B sandbox，写入生成的代码文件，必要时安装依赖。如果 template 是 code interpreter，就执行代码并返回 stdout、stderr、cell results；否则返回 sandbox id、template 和预览 URL。前端的 <a href="https://github.com/e2b-dev/fragments/blob/2e5fd62f3070ded782f3722ae381b85262bbbf0b/components/fragment-preview.tsx#L12-L18"><code>FragmentPreview</code></a> 再按 template 类型选择 interpreter result 或 web preview。</p>
+
+        <p>这说明 E2B 这类项目不是 artifact UI 的替代，而是它的执行底座。OpenWebUI、Vercel Chatbot、LibreChat 可以决定怎么生成和展示；E2B、Daytona、OpenSandbox 负责让生成代码安全地跑起来。</p>
+
+        <h3>4.2 Daytona、OpenSandbox：更通用的 agent execution substrate</h3>
+
+        <p>Daytona 和 OpenSandbox 更像通用执行平台。Daytona 的仓库描述强调 secure and elastic infrastructure for running AI-generated code；OpenSandbox 的描述是 secure、fast、extensible sandbox runtime for AI agents。它们在 artifact 生态里的位置不是“某个聊天框里的卡片”，而是运行代码型 artifact 的隔离层。</p>
+
+        <p>这类 substrate 的能力排序不能只看 UI。更关键的是：是否支持多语言/多模板，是否能挂载文件，是否能提供预览 URL，是否能限制网络，是否能限制 CPU/内存/时长，是否有审计，是否能回收资源，是否能和 agent session 绑定。</p>
+
+        <h3>4.3 沙箱不是可选项</h3>
+
+        <p>如果一个产品允许模型生成 HTML、JS、Python、Shell、React 或依赖安装，却没有明确执行边界，那么 artifact 能力越强，风险越高。一个成熟的 artifact runtime 至少要回答：</p>
+
+        <ul>
+          <li>不可信代码是否永远运行在隔离环境里？</li>
+          <li>预览 iframe 是否有 sandbox、CSP 和导航限制？</li>
+          <li>上传文件、生成文件、外部 URL 是否做大小、MIME、路径和访问校验？</li>
+          <li>执行结果是否有资源上限和超时？</li>
+          <li>临时文件、preview URL、容器实例何时清理？</li>
+          <li>用户编辑后的版本是否可回滚？</li>
+        </ul>
+
+        <p>这些问题都不是前端体验细节，而是 artifact 能力能否进入生产环境的分界线。</p>
+
+        <h2>五、协议层：避免 artifact 变成每家产品的私有方言</h2>
+
+        <p>当 artifact 从单产品能力变成 agent ecosystem 的通用能力时，协议层会变得重要。否则每个前端、每个 agent、每个工具都会发明自己的 <code>:::artifact</code>、自己的 JSON、自己的 stream event，最后无法互操作。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b2c5ab88819ab8c42069441e0e00.png" alt="AI artifact 协议层：agent、应用、事件流、artifact chunks、UI activity snapshots 和版本化存储服务">
+          <figcaption>协议层把 artifact 从私有 UI 方言里抽出来：task artifact、UI event、artifact service 和 tool/resource bus 负责不同边界。</figcaption>
+        </figure>
+
+        <h3>5.1 A2A：task-owned artifact 和增量更新</h3>
+
+        <p>A2A 直接把 artifact 放进 agent-to-agent 协议。Python helper 里的 <a href="https://github.com/a2aproject/a2a-python/blob/c0c6c08bcf84a4ef3642dfc0087028812c4ccd51/src/a2a/helpers/proto_helpers.py#L153-L165"><code>new_artifact</code></a> 创建带 artifact id、parts、name、description 的对象；<a href="https://github.com/a2aproject/a2a-python/blob/c0c6c08bcf84a4ef3642dfc0087028812c4ccd51/src/a2a/helpers/proto_helpers.py#L168-L260">text、data、raw、URL</a> 都有 helper。更关键的是，<a href="https://github.com/a2aproject/a2a-python/blob/c0c6c08bcf84a4ef3642dfc0087028812c4ccd51/src/a2a/helpers/proto_helpers.py#L468-L609"><code>TaskArtifactUpdateEvent</code></a> 支持 append、last chunk 和 artifact id。</p>
+
+        <p>这套模型非常适合跨 agent 任务：artifact 不是 UI 里的孤立卡片，而是 task 的产物。接收方不必知道它最终会被渲染成 tab、文件还是通知，只要能按协议处理 parts 和 updates。</p>
+
+        <h3>5.2 ADK：artifact service 是 agent 的文件记忆层</h3>
+
+        <p>Google ADK Go 把 artifact 做成服务接口。<a href="https://github.com/google/adk-go/blob/415c921dcdb7c6eda8d03bc8b185691a6569cadb/artifact/service.go#L15-L20"><code>artifact/service.go</code></a> 明确说 artifact 是由 app name、user id、session id、filename 标识的文件，并支持 Save、Load、Delete、List、Versions；<a href="https://github.com/google/adk-go/blob/415c921dcdb7c6eda8d03bc8b185691a6569cadb/artifact/service.go#L30-L46">Service 接口</a> 把这些能力固定下来。</p>
+
+        <p>内存实现里，<a href="https://github.com/google/adk-go/blob/415c921dcdb7c6eda8d03bc8b185691a6569cadb/artifact/inmemory.go#L141-L164"><code>Save</code></a> 会为同名 artifact 递增 version；<a href="https://github.com/google/adk-go/blob/415c921dcdb7c6eda8d03bc8b185691a6569cadb/artifact/inmemory.go#L224-L258"><code>List</code></a> 同时列出 session-specific 和 user-scoped artifacts；<a href="https://github.com/google/adk-go/blob/415c921dcdb7c6eda8d03bc8b185691a6569cadb/artifact/inmemory.go#L261-L285"><code>Versions</code></a> 列版本。<a href="https://github.com/google/adk-go/blob/415c921dcdb7c6eda8d03bc8b185691a6569cadb/tool/loadartifactstool/load_artifacts_tool.go#L15-L18"><code>load_artifacts</code> 工具</a> 还能把可用 artifact 名称告诉模型，并要求模型需要时先调用工具加载内容；<a href="https://github.com/google/adk-go/blob/415c921dcdb7c6eda8d03bc8b185691a6569cadb/tool/loadartifactstool/load_artifacts_tool.go#L130-L148">初始 instructions</a> 明确要求访问 artifact 前先 load。</p>
+
+        <p>ADK 的价值在于它把 artifact 放进 agent runtime，而不是把它留给前端组件。文件记忆、版本、用户 scope、session scope 都是协议化对象。</p>
+
+        <h3>5.3 AG-UI：artifact 的 UI 侧需要事件标准</h3>
+
+        <p>AG-UI 的定位不是 artifact storage，而是 agent-user interaction protocol。README 说它是事件协议，agent backend 在执行中发出约 16 类标准事件，支持 SSE、WebSocket、webhook 等传输，并强调 bidirectional state synchronization、generative UI、structured messages 和 frontend tool integration。</p>
+
+        <p>这对 artifacts 很关键：如果 A2A 解决 task artifact，ADK 解决 artifact service，那么 AG-UI 解决“agent 产物如何进入用户应用”。其中 A2UI middleware 的测试显示，<a href="https://github.com/ag-ui-protocol/ag-ui/blob/5b8dee58e9b64375d46128b29b9675f971153ee0/middlewares/a2ui-middleware/__tests__/a2ui-middleware.test.ts#L180-L227"><code>render_a2ui</code></a> 可以在 tool args streaming 时发出 activity snapshot，并在 run finished 时合成 tool call result。这就是 UI artifact 需要的事件化能力。</p>
+
+        <h3>5.4 MCP 是相邻层，不是 artifact 协议本身</h3>
+
+        <p>MCP 很重要，但它解决的问题更偏“agent 怎么发现和调用外部工具、资源、提示模板”。它可以返回文件、资源 URI、tool result，也可以间接产生 artifact；但 artifact 的版本、编辑、预览、发布、UI 更新，不是 MCP 单独负责的完整语义。更稳的架构是：MCP 提供工具和资源入口，A2A / ADK / AG-UI 或产品自有协议承载 artifact 生命周期。</p>
+
+        <h2>六、排序：按流行度和 artifact 能力分开看</h2>
+
+        <p>用户真正做选型时，最容易犯的错是只看 star。star 代表开源可见热度，不等于 artifact 能力完整度。本文把排序分成两张表：第一张严格按 GitHub star 排，第二张按 artifact 能力排。能力判断采用分项矩阵，考虑显式 artifact model、流式更新、预览/执行、持久化/版本、编辑、协议互操作、安全边界、生产可用性。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ig_0af013b4b7321ec7016a30b3117788819a845eb58782eaa8c3.png" alt="AI artifact 实现的流行度和能力排序地图">
+          <figcaption>流行度和能力是两条轴。大型 agent 项目热度可能很高，但 artifact canvas 不一定强；小型模板项目热度不高，却可能把 artifact 生命周期做得很完整。</figcaption>
+        </figure>
+
+        <h3>6.1 流行度排序</h3>
+
+        <p>下表按 2026-06-16 查询到的 GitHub star 降序排列。为了避免误读，表中“artifact 定位”只描述与本文主题相关的能力，不概括整个项目。</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>项目</th>
+              <th>Star</th>
+              <th>artifact 定位</th>
+              <th>一句评价</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td><a href="https://github.com/openclaw/openclaw">OpenClaw</a></td><td>378,898</td><td>媒体、附件、live preview、personal assistant 运行时</td><td>热度最高，artifact 能力偏多通道产物和媒体边界。</td></tr>
+            <tr><td>2</td><td><a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a></td><td>194,511</td><td>工具结果落盘、沙箱文件、checkpoint</td><td>恢复和执行层强，产品 canvas 不是主轴。</td></tr>
+            <tr><td>3</td><td><a href="https://github.com/open-webui/open-webui">OpenWebUI</a></td><td>141,675</td><td>产品型 artifacts、iframe/Pyodide、持久化 storage</td><td>开源产品里 artifact 综合能力最完整的一档。</td></tr>
+            <tr><td>4</td><td><a href="https://github.com/anthropics/claude-code">Claude Code</a></td><td>132,592</td><td>coding agent 产物、工具结果、文件和执行链路</td><td>产品 Artifacts 闭源；agent runtime 的工具产物值得研究。</td></tr>
+            <tr><td>5</td><td><a href="https://github.com/openai/codex">Codex</a></td><td>91,271</td><td>typed thread items、文件改动、命令执行、图片生成</td><td>不是 canvas，但线程产物结构化做得很清楚。</td></tr>
+            <tr><td>6</td><td><a href="https://github.com/lobehub/lobehub">LobeHub</a></td><td>78,704</td><td>agent ops / product workspace</td><td>热度高，但本文未把它作为 artifact 源码主案例。</td></tr>
+            <tr><td>7</td><td><a href="https://github.com/OpenHands/OpenHands">OpenHands</a></td><td>77,247</td><td>coding agent workspace、文件和浏览器产物</td><td>更偏开发任务工作区，artifact canvas 不是核心命名。</td></tr>
+            <tr><td>8</td><td><a href="https://github.com/daytonaio/daytona">Daytona</a></td><td>72,427</td><td>AI-generated code execution infrastructure</td><td>强在执行底座，不负责上层 artifact UI。</td></tr>
+            <tr><td>9</td><td><a href="https://github.com/cline/cline">Cline</a></td><td>63,353</td><td>IDE/CLI coding agent 产物</td><td>适合文件和任务流，非通用 artifact canvas。</td></tr>
+            <tr><td>10</td><td><a href="https://github.com/danny-avila/LibreChat">LibreChat</a></td><td>39,241</td><td>通用聊天 artifacts、MIME block、解析器</td><td>自托管聊天产品里 artifact 协议兼容性强。</td></tr>
+            <tr><td>11</td><td><a href="https://github.com/continuedev/continue">Continue</a></td><td>33,703</td><td>coding agent / IDE 产物</td><td>artifact 更多表现为代码编辑和上下文，而非独立 canvas。</td></tr>
+            <tr><td>12</td><td><a href="https://github.com/vercel/ai">Vercel AI SDK</a></td><td>24,896</td><td>streaming/tool/generative UI 基础库</td><td>上层 artifact 能力常通过 Chatbot 模板实现。</td></tr>
+            <tr><td>13</td><td><a href="https://github.com/vercel/chatbot">Vercel Chatbot</a></td><td>20,499</td><td>document handlers、artifact UI、版本和编辑</td><td>模板级 artifact 架构非常清晰。</td></tr>
+            <tr><td>14</td><td><a href="https://github.com/google/adk-python">Google ADK Python</a></td><td>20,123</td><td>artifact service / agent runtime</td><td>这里表示 ADK 生态热度；本文源码级 artifact service 证据主要来自 ADK Go。</td></tr>
+            <tr><td>15</td><td><a href="https://github.com/e2b-dev/E2B">E2B</a></td><td>12,601</td><td>安全代码执行环境</td><td>代码型 artifact 的关键底座。</td></tr>
+            <tr><td>16</td><td><a href="https://github.com/opensandbox-group/OpenSandbox">OpenSandbox</a></td><td>11,539</td><td>agent sandbox runtime</td><td>更底层、更通用的执行隔离。</td></tr>
+            <tr><td>17</td><td><a href="https://github.com/microsoft/magentic-ui">Magentic-UI</a></td><td>9,900</td><td>浏览器和本地文件系统 agent UI</td><td>强调人机协作工作区，artifact 是其一部分。</td></tr>
+            <tr><td>18</td><td><a href="https://github.com/google/adk-go">Google ADK Go</a></td><td>8,160</td><td>artifact service、版本、load tool</td><td>源码层 artifact contract 明确。</td></tr>
+            <tr><td>19</td><td><a href="https://github.com/e2b-dev/fragments">E2B Fragments</a></td><td>6,318</td><td>AI app fragments + sandbox preview</td><td>小而清晰，展示了生成应用到预览 URL 的路径。</td></tr>
+            <tr><td>20</td><td><a href="https://github.com/langchain-ai/open-canvas">Open Canvas</a></td><td>5,468</td><td>LangGraph artifact state、局部更新、版本</td><td>热度不高，但 artifact lifecycle 很纯粹。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>6.2 能力排序</h3>
+
+        <p>能力排序只看 artifact 相关，不评价整个项目。为避免把定性判断伪装成精确分数，下面用分项矩阵排序：<code>M</code> 表示 artifact model，<code>P</code> 表示 preview / execution，<code>V</code> 表示 version / persistence，<code>E</code> 表示 edit / regenerate，<code>I</code> 表示 isolation / safety，<code>G</code> 表示 protocol / integration。强、中、弱是基于本文引用源码和官方文档的相对判断；ADK 能力行以 ADK Go 固定 commit 的源码证据为准，ADK Python 只在上一张表里作为生态热度参考。</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>能力排名</th>
+              <th>项目/层级</th>
+              <th>档位</th>
+              <th>M</th>
+              <th>P</th>
+              <th>V</th>
+              <th>E</th>
+              <th>I/G</th>
+              <th>依据与建议</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>OpenWebUI</td><td><span class="rank-good">领先</span></td><td>强</td><td>强</td><td>强</td><td>中</td><td>中 / 中</td><td>产品 artifacts、iframe sandbox、CSP、Pyodide、持久化 storage 覆盖完整；适合自托管聊天产品。</td></tr>
+            <tr><td>2</td><td>Vercel Chatbot</td><td><span class="rank-good">领先</span></td><td>强</td><td>中</td><td>强</td><td>强</td><td>中 / 中</td><td>document handler、data stream、版本和手动编辑链路清晰；适合作为 AI SDK 产品模板。</td></tr>
+            <tr><td>3</td><td>LibreChat</td><td><span class="rank-good">强</span></td><td>中</td><td>中</td><td>中</td><td>中</td><td>中 / 强</td><td>MIME block、artifact parser、自托管生态成熟；复杂内容依赖 prompt 协议和解析器兜底。</td></tr>
+            <tr><td>4</td><td>Open Canvas</td><td><span class="rank-good">强</span></td><td>强</td><td>中</td><td>强</td><td>强</td><td>弱 / 中</td><td>artifact 进入 LangGraph state，局部更新和版本很清楚；类型范围较窄。</td></tr>
+            <tr><td>5</td><td>ADK Go Artifact Service</td><td><span class="rank-good">强</span></td><td>强</td><td>弱</td><td>强</td><td>弱</td><td>中 / 强</td><td>Save/Load/List/Versions、user/session scope、load tool 是 SDK 级 contract；不提供产品 canvas。</td></tr>
+            <tr><td>6</td><td>A2A</td><td><span class="rank-mid">协议强</span></td><td>强</td><td>弱</td><td>中</td><td>弱</td><td>弱 / 强</td><td>task-owned artifact、parts、append、last chunk 适合跨 agent 传递；需要 UI 和 storage 配合。</td></tr>
+            <tr><td>7</td><td>OpenClaw</td><td><span class="rank-mid">运行时强</span></td><td>中</td><td>中</td><td>中</td><td>中</td><td>强 / 中</td><td>媒体边界、outbound attachment、live preview finalizer 适合多通道 assistant。</td></tr>
+            <tr><td>8</td><td>Codex</td><td><span class="rank-mid">线程强</span></td><td>强</td><td>弱</td><td>中</td><td>弱</td><td>中 / 中</td><td>typed thread item、文件改动、命令执行、图片生成结构化；不是通用 artifact canvas。</td></tr>
+            <tr><td>9</td><td>Hermes Agent</td><td><span class="rank-mid">恢复强</span></td><td>中</td><td>弱</td><td>强</td><td>弱</td><td>中 / 中</td><td>大输出落盘、sandbox temp dir、checkpoint 适合长任务和回滚。</td></tr>
+            <tr><td>10</td><td>Claude Code / Agent SDK</td><td><span class="rank-mid">工具产物强</span></td><td>中</td><td>弱</td><td>中</td><td>弱</td><td>中 / 中</td><td>公开镜像显示 tool result persistence 和 read-time projection；Claude 产品 Artifacts 的 UI 能力另按官方帮助中心理解。</td></tr>
+            <tr><td>11</td><td>E2B Fragments / E2B</td><td><span class="rank-mid">执行专项</span></td><td>中</td><td>强</td><td>弱</td><td>弱</td><td>强 / 中</td><td>写文件、装依赖、执行、返回 preview URL 很清楚；不负责完整产品 lifecycle。</td></tr>
+            <tr><td>12</td><td>AG-UI</td><td><span class="rank-mid">UI 协议专项</span></td><td>中</td><td>中</td><td>弱</td><td>中</td><td>弱 / 强</td><td>用事件把 agent 输出带进用户应用，适合 generative UI 和 activity snapshot；不做 artifact storage。</td></tr>
+          </tbody>
+        </table>
+
+        <h3>6.3 最终选型结论</h3>
+
+        <p>如果你要做一个面向用户的 AI 聊天产品，优先看 OpenWebUI、Vercel Chatbot、LibreChat、Open Canvas。它们直接回答“用户在哪里看、改、下载、切版本”。</p>
+
+        <p>如果你要做 coding agent，优先看 Codex、Claude Code、Hermes、OpenClaw。它们不一定给你一个漂亮 canvas，但会告诉你文件改动、命令输出、媒体、checkpoint、tool result 怎么变成可恢复对象。</p>
+
+        <p>如果你要让 artifact 运行代码，优先看 E2B、Daytona、OpenSandbox 这类 substrate，再把它们接到上层产品或 agent runtime。不要让前端 iframe 直接承担隔离责任。</p>
+
+        <p>如果你要做多 agent 或多前端互操作，优先看 A2A、ADK、AG-UI。artifact 的 identity、parts、updates、versions、UI events 应该协议化，而不是散落在 prompt 和私有 JSON 里。</p>
+
+        <h2>七、设计 artifact runtime 时必须守住的十个不变量</h2>
+
+        <p>综合这些实现，可以提炼出十个不变量。它们比“用哪套 UI 组件”更稳定。</p>
+
+        <h3>7.1 身份：每个 artifact 都要能被引用</h3>
+
+        <p>没有 id，就没有更新、版本、权限、导出和审计。Vercel 的 document id、A2A 的 artifact id、ADK 的 app/user/session/filename 组合、Codex 的 thread item id，都是在解决身份问题。</p>
+
+        <h3>7.2 类型：MIME 和 kind 要比自然语言可靠</h3>
+
+        <p>模型说“这是一个网页”不够。runtime 需要知道它是 <code>text/html</code>、<code>image/svg+xml</code>、<code>text/markdown</code>、code、sheet、raw bytes 还是 URL part。类型决定渲染器、权限和导出方式。</p>
+
+        <h3>7.3 归属：artifact 必须有 owner 和 scope</h3>
+
+        <p>同一个 artifact 可能属于一次 task、一个 session、一个 user、一个 organization，或一个 public share。ADK 的 user-scoped artifact、OpenWebUI 的 personal/shared storage、Vercel 的 user id 检查，都在处理这个问题。</p>
+
+        <h3>7.4 版本：编辑不是覆盖，而是产生新状态</h3>
+
+        <p>用户修改 artifact 后，如果直接覆盖原内容，就丢掉了可回滚性。Vercel 的 document versions、Open Canvas 的 <code>contents</code> 数组、ADK 的 version，都说明 artifact 应该天然版本化。</p>
+
+        <h3>7.5 预览：preview 不是 publish</h3>
+
+        <p>preview 是临时、受限、可失败的状态；publish 是稳定、可分享、有权限边界的状态。OpenClaw 的 finalizable live preview 抽象很有启发：草稿可以先显示，但最后必须显式收束。</p>
+
+        <h3>7.6 执行：不可信代码必须进 sandbox</h3>
+
+        <p>HTML/JS 可以用 iframe sandbox 和 CSP；Python 可以用 Pyodide worker 或远程 sandbox；完整 web app 更适合 E2B、Daytona、OpenSandbox 这类容器环境。执行层不能靠 prompt 约束。</p>
+
+        <h3>7.7 上下文：模型不需要每轮看到完整 artifact</h3>
+
+        <p>大工具输出和大文件应该落盘，模型上下文里保留预览、路径、版本和读取方式。Claude Code 和 Hermes 的 persisted output 说明：artifact storage 是长上下文管理的一部分。</p>
+
+        <h3>7.8 恢复：resume 后路径和版本仍要有效</h3>
+
+        <p>一次 agent 任务可能跨小时、跨天、跨设备。artifact 如果只能在当前内存里存在，就不适合承担交付物角色。Codex 的 rollout/thread history、Hermes checkpoint、ADK artifact service 都在保证恢复。</p>
+
+        <h3>7.9 清理：TTL、quota、GC 是产品能力</h3>
+
+        <p>临时媒体、sandbox 文件、preview URL、代码执行结果都会占资源。没有 TTL、quota 和 GC，artifact 系统会变成隐形存储泄漏。OpenClaw media TTL、Hermes checkpoint prune、sandbox timeout 都是必要能力。</p>
+
+        <h3>7.10 协议：不要让 prompt 成为唯一 contract</h3>
+
+        <p>Prompt 可以指导模型什么时候生成 artifact，但不能承担全部 runtime contract。成熟系统需要结构化事件、schema、服务接口和 UI 状态。LibreChat 的 block parser、Vercel 的 tool/data stream、A2A 的 artifact update、ADK 的 service interface，都是在把 prompt 里的意图落成协议。</p>
+
+        <h2>八、参考资料</h2>
+
+        <ul>
+          <li><a href="https://support.anthropic.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them">Anthropic：What are artifacts and how do I use them?</a></li>
+          <li><a href="https://support.anthropic.com/en/articles/9547008-publishing-and-remixing-artifacts">Anthropic：Publishing and remixing artifacts</a></li>
+          <li><a href="https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/code-execution-tool">Anthropic：Code execution tool</a></li>
+          <li><a href="https://docs.openwebui.com/features/chat-conversations/chat-features/code-execution/artifacts/">OpenWebUI：Artifacts documentation</a></li>
+          <li><a href="https://vercel.com/templates/next.js/open-source-ai-artifacts">Vercel：Open Source AI Artifacts and Code Execution</a></li>
+          <li><a href="https://github.com/openai/codex/tree/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28">OpenAI Codex source snapshot</a></li>
+          <li><a href="https://github.com/WineChord/claude-code/tree/5a774a2b62d7949c1d94e0b726281554d7893cfd">Claude Code public source mirror snapshot</a></li>
+          <li><a href="https://github.com/openclaw/openclaw/tree/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89">OpenClaw source snapshot</a></li>
+          <li><a href="https://github.com/NousResearch/hermes-agent/tree/2dbc3bd93795f4307ec76661700aa902cc21c189">Hermes Agent source snapshot</a></li>
+          <li><a href="https://github.com/open-webui/open-webui/tree/02dc3e689ceac915a870b373318b99c029ddf603">OpenWebUI source snapshot</a></li>
+          <li><a href="https://github.com/vercel/chatbot/tree/2becdb4a56e7683ae08aef927cec1c6c52dfad5e">Vercel Chatbot source snapshot</a></li>
+          <li><a href="https://github.com/danny-avila/LibreChat/tree/055585f9f1f43c71b8f883a2c89e905d124d0721">LibreChat source snapshot</a></li>
+          <li><a href="https://github.com/langchain-ai/open-canvas/tree/0310cecd51f31b3d37a52d6d1060137da3405280">Open Canvas source snapshot</a></li>
+          <li><a href="https://github.com/e2b-dev/fragments/tree/2e5fd62f3070ded782f3722ae381b85262bbbf0b">E2B Fragments source snapshot</a></li>
+          <li><a href="https://github.com/google/adk-go/tree/415c921dcdb7c6eda8d03bc8b185691a6569cadb">Google ADK Go source snapshot</a></li>
+          <li><a href="https://github.com/a2aproject/a2a-python/tree/c0c6c08bcf84a4ef3642dfc0087028812c4ccd51">A2A Python source snapshot</a></li>
+          <li><a href="https://github.com/ag-ui-protocol/ag-ui/tree/5b8dee58e9b64375d46128b29b9675f971153ee0">AG-UI source snapshot</a></li>
+        </ul>
+      </article>
+    </main>
+  </div>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\\\(',right:'\\\\)',display:false}]});"></script>
+  <script>
+    const headings = Array.from(document.querySelectorAll('article h2, article h3, article h4'));
+    const toc = document.getElementById('toc');
+    const slugCounts = new Map();
+    const slugify = text => {
+      const base = text.trim().toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, '-')
+        .replace(/^-+|-+$/g, '') || 'section';
+      const count = slugCounts.get(base) || 0;
+      slugCounts.set(base, count + 1);
+      return count ? `${base}-${count + 1}` : base;
+    };
+    const root = document.createElement('ul');
+    root.className = 'toc-list';
+    const stack = [{ level: 1, list: root }];
+    headings.forEach(heading => {
+      if (!heading.id) heading.id = slugify(heading.textContent || '');
+      const level = Number(heading.tagName.slice(1));
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = `#${heading.id}`;
+      link.className = `toc-link toc-level-${level}`;
+      link.textContent = heading.textContent || '';
+      item.appendChild(link);
+      while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+      let parent = stack[stack.length - 1];
+      if (!parent || level === 2) {
+        root.appendChild(item);
+        stack.length = 1;
+        stack.push({ level, list: root, item });
+        return;
+      }
+      let sublist = parent.item?.querySelector(':scope > ul');
+      if (!sublist) {
+        sublist = document.createElement('ul');
+        sublist.className = 'toc-sublist';
+        parent.item?.appendChild(sublist);
+      }
+      sublist.appendChild(item);
+      stack.push({ level, list: sublist, item });
+    });
+    toc.appendChild(root);
+
+    const links = Array.from(document.querySelectorAll('.toc-link'));
+    const byId = new Map(links.map(link => [decodeURIComponent(link.hash.slice(1)), link]));
+    const observer = new IntersectionObserver(entries => {
+      const visible = entries
+        .filter(entry => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (!visible) return;
+      links.forEach(link => link.classList.remove('active'));
+      const active = byId.get(visible.target.id);
+      if (active) active.classList.add('active');
+    }, { rootMargin: '-12% 0px -70% 0px', threshold: [0, 1] });
+    headings.forEach(heading => observer.observe(heading));
+
+    document.querySelectorAll('table').forEach(table => {
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+      table.querySelectorAll('tbody tr').forEach(row => {
+        Array.from(row.children).forEach((cell, index) => {
+          if (headers[index]) cell.setAttribute('data-label', headers[index]);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
