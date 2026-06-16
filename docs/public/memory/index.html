@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Agent Memory：从源码到开源实现的长期状态工程</title>
+  <meta name="description" content="从 Codex、Claude Code、OpenClaw、Hermes Agent 和 mem0、Graphiti、Letta、Supermemory、Cognee、MemOS、LangMem 等开源实现，系统讲解 AI agent memory 的架构、排序、选型和治理。">
+  <link rel="canonical" href="https://www.wineandchord.com/books/memory/">
+  <meta property="og:title" content="AI Agent Memory：从源码到开源实现的长期状态工程">
+  <meta property="og:description" content="把 memory 看成受治理的长期状态，而不是无限上下文：读写分离、检索、图谱、用户画像、插件接入、排序与治理。">
+  <meta property="og:url" content="https://www.wineandchord.com/books/memory/">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-cover-20260616.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <style>
+    :root {
+      --bg: #f7f8f4;
+      --paper: #fffffb;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --blue: #0f4c81;
+      --green: #1f7a4d;
+      --amber: #b7791f;
+      --code-bg: #f3f6f8;
+      --font-book: "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+      --font-code: Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-book);
+      line-height: 1.78;
+      text-rendering: optimizeLegibility;
+    }
+    .page-shell {
+      width: min(100%, 1400px);
+      margin: 0 auto;
+      padding: 48px 22px 88px;
+      display: grid;
+      grid-template-columns: minmax(0, 300px) minmax(0, 1020px);
+      gap: 28px;
+      align-items: start;
+    }
+    main { min-width: 0; }
+    .toc-panel {
+      position: sticky;
+      top: 24px;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 16px 10px;
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 10px;
+      background: rgba(255, 255, 251, 0.92);
+      box-shadow: 0 12px 34px rgba(16, 42, 67, 0.07);
+    }
+    .toc-title {
+      margin: 0 0 10px;
+      padding: 0 8px 10px;
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+      color: #102a43;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .toc-list, .toc-sublist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-link {
+      display: block;
+      position: relative;
+      border-radius: 7px;
+      padding: 6px 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .toc-link:hover,
+    .toc-link.active {
+      background: rgba(31, 122, 77, 0.11);
+      color: #14532d;
+    }
+    .toc-level-2 {
+      margin-top: 11px;
+      padding: 8px 10px;
+      color: #102a43;
+      background: rgba(15, 76, 129, 0.055);
+      border-left: 3px solid rgba(15, 76, 129, 0.55);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .toc-level-3 {
+      margin-left: 10px;
+      padding: 5px 8px 5px 18px;
+    }
+    .toc-level-3::before,
+    .toc-level-4::before {
+      content: "";
+      position: absolute;
+      top: 0.95em;
+      left: 6px;
+      width: 7px;
+      border-top: 1px solid rgba(82, 96, 109, 0.32);
+    }
+    .toc-level-4 {
+      margin-left: 25px;
+      padding: 4px 6px 4px 16px;
+      color: #66788a;
+      font-size: 12.5px;
+    }
+    article {
+      background: var(--paper);
+      border: 1px solid rgba(15, 76, 129, 0.12);
+      border-radius: 8px;
+      padding: clamp(24px, 4vw, 58px);
+      box-shadow: 0 14px 40px rgba(16, 42, 67, 0.08);
+    }
+    h1, h2, h3, h4 {
+      color: #102a43;
+      line-height: 1.28;
+      letter-spacing: 0;
+      scroll-margin-top: 24px;
+      font-family: var(--font-book);
+    }
+    h1 {
+      margin: 0 0 18px;
+      max-width: 920px;
+      font-size: clamp(25px, 2.9vw, 38px);
+    }
+    h2 {
+      margin: 86px 0 26px;
+      padding: 22px 0 12px;
+      border-top: 3px solid rgba(15, 76, 129, 0.22);
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+      font-size: clamp(25px, 2.7vw, 32px);
+    }
+    h3 {
+      margin: 46px 0 14px;
+      padding-left: 14px;
+      border-left: 4px solid var(--green);
+      font-size: clamp(19px, 2vw, 23px);
+    }
+    h4 {
+      margin: 30px 0 10px;
+      padding-left: 12px;
+      border-left: 2px solid rgba(15, 76, 129, 0.35);
+      color: #243b53;
+      font-size: clamp(16px, 1.6vw, 18px);
+    }
+    p, li {
+      font-size: 18px;
+      overflow-wrap: break-word;
+    }
+    p { margin: 18px 0; }
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.14em;
+    }
+    strong { color: #102a43; }
+    .deck {
+      margin: 0 0 24px;
+      max-width: 880px;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.7;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 26px;
+      color: #66788a;
+      font-size: 14px;
+    }
+    .meta span {
+      border: 1px solid rgba(15, 76, 129, 0.13);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(15, 76, 129, 0.045);
+    }
+    figure {
+      margin: 34px 0;
+    }
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid rgba(16, 42, 67, 0.08);
+      border-radius: 8px;
+      background: #fffaf0;
+    }
+    figcaption {
+      margin-top: 10px;
+      color: #52606d;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    code {
+      font-family: var(--font-code);
+      font-size: 0.9em;
+      color: #9b2c2c;
+      background: rgba(155, 44, 44, 0.08);
+      border-radius: 5px;
+      padding: 0.12em 0.32em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 22px 0;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--code-bg);
+      line-height: 1.62;
+    }
+    pre code {
+      display: block;
+      padding: 0;
+      color: #1f2933;
+      background: transparent;
+      font-size: 14px;
+      white-space: pre;
+    }
+    blockquote {
+      margin: 24px 0;
+      padding: 14px 18px;
+      border-left: 4px solid rgba(31, 122, 77, 0.55);
+      background: rgba(31, 122, 77, 0.07);
+      color: #334e68;
+    }
+    table {
+      width: 100%;
+      margin: 26px 0;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: rgba(15, 76, 129, 0.08);
+      color: #102a43;
+      font-weight: 700;
+    }
+    td {
+      background: rgba(255, 255, 251, 0.62);
+    }
+    .callout {
+      margin: 24px 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(15, 76, 129, 0.16);
+      border-radius: 8px;
+      background: rgba(15, 76, 129, 0.055);
+    }
+    .source-boundary {
+      margin: 28px 0;
+      padding: 18px 20px;
+      border: 1px solid rgba(183, 121, 31, 0.28);
+      border-radius: 8px;
+      background: rgba(183, 121, 31, 0.08);
+      color: #334e68;
+      font-size: 16px;
+    }
+    .source-boundary strong { color: #7c4a03; }
+    details {
+      margin: 22px 0;
+      padding: 12px 16px;
+      border: 1px solid rgba(15, 76, 129, 0.15);
+      border-radius: 8px;
+      background: rgba(247, 248, 244, 0.72);
+    }
+    summary {
+      cursor: pointer;
+      color: #102a43;
+      font-weight: 700;
+    }
+    .refs li {
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .footnote {
+      color: #66788a;
+      font-size: 15px;
+    }
+    .table-note {
+      margin-top: -12px;
+      color: #66788a;
+      font-size: 14px;
+    }
+    @media (max-width: 980px) {
+      .page-shell {
+        display: block;
+        padding: 22px 14px 64px;
+      }
+      .toc-panel {
+        position: static;
+        max-height: none;
+        margin-bottom: 18px;
+      }
+      article {
+        padding: 22px 16px;
+      }
+      p, li { font-size: 17px; }
+      .deck { font-size: 18px; }
+      table, thead, tbody, tr, th, td {
+        display: block;
+      }
+      thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+      tr {
+        margin: 16px 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--paper);
+      }
+      td {
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 10px 12px 10px 42%;
+        position: relative;
+        min-height: 42px;
+      }
+      td:last-child { border-bottom: 0; }
+      td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 12px;
+        top: 10px;
+        width: calc(42% - 20px);
+        color: #102a43;
+        font-weight: 700;
+      }
+    }
+    @media (max-width: 560px) {
+      .toc-panel { display: none; }
+      h2 { margin-top: 62px; }
+      pre { padding: 14px 12px; }
+      td { padding-left: 12px; }
+      td::before {
+        position: static;
+        display: block;
+        width: auto;
+        margin-bottom: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <nav class="toc-panel" aria-label="文章目录">
+      <p class="toc-title">阅读路线</p>
+      <ul class="toc-list">
+        <li><a class="toc-link toc-level-2" href="#opening">开场：memory 不是更长上下文</a></li>
+        <li><a class="toc-link toc-level-2" href="#model">一、先把 memory 拆成工程对象</a></li>
+        <li><a class="toc-link toc-level-3" href="#planes">1.1 四类长期状态</a></li>
+        <li><a class="toc-link toc-level-3" href="#contract">1.2 Memory Contract</a></li>
+        <li><a class="toc-link toc-level-2" href="#runtimes">二、四条 runtime 主线</a></li>
+        <li><a class="toc-link toc-level-3" href="#codex">2.1 Codex：受控旁路</a></li>
+        <li><a class="toc-link toc-level-3" href="#claude">2.2 Claude Code：文件型协作记忆</a></li>
+        <li><a class="toc-link toc-level-3" href="#openclaw-hermes">2.3 OpenClaw 与 Hermes</a></li>
+        <li><a class="toc-link toc-level-2" href="#lifecycle">三、生命周期：写入、检索、注入、淘汰</a></li>
+        <li><a class="toc-link toc-level-2" href="#implementations">四、开源实现排序</a></li>
+        <li><a class="toc-link toc-level-3" href="#ranking-method">4.1 排序方法</a></li>
+        <li><a class="toc-link toc-level-3" href="#ranking-table">4.2 专用 memory 层排名</a></li>
+        <li><a class="toc-link toc-level-3" href="#frameworks">4.3 框架内置 memory</a></li>
+        <li><a class="toc-link toc-level-2" href="#patterns">五、能力模式</a></li>
+        <li><a class="toc-link toc-level-2" href="#governance">六、治理与失败边界</a></li>
+        <li><a class="toc-link toc-level-2" href="#choose">七、怎么选</a></li>
+        <li><a class="toc-link toc-level-2" href="#rules">八、可迁移规则</a></li>
+        <li><a class="toc-link toc-level-2" href="#references">参考资料</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <article>
+        <h1>AI Agent Memory：从源码到开源实现的长期状态工程</h1>
+        <p class="deck">Memory 的核心问题不是“怎样让模型记得更多”，而是“哪些状态可以跨 turn、跨 session、跨 agent 存活，并且在下一次进入 model view 时仍然可审计、可撤回、可降级”。一旦把它看成长期状态工程，Codex、Claude Code、OpenClaw、Hermes Agent，以及 mem0、Graphiti、Letta、Supermemory、Cognee、MemOS、LangMem 这些开源实现会落到同一张地图上。</p>
+        <div class="meta">
+          <span>更新：2026-06-16</span>
+          <span>主题：Agent memory / context engineering</span>
+          <span>图片：Wine &amp; Chord hand-drawn image2</span>
+        </div>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-cover-20260616.webp" alt="四类 coding agent 的当前上下文流经 Memory Contract，再进入 recall、update、governance 与 model view" loading="eager" decoding="async">
+          <figcaption>Memory 是当前上下文之外的受控状态。它能帮助 agent 连续工作，也会引入陈旧事实、权限混淆、隐私泄漏和反馈回路，所以必须有契约。</figcaption>
+        </figure>
+
+        <section id="opening">
+          <h2>开场：memory 不是更长上下文</h2>
+          <p>把 memory 说成“长期上下文”容易误导。长上下文窗口解决的是本轮请求能塞多少材料；memory 解决的是哪些材料值得跨越时间边界继续存在。前者是容量问题，后者是状态问题。容量变大并不会自动带来正确记忆：陈旧项目决策、过期偏好、未完成的工具输出、被攻击者写入的 workspace note，都可能因为“被记住”而变得更危险。</p>
+          <p>因此本文从一个工程定义开始：<strong>memory 是由 runtime 明确拥有、可选择写入、可选择检索、可解释注入、可治理淘汰的长期状态。</strong>如果一个系统只是把上一轮聊天摘要拼回 prompt，它最多是 compression；如果它能说清楚写入来源、作用域、检索条件、注入位置、失败边界和删除路径，才开始接近 memory system。</p>
+          <p>本文追踪四条主线：<a href="https://github.com/openai/codex">Codex</a> 把 memory 做成 read/write 分离的受控 side channel；Claude Code 生态把 `CLAUDE.md`、`MEMORY.md`、规则文件和插件扩展推向文件型协作记忆；<a href="https://github.com/openclaw/openclaw/tree/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89">OpenClaw</a> 更强调本地 assistant、workspace trust boundary 和插件承载；<a href="https://github.com/NousResearch/hermes-agent/tree/2dbc3bd93795f4307ec76661700aa902cc21c189">Hermes Agent</a> 则把外部 memory provider 做成可发现、可配置、可 best-effort 的 provider 层。</p>
+          <div class="source-boundary">
+            <strong>证据边界：</strong>公开源码、官方文档、论文和 GitHub 仓库元数据会被写成直接事实；源码链接优先使用不可变 commit。对不可公开核验的实现观察，只作为设计对照，不作为源码锚点。GitHub star 与更新时间是 2026-06-16 调研时的近似快照，适合判断热度，不适合当成长期质量证明。
+          </div>
+          <p>贯穿全文的五个问题是：</p>
+          <ol>
+            <li>Memory 应该记住什么，哪些内容反而必须禁止保存？</li>
+            <li>Read path 和 write path 为什么要拆开？</li>
+            <li>检索结果进入 prompt 时，谁负责作用域、排序、引用和预算？</li>
+            <li>为什么图谱、向量、BM25、文件索引和 skill 都可能是 memory，但治理成本不同？</li>
+            <li>如果今天要选一个实现，应该按热度、能力还是使用场景排序？</li>
+          </ol>
+        </section>
+
+        <section id="model">
+          <h2>一、先把 memory 拆成工程对象</h2>
+          <p>多数失败的 memory 设计都输在命名上。团队先做了一个向量库，然后把“用户偏好”“项目规则”“聊天摘要”“工具经验”“可检索文档”全塞进去，最后发现检索命中率、隐私边界和 prompt 权威混成一团。正确起点是先区分状态平面。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-taxonomy-20260616.webp" alt="Memory 分类图：semantic、episodic、profile、procedural 四类信号经过 select、store、recall 后进入 model view" loading="lazy" decoding="async">
+            <figcaption>Memory 不是一个桶。Semantic、episodic、profile、procedural 的写入理由、召回方式和失效策略都不同。</figcaption>
+          </figure>
+
+          <h3 id="planes">1.1 四类长期状态</h3>
+          <p><strong>Semantic memory</strong> 保存相对稳定的事实：用户偏好、项目背景、业务术语、团队约定。它最容易和 RAG 混淆，但 RAG 主要问“文档里有什么”，semantic memory 还要问“这个事实仍然可靠吗，应该对谁生效”。</p>
+          <p><strong>Episodic memory</strong> 保存事件与时间：某次调试尝试、一次会议结论、一个 bug 的上下文。Graphiti 把这种变化建模成 temporal context graph：实体、关系和 fact 都带时间有效性，原始 episode 保留为 provenance；它的 README 明确强调 facts 可以有 validity window，并能追溯回 episodes（见 <a href="https://github.com/getzep/graphiti/blob/56cf7b369a671084112ad86d64411362d19f6d56/README.md#L42-L55">Graphiti 的 context graph 描述</a> 与 <a href="https://github.com/getzep/graphiti/blob/56cf7b369a671084112ad86d64411362d19f6d56/README.md#L67-L81">component 表</a>）。</p>
+          <p><strong>Profile memory</strong> 保存“这个用户是谁、正在做什么、希望系统如何配合”。它对产品体验很有价值，但隐私和作用域最敏感。Claude 的消费者 memory 支持导入导出，官方支持页把它描述为跨提供商迁移 memory 的能力；这说明 profile memory 已经从隐藏产品状态变成用户可携带的数据资产。</p>
+          <p><strong>Procedural memory</strong> 保存“怎样做”：调试套路、工具使用经验、团队流程、技能。它和 rules、skills、CLAUDE.md、AGENTS.md 很接近。和事实记忆不同，procedural memory 进入 prompt 后更像运行指令，因此必须防止被普通 conversation data 污染。</p>
+
+          <h3 id="contract">1.2 Memory Contract</h3>
+          <p>一个可上线的 memory system 至少要回答六个字段：</p>
+          <pre><code class="language-json">{
+  "plane": "semantic | episodic | profile | procedural",
+  "scope": "user | project | team | organization | agent",
+  "source": "turn | file | tool | external system | human edit",
+  "write_policy": "explicit | background | tool-mediated | disabled",
+  "read_policy": "always | selected | searched | never",
+  "governance": ["citation", "redaction", "ttl", "delete", "audit"]
+}</code></pre>
+          <p>这个 shape-level 例子故意不绑定任何 vendor。真正重要的是字段的 owner：`scope` 决定谁能复用；`source` 决定能不能相信；`write_policy` 决定是否会自修改；`read_policy` 决定 token budget；`governance` 决定出错后能不能修。</p>
+          <p>如果系统没有这些字段，它仍然可以在 demo 中“记住用户喜欢黑暗模式”，但一旦进入多人项目、客户支持、合规环境或 coding agent，它会很快遇到边界问题：团队 memory 是否覆盖个人 memory？用户说“forget”时删哪一层？一次失败的工具调用能不能被记录？模型生成的总结能不能成为未来指令？</p>
+        </section>
+
+        <section id="runtimes">
+          <h2>二、四条 runtime 主线</h2>
+          <p>Memory 的差异在 runtime 里最清楚。一个 memory provider 可以提供 API，但真正决定系统行为的是宿主 runtime：它什么时候读、什么时候写、是否允许当前模型修改未来 prompt、如何处理失败、是否把 memory 看成工具结果还是 developer instruction。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-runtime-comparison-20260616.webp" alt="Codex、Claude Code、OpenClaw 和 Hermes 的 memory 运行时对照：读写路径、文件记忆、插件槽和 provider 层" loading="lazy" decoding="async">
+            <figcaption>四条主线不是谁替代谁，而是四种 ownership：runtime side channel、文件型协作、插件承载、provider 路由。</figcaption>
+          </figure>
+
+          <h3 id="codex">2.1 Codex：把 memory 当受控 side channel</h3>
+          <p>Codex 的设计最适合拿来做 baseline，因为它把 read path 和 write path 拆得很清楚。公开源码中，memory read crate 负责 developer-instruction 注入、citation parsing 和 read-usage telemetry（见 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/lib.rs#L1-L12">`codex-memories-read`</a>），而 write crate 负责 Phase 1 / Phase 2 prompt、filesystem artifacts、workspace diff 和 extension pruning。</p>
+          <p>最关键的 invariant 是：<strong>当前 active turn 不直接把自己写成未来指令。</strong>Codex 的 Phase 1 从符合条件的 rollout 中提取结构化 memory，输出 shape 包括 `raw_memory`、`rollout_summary` 和可选 slug，并用 JSON schema 限制模型输出（见 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70">Phase 1 extraction</a>）。随后 Phase 2 获取全局锁，准备 memory workspace，用 git-style diff 判断是否真的需要 consolidation，再启动受限 internal agent（见 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L45">Phase 2 consolidation</a>）。</p>
+          <p>这条路径保护了三个东西。第一是并发：Phase 1 可以并行，但 Phase 2 对共享 memory root 串行。第二是安全：生成 memory 的模型输出会被 shape、redaction、lease、retry 包住。第三是可恢复性：memory workspace 有 baseline，diff 让 consolidation agent 看见变化，而不是让它在一团历史里自由发挥。</p>
+          <p>Codex read path 也不是“把 memory 文本拼进去”这么简单。它解析 citation blocks，把 memory artifact 与 rollout/thread id 关联起来（见 <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6">citation parser</a>），并提供只读 MCP memory service 作为模型需要更多证据时的访问路径。这里的 citation 不是法律意义上的证明，而是 runtime accounting：系统至少知道某段回答使用了哪些 memory artifact。</p>
+
+          <h4>Codex 的可迁移点</h4>
+          <p>不要让当前模型直接修改自己本轮或下一轮会看到的长期指令。用后台 extraction、结构化输出、显式 redaction、全局 consolidation lock 和可审计 workspace diff，把“模型擅长语义总结”与“runtime 必须控制状态”分开。</p>
+
+          <h3 id="claude">2.2 Claude Code：文件型协作记忆与生态扩展</h3>
+          <p>Claude Code 的公开 memory 文档把 `CLAUDE.md` 与 auto memory 分成两套互补机制：前者承载人写的持久上下文和规则，后者让 Claude 根据更正和偏好积累笔记；两者都会在会话开始时作为 context 载入，但不是强制配置（见 <a href="https://docs.anthropic.com/en/docs/claude-code/memory">Claude Code memory docs</a>）。这个模式的优点是极低摩擦：团队可以审阅、提交、分享；缺点是容易把文档、规则、当前任务和长期 memory 混在一起。</p>
+          <p>Claude-Mem 代表了这个生态里的另一路：用 hooks、MCP 和上下文生成器捕获 session observations，再生成压缩上下文供后续 session 使用。它的 `ContextBuilder` 从 observations、summaries、timeline 和 token economics 生成 context output（见 <a href="https://github.com/thedotmack/claude-mem/blob/b7479f818b09d5e871126027868036d4b6a212a7/src/services/context/ContextBuilder.ts#L64-L99">context builder</a>），MCP server 则把 search/timeline 等工具暴露给客户端（见 <a href="https://github.com/thedotmack/claude-mem/blob/b7479f818b09d5e871126027868036d4b6a212a7/src/servers/mcp-server.ts#L70-L114">tool endpoint map</a>）。</p>
+          <p>这类 adapter 的价值不是比 mem0 或 Graphiti 更“通用”，而是贴近 coding-agent 的操作面：工具调用、文件修改、session summary、context injection。它提醒我们：memory 不一定先从数据库开始，也可以从 agent 的 hook surface 开始。</p>
+
+          <h3 id="openclaw-hermes">2.3 OpenClaw 与 Hermes：插件槽和 provider 路由</h3>
+          <p>OpenClaw 的主线是本地、多通道、个人 assistant。它的 README 强调 local-first gateway、多 channel inbox、multi-agent routing、tool surface 和 sandbox（见 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/README.md#L159-L175">highlights 与 security model</a>）。在 memory 上，OpenClaw 更像宿主：workspace 中的 `MEMORY.md` / `memory/*.md` 被安全文档明确定义为 trusted local operator state，而不是外部攻击者可依赖的隔离边界（见 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/SECURITY.md#L238-L244">workspace memory trust boundary</a>）。</p>
+          <p>Hermes Agent 则把 provider 层做得更显式。`plugins/memory/__init__.py` 扫描 bundled provider 与用户安装 provider，并规定同名时 bundled 优先；配置里一次只选择一个 provider（见 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/plugins/memory/__init__.py#L1-L20">provider discovery docstring</a>）。`memory setup` 会发现 provider、处理依赖、按 schema 写入配置（见 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/hermes_cli/memory_setup.py#L150-L183">setup discovery</a>）。在 turn 结束时，Hermes 把完成的 user/assistant exchange best-effort mirror 到外部 memory provider，并明确跳过 interrupted turn，避免把用户没看到的半成品写成未来事实（见 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/run_agent.py#L3014-L3047">external memory sync boundary</a>）。</p>
+          <p>Hermes 的 `MemoryManager` 还提供 context fencing 与 scrubber，避免 memory-context 标签和系统说明泄漏到用户可见输出（见 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/agent/memory_manager.py#L107-L127">sanitize helpers</a>）。这是一条非常实用的经验：memory provider 可以失败、变慢、离线，但不能阻塞主回答；memory context 可以帮助模型，但不能原样泄漏给用户。</p>
+        </section>
+
+        <section id="lifecycle">
+          <h2>三、生命周期：写入、检索、注入、淘汰</h2>
+          <p>Memory lifecycle 最小可以拆成五步：capture、extract、store、retrieve、inject。真正上线时还必须加三个环：cite、audit、prune。少掉任意一环，系统都会从“长期状态”退化成“会越来越难调试的 prompt 拼接”。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-lifecycle-20260616.webp" alt="Memory 生命周期：capture、extract、store、retrieve、inject，并通过 cite、audit、prune 回到 store" loading="lazy" decoding="async">
+            <figcaption>Lifecycle 的关键不是每一步都用模型，而是每一步都有 owner。没有 owner 的记忆会变成噪声。</figcaption>
+          </figure>
+
+          <h3>3.1 Write Path：提取不是保存</h3>
+          <p>写入路径最常见的错误是把“用户说 remember”当成最终存储动作。更稳的做法是把它拆开：先记录 source event，再抽取候选 memory，再按 policy 判断是否可保存，最后写入可审计 store。</p>
+          <pre><code class="language-text">event stream
+  -> candidate extraction
+  -> policy gate(scope, sensitivity, freshness)
+  -> normalized memory item
+  -> index / graph / file / profile store</code></pre>
+          <p>mem0 的 2026 README 把新算法描述为单次调用的 ADD-only extraction，并强调 entity linking、BM25 keyword、semantic 与 entity matching 的融合（见 <a href="https://github.com/mem0ai/mem0/blob/6d3486ca5671f431b00450ab191e7380901b55b8/README.md#L45-L62">mem0 algorithm note</a>）。这给出了一种取舍：写入端不急着 UPDATE/DELETE，可以先积累事实，再让检索和重排处理召回质量。它适合追求低延迟和高吞吐的产品型 memory，但需要靠后续治理处理过期与矛盾。</p>
+          <p>Codex 的路线相反：它更强调写入治理。Phase 1 提取 per-rollout raw memory，Phase 2 再做 global consolidation。这个设计成本更高，但能把“从历史中提取”与“维护全局 memory workspace”拆成两个故障域。</p>
+
+          <h3>3.2 Read Path：检索不是注入</h3>
+          <p>检索命中只是候选。候选进入 model view 之前，还要经过 budget、rank、dedupe、scope、freshness、citation 和 prompt-position 决策。LangMem 的 README 展示了另一种简洁路线：它提供 `create_manage_memory_tool` 和 `create_search_memory_tool`，直接把 manage/search 能力交给 LangGraph agent，同时也提供 background manager（见 <a href="https://github.com/langchain-ai/langmem/blob/7d4fd50f412042995acb9517d793559204258ccf/README.md#L1-L24">LangMem overview</a> 与 <a href="https://github.com/langchain-ai/langmem/blob/7d4fd50f412042995acb9517d793559204258ccf/README.md#L48-L64">tool integration example</a>）。</p>
+          <p>这是一种 framework-native 的好处：store、agent、tool schema、checkpoint 可以共用 LangGraph 抽象。代价是能力边界也随框架而来。如果团队已经运行 LangGraph，它很轻；如果团队只想要一个 provider-agnostic memory API，mem0、Supermemory、Zep 或 Cognee 会更直接。</p>
+
+          <h3>3.3 Inject Path：进入 prompt 后就有权威问题</h3>
+          <p>注入 memory 时要非常克制。Profile memory 如果作为 developer instruction 注入，会改变模型行为；RAG document 如果作为 tool observation 注入，权威等级更低；workspace `MEMORY.md` 如果和项目 policy 混在一起，模型可能分不清“偏好”“事实”“命令”。</p>
+          <p>一个实用做法是把 memory-context 包成明确块，并告诉模型它是背景数据而不是新用户输入；同时 UI 层要 scrub 这些内部块，避免用户看到 provider prompt。Hermes 的 context scrubber 就是这个模式的具体实现。</p>
+        </section>
+
+        <section id="implementations">
+          <h2>四、开源实现排序</h2>
+          <p>Memory 实现不能只按 star 排。`langchain`、`llama_index`、`autogen`、`crewAI` 的 star 很高，但它们是 agent/RAG 框架，不等于 memory 产品。反过来，LangMem star 不高，但如果你的 runtime 已经在 LangGraph 上，它的集成质量可能比更热门的独立平台更重要。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-open-source-landscape-20260616.webp" alt="开源 memory 实现 landscape：按 popularity 与 capability 示意 mem0、Claude-Mem、Supermemory、Graphiti、LangChain、Letta、Cognee、MemOS、Zep、LangMem" loading="lazy" decoding="async">
+            <figcaption>这张图是定性地图，不是数学坐标。横轴强调能力范围，纵轴强调调研时的公开热度。</figcaption>
+          </figure>
+
+          <h3 id="ranking-method">4.1 排序方法</h3>
+          <p>我把排名拆成两个榜。第一个榜只看“专用 memory 层”：它们的 README、SDK、API 或核心代码把 memory 作为主要产品。第二个榜看“宿主框架内置 memory”：它们的生态更大，但 memory 只是其中一层。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-ranking-scorecard-20260616.webp" alt="Memory 排名 scorecard：popularity 看 stars、activity、integrations；capability 看 write path、retrieval、provenance、governance、ops" loading="lazy" decoding="async">
+            <figcaption>热度解释 adoption risk，能力解释上线风险。两者要分开看，再按场景合并。</figcaption>
+          </figure>
+
+          <p>评价维度如下：</p>
+          <table>
+            <thead>
+              <tr>
+                <th>维度</th>
+                <th>看什么</th>
+                <th>为什么重要</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Popularity</td>
+                <td>stars、forks、recent push、生态提及、插件集成</td>
+                <td>降低迁移和招人风险，但不能证明架构正确。</td>
+              </tr>
+              <tr>
+                <td>Memory capability</td>
+                <td>写入、检索、profile、graph、procedural、multi-modal、feedback</td>
+                <td>决定是否能覆盖真实长期状态，而不只是聊天摘要。</td>
+              </tr>
+              <tr>
+                <td>Governance</td>
+                <td>scope、delete、redaction、citation、audit、TTL、tenant isolation</td>
+                <td>决定系统出错后能不能修，而不是只能清库。</td>
+              </tr>
+              <tr>
+                <td>Runtime fit</td>
+                <td>是否贴合你的 agent loop、tool surface、MCP、hooks、background jobs</td>
+                <td>memory 是 runtime feature，不是单独数据库。</td>
+              </tr>
+              <tr>
+                <td>Ops</td>
+                <td>self-host、managed service、依赖图、latency、成本、可观测性</td>
+                <td>长期 memory 最后会变成长期运维资产。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p>实际排序时我先做定量粗排，再人工校正场景边界：\(\mathrm{Score}=0.35P+0.45C+0.20G\)。其中 \(P\) 是公开热度和活跃度，\(C\) 是 memory 写入、检索、画像、图谱、多模态和 runtime integration 的能力覆盖，\(G\) 是治理与运维成熟度。Claude-Mem、agentmemory 这类 coding-agent adapter 因为能力强依赖宿主 runtime，不和通用 memory platform 直接抢前排，而是放在 adapter 场景下推荐。</p>
+
+          <h3 id="ranking-table">4.2 专用 memory 层排名</h3>
+          <p class="table-note">Star 数为 2026-06-16 GitHub API 快照，四舍五入显示；能力判断来自公开 README、源码目录和可核验文档。</p>
+          <table>
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>实现</th>
+                <th>热度快照</th>
+                <th>最强能力</th>
+                <th>主要短板</th>
+                <th>推荐场景</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td><a href="https://github.com/mem0ai/mem0">mem0</a></td>
+                <td>约 58.6k stars</td>
+                <td>通用 memory API、Python/JS SDK、自托管/云、实体 linking、多信号检索；README 展示 LoCoMo、LongMemEval、BEAM 等 benchmark 结果。</td>
+                <td>ADD-only 路线把冲突与遗忘压力推到后续检索和治理；生产中仍要自己定义 scope、consent、delete policy。</td>
+                <td>需要快速给产品 agent 接入 memory，且希望未来可从 library 走向 self-host / cloud。</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td><a href="https://github.com/supermemoryai/supermemory">Supermemory</a></td>
+                <td>约 27.1k stars</td>
+                <td>memory + RAG + user profile + connectors 一体化，README 明确列出 user profiles、hybrid search、connectors、多模态 extractors（见 <a href="https://github.com/supermemoryai/supermemory/blob/5eed4bcbf3b4670e431bfb91ec23410e5a516d74/README.md#L33-L47">capability table</a>）。</td>
+                <td>能力面很宽，真实治理边界要看具体部署；如果只要轻量本地 memory，可能偏重。</td>
+                <td>产品应用、个人/公司 brain、需要 connectors 与 API 的上下文平台。</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td><a href="https://github.com/getzep/graphiti">Graphiti</a> / <a href="https://github.com/getzep/zep">Zep</a></td>
+                <td>Graphiti 约 27.5k；Zep repo 约 4.7k</td>
+                <td>temporal context graph、episode provenance、relationship-aware retrieval；Zep 是托管 context engineering 平台，Graphiti 是 OSS graph engine。</td>
+                <td>Graph ops、schema、infra 成本高于普通 vector memory；Zep OSS repo 更像 examples/integrations，核心平台能力在托管侧。</td>
+                <td>企业知识、关系变化、客户/业务实体图谱、需要时间有效性的 agent memory。</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td><a href="https://github.com/letta-ai/letta">Letta</a></td>
+                <td>约 23.3k stars</td>
+                <td>stateful agents、memory blocks、agent API、Letta Code；README 示例用 `memory_blocks` 建 human/persona state（见 <a href="https://github.com/letta-ai/letta/blob/1131535716e8a31c9a437f8695e25ac98f203a24/README.md#L1-L42">quickstart</a>）。</td>
+                <td>它是 agent platform，不只是 memory library；采用后会影响工具、agent state、API 结构。</td>
+                <td>愿意围绕 Letta 构建 stateful agent，而不只是给已有 runtime 加 memory。</td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td><a href="https://github.com/topoteretes/cognee">Cognee</a></td>
+                <td>约 17.8k stars</td>
+                <td>自托管 knowledge graph、文档/数据 ingestion、graph reasoning、Cognee MCP；README 把它定位为 open-source AI memory platform。</td>
+                <td>pipeline 较重；需要理解 graph、embedding、ontology 与 retrieval 组合。</td>
+                <td>自托管知识图谱 memory、文档型 agent、希望比普通 RAG 更结构化。</td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td><a href="https://github.com/vectorize-io/hindsight">Hindsight</a></td>
+                <td>约 16.5k stars</td>
+                <td>面向“agent memory that learns”的新兴实现，Hermes 已有 Hindsight provider 插件。</td>
+                <td>本文只采用公开仓库元数据与 Hermes provider 插件作热度/生态观察，不展开 Hindsight 源码机制。</td>
+                <td>关注 agent 自学习 memory provider，并愿意单独做 PoC。</td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td><a href="https://github.com/MemTensor/MemOS">MemOS</a></td>
+                <td>约 9.9k stars</td>
+                <td>把 memory OS 化：textual、activation、parametric memory，memory cube，MCP，tool memory，scheduler；README 明确列出 unified API、multi-modal、multi-cube、scheduler、feedback（见 <a href="https://github.com/MemTensor/MemOS/blob/258c3a3483a1c7cdef7d7c32d2578d4d820365d3/README.md#L58-L69">Key Features</a>）。</td>
+                <td>概念面很宽，工程复杂度高；需要用自己的任务验证 token savings 与 benchmark claims。</td>
+                <td>研究型系统、local-first memory core、需要把 skill / tool / multimodal state 统一建模的团队。</td>
+              </tr>
+              <tr>
+                <td>8</td>
+                <td><a href="https://github.com/langchain-ai/langmem">LangMem</a></td>
+                <td>约 1.5k stars</td>
+                <td>LangGraph 原生 memory primitives，hot path tools + background manager，与 LangGraph store 对齐。</td>
+                <td>热度不如独立 memory 平台；价值强依赖 LangGraph runtime fit。</td>
+                <td>已经使用 LangGraph，并希望 memory 跟 checkpoint/store/tool schema 在同一套抽象中。</td>
+              </tr>
+              <tr>
+                <td>9</td>
+                <td><a href="https://github.com/thedotmack/claude-mem">Claude-Mem</a> / <a href="https://github.com/rohitg00/agentmemory">agentmemory</a></td>
+                <td>Claude-Mem 约 82.6k；agentmemory 约 23.0k</td>
+                <td>贴近 coding-agent hooks、MCP、context injection、session summary；Claude-Mem 源码中有 context builder 和 MCP server。</td>
+                <td>更像 adapter 赛道，能力依赖宿主 agent；不应与通用 memory platform 直接同榜竞争。</td>
+                <td>Claude Code、Codex、Cursor、OpenClaw 等 coding-agent 的上下文连续性增强。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 id="frameworks">4.3 框架内置 memory</h3>
+          <p>通用框架不应该被忽略。LangChain/LangGraph、LlamaIndex、AutoGen、CrewAI、Agno、Haystack、Semantic Kernel 等都提供 memory、store、RAG 或 agent state surface。它们的选择逻辑更像“你的 runtime 已经在哪”：如果 agent loop、observability、deployment、eval 都在框架内，使用内置 memory primitives 往往比接外部 memory platform 更稳。</p>
+          <p>但要注意一个边界：框架内置 memory 很容易被 demo 化。比如 `InMemoryStore` 适合教程，不适合持久 memory；conversation buffer 适合短期上下文，不是长期事实；RAG retriever 适合文档，不天然解决用户偏好和 procedural rule 的治理。</p>
+        </section>
+
+        <section id="patterns">
+          <h2>五、能力模式：文件、向量、图谱、画像、技能</h2>
+          <p>实现之间真正的差异，不在“有没有 memory”这个 checkbox，而在底层模式如何组合。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-architecture-patterns-20260616.webp" alt="Memory architecture patterns：file index、vector、BM25、graph、profile、skill 共同组成 context packet" loading="lazy" decoding="async">
+            <figcaption>文件索引、向量、BM25、图谱、用户画像和 skill 都可以是 memory，但它们保护的 invariant 不同。</figcaption>
+          </figure>
+
+          <h3>5.1 File Index：最透明，也最容易污染</h3>
+          <p>`MEMORY.md`、`CLAUDE.md`、`AGENTS.md`、rules、skills 的优势是透明：人可以 review、diff、删除。缺点是权威等级高，容易把个人偏好、团队 policy、临时任务混在一个文本前缀里。文件型 memory 最适合保存 procedural 和 project rule，不适合无节制保存聊天事实。</p>
+
+          <h3>5.2 Vector + BM25：最通用，但 provenance 不够</h3>
+          <p>向量适合语义相似，BM25 适合关键字与实体名。mem0 的新版算法把 semantic、BM25 和 entity matching 融合，这代表了 2026 年 memory 实践的主流方向：只靠 embedding 不够，尤其是 coding agent 中的函数名、错误码、issue id、配置键很容易被纯语义检索漏掉。</p>
+
+          <h3>5.3 Temporal Graph：最适合变化关系</h3>
+          <p>Graphiti/Zep、Cognee、MemOS 都在不同程度上强调 graph。Graph 的价值不是“看起来高级”，而是能表达关系、冲突、时间有效性和 provenance。当用户上个月在项目 A 用旧流程、本月在项目 B 用新流程时，图谱比 flat summary 更容易表达“哪个事实在什么 scope 仍然成立”。</p>
+
+          <h3>5.4 Profile：最影响体验，也最需要用户控制</h3>
+          <p>Profile memory 是产品体验的杠杆：语气偏好、专业背景、长期目标、组织身份。它也最容易越界。一个合格 profile layer 至少要有查看、编辑、删除、导入导出和项目隔离。否则 personalization 会变成隐形粘滞状态。</p>
+
+          <h3>5.5 Procedural / Skill：不是事实，而是行为</h3>
+          <p>Procedural memory 最像“未来模型该怎么做”。它可以是 skill、playbook、debug recipe、team convention。它的风险是 prompt authority：一条过时 procedure 如果以高权威进入 prompt，会比一条过时事实更危险。最好把它和普通 semantic facts 分开存储、分开召回、分开审计。</p>
+        </section>
+
+        <section id="governance">
+          <h2>六、治理与失败边界</h2>
+          <p>Memory 的失败往往不是“忘了”，而是“记错了还很自信”。下面这些边界决定 memory system 能不能长期运行。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-governance-boundaries-20260616.webp" alt="Memory governance 边界：stale、secret、overreach、loop、authority 风险通过 consent、scope、redaction、citation、audit 控制" loading="lazy" decoding="async">
+            <figcaption>治理不是最后补的合规清单，而是 memory write/read path 的结构。</figcaption>
+          </figure>
+
+          <h3>6.1 Stale：事实会过期</h3>
+          <p>Memory 记录的是“某时某地成立的事实”，不是永恒真理。Graphiti 用 temporal validity 表达这个问题；Claude Code 文档也把 memory 定位为 context，而不是能强制执行的配置。工程上，stale 需要 TTL、last used、last verified、source timestamp 和 conflict handling。</p>
+
+          <h3>6.2 Secret：敏感信息不能因为“有用”就保存</h3>
+          <p>API key、token、个人身份、客户数据、内部链接，不应该因为模型总结得像事实就进入 memory。Codex write path 中有 redaction；mem0 的主文件也维护敏感字段集合用于配置/连接对象处理（见 <a href="https://github.com/mem0ai/mem0/blob/6d3486ca5671f431b00450ab191e7380901b55b8/mem0/memory/main.py#L68-L99">sensitive fields</a>）。自建系统至少要有写入前 redaction、共享前 redaction 和删除传播。</p>
+
+          <h3>6.3 Authority：memory 不等于指令</h3>
+          <p>用户历史偏好不能覆盖安全 policy；项目经验不能覆盖当前代码；external memory provider 不能把检索片段伪装成 developer instruction。把 memory 注入 prompt 时，必须标出它是 background、reference、rule 还是 tool observation。</p>
+
+          <h3>6.4 Feedback Loop：不要总结自己的总结</h3>
+          <p>如果 consolidation agent 的输出又被下一轮 memory extraction 总结，错误会放大。Codex 通过跳过 sub-agent / ephemeral session、禁用 memory features、限制 consolidation agent 权限来避免递归。Hermes 跳过 interrupted turns，也是同一种原则：只有用户实际看到、完成的状态才值得持久化。</p>
+
+          <h3>6.5 Scope：个人、团队、项目要分开</h3>
+          <p>个人偏好和团队规则不能共享一个 namespace。Claude Code 文档把 `CLAUDE.md` 的 scope 放在 project、user、organization 层级，auto memory 则是 machine-local、按 git repository/worktree 共享；OpenClaw 的 security 文档则明确 workspace memory 是 trusted operator state，不是远程攻击边界。无论采用哪套实现，scope 都必须在写入时确定，而不是检索时猜。</p>
+        </section>
+
+        <section id="choose">
+          <h2>七、怎么选：按场景，而不是按榜单</h2>
+          <p>排名只给出默认优先级；实际选型要从 runtime 开始。</p>
+
+          <figure>
+            <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-selection-route-20260616.webp" alt="Memory 选型路线：coding agent、product app、graph knowledge、local first、framework 分别走 hook、API、graph、store、primitives" loading="lazy" decoding="async">
+            <figcaption>先问你在造什么 runtime，再选 memory。不要从“谁 star 多”倒推架构。</figcaption>
+          </figure>
+
+          <table>
+            <thead>
+              <tr>
+                <th>你的任务</th>
+                <th>优先看</th>
+                <th>原因</th>
+                <th>验证问题</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>给产品 agent 加长期个性化</td>
+                <td>mem0、Supermemory、Zep</td>
+                <td>API/SDK 成熟，能快速覆盖 profile、history、retrieval、managed/self-host。</td>
+                <td>能否导出删除？能否解释某条回答用了哪些 memory？P95 latency 与成本是多少？</td>
+              </tr>
+              <tr>
+                <td>做企业知识和关系记忆</td>
+                <td>Graphiti/Zep、Cognee、MemOS</td>
+                <td>图谱表达实体关系、时间有效性和 provenance，适合业务事实变化。</td>
+                <td>schema 如何演化？冲突事实如何失效？图数据库运维由谁承担？</td>
+              </tr>
+              <tr>
+                <td>增强 coding agent 连续性</td>
+                <td>Claude-Mem、agentmemory、Codex-style pipeline、Hermes provider</td>
+                <td>它们贴近 hooks、tool observations、session summary、MCP 和 workspace rules。</td>
+                <td>是否会保存未完成工具调用？是否会把 memory context 泄漏到最终回答？</td>
+              </tr>
+              <tr>
+                <td>已经在 LangGraph / LangChain</td>
+                <td>LangMem、LangGraph store、框架内置 memory</td>
+                <td>和 checkpoint、store、agent tools、deployment 在一套抽象里。</td>
+                <td>生产 store 是什么？background memory manager 与 hot path tool 谁负责？</td>
+              </tr>
+              <tr>
+                <td>本地优先、用户可控</td>
+                <td>MemOS local、OpenClaw plugin、Hermes local provider、文件型 memory</td>
+                <td>用户掌控数据，适合个人 assistant 和本地 coding workflow。</td>
+                <td>本地索引如何备份？多设备如何同步？删除是否同步到所有派生索引？</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <details>
+            <summary>为什么不直接选 star 最高的 Claude-Mem？</summary>
+            <p>Claude-Mem 的热度很高，且对 Claude/Codex/Cursor 这类 coding-agent 非常贴近。但它是 adapter-oriented：价值来自 hooks、MCP、context injection 和 session observation，而不是提供一个 vendor-neutral memory core。若你的目标是“让 coding agent 跨 session 更连续”，它值得排很前；若你的目标是“给 SaaS 产品所有用户提供 memory API”，mem0、Supermemory、Zep 或 Cognee 更像主选项。</p>
+          </details>
+        </section>
+
+        <section id="rules">
+          <h2>八、可迁移规则</h2>
+          <p>最后把整篇文章压缩成一张 operational ledger。</p>
+          <table>
+            <thead>
+              <tr>
+                <th>规则</th>
+                <th>保护的 invariant</th>
+                <th>反例</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>先分 plane，再选存储</td>
+                <td>不同长期状态有不同权威、作用域和失效策略。</td>
+                <td>把 user profile、RAG 文档、tool trace、team rule 全塞进一个 vector collection。</td>
+              </tr>
+              <tr>
+                <td>Read path 与 write path 分离</td>
+                <td>当前模型不能直接改写未来 prompt。</td>
+                <td>模型本轮回答时顺手更新它下一轮会看到的 system instruction。</td>
+              </tr>
+              <tr>
+                <td>写入要有 source、scope、redaction</td>
+                <td>记忆可以解释、删除、隔离。</td>
+                <td>只存一段自然语言 summary，不知道来自谁、对谁生效、是否含敏感信息。</td>
+              </tr>
+              <tr>
+                <td>检索候选不等于 prompt 注入</td>
+                <td>model view 只得到预算内、相关、可解释的 memory。</td>
+                <td>top-k 一命中就原样插入 developer message。</td>
+              </tr>
+              <tr>
+                <td>Memory context 要有可见边界</td>
+                <td>模型能区分背景、引用、规则和用户新输入。</td>
+                <td>把 recalled memory 拼在用户消息前，导致 authority confusion。</td>
+              </tr>
+              <tr>
+                <td>失败时 fail soft，但要记账</td>
+                <td>memory provider 离线不阻塞主任务，系统仍能追踪失败。</td>
+                <td>外部 memory API 超时导致用户请求失败，或静默丢失写入。</td>
+              </tr>
+              <tr>
+                <td>不要总结自己的总结</td>
+                <td>避免 feedback loop 放大错误。</td>
+                <td>background memory agent 的输出又被下一轮 background memory agent 保存。</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>如果只能带走一句话：<strong>memory 是状态，不是文本；状态必须有 owner、scope、lifecycle 和 rollback story。</strong>把这句话放在任何 agent runtime 前面，你就能判断它的 memory 设计是在帮模型，还是在制造一个以后没人敢删的隐藏 prompt。</p>
+        </section>
+
+        <section id="references">
+          <h2>参考资料</h2>
+          <ul class="refs">
+            <li>Codex memory read/write source anchors: <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/read/src/citations.rs#L6">citations</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase1.rs#L70">Phase 1</a>, <a href="https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/write/src/phase2.rs#L45">Phase 2</a>, <a href="https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/memories/mcp/src">read-only MCP service</a>.</li>
+            <li>Open-source memory systems: <a href="https://github.com/mem0ai/mem0">mem0</a>, <a href="https://github.com/supermemoryai/supermemory">Supermemory</a>, <a href="https://github.com/getzep/graphiti">Graphiti</a>, <a href="https://github.com/getzep/zep">Zep</a>, <a href="https://github.com/letta-ai/letta">Letta</a>, <a href="https://github.com/topoteretes/cognee">Cognee</a>, <a href="https://github.com/MemTensor/MemOS">MemOS</a>, <a href="https://github.com/langchain-ai/langmem">LangMem</a>, <a href="https://github.com/thedotmack/claude-mem">Claude-Mem</a>, <a href="https://github.com/vectorize-io/hindsight">Hindsight</a>.</li>
+            <li>Hermes Agent memory provider source: <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/plugins/memory/__init__.py#L1-L20">provider discovery</a>, <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/agent/memory_manager.py#L1-L24">MemoryManager contract</a>, <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/run_agent.py#L3014-L3047">post-turn sync boundary</a>.</li>
+            <li>OpenClaw source anchors: <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/README.md#L159-L175">local gateway and sandbox highlights</a>, <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/SECURITY.md#L238-L244">workspace memory trust boundary</a>.</li>
+            <li>Provider and product docs: <a href="https://support.claude.com/en/articles/12123587-import-and-export-your-memory-from-claude">Claude memory import/export</a>, <a href="https://www.anthropic.com/news/enabling-claude-code-to-work-more-autonomously">Claude Code autonomy update</a>, <a href="https://mem0.ai/research">mem0 research page</a>, <a href="https://arxiv.org/abs/2501.13956">Zep / Graphiti paper</a>.</li>
+          </ul>
+          <p class="footnote">本文中的排序是工程选型排序，不是投资、采购或性能承诺。上线前仍需用自己的数据集评估 recall、precision、latency、token cost、delete propagation 和 privacy boundary。</p>
+        </section>
+      </article>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});"></script>
+  <script>
+    const links = Array.from(document.querySelectorAll('.toc-link'));
+    const targets = links
+      .map((link) => document.querySelector(link.getAttribute('href')))
+      .filter(Boolean);
+    const activate = () => {
+      let current = targets[0];
+      for (const target of targets) {
+        if (target.getBoundingClientRect().top <= 120) current = target;
+      }
+      links.forEach((link) => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${current.id}`);
+      });
+    };
+    document.addEventListener('scroll', activate, { passive: true });
+    activate();
+
+    document.querySelectorAll('table').forEach((table) => {
+      const headers = Array.from(table.querySelectorAll('thead th')).map((th) => th.textContent.trim());
+      table.querySelectorAll('tbody tr').forEach((row) => {
+        Array.from(row.children).forEach((cell, index) => {
+          cell.setAttribute('data-label', headers[index] || '');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
