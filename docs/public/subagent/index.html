@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subagent 与 Team Runtime：从 Codex、Claude Code、OpenClaw、Hermes 到开源多智能体系统</title>
+  <meta name="description" content="系统讲解 subagent 与 team runtime 技术：以 Codex、Claude Code、OpenClaw、Hermes 为主线，对比 LangGraph、CrewAI、OpenAI Agents SDK、Google ADK、Microsoft Agent Framework、AutoGen、CAMEL、MetaGPT 等开源实践。">
+  <link rel="canonical" href="https://www.wineandchord.com/books/subagent/">
+  <meta property="og:title" content="Subagent 与 Team Runtime：从 Codex、Claude Code、OpenClaw、Hermes 到开源多智能体系统">
+  <meta property="og:description" content="从隔离、编排、上下文、并发、恢复、安全和可观测性七个维度，系统比较 subagent/team 技术与主流开源实现。">
+  <meta property="og:url" content="https://www.wineandchord.com/books/subagent/">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/subagent-team-cover.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root {
+      --bg: #f7f8f4;
+      --paper: #fffffb;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --blue: #0f4c81;
+      --green: #1f7a4d;
+      --gold: #9f6b14;
+      --font-book: "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+      --code-bg: #f3f6f8;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-book);
+      line-height: 1.78;
+      text-rendering: optimizeLegibility;
+    }
+    .page-shell {
+      width: min(100%, 1400px);
+      margin: 0 auto;
+      padding: 48px 22px 88px;
+      display: grid;
+      grid-template-columns: minmax(0, 300px) minmax(0, 1020px);
+      gap: 28px;
+      align-items: start;
+    }
+    main {
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-panel {
+      position: sticky;
+      top: 24px;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 16px 10px;
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 10px;
+      background: rgba(255, 255, 251, 0.92);
+      box-shadow: 0 12px 34px rgba(16, 42, 67, 0.07);
+    }
+    .toc-title {
+      margin: 0 0 10px;
+      padding: 0 8px 10px;
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+      color: #102a43;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .toc-list,
+    .toc-sublist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-sublist { margin: 2px 0 4px; }
+    .toc-list li {
+      margin: 0;
+      font-size: 14px;
+    }
+    .toc-link {
+      display: block;
+      position: relative;
+      border-radius: 7px;
+      padding: 6px 8px;
+      color: var(--muted);
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .toc-link:hover,
+    .toc-link.active {
+      background: rgba(31, 122, 77, 0.11);
+      color: #14532d;
+    }
+    .toc-level-2 {
+      margin-top: 11px;
+      padding: 8px 10px;
+      color: #102a43;
+      background: rgba(15, 76, 129, 0.055);
+      border-left: 3px solid rgba(15, 76, 129, 0.55);
+      font-weight: 700;
+    }
+    .toc-level-2.active {
+      background: rgba(15, 76, 129, 0.10);
+      color: #0b3558;
+    }
+    .toc-level-3 {
+      margin-left: 10px;
+      padding: 5px 8px 5px 18px;
+      font-size: 13px;
+    }
+    .toc-level-3::before,
+    .toc-level-4::before {
+      content: "";
+      position: absolute;
+      top: 0.95em;
+      left: 6px;
+      width: 7px;
+      border-top: 1px solid rgba(82, 96, 109, 0.32);
+    }
+    .toc-level-4 {
+      margin-left: 26px;
+      padding: 4px 6px 4px 16px;
+      color: #66788a;
+      font-size: 12.5px;
+      line-height: 1.32;
+    }
+    .toc-level-4.active { color: #14532d; }
+    article {
+      background: var(--paper);
+      border: 1px solid rgba(15, 76, 129, 0.12);
+      border-radius: 8px;
+      padding: clamp(24px, 4vw, 58px);
+      box-shadow: 0 14px 40px rgba(16, 42, 67, 0.08);
+    }
+    h1, h2, h3, h4 {
+      line-height: 1.28;
+      color: #102a43;
+      letter-spacing: 0;
+      scroll-margin-top: 24px;
+    }
+    h1 {
+      margin: 0 0 24px;
+      max-width: 930px;
+      font-size: clamp(24px, 2.8vw, 36px);
+    }
+    h2 {
+      margin: 86px 0 26px;
+      padding: 22px 0 12px;
+      font-size: clamp(25px, 2.7vw, 32px);
+      border-top: 3px solid rgba(15, 76, 129, 0.22);
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+    }
+    h3 {
+      margin: 46px 0 14px;
+      padding-left: 14px;
+      font-size: clamp(19px, 2vw, 23px);
+      border-left: 4px solid var(--green);
+    }
+    h4 {
+      margin: 30px 0 10px;
+      padding-left: 12px;
+      color: #243b53;
+      font-size: clamp(16px, 1.6vw, 18px);
+      border-left: 2px solid rgba(15, 76, 129, 0.35);
+    }
+    p, li {
+      font-size: 18px;
+      overflow-wrap: break-word;
+    }
+    p { margin: 18px 0; }
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.14em;
+    }
+    a code {
+      color: var(--blue);
+      background: rgba(15, 76, 129, 0.08);
+    }
+    strong { color: #102a43; }
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 28px auto 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(16, 42, 67, 0.08);
+      background: #fff;
+    }
+    p:first-of-type img {
+      margin-top: 0;
+      border: none;
+      box-shadow: none;
+    }
+    figure {
+      margin: 34px 0 38px;
+    }
+    figcaption {
+      margin: 8px auto 0;
+      max-width: 900px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.62;
+      text-align: center;
+    }
+    code {
+      font-family: Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9em;
+      color: #9b2c2c;
+      background: rgba(155, 44, 44, 0.08);
+      border-radius: 5px;
+      padding: 0.12em 0.32em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 22px 0;
+      padding: 18px 20px;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.62;
+    }
+    pre code {
+      display: block;
+      padding: 0;
+      color: #243b53;
+      background: transparent;
+      font-size: 15px;
+      white-space: pre;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    ul, ol {
+      padding-left: 1.35em;
+      margin: 16px 0 22px;
+    }
+    li + li { margin-top: 8px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 28px 0;
+      font-size: 16px;
+      display: block;
+      overflow-x: auto;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      min-width: 150px;
+      overflow-wrap: break-word;
+    }
+    th {
+      background: #e6f0f8;
+      color: #102a43;
+      text-align: left;
+    }
+    blockquote,
+    .callout {
+      margin: 26px 0;
+      padding: 14px 18px 14px 20px;
+      border-left: 4px solid var(--green);
+      background: #f6fbf7;
+      color: #334e68;
+    }
+    .callout.gold {
+      border-left-color: var(--gold);
+      background: #fff9eb;
+    }
+    .lede {
+      color: #334e68;
+      font-size: clamp(19px, 2vw, 22px);
+      line-height: 1.82;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 24px 0 30px;
+    }
+    .meta-item {
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fbfdf9;
+    }
+    .meta-item strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 15px;
+    }
+    .meta-item span {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .rank {
+      color: #102a43;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .score {
+      color: var(--green);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .source-list li {
+      font-size: 16px;
+      line-height: 1.58;
+    }
+    @media (max-width: 1100px) {
+      .page-shell {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+        padding-top: 24px;
+      }
+      .toc-panel {
+        position: static;
+        max-height: none;
+      }
+      .toc-level-3 { margin-left: 4px; }
+      .toc-level-4 { margin-left: 14px; }
+      .meta-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .page-shell { padding: 14px 10px 54px; }
+      article {
+        border-radius: 7px;
+        padding: 20px 14px 30px;
+      }
+      p, li { font-size: 16px; }
+      .lede { font-size: 17px; }
+      .toc-title { font-size: 14px; }
+      .toc-list { display: block; }
+      .toc-link {
+        padding-top: 7px;
+        padding-bottom: 7px;
+      }
+      img { margin: 20px auto 8px; }
+      table {
+        display: block;
+        overflow: visible;
+      }
+      table thead { display: none; }
+      table tbody,
+      table tr,
+      table td {
+        display: block;
+        width: 100%;
+      }
+      table tr {
+        margin: 18px 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      table td {
+        border: none;
+        border-bottom: 1px solid var(--line);
+        padding: 9px 11px;
+        font-size: 15px;
+      }
+      table td:first-child {
+        background: #e6f0f8;
+        color: #102a43;
+        font-weight: 700;
+      }
+      table td:not(:first-child)::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 3px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="toc-panel" aria-label="文章目录">
+      <div class="toc-title">目录</div>
+      <nav id="toc" class="toc-nav"></nav>
+    </aside>
+    <main>
+      <article>
+<h1>Subagent 与 Team Runtime：从 Codex、Claude Code、OpenClaw、Hermes 到开源多智能体系统</h1>
+<p><img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/subagent-team-cover.webp" alt="Subagent 与 Team Runtime 技术地图"></p>
+
+<p class="lede">Subagent 不是“多叫几次模型”。真正的问题是：当一个主 agent 把工作交给另一个 agent 时，谁拥有上下文、谁能使用工具、谁负责调度、谁验证结果、失败以后谁恢复。只要这些边界没有被 runtime 明确下来，多智能体就会退化成一组更贵、更难审计、更容易互相污染的 prompt。</p>
+
+<p>本文把 subagent/team 技术放在一个工程坐标系里讲：先用 Codex、Claude Code、OpenClaw、Hermes 四条主线拆开产品级和源码级实践，再把 LangGraph、CrewAI、OpenAI Agents SDK、Google ADK、Microsoft Agent Framework、AutoGen/AG2、CAMEL、MetaGPT、Strands 等开源实现放到同一个排序表里比较。排序分两层：第一层按 GitHub 热度，第二层按本文定义的 team runtime 能力。</p>
+
+<div class="meta-grid">
+  <div class="meta-item"><strong>写作快照</strong><span>源码、文档和 GitHub stars 快照时间为 2026-06-16。后续版本可能改变 API、stars 和项目定位。</span></div>
+  <div class="meta-item"><strong>公共证据边界</strong><span>Codex、OpenClaw、Hermes 使用固定 commit 的 GitHub 源码锚点；Claude Code 使用 Anthropic 官方公开文档，不把未公开实现细节写成源码事实。</span></div>
+  <div class="meta-item"><strong>排序口径</strong><span>stars 只代表注意力；能力排序看隔离、拓扑、上下文、并发、恢复、安全和可观测性。</span></div>
+</div>
+
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/subagent-mental-model.webp" alt="Subagent runtime 心智模型">
+  <figcaption>Subagent/team runtime 的核心不是“更多 agent”，而是把决策层、执行层和运行平面分清楚。</figcaption>
+</figure>
+
+<h2>一、先给定义：subagent 是边界，team 是拓扑</h2>
+<p>如果把 agent 看成“能读上下文、调用工具、产出行动建议的运行体”，那么 subagent 就是由另一个 agent 或 runtime 派生出来的受限运行体。它可能有自己的上下文窗口、系统提示、工具权限、工作目录、会话历史和终止条件。它的输出通常应该是证据、补丁、报告或候选结论，而不是直接覆盖父级的最终决定。</p>
+
+<p>Team runtime 则是多个 agent 之间的编排拓扑。它回答的问题不是“有没有子 agent”，而是“这些 agent 如何协作”：是主 agent 把任务 handoff 给专家，还是 supervisor 分派给 worker，还是一组 agent 共享 group chat，还是显式图工作流，还是由持久队列/看板调度长任务。拓扑一变，失败模式也会变。</p>
+
+<h3>1.1 七个能力维度</h3>
+<p>本文的能力排序不是按 marketing 口径，也不是按某个 demo 是否炫。一个真正可落地的 subagent/team runtime 至少要回答七个问题。</p>
+
+<table>
+  <thead>
+    <tr><th>维度</th><th>要回答的问题</th><th>低成熟度表现</th><th>高成熟度表现</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>隔离边界</td><td>子 agent 能看到什么、能改什么、能调用什么？</td><td>直接复制完整聊天和全部工具。</td><td>独立上下文、scoped tools、独立权限、必要时单独 workspace 或 sandbox。</td></tr>
+    <tr><td>编排拓扑</td><td>谁派活，谁等待，谁合并？</td><td>只有“让另一个模型回答一下”。</td><td>handoff、supervisor、graph、durable queue 等拓扑明确。</td></tr>
+    <tr><td>上下文纪律</td><td>父子之间传多少历史，结果如何返回？</td><td>盲目 fork 全历史，token 成本和污染一起放大。</td><td>默认 brief，必要时 fork；子结果作为 evidence/report 返回。</td></tr>
+    <tr><td>并发与背压</td><td>能否并行、等待、取消、限流？</td><td>并行 spawn 后靠人工猜测完成状态。</td><td>有 wait/yield、timeout、max concurrency、queue depth 和取消传播。</td></tr>
+    <tr><td>持久化与恢复</td><td>进程重启、长任务、失败后怎么办？</td><td>内存里跑完就算，丢了就丢。</td><td>任务表、checkpoint、resume、stale recovery、tombstone 或人工接管路径。</td></tr>
+    <tr><td>安全治理</td><td>子 agent 是否能越权写文件、联网、读 secrets？</td><td>父级有什么权限，子级就有什么权限。</td><td>deny/allow、approval、sandbox、human-in-loop、输出验证。</td></tr>
+    <tr><td>可观测性</td><td>能不能追踪谁做了什么？</td><td>只看到最后一段自然语言。</td><td>事件流、trace、hook、transcript、task id、parent/child correlation。</td></tr>
+  </tbody>
+</table>
+
+<h3>1.2 为什么“更多 agent”经常变差</h3>
+<p>Subagent 的收益来自分治：更小的上下文、更明确的角色、更少的工具权限、更好的并行性。它的风险也来自分治：父级可能把责任甩给子级，子级可能缺上下文，多个子级可能重复工作，长任务可能没有恢复点，工具权限可能被复制得过宽。</p>
+
+<p>所以判断一个系统好不好，不能只看能不能 spawn。要看它有没有让父级保持 ownership。一个高质量设计通常会把子结果降级为“证据”，父级仍然负责核验、合并和交付。Codex 的多 agent 描述里明确把 child output 放在 parent synthesis 之前；OpenClaw 的 subagent 文档也强调 child output 是 report/evidence，不是用户指令；Hermes 的 Kanban completion 要求结构化 handoff；Claude Code 的官方 subagent contract 也把结果返回主 agent 处理。</p>
+
+<h2>二、四条主线：从产品契约到运行时边界</h2>
+
+<h3>2.1 Codex：thread tree、mailbox 与可观测的协作事件</h3>
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-thread-tree-v2.webp" alt="Codex multi-agent thread tree">
+  <figcaption>Codex 的 subagent 更像线程树和邮箱系统：子线程隔离工作，父线程等待、触发、接收结果并合成最终回答。</figcaption>
+</figure>
+
+<p>Codex 的多 agent 设计非常值得细读，因为它不是只给模型一个“你可以找助手”的提示，而是把协作做成一组工具、协议事件和 UI 可见 item。固定到 commit <code>02dce8e</code> 看，工具规格在 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_spec.rs#L80-L116"><code>multi_agents_spec.rs</code> 的 v2 <code>spawn_agent</code></a>里要求 <code>task_name</code> 和 <code>message</code>，并在 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_spec.rs#L711-L733">v2 描述</a>里定义 canonical task path，例如 <code>/root/task1/task_3</code>。这件事很小，却决定了后续能否 list、wait、resume 和向指定子任务发送 follow-up。</p>
+
+<p><a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L39-L63"><code>spawn.rs</code></a> 先解析 fork mode、role 和模型 override，随后在 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L95-L132">构造 child thread metadata</a>时把 parent thread、environment、fork mode 和初始 inter-agent message 绑定进去。它还会在 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L147-L176">spawn 后发出 <code>SubAgentActivityEvent</code></a>，让 UI 和 tracing 能看到子任务开始，而不是只在自然语言里宣布“我开了一个子任务”。</p>
+
+<p>上下文继承要特别小心：在这版源码里，<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L206-L231"><code>fork_turns</code> 不传时默认 <code>all</code></a>，也就是子线程继承完整父历史；如果要让子任务从干净上下文开始，需要显式传 <code>none</code>。这解释了为什么 subagent 不是自动安全边界：隔离必须由 runtime 默认、调用参数和任务 brief 一起决定。</p>
+
+<h4>Codex 的关键设计不是并行，而是 mailbox 纪律</h4>
+<p>Codex 把“给子 agent 留消息”和“触发子 agent 继续跑”拆开。<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/send_message.rs#L24-L39"><code>send_message</code></a> 使用 queue-only delivery，只把消息放进子 agent 的 mailbox；<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/followup_task.rs#L24-L39"><code>followup_task</code></a> 则使用 trigger-turn delivery，让子 agent 实际开始下一轮。这个拆分非常工程化：父级可以在不打断子线程的情况下追加上下文，也可以明确触发下一轮执行。</p>
+
+<p>等待也不是靠轮询自然语言。<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L51-L90"><code>wait_agent</code></a> 处理 timeout、订阅 input queue activity，并发出 <code>CollabWaitingBegin</code>；结束时在 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L92-L110"><code>CollabWaitingEnd</code></a> 里交代等待结果。底层等待结果可能是 mailbox activity、被 steering 或 timed out，见 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L171-L188">wait_for_activity</a>。这让“父级什么时候卡住、卡在哪里、为什么恢复”变成协议事实。</p>
+
+<h4>父级合成，不是子级盖章</h4>
+<p>Codex 还把 child terminal turn 变成父级可见的 inter-agent communication。<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/session/mod.rs#L1745-L1781"><code>maybe_notify_parent_of_terminal_turn</code></a> 检测子线程 final status，再通过 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/session/mod.rs#L1784-L1837">inter-agent communication</a> 把完成信息转给父级。App protocol 侧也有 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/app-server-protocol/src/protocol/v2/item.rs#L317-L345"><code>CollabAgentToolCall</code> 和 <code>SubAgentActivity</code></a>，说明它不是 CLI 私有小技巧，而是 UI 层能表达的协作模型。</p>
+
+<p>Codex 的强项是：thread tree、fork policy、mailbox、wait、event stream 和 UI item 都在同一个 runtime 里。它的限制也来自这里：这是 Codex 产品/runtime 内部能力，不是一个通用 Python/JS 框架。你能学到的是边界设计，而不一定能直接把这套工具名搬到自己的服务里。</p>
+
+<h3>2.2 Claude Code：公开契约优先的 specialist subagent</h3>
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/claude-code-subagent-contract-v2.webp" alt="Claude Code subagent contract">
+  <figcaption>Claude Code 的公开 subagent contract 适合建立专家库：定义、选择、隔离执行、hook 观测、主 agent 验收。</figcaption>
+</figure>
+
+<p>Claude Code 的公开文档把 subagent 讲成“专用 AI subagent”，重点是任务特化和上下文管理。<a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents">Subagents 文档</a>说明每个 subagent 可以有自己的 context window、custom system prompt、specific tools 和独立权限；<a href="https://code.claude.com/docs/en/agent-sdk/subagents">Agent SDK 的 subagents 文档</a>则把它描述为主 agent 可 spawn 的独立 agent instance，用于隔离上下文、并行分析和专用指令。这里的公共契约是“定义专家，然后由主 agent 在合适任务上调用”。</p>
+
+<p>这个模型和 Codex 的 thread tree 有一个重要区别：Claude Code 面向用户暴露的是专家 contract，而不是完整的 inter-agent mailbox 协议。你可以把 researcher、reviewer、tester、doc writer 这类角色沉淀成项目或用户级定义；主 agent 在需要时调用它们，拿回报告，再自己合成最终回答。官方 <a href="https://docs.anthropic.com/en/docs/claude-code/hooks">hooks 文档</a>还提供 <code>SubagentStart</code> 和 <code>SubagentStop</code> 事件，后者能带上 <code>agent_id</code>、<code>agent_type</code>、<code>agent_transcript_path</code> 等元数据，这让 subagent lifecycle 可以进入审计和自动化。</p>
+
+<h4>Claude Code 的优势：角色库和上下文隔离</h4>
+<p>如果你的问题是“我希望每个仓库都有自己的 code reviewer、security auditor、docs maintainer，而且这些角色不要污染主上下文”，Claude Code 的 subagent contract 很自然。它把角色描述、工具范围和模型选择放在定义面上，运行时由主 agent 选择合适的专家。这种 contract 很适合团队维护，因为它接近“技能说明书”：什么时候用、看什么文件、能用哪些工具、返回什么格式。</p>
+
+<h4>Claude Code 的边界：公开文档不等于完整 runtime 规格</h4>
+<p>公开文档没有把内部调度、背压、长任务恢复和 UI 协议展开到 Codex 源码那种粒度。因此本文不把 Claude Code 排成“最强 runtime 源码样本”，而把它视为“最成熟的产品级 specialist subagent contract”之一。它的可迁移经验是：subagent 定义应该像 contract，而不是一句临时 prompt；结果应该回到父级验证，而不是直接替代父级。</p>
+
+<h3>2.3 OpenClaw：Gateway 里的 session-spawn 与多通道隔离</h3>
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/openclaw-gateway-subagents-v2.webp" alt="OpenClaw gateway subagents">
+  <figcaption>OpenClaw 把 subagent 放进 Gateway、session、channel、sandbox 和 ACP runtime 的运行平面里。</figcaption>
+</figure>
+
+<p>OpenClaw 的定位更像“always-on agent gateway”。它的 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/README.md#L161-L174">README</a> 把 Local-first Gateway、多 channel inbox、多 agent routing、isolated agents、workspace/session 和 tools 放在一起。多 agent 不是只有 prompt 编排，而是和 channel account、agent workspace、auth profile、session store 绑定在同一套 Gateway 架构里。</p>
+
+<p>OpenClaw 的 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/concepts/multi-agent.md#L9-L20">multi-agent routing 文档</a>把一个 agent 定义成带 workspace、state directory、session history 和 auth profile 的完整 persona；同一 Gateway 可以承载多个互相隔离的 agent，见 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/concepts/multi-agent.md#L121-L129">多 agent 隔离说明</a>。这让它的 subagent 设计天然带有“会话隔离”和“路由回送”的味道。</p>
+
+<h4><code>sessions_spawn</code> 是非阻塞的 background run</h4>
+<p><a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/tools/subagents.md#L11-L22">Sub-agents 文档</a>把 subagent 定义为从现有 agent run 派生出来的 background agent run，运行在形如 <code>agent:&lt;agentId&gt;:subagent:&lt;uuid&gt;</code> 的独立 session。它的主要目标包括并行慢任务、默认隔离、避免滥用 session tools，以及支持可配置 nesting depth。</p>
+
+<p>具体工具上，<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/concepts/session-tool.md#L144-L167"><code>sessions_spawn</code></a>默认创建隔离 session，并立即返回 <code>runId</code> 和 <code>childSessionKey</code>。native subagent 的 delegated task 会进入子 session 第一条可见 <code>[Subagent Task]</code> 消息；system prompt 只携带 runtime rules 和 routing context。<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/tools/subagents.md#L63-L76">spawn behavior</a>则强调非阻塞和 push-based completion：父级如果需要等结果，应该 <code>sessions_yield</code>，不要轮询。</p>
+
+<h4>OpenClaw 的独特价值：channel、thread、ACP 与 sandbox</h4>
+<p>OpenClaw 不只是本地编排库。它关心“结果怎么回到 requester chat channel”。<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/tools/subagents.md#L79-L99">completion delivery</a>会尝试唤醒或 steer requester run，失败时通过 handoff/queue 路由补救。它还支持 native subagent 和 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/tools/subagents.md#L102-L109">ACP runtime</a> 两条路径，可以把 Claude Code、Gemini CLI、OpenCode 等外部 harness 放进同一个 Gateway 模型里。</p>
+
+<p>安全和资源方面，OpenClaw 的 subagent 文档提供 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/tools/subagents.md#L593-L643">concurrency、liveness、recovery 和 limitations</a>：subagent lane 默认有 max concurrency，stale run 不会永远算 active，restart recovery 有边界，<code>sessions_spawn</code> 总是非阻塞，maximum nesting depth 默认受限。任务 registry 也把 <code>subagent</code>、<code>acp</code>、<code>cli</code>、<code>cron</code> 明确成 runtime 枚举，见 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/tasks/task-registry.types.ts#L1-L12"><code>TaskRuntime</code></a>。</p>
+
+<p>OpenClaw 的能力强在运行平面：多通道、线程绑定、Gateway 路由、session store、sandbox、ACP bridge 和 delivery policy。它的限制也很明确：如果你只想在一个 Python 服务里写复杂状态图，OpenClaw 可能太平台化；但如果你的目标是“一个 AI 助手长期生活在多个消息渠道里，还能把长任务派给隔离子会话”，它是非常接近真实生产形态的样本。</p>
+
+<h3>2.4 Hermes Agent：delegate_task 与 Kanban operating plane</h3>
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hermes-delegation-kanban.webp" alt="Hermes delegation and Kanban team board">
+  <figcaption>Hermes 把即时 delegate fanout 和持久 Kanban board 都做成 team operating plane。</figcaption>
+</figure>
+
+<p>Hermes 的 subagent/team 设计有两条线：一条是 <code>delegate_task</code> 这种同步或批量 delegation；另一条是 Kanban board 这种持久任务平面。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L1-L17"><code>delegate_tool.py</code> 的 docstring</a>直接说明：它会 spawn child <code>AIAgent</code>，使用隔离上下文、受限 toolsets、独立 terminal sessions，父级只看到 summary。这个定位很清楚：子 agent 是工作隔离体，不是共享记忆里的另一个人格。</p>
+
+<p>它还非常重视滥用边界。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L44-L53"><code>DELEGATE_BLOCKED_TOOLS</code></a> 默认阻止子 agent 再使用 <code>delegate_task</code>、memory、send_message、execute_code 等工具；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L132-L139">并发和深度默认值</a>控制 fanout 规模；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L474-L510">spawn depth 逻辑</a>还把普通 delegation 和 orchestrator role 区分开。换句话说，Hermes 没有把“子 agent 可以继续无限生子”当默认能力。</p>
+
+<h4>child agent 的构造：继承、裁剪、再加身份</h4>
+<p>Hermes 在构造 child agent 时会处理 provider/model/toolset 的继承和覆盖。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L1019-L1062">toolset inheritance</a>会做 intersection/override，并且只在 orchestrator role 下重新开放 delegation；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L1115-L1231">child <code>AIAgent</code> 创建</a>会设置 <code>skip_context_files=True</code>、<code>skip_memory=True</code>、<code>platform="subagent"</code>、<code>parent_session_id</code> 和独立 iteration budget；随后 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L1237-L1295">写入 depth、role、subagent id 和 hooks</a>。这类细节说明 Hermes 的 delegation 是工程对象，不是字符串拼接。</p>
+
+<h4>Kanban 是 Hermes 的 durable team runtime</h4>
+<p>Hermes 的 Kanban 工具把 team runtime 推到更重的一层。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/kanban_tools.py#L1-L28"><code>kanban_tools.py</code> 的说明</a>强调这些是给 dispatcher workers 和 orchestrator profiles 用的结构化工具，不是让 worker shell 到数据库里乱改。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/kanban_tools.py#L132-L161">ownership guard</a>防止 worker 修改非自己任务；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/kanban_tools.py#L476-L580"><code>kanban_complete</code></a>要求带 summary、result、metadata 和 artifacts，保证 handoff 是结构化的。</p>
+
+<p>调度层在 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/gateway/kanban_watchers.py#L559-L576"><code>kanban_watchers.py</code></a> 里以 gateway-hosted watcher 运行，按 board 调用 dispatcher；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/gateway/kanban_watchers.py#L619-L721">max_spawn、max_in_progress、failure_limit、stale timeout 和 per-profile limit</a>提供背压；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/gateway/kanban_watchers.py#L765-L815">每个 board 的 <code>dispatch_once</code></a>把队列执行变成可恢复循环。观测上，<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/docs/observability/README.md#L63-L76">observability 文档</a>提供 session、task、parent/child correlation id；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/docs/observability/README.md#L208-L223">subagent hooks</a>则把 start/stop 事件纳入 trace。</p>
+
+<p>Hermes 的强项是 operational discipline：隔离、受限工具、并发、深度、hooks、Kanban、ownership、structured handoff、dispatcher backpressure 都比较完整。它的代价是系统复杂度更高，更像“团队操作系统”而不是轻量 SDK。</p>
+
+<h2>三、开源实现按流行度排序：stars 是注意力，不是成熟度</h2>
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/ecosystem-popularity-capability.webp" alt="开源 subagent/team 系统热度与能力二维图">
+  <figcaption>GitHub 热度和 runtime 能力不是一回事。高星项目可能是产品、研究 demo、框架或完整运行平面。</figcaption>
+</figure>
+
+<p>下面这张表按 GitHub stars 从高到低排序，快照时间是 2026-06-16。Claude Code 是商业产品文档，不放进 GitHub stars 表。OpenClaw 和 Hermes 的 stars 数非常高，本文仍然按 GitHub API 快照列出，但不会把 stars 直接等价为生产成熟度。</p>
+
+<table>
+  <thead>
+    <tr><th>流行度排名</th><th>项目</th><th>Stars</th><th>Forks</th><th>本文视角下的定位</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="rank">1</td><td><a href="https://github.com/openclaw/openclaw">OpenClaw</a></td><td>378,895</td><td>79,274</td><td>Gateway、multi-channel、session-spawn、ACP 和 sandbox 组成的 agent operating plane。</td></tr>
+    <tr><td class="rank">2</td><td><a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a></td><td>194,503</td><td>34,105</td><td>delegate_task + Kanban board 的 durable team operating plane。</td></tr>
+    <tr><td class="rank">3</td><td><a href="https://github.com/Significant-Gravitas/AutoGPT">AutoGPT</a></td><td>184,959</td><td>46,141</td><td>自主 agent 产品/平台热度极高，但不是本文意义上最强 team runtime 核心。</td></tr>
+    <tr><td class="rank">4</td><td><a href="https://github.com/openai/codex">Codex</a></td><td>91,269</td><td>13,479</td><td>coding agent 产品/runtime；thread tree 和 collaboration protocol 值得重点研究。</td></tr>
+    <tr><td class="rank">5</td><td><a href="https://github.com/OpenHands/OpenHands">OpenHands</a></td><td>77,245</td><td>9,813</td><td>coding agent 应用平台，偏产品系统，不以通用 multi-agent DSL 为核心。</td></tr>
+    <tr><td class="rank">6</td><td><a href="https://github.com/FoundationAgents/MetaGPT">MetaGPT</a></td><td>68,834</td><td>8,796</td><td>SOP/role company 范式影响大，适合理解“软件公司式多角色”。</td></tr>
+    <tr><td class="rank">7</td><td><a href="https://github.com/microsoft/autogen">Microsoft AutoGen</a></td><td>58,977</td><td>8,896</td><td>multi-agent conversation 的经典框架；微软新路线逐步转向 Agent Framework。</td></tr>
+    <tr><td class="rank">8</td><td><a href="https://github.com/crewAIInc/crewAI">CrewAI</a></td><td>53,635</td><td>7,506</td><td>角色、任务、crew 和 flow，易上手且社区热度高。</td></tr>
+    <tr><td class="rank">9</td><td><a href="https://github.com/run-llama/llama_index">LlamaIndex</a></td><td>50,152</td><td>7,567</td><td>数据/RAG agent 生态强，team runtime 不是唯一核心。</td></tr>
+    <tr><td class="rank">10</td><td><a href="https://github.com/agno-agi/agno">Agno</a></td><td>40,706</td><td>5,528</td><td>agent platform/harness，适合构建应用级 agent。</td></tr>
+    <tr><td class="rank">11</td><td><a href="https://github.com/langchain-ai/langgraph">LangGraph</a></td><td>34,856</td><td>5,837</td><td>状态图、checkpoint、supervisor/custom workflow，是通用 team runtime 的强基座。</td></tr>
+    <tr><td class="rank">12</td><td><a href="https://github.com/microsoft/semantic-kernel">Semantic Kernel</a></td><td>28,129</td><td>4,649</td><td>企业集成和 agent orchestration，和 Microsoft Agent Framework 关系密切。</td></tr>
+    <tr><td class="rank">13</td><td><a href="https://github.com/huggingface/smolagents">smolagents</a></td><td>27,877</td><td>2,689</td><td>轻量 agent harness，适合简单 agent，不主打复杂 team runtime。</td></tr>
+    <tr><td class="rank">14</td><td><a href="https://github.com/openai/openai-agents-python">OpenAI Agents SDK Python</a></td><td>27,174</td><td>4,192</td><td>handoff、agents-as-tools、guardrails、tracing，轻量但表达力高。</td></tr>
+    <tr><td class="rank">15</td><td><a href="https://github.com/langchain-ai/deepagents">DeepAgents</a></td><td>24,675</td><td>3,492</td><td>面向深度任务的 batteries-included harness，和 LangGraph 生态相邻。</td></tr>
+    <tr><td class="rank">16</td><td><a href="https://github.com/openai/swarm">OpenAI Swarm</a></td><td>21,639</td><td>2,306</td><td>教育性质的轻量 multi-agent handoff 探索。</td></tr>
+    <tr><td class="rank">17</td><td><a href="https://github.com/google/adk-python">Google ADK Python</a></td><td>20,123</td><td>3,573</td><td>代码优先的 agent toolkit，支持多 agent 与部署路径。</td></tr>
+    <tr><td class="rank">18</td><td><a href="https://github.com/SWE-agent/SWE-agent">SWE-agent</a></td><td>19,523</td><td>2,135</td><td>软件工程 agent 基准/执行系统，偏 coding agent 而非通用 team runtime。</td></tr>
+    <tr><td class="rank">19</td><td><a href="https://github.com/pydantic/pydantic-ai">Pydantic AI</a></td><td>17,773</td><td>2,221</td><td>类型安全 agent 应用框架，适合可靠工具调用与结构化输出。</td></tr>
+    <tr><td class="rank">20</td><td><a href="https://github.com/camel-ai/camel">CAMEL</a></td><td>17,201</td><td>1,951</td><td>role-playing society 和 multi-agent research 范式。</td></tr>
+    <tr><td class="rank">21</td><td><a href="https://github.com/microsoft/agent-framework">Microsoft Agent Framework</a></td><td>11,365</td><td>1,913</td><td>微软新一代 agent framework，整合 AutoGen 与 Semantic Kernel 路线。</td></tr>
+    <tr><td class="rank">22</td><td><a href="https://github.com/livekit/agents">LiveKit Agents</a></td><td>10,990</td><td>3,227</td><td>实时语音 AI agent 框架，team runtime 不是主要比较维度。</td></tr>
+    <tr><td class="rank">23</td><td><a href="https://github.com/google/adk-go">Google ADK Go</a></td><td>8,160</td><td>712</td><td>ADK 的 Go 实现，适合 Go 服务栈。</td></tr>
+    <tr><td class="rank">24</td><td><a href="https://github.com/2fastlabs/agent-squad">Agent Squad</a></td><td>7,656</td><td>721</td><td>面向多 agent routing/orchestration 的轻量框架。</td></tr>
+    <tr><td class="rank">25</td><td><a href="https://github.com/strands-agents/harness-sdk">Strands Agents SDK</a></td><td>6,159</td><td>884</td><td>AWS 开源的 agent harness，文档覆盖 graph、swarm、workflow 等模式。</td></tr>
+    <tr><td class="rank">26</td><td><a href="https://github.com/ag2ai/ag2">AG2</a></td><td>4,676</td><td>657</td><td>AutoGen 社区延续/AgentOS 路线，group chat 和 orchestration 能力仍值得看。</td></tr>
+    <tr><td class="rank">27</td><td><a href="https://github.com/openai/openai-agents-js">OpenAI Agents SDK JS</a></td><td>3,223</td><td>820</td><td>OpenAI Agents SDK 的 JS 版本，适合前端/Node 生态。</td></tr>
+  </tbody>
+</table>
+
+<h2>四、按能力排序：谁更像真正的 team runtime</h2>
+<p>能力排序必须先说口径。本文不是评“谁最会写 demo”，而是评“当任务变长、工具有风险、多个 agent 并发、需要恢复和审计时，runtime 给了多少可靠边界”。因此产品级系统、平台型系统和 SDK 会混在一起比较，但每一行都会说明适用边界。</p>
+
+<p>这里不做机械总分相加，因为不同系统的目标不同：Codex 和 Claude Code 是产品内 subagent runtime，LangGraph、CrewAI、OpenAI Agents SDK、Microsoft Agent Framework 更像通用 SDK，OpenClaw 和 Hermes 更像 operating plane。本文的 tie-breaker 是：优先看是否有完整的 parent-child 闭环，其次看拓扑表达与恢复能力，再看安全隔离、可观测性和公开证据深度。也就是说，一个通用图框架可能在 workflow 上更强，但如果它把权限、sandbox 或 delivery 留给应用层，本文不会把它简单排到所有产品级 runtime 前面。</p>
+
+<table>
+  <thead>
+    <tr><th>系统</th><th>直接 subagent 闭环</th><th>拓扑表达</th><th>恢复/持久化</th><th>安全隔离</th><th>公开证据</th><th>排序解释</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Codex</td><td>极强</td><td>强</td><td>中强</td><td>强</td><td>强</td><td>工具、thread、mailbox、wait、event、UI item 和 parent notification 形成闭环。</td></tr>
+    <tr><td>LangGraph</td><td>强</td><td>极强</td><td>强</td><td>中</td><td>强</td><td>图、checkpoint、supervisor/custom workflow 是通用编排强项，权限边界更多由应用层补齐。</td></tr>
+    <tr><td>Hermes</td><td>强</td><td>中强</td><td>极强</td><td>极强</td><td>强</td><td>delegate_task + Kanban 的运维闭环很完整，但通用拓扑表达不如图框架。</td></tr>
+    <tr><td>OpenClaw</td><td>强</td><td>中强</td><td>强</td><td>极强</td><td>强</td><td>Gateway/session/channel/sandbox/ACP 平面突出，复杂 workflow 不是核心抽象。</td></tr>
+    <tr><td>Claude Code</td><td>强</td><td>中</td><td>公开不足</td><td>强</td><td>中</td><td>specialist contract 很成熟，但公开资料没有完整展示调度和恢复协议。</td></tr>
+    <tr><td>Microsoft Agent Framework</td><td>强</td><td>强</td><td>中强</td><td>中强</td><td>强</td><td>orchestration family 丰富，企业生态强，仍处在新框架迁移期。</td></tr>
+    <tr><td>CrewAI / Google ADK / OpenAI Agents SDK</td><td>中强</td><td>中强</td><td>中</td><td>中强</td><td>强</td><td>应用集成和上手性好；复杂持久化、细粒度权限通常需要额外工程。</td></tr>
+    <tr><td>AutoGen / AG2 / CAMEL / MetaGPT</td><td>中</td><td>中强</td><td>弱到中</td><td>弱到中</td><td>强</td><td>研究和 group chat/role society 影响大，但生产治理边界需要补足。</td></tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr><th>能力排名</th><th>系统</th><th>最强能力</th><th>典型短板</th><th>适合场景</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="rank">1</td><td>Codex multi-agent runtime</td><td>Thread tree、mailbox、fork policy、wait、event stream、UI item 和 parent synthesis 统一。</td><td>强绑定 Codex 产品/runtime，不是通用独立 SDK。</td><td>coding agent 内的并行研究、实现、审查、父级合成。</td></tr>
+    <tr><td class="rank">2</td><td><a href="https://docs.langchain.com/oss/python/langchain/multi-agent">LangGraph</a></td><td>状态图、custom workflow、supervisor、checkpoint 和 human-in-loop 组合能力强。</td><td>需要工程师显式设计 state、edges、reducers 和恢复策略。</td><td>复杂业务流程、可靠 agent workflow、需要状态恢复的多步系统。</td></tr>
+    <tr><td class="rank">3</td><td>Hermes Agent</td><td>delegate_task 和 Kanban board 双层 runtime，隔离、背压、ownership、structured handoff 完整。</td><td>平台复杂度高，接入成本高于轻量 SDK。</td><td>长任务、团队看板、worker 调度、需要审计和恢复的 agent ops。</td></tr>
+    <tr><td class="rank">4</td><td>OpenClaw</td><td>Gateway、multi-channel routing、session-spawn、thread binding、ACP、sandbox 和 delivery policy。</td><td>更像 agent OS/gateway，不是纯函数式编排库。</td><td>个人/团队 AI 助手长期运行在多个渠道中，并需要后台子任务。</td></tr>
+    <tr><td class="rank">5</td><td>Claude Code subagents</td><td>产品级 specialist subagent contract：自定义 prompt、工具、权限、上下文和 hooks。</td><td>公开文档没有暴露完整调度、背压、恢复协议。</td><td>项目级专家库、代码审查、测试、研究、文档角色沉淀。</td></tr>
+    <tr><td class="rank">6</td><td><a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Microsoft Agent Framework</a></td><td>微软新路线，支持 sequential、concurrent、handoff、group chat、Magentic 等 orchestration。</td><td>生态仍在迁移期，AutoGen/Semantic Kernel 用户需要重新对齐概念。</td><td>.NET/Python 企业应用，多 agent workflow 与云集成。</td></tr>
+    <tr><td class="rank">7</td><td><a href="https://docs.crewai.com/en/concepts/crews">CrewAI</a></td><td>Role/task/crew 抽象直观，Flows 负责状态和执行顺序，社区大。</td><td>深度恢复、精细权限和复杂图状态需要额外工程。</td><td>业务团队式 agent、内容/研究/运营自动化、快速落地。</td></tr>
+    <tr><td class="rank">8</td><td><a href="https://adk.dev/">Google ADK</a></td><td>代码优先、面向生产部署，支持多 agent hierarchy 和工具生态。</td><td>跨语言和云平台路径需要按 Google 生态理解。</td><td>Google/Gemini 生态里的可部署 agent 服务。</td></tr>
+    <tr><td class="rank">9</td><td><a href="https://openai.github.io/openai-agents-python/multi_agent/">OpenAI Agents SDK</a></td><td>Agent = instructions + tools + handoffs，handoff/agents-as-tools/tracing/guardrails 清晰。</td><td>持久队列、复杂 checkpoint 和跨进程恢复要自己补。</td><td>轻量服务集成、specialist handoff、应用内 agent orchestration。</td></tr>
+    <tr><td class="rank">10</td><td><a href="https://microsoft.github.io/autogen/stable//user-guide/core-user-guide/design-patterns/group-chat.html">AutoGen / AG2</a></td><td>多 agent conversation 和 group chat 范式成熟，研究和 demo 资产多。</td><td>共享对话容易上下文污染；微软官方路线已向 Agent Framework 收敛。</td><td>协商、辩论、角色互动、实验性多 agent workflow。</td></tr>
+    <tr><td class="rank">11</td><td><a href="https://strandsagents.com/docs/user-guide/concepts/multi-agent/multi-agent-patterns/">Strands Agents</a></td><td>文档覆盖 agents-as-tools、swarm、graph、workflow 等模式，AWS 生产语境明确。</td><td>社区规模小于 LangGraph/CrewAI。</td><td>AWS 生态、模式学习、agent harness。</td></tr>
+    <tr><td class="rank">12</td><td><a href="https://docs.deepwisdom.ai/main/en/guide/get_started/introduction.html">MetaGPT</a> / <a href="https://docs.camel-ai.org/key_modules/societies">CAMEL</a></td><td>SOP、role society、multi-agent research 影响深。</td><td>更像方法论和研究范式；治理、恢复、权限要另补。</td><td>理解角色分工、SOP 分解、多 agent research。</td></tr>
+  </tbody>
+</table>
+
+<div class="callout gold">
+  <p><strong>为什么 Codex 排能力第一？</strong>不是因为它 stars 最高，而是因为它把 subagent 相关的工具规格、thread metadata、mailbox、wait、activity event、UI protocol 和 parent terminal notification 串成了一个闭环。这个闭环对“coding agent 如何安全并行工作”非常稀缺。</p>
+</div>
+
+<h2>五、五种 team topology：不要用一种模式解释所有系统</h2>
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/team-topologies.webp" alt="五种 team topology">
+  <figcaption>主流 subagent/team 系统大多可以归入五类拓扑，但成熟系统往往会组合多种模式。</figcaption>
+</figure>
+
+<h3>5.1 Handoff / specialist routing</h3>
+<p>Handoff 模式下，主 agent 判断任务类型，然后把控制权或子任务交给 specialist。OpenAI Agents SDK 的 <a href="https://openai.github.io/openai-agents-python/handoffs/">handoffs 文档</a>把 handoff 表达成类似 <code>transfer_to_*</code> 的工具；<a href="https://openai.github.io/openai-agents-python/multi_agent/">multi-agent 文档</a>则把 agent 定义为 instructions、tools 和 handoffs 的组合。Claude Code 的 subagent 也属于这个家族：定义专家，主 agent 选择并调用。</p>
+
+<p>它适合边界清楚的任务：让 researcher 查资料，让 reviewer 看 diff，让 tester 设计测试。它不适合高度耦合的计划，因为 specialist 之间缺少共享状态和全局调度。</p>
+
+<h3>5.2 Supervisor / manager</h3>
+<p>Supervisor 模式让一个中心 agent 分派任务给 worker，再合成结果。LangGraph 的 <a href="https://reference.langchain.com/python/langgraph-supervisor/">supervisor</a>把 specialized agents 暴露成 handoff tools；LangChain 的 multi-agent 文档也把 supervisor/router 作为核心模式。CrewAI 的 crew/manager、Microsoft Agent Framework 的 Magentic orchestration 都可以放在这一类。</p>
+
+<p>它的优势是 ownership 明确：supervisor 负责拆解、监督、整合。它的风险是 supervisor 成为瓶颈，或者 worker 输出被直接拼接，没有足够核验。</p>
+
+<h3>5.3 Group chat / debate</h3>
+<p>Group chat 模式让多个 agent 共享对话频道，通过 manager 或规则控制发言。AutoGen 的 <a href="https://microsoft.github.io/autogen/0.2/docs/Use-Cases/agent_chat/">agent chat</a>和新版 <a href="https://microsoft.github.io/autogen/stable//user-guide/core-user-guide/design-patterns/group-chat.html">group chat design pattern</a>是经典代表；AG2 的 <a href="https://docs.ag2.ai/latest/docs/user-guide/advanced-concepts/orchestration/group-chat/introduction/">group chat 文档</a>延续了这条路线；Semantic Kernel 也提供 <a href="https://learn.microsoft.com/en-us/semantic-kernel/frameworks/agent/agent-orchestration/group-chat">group chat orchestration</a>。</p>
+
+<p>它适合辩论、头脑风暴、共识形成，但最容易上下文污染。所有 agent 都看同一条 conversation 时，隔离边界变薄，token 成本也上升。生产系统里如果用 group chat，通常要配 manager、round limit、termination rule 和 transcript filtering。</p>
+
+<h3>5.4 Graph / workflow</h3>
+<p>Graph/workflow 模式把 agent 工作变成显式状态机或 DAG。LangGraph 是最典型的 graph runtime；CrewAI Flows 把状态和执行顺序从 Crew 里拆出来；Google ADK 的文档和 codelab 也强调 multi-agent system 的构建；Strands 的 <a href="https://strandsagents.com/docs/user-guide/concepts/multi-agent/multi-agent-patterns/">multi-agent patterns</a>覆盖 graph、workflow 和 swarm。</p>
+
+<p>它适合业务流程、审批链、分支、重试和 checkpoint。缺点是开发者必须认真建模 state。如果你只想“让一个 reviewer 看一下”，graph 可能过重；但如果你要可恢复生产流，graph 是最稳的基础之一。</p>
+
+<h3>5.5 Durable task board</h3>
+<p>Durable board 是最像真实团队协作的一类：任务有状态、worker 有所有权、结果有结构、失败能重试。Hermes Kanban 是本文最完整的源码样本；OpenClaw 的 task runtime 也把 subagent/acp/cli/cron 放入统一任务类型。它适合小时级、天级或多人可见的 agent work。</p>
+
+<p>它的代价是重。你需要 task schema、dispatcher、stale detection、ownership、artifact store 和 dashboard。但只要任务跨越一个模型回合，或者需要用户稍后检查，durable board 就比“开几个后台 agent，希望它们回来”可靠得多。</p>
+
+<h2>六、落地决策：什么时候用 subagent，什么时候别用</h2>
+<figure>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/team-runtime-decision-guide.webp" alt="选择 subagent、team runtime、tool 或 durable board 的决策图">
+  <figcaption>最小可靠原则：能用工具就不要上 subagent，能用 subagent 就不要上复杂 team，跨回合长任务才需要 durable board。</figcaption>
+</figure>
+
+<h3>6.1 用工具，而不是 subagent</h3>
+<p>如果任务是确定性的、输入输出清楚、无需解释性探索，就应该写成 tool。读取文件、跑测试、格式化、查询数据库、调用 API，通常都不是 subagent 的职责。Subagent 不是为了替代函数，而是为了处理需要模型判断、搜索、比较、总结和验证的子问题。</p>
+
+<h3>6.2 用 subagent，而不是 team</h3>
+<p>如果任务能用一个短 brief 讲清楚，和主上下文耦合不强，成功标准明确，可以并行探索，就适合 subagent。这里的短 brief 通常是一个段落量级；图里的 200 words 只是经验上限，不是硬规则。典型例子是“请独立审查这个 diff 的安全风险”“请读某个模块并总结 API 边界”“请找出三种实现方案的 tradeoff”。这时不需要多 agent 群聊，只需要一个隔离专家返回 evidence。</p>
+
+<h3>6.3 用 team runtime，而不是一堆 subagent</h3>
+<p>如果多个角色之间有依赖关系，或者需要 supervisor 控制计划，就应该上 team runtime。比如 researcher 的结果决定 implementer 怎么改，tester 的结果可能要求 implementer 返工，reviewer 必须在 patch 后执行。这里需要状态、边、合并规则和失败路径，而不是随手 spawn 三个子 agent。</p>
+
+<h3>6.4 用 durable board，而不是一次性 team</h3>
+<p>如果任务跨越多个小时、需要等待外部资源、需要用户稍后回来、需要并发 worker、需要重试和审计，就应该进入 durable board 或 queue。Hermes Kanban、OpenClaw task runtime、LangGraph checkpoint 都属于这条线。一次性 team 很难处理进程重启、半完成 artifacts、用户中断和跨天恢复。</p>
+
+<h2>七、最常见的失败模式</h2>
+
+<h3>7.1 盲目 fork 全上下文</h3>
+<p>Fork 全历史看起来省事，但会把 token 成本、隐私范围和指令污染一起复制给子 agent。更稳的默认是 isolated brief：给目标、约束、必要文件、成功标准和输出格式；只有子任务真的依赖当前细节时才 fork。OpenClaw 的 context modes 明确区分 <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/tools/subagents.md#L113-L124"><code>isolated</code> 和 <code>fork</code></a>，这个设计非常可迁移。</p>
+
+<h3>7.2 权限复制过宽</h3>
+<p>父级能写文件、联网、读环境变量，不代表子级也应该能做。Hermes 默认 blocked tools、OpenClaw subagent tool policy、Claude Code scoped tools、Codex fork/role 约束都在解决同一个问题：子 agent 的工作面应该比父级窄。尤其是 reviewer、researcher 这类角色，默认只读通常比默认可写更合理。</p>
+
+<h3>7.3 父级放弃验收</h3>
+<p>最危险的多 agent 失败不是子 agent 答错，而是父级把子 agent 的输出当成最终事实。好的系统会把 child result 变成 report/evidence，并要求 parent verify。OpenClaw completion metadata 里有 review instruction，Hermes completion handoff 要结构化 result，Codex child terminal turn 回到 parent mailbox，都是同一个原则。</p>
+
+<h3>7.4 用轮询代替等待协议</h3>
+<p>如果一个系统只能让父级不断问“你做完了吗”，它还不是成熟 runtime。Codex 有 <code>wait_agent</code> 和 collaboration waiting events；OpenClaw 建议 spawn 后 <code>sessions_yield</code>，completion push 回 requester；Hermes Kanban 用 watcher/dispatcher 循环。等待本身应该被建模，而不是藏在 prompt 里。</p>
+
+<h3>7.5 没有 trace 和 transcript</h3>
+<p>多 agent 的调试难度随 agent 数量增长。没有 transcript、task id、parent id、child id、event stream 和 artifact link，就很难回答“谁改了这个文件”“这个结论来自哪个子任务”“为什么任务重试”。Claude Code hooks、Codex protocol events、Hermes observability、OpenClaw task/session metadata 都说明：可观测性不是锦上添花，而是 subagent/team runtime 的基础设施。</p>
+
+<h2>八、结论：好的 subagent 系统把自由度变成边界</h2>
+<p>Subagent/team 技术的最终目标不是模拟一个热闹的办公室，而是把模型的自由度变成可控边界。Codex 给我们看到了 thread tree + mailbox + protocol event 的产品级闭环；Claude Code 给我们看到了 specialist subagent contract 如何成为用户可维护的角色库；OpenClaw 给我们看到了 subagent 如何进入 Gateway、session、channel、sandbox 和 ACP 的运行平面；Hermes 给我们看到了 delegation 和 durable Kanban 如何把长任务变成可审计的团队操作系统。</p>
+
+<p>开源生态里，LangGraph、CrewAI、OpenAI Agents SDK、Google ADK、Microsoft Agent Framework、AutoGen/AG2、CAMEL、MetaGPT、Strands 各自解决不同层级的问题。最实用的选择方式不是追最新名词，而是从任务形状反推 runtime：能用 deterministic tool 就别上 agent；能用 isolated subagent 就别上 team；需要状态和恢复时用 graph 或 durable board；只要有权限风险，就先收紧工具和上下文。</p>
+
+<p>如果只能留下一条规则，就是：<strong>子 agent 负责产生证据，父 agent 负责承担判断。</strong>这条 ownership 边界一旦丢掉，再多 agent 也只是把不确定性放大。</p>
+
+<h2>参考资料</h2>
+<ul class="source-list">
+  <li>Codex multi-agent tool specs：<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_spec.rs#L80-L116"><code>spawn_agent</code> v2 tool spec</a>、<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_spec.rs#L711-L733">v2 behavior description</a></li>
+  <li>Codex multi-agent implementation：<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs#L39-L176">spawn implementation</a>、<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L51-L188">wait implementation</a>、<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/session/mod.rs#L1745-L1837">parent notification</a></li>
+  <li>Codex app protocol：<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/app-server-protocol/src/protocol/v2/item.rs#L317-L345"><code>ThreadItem</code> collaboration items</a>、<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/protocol/src/protocol.rs#L3980-L4011">subagent activity and waiting events</a></li>
+  <li>Anthropic Claude Code docs：<a href="https://docs.anthropic.com/en/docs/claude-code/sub-agents">Subagents</a>、<a href="https://code.claude.com/docs/en/agent-sdk/subagents">Agent SDK subagents</a>、<a href="https://docs.anthropic.com/en/docs/claude-code/hooks">Hooks</a></li>
+  <li>OpenClaw docs/source：<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/tools/subagents.md#L11-L22">Sub-agents goals</a>、<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/concepts/session-tool.md#L144-L167"><code>sessions_spawn</code></a>、<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/docs/concepts/multi-agent.md#L9-L20">multi-agent routing</a>、<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/tasks/task-registry.types.ts#L1-L12">task runtime types</a></li>
+  <li>Hermes Agent source：<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L1-L17"><code>delegate_tool.py</code> overview</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/delegate_tool.py#L1115-L1231">child agent construction</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/kanban_tools.py#L1-L28">Kanban tools overview</a>、<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/gateway/kanban_watchers.py#L559-L721">Kanban watcher and limits</a></li>
+  <li>OpenAI Agents SDK：<a href="https://openai.github.io/openai-agents-python/multi_agent/">Multi-agent orchestration</a>、<a href="https://openai.github.io/openai-agents-python/handoffs/">Handoffs</a>、<a href="https://developers.openai.com/api/docs/guides/agents">Agents guide</a></li>
+  <li>LangGraph：<a href="https://docs.langchain.com/oss/python/langchain/multi-agent">Multi-agent docs</a>、<a href="https://reference.langchain.com/python/langgraph-supervisor/">Supervisor reference</a>、<a href="https://changelog.langchain.com/announcements/langgraph-supervisor-a-library-for-hierarchical-multi-agent-systems">LangGraph Supervisor announcement</a></li>
+  <li>CrewAI：<a href="https://docs.crewai.com/en/concepts/crews">Crews</a>、<a href="https://docs.crewai.com/en/concepts/flows">Flows</a></li>
+  <li>Google ADK：<a href="https://adk.dev/">ADK</a>、<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">Google Cloud ADK docs</a>、<a href="https://codelabs.developers.google.com/codelabs/production-ready-ai-with-gc/3-developing-agents/build-a-multi-agent-system-with-adk">multi-agent codelab</a></li>
+  <li>Microsoft：<a href="https://learn.microsoft.com/en-us/agent-framework/overview/">Microsoft Agent Framework overview</a>、<a href="https://learn.microsoft.com/en-us/agent-framework/workflows/orchestrations/">orchestrations</a>、<a href="https://learn.microsoft.com/en-us/semantic-kernel/frameworks/agent/">Semantic Kernel Agent Framework</a></li>
+  <li>AutoGen / AG2：<a href="https://microsoft.github.io/autogen/0.2/docs/Use-Cases/agent_chat/">AutoGen agent chat</a>、<a href="https://microsoft.github.io/autogen/stable//user-guide/core-user-guide/design-patterns/group-chat.html">AutoGen group chat</a>、<a href="https://docs.ag2.ai/latest/docs/user-guide/advanced-concepts/orchestration/group-chat/introduction/">AG2 group chat</a></li>
+  <li>Research and role-society systems：<a href="https://arxiv.org/abs/2303.17760">CAMEL paper</a>、<a href="https://docs.camel-ai.org/key_modules/societies">CAMEL societies</a>、<a href="https://arxiv.org/pdf/2308.00352">MetaGPT paper</a>、<a href="https://docs.deepwisdom.ai/main/en/guide/get_started/introduction.html">MetaGPT docs</a></li>
+  <li>Strands Agents：<a href="https://strandsagents.com/docs/user-guide/concepts/multi-agent/multi-agent-patterns/">Multi-agent patterns</a>、<a href="https://strandsagents.com/docs/user-guide/concepts/multi-agent/swarm/">Swarm</a>、<a href="https://aws.amazon.com/blogs/opensource/introducing-strands-agents-an-open-source-ai-agents-sdk/">AWS open-source announcement</a></li>
+</ul>
+      </article>
+    </main>
+  </div>
+  <script>
+    (() => {
+      const article = document.querySelector("article");
+      const toc = document.querySelector("#toc");
+      if (!article || !toc) return;
+
+      article.querySelectorAll("table").forEach((table) => {
+        const headers = Array.from(table.querySelectorAll("thead th")).map((th) => th.textContent.trim());
+        table.querySelectorAll("tbody tr").forEach((row) => {
+          Array.from(row.children).forEach((cell, index) => {
+            if (index > 0 && headers[index]) {
+              cell.setAttribute("data-label", headers[index]);
+            }
+          });
+        });
+      });
+
+      const headings = Array.from(article.querySelectorAll("h2, h3, h4"));
+      if (!headings.length) return;
+
+      const slugCounts = new Map();
+      const slugify = (text) => {
+        const base = text
+          .toLowerCase()
+          .replace(/<[^>]*>/g, "")
+          .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
+          .replace(/^-+|-+$/g, "") || "section";
+        const next = (slugCounts.get(base) || 0) + 1;
+        slugCounts.set(base, next);
+        return next === 1 ? base : `${base}-${next}`;
+      };
+
+      const list = document.createElement("ul");
+      list.className = "toc-list";
+      const stack = [{ level: 1, list }];
+
+      headings.forEach((heading) => {
+        if (!heading.id) heading.id = slugify(heading.textContent.trim());
+        const level = Number(heading.tagName.slice(1));
+        while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+        let parent = stack[stack.length - 1];
+        if (!parent) {
+          parent = { level: 1, list };
+          stack.push(parent);
+        }
+        if (level > parent.level + 1) {
+          const filler = document.createElement("ul");
+          filler.className = "toc-sublist";
+          parent.list.appendChild(filler);
+          stack.push({ level: level - 1, list: filler });
+          parent = stack[stack.length - 1];
+        }
+
+        const item = document.createElement("li");
+        item.className = `toc-item toc-item-level-${level}`;
+        const link = document.createElement("a");
+        link.href = `#${heading.id}`;
+        link.textContent = heading.textContent.trim();
+        link.className = `toc-link toc-level-${level}`;
+        item.appendChild(link);
+        parent.list.appendChild(item);
+
+        if (level < 4) {
+          const childList = document.createElement("ul");
+          childList.className = "toc-sublist";
+          item.appendChild(childList);
+          stack.push({ level, list: childList });
+        }
+      });
+      toc.appendChild(list);
+
+      const links = Array.from(toc.querySelectorAll("a"));
+      const byId = new Map(links.map((link) => [decodeURIComponent(link.hash.slice(1)), link]));
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (!visible) return;
+        links.forEach((link) => link.classList.remove("active"));
+        const active = byId.get(visible.target.id);
+        if (active) active.classList.add("active");
+      }, { rootMargin: "-20% 0px -70% 0px", threshold: [0, 1] });
+      headings.forEach((heading) => observer.observe(heading));
+    })();
+  </script>
+</body>
+</html>
