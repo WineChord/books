@@ -1,84 +1,156 @@
 
 # Chapter 19: External Migration and Backward Compatibility
 
-> **Reading Contract:** Use this chapter to treat migration as architecture. Track compatibility lanes, session import, legacy shapes, and where adapters prevent old state from corrupting new contracts.
+> **Reading Contract:** Use this chapter to answer one question: how can Codex import external agent configuration and history without inheriting the external runtime's semantics? Track four owners: detection, conversion, native runtime refresh, and session-import ledger. Afterward, you should be able to distinguish a native artifact, an imported artifact, a skipped external construct, and a compatibility bridge.
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/compatibility-lane-adapters-df64b03.webp" alt="Compatibility lanes showing external config migration, session import, adapters, and legacy state protection" loading="eager" decoding="async" />
   <figcaption>Compatibility lanes let Codex import older or foreign shapes while protecting the native runtime model from inherited ambiguity.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** named files, structs, functions, protocol request/response shapes, and import records are **verified source** only where this chapter links to the pinned Codex commit or this chapter's Source Map. The broader rule that migration is "conservative translation" is **surrounding contract inference** from those visible conversion and ledger boundaries. This chapter does not claim to emulate any external agent's private runtime.
 
-Chapter 18 separated extension planes into skills, plugins, connectors, and typed extensions. This chapter asks what happens when users arrive with existing agent configurations and histories that were not born inside those planes. Migration is the bridge, and compatibility is the discipline that keeps the bridge from becoming a pile of special cases.
+Chapter 18 separated Codex-native extension planes into skills, plugins, connectors, and typed contributors. This chapter asks what happens when users arrive with artifacts that were not born inside those planes: external configs, commands, hooks, subagents, MCP servers, and JSONL sessions.
 
 <div class="chapter-lede">
   <p><strong>You are here:</strong> Codex can load native extension surfaces with explicit trust boundaries.</p>
-  <p><strong>Problem:</strong> users bring external configs, commands, hooks, subagents, MCP servers, and JSONL sessions whose semantics do not perfectly match Codex.</p>
-  <p><strong>Mental model:</strong> migration is conservative translation into native artifacts plus metadata, not emulation of another agent runtime.</p>
+  <p><strong>Problem:</strong> users bring useful external state, but that state may use different prompt rules, hook timing, command expansion, permissions, session schemas, and trust assumptions.</p>
+  <p><strong>Mental model:</strong> migration is a one-way adapter into native Codex artifacts plus provenance; it is not a hidden compatibility mode inside every later turn.</p>
 </div>
 
-Backward compatibility in an agent system is not only about accepting old API fields. It is also about accepting user history, workflow habits, and local automation without allowing ambiguous behavior to become hidden authority. Codex treats migration as a controlled import path: read a source artifact, recognize supported constructs, translate them into Codex-native shapes, skip unsafe or dynamic cases, and record enough metadata to avoid duplicate work.
+Backward compatibility in an agent system is not only about accepting old API fields. It is also about accepting user history and local automation without allowing ambiguous behavior to become hidden authority. The migration layer should read a source artifact, recognize supported constructs, translate them into native shapes, skip unsupported or unsafe cases, and record enough metadata for users and tests to understand the result.
 
-The final node matters. A migrated hook should run as a Codex hook. A migrated command should behave as a Codex skill or workflow unit. An imported session should become rollout history. The migration layer should not remain in the turn loop.
+The invariant: after migration, the turn loop should run Codex-native tools, hooks, skills, MCP configs, and rollout history. It should not keep asking "what would the external runtime have done?"
 
+## 1. Migration Starts As Detection, Not Mutation
 
-## Configuration Migration
+The source exposes migration as typed items. [`ExternalAgentConfigMigrationItemType`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/config/external_agent_config.rs#L48-L59) includes config, skills, `AGENTS.md`, plugins, MCP server config, subagents, hooks, commands, and sessions. Detection returns `ExternalAgentConfigMigrationItem` records with a description, optional cwd, and optional details.
+
+Shape-level:
+
+```json
+{
+  "item_type": "McpServerConfig",
+  "description": "Import external MCP server configuration",
+  "cwd": "/project",
+  "details": {
+    "mcp_servers": [{ "name": "github" }],
+    "commands": [],
+    "sessions": []
+  }
+}
+```
+
+That is a detection report, not a mutation. The request processor's [`detect()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L79-L171) maps core migration items into protocol response items for the app-server client. The client can then ask to import selected items.
+
+### 1.1 Import Has Foreground And Background Phases
+
+[`ExternalAgentConfigRequestProcessor::import()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L173-L275) shows the runtime shape:
+
+```text
+selected migration items
+  -> validate pending session imports
+  -> import config-like items
+  -> refresh runtime config when needed
+  -> send import response
+  -> background plugin/session imports
+  -> clear plugin/skill caches if plugin imports ran
+  -> notify import completed
+```
+
+This split is important. Some imports produce immediate local config changes. Some plugin and session work can continue in the background. The processor sends a response before background imports finish, then emits `ExternalAgentConfigImportCompleted` when the remaining work ends. A migration UI therefore should not treat "request accepted" as "every plugin and session is already imported."
+
+## 2. Config Migration Is Translation Into Native Shapes
 
 External configuration migration handles several artifact families:
 
-| Source artifact | Native destination | Conservative rule |
-| --- | --- | --- |
-| MCP server entries | Codex MCP configuration | import supported transports and skip disabled or unsupported entries |
-| hooks | Codex hook configuration | convert only handlers that match the structured hook model |
-| commands | skills or workflow units | require stable metadata and skip dynamic runtime expansion |
-| subagents | agent definitions or skill-like instructions | keep only fields Codex can represent safely |
+| Source artifact | Native destination | Verified source surface | Conservative rule |
+| --- | --- | --- | --- |
+| MCP server entries | Codex MCP config | `build_mcp_config_from_external()` | import supported server records and preserve merge rules |
+| hooks | Codex hook config | `import_hooks()` | copy only representable hook mappings and scripts |
+| commands | skills/workflow units | `import_commands()` | require parseable documents and bounded metadata |
+| subagents | native agent definitions | `import_subagents()` | require stable frontmatter and safe target names |
+| plugins | plugin config/store | pending plugin import path | split local and remote import work |
 
-The conservative rule is the architecture. Migration should never guess a permission boundary. If an external command relies on provider-specific runtime expansion, the safe behavior is to skip it and report why. If a hook handler cannot be represented in the Codex hook schema, the safe behavior is not to smuggle it through as arbitrary shell text. If a target file already exists, the importer should preserve it rather than overwrite a user's native configuration.
+The converter source makes the conservative style concrete. [`build_mcp_config_from_external()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L44-L84) reads external MCP server maps, applies enabled/disabled server lists, and returns a TOML table rooted at `mcp_servers`. [`import_commands()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L198-L224) creates skill directories only for supported, unique command sources and skips existing targets. [`import_subagents()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L158-L180) does the same for agent files.
+
+Shape-level, the boundary is lossy by design:
 
 ```text
-// Pseudocode - illustrative pattern.
-for each source_entry in external_config:
-    kind = classify(source_entry)
+external command document
+  -> parse frontmatter and body
+  -> derive stable skill name and description
+  -> skip if target already exists
+  -> write native SKILL.md
 
-    if not supported(kind, source_entry):
-        report_skip(source_entry, reason)
-        continue
-
-    target = compute_native_target(source_entry)
-    if target.exists:
-        report_preserved(target)
-        continue
-
-    native_artifact = convert_to_codex_shape(source_entry)
-    write_native_artifact(target, native_artifact)
+external dynamic behavior
+  -> no safe native representation
+  -> skip and report
 ```
 
-This is compatibility through translation, not compatibility through unbounded interpretation.
+The importer should never guess a permission boundary. If a source command relies on dynamic provider-specific expansion that Codex cannot represent, the safe import result is "skipped", not "smuggled into a shell hook."
 
-### Session Import
+## 3. Session Import Preserves History As Evidence
 
-Session import is different from config migration because history is not a future capability. It is evidence of past conversation. External JSONL sessions can contain user messages, assistant messages, tool calls, tool outputs, titles, working directories, token usage, and source-specific records. Codex has to translate enough of that history into rollout items that its own thread and history reconstruction can understand.
+Session import is different from config migration because history is not a future capability. It is evidence of past conversation. The session importer has to translate enough of an external JSONL transcript into Codex rollout items that a thread can be listed, resumed, and audited, while still marking the source as imported.
 
-The import path therefore detects candidate sessions, validates that the working context still exists, loads only importable records, builds visible turns, adds import metadata, and records a content-hash ledger. The ledger is what prevents duplicate imports while still allowing re-detection if the source content changes.
+The verified lifecycle is:
 
-The design preserves two facts at once: the imported conversation is usable as Codex history, and it still has provenance as imported history.
+1. Detection summarizes candidate sessions only when records contain a cwd, at least one user/assistant message, and a latest timestamp. [`summarize_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L24-L85) builds that summary.
+2. Import validation canonicalizes selected paths and rejects sessions outside the detected external projects root. [`validate_pending_session_imports()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L337-L373) also deduplicates selected canonical paths.
+3. `prepare_validated_session_imports()` skips sessions already recorded in the content ledger and loads only importable sessions whose cwd still exists. [`load_importable_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/lib.rs#L128-L133) is the visible cwd check.
+4. The request processor imports the session by starting a new Codex thread with [`InitialHistory::Forked(rollout_items)`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L277-L335), then optionally normalizes the title into thread metadata.
+5. After success, [`record_imported_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L34-L56) writes source path, content SHA-256, imported thread ID, and timestamp into a ledger.
 
-### Compatibility Without Semantic Drift
+### 3.1 The JSONL Shape Changes At The Boundary
 
-The most dangerous migration bug is not a parse failure. It is a successful import that changes meaning. Agent systems differ in prompt rules, tool call formats, hook timing, permission models, command expansion, subagent behavior, and history schemas. A converter that tries to be too clever can create a native artifact that looks valid but behaves differently enough to surprise the user.
+The parser is intentionally selective. [`conversation_message_from_record()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L153-L179) accepts only user/assistant records, skips meta and sidechain records, extracts message content, and parses timestamps. [`extract_message_text()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L186-L220) turns text blocks into text, tool-use blocks into notes, tool-result blocks into notes, ignores thinking blocks, and labels unsupported blocks.
 
-Codex avoids that by using three compatibility rules.
+Shape-level:
 
-First, preserve native user work. Existing target files win over imported material. Second, skip constructs that require dynamic behavior the native runtime cannot represent. Third, attach import metadata so later code and users can distinguish native history from migrated history.
+```json
+{
+  "type": "user",
+  "cwd": "/project",
+  "message": {
+    "content": [
+      { "type": "text", "text": "Fix the parser" },
+      { "type": "tool_result", "content": "long external output..." }
+    ]
+  },
+  "isSidechain": false
+}
+```
 
-These rules are not glamorous, but they keep migration from becoming a hidden compatibility mode inside every later subsystem.
+becomes a Codex-importable conversation message such as:
 
-### Backward Compatibility Bridges
+```json
+{
+  "role": "user",
+  "text": "Fix the parser\n[external tool result: long external output...]",
+  "timestamp": "parsed timestamp if present"
+}
+```
 
-Migration is one bridge. Protocol compatibility is another. Earlier chapters introduced generated schemas, legacy aliases, v1/v2 coexistence, experimental gates, and client-version workarounds. Chapter 19 is where those ideas become a general policy:
+This is a shape-level example, not the exact serialized rollout record. The key point is the invariant: imported history is useful as history, but it is not treated as a lossless replay of another runtime's internal state.
 
-| Compatibility bridge | What it protects | What it should not do |
+### 3.2 The Ledger Is Content-Based, Not Just Path-Based
+
+The session ledger protects idempotency without hiding changed source content. [`ImportedExternalAgentSessionRecord`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L14-L25) stores source path, `content_sha256`, imported thread ID, and import time. [`contains_current_source()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L58-L65) recomputes the current file hash before deciding that a source has already been imported.
+
+That avoids two bad extremes:
+
+| Ledger design | Failure |
+| --- | --- |
+| path only | changed JSONL content is suppressed forever |
+| no ledger | every migration prompt can duplicate the same session |
+| path + content hash | unchanged sessions are skipped, changed sessions can be detected again |
+
+## 4. Compatibility Bridges Should End At The Boundary
+
+Migration is one bridge. Protocol compatibility is another. Earlier chapters introduced generated schemas, v1/v2 protocol coexistence, request aliases, experimental gates, and client-version behavior. Chapter 19's general rule is that compatibility should be explicit about what it bridges and where it stops.
+
+| Bridge | What it protects | What it must not do |
 | --- | --- | --- |
 | schema aliases | older clients and stored events | hide incompatible semantics |
 | experimental gates | unstable capabilities | make unstable fields look permanent |
@@ -86,29 +158,23 @@ Migration is one bridge. Protocol compatibility is another. Earlier chapters int
 | import ledgers | idempotent session import | suppress changed source content |
 | provenance markers | auditability of imported history | pollute model context with private implementation detail |
 
-The common theme is explicitness. Compatibility code should say what it is bridging, what it is skipping, and when the bridge ends.
+[`codex-rs/app-server-protocol/src/protocol/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/mod.rs#L1-L10) is a small but useful reminder: protocol compatibility is organized as a namespace with common pieces, mappers, thread history, and v1/v2 modules. Compatibility belongs at the protocol edge and migration edge, not scattered through core logic as "maybe this was an external thing."
 
-### Designing the Import Report
+## 5. Failure Conditions Are The Product Contract
 
-An import operation should produce a report, even when it succeeds. Users need to know which MCP servers were imported, which hooks were skipped, which commands became skills, which existing files were preserved, and which sessions became threads. Silent migration is attractive in demos and dangerous in production.
+Migration fails most dangerously when it succeeds silently but changes meaning. The user needs a report, and the runtime needs clear failure categories.
 
-```text
-// Pseudocode - illustrative pattern.
-report = {
-    imported: [],
-    preserved: [],
-    skipped: [],
-    warnings: []
-}
+| Failure | Boundary owner | Correct behavior |
+| --- | --- | --- |
+| unsupported command shape | command converter | skip and report, do not invent execution semantics |
+| existing native target | importer | preserve existing Codex file |
+| invalid external JSONL | session parser | skip record/session rather than corrupt rollout history |
+| cwd no longer exists | session import preparation | do not import a thread with unusable working context |
+| stale session ledger | ledger hash check | recompute content hash before skipping |
+| background plugin failure | import processor | warn and still send completion notification after background phase |
+| config-like import ran | request processor | refresh runtime config and clear relevant caches |
 
-for each artifact:
-    outcome = migrate(artifact)
-    report.add(outcome.category, outcome.summary)
-
-return report
-```
-
-The report is also a test oracle. Migration tests should cover edge behavior: disabled servers, unsupported transports, duplicate command names, missing metadata, existing targets, invalid ledgers, changed source content, and unsupported session records.
+The product contract is not "all external state becomes native." It is "supported state becomes native, unsupported state remains outside with an explanation."
 
 <div class="trace-ledger">
 
@@ -116,10 +182,11 @@ The report is also a test oracle. Migration tests should cover edge behavior: di
 
 | Question | Chapter 19 answer |
 | --- | --- |
-| Where is the user request now? | It can be supported by imported native artifacts and imported rollout history. |
-| What carries it? | migration summaries, converted config artifacts, rollout items, import metadata, and content-hash ledgers. |
-| Who decides next? | converters, validators, skip rules, target preservation checks, and native runtime loaders after import. |
-| What can fail here? | unsupported source semantics, unsafe dynamic expansion, duplicate names, existing target conflicts, invalid JSONL, missing working context, or stale import ledger data. |
+| Where is the user request now? | It can be backed by imported native config, imported skills/hooks/MCP entries, background plugin imports, or imported rollout history. |
+| What carries it? | migration items, migration details, converted native artifacts, app-server import responses, `InitialHistory::Forked`, thread metadata patches, and the content-hash session ledger. |
+| Who owns the next decision? | Detection reports candidates; converters decide supported native shapes; the request processor refreshes runtime config and runs background imports; native loaders own the result afterward. |
+| What must remain invariant? | Migration must not overwrite native user work, inherit trust blindly, emulate another runtime forever, or treat external history as a lossless native replay. |
+| What can fail here? | unsupported semantics, disabled/duplicate entries, existing target conflicts, invalid JSONL, missing cwd, stale or invalid ledger data, remote plugin errors, or source paths outside the detected import boundary. |
 
 </div>
 
@@ -127,17 +194,17 @@ The report is also a test oracle. Migration tests should cover edge behavior: di
 
 ## Apply This
 
-1. **Lossy import ledger.** Solves migration overpromising -> record skipped, converted, and unsupported fields -> Pitfall: pretending incompatible semantics were preserved.
-2. **Native target shapes.** Solves brittle compatibility layers -> translate into Codex-native config, hook, skill, and session shapes -> Pitfall: carrying foreign runtime assumptions forever.
-3. **Trust reset.** Solves unsafe imported automation -> require imported hooks and commands to pass Codex trust gates -> Pitfall: inheriting trust from a source system with different rules.
-4. **History provenance.** Solves confusing imported transcripts -> mark migrated items as imported history -> Pitfall: blending imported records with locally produced rollout facts.
-5. **Compatibility boundary.** Solves old-client breakage -> keep legacy aliases at protocol boundaries -> Pitfall: spreading compatibility branches through core logic.
+1. **Detect before mutating.** Use this for external state. Return typed migration items with descriptions before writing native files. Pitfall: silent migration that users cannot audit.
+2. **Translate into native contracts.** Use this for commands, hooks, subagents, MCP servers, and sessions. Convert only supported shapes. Pitfall: preserving foreign runtime assumptions as hidden behavior.
+3. **Record lossy boundaries.** Use this when importing histories. Keep provenance and ledger data, and make unsupported blocks explicit. Pitfall: pretending external JSONL is native rollout replay.
+4. **Make idempotency content-aware.** Use this for imports that can be repeated. Hash source content, not just paths. Pitfall: suppressing changed sessions or duplicating unchanged ones.
+5. **End the bridge after import.** Use this for compatibility code. Let native loaders own migrated artifacts after conversion. Pitfall: spreading compatibility branches through the core turn loop.
 
 </div>
 
 ## What Comes Next
 
-Part V ends with a runtime that can accept external tools, load extension packages, and migrate outside history into native contracts. Part VI turns to coordination beyond one turn: multi-agent threads, cloud tasks, identity, and memory.
+Part V ends with a runtime that can consume external tools, load native extension packages, and migrate outside state into native contracts. Chapter 20 turns to coordination beyond one agent: multi-agent threads, graph edges, live status, and trace reconstruction.
 
 <div class="source-equivalence">
 
@@ -147,6 +214,9 @@ Part V ends with a runtime that can accept external tools, load extension packag
 | --- | --- |
 | External config model | [`codex-rs/app-server/src/config/external_agent_config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/config/external_agent_config.rs#L42) |
 | Migration request processor | [`codex-rs/app-server/src/request_processors/external_agent_config_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L58) |
+| External migration converters | [`codex-rs/external-agent-migration/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L44) |
+| External session parser | [`codex-rs/external-agent-sessions/src/records.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L24) |
+| External session ledger | [`codex-rs/external-agent-sessions/src/ledger.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L14) |
 | TUI migration startup | [`codex-rs/tui/src/external_agent_config_migration_startup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/external_agent_config_migration_startup.rs#L28) |
 | Protocol compatibility surface | [`codex-rs/app-server-protocol/src/protocol/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/mod.rs#L4) |
 | Thread store | [`codex-rs/thread-store/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src) |

@@ -1,112 +1,160 @@
 
 # 第 18 章：Skills、Plugins、Connectors 与类型化扩展
 
-> **阅读契约：** 用本章把 skills、plugins、connectors 和 apps 读成打包后的 extension planes。分开看 metadata、trust、loading 和 context injection。
+> **阅读契约：** 本章回答一个问题：当 Codex turn 被 extensions 塑形时，哪一层贡献了 instruction，哪一层贡献了 packaging，哪一层贡献了 hosted-app metadata，哪一层贡献了 compiled prompt state？阅读时跟住四个 planes：skills、plugins、connectors、typed contributors。读完后，应该能判断一个 capability 是 discovery summary、package install、account access gate，还是 compiled process contribution。
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/extension-packaging-plane-df64b03.webp" alt="扩展打包平面：分开 skills、plugins、connectors、typed extensions、trust checks 与 context injection" loading="eager" decoding="async" />
   <figcaption>Skills、plugins、connectors、apps 和 typed contributors 是 packaging planes；它们以受治理的 context 或 tools 进入 turn。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、structs、enums、constants、schemas、loading functions 时，才把说法视为 **verified source**。把这些机制概括成 extension planes 与 trust boundaries，是从可见 owner 得出的 **surrounding contract inference**。本章不声称所有 plugin marketplace、hosted app 或 typed contributor 共享一套隐藏 runtime。
 
-第 17 章把 MCP 描述成 runtime tool protocol：外部 servers 被发现、整理、路由和观察，但不进入核心 turn loop。本章上移一层。一个工具被路由之前，系统必须先决定哪些 instructions、packages、hosted app identities 和 in-process contributors 能塑造 thread。
+第 17 章把 MCP 作为 external tools 的 protocol boundary。本章上移一层。一个 tool 能被 routing 之前，Codex 必须先决定哪些 workflow instructions、package contributions、hosted app identities 和 in-process prompt fragments 可以塑造 thread。
 
 <div class="chapter-lede">
-  <p><strong>你在这里：</strong>外部 tool calls 已经有清晰协议边界。</p>
-  <p><strong>问题：</strong>agent platform 需要 extension packages、workflow instructions、hosted app metadata 和 compiled contributors，但它们的 trust model 各不相同。</p>
-  <p><strong>心智模型：</strong>Codex 有四个 extension planes：skills 教行为，plugins 打包资产，connectors 描述 hosted app access，typed extensions 贡献 in-process state。</p>
+  <p><strong>你在这里：</strong>external tool calls 已经有清晰的 provenance 与 routing boundary。</p>
+  <p><strong>问题：</strong>agent platform 需要 reusable instructions、packaged assets、hosted app metadata 和 compiled contributors，但它们的 trust model 与 lifecycle 不同。</p>
+  <p><strong>心智模型：</strong>Codex 有四个汇合的 extension planes：skills 教行为，plugins 分发 contributions，connectors 描述 hosted app access，typed extensions 通过显式 in-process APIs 贡献内容。</p>
 </div>
 
-这些 surface 彼此相关，但不能互换。Skill 主要是 model-instruction 与 workflow unit。Plugin 是 distribution package，可以包含 skills、MCP server definitions、hooks 和 app connector IDs。Connector 是绑定 account access 的 hosted app metadata。Typed extension 编译进进程，通过显式 traits 贡献能力，而不是动态 plugin ABI。
+这些 surface 彼此相关，但不能互换。Skill 主要是 instruction/workflow unit。Plugin 是 distribution package，可以贡献 skills、MCP server definitions、app connector IDs、hooks 和 interface metadata。Connector 是 hosted app directory metadata 加 account-scoped accessibility。Typed extension 编译进进程，通过窄 API 贡献内容。
 
-只要保持这些 planes 分离，架构就很容易读懂。
+只要每个 plane 回答不同问题，架构就清楚：
 
-这张图刻意不是单线 pipeline。Extension loading 是多个平面汇合到 thread construction、tool exposure 和 runtime policy。
+| Plane | 它回答的问题 | 源码中可见的 owner | Boundary pressure |
+| --- | --- | --- | --- |
+| Skills | 哪些 instructions 与 workflow files 可用？ | skills manager 与 metadata model | prompt budget 与 invocation discipline |
+| Plugins | contribution assets 如何到达并保持 package scope？ | plugin manifest 与 plugin manager | package trust、path validation、sync failure |
+| Connectors | 哪些 hosted apps 已知且 account-accessible？ | connector directory cache 与 app metadata | directory knowledge vs usable capability |
+| Typed extensions | compiled code 可以添加哪些 prompt fragments？ | extension API types | compile-time contract，而不是 dynamic code loading |
 
+不变量是：任何 plane 都不该静默变成其他所有 planes。Plugin 可以带来 skill root，但 skill loader 仍决定如何 discovery 和 disable skills。Connector 可以描述 app，但 account access 仍决定 tools 是否可用。Typed prompt fragment 可以贡献 text，但它通过 explicit slots，而不是任意 runtime mutation。
 
-## Skills：带预算的 Instruction
+## 一、Skills：带预算的 instruction
 
-Skill 是带名称的 instructions、metadata 与可选 workflow files。它可以来自 bundled system roots、user/admin roots、repository-local roots 或 plugins。Runtime 不是把所有 skill 直接拼进 prompt，而是发现 metadata，记录 load outcomes，在预算内渲染 summaries，并且只在 invocation rules 合理时加载完整 skill body。
+Skill 是有名称的 instructions、metadata、policy、可选 interface data、可选 dependencies，以及声明它的 `SKILL.md` path。源码 model 很直接：[`SkillMetadata`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/model.rs#L11-L23) 包含 `name`、`description`、`interface`、`dependencies`、`policy`、`path_to_skills_md`、`scope` 和可选 `plugin_id`。[`SkillLoadOutcome`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/model.rs#L88-L98) 则把 loaded skills、errors、disabled paths、roots、file systems 和 implicit invocation indexes 分开。
 
-这就是 skill budget 的一阶原因。Model context 是稀缺 runtime resource。一个永远完整存在的 skill 并不是 extension，而是永久膨胀的 system prompt。Codex 因而把 skills 视为 available capabilities：summary 可以被展示，full body 可以在显式或隐式触发时进入上下文。
+Shape-level 上，一个 loaded skill 不只是 text：
 
-显式 invocation 是干净路径：用户或结构化输入点名某个 skill。隐式 invocation 更像推断：系统可以注意到与 skill 相关的 command 或 file access pattern。两条路径都应该留下可审计解释，说明 skill 为什么进入这个 turn。
-
-```text
-// Pseudocode - illustrative pattern.
-available_skills = discover_skill_roots(config, plugins, repository)
-summaries = []
-
-for each skill in available_skills:
-    outcome = parse_metadata(skill)
-    if outcome.valid:
-        summaries.append(render_summary(outcome.metadata))
-    else:
-        record_warning(outcome.problem)
-
-prompt.add(fit_to_budget(summaries))
-
-for each mention in user_input:
-    skill = resolve_skill_mention(mention)
-    if skill.allowed:
-        prompt.add(load_full_skill_body(skill))
+```json
+{
+  "metadata": {
+    "name": "review-pr",
+    "description": "Review a pull request",
+    "scope": "repo",
+    "plugin_id": null,
+    "policy": { "allow_implicit_invocation": true }
+  },
+  "load_outcome": {
+    "enabled": true,
+    "implicit_indexes": ["scripts dir", "doc path"],
+    "errors": []
+  }
+}
 ```
 
-这段 pseudocode 是泛化表达，但不变量很具体：discovery、summary 和 full-body loading 是不同阶段。
+这就是 skill budget 的理由。如果每个 skill body 永远进入 model view，那么 extension 就会变成永久 prompt 膨胀。即使不掌握所有 prompt-rendering 细节，源码也已经显示出生命周期：discover roots、load metadata、按 product 与 disabled paths 过滤、构建 implicit indexes、缓存 outcome。
 
-### Plugins：Packaging 与 Distribution
+### 1.1 Discovery、disablement 与 implicit invocation 是不同阶段
 
-Plugins 回答另一个问题：extension assets 如何到达本地并保持更新？Plugin 可以从 marketplace 安装，从 cache 加载，从 remote sources 同步，被分享，并被拆成多种 contribution types。这个拆分就是架构要点。Plugin 本身不是 runtime tool；它是一个 package，可能贡献 skill roots、MCP server definitions、connector IDs 和 hooks。
+[`SkillsManager::skills_for_config()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L84-L109) 按 effective skill-relevant config state 缓存，避免共享同一目录的 sessions 因 overrides 不同而互相污染。[`build_skill_outcome()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L165-L176) 从 roots 加载、按 product 过滤、解析 disabled skill paths，并 finalize implicit indexes。[`finalize_skill_outcome()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L268-L278) 再从允许 implicit invocation 的 skills 构建 script/doc-path indexes。
 
-Packaging 层必须严格处理 trust。Marketplace names、remote plugin IDs、archive entries、bundle paths 和 plugin-relative paths 都需要验证。如果 plugin loader 接受任意路径，它就已经从 extension loading 跨到了 filesystem authority。
+这些阶段保护不同不变量：
 
-Plugin sync 也应被视为 eventually consistent。Marketplace lookup 可能失败，remote bundle 可能陈旧，startup refresh 有价值，但不应该变成每个 thread 的硬依赖。好的 extension infrastructure 会把这些情况记录成 load outcomes：installed、skipped、invalid、unavailable 或 warning-producing。
-
-### Connectors：Hosted App Metadata
-
-Connectors 规范化 hosted app directory metadata。它们回答：这是哪个 app identity，客户端该展示什么 display name，已知 tools 有哪些，logo 或 directory data 是什么，当前 account 是否可以访问。这个 metadata 与 MCP 和 hosted app tools 相关，但它不是 MCP server。
-
-关键拆分是 directory knowledge 与 accessible capability。Directory 可以描述某个 app，即使用户尚未认证。Runtime 因而可以展示 connector，请求 authentication，然后只在 access metadata 支持时暴露 hosted tools。
-
-### Typed Extensions：编译期贡献
-
-Typed extensions 是四个 planes 中动态性最低的。它们是通过显式类型注册的 in-process contributors。它们不在运行时加载任意代码，而是通过窄 API 参与：贡献 thread-start state、prompt fragments，或 app-server 与 runtime 知道如何消费的其他 typed data。
-
-这让 typed extensions 适合内部集成点：extension author 与 runtime author 共享 compile-time contract。它也解释了为什么 typed extensions 不是 plugins 的替代品。Plugins 分发 configuration 与 workflow assets；typed extensions 通过 build 贡献 code。
-
-### Trust 与 Fail-Soft Loading
-
-Extension loading 必须既严格又宽容。严格，是对正在验证的边界严格；宽容，是对可选 capability 的失败宽容。Invalid metadata 不应成为 prompt text。缺失 connector 不应让 thread startup 崩掉。Plugin path 如果逃出允许的 bundle，就不应被跟随。Remote sync failure 应可见，但当 cache 足够时，普通本地工作应该继续。
-
-| Plane | Trust question | Fail-soft behavior |
+| Phase | Runtime pressure | 保护的不变量 |
 | --- | --- | --- |
-| skills | metadata 是否可解析，且被 policy 允许？ | 跳过 invalid entries 并报告 warnings |
-| plugins | package identity 与 path layout 是否可信？ | 加载 valid contributions，忽略 rejected ones |
-| connectors | hosted metadata 是否可用，当前 account 是否可访问？ | 展示 unavailable 或 auth-needed state |
-| typed extensions | compiled contributor 是否匹配 registry contract？ | 尽早拒绝 incompatible typed data |
+| root selection | system、user、admin、repo、plugin roots 可能重叠 | scope 显式，cache keys 包含 roots |
+| metadata loading | invalid skill files 不该变成 instructions | errors 保持 load outcomes，不变成 prompt text |
+| disablement | user/config policy 可以 suppress skill | disabled paths 被保留并检查 |
+| implicit indexing | workflow 可能不被点名就触发 | 只有 enabled 且 policy 允许 implicit invocation 的 skills 会建索引 |
 
-这个模式比任何单个文件都重要。Extension systems 想长期稳定，就要让每个边界有自己的 validation 与 degraded mode。
+简单做法是拼接所有发现的 instructions；这会让 invalid、disabled 或 irrelevant workflows 拥有与当前任务相同的权威。
 
-```text
-// Pseudocode - illustrative pattern.
-plugin = load_plugin_from_cache(plugin_id)
-if not plugin.valid:
-    record_load_outcome(plugin_id, "invalid")
-    continue
+## 二、Plugins：package 是 classifier，不是 runtime authority
 
-for each contribution in plugin.contributions:
-    if contribution.kind == "skill":
-        register_skill_root(validate_plugin_relative_path(contribution.path))
-    if contribution.kind == "mcp_server":
-        register_mcp_server(validate_server_config(contribution.config))
-    if contribution.kind == "hook":
-        register_hook(validate_hook_config(contribution.config))
-    if contribution.kind == "connector":
-        register_connector_id(validate_connector_id(contribution.id))
+Plugins 回答另一个问题：extension assets 如何到达、如何保持 package scope、如何贡献到其他 planes？Manifest model 让这一点可见。[`PluginManifest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L37-L45) 有 identity、interface fields 和 `PluginManifestPaths`。这些 paths 可以指向 `skills`、`mcp_servers`、`apps` 和 `hooks`。
+
+Shape-level 上，plugin manifest contribution 是 package boundary：
+
+```json
+{
+  "name": "example-plugin",
+  "paths": {
+    "skills": "./skills",
+    "mcpServers": "./mcp.json",
+    "apps": "./apps.json",
+    "hooks": "./hooks.json"
+  },
+  "interface": {
+    "displayName": "Example",
+    "defaultPrompt": ["Start with the plugin's workflow"]
+  }
+}
 ```
 
-Loader 是 classifier 和 validator。它不应该把 plugin 字段静默变成 runtime authority。
+Loader 不应该把这些字符串当作 filesystem authority。[`resolve_manifest_path()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L397-L438) 要求 path 以 `./` 开头，拒绝空的 `./`，拒绝 `..`，也拒绝会逃出 plugin root 的 components。Interface default prompts 也在接受前限制数量和长度。
+
+### 2.1 Plugin sync 是 degraded state，不是 thread blocker
+
+Plugin manager 源码还显示了第二个压力：remote state 可以独立于 thread 失败。[`PluginsManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L396-L408) 拥有 plugin store、marketplace caches、remote installed plugin caches、remote sync lock、cached enabled outcome 和 product restriction context。[`plugins_for_config_with_force_reload()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L475-L512) 在 effective config version 与 hook setting 匹配时返回 cached outcome，否则加载 configured plugins 并记录 load errors。
+
+这就是 optional packaging infrastructure 应有的 lifecycle：
+
+```text
+plugin config
+  -> local store / remote cache
+  -> manifest parse and path validation
+  -> contribution classification
+  -> skill roots, MCP configs, app IDs, hooks
+  -> downstream loaders apply their own policy
+```
+
+Plugin layer 负责 classify 和 validate contributions。它不应该静默让 hook 变 trusted、让 skill 变 enabled，或让 hosted app 变 account-accessible。
+
+## 三、Connectors：directory knowledge 不是 usable capability
+
+Connectors 规范化 hosted app directory metadata。Connector source 首先定义了 cache key，包含 base URL、account ID、ChatGPT user ID，以及是否 workspace account。[`ConnectorDirectoryCacheKey`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/connectors/src/lib.rs#L24-L46) 因而是 account-scoped，不是全局 app catalog key。
+
+[`list_all_connectors_with_options()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/connectors/src/lib.rs#L129-L172) 也展示 directory lifecycle：非 forced 时使用未过期 in-memory cache，拉取 directory 和 workspace pages，merge apps，转成 `AppInfo`，normalize names/descriptions，写 cache，并在这个 directory 阶段把 `is_accessible` 设为 `false`。
+
+最后这个细节就是边界：connector 可以先被知道，但还不可用。
+
+| State | Codex 知道什么 | 不能假设什么 |
+| --- | --- | --- |
+| directory connector | app ID、display metadata、logo/branding、install URL | 当前 credentials 能调用 tools |
+| accessible connector | account-specific access information | 每个 tool 都应该 direct 进入 model request |
+| hosted app MCP tool | connector-backed tool metadata | origin/provenance 等同于 local MCP server |
+
+这就是第 17 章的 MCP exposure 必须按 connector 和 app-tool enablement 过滤 hosted app MCP tools 的原因。Connector plane 提供 directory 与 access facts；model-facing tool boundary 在更后面。
+
+## 四、Typed extensions：compile-time slots 代替 dynamic code
+
+Typed extensions 是动态性最低的 plane。Prompt contributor API 很小：[`PromptSlot`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ext/extension-api/src/contributors/prompt.rs#L3-L9) 枚举 `DeveloperPolicy`、`DeveloperCapabilities`、`ContextualUser`、`SeparateDeveloper` 等 slots。[`PromptFragment`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ext/extension-api/src/contributors/prompt.rs#L11-L49) 只携带 slot 和 model-visible text。
+
+Shape-level：
+
+```json
+{
+  "slot": "DeveloperCapabilities",
+  "text": "A compiled contributor may add a bounded capability note here."
+}
+```
+
+这个窄形状正是价值所在。Typed extensions 适合 extension author 与 runtime author 共享 compile-time contract 的场景。它们不是 plugins 的替代品，因为它们不解决 distribution、marketplace sync、plugin-relative assets 或 hosted app access。它们解决的是另一件事：不用 arbitrary runtime code loading，也能做 in-process contribution。
+
+## 五、Loading pattern：边界内严格，边界外 fail-soft
+
+四个 planes 想长期稳定，就要各自验证自己的 boundary，并用各自的 vocabulary 降级。
+
+| Plane | Pressure source | 简单方案为何失败 | Mechanism | Failure boundary |
+| --- | --- | --- | --- | --- |
+| skills | 可能的 instructions 太多 | 总是加载完整 bodies 会膨胀 model view | metadata、disabled paths、implicit indexes | invalid/disabled skills 不进入 prompt authority |
+| plugins | packages 包含 paths 和 remote state | 信任 manifest strings 会授予 filesystem authority | `./` path validation、cache/load outcomes | invalid paths 或 sync errors 变成 warnings/outcomes |
+| connectors | apps 先存在，access 后证明 | 把 directory apps 当 usable tools 会误导用户 | account-scoped cache 与 access separation | unauthenticated apps 保持 unavailable |
+| typed extensions | internal integrations 需要 prompt hooks | dynamic code loading 会削弱 runtime ownership | typed slots 与 `PromptFragment` | incompatible data 在 API/build boundary 被拒绝 |
+
+共同不变量是 ownership。Skills 拥有 workflow instruction。Plugins 拥有 package classification。Connectors 拥有 hosted app metadata 与 account access。Typed extensions 拥有 compiled prompt contributions。Turn 看到的应该是受治理的 context 与 tools，而不是每个 extension 到达方式的偶然细节。
 
 <div class="trace-ledger">
 
@@ -114,10 +162,11 @@ Loader 是 classifier 和 validator。它不应该把 plugin 字段静默变成 
 
 | 问题 | 第 18 章答案 |
 | --- | --- |
-| 用户请求现在在哪里？ | 它在 thread startup 之前和期间被 extension context 塑形。 |
-| 什么数据结构携带它？ | skill metadata、plugin load outcomes、connector directory entries、MCP configs、hook configs 和 typed extension state。 |
-| 谁拥有下一步决策？ | policy、loaders、registries、prompt construction、connector auth state，最后才是模型。 |
-| 这里可能怎么失败？ | invalid metadata、untrusted bundle paths、marketplace 或 remote sync failure、missing connector access、disabled skills 或 incompatible typed data。 |
+| 用户请求现在在哪里？ | 它在 thread construction 与 tool exposure 之前/期间被 extension context 塑形。 |
+| 什么数据结构携带它？ | `SkillMetadata`、`SkillLoadOutcome`、plugin manifests、plugin load outcomes、connector directory entries、MCP configs、hook configs、app connector IDs 和 typed prompt fragments。 |
+| 谁拥有下一步决策？ | Skill policy 与 loaders 决定 instruction availability；plugin loading 分类 package contributions；connector access gate hosted tools；typed APIs 只接受 compiled fragments；模型在这些决定之后行动。 |
+| 必须保持什么不变？ | Package identity 不能变成 filesystem authority，directory metadata 不能变成 account access，summaries/metadata 也不能在需要 full-body loading 时静默替代 source-bound instructions。 |
+| 这里可能怎么失败？ | invalid metadata、disabled skills、untrusted plugin paths、stale remote caches、plugin sync errors、missing connector access、unavailable hosted app tools 或 incompatible typed data。 |
 
 </div>
 
@@ -125,17 +174,17 @@ Loader 是 classifier 和 validator。它不应该把 plugin 字段静默变成 
 
 ## 应用到实践
 
-1. **平面分离。** 解决扩展系统膨胀 -> 保持 skills、plugins、connectors、typed extensions 各自独立 -> 风险：让每种包格式都拥有同等 runtime 权威。
-2. **预算化渲染。** 解决扩展导致 prompt 变大 -> 先总结 metadata，再加载完整正文 -> 风险：过度压缩导致关键约束不可见。
-3. **验证贡献路径。** 解决 plugin 路径逃逸 -> 注册资产前验证 plugin-relative path -> 风险：把 manifest 字符串当成文件系统权威。
-4. **Connector 间接层。** 解决 hosted app access 混乱 -> 分开 directory metadata 和账户可用工具 -> 风险：把不可用工具展示成可调用能力。
-5. **类型化编译边界。** 解决进程内扩展安全 -> 用 trait 或 typed API 接入 compiled contributor -> 风险：把 typed extension 变成任意动态代码加载。
+1. **先命名 plane。** 当 capability 来自 extension 时使用。先判断它是 instruction、package contribution、hosted app metadata，还是 compiled prompt state。风险：让每种 package format 都有同等 runtime authority。
+2. **分开 discovery 与 activation。** 适用于 skills 和 connectors。Skill 可以 known 但 disabled；connector 可以 listed 但 inaccessible。风险：把“known”当成“active in this turn”。
+3. **验证 package-relative paths。** 适用于 plugins。注册 contributions 前要求 paths 留在 package root 内。风险：把 manifest strings 当成 filesystem authority。
+4. **按真实 owner 缓存。** 适用于 skill 与 connector state。在 cache keys 中包含 config roots 或 account identity。风险：在不同 policy 的 sessions 之间共享 stale extension state。
+5. **compiled contributions 优先使用 typed slots。** 适用于 in-process integrations。贡献小而显式的 records，而不是 dynamic runtime code。风险：把 typed extensions 当成 plugin ABI。
 
 </div>
 
 ## 接下来
 
-Extension loading 只解决兼容性的一半。第 19 章转向 external migration：Codex 如何从其他 agent systems 导入 configurations 与 sessions，同时不假装它们的语义完全相同。
+Extension loading 处理的是 native capability surfaces。第 19 章转向更难的兼容性问题：当用户带来另一个 agent system 的 configurations 和 sessions，而它们的语义并不完全匹配 Codex 时，系统该如何处理？
 
 <div class="source-equivalence">
 
@@ -145,7 +194,7 @@ Extension loading 只解决兼容性的一半。第 19 章转向 external migrat
 | --- | --- |
 | Skills manager | [`codex-rs/core-skills/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/manager.rs#L51) |
 | Skill metadata model | [`codex-rs/core-skills/src/model.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-skills/src/model.rs#L12) |
-| Plugin manifest | [`codex-rs/core-plugins/src/manifest.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L38) |
+| Plugin manifest and path validation | [`codex-rs/core-plugins/src/manifest.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L38) |
 | Plugin manager | [`codex-rs/core-plugins/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manager.rs#L396) |
 | Connector directory model | [`codex-rs/connectors/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/connectors/src/lib.rs#L66) |
 | Typed prompt extension API | [`codex-rs/ext/extension-api/src/contributors/prompt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/ext/extension-api/src/contributors/prompt.rs#L12) |

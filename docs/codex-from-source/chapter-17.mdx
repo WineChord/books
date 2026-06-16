@@ -1,118 +1,174 @@
 
 # Chapter 17: MCP: External Tools Without Runtime Entanglement
 
-> **Reading Contract:** Use this chapter to draw the MCP trust plane. Track server provenance, tool discovery, routing, and how external tools stay behind a controlled boundary.
+> **Reading Contract:** Use this chapter to answer one question: how can an external MCP server become available inside a Codex turn without becoming part of the Codex runtime? Track four owners: server configuration, connection lifecycle, model-visible tool shape, and provenance-based routing. Afterward, you should be able to explain why the model sees a sanitized tool name while execution still uses the raw server/tool pair.
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/mcp-trust-plane.webp" alt="MCP trust plane separating server provenance, sanitized tool names, discovery, routing, elicitation, and structured observations" loading="eager" decoding="async" />
   <figcaption>MCP extends capability without runtime entanglement by separating server provenance, transport, discovery, normalized specs, and routing.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** named files, types, functions, schemas, request shapes, and event shapes are **verified source** only where this chapter links to the pinned Codex commit or this chapter's Source Map. The claim that MCP is a "trust plane" is **surrounding contract inference** from those visible owners. This chapter does not claim to know provider internals or private hosted-app policy.
 
-Chapter 16 ended Part IV by treating the terminal UI as an inline client over the same runtime contract used by other clients. This chapter moves one step outward: if clients can share the runtime without owning it, external tools must also be able to join a turn without becoming part of the runtime.
+Chapter 16 ended Part IV by treating the terminal UI as a client over the same runtime contract used by other clients. This chapter moves one step outward. If clients can observe and steer threads without owning the runtime, external tools must also be able to join a turn without becoming trusted runtime code.
 
 <div class="chapter-lede">
-  <p><strong>You are here:</strong> clients already observe and steer threads through typed events.</p>
-  <p><strong>Problem:</strong> external tools need to be available to the model, but their transport, authentication, naming, and failures must not leak into the core turn loop.</p>
-  <p><strong>Mental model:</strong> MCP is a runtime tool protocol: Codex discovers tools through clients, exposes sanitized tool shapes to the model, and routes calls back through provenance.</p>
+  <p><strong>You are here:</strong> clients already observe threads through typed events and send decisions back through controlled requests.</p>
+  <p><strong>Problem:</strong> external tools need to be available to the model, but server transport, authentication, naming, and failures cannot leak into the core turn loop.</p>
+  <p><strong>Mental model:</strong> MCP is a four-stage boundary: define effective servers, start clients, expose normalized tool specs, then route calls by stored provenance.</p>
 </div>
 
-MCP is easiest to misunderstand when it is described as "just more tools." That phrase hides the important architecture. A built-in shell tool has a known handler inside the runtime. An MCP tool is discovered from a server that may run over stdio, HTTP, an executor-backed process, or an in-process adapter. The model should not care about those details, and the runtime should not pretend the remote server is trusted code.
+Calling MCP "just more tools" erases the important part. A built-in shell tool has a handler inside Codex. An MCP tool is discovered from a server that may run over stdio, HTTP, an executor-backed process, or an in-process adapter. The model should not choose among those transports. The turn loop should not treat that external server as if it were compiled into the runtime.
 
-The result is a layered boundary. Low-level MCP clients speak transports and OAuth. The Codex-facing MCP layer turns configured and built-in servers into effective server definitions, manages startup, caches listings, sanitizes names, and remembers provenance. The core session receives model-visible tool specs and later routes a tool call back through that provenance record.
+The architecture therefore splits one apparent capability into several owned records:
 
+| Layer | Owner | What must stay stable |
+| --- | --- | --- |
+| Server configuration | `codex-mcp` config and effective server merge | transport, OAuth state, sandbox policy, built-ins, and plugin attribution |
+| Connection lifecycle | `McpConnectionManager` | startup status, managed clients, cancellation, and elicitation state |
+| Model-visible projection | tool normalization and core exposure | safe names, deduplicated namespaces, direct/deferred tool lists |
+| Execution routing | provenance in `ToolInfo` | raw server name, raw tool name, shaped observation, and error boundary |
 
-## The Boundary MCP Creates
+The invariant is simple: Codex may show the model a normalized function, but the model-visible string never becomes the source of routing authority.
+
+## 1. MCP Creates A Provenance Boundary
 
 MCP has three identities that must not be collapsed.
 
 | Identity | Who uses it | Why it exists |
 | --- | --- | --- |
 | Raw server identity | MCP client and connection manager | Keeps the real server, transport, and tool namespace addressable. |
-| Model-visible name | Model prompt and tool schema | Gives the model a safe, normalized identifier. |
-| Provenance record | Runtime router and audit trail | Maps the model-visible call back to the owning server and raw tool. |
+| Model-visible name | model prompt and tool schema | Gives the model a safe identifier that fits tool-call naming limits. |
+| Provenance record | runtime router and audit trail | Maps the model-visible call back to the owning server and raw tool. |
 
-The separation is not cosmetic. External servers can choose names that collide, use characters that are awkward for model tool calling, or expose tools whose origin matters for approval, sandboxing, and user explanation. Codex therefore treats naming as an adaptation step, not as a string copied from the server.
+The separation is not cosmetic. External servers can choose colliding names, use characters awkward for tool calling, or expose tools whose origin matters for approval, sandboxing, and user explanation. Codex therefore treats naming as an adaptation step.
 
-This diagram shows why MCP is a protocol boundary rather than a direct function registry. Discovery, naming, and routing are separate operations.
+The source makes this boundary visible in two places. [`McpConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/mcp/mod.rs#L96-L141) stores long-lived MCP runtime settings such as OAuth state location, approval policy, sandbox executable, configured servers, built-ins, and plugin capability summaries. [`ToolInfo`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L28-L48) then keeps both sides of the name split: `server_name` and raw `tool` for protocol calls, plus `callable_namespace` and `callable_name` for the model-facing declaration.
 
-### Inbound MCP Stack
+Shape-level, a discovered tool starts like this:
 
-Inbound MCP means Codex consumes tools from MCP servers. The low-level client layer owns transport concerns: launching a local stdio process, talking to a server over HTTP, adapting an executor-backed process, using in-process servers, and handling OAuth-aware HTTP flows. This layer should be boring to the rest of the runtime. It produces client behavior; it does not decide which tools belong in a model request.
-
-The Codex MCP orchestration layer sits above it. It normalizes configured servers and built-ins, starts clients asynchronously, records startup status, lists tools and resources, routes tool calls, and handles elicitation. An elicitation is a server asking for more user or client input during an MCP operation. Architecturally, that is a bidirectional runtime request, not a hidden prompt injection.
-
-Startup is intentionally cache-oriented. Tool listings may be expensive or temporarily unavailable, and a client surface should be able to show progress while ordinary work continues. A failed optional server should not collapse the whole runtime. It should produce status, warnings, or absent tools.
-
-### Tool Discovery and Routing
-
-Discovery produces model-facing tool specs, but execution uses provenance. A safe mental model is:
-
-```text
-// Pseudocode - illustrative pattern.
-for each effective_server:
-    client = start_or_reuse_client(effective_server)
-    listing = client.list_tools_from_cache_or_server()
-
-    for each raw_tool in listing:
-        public_name = sanitize(raw_tool.name, effective_server.identity)
-        provenance = remember(effective_server.identity, raw_tool.name)
-        expose_tool(public_name, raw_tool.schema, provenance)
-
-when model_calls(public_name, arguments):
-    provenance = lookup(public_name)
-    client = client_for(provenance.server_identity)
-    result = client.call_tool(provenance.raw_tool_name, arguments)
-    return shape_observation(result)
+```json
+{
+  "server_name": "github",
+  "tool": {
+    "name": "create_pull_request",
+    "input_schema": { "type": "object" }
+  },
+  "callable_namespace": "GitHub",
+  "callable_name": "create_pull_request",
+  "connector_id": "github"
+}
 ```
 
-The Source Map at the end of the chapter names the concrete connection manager and exposure code. The invariant is the point: the model never becomes the authority on which server receives a call. The runtime resolves that through the provenance table it created during discovery.
+After normalization, the model may see a shorter or hashed `callable_namespace` / `callable_name`, especially when raw identities collide or exceed the API length limit. The raw `tool.name` remains available for execution. [`normalize_tools_for_model()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L133-L228) is the verified source for that split: it sanitizes model-visible parts, adds hash suffixes when needed, sorts by raw identity, and writes the final callable fields without discarding raw metadata.
 
-### Hosted App Tools
+### 1.1 Discovery Is Not Dispatch
 
-Hosted app tools look similar to MCP tools after exposure, but their source of truth is different. They depend on hosted metadata, connector names, app IDs, accessible tool information, and account authentication. That means they need a separate trust and cache path. A tool can be "available in a directory" but not usable by the current account; it can also require authentication refresh or elicitation before a call can proceed.
-
-For a book-level architecture, the important lesson is that "MCP tool" and "hosted app tool" should converge only at the model-facing tool boundary. The metadata that proves origin and access remains distinct behind that boundary.
-
-### Resources and Templates
-
-MCP servers can expose more than tools. They can expose resources and resource templates. Codex treats those as read/list operations with their own routing, not as model-visible functions by default. That distinction matters because a resource can become context, a tool can become a side effect, and a template can become a parameterized read. Their permission and display stories are not identical.
-
-The connection manager therefore serves several families of requests: list servers, list tools, call a tool, read a resource, list templates, resolve elicitation, and report authentication status. They share clients and provenance but do not have the same user-facing semantics.
-
-### Outbound Codex as an MCP Server
-
-Codex also has an outbound direction: expose Codex itself as an MCP server. That sounds symmetric, but it is deliberately narrower. Inbound MCP lets Codex consume a broad ecosystem of tools. Outbound MCP lets an external MCP client ask Codex to start or resume work and receive Codex events as notifications.
-
-The narrower surface is the right instinct. A mature runtime already has its own thread, turn, approval, event, and rollout contracts. Exporting every one of those as arbitrary MCP capabilities would blur the product boundary. The useful bridge is to map a small set of external tool calls to thread-manager operations and stream back observable events.
+Discovery produces the model-facing catalog. Dispatch uses the remembered origin. The lifecycle is:
 
 ```text
-// Pseudocode - illustrative pattern.
-when external_mcp_client_calls("start_work", input):
-    thread = thread_manager.start_thread(input)
-    subscribe_to_events(thread.id)
-    return accepted(thread.id)
-
-for each event in subscribed_thread:
-    notify_external_client(convert_event(event))
+effective server
+  -> managed MCP client
+  -> listed raw tools
+  -> normalized ToolInfo records
+  -> model-visible tool declarations
+  -> tool call resolved back to (server, raw tool)
+  -> structured CallToolResult returned to Codex
 ```
 
-This is a bridge, not a second runtime.
+[`McpConnectionManager::list_all_tools()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L366-L377) aggregates listed tools from managed clients and normalizes them at the manager return boundary. [`McpConnectionManager::call_tool()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L566-L601) takes `server` and `tool` separately, checks the per-server tool filter, calls the raw MCP tool name, and converts MCP content into Codex's protocol `CallToolResult`.
 
-### Failure Semantics
+That shape prevents a common bug: reconstructing provenance by parsing a public tool name. A name such as `github__create_pull_request` may be useful to the model, but the real route is the stored server/tool pair.
 
-MCP failures are extension failures before they are agent failures. A server can fail to start, an OAuth token can expire, a tool listing can time out, a resource read can be denied, or an elicitation can be cancelled. The runtime should preserve those differences because they lead to different recovery paths.
+### 1.2 Direct And Deferred Exposure Protect Context
 
-| Failure | Runtime meaning | User-visible recovery |
-| --- | --- | --- |
-| Startup failure | server did not become an available capability | show status and continue without its tools |
-| Listing failure | server exists but tools are unknown or stale | retry, refresh, or use cached state if valid |
-| OAuth failure | account access is missing or expired | request auth flow or mark tools unavailable |
-| Tool call failure | selected tool rejected or failed the operation | return a structured observation |
-| Elicitation cancelled | required external input was not provided | stop that operation without inventing data |
+Tool discovery can create too many declarations for a single prompt. Codex therefore separates the complete MCP catalog from the set inserted directly into the model request. [`build_mcp_tool_exposure()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/mcp_tool_exposure.rs#L18-L59) returns `direct_tools` and optional `deferred_tools`. The direct set can keep explicitly enabled hosted app tools visible while the broader MCP catalog moves behind search/deferred loading.
 
-These distinctions keep MCP from becoming runtime entanglement. The turn loop sees tools and observations; MCP orchestration owns server lifecycle.
+| Pressure | Simpler approach that fails | Codex mechanism | Invariant protected |
+| --- | --- | --- | --- |
+| Many discovered tools | dump every schema into every request | direct/deferred exposure | prompt budget and stable tool surface |
+| Hosted app access differs by account | expose every directory tool | filter by connector IDs and app-tool enablement | only accessible hosted tools become direct tools |
+| Tool names collide | trust raw names | sanitize and hash callable parts | model-visible names remain unique |
+| Raw metadata is needed for execution | overwrite raw names with public names | keep `ToolInfo.tool.name` and `server_name` | dispatch keeps provenance |
+
+This is why MCP discovery is a runtime projection, not a registry mutation. The complete capability set can exist behind the boundary while only a safe subset enters the model-visible view.
+
+## 2. Server Lifecycle Belongs Behind The Boundary
+
+The connection manager is deliberately more than a map of functions. Its source comment says it owns running clients, startup status events, server origin metadata, aggregated tools/resources/templates, tool routing, and the public manager API used by core. The fields on [`McpConnectionManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L71-L78) match that statement: managed clients, server metadata, hosted app enablement, elicitation requests, and a startup cancellation token.
+
+Startup is designed to report status rather than block the whole runtime indefinitely. During [`McpConnectionManager::new()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L168-L317), each enabled server emits `Starting`, resolves to `Ready`, `Cancelled`, or `Failed`, and then contributes to a startup-complete summary. Required server failures can later be queried through [`required_startup_failures()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L341-L364).
+
+That lifecycle protects an availability invariant:
+
+```text
+optional server fails
+  -> startup status records failure
+  -> unavailable tools are absent or stale
+  -> ordinary turn processing can continue
+
+required server fails
+  -> required_startup_failures reports a concrete blocker
+  -> caller can stop or ask the user to fix auth/config
+```
+
+### 2.1 Elicitation Is A Runtime Request, Not Hidden Prompt Text
+
+Some MCP operations need more user or client input. The connection manager holds an `ElicitationRequestManager`, lets callers update approval policy and permission profile, and exposes [`resolve_elicitation()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L319-L328). That makes elicitation a structured runtime path. It is not a license for an external server to silently invent missing user decisions or smuggle instructions into the model prompt.
+
+### 2.2 Resources And Templates Stay Read/List Operations
+
+MCP servers can expose resources and resource templates as well as tools. Codex keeps those request families separate. [`list_all_resources()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L430-L494) and [`list_all_resource_templates()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L496-L563) aggregate by server and warn on per-server failure. Per-server [`read_resource()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L646-L661) preserves the server name in the error context.
+
+That distinction matters because a resource can become context, a tool can create a side effect, and a template can become a parameterized read. Sharing clients is fine; sharing semantics would be a boundary error.
+
+## 3. Hosted App Tools Converge Late
+
+Hosted app tools can look like MCP tools after exposure, but their source of truth is not the same as a user-configured MCP server. They depend on connector IDs, directory metadata, account access, and hosted app enablement. Core exposure makes that late convergence visible: hosted app MCP tools are filtered through connector lists and `codex_app_tool_is_enabled()` before becoming direct tools.
+
+The safe rule is:
+
+```text
+MCP server tool       -> server provenance proves where to call
+hosted app tool      -> connector/access metadata proves whether to expose
+model-visible tool   -> one tool boundary, after the previous checks
+```
+
+A hosted app can be known in a directory but unusable by the current account. An MCP server can be configured but failed at startup. Both cases should be visible to clients as capability state, not hidden as model confusion.
+
+## 4. Outbound Codex MCP Is A Bridge, Not A Second Runtime
+
+Codex also has an outbound direction: expose Codex itself as an MCP server. The source is intentionally narrow. [`MessageProcessor::new()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L53-L86) creates a `ThreadManager` with `SessionSource::Mcp`. [`handle_list_tools()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L318-L334) exposes two tools, `codex` and `codex-reply`. [`handle_call_tool()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L336-L358) dispatches only those names and returns an error for unknown tools.
+
+Shape-level, the outbound bridge looks like this:
+
+```json
+{
+  "tools/list": ["codex", "codex-reply"],
+  "tools/call": {
+    "codex": "start a Codex session from validated arguments",
+    "codex-reply": "send a reply to an existing thread_id"
+  },
+  "notifications/cancelled": "submit Interrupt to the mapped Codex thread"
+}
+```
+
+That is not symmetry with inbound MCP. Inbound MCP lets Codex consume an ecosystem of tools. Outbound MCP lets an external MCP client start or resume Codex work and receive results through a narrow tool surface. Exporting every thread, turn, approval, and rollout concept as arbitrary MCP capabilities would blur the native product contract.
+
+## 5. Failure Conditions Define The Boundary
+
+MCP failures are extension failures before they are agent failures. Preserving the category gives the caller the right recovery path.
+
+| Failure | Verified source surface | Runtime meaning | Recovery |
+| --- | --- | --- | --- |
+| startup timeout/auth error | startup status and `mcp_init_error_display()` | server did not become available | show config/auth guidance and continue or block if required |
+| disabled tool | `ToolFilter::allows()` and `call_tool()` check | tool exists but is not allowed for this server | do not dispatch; return a structured error |
+| stale hosted app cache | app-tool cache refresh path | catalog may be old, server health not proven | hard refresh or mark capability stale |
+| resource pagination failure | per-server resource aggregation warning | one server failed a read/list family | keep other servers' resources |
+| elicitation cancelled | elicitation manager resolution path | required input was not provided | stop that operation without inventing data |
+| unknown outbound tool | outbound `handle_call_tool()` | external client asked for a non-contract operation | return MCP tool error |
+
+The failure table is also the trust table. Anything that cannot be proven by config, connection status, connector access, or provenance should not be promoted to model-visible capability.
 
 <div class="trace-ledger">
 
@@ -120,10 +176,11 @@ These distinctions keep MCP from becoming runtime entanglement. The turn loop se
 
 | Question | Chapter 17 answer |
 | --- | --- |
-| Where is the user request now? | It can reach external tool servers through sanitized model-visible tool calls. |
-| What carries it? | Effective server definitions, managed MCP clients, tool listings, provenance records, and shaped tool observations. |
-| Who decides next? | The model selects a visible tool, but the runtime routes by provenance and the MCP server performs the operation. |
-| What can fail here? | startup, listing, OAuth, elicitation, resource access, name collision, stale cache, or tool-call failure. |
+| Where is the user request now? | It can cross from the model-visible tool boundary into an external MCP server, or from an external MCP client into a narrow Codex MCP bridge. |
+| What carries it? | `McpConfig`, effective server metadata, managed clients, `ToolInfo`, direct/deferred exposure, raw `(server, tool)` routing, resource/template requests, and `CallToolResult`. |
+| Who owns the next decision? | The model chooses a visible tool; Codex resolves provenance and policy; the MCP server performs the operation; Codex shapes the observation. |
+| What must remain invariant? | Model-visible names may be rewritten, but raw server/tool provenance, account access, approval policy, and error category must remain intact. |
+| What can fail here? | startup, OAuth, listing, stale cache, disabled tools, name collision, resource access, elicitation, unknown outbound tools, or tool-call failure. |
 
 </div>
 
@@ -131,17 +188,17 @@ These distinctions keep MCP from becoming runtime entanglement. The turn loop se
 
 ## Apply This
 
-1. **Identity split.** Solves external-tool name confusion -> keep raw server identity, model-visible names, and provenance records separate -> Pitfall: letting the model-visible string become the routing authority.
-2. **Provenance routing.** Solves unsafe dispatch across remote servers -> route calls by stored origin metadata -> Pitfall: reconstructing the origin by parsing tool names.
-3. **Cache as availability hint.** Solves slow or flaky startup -> use cached listings to explain capability state -> Pitfall: treating a cache as proof that the server is healthy.
-4. **Explicit elicitation.** Solves external tools needing user input -> model OAuth and elicitation as runtime requests -> Pitfall: letting the server invent missing user decisions.
-5. **Narrow outbound bridge.** Solves exposing Codex to other MCP clients -> publish only the operations that make sense across the protocol -> Pitfall: mirroring the whole native runtime as a remote API.
+1. **Split identity before dispatch.** Use this when external tools can collide or be renamed. Keep raw server identity, raw tool name, model-visible name, and provenance as separate fields. Pitfall: parsing a public tool name to decide where to route.
+2. **Treat discovery as projection.** Use this when a catalog is larger than one prompt. Produce a full capability catalog, then choose direct versus deferred exposure. Pitfall: equating "known" with "inserted into the current model request."
+3. **Make server lifecycle observable.** Use this when optional extensions can fail. Emit startup status and required-server failures separately. Pitfall: letting one flaky optional server collapse the runtime.
+4. **Keep reads distinct from side effects.** Use this when a protocol has tools, resources, and templates. Share clients, not semantics. Pitfall: turning every resource into a callable function.
+5. **Expose outbound bridges narrowly.** Use this when another protocol wants to drive Codex. Map only stable operations such as start/reply/cancel. Pitfall: mirroring the entire native runtime as MCP tools.
 
 </div>
 
 ## What Comes Next
 
-MCP is one extension plane, but not the only one. Chapter 18 widens the lens to skills, plugins, connectors, and typed in-process extensions: the packaging and instruction layers that decide which capabilities exist before MCP routing ever begins.
+MCP is one extension plane, but not the only one. Chapter 18 moves up a layer to the packages and metadata that decide which skills, plugin contributions, connectors, and typed prompt fragments exist before MCP routing ever begins.
 
 <div class="source-equivalence">
 
@@ -151,8 +208,9 @@ MCP is one extension plane, but not the only one. Chapter 18 widens the lens to 
 | --- | --- |
 | MCP configuration | [`codex-rs/codex-mcp/src/mcp/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/mcp/mod.rs#L106) |
 | Connection manager | [`codex-rs/codex-mcp/src/connection_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L72) |
-| MCP tool info | [`codex-rs/codex-mcp/src/tools.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L29) |
-| Core tool exposure | [`codex-rs/core/src/mcp_tool_exposure.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/mcp_tool_exposure.rs#L18) |
+| Tool metadata and normalization | [`codex-rs/codex-mcp/src/tools.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L29) |
+| Core direct/deferred tool exposure | [`codex-rs/core/src/mcp_tool_exposure.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/mcp_tool_exposure.rs#L18) |
+| Resource and template routing | [`codex-rs/codex-mcp/src/connection_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L430) |
 | Outbound Codex MCP server | [`codex-rs/mcp-server/src/message_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L53) |
 
 </div>

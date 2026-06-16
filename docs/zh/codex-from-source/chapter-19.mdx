@@ -1,114 +1,180 @@
 
 # 第 19 章：外部迁移与向后兼容
 
-> **阅读契约：** 用本章把 migration 当成架构。跟住 compatibility lanes、session import、legacy shapes，以及 adapters 如何防止旧状态污染新契约。
+> **阅读契约：** 本章回答一个问题：Codex 如何导入外部 agent configuration 与 history，却不继承外部 runtime 的语义？阅读时跟住四个 owner：detection、conversion、native runtime refresh、session-import ledger。读完后，应该能分清 native artifact、imported artifact、skipped external construct 和 compatibility bridge。
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/compatibility-lane-adapters-df64b03.webp" alt="兼容性通道：展示外部配置迁移、session import、adapter 与旧状态保护" loading="eager" decoding="async" />
   <figcaption>Compatibility lanes 让 Codex 能导入旧形态或外部形态，同时保护 native runtime model 不继承含糊边界。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、structs、functions、protocol request/response shapes、import records 时，才把说法视为 **verified source**。把 migration 概括成 conservative translation，是从可见 converters 与 ledger boundaries 得出的 **surrounding contract inference**。本章不声称模拟任何外部 agent 的私有 runtime。
 
-第 18 章把 extension planes 拆成 skills、plugins、connectors 和 typed extensions。本章追问：当用户带着并非诞生于这些 planes 的既有 agent configurations 与 histories 进入 Codex 时，系统应该怎么办？Migration 是桥，compatibility 是纪律，防止这座桥变成一堆不可维护的特判。
+第 18 章把 Codex-native extension planes 拆成 skills、plugins、connectors 和 typed contributors。本章追问：当用户带来不诞生于这些 planes 的 artifacts 时怎么办？这些 artifacts 可能是 external configs、commands、hooks、subagents、MCP servers 和 JSONL sessions。
 
 <div class="chapter-lede">
-  <p><strong>你在这里：</strong>Codex 已能在明确 trust boundaries 下加载原生 extension surfaces。</p>
-  <p><strong>问题：</strong>用户会带来 external configs、commands、hooks、subagents、MCP servers 和 JSONL sessions，但它们的语义不完全匹配 Codex。</p>
-  <p><strong>心智模型：</strong>migration 是保守地翻译成 native artifacts 并附带 metadata，而不是模拟另一个 agent runtime。</p>
+  <p><strong>你在这里：</strong>Codex 已能在明确 trust boundaries 下加载 native extension surfaces。</p>
+  <p><strong>问题：</strong>用户带来的外部状态很有价值，但它可能使用不同的 prompt rules、hook timing、command expansion、permissions、session schemas 和 trust assumptions。</p>
+  <p><strong>心智模型：</strong>migration 是单向 adapter：把外部状态转成 native Codex artifacts 加 provenance，而不是把隐藏 compatibility mode 塞进每个后续 turn。</p>
 </div>
 
-Agent system 的 backward compatibility 不只是接受旧 API 字段。它还意味着接纳用户已有历史、工作习惯和本地自动化，同时不能让模糊行为变成隐藏权限。Codex 把 migration 当作受控 import path：读取 source artifact，识别 supported constructs，翻译成 Codex-native shapes，跳过 unsafe 或 dynamic cases，并记录足够 metadata 以避免重复导入。
+Agent system 的 backward compatibility 不只是接受旧 API 字段。它也意味着接纳用户历史与本地自动化，同时不能让含糊行为变成隐藏权威。Migration layer 应该读取 source artifact，识别 supported constructs，翻译成 native shapes，跳过 unsupported 或 unsafe cases，并记录足够 metadata，让用户和测试都能理解结果。
 
-最后一个节点很重要。迁移后的 hook 应作为 Codex hook 运行；迁移后的 command 应表现为 Codex skill 或 workflow unit；导入的 session 应成为 rollout history。Migration layer 不应该留在 turn loop 里。
+不变量是：migration 完成后，turn loop 应该运行 Codex-native tools、hooks、skills、MCP configs 和 rollout history。它不应该反复追问“外部 runtime 原本会怎么做？”
 
+## 一、Migration 从 detection 开始，不从 mutation 开始
 
-## Configuration Migration
+源码把 migration 暴露成 typed items。[`ExternalAgentConfigMigrationItemType`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/config/external_agent_config.rs#L48-L59) 包括 config、skills、`AGENTS.md`、plugins、MCP server config、subagents、hooks、commands 和 sessions。Detection 返回带 description、可选 cwd、可选 details 的 `ExternalAgentConfigMigrationItem` records。
+
+Shape-level：
+
+```json
+{
+  "item_type": "McpServerConfig",
+  "description": "Import external MCP server configuration",
+  "cwd": "/project",
+  "details": {
+    "mcp_servers": [{ "name": "github" }],
+    "commands": [],
+    "sessions": []
+  }
+}
+```
+
+这是 detection report，不是 mutation。Request processor 的 [`detect()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L79-L171) 把 core migration items 映射成 app-server client 可见的 protocol response items。随后 client 可以请求 import 选中的 items。
+
+### 1.1 Import 有 foreground 与 background phases
+
+[`ExternalAgentConfigRequestProcessor::import()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L173-L275) 展示 runtime shape：
+
+```text
+selected migration items
+  -> validate pending session imports
+  -> import config-like items
+  -> refresh runtime config when needed
+  -> send import response
+  -> background plugin/session imports
+  -> clear plugin/skill caches if plugin imports ran
+  -> notify import completed
+```
+
+这个拆分很重要。有些 import 立即产生 local config changes；有些 plugin 与 session work 会在后台继续。Processor 先发送 response，等 background imports 结束后再发 `ExternalAgentConfigImportCompleted`。Migration UI 因而不能把“request accepted”误读成“所有 plugin 和 session 都已经完成 import”。
+
+## 二、Config migration 是翻译成 native shapes
 
 External configuration migration 处理几类 artifact：
 
-| Source artifact | Native destination | Conservative rule |
-| --- | --- | --- |
-| MCP server entries | Codex MCP configuration | 导入 supported transports，跳过 disabled 或 unsupported entries |
-| hooks | Codex hook configuration | 只转换能匹配 structured hook model 的 handlers |
-| commands | skills 或 workflow units | 要求稳定 metadata，跳过 dynamic runtime expansion |
-| subagents | agent definitions 或 skill-like instructions | 只保留 Codex 能安全表达的 fields |
+| Source artifact | Native destination | Verified source surface | Conservative rule |
+| --- | --- | --- | --- |
+| MCP server entries | Codex MCP config | `build_mcp_config_from_external()` | 导入 supported server records，并遵守 merge rules |
+| hooks | Codex hook config | `import_hooks()` | 只复制可表达的 hook mappings 与 scripts |
+| commands | skills/workflow units | `import_commands()` | 要求 parseable documents 与 bounded metadata |
+| subagents | native agent definitions | `import_subagents()` | 要求 stable frontmatter 与 safe target names |
+| plugins | plugin config/store | pending plugin import path | 分开 local 与 remote import work |
 
-保守规则就是架构。Migration 绝不应该猜测 permission boundary。如果外部 command 依赖 provider-specific runtime expansion，安全行为是跳过并说明原因。如果某个 hook handler 无法表示为 Codex hook schema，安全行为不是把它伪装成任意 shell text。若目标文件已经存在，importer 应保留用户已有 native configuration，而不是覆盖。
+Converter source 把 conservative style 写得很具体。[`build_mcp_config_from_external()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L44-L84) 读取 external MCP server maps，应用 enabled/disabled server lists，并返回以 `mcp_servers` 为 root 的 TOML table。[`import_commands()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L198-L224) 只为 supported、unique command sources 创建 skill directories，并跳过 existing targets。[`import_subagents()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L158-L180) 对 agent files 也使用同样保守策略。
+
+Shape-level，边界有意是 lossy：
 
 ```text
-// Pseudocode - illustrative pattern.
-for each source_entry in external_config:
-    kind = classify(source_entry)
+external command document
+  -> parse frontmatter and body
+  -> derive stable skill name and description
+  -> skip if target already exists
+  -> write native SKILL.md
 
-    if not supported(kind, source_entry):
-        report_skip(source_entry, reason)
-        continue
-
-    target = compute_native_target(source_entry)
-    if target.exists:
-        report_preserved(target)
-        continue
-
-    native_artifact = convert_to_codex_shape(source_entry)
-    write_native_artifact(target, native_artifact)
+external dynamic behavior
+  -> no safe native representation
+  -> skip and report
 ```
 
-这是通过翻译实现 compatibility，而不是通过无边界解释实现 compatibility。
+Importer 永远不应该猜 permission boundary。如果 source command 依赖 Codex 无法表达的动态 provider-specific expansion，安全结果是 skipped，而不是把它偷塞进 shell hook。
 
-### Session Import
+## 三、Session import 把 history 当作 evidence 保留
 
-Session import 与 config migration 不同，因为 history 不是未来能力，而是过去对话的证据。External JSONL sessions 可能包含 user messages、assistant messages、tool calls、tool outputs、titles、working directories、token usage 和 source-specific records。Codex 必须把足够多历史翻译成自己的 rollout items，才能让 thread 与 history reconstruction 理解。
+Session import 不同于 config migration，因为 history 不是未来 capability，而是过去 conversation 的证据。Session importer 必须把外部 JSONL transcript 中足够多内容翻译成 Codex rollout items，让 thread 可以 list、resume、audit，同时仍标记 source 是 imported。
 
-Import path 因此会检测 candidate sessions，验证 working context 仍存在，只加载 importable records，构建 visible turns，添加 import metadata，并记录 content-hash ledger。Ledger 防止重复导入，同时允许 source content 改变后再次被发现。
+Verified lifecycle 是：
 
-这个设计同时保留两个事实：导入对话可作为 Codex history 使用；它也仍然带着 imported history 的 provenance。
+1. Detection 只在 records 含 cwd、至少一条 user/assistant message，以及 latest timestamp 时总结 candidate sessions。[`summarize_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L24-L85) 构建这个 summary。
+2. Import validation canonicalize selected paths，并拒绝不在 detected external projects root 下的 sessions。[`validate_pending_session_imports()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L337-L373) 也会对 selected canonical paths 去重。
+3. `prepare_validated_session_imports()` 跳过已被 content ledger 记录的 sessions，并只加载 cwd 仍存在的 importable sessions。[`load_importable_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/lib.rs#L128-L133) 是可见 cwd check。
+4. Request processor 用 [`InitialHistory::Forked(rollout_items)`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L277-L335) 启动新的 Codex thread，并在有 title 时 normalize 成 thread metadata。
+5. 成功后，[`record_imported_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L34-L56) 把 source path、content SHA-256、imported thread ID 和 timestamp 写进 ledger。
 
-### 不让兼容变成语义漂移
+### 3.1 JSONL shape 在边界处会改变
 
-最危险的 migration bug 不是 parse failure，而是成功导入后改变了含义。Agent systems 在 prompt rules、tool call formats、hook timing、permission models、command expansion、subagent behavior 和 history schemas 上都可能不同。Converter 如果过度聪明，就会创建看似有效、却行为不同的 native artifact。
+Parser 有意选择性保留。[`conversation_message_from_record()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L153-L179) 只接受 user/assistant records，跳过 meta 与 sidechain records，提取 message content，并解析 timestamps。[`extract_message_text()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L186-L220) 把 text blocks 变成 text，把 tool-use blocks 变成 notes，把 tool-result blocks 变成 notes，忽略 thinking blocks，并给 unsupported blocks 打标签。
 
-Codex 用三条 compatibility rules 降低这种风险。
+Shape-level：
 
-第一，保留 native user work。已有 target files 优先于 imported material。第二，跳过 native runtime 无法表达的 dynamic behavior。第三，附加 import metadata，让后续代码和用户能区分 native history 与 migrated history。
+```json
+{
+  "type": "user",
+  "cwd": "/project",
+  "message": {
+    "content": [
+      { "type": "text", "text": "Fix the parser" },
+      { "type": "tool_result", "content": "long external output..." }
+    ]
+  },
+  "isSidechain": false
+}
+```
 
-这些规则并不花哨，但它们避免 migration 变成每个后续 subsystem 里的隐藏 compatibility mode。
+会变成 Codex-importable conversation message，例如：
 
-### Backward Compatibility Bridges
+```json
+{
+  "role": "user",
+  "text": "Fix the parser\n[external tool result: long external output...]",
+  "timestamp": "parsed timestamp if present"
+}
+```
 
-Migration 是一座桥，protocol compatibility 是另一座桥。前面章节已经介绍 generated schemas、legacy aliases、v1/v2 coexistence、experimental gates 和 client-version workarounds。第 19 章把这些想法整理成一般策略：
+这只是 shape-level example，不是精确 serialized rollout record。关键不变量是：imported history 可以作为 history 使用，但不会被当作另一个 runtime 内部状态的 lossless replay。
 
-| Compatibility bridge | What it protects | What it should not do |
+### 3.2 Ledger 基于 content，不只基于 path
+
+Session ledger 既要保护 idempotency，又不能隐藏 changed source content。[`ImportedExternalAgentSessionRecord`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L14-L25) 保存 source path、`content_sha256`、imported thread ID 和 import time。[`contains_current_source()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L58-L65) 在决定已经导入之前，会重新计算当前文件 hash。
+
+这避免两个坏极端：
+
+| Ledger design | Failure |
+| --- | --- |
+| path only | changed JSONL content 被永远压制 |
+| no ledger | 每次 migration prompt 都可能重复导入同一 session |
+| path + content hash | unchanged sessions 被跳过，changed sessions 可以再次被发现 |
+
+## 四、Compatibility bridges 应该止步于边界
+
+Migration 是一座桥，protocol compatibility 是另一座桥。前面章节已经讨论 generated schemas、v1/v2 protocol coexistence、request aliases、experimental gates 和 client-version behavior。第 19 章的一般规则是：compatibility code 应该明确自己桥接什么，以及在哪里结束。
+
+| Bridge | 保护什么 | 不能做什么 |
 | --- | --- | --- |
 | schema aliases | older clients and stored events | 隐藏不兼容语义 |
 | experimental gates | unstable capabilities | 让 unstable fields 看起来像永久契约 |
-| migration converters | 来自其他工具的用户 workflows | 永久模拟另一个 runtime |
-| import ledgers | 幂等 session import | 压制已经改变的 source content |
+| migration converters | 来自其他工具的 user workflows | 永久模拟另一个 runtime |
+| import ledgers | 幂等 session import | 压制 changed source content |
 | provenance markers | imported history 的可审计性 | 用私有 implementation detail 污染 model context |
 
-共同主题是 explicitness。Compatibility code 应该说清楚它在桥接什么、跳过什么、桥接在哪里结束。
+[`codex-rs/app-server-protocol/src/protocol/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/mod.rs#L1-L10) 是一个小但有用的提醒：protocol compatibility 被组织成 namespace，包含 common pieces、mappers、thread history 与 v1/v2 modules。Compatibility 应该留在 protocol edge 与 migration edge，而不是散落在 core logic 里，变成“这也许是外部东西”的分支。
 
-### Designing the Import Report
+## 五、Failure conditions 是产品契约
 
-Import operation 即使成功也应该产出 report。用户需要知道哪些 MCP servers 被导入，哪些 hooks 被跳过，哪些 commands 变成 skills，哪些 existing files 被保留，哪些 sessions 变成 threads。Silent migration 在演示里诱人，在生产里危险。
+Migration 最危险的失败，是静默成功但改变语义。用户需要 report，runtime 也需要清晰 failure categories。
 
-```text
-// Pseudocode - illustrative pattern.
-report = {
-    imported: [],
-    preserved: [],
-    skipped: [],
-    warnings: []
-}
+| Failure | Boundary owner | Correct behavior |
+| --- | --- | --- |
+| unsupported command shape | command converter | skip and report，不 invent execution semantics |
+| existing native target | importer | preserve existing Codex file |
+| invalid external JSONL | session parser | skip record/session，不 corrupt rollout history |
+| cwd no longer exists | session import preparation | 不导入 unusable working context 的 thread |
+| stale session ledger | ledger hash check | skip 前重新计算 content hash |
+| background plugin failure | import processor | warn，并在 background phase 后仍发送 completion notification |
+| config-like import ran | request processor | refresh runtime config，并清理相关 caches |
 
-for each artifact:
-    outcome = migrate(artifact)
-    report.add(outcome.category, outcome.summary)
-
-return report
-```
-
-Report 也是 test oracle。Migration tests 应覆盖 edge behavior：disabled servers、unsupported transports、duplicate command names、missing metadata、existing targets、invalid ledgers、changed source content 和 unsupported session records。
+产品契约不是“所有外部状态都变 native”，而是“supported state 变 native，unsupported state 带解释地留在外面”。
 
 <div class="trace-ledger">
 
@@ -116,10 +182,11 @@ Report 也是 test oracle。Migration tests 应覆盖 edge behavior：disabled s
 
 | 问题 | 第 19 章答案 |
 | --- | --- |
-| 用户请求现在在哪里？ | 它可以由 imported native artifacts 和 imported rollout history 支撑。 |
-| 什么数据结构携带它？ | migration summaries、converted config artifacts、rollout items、import metadata 和 content-hash ledgers。 |
-| 谁拥有下一步决策？ | converters、validators、skip rules、target preservation checks，以及 import 之后的 native runtime loaders。 |
-| 这里可能怎么失败？ | unsupported source semantics、unsafe dynamic expansion、duplicate names、existing target conflicts、invalid JSONL、missing working context 或 stale import ledger data。 |
+| 用户请求现在在哪里？ | 它可能由 imported native config、imported skills/hooks/MCP entries、background plugin imports，或 imported rollout history 支撑。 |
+| 什么数据结构携带它？ | migration items、migration details、converted native artifacts、app-server import responses、`InitialHistory::Forked`、thread metadata patches，以及 content-hash session ledger。 |
+| 谁拥有下一步决策？ | Detection 报告 candidates；converters 决定 supported native shapes；request processor refresh runtime config 并执行 background imports；import 后由 native loaders 拥有结果。 |
+| 必须保持什么不变？ | Migration 不能覆盖 native user work，不能盲目继承 trust，不能永久模拟另一个 runtime，也不能把 external history 当作 lossless native replay。 |
+| 这里可能怎么失败？ | unsupported semantics、disabled/duplicate entries、existing target conflicts、invalid JSONL、missing cwd、stale/invalid ledger data、remote plugin errors，或 source paths 超出 detected import boundary。 |
 
 </div>
 
@@ -127,17 +194,17 @@ Report 也是 test oracle。Migration tests 应覆盖 edge behavior：disabled s
 
 ## 应用到实践
 
-1. **有损导入账本。** 解决迁移过度承诺 -> 记录 skipped、converted 和 unsupported 字段 -> 风险：假装不兼容语义被完整保留。
-2. **目标形状原生化。** 解决兼容层脆弱 -> 翻译成 Codex-native config、hook、skill 和 session shape -> 风险：永久携带外部 runtime 假设。
-3. **信任重置。** 解决导入自动化不安全 -> 让导入 hook 和 command 重新经过 Codex trust gate -> 风险：继承另一个系统的信任结论。
-4. **历史来源标记。** 解决导入 transcript 混淆 -> 把迁移 item 标记为 imported history -> 风险：把导入记录和本地 rollout fact 混在一起。
-5. **兼容性边界。** 解决旧客户端破坏 -> 把 legacy alias 留在协议边界 -> 风险：让兼容分支扩散到 core logic。
+1. **先 detect，再 mutate。** 处理 external state 时使用。写 native files 前先返回 typed migration items 与 descriptions。风险：用户无法审计 silent migration。
+2. **翻译成 native contracts。** 处理 commands、hooks、subagents、MCP servers 和 sessions 时使用。只转换 supported shapes。风险：把 foreign runtime assumptions 保留成隐藏行为。
+3. **记录有损边界。** 导入 histories 时使用。保留 provenance 与 ledger data，并显式标出 unsupported blocks。风险：假装 external JSONL 是 native rollout replay。
+4. **让 idempotency 感知 content。** 对可重复 import 使用。hash source content，而不是只看 path。风险：压制 changed sessions 或重复 unchanged sessions。
+5. **Import 后结束 bridge。** 对 compatibility code 使用。Conversion 后让 native loaders 拥有 migrated artifacts。风险：让 compatibility branches 扩散进 core turn loop。
 
 </div>
 
 ## 接下来
 
-第五部到这里结束：runtime 已能接纳外部工具、加载 extension packages，并把外部历史迁移进 native contracts。第六部转向一个 turn 之外的协作：multi-agent threads、cloud tasks、identity 和 memory。
+第五部到这里结束：runtime 已能消费外部工具、加载 native extension packages，并把外部状态迁移成 native contracts。第 20 章转向一个 agent 之外的协作：multi-agent threads、graph edges、live status 和 trace reconstruction。
 
 <div class="source-equivalence">
 
@@ -147,6 +214,9 @@ Report 也是 test oracle。Migration tests 应覆盖 edge behavior：disabled s
 | --- | --- |
 | External config model | [`codex-rs/app-server/src/config/external_agent_config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/config/external_agent_config.rs#L42) |
 | Migration request processor | [`codex-rs/app-server/src/request_processors/external_agent_config_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/external_agent_config_processor.rs#L58) |
+| External migration converters | [`codex-rs/external-agent-migration/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-migration/src/lib.rs#L44) |
+| External session parser | [`codex-rs/external-agent-sessions/src/records.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L24) |
+| External session ledger | [`codex-rs/external-agent-sessions/src/ledger.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/ledger.rs#L14) |
 | TUI migration startup | [`codex-rs/tui/src/external_agent_config_migration_startup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/external_agent_config_migration_startup.rs#L28) |
 | Protocol compatibility surface | [`codex-rs/app-server-protocol/src/protocol/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/mod.rs#L4) |
 | Thread store | [`codex-rs/thread-store/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/thread-store/src) |

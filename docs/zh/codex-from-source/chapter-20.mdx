@@ -1,145 +1,225 @@
 
 # 第 20 章：多 Agent 协作
 
-> **阅读契约：** 用本章理解多 agent 协作。跟住 graph edges、parent/child thread boundaries、live updates、trace graphs 和 outcomes 的所有权。
+> **阅读契约：** 本章回答一个问题：Codex 协调多个 agents 时，哪些事实属于 live thread topology，哪些属于 model-visible communication，哪些属于 offline trace reconstruction？阅读时跟住 thread identity、graph edges、collaboration events、pending reducer edges 和 result ownership。读完后，应该能解释为什么 child agent 是有 lifecycle state 的 thread，而不是匿名后台 prompt。
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/multi-agent-coordination-graph-df64b03.webp" alt="多 agent 协作图：展示 parent/child threads、spawn edges、mailbox、wait state、outcome 与 trace reduction" loading="eager" decoding="async" />
   <figcaption>多 Agent 工作是一张显式边图：spawn、mailbox、result、close、live updates 和 trace evidence 都有边界。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、structs、enums、handlers、event shapes、graph-store operations、reducer behavior 时，才把说法视为 **verified source**。把 live topology 与 trace topology 概括成两种不同 graphs，是从这些可见边界得出的 **surrounding contract inference**。本章不声称知道隐藏 scheduler 或 provider-side coordination policy。
 
-第 19 章在第五部结尾说明了 Codex 如何迁移外部 Agent 配置和历史 session：它不会假装所有外部概念都能无损映射到 Codex，而是保守转换、 保留来源、跳过不安全形态。本章把这个兼容性原则推进到运行时协作： 当 Codex 已经拥有原生 thread 模型之后，多 Agent 协作就应该被表示成 thread、tool、message 和 result 之间的显式关系。
+第 19 章在第五部结尾说明 Codex 如何导入外部状态，却不继承外部 runtime。本章把这个纪律推进到运行时协作：当 Codex 已经拥有 native threads 与 native extension surfaces，多 agent 工作就应该表示为 threads、tools、messages、status 和 trace evidence 之间的显式关系。
 
-关键变化是：multi-agent 不是一组后台 prompt。它首先是一个图问题。父 thread 可以 spawn 子 thread，可以 assign 或 send 工作，可以 wait 等待， 可以接收 result，也可以 close 一段关系。每个动作都有运行时效果、面向 客户端的事件形态，以及可持久化的 trace 形态。Codex 把这些关注点分开， 所以协作关系可以恢复、调试和渲染，而不是依赖终端文本或隐藏的全局调度器。
+关键变化是：multi-agent 不是一组后台 prompt，而是一张 lifecycle graph。父 thread 可以 spawn child，可以 send 或 assign work，可以 wait status，可以接收 result，可以 resume descendant，也可以 close relationship。每个动作都有三个 surface：
 
-
-## 协作单位仍然是 Thread
-
-单个 Codex turn 本身已经包含很多部件：模型输入、流式输出、工具调用、 审批、hooks、持久化、取消和 replay。Multi-agent 协作没有发明第二套 runtime。它创建更多 threads，并记录信息如何在这些 threads 之间移动。
-
-这个设计让系统保持可组合：
-
-- 根交互 session 是一个 agent thread；
-- 被 spawn 的 worker 也是一个 agent thread；
-- 委派任务会作为目标 thread 的 model-visible input 被投递；
-- 结果以可观察的 interaction 返回，而不是写入共享可变内存；
-- close 操作更新关系生命周期，但不删除历史 trace。
-
-父子拓扑由一个很窄的 graph store 持久化。它知道 child 最多有一条父边， 知道一条边是 open 还是 closed，也知道如何列出直接 children 或 descendants。它不知道模型如何描述任务，不知道 TUI 怎么展示 child，也 不知道 trace viewer 怎么画线。正是这种窄边界，让 live runtime 和离线 trace 可以复用同一个概念，而不共享偶然的 UI 策略。
-
-这张图刻意把 graph persistence 和 trace reduction 分开。Graph store 回答 运行时问题，例如“哪些 descendants 仍然 open”。Trace graph 回答解释性 问题，例如“哪个 tool call 投递了导致这个 result 的任务”。
-
-### Agent-Control Tools 是协作边
-
-Agent-control tool 不只是普通函数调用。它会把另一个 thread 命名为对话 参与者。因此 Codex 把主要 multi-agent 动作都看成会产生关系的事件：
-
-| 动作 | 运行时含义 | 图含义 |
+| Surface | Owner | 回答什么 |
 | --- | --- | --- |
-| spawn | 创建 child thread 并投递初始工作 | parent 拥有一条 open child edge |
-| assign | 向已有 child 发送新任务 | tool edge 指向被投递的 message |
-| send | 投递通信消息 | tool edge 指向被投递的 message |
-| wait | 观察一个或多个 child 状态 | 运行时同步，不创建新 child |
-| result | 把 child 完成结果通知 parent | child 输出链接到 parent notice |
-| close | 结束 parent-child 关系 | child edge 变为 closed |
+| live runtime | `AgentControl`、thread manager、graph store | 现在可以 spawn、message、wait、resume 或 close 什么 |
+| protocol events | `Collab*Event` shapes | clients 可以不用解析 prose 就渲染什么 |
+| rollout trace | reducer interaction edges | raw events 捕获后实际发生了什么 |
 
-“Mailbox” 是一个有用的心智模型。发送方执行一个 tool call。接收方稍后 会在自己的 model-visible conversation 中看到一条 message。这两个观察 在 raw event stream 里不一定相邻，甚至可能先后顺序不同。因此可靠架构 不能假设发送方的 tool end event 和接收方 input item 总是挨在一起。
+不变量是：coordination 不能把 terminal text 当成唯一事实来源。
 
-Codex 通过把 events reduce 成 interaction edges 来处理这个问题。一条 interaction edge 有 source anchor、target anchor、kind、时间、携带的 item ids，以及 raw evidence references。Source 可以是 tool call；target 可以是 conversation item，在失败场景下也可以退化为 thread。Edge 记录 信息流，但不声称两个端点一定同时创建。
+## 一、协作单位仍然是 thread
 
-### Live Graph 与 Trace Graph
+单个 Codex turn 已经有 model input、streamed output、tool calls、approvals、hooks、persistence、cancellation 和 replay。Multi-agent coordination 没有发明第二套 runtime；它创建更多 threads，并记录信息如何在这些 threads 之间移动。
 
-这里有两张有用的图，混淆它们会导致设计错误。
+源码给这个 thread-centered design 一个具体 control plane。[`AgentControl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/agent/control.rs#L129-L145) 在 root session tree 内共享。它可以 spawn threads、send input、interrupt、subscribe status、close agents、resume agents from rollout，并 list live agents。[`usage_hint_text()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/multi_agents.rs#L6-L27) 也显示 root 与 subagent sessions 可以根据 `SessionSource` 接收不同 usage hints。
 
-Live graph 是紧凑的运行时索引。它保存 directional spawn edges 和 lifecycle status，优化目标是运行中的问题：列出 children、列出 descendants、过滤 open descendants、把 child 标成 closed，以及用稳定顺序 把持久化拓扑和内存状态合并起来。
+Live graph store 刻意很窄。[`ThreadSpawnEdgeStatus`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L4-L12) 只有 `Open` 或 `Closed`。[`LocalAgentGraphStore`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/local.rs#L32-L94) upsert parent/child edge，设置 child-edge status，列 children，并按可选 status filter 列 descendants。
 
-Trace graph 是语义重建。它从捕获后的 raw protocol、runtime、tool 和 model-facing events 生成，优化目标是解释：哪个 inference 产生了 tool call，哪个 runtime payload 开始或结束了它，哪个 mailbox item 接收了消息， 哪个 parent notification 表示 child result。
+这种窄边界是优点。Graph store 不该知道模型如何描述任务，不该知道 TUI 如何渲染 child，也不该知道 trace viewer 如何画 causality。它只回答 operational topology questions。
 
-Live graph 应该保持小，因为它参与运行时。Trace graph 可以更丰富，因为 它是 replay artifact。这就是第 8 章的“先观察，再解释”模式在多 Agent 协作里的应用。
+## 二、Spawn 同时创建 thread、status edge 和 client event
 
-### Pending Queue 把 Race 显式化
+`spawn_agent` handler 把 lifecycle 展开得很清楚。[`spawn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/spawn.rs#L44-L196) 解析 arguments，检查 depth，发 `CollabAgentSpawnBeginEvent`，构建 child config，通过 `agent_control.spawn_agent_with_metadata()` 启动 child，发 `CollabAgentSpawnEndEvent`，记录 telemetry，并返回 model-visible result。
 
-Reducer 最难的部分不是识别 spawn 或 send。难点是排序。Parent 可能先完成 tool call，而 child 的 model-visible task item 还没出现。Child 可能在最终 assistant message 出现之前失败。Close 操作可能命名了一个从未参与 trace 的目标。Result notification 可能来自 runtime status，而不是普通 conversation content。
+Shape-level tool input：
 
-Reducer 用 pending queue 处理这些情况。只要 sender 侧证据足够，它先记录 一条待完成 edge。稍后，当匹配的 recipient-side item 被 reduce 出来时， 它再把 edge materialize 到精确的 target item。如果 target item 永远没有 出现，但 child thread 确实存在，spawn edge 可以退回到 thread target。 如果目标完全没有参与 trace，raw payload 会保留在 tool call 上，而不是 虚构一个端点。
-
-```text
-// Pseudocode - illustrative pattern.
-procedure reduce_agent_event(event):
-    if event starts_agent_tool:
-        remember_tool_runtime_payload(event)
-
-    if event ends_spawn_tool and event.created_child_thread:
-        pending = edge_from_tool_to_child_message(event)
-        queue_or_resolve(pending)
-
-    if event ends_message_tool:
-        pending = edge_from_tool_to_mailbox_message(event)
-        queue_or_resolve(pending)
-
-    if event observes_child_result:
-        pending = edge_from_child_output_to_parent_notice(event)
-        queue_or_resolve(pending)
-
-    if event reduces_conversation_item:
-        for pending_edge matching item.thread and item.content:
-            materialize_edge(pending_edge, target=item)
-
-procedure finish_replay():
-    for pending_spawn with existing_child_thread:
-        materialize_edge(pending_spawn, target=child_thread)
+```json
+{
+  "message": "Audit chapter 17 source links",
+  "agent_type": "reviewer",
+  "model": "optional override",
+  "reasoning_effort": "optional override",
+  "fork_context": false
+}
 ```
 
-这段是伪代码，不是源码。架构重点是 queue：reducer 不强行立刻创建所有 edge。它等待更好的 target 出现，只在 runtime 证据仍然证明关系真实存在时 才使用 fallback。
+Shape-level tool output：
 
-### Descendant Traversal 是策略选择
+```json
+{
+  "agent_id": "child-thread-id",
+  "nickname": "optional nickname"
+}
+```
 
-列出 descendants 听起来是机械操作，但它编码了策略。当调用方请求 open descendants 时，Codex 只沿 open edges 继续遍历。这意味着如果一个 closed child 下面还有 open grandchild，那个 grandchild 也不会被返回。Filter 不只 过滤最终结果，它还剪枝 traversal。
+Live topology 随后在 `AgentControl` 中写入。[`spawn_agent_internal()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/agent/control.rs#L195-L341) 准备 `SessionSource::SubAgent(ThreadSpawn)`，启动或 fork child thread，通知 clients thread 已创建，持久化 spawn edge，并发送 initial input。[`persist_thread_spawn_edge_for_source()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/agent/control.rs#L1157-L1179) 把 edge upsert 成 `Open`。
 
-这个行为很重要，因为“open collaboration tree”是运行时问题。如果一条 parent-child edge 已经 closed，parent 不应该意外找回这条 closed 分支下面 的工作，并把它当成仍然活跃。完整审计或 trace viewer 仍然可以在无 status filter 的情况下查看历史图；运行时协作需要更严格的解释。
+### 2.1 Forking 有 recovery boundary
 
-另一个细节是：更新缺失 child 的 status 可以是成功 no-op。这让 close 处理在 race 和局部状态下保持幂等。Close event 可以被 replay，也可以在 清理之后到达，而不会让 graph store 变成不必要错误的来源。
+当 `fork_context` 被设置时，child 不是只由抽象 prompt 创建。[`spawn_forked_thread()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/agent/control.rs#L343-L447) 会 flush parent rollout，读取 stored parent history，可选截断到 last N fork turns，移除 parent usage hints 让 child 获得 fresh hints，过滤保留哪些 rollout items，并用 `InitialHistory::Forked` 启动 forked thread。
 
-### Collaboration Events 是产品事件
+这保护两个不变量：
 
-Multi-agent 协作必须对客户端可见。否则用户无法理解 child 为什么存在、 任务为什么还在跑、result 为什么出现在 parent thread 中。因此 Codex 除了 修改 thread state，还会发出 collaboration events。这些 events 让客户端 渲染 child status、mailbox delivery、result notification 和 close operation，而不用反向解析 tool output。
+| Pressure | 会失败的简单方案 | Source mechanism | 保护的不变量 |
+| --- | --- | --- | --- |
+| child 需要 parent context | 复制 live in-memory state | fork 前 flush/read stored rollout | fork 有 durable baseline |
+| parent usage hints 与 child hints 不同 | 把 parent developer hints replay 到 child | filter configured usage hints | child prompt 匹配 child session source |
+| tool/history noise 会污染 fork | 保留每个 rollout item | `keep_forked_rollout_item()` 过滤 item kinds | child 得到 useful history，而不是 parent runtime debris |
 
-架构边界是：
+## 三、发送 work 是 mailbox delivery，不是 shared memory
 
-- runtime tools 创建或观察协作效果；
-- protocol events 把这些效果描述给客户端；
-- graph store 保存当前拓扑；
-- rollout trace 保存证据并重建语义 edges；
-- client projections 从结构化数据渲染状态和历史。
+向 agent 发送 work，会把另一个 thread 命名为参与者。[`send_input.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/send_input.rs#L28-L96) 解析 target thread ID，把 `message` 或 `items` 变成 user input，可选 interrupt receiver，发 interaction begin/end events，调用 `agent_control.send_input()`，并返回 submission ID。
 
-这避免了一个常见失败模式：parent transcript 成为协作的唯一记录。 Transcript 可能被 compact、summary 或为了人类阅读而格式化；协作需要比 自然语言更强的 identity 和 lifecycle 语义。
+Shape-level：
 
-### 失败模式
+```json
+{
+  "target": "child-thread-id",
+  "message": "Check whether this migration claim is source-backed.",
+  "interrupt": false
+}
+```
 
-Multi-agent 系统在丢失 identity 时会变得非常难解释。Thread id、agent path、tool call id、model-visible call id 和 conversation item id 服务于 不同目的。Child thread 的 nickname 是 presentation metadata，不是身份。 Tool call 证明 parent 请求了一个动作；receiver-side conversation item 证明消息在哪里进入 child。Result notification 证明结果投递给 parent， 但不一定证明 child 产生了普通 assistant message。
+返回：
 
-Trace reducer 在会污染图的地方很严格：它拒绝冲突的 pending edges、重复的 model-visible tool 关系、缺失必要 turn 的事件，以及不一致的 tool-call 配对。它也会在 runtime 合法 race 的地方保持宽容：pending queues、spawn fallback target、缺失 close target，以及在 final assistant item 不可用时 把 result edge anchor 到 child thread。
+```json
+{
+  "submission_id": "operation-id"
+}
+```
 
-设计经验是：可靠协作既不是“全部接受”，也不是“缺一个细节就失败”。它保留 证据，只在有依据时创建语义 edge，并把未解决事实附着到最近的真实对象上。
+Mailbox model 有用，是因为 sender 与 receiver 的观察可能在 raw event stream 中分离。Parent tool call 证明 parent 请求了 delivery；receiver-side model-visible message 证明 delivery 在 child 的哪里进入。这两个事实相关，但不是同一个事实。
+
+## 四、Wait 与 close 是 lifecycle operations
+
+`wait_agent` 与 `close_agent` 把 status/lifecycle boundary 显式化。
+
+[`wait_agent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/wait.rs#L49-L208) 解析 non-empty targets，clamp 正数 timeout，发 waiting begin/end events，订阅每个 child status，在至少一个 final status 到达或 timeout 时返回，并输出 map 与 `timed_out`。
+
+```json
+{
+  "status": {
+    "child-thread-id": "completed"
+  },
+  "timed_out": false
+}
+```
+
+[`close_agent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/close_agent.rs#L27-L106) 发 close begin/end events，观察 previous status，然后调用 `agent_control.close_agent()`。[`close_agent()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/agent/control.rs#L735-L748) 在 shutdown agent tree 之前，把 persisted child spawn edge 标为 `Closed`。
+
+关闭关系不是删除 history。它改变 descendants 的 operational interpretation。Graph-store tests 展示了 status-filter behavior：open descendant traversal 只沿 open edges 走，closed traversal 则沿 closed edges 走。Closed branch 可以继续被审计，但不再被当成 active runtime work。
+
+## 五、Collaboration events 是产品事件
+
+Codex 发 collaboration events，而不是让 clients 从 tool prose 反推 multi-agent state。Protocol source 定义了：
+
+| Event family | Shape owner | clients 可以渲染什么 |
+| --- | --- | --- |
+| `CollabAgentSpawnBegin/End` | [`CollabAgentSpawn*`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3695-L3761) | sender、child thread、prompt preview、model、effort、status |
+| `CollabAgentInteractionBegin/End` | [`CollabAgentInteraction*`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3763-L3799) | sender、receiver、prompt preview、receiver metadata、status |
+| `CollabWaitingBegin/End` | [`CollabWaiting*`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3801-L3829) | target set、receiver refs、status map |
+| `CollabCloseBegin/End` | [`CollabClose*`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3831-L3862) | close target、receiver metadata、previous status |
+| `CollabResumeBegin/End` | [`CollabResume*`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3864-L3900) | resume target、receiver metadata、status |
+
+这就是第 14 章的 app-server discipline 在 collaboration 上的应用。Product events 不是装饰；它们保存 identity 与 lifecycle，让 clients 可以渲染 status、subscriptions 和 history，而不用解析 free-form assistant text。
+
+## 六、Live graph 与 trace graph 回答不同问题
+
+这里有两张有用的图。
+
+Live graph 是紧凑的。它保存 parent/child spawn edges 与 open/closed status。它优化的是 runtime questions：哪些 children 存在，哪些 descendants 仍然 open，哪些 branches 应该 shutdown 或 resume，哪条 child edge 应该标 closed。
+
+Trace graph 是语义图。它在 raw protocol/runtime/tool/model events 被捕获之后构建。它优化的是 explanation：哪个 tool call 创建了 child，哪个 mailbox item 接收任务，哪个 child output 产生 parent notice，哪些 raw payloads 支撑这条 edge。
+
+混淆它们会产生设计 bug：
+
+| Confusion | Consequence |
+| --- | --- |
+| 把 live graph 当完整 trace | runtime store 膨胀进 UI/explanation policy |
+| 把 trace graph 当 runtime state | active coordination 依赖 replay artifact availability |
+| 把 transcript text 当 graph | compaction 或 formatting 会抹掉 coordination facts |
+| 把 nickname 当 identity | renamed agents 会破坏 routing 与 trace joins |
+
+## 七、Pending queue 把 races 显式化
+
+Trace reducer 对 evidence 很严格，对合法 ordering races 很宽容。[`PendingAgentInteractionEdge`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L22-L38) 保存一条正在等待 recipient-side conversation item 的 edge。它携带 edge kind、source、target thread ID、message content、可选 spawn fallback thread ID、timestamps 和 raw payload IDs。
+
+Reducer lifecycle：
+
+```text
+sender tool begin/end observed
+  -> queue pending edge with target thread and message content
+  -> receiver-side inter-agent message item is reduced
+  -> resolve pending edge to exact conversation item
+  -> if spawn target item never appears but child thread exists
+     resolve spawn to child thread fallback
+```
+
+[`queue_or_resolve_agent_interaction_edge()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L393-L438) 在已有 unlinked matching message item 时立即 resolve；遇到重复 pending observations 时，只有 endpoints 一致才 merge，否则 reject conflicting data。[`resolve_pending_agent_edges_for_item()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L372-L391) 在 matching inter-agent message item 被 reduce 时 resolve pending edge。[`resolve_pending_spawn_edge_fallbacks()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L440-L476) 只在 child thread 存在时，才把 spawn edge materialize 到 thread target。
+
+最小序列说明 queue 为什么必要：
+
+```text
+P1: parent calls spawn_agent("Audit links")
+P2: parent receives tool result with child_thread_id
+C1: child thread starts
+C2: child receives model-visible mailbox/task message
+
+If P2 is reduced before C2, the edge waits.
+If C2 appears, the target is the conversation item.
+If C2 never appears but C1 exists, spawn falls back to the child thread.
+```
+
+Reducer 也会避免 false edges。[`upsert_close_agent_interaction()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L297-L331) 不会给 absent thread 创建 close edge。[`queue_agent_result_interaction_edge()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L333-L370) 在 latest assistant item 可用时把 result delivery anchor 到该 item；如果 failed/cancelled child 没有 final assistant message，则 anchor 到 child thread。
+
+## 八、Failure modes：identity loss 会污染 coordination
+
+Multi-agent 系统在丢失 identity 时最难解释。Thread ID、agent path、nickname、tool call ID、model-visible call ID、conversation item ID、raw payload ID 服务不同目的。
+
+| Identifier | Owner | 错误用法 |
+| --- | --- | --- |
+| thread ID | runtime thread manager 与 graph store | 用 nickname 代替 |
+| agent path | user-facing agent tree reference | 假设它证明 persisted history |
+| tool call ID | parent model/tool lifecycle | 把它当 receiver message identity |
+| conversation item ID | model-visible transcript item | receiver delivery 出现前就使用 |
+| raw payload ID | trace evidence ledger | 把它渲染成 user-facing state |
+
+Reducer 的设计经验是平衡的：reject conflicting endpoints、duplicate model-visible tool relationships 和 inconsistent tool-call pairs；容忍 pending delivery、spawn fallback、missing close targets，以及没有 final assistant item 的 child results。可靠 coordination 既不是“接受每条 edge”，也不是“缺一个细节就失败”。它保留 evidence，只在有依据时 materialize semantic edges。
+
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| 问题 | 第 20 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 它可能在 parent thread、child thread、mailbox delivery、wait status observation、close operation，或连接这些事实的 trace edge 中。 |
+| 什么数据结构携带它？ | `AgentControl`、`SessionSource::SubAgent(ThreadSpawn)`、graph-store spawn edges、collaboration protocol events、tool outputs、inter-agent messages 和 rollout trace interaction edges。 |
+| 谁拥有下一步决策？ | 模型选择 collaboration tools；handlers validate 并调用 `AgentControl`；graph store 记录 live topology；clients 渲染 protocol events；reducer 稍后重建 explanatory edges。 |
+| 必须保持什么不变？ | Child agents 是有 identity 和 lifecycle 的 threads；live graph state 保持 operational；trace graph state 保持 evidentiary；result delivery 不能只依赖 transcript prose。 |
+| 这里可能怎么失败？ | depth limits、invalid targets、missing threads、timed-out waits、closed branches、child failure before final assistant output、conflicting pending edges，或 raw events 永远没有 valid target。 |
+
+</div>
+
+<div class="apply-this">
 
 ## 应用到实践
 
-1. **Thread-as-participant。** 解决 subagent 不可见的问题；把每个 agent
-   建模成有身份和生命周期的 thread；风险是把 subagent 当成匿名后台任务。
-2. **图边记录。** 解决协作 replay 问题；持久化 spawn、message、wait、
-   close、resume 关系；风险是只从终端输出推导协作状态。
-3. **有边界的委派。** 解决无限并行问题；强制 depth、ownership 和 status
-   限制；风险是让委派比认真拆任务更便宜。
-4. **结果 envelope。** 解决 child outcome 不一致问题；返回结构化 success、
-   failure、interruption summary；风险是把子任务失败压平成 prose。
-5. **父线程可见进展。** 解决隐藏工作问题；把 child event 投影成 parent
-   thread 里的 collaboration event；风险是把 child 的每个实现细节都刷到
-   parent。
+1. **把 agents 建模成 threads。** 当 sub-work 需要 lifecycle 与 replay 时使用。给每个 agent thread 明确 identity、status 与 parentage。风险：把 subagents 当成 anonymous background prompts。
+2. **分开 live topology 与 trace explanation。** 用 graph store 回答 operational open/closed descendants，用 reducer 回答 causal edges。风险：把 UI/trace policy 塞进 live store。
+3. **发 collaboration events。** 对 spawn、send、wait、close、resume 使用 typed events。风险：让 clients 从 tool output prose 反推 coordination。
+4. **跨 race queue edges。** 当 sender 和 receiver observations 可能乱序时使用 pending edges。风险：因为 best target 尚未出现就创建 false endpoints。
+5. **诚实 anchor failures。** 对真实 spawned child 但没有 message item 的情况，使用 thread fallback；无法 resolve 的 payload 留在 raw tool evidence 上。风险：为了让 graph 完整而 invent conversation items。
+
+</div>
 
 ## 收束
 
-Multi-agent Codex 仍然是 Codex：threads、turns、tools、events 和可 replay 状态。新增的是 interaction graph，它记录跨 thread 边界的信息流。第 21 章 会把同一原则推进到 cloud tasks：工作可以远程运行，但仍然必须以类型化 task state、签名身份和本地验证过的 patch 回到用户手中。
+Multi-agent Codex 仍然是 Codex：threads、turns、tools、events、persistence 和 replayable state。新增的是跨 thread boundaries 的显式 information flow。第 21 章会把同一原则推进到 cloud tasks：工作可以远程运行，但仍然必须以 typed task state、identity 和 locally verifiable changes 回到用户手中。
 
 <div class="source-equivalence">
 
@@ -149,8 +229,11 @@ Multi-agent Codex 仍然是 Codex：threads、turns、tools、events 和可 repl
 | --- | --- |
 | Graph edge status | [`codex-rs/agent-graph-store/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/types.rs#L7) |
 | Local graph store | [`codex-rs/agent-graph-store/src/local.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-graph-store/src/local.rs#L13) |
-| Agent trace reducer | [`codex-rs/rollout-trace/src/reducer/tool/agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L62) |
+| Agent control lifecycle | [`codex-rs/core/src/agent/control.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/agent/control.rs#L129) |
 | Session multi-agent integration | [`codex-rs/core/src/session/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/multi_agents.rs#L6) |
 | Multi-agent tool handlers | [`codex-rs/core/src/tools/handlers/multi_agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents.rs#L40) |
+| Spawn/send/wait/close handlers | [`spawn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/spawn.rs#L44), [`send_input.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/send_input.rs#L28), [`wait.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/wait.rs#L49), [`close_agent.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/close_agent.rs#L27) |
+| Collaboration event protocol | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3695) |
+| Agent trace reducer | [`codex-rs/rollout-trace/src/reducer/tool/agents.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/reducer/tool/agents.rs#L62) |
 
 </div>

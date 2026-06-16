@@ -1,118 +1,174 @@
 
 # 第 17 章：MCP：没有运行时耦合的外部工具
 
-> **阅读契约：** 用本章画出 MCP trust plane。跟住 server provenance、tool discovery、routing，以及外部工具如何留在受控边界之后。
+> **阅读契约：** 本章回答一个问题：外部 MCP server 如何进入 Codex turn，却不变成 Codex runtime 的一部分？阅读时跟住四个 owner：server configuration、connection lifecycle、model-visible tool shape、provenance-based routing。读完后，应该能解释为什么模型看到的是整理后的 tool name，而执行仍然使用 raw server/tool pair。
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/mcp-trust-plane.webp" alt="MCP 信任平面：分开 server provenance、清洗后的 tool name、discovery、routing、elicitation 与结构化 observation" loading="eager" decoding="async" />
   <figcaption>MCP 通过区分 server provenance、transport、discovery、normalized specs 和 routing 来扩展能力，而不缠住 runtime。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、schemas、request shapes、event shapes 时，才把说法视为 **verified source**。把 MCP 读成 trust plane，是从这些可见 owner 得出的 **surrounding contract inference**。本章不声称知道 provider internals 或 hosted-app 的私有策略。
 
-第 16 章把终端 UI 看成共享 runtime contract 上的 inline client，说明客户端可以观察和驱动线程，却不拥有 runtime。本章继续向外走一步：如果客户端可以不接管 runtime 就参与工作，外部工具也必须能进入一次 turn，而不是变成 runtime 的一部分。
+第 16 章把终端 UI 看成共享 runtime contract 上的 client。本章继续向外走一步：如果 client 可以观察和驱动 thread，却不拥有 runtime，那么外部工具也必须能参与一次 turn，而不是变成可信 runtime code。
 
 <div class="chapter-lede">
-  <p><strong>你在这里：</strong>clients 已经能通过类型化 events 观察和操控 threads。</p>
-  <p><strong>问题：</strong>外部工具需要暴露给模型，但 transport、authentication、命名和失败语义不能泄漏进核心 turn loop。</p>
-  <p><strong>心智模型：</strong>MCP 是 runtime tool protocol：Codex 通过 clients 发现工具，把安全整理后的 tool shape 暴露给模型，再用 provenance 把调用路由回去。</p>
+  <p><strong>你在这里：</strong>clients 已经通过 typed events 观察 threads，并通过受控 requests 把 decisions 送回 runtime。</p>
+  <p><strong>问题：</strong>外部工具需要暴露给模型，但 server transport、authentication、命名和失败语义不能泄漏进核心 turn loop。</p>
+  <p><strong>心智模型：</strong>MCP 是四阶段边界：定义 effective servers，启动 clients，暴露 normalized tool specs，再按保存的 provenance 路由调用。</p>
 </div>
 
-把 MCP 说成“更多工具”很容易误导。内置 shell tool 的 handler 在 runtime 内部，系统知道它怎么执行。MCP tool 则来自一个 server；这个 server 可能通过 stdio、HTTP、executor-backed process 或 in-process adapter 运行。模型不该关心这些差异，runtime 也不能把外部 server 当成可信内部代码。
+把 MCP 说成“更多工具”会抹掉关键结构。内置 shell tool 的 handler 在 Codex 内部；MCP tool 来自某个 server，可能通过 stdio、HTTP、executor-backed process 或 in-process adapter 运行。模型不该选择这些 transport，turn loop 也不该把外部 server 当作编译进 runtime 的代码。
 
-因此 MCP 边界被分成多层。低层 MCP client 负责 transports 和 OAuth。面向 Codex 的 MCP 层把 configured servers 和 built-ins 变成 effective server definitions，管理启动、缓存 listing、整理名称，并记录 provenance。Core session 只消费 model-visible tool specs；当模型真的调用工具时，runtime 再根据 provenance 路由到正确 server。
+因此，一个看似简单的 capability 被拆成几种 owner：
 
+| Layer | Owner | 必须稳定的内容 |
+| --- | --- | --- |
+| Server configuration | `codex-mcp` config 与 effective server merge | transport、OAuth state、sandbox policy、built-ins、plugin attribution |
+| Connection lifecycle | `McpConnectionManager` | startup status、managed clients、cancellation、elicitation state |
+| Model-visible projection | tool normalization 与 core exposure | safe names、deduplicated namespaces、direct/deferred tool lists |
+| Execution routing | `ToolInfo` 里的 provenance | raw server name、raw tool name、shaped observation、error boundary |
 
-## MCP 创造的边界
+不变量很简单：Codex 可以给模型看一个整理后的 function，但 model-visible string 永远不能变成路由权威。
+
+## 一、MCP 创造 provenance boundary
 
 MCP 有三种身份，不能混为一谈。
 
 | 身份 | 谁使用 | 为什么存在 |
 | --- | --- | --- |
 | Raw server identity | MCP client 和 connection manager | 让真实 server、transport 和 tool namespace 可寻址。 |
-| Model-visible name | 模型 prompt 和 tool schema | 给模型一个安全、规范化的标识符。 |
-| Provenance record | Runtime router 和审计路径 | 把模型可见调用映射回所属 server 与 raw tool。 |
+| Model-visible name | model prompt 和 tool schema | 给模型一个适合 tool-call naming limits 的安全标识。 |
+| Provenance record | runtime router 和 audit trail | 把模型可见调用映射回所属 server 与 raw tool。 |
 
-这个拆分不是样式问题。外部 server 可以选择会冲突的名字，也可能使用不适合模型 tool calling 的字符；它暴露的工具来源还会影响审批、沙箱和用户解释。Codex 因而把命名视为适配步骤，而不是直接复制 server 字符串。
+这个拆分不是样式问题。外部 server 可以选择会冲突的名字，也可以使用不适合 tool calling 的字符；工具来源还会影响审批、沙箱和用户解释。Codex 因而把命名视为 adaptation step。
 
-这张图说明 MCP 为什么是协议边界，而不是直接的 function registry。Discovery、naming 和 routing 是三个不同动作。
+源码里有两个明显边界。[`McpConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/mcp/mod.rs#L96-L141) 保存长期 MCP runtime settings，例如 OAuth state location、approval policy、sandbox executable、configured servers、built-ins 和 plugin capability summaries。[`ToolInfo`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L28-L48) 同时保留两侧名称：`server_name` 与 raw `tool` 用于协议调用，`callable_namespace` 与 `callable_name` 用于 model-facing declaration。
 
-### Inbound MCP Stack
+Shape-level 上，一个被发现的 tool 像这样：
 
-Inbound MCP 指 Codex 消费 MCP servers 提供的工具。低层 client 负责 transport：启动本地 stdio process、通过 HTTP 通信、适配 executor-backed process、使用 in-process server，以及处理 OAuth-aware HTTP flow。对 runtime 的其他部分来说，这一层应该足够无聊：它提供 client behavior，但不决定哪些工具进入模型请求。
-
-Codex MCP orchestration 层在它上面。它规范化 configured servers 与 built-ins，异步启动 clients，记录 startup status，列出 tools 和 resources，路由 tool calls，并处理 elicitation。Elicitation 是 MCP server 在操作过程中请求更多用户或客户端输入。架构上它是 bidirectional runtime request，不是隐藏的 prompt injection。
-
-启动过程有意偏向 cache-oriented。Tool listing 可能昂贵，也可能临时不可用；客户端界面应该能展示进度，同时普通工作继续进行。可选 server 启动失败不应让整个 runtime 崩掉，而应表现为 status、warnings 或缺失工具。
-
-### Tool Discovery 与 Routing
-
-Discovery 产出 model-facing tool specs，但 execution 使用 provenance。可以用这个心智模型理解：
-
-```text
-// Pseudocode - illustrative pattern.
-for each effective_server:
-    client = start_or_reuse_client(effective_server)
-    listing = client.list_tools_from_cache_or_server()
-
-    for each raw_tool in listing:
-        public_name = sanitize(raw_tool.name, effective_server.identity)
-        provenance = remember(effective_server.identity, raw_tool.name)
-        expose_tool(public_name, raw_tool.schema, provenance)
-
-when model_calls(public_name, arguments):
-    provenance = lookup(public_name)
-    client = client_for(provenance.server_identity)
-    result = client.call_tool(provenance.raw_tool_name, arguments)
-    return shape_observation(result)
+```json
+{
+  "server_name": "github",
+  "tool": {
+    "name": "create_pull_request",
+    "input_schema": { "type": "object" }
+  },
+  "callable_namespace": "GitHub",
+  "callable_name": "create_pull_request",
+  "connector_id": "github"
+}
 ```
 
-这段是泛化 pseudocode，刻意不复刻源码。真正的不变量是：模型永远不是“哪个 server 接收调用”的权威；runtime 根据 discovery 时创建的 provenance table 解析路由。
+Normalization 之后，模型看到的 `callable_namespace` / `callable_name` 可能更短，也可能带 hash suffix，尤其是在 raw identities 冲突或超过 API 长度限制时。raw `tool.name` 仍然保留给执行路径。[`normalize_tools_for_model()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L133-L228) 是这个拆分的 verified source：它清洗 model-visible parts，必要时添加 hash suffix，按 raw identity 排序，并写入最终 callable fields，同时不丢弃 raw metadata。
 
-### Hosted App Tools
+### 1.1 Discovery 不是 dispatch
 
-Hosted app tools 在暴露给模型之后看起来类似 MCP tools，但它们的事实来源不同。它们依赖 hosted metadata、connector names、app IDs、accessible tool information 和 account authentication。因此它们需要独立的 trust 与 cache path。一个工具可以“出现在目录里”，但当前 account 没有权限；它也可能需要 auth refresh 或 elicitation 后才能调用。
-
-从书中的架构层面看，关键是让“MCP tool”和“hosted app tool”只在 model-facing tool boundary 汇合。证明 origin 与 access 的 metadata 仍留在边界后方，不被抹平。
-
-### Resources 与 Templates
-
-MCP servers 不只暴露 tools，还可以暴露 resources 和 resource templates。Codex 把它们视为有独立 routing 的 read/list operations，而不是默认变成 model-visible functions。这个区别很重要：resource 可能成为 context，tool 可能产生 side effect，template 可能代表参数化读取。它们的权限和展示语义并不相同。
-
-因此 connection manager 服务多类请求：列出 servers、列出 tools、调用 tool、读取 resource、列出 templates、处理 elicitation，以及报告 authentication status。它们共享 clients 与 provenance，但用户语义不一样。
-
-### Outbound Codex as an MCP Server
-
-Codex 也有 outbound 方向：把 Codex 自己暴露成 MCP server。听起来像对称能力，但它有意更窄。Inbound MCP 让 Codex 消费广泛外部工具生态；outbound MCP 让外部 MCP client 请求 Codex start 或 resume work，并以 notifications 接收 Codex events。
-
-这种窄边界是正确倾向。成熟 runtime 已经有自己的 thread、turn、approval、event 和 rollout contracts。如果把所有概念都作为任意 MCP capability 导出，产品边界会变模糊。更有用的桥接，是把少量外部 tool calls 映射到 thread-manager operations，并流式返回可观察 events。
+Discovery 产出 model-facing catalog；dispatch 使用保存的 origin。生命周期是：
 
 ```text
-// Pseudocode - illustrative pattern.
-when external_mcp_client_calls("start_work", input):
-    thread = thread_manager.start_thread(input)
-    subscribe_to_events(thread.id)
-    return accepted(thread.id)
-
-for each event in subscribed_thread:
-    notify_external_client(convert_event(event))
+effective server
+  -> managed MCP client
+  -> listed raw tools
+  -> normalized ToolInfo records
+  -> model-visible tool declarations
+  -> tool call resolved back to (server, raw tool)
+  -> structured CallToolResult returned to Codex
 ```
 
-这是桥接，不是第二套 runtime。
+[`McpConnectionManager::list_all_tools()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L366-L377) 从 managed clients 聚合 listed tools，并在 manager return boundary 做 normalization。[`McpConnectionManager::call_tool()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L566-L601) 分别接收 `server` 和 `tool`，检查 per-server tool filter，调用 raw MCP tool name，并把 MCP content 转成 Codex protocol 的 `CallToolResult`。
 
-### Failure Semantics
+这防止了一个常见 bug：靠解析 public tool name 重建 provenance。像 `github__create_pull_request` 这样的名称对模型有用，但真实 route 是保存下来的 server/tool pair。
 
-MCP failure 首先是 extension failure，然后才可能影响 agent。Server 可能启动失败，OAuth token 可能过期，tool listing 可能超时，resource read 可能被拒绝，elicitation 也可能被取消。Runtime 应保留这些差异，因为它们对应不同恢复路径。
+### 1.2 Direct/deferred exposure 保护 context
 
-| Failure | Runtime meaning | User-visible recovery |
-| --- | --- | --- |
-| Startup failure | server 没有成为可用 capability | 展示 status，并在没有这些工具的情况下继续 |
-| Listing failure | server 存在，但 tools 未知或过期 | retry、refresh，或在有效时使用 cache |
-| OAuth failure | account access 缺失或过期 | 请求 auth flow，或标记 tools unavailable |
-| Tool call failure | 已选择的 tool 拒绝或执行失败 | 返回结构化 observation |
-| Elicitation cancelled | 必需外部输入未提供 | 停止该 operation，不编造数据 |
+Tool discovery 可能生成太多 declarations，无法全部塞进一次 prompt。Codex 因而把完整 MCP catalog 与直接进入模型请求的集合分开。[`build_mcp_tool_exposure()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/mcp_tool_exposure.rs#L18-L59) 返回 `direct_tools` 和可选 `deferred_tools`。Direct set 可以让 explicitly enabled hosted app tools 保持可见，而更大的 MCP catalog 留在 search/deferred loading 后面。
 
-这些区别防止 MCP 变成 runtime entanglement。Turn loop 看到 tools 与 observations；MCP orchestration 拥有 server lifecycle。
+| Pressure | 会失败的简单方案 | Codex 机制 | 保护的不变量 |
+| --- | --- | --- | --- |
+| discovered tools 太多 | 每次请求 dump 所有 schema | direct/deferred exposure | prompt budget 与 stable tool surface |
+| hosted app access 随 account 变化 | 暴露所有 directory tools | 按 connector IDs 和 app-tool enablement 过滤 | 只有 accessible hosted tools 成为 direct tools |
+| tool names 冲突 | 信任 raw names | sanitize 并 hash callable parts | model-visible names 保持唯一 |
+| execution 需要 raw metadata | 用 public names 覆盖 raw names | 保留 `ToolInfo.tool.name` 和 `server_name` | dispatch 保留 provenance |
+
+所以 MCP discovery 是 runtime projection，不是 registry mutation。完整 capability set 可以存在边界之后，只有安全子集进入 model-visible view。
+
+## 二、Server lifecycle 留在边界后方
+
+Connection manager 不只是 function map。源码注释说明它拥有 running clients、startup status events、server origin metadata、aggregated tools/resources/templates、tool routing，以及 core 使用的 public manager API。[`McpConnectionManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L71-L78) 的字段也对应这个说法：managed clients、server metadata、hosted app enablement、elicitation requests、startup cancellation token。
+
+Startup 设计成报告 status，而不是无限阻塞整个 runtime。在 [`McpConnectionManager::new()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L168-L317) 里，每个 enabled server 先发 `Starting`，然后变成 `Ready`、`Cancelled` 或 `Failed`，最后汇总到 startup-complete summary。Required server 的失败可以通过 [`required_startup_failures()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L341-L364) 查询。
+
+这个 lifecycle 保护 availability invariant：
+
+```text
+optional server fails
+  -> startup status records failure
+  -> unavailable tools are absent or stale
+  -> ordinary turn processing can continue
+
+required server fails
+  -> required_startup_failures reports a concrete blocker
+  -> caller can stop or ask the user to fix auth/config
+```
+
+### 2.1 Elicitation 是 runtime request，不是隐藏 prompt text
+
+有些 MCP operation 需要更多用户或客户端输入。Connection manager 持有 `ElicitationRequestManager`，允许调用方更新 approval policy 和 permission profile，并暴露 [`resolve_elicitation()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L319-L328)。这让 elicitation 成为结构化 runtime path，而不是让外部 server 静默编造缺失用户决定或把指令塞进 model prompt。
+
+### 2.2 Resources 与 templates 保持 read/list operations
+
+MCP servers 可以暴露 resources 和 resource templates，不只是 tools。Codex 把这些 request families 分开。[`list_all_resources()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L430-L494) 与 [`list_all_resource_templates()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L496-L563) 按 server 聚合，并在单个 server 失败时 warning。Per-server [`read_resource()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L646-L661) 在 error context 里保留 server name。
+
+这个区别很重要：resource 可能成为 context，tool 可能产生 side effect，template 可能代表参数化读取。共享 clients 可以；共享语义就是边界错误。
+
+## 三、Hosted app tools 只在后段汇合
+
+Hosted app tools 暴露给模型后看起来像 MCP tools，但 source of truth 不同。它们依赖 connector IDs、directory metadata、account access 和 hosted app enablement。Core exposure 让这种后段汇合可见：hosted app MCP tools 必须经过 connectors list 和 `codex_app_tool_is_enabled()` 过滤后，才能成为 direct tools。
+
+安全规则是：
+
+```text
+MCP server tool       -> server provenance proves where to call
+hosted app tool      -> connector/access metadata proves whether to expose
+model-visible tool   -> one tool boundary, after the previous checks
+```
+
+一个 hosted app 可以出现在 directory 里，但当前 account 不能用。一个 MCP server 可以被配置，但 startup 失败。两种情况都应该以 capability state 呈现给 clients，而不是藏成模型困惑。
+
+## 四、Outbound Codex MCP 是 bridge，不是第二套 runtime
+
+Codex 也有 outbound 方向：把 Codex 自己暴露成 MCP server。源码显示这个 surface 很窄。[`MessageProcessor::new()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L53-L86) 创建带 `SessionSource::Mcp` 的 `ThreadManager`。[`handle_list_tools()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L318-L334) 只暴露 `codex` 和 `codex-reply` 两个工具。[`handle_call_tool()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L336-L358) 也只 dispatch 这些名字，对 unknown tools 返回 error。
+
+Shape-level 上，outbound bridge 像这样：
+
+```json
+{
+  "tools/list": ["codex", "codex-reply"],
+  "tools/call": {
+    "codex": "start a Codex session from validated arguments",
+    "codex-reply": "send a reply to an existing thread_id"
+  },
+  "notifications/cancelled": "submit Interrupt to the mapped Codex thread"
+}
+```
+
+这不是 inbound MCP 的对称镜像。Inbound MCP 让 Codex 消费外部工具生态；outbound MCP 让外部 MCP client 通过窄 tool surface 启动或继续 Codex work 并接收结果。把 thread、turn、approval、rollout 等所有 native 概念都导出成任意 MCP capabilities，会模糊产品契约。
+
+## 五、Failure conditions 定义边界
+
+MCP failure 首先是 extension failure，然后才可能是 agent failure。保留 failure category，调用方才知道如何恢复。
+
+| Failure | Verified source surface | Runtime meaning | Recovery |
+| --- | --- | --- | --- |
+| startup timeout/auth error | startup status 与 `mcp_init_error_display()` | server 未成为 available | 展示 config/auth guidance；required 时阻塞 |
+| disabled tool | `ToolFilter::allows()` 与 `call_tool()` check | tool 存在但不允许用于这个 server | 不 dispatch，返回结构化 error |
+| stale hosted app cache | app-tool cache refresh path | catalog 可能旧，server health 未证明 | hard refresh 或标记 capability stale |
+| resource pagination failure | per-server resource aggregation warning | 某个 server 的 read/list family 失败 | 保留其他 servers 的 resources |
+| elicitation cancelled | elicitation manager resolution path | 必要 input 未提供 | 停止该 operation，不编造数据 |
+| unknown outbound tool | outbound `handle_call_tool()` | 外部 client 请求了非契约 operation | 返回 MCP tool error |
+
+这张 failure table 也是 trust table。任何无法由 config、connection status、connector access 或 provenance 证明的东西，都不该提升为 model-visible capability。
 
 <div class="trace-ledger">
 
@@ -120,10 +176,11 @@ MCP failure 首先是 extension failure，然后才可能影响 agent。Server �
 
 | 问题 | 第 17 章答案 |
 | --- | --- |
-| 用户请求现在在哪里？ | 它可以通过 sanitized model-visible tool calls 到达外部 tool servers。 |
-| 什么数据结构携带它？ | Effective server definitions、managed MCP clients、tool listings、provenance records 和 shaped tool observations。 |
-| 谁拥有下一步决策？ | 模型选择 visible tool，但 runtime 根据 provenance 路由，由 MCP server 执行 operation。 |
-| 这里可能怎么失败？ | startup、listing、OAuth、elicitation、resource access、name collision、stale cache 或 tool-call failure。 |
+| 用户请求现在在哪里？ | 它可以从 model-visible tool boundary 进入外部 MCP server，也可以从外部 MCP client 进入窄 Codex MCP bridge。 |
+| 什么数据结构携带它？ | `McpConfig`、effective server metadata、managed clients、`ToolInfo`、direct/deferred exposure、raw `(server, tool)` routing、resource/template requests 和 `CallToolResult`。 |
+| 谁拥有下一步决策？ | 模型选择 visible tool；Codex 解析 provenance 和 policy；MCP server 执行 operation；Codex shaping observation。 |
+| 必须保持什么不变？ | Model-visible names 可以被重写，但 raw server/tool provenance、account access、approval policy 和 error category 必须保持完整。 |
+| 这里可能怎么失败？ | startup、OAuth、listing、stale cache、disabled tools、name collision、resource access、elicitation、unknown outbound tools 或 tool-call failure。 |
 
 </div>
 
@@ -131,17 +188,17 @@ MCP failure 首先是 extension failure，然后才可能影响 agent。Server �
 
 ## 应用到实践
 
-1. **身份拆分。** 解决外部工具命名混乱 -> 分开 raw server identity、模型可见名称和 provenance record -> 风险：把模型可见字符串当成路由权威。
-2. **按 provenance 路由。** 解决跨远端 server 的不安全 dispatch -> 根据保存的来源元数据路由调用 -> 风险：靠解析工具名重建来源。
-3. **缓存只是可用性提示。** 解决启动慢或不稳定 -> 用缓存解释 capability 状态 -> 风险：把缓存当成 server 健康证明。
-4. **显式 elicitation。** 解决外部工具需要用户输入 -> 把 OAuth 和 elicitation 建模成 runtime request -> 风险：让 server 代替用户编造决策。
-5. **窄 outbound bridge。** 解决把 Codex 暴露给 MCP client -> 只发布跨协议有意义的操作 -> 风险：把整个 native runtime 镜像成远端 API。
+1. **先拆 identity，再 dispatch。** 当外部工具可能重名或改名时使用。分开 raw server identity、raw tool name、model-visible name 和 provenance。风险：解析 public tool name 来决定 route。
+2. **把 discovery 当 projection。** 当 catalog 大到不能塞进一次 prompt 时使用。先形成完整 capability catalog，再选择 direct 或 deferred exposure。风险：把“known”等同于“已进入当前 model request”。
+3. **让 server lifecycle 可观察。** 当 optional extensions 可能失败时使用。分别发 startup status 和 required-server failures。风险：让一个不稳定 optional server 拖垮 runtime。
+4. **分开 read 与 side effect。** 当 protocol 同时有 tools、resources 和 templates 时使用。共享 clients，不共享语义。风险：把每个 resource 都变成 callable function。
+5. **窄化 outbound bridge。** 当另一个 protocol 想驱动 Codex 时使用。只映射 start/reply/cancel 这类稳定 operations。风险：把整个 native runtime 镜像成 MCP tools。
 
 </div>
 
 ## 接下来
 
-MCP 是一个 extension plane，但不是唯一的 extension plane。第 18 章会把视角扩大到 skills、plugins、connectors 和 typed in-process extensions：这些 packaging 与 instruction 层决定 MCP routing 开始之前有哪些 capability 存在。
+MCP 是一个 extension plane，但不是唯一的 extension plane。第 18 章上移一层，讨论 MCP routing 开始之前，skills、plugin contributions、connectors 和 typed prompt fragments 如何先决定 capability 是否存在。
 
 <div class="source-equivalence">
 
@@ -151,8 +208,9 @@ MCP 是一个 extension plane，但不是唯一的 extension plane。第 18 章�
 | --- | --- |
 | MCP configuration | [`codex-rs/codex-mcp/src/mcp/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/mcp/mod.rs#L106) |
 | Connection manager | [`codex-rs/codex-mcp/src/connection_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L72) |
-| MCP tool info | [`codex-rs/codex-mcp/src/tools.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L29) |
-| Core tool exposure | [`codex-rs/core/src/mcp_tool_exposure.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/mcp_tool_exposure.rs#L18) |
+| Tool metadata and normalization | [`codex-rs/codex-mcp/src/tools.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/tools.rs#L29) |
+| Core direct/deferred tool exposure | [`codex-rs/core/src/mcp_tool_exposure.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/mcp_tool_exposure.rs#L18) |
+| Resource and template routing | [`codex-rs/codex-mcp/src/connection_manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L430) |
 | Outbound Codex MCP server | [`codex-rs/mcp-server/src/message_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/mcp-server/src/message_processor.rs#L53) |
 
 </div>
