@@ -12,6 +12,7 @@
     "check:leetcode-math": "node scripts/check-leetcode-math.mjs",
     "check:leetcode-series": "node scripts/audit-leetcode-series.mjs",
     "check:leetcode-study-coverage": "node scripts/check-leetcode-study-coverage.mjs",
+    "check:sandbox-article": "node scripts/check-sandbox-article.mjs",
     "check:dist": "bash scripts/check-dist.sh",
     "package:leetcode-extension": "node scripts/package-leetcode-extension.mjs",
     "sync:leetcode-related": "node scripts/sync-leetcode-related.mjs",
@@ -24,7 +25,7 @@
     "sync:leetcode-contest-ratings": "node scripts/sync-leetcode-contest-ratings.mjs",
     "sync:leetcode-lingshen": "node scripts/sync-leetcode-lingshen.mjs",
     "sync:leetcode-implementations": "node scripts/sync-leetcode-implementations.mjs",
-    "verify": "npm run check:content && npm run check:visual-spec && npm run check:leetcode-series && npm run check:leetcode-math && npm run check:leetcode-implementations && npm run build && npm run check:dist"
+    "verify": "npm run check:content && npm run check:visual-spec && npm run check:sandbox-article && npm run check:leetcode-series && npm run check:leetcode-math && npm run check:leetcode-implementations && npm run build && npm run check:dist"
   },
   "devDependencies": {
     "@astrojs/mdx": "^4.3.14",

@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sandbox 不是一个开关：AI Agent 如何获得可执行的边界</title>
+  <meta name="description" content="从 Codex、Claude Code、OpenClaw、Hermes Agent 到 bubblewrap、nsjail、gVisor、Kata、Firecracker、E2B、OpenSandbox、CubeSandbox、Daytona 和 Microsandbox，系统拆解 AI Agent sandbox 的技术边界、流行度排名、能力排名和选型方法。">
+  <link rel="canonical" href="https://www.wineandchord.com/books/sandbox/">
+  <meta property="og:title" content="Sandbox 不是一个开关：AI Agent 如何获得可执行的边界">
+  <meta property="og:description" content="系统拆解 AI Agent sandbox 的四平面模型、Linux 原语、容器隔离阶梯、microVM、托管 AI sandbox 平台、流行度排名和能力排序。">
+  <meta property="og:url" content="https://www.wineandchord.com/books/sandbox/">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-cover-20260616.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  <style>
+    :root {
+      --font-book: "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+      --font-code: Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+      --bg: #f7f8f4;
+      --paper: #fffffb;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --blue: #0f4c81;
+      --green: #1f7a4d;
+      --amber: #b7791f;
+      --red: #9b2c2c;
+      --code-bg: #f3f6f8;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-book);
+      line-height: 1.78;
+      text-rendering: optimizeLegibility;
+    }
+    .page-shell {
+      width: min(100%, 1440px);
+      margin: 0 auto;
+      padding: 46px 22px 88px;
+      display: grid;
+      grid-template-columns: minmax(0, 310px) minmax(0, 1040px);
+      gap: 28px;
+      align-items: start;
+    }
+    main { min-width: 0; }
+    .toc-panel {
+      position: sticky;
+      top: 22px;
+      max-height: calc(100vh - 44px);
+      overflow: auto;
+      padding: 16px 10px;
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 8px;
+      background: rgba(255, 255, 251, 0.92);
+      box-shadow: 0 12px 34px rgba(16, 42, 67, 0.07);
+    }
+    .toc-title {
+      margin: 0 0 10px;
+      padding: 0 8px 10px;
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+      color: #102a43;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .toc-list,
+    .toc-sublist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-sublist { margin: 3px 0 5px; }
+    .toc-list li { margin: 0; font-size: 14px; }
+    .toc-link {
+      display: block;
+      position: relative;
+      border-radius: 7px;
+      padding: 6px 8px;
+      color: var(--muted);
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .toc-link:hover,
+    .toc-link.active {
+      background: rgba(31, 122, 77, 0.11);
+      color: #14532d;
+    }
+    .toc-level-2 {
+      margin-top: 11px;
+      padding: 8px 10px;
+      color: #102a43;
+      background: rgba(15, 76, 129, 0.055);
+      border-left: 3px solid rgba(15, 76, 129, 0.55);
+      font-weight: 700;
+    }
+    .toc-level-3 {
+      margin-left: 10px;
+      padding: 5px 8px 5px 18px;
+      font-size: 13px;
+    }
+    .toc-level-3::before {
+      content: "";
+      position: absolute;
+      top: 0.95em;
+      left: 6px;
+      width: 7px;
+      border-top: 1px solid rgba(82, 96, 109, 0.32);
+    }
+    article {
+      background: var(--paper);
+      border: 1px solid rgba(15, 76, 129, 0.12);
+      border-radius: 8px;
+      padding: clamp(24px, 4vw, 58px);
+      box-shadow: 0 14px 40px rgba(16, 42, 67, 0.08);
+    }
+    h1, h2, h3, h4 {
+      line-height: 1.28;
+      color: #102a43;
+      letter-spacing: 0;
+      scroll-margin-top: 24px;
+    }
+    h1 {
+      margin: 0 0 20px;
+      font-size: clamp(26px, 3vw, 38px);
+      max-width: 920px;
+    }
+    h2 {
+      margin: 86px 0 26px;
+      padding: 22px 0 12px;
+      font-size: clamp(25px, 2.7vw, 32px);
+      border-top: 3px solid rgba(15, 76, 129, 0.22);
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+    }
+    h3 {
+      margin: 46px 0 14px;
+      padding-left: 14px;
+      font-size: clamp(19px, 2vw, 23px);
+      border-left: 4px solid var(--green);
+    }
+    h4 {
+      margin: 30px 0 10px;
+      padding-left: 12px;
+      color: #243b53;
+      font-size: clamp(16px, 1.6vw, 18px);
+      border-left: 2px solid rgba(15, 76, 129, 0.35);
+    }
+    p, li { font-size: 18px; overflow-wrap: break-word; }
+    p { margin: 18px 0; }
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.14em;
+    }
+    strong { color: #102a43; }
+    .dek {
+      max-width: 920px;
+      color: #334e68;
+      font-size: clamp(18px, 2vw, 22px);
+      line-height: 1.66;
+    }
+    .meta-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 28px;
+      color: #66788a;
+      font-size: 14px;
+    }
+    .meta-line span {
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #f8fbfb;
+    }
+    figure {
+      margin: 34px 0;
+    }
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid rgba(16, 42, 67, 0.08);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 12px 32px rgba(16, 42, 67, 0.08);
+    }
+    figcaption {
+      margin: 10px 4px 0;
+      color: #66788a;
+      font-size: 14px;
+      line-height: 1.58;
+    }
+    code, kbd {
+      font-family: var(--font-code);
+      font-size: 0.9em;
+      color: var(--red);
+      background: rgba(155, 44, 44, 0.08);
+      border-radius: 5px;
+      padding: 0.12em 0.32em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 22px 0;
+      padding: 18px 20px;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.62;
+    }
+    pre code {
+      padding: 0;
+      color: #243b53;
+      background: transparent;
+      border-radius: 0;
+      font-size: 15px;
+    }
+    blockquote {
+      margin: 26px 0;
+      padding: 16px 20px;
+      border-left: 4px solid var(--amber);
+      background: #fff8e8;
+      color: #3b4856;
+    }
+    blockquote p { margin: 0; }
+    ul, ol { padding-left: 1.35em; }
+    li + li { margin-top: 8px; }
+    .callout {
+      margin: 26px 0;
+      padding: 18px 20px;
+      border: 1px solid rgba(31, 122, 77, 0.2);
+      border-left: 5px solid var(--green);
+      border-radius: 8px;
+      background: #f4fbf7;
+    }
+    .callout.warning {
+      border-color: rgba(155, 44, 44, 0.22);
+      border-left-color: var(--red);
+      background: #fff5f5;
+    }
+    .callout p:first-child { margin-top: 0; }
+    .callout p:last-child { margin-bottom: 0; }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 24px 0 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    table {
+      width: 100%;
+      min-width: 820px;
+      border-collapse: collapse;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: #102a43;
+      background: #eef5f5;
+      font-weight: 700;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .rank {
+      display: inline-flex;
+      min-width: 28px;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 1px 8px;
+      color: #fff;
+      background: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .small-note {
+      color: #66788a;
+      font-size: 14px;
+    }
+    .source-list li {
+      font-size: 16px;
+      line-height: 1.62;
+    }
+    .math {
+      font-size: 1.04em;
+      white-space: nowrap;
+    }
+    .back-home {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #52606d;
+      font-size: 14px;
+      text-decoration: none;
+    }
+    .back-home:hover { color: var(--blue); }
+    @media (max-width: 1080px) {
+      .page-shell {
+        display: block;
+        padding: 24px 14px 72px;
+      }
+      .toc-panel {
+        position: static;
+        max-height: none;
+        margin-bottom: 18px;
+      }
+      article { padding: clamp(20px, 5vw, 34px); }
+      p, li { font-size: 17px; }
+      table { min-width: 760px; }
+    }
+    @media (max-width: 640px) {
+      h2 { margin-top: 66px; }
+      .toc-panel { display: none; }
+      p, li { font-size: 16.5px; }
+      figcaption { font-size: 13px; }
+      .meta-line span { font-size: 13px; }
+      .table-wrap {
+        overflow-x: visible;
+        border: 0;
+        background: transparent;
+      }
+      table {
+        min-width: 0;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+        font-size: 14px;
+      }
+      thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+      tr {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        overflow: hidden;
+      }
+      td {
+        display: grid;
+        grid-template-columns: minmax(108px, 34%) minmax(0, 1fr);
+        gap: 12px;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(217, 226, 236, 0.8);
+      }
+      td:last-child { border-bottom: 0; }
+      td::before {
+        content: attr(data-label);
+        color: #52606d;
+        font-weight: 700;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="toc-panel" aria-label="文章目录">
+      <p class="toc-title">目录</p>
+      <ol class="toc-list">
+        <li><a class="toc-link toc-level-2" href="#definition">1. 先把 sandbox 说清楚</a></li>
+        <li>
+          <a class="toc-link toc-level-2" href="#four-planes">2. 四平面模型</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#plane-policy">Policy Plane</a></li>
+            <li><a class="toc-link toc-level-3" href="#plane-projection">Projection Plane</a></li>
+            <li><a class="toc-link toc-level-3" href="#plane-boundary">Execution Boundary</a></li>
+            <li><a class="toc-link toc-level-3" href="#plane-lifecycle">Lifecycle Plane</a></li>
+          </ol>
+        </li>
+        <li>
+          <a class="toc-link toc-level-2" href="#agents">3. 四个 Agent 主线</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#codex">Codex</a></li>
+            <li><a class="toc-link toc-level-3" href="#claude">Claude Code</a></li>
+            <li><a class="toc-link toc-level-3" href="#openclaw">OpenClaw</a></li>
+            <li><a class="toc-link toc-level-3" href="#hermes">Hermes Agent</a></li>
+          </ol>
+        </li>
+        <li>
+          <a class="toc-link toc-level-2" href="#linux-tools">4. Linux 本地沙箱</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#bubblewrap">bubblewrap</a></li>
+            <li><a class="toc-link toc-level-3" href="#firejail">Firejail</a></li>
+            <li><a class="toc-link toc-level-3" href="#nsjail">nsjail</a></li>
+          </ol>
+        </li>
+        <li>
+          <a class="toc-link toc-level-2" href="#container-ladder">5. 容器隔离阶梯</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#oci-baseline">OCI baseline</a></li>
+            <li><a class="toc-link toc-level-3" href="#gvisor">gVisor</a></li>
+            <li><a class="toc-link toc-level-3" href="#kata">Kata</a></li>
+            <li><a class="toc-link toc-level-3" href="#firecracker">Firecracker</a></li>
+          </ol>
+        </li>
+        <li>
+          <a class="toc-link toc-level-2" href="#platforms">6. AI sandbox 平台</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#e2b">E2B</a></li>
+            <li><a class="toc-link toc-level-3" href="#opensandbox">OpenSandbox</a></li>
+            <li><a class="toc-link toc-level-3" href="#cubesandbox">CubeSandbox</a></li>
+            <li><a class="toc-link toc-level-3" href="#daytona">Daytona</a></li>
+            <li><a class="toc-link toc-level-3" href="#microsandbox">Microsandbox</a></li>
+            <li><a class="toc-link toc-level-3" href="#language-runtime">语言级隔离</a></li>
+          </ol>
+        </li>
+        <li>
+          <a class="toc-link toc-level-2" href="#ranking">7. 流行度和能力排名</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#popularity-ranking">流行度排名</a></li>
+            <li><a class="toc-link toc-level-3" href="#isolation-ranking">隔离强度排名</a></li>
+            <li><a class="toc-link toc-level-3" href="#platform-ranking">平台能力排名</a></li>
+          </ol>
+        </li>
+        <li>
+          <a class="toc-link toc-level-2" href="#selection">8. 选型地图</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#practical-rules">五条实际规则</a></li>
+            <li><a class="toc-link toc-level-3" href="#misreadings">常见误读</a></li>
+            <li><a class="toc-link toc-level-3" href="#agent-checklist">落地清单</a></li>
+          </ol>
+        </li>
+        <li>
+          <a class="toc-link toc-level-2" href="#sources">9. 来源与边界</a>
+          <ol class="toc-sublist">
+            <li><a class="toc-link toc-level-3" href="#primary-sources">主要来源</a></li>
+          </ol>
+        </li>
+      </ol>
+    </aside>
+
+    <main>
+      <article>
+        <a class="back-home" href="/books/">← Wine &amp; Chord Books</a>
+        <h1>Sandbox 不是一个开关：AI Agent 如何获得可执行的边界</h1>
+        <p class="dek">如果一个 AI Agent 能读文件、写代码、跑命令、开浏览器、访问网络，它就不再只是“会说话的软件”。它开始拥有真实的系统权限。Sandbox 的核心问题不是“有没有隔离”，而是：谁制定策略，谁投影文件和网络，谁承受逃逸风险，谁负责生命周期和审计。</p>
+        <div class="meta-line">
+          <span>写作快照：2026-06-16</span>
+          <span>主线：Codex / Claude Code / OpenClaw / Hermes</span>
+          <span>排名指标：GitHub stars 与能力包络分开</span>
+        </div>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-cover-20260616.webp" width="2400" height="1350" alt="AI Agent sandbox 从策略门、文件网络投影、Linux 原语、OCI、gVisor、microVM 到托管平台的阶梯图">
+          <figcaption>Sandbox 是一组递进边界：策略门只能决定“可不可以尝试”，真正的隔离要落到文件系统、网络、进程、内核或虚拟化边界。</figcaption>
+        </figure>
+
+        <p>本文把 sandbox 拆成工程上可验证的几层：Agent 里的权限策略，运行前的文件和网络投影，Linux/容器/VM 级执行边界，以及面向 AI workload 的创建、快照、恢复、观测和计费能力。这样讨论才不会把 “Bash 需要审批” 误当成 “Bash 已经隔离”，也不会把 GitHub stars 误当成安全证明。</p>
+
+        <div class="callout">
+          <p><strong>本文的中心判断：</strong>AI Agent 的 sandbox 不是单点功能，而是一条供应链。策略越靠上，越适合表达意图；边界越靠下，越接近安全保证；平台越完整，越能服务真实 Agent 工作流，但也越需要检查它到底把隔离交给了谁。</p>
+        </div>
+
+        <h2 id="definition">一、先把 sandbox 说清楚</h2>
+
+        <p>“Sandbox” 在不同团队嘴里常常指三种东西：命令审批、进程限制、远端临时环境。它们都重要，但不是同一种边界。</p>
+
+        <p>最容易出错的说法是“这个 Agent 有 sandbox，所以安全”。更准确的问法应该是：这个 Agent 的 sandbox 是什么威胁模型下的 sandbox？它防的是误删文件、越权读写、网络外传、系统调用逃逸、内核攻击面，还是多租户之间的横向移动？</p>
+
+        <p>一个简化的风险式子是 <span class="math">\(R \approx U \times A \times E\)</span>：<span class="math">\(U\)</span> 是输入或代码的不可信程度，<span class="math">\(A\)</span> 是进程握有的主机权限，<span class="math">\(E\)</span> 是逃逸面。提示词、审批和工具规则主要降低“被允许做坏事”的概率；namespace、seccomp、gVisor、microVM 和硬件虚拟化主要降低“即使做了也能伤到哪里”的范围。</p>
+
+        <p>这也是为什么 <a href="https://github.com/containers/bubblewrap/blob/2f55bae38468d0c50cf5df87b1e481e882b63acb/README.md#L44-L60">bubblewrap README</a> 明确把自己定位为底层构造工具，而不是完整安全策略；为什么 <a href="https://github.com/google/gvisor/blob/de17338bc14f1d457dba7e22e8c7c3e39231e119/README.md#L21-L30">gVisor README</a> 要强调它不是普通 syscall filter，也不是传统 VM；为什么 <a href="https://github.com/firecracker-microvm/firecracker/blob/dc92199f1c7c2dcdffde9c4694bdc60954332855/README.md#L7-L19">Firecracker README</a> 从一开始就把目标放在多租户、低开销的 microVM 上。</p>
+
+        <h2 id="four-planes">二、四平面模型：不要把策略、投影、边界和生命周期混在一起</h2>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-four-planes-20260616.webp" width="2400" height="1350" alt="AI Agent sandbox 的四平面模型：策略平面、投影平面、执行边界、生命周期平面">
+          <figcaption>四平面模型可以快速定位一个方案到底在管什么：审批、投影、隔离，还是生命周期。</figcaption>
+        </figure>
+
+        <h3 id="plane-policy">Policy Plane：决定“是否尝试”</h3>
+
+        <p>Policy Plane 是权限规则、审批缓存、命令分类器和组织级配置。Codex 的执行工具会围绕审批缓存、sandbox 尝试、是否需要 escalated permissions 做决策；相关逻辑集中在 <a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/tools/sandboxing.rs#L70-L116"><code>with_cached_approval</code></a>、<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/tools/sandboxing.rs#L246-L313">权限升级与 sandbox 选择</a>、以及 <a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/tools/sandboxing.rs#L409-L452"><code>SandboxAttempt</code></a> 这几个区域。</p>
+
+        <p>Policy Plane 负责表达“我愿意让这个命令访问网络吗”“这个路径可以写吗”“失败后能不能重试”。但它不是 OS 边界。命令一旦在主机上无隔离运行，策略错误、解析绕过、环境变量继承、shell 展开和工具链副作用都会回到主机权限模型里。</p>
+
+        <h3 id="plane-projection">Projection Plane：决定“它看见什么”</h3>
+
+        <p>Projection Plane 把宿主机投影成一个更小的世界：哪些目录只读，哪些目录可写，哪些网络目标可出站，哪些 Unix socket 可以碰，临时目录在哪里。Codex 的 <a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/sandboxing/mod.rs#L43-L81"><code>ExecRequest</code></a> 会携带命令、工作目录、环境、sandbox 类型、文件系统策略和网络策略；Linux 侧再由 <a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/landlock.rs#L14-L20"><code>codex-linux-sandbox</code></a> 将这些策略落到 bubblewrap 和 seccomp 组合上。</p>
+
+        <p>投影不是隔离强度本身，但它决定 blast radius。一个只读源码树加可写临时目录，和把整个 home 目录挂进去，是完全不同的 sandbox。</p>
+
+        <h3 id="plane-boundary">Execution Boundary：决定“逃逸要打穿什么”</h3>
+
+        <p>Execution Boundary 才是最接近传统安全意义的 sandbox：Linux namespace、cgroup、rlimit、seccomp、Landlock/LSM、macOS Seatbelt、Windows AppContainer 或虚拟化边界。这里要问的是：不可信代码能不能直接调用宿主内核？能不能复用宿主网络命名空间？能不能挂载宿主敏感路径？能不能用容器特权或 runtime socket 跳出边界？</p>
+
+        <p>这也是 gVisor、Kata 和 Firecracker 的分野：gVisor 在容器和宿主内核之间放一个用户态 application kernel；Kata 把容器放进轻量 VM；Firecracker 直接提供面向 serverless 和容器 workload 的 microVM VMM。它们解决的问题不是“用户是否点了允许”，而是不可信 workload 真正运行时共享了多少宿主内核面。</p>
+
+        <h3 id="plane-lifecycle">Lifecycle Plane：决定“它怎么成为产品”</h3>
+
+        <p>Agent 需要的不只是启动一个受限进程。真实工作流还需要模板、创建、命令执行、文件桥、端口映射、网络策略、浏览器或 GUI、快照、恢复、日志、配额和清理。E2B、OpenSandbox、CubeSandbox、Daytona、Microsandbox 这类项目的价值主要在 Lifecycle Plane：它们把底层边界包装成 Agent 可消费的运行时。</p>
+
+        <p>因此，能力排名要同时看隔离强度和产品完整度。一个 Firecracker microVM 很强，但它不是完整 Agent 平台；一个托管 sandbox SDK 很好用，但你仍然要知道它的底层边界、网络默认值和数据保留模型。</p>
+
+        <h2 id="agents">三、四个 Agent 主线：真正的分歧在“谁拥有边界”</h2>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-agent-routes-20260616.webp" width="2400" height="1350" alt="Codex、Claude Code、OpenClaw、Hermes Agent 四个 AI Agent codebase 的 sandbox 路径对比">
+          <figcaption>四个 Agent 的共同点是：上层策略必须和下层运行边界对齐。差异在于本地 CLI、企业配置、网关服务和后端环境谁来承担最终隔离。</figcaption>
+        </figure>
+
+        <h3 id="codex">Codex：把 PermissionProfile 编译成平台 sandbox</h3>
+
+        <p>Codex 的思路是把“权限配置”变成平台执行请求，而不是把 shell 审批当成最终边界。公开源码里，<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/sandboxing/mod.rs#L43-L81"><code>ExecRequest</code></a> 会承载命令、工作目录、环境、sandbox 类型、文件系统策略和网络策略；<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/sandboxing/mod.rs#L103-L135">sandbox 请求转换</a> 里会在网络禁用时注入 <code>CODEX_SANDBOX_NETWORK_DISABLED</code>，在 macOS Seatbelt 模式下注入 <code>CODEX_SANDBOX=seatbelt</code>。</p>
+
+        <p>Linux 路径更直接：<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/landlock.rs#L14-L20"><code>landlock.rs</code></a> 的注释把默认组合写得很清楚：用 bubblewrap 做文件系统隔离，用 seccomp 做网络限制。换句话说，Codex 的重点不是“一个神奇 sandbox”，而是把同一个权限语义映射到 macOS、Linux、Windows 的不同系统边界上。</p>
+
+        <p>值得注意的是，Codex 也把“能否绕过 sandbox”纳入策略判断。<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/tools/sandboxing.rs#L246-L313">执行策略</a> 会区分 denied reads、escalated permissions 和网络策略。这个设计告诉我们：如果用户显式声明某些路径不能读，就不能因为命令需要升级权限而顺手变成无边界执行。</p>
+
+        <h3 id="claude">Claude Code：公开配置显示 Bash sandbox 是一个受管设置域</h3>
+
+        <p>Claude Code 的公开仓库不是完整实现源码，但它给出了企业配置和 changelog 证据。<a href="https://github.com/anthropics/claude-code/blob/64ceb97caab3fb898ece9a1b61e337470f805550/examples/settings/README.md#L13-L28">settings 示例说明</a> 明确列出 <code>settings-bash-sandbox.json</code> 这一类配置，并提醒 <code>sandbox</code> 属性只适用于 Bash tool，不适用于 Read、Write、WebSearch、WebFetch、MCP、hooks 或内部命令。</p>
+
+        <p>示例配置本身也很有代表性：</p>
+
+        <pre><code class="language-json">{
+  "allowManagedPermissionRulesOnly": true,
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": []
+    }
+  }
+}</code></pre>
+
+        <p>这不是完整实现，但足以说明 Claude Code 把 Bash sandbox 作为受管配置域来治理。changelog 也能看到它在权限解析和 sandbox 规则上持续修补边界：例如 PowerShell 路径切换导致的越界读取和 git worktree 写 allowlist 过宽，见 <a href="https://github.com/anthropics/claude-code/blob/64ceb97caab3fb898ece9a1b61e337470f805550/CHANGELOG.md#L477-L481">2.1.149 相关修复</a>；Linux/WSL 自定义 <code>bwrapPath</code> 与 <code>socatPath</code> 见 <a href="https://github.com/anthropics/claude-code/blob/64ceb97caab3fb898ece9a1b61e337470f805550/CHANGELOG.md#L878-L878">2.1.133 记录</a>；<code>allowManagedDomainsOnly</code> / <code>allowManagedReadPathsOnly</code> 的优先级问题见 <a href="https://github.com/anthropics/claude-code/blob/64ceb97caab3fb898ece9a1b61e337470f805550/CHANGELOG.md#L1013-L1013">安全修复记录</a>。</p>
+
+        <p>这里的工程教训很具体：命令解析、工作目录跟踪、网络 allowlist、受管配置优先级都会影响 sandbox。只要上层解析器和下层边界之间有不一致，Agent 就可能以为自己在沙箱里，实际却把权限投影错了。</p>
+
+        <h3 id="openclaw">OpenClaw：把 sandbox 放进网关和 Docker 后端策略</h3>
+
+        <p>OpenClaw 更像一个带网关的个人 Agent 系统。它的安全文档把默认 sandbox 后端写成 Docker，并提供 session/workspace 级隔离、额外挂载、工具提权等配置语义；关键段落见 <a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/docs/gateway/security/index.md#L1125-L1140">gateway security 文档</a>。它的 Dockerfile 也体现了运行期姿态：<a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/Dockerfile#L264-L300">可选安装 Docker CLI</a> 是为了管理 sandbox 容器，<a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/Dockerfile#L324-L327">运行用户切到非 root</a>，并在 <a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/Dockerfile#L329-L340">启动网关前</a> 明确默认绑定回环地址。</p>
+
+        <p>OpenClaw 的价值在于把 Agent 策略、网关、容器后端和 workspace 访问模式连成一条线。但 Docker 作为默认后端时，要非常认真地检查：是否允许 host network、是否挂载 Docker socket、是否允许加入宿主命名空间、是否有特权容器、是否有 unconfined seccomp/AppArmor、额外挂载是否越过项目边界。</p>
+
+        <h3 id="hermes">Hermes Agent：把“OS 级隔离才是边界”说得最直白</h3>
+
+        <p>Hermes Agent 的 <a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/SECURITY.md#L58-L65">SECURITY.md</a> 有一句非常适合做本文的分界线：面对 adversarial LLM，只有 OS-level isolation 是真正边界；审批、脱敏、工具 allowlist 都是进程内启发式手段。它还区分 terminal-backend isolation 和 whole-process wrapping：前者限制 shell/file 操作，后者才把 Agent Python 进程、代码执行、MCP subprocess、plugins、hooks、skills 等路径一起放进外层边界；见 <a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/SECURITY.md#L67-L114">相关段落</a>。</p>
+
+        <p>Hermes 的 Docker 环境实现也体现了这个观点。<a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/tools/environments/docker.py#L312-L336">基础安全参数</a> 把 capability drop、no-new-privileges、PID 限制和 tmpfs 纳入容器启动参数；<a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/tools/environments/docker.py#L503-L510">环境类说明</a> 则把容器本身称为 security boundary，并说明 workspace 可写。它还提供 Daytona、Modal 这类远端环境后端，意味着“跑命令”不是唯一危险路径，代码执行工具和远端 sandbox 也要纳入同一个信任模型。</p>
+
+        <p>这给 Agent 设计一个很强的提醒：如果模型能生成 Python 并在宿主进程里执行，那么只 sandbox Bash 远远不够。只要存在另一个本地代码执行通道，攻击者就会走那个通道。</p>
+
+        <h2 id="linux-tools">四、Linux 本地沙箱：bubblewrap、Firejail、nsjail 的分工</h2>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-linux-primitives-20260616.webp" width="2400" height="1350" alt="Linux sandbox 原语：mount/user/pid/net namespace、cgroups、seccomp、Landlock、no_new_privs，以及 bubblewrap、Firejail、nsjail 的组合方式">
+          <figcaption>Linux 本地 sandbox 的核心不是某个项目名字，而是 namespace、seccomp、cgroup、LSM、rlimit 和 no_new_privs 如何组合。</figcaption>
+        </figure>
+
+        <h3 id="bubblewrap">bubblewrap：低层投影器，适合被上层产品编排</h3>
+
+        <p><a href="https://github.com/containers/bubblewrap/blob/2f55bae38468d0c50cf5df87b1e481e882b63acb/README.md#L4-L18">bubblewrap</a> 的定位非常清楚：它是 Flatpak 等系统使用的低层无特权 sandboxing 工具，主要依赖 user namespace 等内核特性。它会创建新的 mount namespace，并允许调用方选择 bind mount、tmpfs、只读路径、网络 namespace、PID namespace 和 seccomp filter；见 <a href="https://github.com/containers/bubblewrap/blob/2f55bae38468d0c50cf5df87b1e481e882b63acb/README.md#L133-L152">选项概览</a>。</p>
+
+        <p>优点是小、直接、适合被 Codex 或 Claude Code 这种上层工具当作投影器；缺点也是它的优点：它不替你设计完整安全策略。你传错参数，它就会忠实构造一个错误的世界。</p>
+
+        <h3 id="firejail">Firejail：面向桌面和常见应用 profile 的便利层</h3>
+
+        <p><a href="https://github.com/netblue30/firejail/blob/02a81c2f1c7825ca9b96bbeb7c264017dded2c9c/README.md#L13-L32">Firejail</a> 把 Linux namespace、seccomp-bpf、capability、profile、SELinux/AppArmor/cgroup 等组合成更贴近日常应用的 sandbox 工具。它有大量 profile，适合“把某个本地应用关小一点”的场景。</p>
+
+        <p>对 AI Agent 来说，Firejail 的便利性不如 bubblewrap 那样容易嵌进精确投影，也不如 nsjail 那样偏竞赛/服务端隔离，但它展示了一个重要方向：sandbox 需要 profile，否则每次手写参数很难保持一致。</p>
+
+        <h3 id="nsjail">nsjail：偏服务端和评测环境的硬核拼装</h3>
+
+        <p><a href="https://github.com/google/nsjail/blob/1595ebcdf12db41cef50ea8459da86787acc0deb/README.md#L1-L13">nsjail</a> 面向 Linux process isolation，组合 namespace、rlimit、seccomp-bpf、Kafel、chroot/pivot_root、只读挂载、网络和 cgroup。它很适合在线判题、CTF、批量运行不可信命令、评测 agent patch 的场景。</p>
+
+        <p>nsjail 的优势是控制面细，尤其在资源限制和 seccomp policy 上更适合服务端。代价是配置复杂，产品化时仍然要自己做文件桥、生命周期、审计、队列、网络策略和错误恢复。</p>
+
+        <h2 id="container-ladder">五、容器隔离阶梯：runc 不是终点，gVisor/Kata/Firecracker 是不同答案</h2>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-container-ladder-20260616.webp" width="2400" height="1350" alt="从 OCI runtime 到 gVisor、Kata Containers、Firecracker 的容器隔离阶梯">
+          <figcaption>容器生态提供可移植性和成熟镜像格式；更强隔离通常来自用户态内核或虚拟化边界。</figcaption>
+        </figure>
+
+        <h3 id="oci-baseline">runc / containerd / Moby：容器生命周期，不等于 hostile code sandbox</h3>
+
+        <p><a href="https://github.com/opencontainers/runc/blob/da3d022b06dd96a898f6d0cc1df2773df91ea035/README.md#L9-L12">runc</a> 是按 OCI spec spawn/run containers 的 CLI；<a href="https://github.com/containerd/containerd/blob/bfb30d457e4002b8ce8a1f138b690286726724cb/README.md#L12-L16">containerd</a> 管完整容器生命周期；<a href="https://github.com/moby/moby/blob/17c3b610558a622898a9dd72318dea0488ea8109/README.md#L13-L27">Moby</a> 是组装容器系统的组件集合。它们是现代部署的基座，但“容器”默认仍共享宿主内核。</p>
+
+        <p>所以，Docker sandbox 要看具体配置：rootless、capability、seccomp profile、AppArmor/SELinux、只读 rootfs、挂载白名单、网络命名空间、cgroup、PID 限制、runtime socket 是否暴露。只说“在 Docker 里跑”没有安全含义。</p>
+
+        <h3 id="gvisor">gVisor：把 syscall 面收窄到用户态 application kernel</h3>
+
+        <p><a href="https://github.com/google/gvisor/blob/de17338bc14f1d457dba7e22e8c7c3e39231e119/README.md#L11-L30">gVisor</a> 提供一个用户态 application kernel，通过 <code>runsc</code> 与 Docker/Kubernetes 集成。它的关键价值是减少 workload 直接接触宿主内核的 syscall 面。</p>
+
+        <p>gVisor 很适合多租户容器、CI、在线执行和不可信但需要 Linux 兼容性的 workload。它通常比普通 container 强，但不等于完整 VM；兼容性和性能也要按 workload 测试。</p>
+
+        <h3 id="kata">Kata Containers：用轻量 VM 承载容器语义</h3>
+
+        <p><a href="https://github.com/kata-containers/kata-containers/blob/1af9456e26fcc51014c613d1767b4bde865bbfa8/README.md#L18-L21">Kata Containers</a> 的目标是让 workload 像容器一样运行，但获得 VM 的隔离优势。其架构文档进一步说明 runtime、shim、hypervisor、guest agent 和 pod VM 的关系；见 <a href="https://github.com/kata-containers/kata-containers/blob/1af9456e26fcc51014c613d1767b4bde865bbfa8/docs/design/architecture/README.md#L47-L85">architecture</a>。</p>
+
+        <p>对 Kubernetes 平台来说，Kata 的吸引力在于把 VM 隔离塞进容器编排模型。代价是启动、镜像、存储、网络和观测链路都更复杂。</p>
+
+        <h3 id="firecracker">Firecracker：microVM 原语，不是完整 Agent 平台</h3>
+
+        <p><a href="https://github.com/firecracker-microvm/firecracker/blob/dc92199f1c7c2dcdffde9c4694bdc60954332855/README.md#L7-L19">Firecracker</a> 是面向 serverless 和容器 workload 的安全快速 microVM。它通过 KVM 提供虚拟化边界，并在 <a href="https://github.com/firecracker-microvm/firecracker/blob/dc92199f1c7c2dcdffde9c4694bdc60954332855/README.md#L125-L129">内置能力</a> 中包括 seccomp 和 jailer。</p>
+
+        <p>Firecracker 很适合作为 AI sandbox 平台的底层隔离原语，但它本身不替你做 Agent API、文件桥、浏览器、快照产品语义、权限审批和计费。CubeSandbox、Microsandbox、OpenSandbox 这类项目的意义，正是把 microVM 变成 Agent 能用的运行时。</p>
+
+        <h2 id="platforms">六、AI sandbox 平台：真正的竞争在生命周期、兼容性和默认安全</h2>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-platform-lifecycle-20260616.webp" width="2400" height="1350" alt="E2B、OpenSandbox、CubeSandbox、Daytona、Microsandbox 等 AI sandbox 平台的生命周期：template、create、run、file bridge、network policy、snapshot、resume、observability">
+          <figcaption>AI sandbox 平台把底层隔离包装成 API、SDK、MCP、模板、文件桥、网络策略、快照和观测能力。</figcaption>
+        </figure>
+
+        <h3 id="e2b">E2B：Agent-facing cloud sandbox 的标杆接口</h3>
+
+        <p><a href="https://github.com/e2b-dev/E2B/blob/8c084cbd7ca5fb72817169dac52d3db92182ead2/README.md#L21-L22">E2B</a> 把自己定位为给 AI-generated code 运行的安全隔离云 sandbox，并提供 JS/Python SDK。README 里的快速例子覆盖创建 sandbox、运行命令和 Code Interpreter；见 <a href="https://github.com/e2b-dev/E2B/blob/8c084cbd7ca5fb72817169dac52d3db92182ead2/README.md#L46-L80">quickstart</a>。</p>
+
+        <p>SDK 源码展示了更完整的产品面：<a href="https://github.com/e2b-dev/E2B/blob/8c084cbd7ca5fb72817169dac52d3db92182ead2/packages/js-sdk/src/sandbox/index.ts#L51-L64">Sandbox 能力</a>包括 Linux OS、文件、命令、git、隔离代码和网络；<a href="https://github.com/e2b-dev/E2B/blob/8c084cbd7ca5fb72817169dac52d3db92182ead2/packages/js-sdk/src/sandbox/index.ts#L518-L572">pause 与 snapshot</a> 则说明它已经不只是“跑一条命令”。</p>
+
+        <h3 id="opensandbox">OpenSandbox：开放协议和运行时适配层</h3>
+
+        <p><a href="https://github.com/opensandbox-group/OpenSandbox/blob/67cdad61cdbfdc1ccecb8f57f3127b82d1ac3ca2/README.md#L50-L62">OpenSandbox</a> 主打通用 AI sandbox 平台，支持多语言 SDK、协议、Docker/Kubernetes runtime、命令、文件、代码解释器、browser/desktop、出入站策略，并在文档中列出 gVisor、Kata、Firecracker 等强隔离运行时。</p>
+
+        <p>它的价值是开放抽象和集成面，尤其是 MCP server 让 Claude Code、Cursor 等工具直接创建 sandbox、运行命令、读写文件；见 <a href="https://github.com/opensandbox-group/OpenSandbox/blob/67cdad61cdbfdc1ccecb8f57f3127b82d1ac3ca2/README.md#L132-L156">MCP 部分</a>。但 OpenSandbox 的隔离强度取决于你配置的 runtime：runc、gVisor、Kata、Firecracker 是完全不同的威胁模型。</p>
+
+        <h3 id="cubesandbox">CubeSandbox：KVM microVM、E2B 兼容和快照能力</h3>
+
+        <p><a href="https://github.com/TencentCloud/CubeSandbox/blob/4004a6ec34a9d045a9789a1fd438d6518eedb3d3/README.md#L37-L38">CubeSandbox</a> 把自己定位为基于 RustVMM/KVM 的 AI Agent sandbox，强调单机/集群、E2B SDK 兼容、低延迟和低内存开销。它的亮点还包括资源池、快照克隆、CoW、独立 guest OS kernel、eBPF 网络和事件级回滚；见 <a href="https://github.com/TencentCloud/CubeSandbox/blob/4004a6ec34a9d045a9789a1fd438d6518eedb3d3/README.md#L116-L122">核心特性</a>。</p>
+
+        <p>这里要把“项目自述指标”和“外部验证”分开。CubeSandbox 的能力包络很强，特别适合自建 KVM 环境下追求 microVM 隔离、并发和 E2B 兼容的团队；但启动延迟、内存开销和生产成熟度需要在自己的 workload 上复测。</p>
+
+        <h3 id="daytona">Daytona：把 sandbox 升级成完整开发环境运行时</h3>
+
+        <p><a href="https://github.com/daytonaio/daytona/blob/41c16eec6c54a3c74a1bc1ec456e49987e5b5202/README.md#L28-L32">Daytona</a> 的定位是运行 AI-generated code 和 Agent workflow 的安全弹性基础设施，强调 dedicated kernel、filesystem、network、vCPU、RAM、disk、OCI/Docker 兼容和 stateful snapshots。它更像“完整开发环境运行时”，而不是单个隔离原语。</p>
+
+        <p>如果你的 Agent 需要长生命周期环境、工作区复用、团队化控制面、hybrid compute 和平台运维，Daytona 的产品面会比裸 Firecracker 或 nsjail 贴近业务。相应地，你也要检查 control plane、daemon、runner、snapshot manager、proxy 和网络边界。</p>
+
+        <h3 id="microsandbox">Microsandbox：本地可嵌入 microVM 的轻量路线</h3>
+
+        <p><a href="https://github.com/superradcompany/microsandbox/blob/0580a1c24f910ee3387927f4522aa4b5a2de5430/README.md#L28-L39">Microsandbox</a> 面向把 untrusted workload 放进快速本地 microVM。它强调硬件隔离、OCI images、Docker-like workflows、可嵌入 SDK、secrets、长任务和 Agent readiness。README 也说明它处在 beta 阶段，并支持 Linux KVM 或 macOS Apple Silicon；见 <a href="https://github.com/superradcompany/microsandbox/blob/0580a1c24f910ee3387927f4522aa4b5a2de5430/README.md#L112-L119">requirements</a>。</p>
+
+        <p>Microsandbox 适合“我不想先建一整套云平台，但想把本地 Agent 的执行边界从进程/容器提高到 microVM”的场景。限制是生态和生产验证仍在增长期。</p>
+
+        <h3 id="language-runtime">Deno / Wasmtime：语言级隔离是旁支，不是任意 shell 的替代品</h3>
+
+        <p><a href="https://github.com/denoland/deno/blob/1340dc5aa83793ef04ff4837e767e45f20f1079a/README.md#L9-L13">Deno</a> 是带 secure defaults 的 JavaScript/TypeScript/WebAssembly runtime，例如运行网络服务要显式 <a href="https://github.com/denoland/deno/blob/1340dc5aa83793ef04ff4837e767e45f20f1079a/README.md#L79-L83"><code>--allow-net</code></a>。<a href="https://github.com/bytecodealliance/wasmtime/blob/897aa00de01dfcf5a94d2f9d889856112227145a/README.md#L96-L106">Wasmtime</a> 则强调 WebAssembly runtime 的安全、fuzzing、防御纵深和 WASI 能力。</p>
+
+        <p>它们非常重要，但不应和 “run arbitrary Linux shell” 混成一类。语言 runtime 适合把可执行面限制在某个语言或 WASI 能力模型里；如果 Agent 需要跑任意包管理器、编译器、浏览器和系统命令，仍然需要进程、容器或 VM 级边界。</p>
+
+        <h2 id="ranking">七、严格排序：先按流行度，再按能力和隔离强度</h2>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-ranking-lenses-20260616-v2.webp" width="2400" height="1350" alt="Sandbox 技术排序的两个视角：流行度镜头和能力镜头，精确排名由正文表格承载">
+          <figcaption>流行度回答“谁被更多人关注”，能力排序回答“谁更适合某个威胁模型”。图只表达两个镜头，精确排序以正文表格为准。</figcaption>
+        </figure>
+
+        <h3 id="popularity-ranking">流行度排名：GitHub stars 只是采用度代理</h3>
+
+        <p>下面的排名使用 GitHub API 在 2026-06-16 抓取的 stars。它反映仓库关注度，不是安全性、成熟度或隔离强度排名。OpenClaw、Hermes、Codex、Claude Code 是 Agent/control-plane 仓库，不是纯 sandbox engine；Deno、Wasmtime 是语言/运行时级隔离，不是任意 Linux shell sandbox。</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>流行度</th>
+                <th>项目</th>
+                <th>Stars</th>
+                <th>本文分类</th>
+                <th>排序解读</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="rank">1</span></td><td>OpenClaw</td><td>378,898</td><td>Agent / control plane</td><td>关注度最高，但 sandbox 只是其 Agent 网关能力的一部分。</td></tr>
+              <tr><td><span class="rank">2</span></td><td>Hermes Agent</td><td>194,507</td><td>Agent / environment backends</td><td>安全文档很清醒，强调 OS isolation 才是边界。</td></tr>
+              <tr><td><span class="rank">3</span></td><td>Claude Code</td><td>132,590</td><td>Agent / Bash sandbox settings</td><td>公开证据主要来自 settings 示例和 changelog。</td></tr>
+              <tr><td><span class="rank">4</span></td><td>Deno</td><td>107,093</td><td>Language runtime</td><td>secure defaults 很有价值，但不是任意 shell sandbox。</td></tr>
+              <tr><td><span class="rank">5</span></td><td>Codex</td><td>91,271</td><td>Agent / platform sandbox adapter</td><td>源码显示 PermissionProfile 到平台 sandbox 的编译路径。</td></tr>
+              <tr><td><span class="rank">6</span></td><td>Daytona</td><td>72,426</td><td>AI sandbox platform</td><td>平台完整度和生态关注度都高。</td></tr>
+              <tr><td><span class="rank">7</span></td><td>Moby</td><td>71,698</td><td>Container ecosystem</td><td>容器系统基座，不等于 hostile code sandbox。</td></tr>
+              <tr><td><span class="rank">8</span></td><td>Firecracker</td><td>34,942</td><td>microVM primitive</td><td>强隔离原语，产品化需要上层平台。</td></tr>
+              <tr><td><span class="rank">9</span></td><td>containerd</td><td>20,840</td><td>Container runtime</td><td>容器生命周期核心组件。</td></tr>
+              <tr><td><span class="rank">10</span></td><td>gVisor</td><td>18,538</td><td>User-space kernel</td><td>在容器兼容性和 syscall 面隔离之间取中间路线。</td></tr>
+              <tr><td><span class="rank">11</span></td><td>Wasmtime</td><td>18,198</td><td>WebAssembly runtime</td><td>语言/组件模型隔离，适合 WASI 能力边界。</td></tr>
+              <tr><td><span class="rank">12</span></td><td>runc</td><td>13,286</td><td>OCI runtime</td><td>容器执行标准基石，但共享宿主内核。</td></tr>
+              <tr><td><span class="rank">13</span></td><td>E2B</td><td>12,601</td><td>Cloud AI sandbox</td><td>Agent-facing SDK 和云 sandbox 体验成熟。</td></tr>
+              <tr><td><span class="rank">14</span></td><td>OpenSandbox</td><td>11,539</td><td>Open AI sandbox platform</td><td>开放协议和运行时适配面广，隔离强度取决于 runtime。</td></tr>
+              <tr><td><span class="rank">15</span></td><td>Kata Containers</td><td>8,101</td><td>VM-backed containers</td><td>Kubernetes/容器语义和 VM 隔离的结合。</td></tr>
+              <tr><td><span class="rank">16</span></td><td>bubblewrap</td><td>7,613</td><td>Process sandbox primitive</td><td>低层投影器，被上层工具编排时很强。</td></tr>
+              <tr><td><span class="rank">17</span></td><td>Firejail</td><td>7,475</td><td>Profile-oriented process sandbox</td><td>桌面和常见应用 profile 生态突出。</td></tr>
+              <tr><td><span class="rank">18</span></td><td>Microsandbox</td><td>6,562</td><td>Embeddable microVM sandbox</td><td>本地 microVM 路线清晰，项目仍偏年轻。</td></tr>
+              <tr><td><span class="rank">19</span></td><td>CubeSandbox</td><td>6,359</td><td>KVM AI sandbox platform</td><td>能力包络强，但 stars 仍低于更早的生态项目。</td></tr>
+              <tr><td><span class="rank">20</span></td><td>nsjail</td><td>3,962</td><td>Process isolation tool</td><td>stars 不高，但服务端隔离能力扎实。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="isolation-ranking">隔离强度排名：只看“逃逸需要打穿什么”</h3>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>隔离强度</th>
+                <th>代表方案</th>
+                <th>边界</th>
+                <th>优点</th>
+                <th>主要代价</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="rank">1</span></td><td>Firecracker / Kata / CubeSandbox / Microsandbox</td><td>KVM 或轻量 VM / microVM</td><td>不可信 workload 不直接共享宿主内核，适合多租户和强敌手模型。</td><td>镜像、启动、网络、快照、观测和运维复杂度上升。</td></tr>
+              <tr><td><span class="rank">2</span></td><td>gVisor</td><td>用户态 application kernel</td><td>保持容器体验，同时显著收窄宿主内核 syscall 面。</td><td>兼容性和性能需逐 workload 验证。</td></tr>
+              <tr><td><span class="rank">3</span></td><td>nsjail</td><td>namespaces + cgroups + rlimits + seccomp</td><td>服务端批量不可信命令隔离能力强，策略细。</td><td>产品化和配置复杂，仍共享宿主内核。</td></tr>
+              <tr><td><span class="rank">4</span></td><td>bubblewrap / Firejail</td><td>Linux namespace、seccomp、profile</td><td>轻、快、适合本地工具和上层 Agent 编排。</td><td>安全性高度依赖调用参数和 profile。</td></tr>
+              <tr><td><span class="rank">5</span></td><td>runc / containerd / Moby 默认容器</td><td>容器隔离，共享宿主内核</td><td>生态成熟、镜像格式标准、兼容性好。</td><td>默认不应当直接等同 hostile code sandbox。</td></tr>
+              <tr><td><span class="rank">6</span></td><td>审批 / allowlist / 提示词规则</td><td>进程内策略</td><td>必要、可审计、能表达意图。</td><td>不是 OS 边界，不能单独承受 adversarial code。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="platform-ranking">Agent 平台能力排名：看完整工作流，而不是裸边界</h3>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>能力包络</th>
+                <th>项目</th>
+                <th>适合场景</th>
+                <th>为什么排在这里</th>
+                <th>需要复核</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="rank">1</span></td><td>CubeSandbox</td><td>自建 KVM、追求 microVM 隔离、并发、快照克隆和 E2B 兼容。</td><td>项目自述的能力包络最强：KVM、专用 guest kernel、CoW、快照/克隆/回滚、eBPF 网络、E2B SDK 兼容。</td><td>项目自述性能指标、x86_64 Linux/KVM 约束、生产成熟度。</td></tr>
+              <tr><td><span class="rank">2</span></td><td>E2B</td><td>希望快速接入云端 AI code sandbox、SDK、文件、命令、网络、快照。</td><td>Agent-facing API 成熟，开发者体验强，生命周期能力完整。</td><td>底层隔离实现细节、数据驻留、成本、企业网络策略。</td></tr>
+              <tr><td><span class="rank">3</span></td><td>Daytona</td><td>完整开发环境、长期工作区、混合部署、团队级控制面。</td><td>平台完整度高，覆盖 dedicated resources、OCI/Docker、snapshots 和控制/计算平面。</td><td>你的 workload 是否需要完整环境，而不是更小的 sandbox。</td></tr>
+              <tr><td><span class="rank">4</span></td><td>OpenSandbox</td><td>需要开放协议、MCP、多 SDK、Docker/Kubernetes、可选强隔离 runtime。</td><td>抽象层和适配面广，可以把 gVisor/Kata/Firecracker 等挂到统一 API 后面。</td><td>实际 runtime 配置决定隔离强度，默认值必须审计。</td></tr>
+              <tr><td><span class="rank">5</span></td><td>Microsandbox</td><td>本地嵌入式 microVM，不想先部署完整平台。</td><td>路线清晰，适合把本地 Agent 执行边界提升到 microVM。</td><td>Beta 状态、生态成熟度、平台兼容性。</td></tr>
+              <tr><td><span class="rank">6</span></td><td>gVisor / Kata / Firecracker</td><td>你要自己搭平台，只需要核心隔离 runtime。</td><td>隔离能力强，但不是完整 Agent 产品。</td><td>文件桥、模板、快照、API、清理、审计都要自建。</td></tr>
+              <tr><td><span class="rank">7</span></td><td>bwrap / nsjail / Firejail</td><td>本地 CLI、评测、短命令、低延迟批处理。</td><td>小而硬，适合被 Codex/Claude 这类上层工具编排。</td><td>策略配置、资源限制、网络外传和宿主内核共享。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>这个能力排名的前提是“AI Agent 要运行真实命令、读写文件、可能需要网络和快照”。如果你的 workload 只是运行受限 JS/TS 或 WASM 组件，Deno/Wasmtime 的语言级能力模型可能更合适；如果只是企业内部可信脚本，审批和 bwrap 可能已经足够。</p>
+
+        <h2 id="selection">八、选型地图：从威胁模型出发</h2>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-selection-map-20260616.webp" width="2400" height="1350" alt="AI Agent sandbox 选型地图：可信代码、任意 shell、浏览器/GUI、多租户不可信代码、快照恢复等问题对应不同 sandbox 家族">
+          <figcaption>选型不要从项目名开始，要从输入不可信程度、宿主权限、隔离目标和生命周期需求开始。</figcaption>
+        </figure>
+
+        <h3 id="practical-rules">五条实际规则</h3>
+
+        <ol>
+          <li><strong>只要有不可信代码，就不要把审批当边界。</strong>审批是必要控制点，但真正的边界要落到 OS 或虚拟化。</li>
+          <li><strong>本地单用户 CLI 优先从 bwrap/nsjail 开始。</strong>它们足够轻，能把文件和网络投影做小，适合低延迟命令。</li>
+          <li><strong>Docker 要先审配置，再谈 sandbox。</strong>禁用特权、runtime socket、host network、host PID、过宽挂载和 unconfined profile 是底线。</li>
+          <li><strong>多租户或 adversarial workload 直接考虑 gVisor/Kata/Firecracker/microVM。</strong>共享宿主内核的容器不该作为唯一防线。</li>
+          <li><strong>如果 Agent 需要模板、快照、浏览器、文件桥、日志和配额，买或构建平台，不要只买一个 runtime。</strong>否则你会在生命周期平面补大量胶水代码。</li>
+        </ol>
+
+        <h3 id="misreadings">常见误读</h3>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>误读</th>
+                <th>为什么错</th>
+                <th>更准确的说法</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>“有 Docker 就安全”</td><td>默认容器共享宿主内核，且配置可以极大改变边界。</td><td>Docker 是封装和生命周期工具，安全性取决于 runtime、profile、挂载、网络和权限。</td></tr>
+              <tr><td>“命令通过审批就是 sandbox”</td><td>审批只影响是否执行，无法限制执行后能调用的系统能力。</td><td>审批是 Policy Plane，sandbox boundary 是 Execution Boundary。</td></tr>
+              <tr><td>“禁止网络就没有外传”</td><td>本地文件、socket、日志、构建缓存、DNS、包管理器和后续人工复制都可能形成路径。</td><td>网络策略要配合文件投影、环境变量清理、日志审计和最小凭证。</td></tr>
+              <tr><td>“microVM 永远最好”</td><td>强隔离带来启动、镜像、快照、观测和成本复杂度。</td><td>按威胁模型选择；可信批处理不必一律上 microVM。</td></tr>
+              <tr><td>“stars 多就是安全”</td><td>stars 反映关注度、生态和传播，不反映隔离边界。</td><td>stars 和能力排序必须分开看。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="agent-checklist">给 Agent 团队的落地清单</h3>
+
+        <ul>
+          <li>写出 threat model：谁不可信，能提交什么，最坏能拿到什么宿主权限。</li>
+          <li>列出所有代码执行通道：Bash、Python、Node、MCP server、hooks、plugins、browser automation、package manager。</li>
+          <li>把每个通道映射到同一个 sandbox 策略，不要只包 shell。</li>
+          <li>默认只挂载工作区；凭证、SSH agent、Docker socket、云 metadata、home 目录都要显式拒绝。</li>
+          <li>网络默认 deny，再按域名、端口、代理、包源和内网目标逐项允许。</li>
+          <li>保留可审计日志：策略决策、实际命令、挂载、网络规则、sandbox ID、快照 ID、退出码和清理结果。</li>
+          <li>用恶意 fixture 测试，而不只跑 happy path：路径穿越、shell 展开、环境变量注入、软链接、git hook、package script、socket、后台进程和大输出。</li>
+        </ul>
+
+        <h2 id="sources">九、来源、证据边界和可复核快照</h2>
+
+        <p>本文使用三类证据：公开仓库的不可变 commit、公开 README/docs/changelog、以及明确标注的项目自述指标。GitHub stars 是 2026-06-16 通过 GitHub API 抓取的采用度代理。本文没有把 stars 写成安全性证明，也没有把项目自述的延迟或内存指标当成独立 benchmark。</p>
+
+        <p>Claude Code 的公开仓库没有完整运行时源码，因此本文只对公开 settings 示例和 changelog 能支持的行为做事实陈述；没有把不可公开实现细节写成读者无法复核的源码事实。</p>
+
+        <h3 id="primary-sources">主要来源</h3>
+
+        <ul class="source-list">
+          <li>Codex：<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/sandboxing/mod.rs#L43-L81"><code>ExecRequest</code> sandbox 请求字段</a>，<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/landlock.rs#L14-L20">Linux bubblewrap/seccomp 路径</a>，<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/tools/sandboxing.rs#L246-L313">审批、升级和 sandbox 选择</a>。</li>
+          <li>Claude Code：<a href="https://github.com/anthropics/claude-code/blob/64ceb97caab3fb898ece9a1b61e337470f805550/examples/settings/README.md#L13-L28">settings 示例说明</a>，<a href="https://github.com/anthropics/claude-code/blob/64ceb97caab3fb898ece9a1b61e337470f805550/examples/settings/settings-bash-sandbox.json#L1-L18">Bash sandbox 示例配置</a>，<a href="https://github.com/anthropics/claude-code/blob/64ceb97caab3fb898ece9a1b61e337470f805550/CHANGELOG.md#L477-L481">sandbox/permission 修复记录</a>。</li>
+          <li>OpenClaw：<a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/docs/gateway/security/index.md#L1125-L1140">gateway sandbox 安全文档</a>，<a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/Dockerfile#L264-L300">Docker CLI 与 sandbox 容器管理</a>，<a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/Dockerfile#L324-L340">非 root 与默认回环绑定</a>。</li>
+          <li>Hermes Agent：<a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/SECURITY.md#L58-L114">OS isolation 与 whole-process wrapping 安全边界</a>，<a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/tools/environments/docker.py#L312-L336">Docker 基础安全参数</a>。</li>
+          <li>Linux 工具：<a href="https://github.com/containers/bubblewrap/blob/2f55bae38468d0c50cf5df87b1e481e882b63acb/README.md#L44-L60">bubblewrap 定位</a>，<a href="https://github.com/netblue30/firejail/blob/02a81c2f1c7825ca9b96bbeb7c264017dded2c9c/README.md#L13-L32">Firejail README</a>，<a href="https://github.com/google/nsjail/blob/1595ebcdf12db41cef50ea8459da86787acc0deb/README.md#L1-L13">nsjail README</a>。</li>
+          <li>容器与隔离 runtime：<a href="https://github.com/opencontainers/runc/blob/da3d022b06dd96a898f6d0cc1df2773df91ea035/README.md#L9-L12">runc</a>，<a href="https://github.com/containerd/containerd/blob/bfb30d457e4002b8ce8a1f138b690286726724cb/README.md#L12-L16">containerd</a>，<a href="https://github.com/google/gvisor/blob/de17338bc14f1d457dba7e22e8c7c3e39231e119/README.md#L11-L30">gVisor</a>，<a href="https://github.com/kata-containers/kata-containers/blob/1af9456e26fcc51014c613d1767b4bde865bbfa8/README.md#L18-L21">Kata Containers</a>，<a href="https://github.com/firecracker-microvm/firecracker/blob/dc92199f1c7c2dcdffde9c4694bdc60954332855/README.md#L7-L19">Firecracker</a>。</li>
+          <li>AI sandbox 平台：<a href="https://github.com/e2b-dev/E2B/blob/8c084cbd7ca5fb72817169dac52d3db92182ead2/README.md#L21-L22">E2B</a>，<a href="https://github.com/opensandbox-group/OpenSandbox/blob/67cdad61cdbfdc1ccecb8f57f3127b82d1ac3ca2/README.md#L50-L62">OpenSandbox</a>，<a href="https://github.com/TencentCloud/CubeSandbox/blob/4004a6ec34a9d045a9789a1fd438d6518eedb3d3/README.md#L37-L38">CubeSandbox</a>，<a href="https://github.com/daytonaio/daytona/blob/41c16eec6c54a3c74a1bc1ec456e49987e5b5202/README.md#L28-L32">Daytona</a>，<a href="https://github.com/superradcompany/microsandbox/blob/0580a1c24f910ee3387927f4522aa4b5a2de5430/README.md#L28-L39">Microsandbox</a>。</li>
+          <li>语言/运行时隔离旁支：<a href="https://github.com/denoland/deno/blob/1340dc5aa83793ef04ff4837e767e45f20f1079a/README.md#L9-L13">Deno secure defaults</a>，<a href="https://github.com/bytecodealliance/wasmtime/blob/897aa00de01dfcf5a94d2f9d889856112227145a/README.md#L96-L106">Wasmtime security focus</a>。</li>
+        </ul>
+      </article>
+    </main>
+  </div>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.renderMathInElement) {
+        window.renderMathInElement(document.body, {
+          delimiters: [
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true }
+          ],
+          throwOnError: false
+        });
+      }
+      document.querySelectorAll("table").forEach((table) => {
+        const headers = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+        table.querySelectorAll("tbody tr").forEach((row) => {
+          [...row.children].forEach((cell, index) => {
+            if (headers[index]) cell.setAttribute("data-label", headers[index]);
+          });
+        });
+      });
+      const links = [...document.querySelectorAll(".toc-link")];
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+      const byId = new Map(links.map((link) => [link.getAttribute("href").slice(1), link]));
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        links.forEach((link) => link.classList.remove("active"));
+        byId.get(visible.target.id)?.classList.add("active");
+      }, { rootMargin: "-15% 0px -70% 0px", threshold: [0.1, 0.3, 0.6] });
+      sections.forEach((section) => observer.observe(section));
+    });
+  </script>
+</body>
+</html>

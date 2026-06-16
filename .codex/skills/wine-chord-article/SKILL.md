@@ -334,6 +334,15 @@ Write only `official docs` and `verified source` claims as direct facts. Mark
 `surrounding contract inference` as an inference in prose, and keep diagrams
 abstract. Do not publish `not visible` claims as implementation facts.
 
+When an article ranks or compares security, runtime, sandbox, infrastructure,
+or tooling projects, separate adoption/popularity signals from capability and
+isolation claims. Record the snapshot date and metric source for mutable
+signals such as GitHub stars or download counts; label them as adoption proxies,
+not as security rankings. Rank capability on explicit criteria such as threat
+model fit, isolation boundary, lifecycle features, observability, platform
+surface, and operational cost. Mark vendor/project benchmark numbers and
+startup-latency claims as project-stated metrics unless independently verified.
+
 When a mechanism is behind a feature gate, conditional import, build flag, or
 dead-code-elimination boundary, verify whether the target module files are
 present in the analyzed snapshot before describing internals. If only call
