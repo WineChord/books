@@ -72,6 +72,12 @@ brand mark placement, and source-accurate labels.
   deterministic label overlay is used, it must be visually integrated enough
   that the final image reads as one coherent hand-drawn raster; otherwise
   regenerate the base or redesign the figure with fewer labels.
+- Do not publish generated diagrams as a raster background plus live HTML/CSS
+  text, badges, or labels layered on top. Final article figures must be a
+  single coherent raster whose text, arrows, logo mark, paper texture, and
+  shadows have already been visually inspected together. If article text needs
+  to remain selectable or code-highlighted, put it in the surrounding prose,
+  tables, or code blocks instead of compositing it over an image at runtime.
 - This image-text rule does not prohibit real source-code excerpts in article
   prose. Put verified code in syntax-highlighted fenced blocks with pinned
   source links; keep generated figure text short and source-safe.
@@ -338,6 +344,11 @@ PicGo publication protocol:
    For public page loading, also export a same-dimension WebP derivative unless
    visual inspection shows unacceptable artifacts. Keep the PNG as the source
    backing asset and publish the WebP when it is materially smaller.
+   Optimize the published WebP for load time: strip metadata, keep the displayed
+   dimensions no larger than the article needs, and normally target under about
+   `900 KB` for inline 16:9 figures and under about `1.4 MB` for cover/hero
+   figures. Prefer improving compression settings or simplifying excessive
+   texture before publishing a multi-megabyte image `src`.
 3. When materially regenerating an already published figure, do not rely on
    overwriting the old CDN basename. Save and upload a unique versioned basename
    such as `<figure>-<commit>.png`, and use the corresponding
