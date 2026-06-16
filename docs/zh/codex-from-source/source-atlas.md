@@ -171,13 +171,23 @@
 
 ### 第 15 章：SDK、Daemon 与远程控制
 
-- App-server daemon lifecycle: [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34)
-- Remote control mode: [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L92)
-- Transport modes: [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57)
-- stdio transport: [`codex-rs/app-server-transport/src/transport/stdio.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24)
-- WebSocket transport: [`codex-rs/app-server-transport/src/transport/websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/websocket.rs#L82)
-- Python public API: [`sdk/python/src/codex_app_server/api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72)
-- TypeScript public API: [`sdk/typescript/src/codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11)
+把这一组锚点当作 surface map 使用，不要读成“每种 client 都暴露同一份 contract”。Transport、Python SDK、TypeScript process wrapper、daemon lifecycle 和 remote control 分别拥有 app-server boundary 的不同边缘。
+
+- Transport modes、listen URL parsing、transport events 与 connection origin: [`transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L53-L173)
+- Python SDK public facade、initialize metadata normalization 与 generated `thread_start`: [`api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72-L175)
+- Python SDK one-reader routing、response waiters、turn queues、pending turn replay 与 `fail_all`: [`_message_router.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_message_router.py#L15-L158)
+- Python SDK run-result projection from stream notifications: [`_run.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_run.py#L59-L112)
+- TypeScript SDK `Codex` public API: [`codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11-L38)
+- TypeScript SDK event parsing 与 `run()` collection: [`thread.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/thread.ts#L70-L138)
+- TypeScript SDK process wrapper、`resume`、stdin input、stdout lines 与 exit errors: [`exec.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/exec.ts#L137-L215)
+- Daemon constants、lifecycle commands、start/restart/stop/version、bootstrap、readiness polling 与 operation lock: [`app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L24-L503)
+- Daemon control-socket probe 与 app-server version extraction: [`client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/client.rs#L29-L108)
+- PID backend reservation lock、process start、pid-file state reads、stale cleanup 与 reservation lock acquisition: [`backend/pid.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/backend/pid.rs#L52-L345)
+- Remote-control start config、handle、initial status 与 websocket runner: [`remote_control/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/mod.rs#L31-L130)
+- Remote-control client/server envelopes、chunk events、ack cursor 与 URL normalization: [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/protocol.rs#L45-L198)
+- Remote-control client tracker、stream-id fallback、remote-control connection origin 与 outbound task: [`client_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/client_tracker.rs#L37-L285)
+- Remote-control websocket state、outbound buffer、connect/reconnect、writer replay、sequence assignment、chunk splitting 与 sequence/segment ack handling: [`websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/websocket.rs#L67-L879)
+- Remote-control segment limits、reassembly、out-of-order rejection 与 invalid chunk drops: [`segment.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/segment.rs#L17-L245)
 
 ### 第 16 章：TUI 作为事件渲染器
 

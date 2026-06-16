@@ -1,148 +1,328 @@
-
 # Chapter 15: SDKs, Daemons, and Remote Control
 
-> **Reading Contract:** Use this chapter to compare external client reach. Track SDKs, daemon lifecycle, remote control, and which runtime contracts stay shared across surfaces.
+> **Reading Contract:** Use this chapter to answer one practical question: when code outside the core runtime talks to Codex, which layer owns protocol semantics, process lifecycle, restart/reconnect behavior, and recovery? Track three owners - SDK stream routing, daemon process supervision, and remote-control cursor replay - and check afterward whether a "client" is a protocol client, a process wrapper, a lifecycle manager, or a transport bridge.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sdk-daemon-remote-control-df64b03.webp" alt="SDK, daemon, and remote-control map comparing protocol clients, process wrappers, lifecycle management, transports, and shared runtime semantics" loading="eager" decoding="async" />
-  <figcaption>SDKs, daemons, in-process callers, and remote-control bridges have different reach, but they preserve shared protocol semantics.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sdk-daemon-remote-control-569ff6a1-v2.webp" alt="Codex external reach cover showing protocol client, process wrapper, daemon, remote bridge, and one shared app-server contract" loading="eager" decoding="async" />
+  <figcaption>SDKs, daemons, in-process callers, and remote-control bridges reach Codex through different surfaces, but the useful ones preserve the same turn contract instead of inventing new semantics.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** source-level claims in this chapter are **verified source** only when they link to the pinned Codex commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3` or to the Source Map. Design language such as "runtime owner", "transport bridge", "semantic boundary", and "client reach" is **surrounding contract inference** from those visible files. This chapter does not infer OpenAI service internals.
 
-Chapter 14 described the app-server as the contract around shared thread ownership. This chapter follows that contract into the clients and supervisors that make it usable: SDKs that hide protocol mechanics, a daemon that manages local server lifecycle, transports that preserve message semantics, and remote-control streams that carry the same runtime model beyond the local process boundary.
+Chapter 14 treated the app-server as the shared thread contract: multiple connections can start turns, observe notifications, answer server requests, and rejoin running work without directly owning the core session loop. Chapter 15 asks what happens one layer outward, where the same contract has to survive SDK ergonomics, process supervision, and network gaps. Real users do not usually handcraft every JSON-RPC message. They call an SDK, let a daemon find a local server, or cross a remote-control bridge.
 
-The key distinction is between the protocol and the developer experience built on top of it. A protocol schema says which messages exist. An SDK says how a programmer should start a session, route responses, consume turn events, and answer server requests without becoming a protocol engineer. A daemon says how the local app-server process is found, started, probed, restarted, and updated. Remote control says how a backend-mediated client can behave like another connection without pretending the network is reliable.
+The trap is to call all of those surfaces "clients" and stop there. That word hides the important engineering split:
 
+- A **protocol client** must preserve request, response, notification, and server-request semantics.
+- A **process wrapper** may only run a command and parse a JSON event stream.
+- A **daemon** is not an SDK; it owns process lifecycle, pid state, health probing, restart, and update loops.
+- A **remote-control bridge** is not a simple WebSocket; network loss makes cursor, buffering, replay, and connection identity part of correctness.
 
-## Client Taxonomy
+The useful mental model is therefore not "SDKs call the app-server." It is "every external surface either preserves the app-server contract or deliberately exposes a narrower contract."
 
-The system has several client shapes, and they are intentionally not the same.
+## 1. Client Reach Is A Taxonomy, Not A Single Path
 
-| Client shape | Primary boundary | What it optimizes for |
-| --- | --- | --- |
-| Rust app-server client | App-server protocol | Internal callers that want a typed facade while preserving protocol semantics. |
-| Python SDK | App-server v2 over standard I/O | Programmatic thread and turn control with generated model types and stream routing. |
-| TypeScript SDK | `codex exec` JSON event stream | Simple process-driven execution rather than full app-server protocol control. |
-| Daemon-managed client | Local app-server process | Stable local lifecycle, probing, pid files, locks, restart, and update behavior. |
-| Remote-control client | Backend-mediated stream | Remote access to app-server sessions with reconnect, cursor, and replay behavior. |
+The codebase exposes several ways to reach Codex. Their boundaries are intentionally asymmetric.
 
-This taxonomy prevents a misleading sentence such as "the SDK calls the app-server." Some SDKs do. Some intentionally wrap a different command surface. Some clients run in-process. Some reach the server through a daemon-managed socket. The architecture is coherent because each client still respects a clear boundary.
+| Surface | Primary boundary | Verified anchor | Local owner / invariant |
+| --- | --- | --- | --- |
+| Rust app-server transport | App-server message transport | [`AppServerTransport`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L53-L140) | Normalize listener forms and carry `ConnectionOrigin` metadata without changing message meaning. |
+| Python SDK | App-server v2 over stdio | [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72-L175), [`MessageRouter`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_message_router.py#L15-L158) | Keep one stdout reader, typed calls, per-request queues, turn streams, and result projection. |
+| TypeScript SDK | `codex exec` process stream | [`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11-L38), [`Thread.runStreamedInternal`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/thread.ts#L70-L138) | Expose a process-oriented thread API over line-delimited JSON events. |
+| Daemon | Local app-server lifecycle | [`Daemon::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L189-L205), [`PidBackend`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/backend/pid.rs#L52-L194) | Serialize lifecycle changes, probe socket health, publish pid state, and manage restart/update loops. |
+| Remote control | Backend-mediated app-server stream | [`start_remote_control`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/mod.rs#L69-L130), [`ClientTracker`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/client_tracker.rs#L37-L197) | Preserve remote connection identity, chunking, ack cursors, reconnect, and replay. |
 
-The diagram is deliberately asymmetric. The Python SDK and Rust facade are protocol clients. The TypeScript SDK is a process/event-stream client. The daemon is not a user-facing language SDK at all; it is a lifecycle manager. Remote control is a transport bridge with protocol consequences.
+The table matters because it separates contract shape from client ergonomics. First, the TypeScript SDK is not wrong because it is not the Python SDK. It wraps `codex exec`, writes input to a child process, reads line-delimited stdout, and parses `ThreadEvent` values. Second, the daemon is not a convenience flag around `codex app-server`; it is the boundary that makes a long-lived local server safe for short-lived tools.
 
-### Schema as Source of Contract
+### 1.1 Schema gives clients a shared language
 
-The app-server protocol types generate schema artifacts so clients can agree on message shapes without copying handwritten definitions. This matters most when the contract evolves. A field added to a notification, a new server request variant, or an experimental method should be reflected in generated contracts and compatibility filters rather than discovered by a client at runtime.
+The app-server protocol surface has generated types and transport normalization before SDKs make it ergonomic. The transport module accepts `stdio://`, `unix://`, `ws://IP:PORT`, or `off` through [`AppServerTransport::from_listen_url`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L92-L140). The same module represents incoming work through [`TransportEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L150-L165), with an explicit [`ConnectionOrigin`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L167-L173) for `Stdio`, `InProcess`, `WebSocket`, and `RemoteControl`.
 
-Schemas do not eliminate judgment. The server still has to decide which features are stable, which are experimental, which are connection-gated, and which older clients need special handling. But generated contracts reduce the surface area where drift can hide. They make the question concrete: is the client out of date, or is the server sending a shape outside the declared contract?
+That enum is a small but important clue. Above the transport boundary, the runtime can know where a connection came from without changing what a protocol message means. Origin is connection metadata for handling and disconnection paths; the protocol message remains the semantic contract. It is not permission to silently reinterpret `turn/start` or `server request` semantics.
 
-### The Rust Facade
+### 1.2 The public client surface should not leak every protocol detail
 
-The Rust app-server client is closest to the protocol. Its job is not to invent a new abstraction over threads and turns. Its job is to make protocol use reliable from Rust code: send requests, await responses, consume notifications, and preserve the semantics of server requests.
+The Python SDK's public class starts the app-server client and validates initialize metadata before exposing the generated method facade. The verified anchor is [`Codex.__init__`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72-L82), followed by generated methods such as [`thread_start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L140-L175). That is a user-facing surface: callers should see a thread API, not an obligation to write their own response router.
 
-That is a useful design restraint. Internal clients can be tempted to bypass the protocol because they live in the same repository or even the same process. The facade keeps the boundary honest. If a Rust caller observes a thread, starts a turn, or answers an approval, it should do so through the same conceptual contract external clients rely on.
+The TypeScript SDK makes a different tradeoff. [`Codex.startThread()` and `resumeThread()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L21-L38) return a `Thread`, but the implementation runs the `codex` executable. In [`exec.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/exec.ts#L137-L207), a `threadId` becomes `resume <id>`, stdin receives the prompt, stdout becomes a `readline` stream, and each line is yielded to the thread layer. The excerpt below is abbreviated; the omitted middle block handles images, environment construction, API key injection, stderr collection, and exit handling.
 
-### The Python SDK
+```ts
+if (args.threadId) {
+  commandArgs.push("resume", args.threadId);
+}
 
-The Python SDK is a fuller app-server client. It launches or connects to an app-server process over standard I/O, uses generated model types, and exposes developer-facing methods for session control. Its most important internal problem is stream routing.
+// ... image arguments and environment setup omitted ...
 
-Standard I/O gives the SDK one incoming stream. Responses to requests, notifications about active turns, and server requests all arrive through that stream. If two parts of the SDK tried to read from it directly, they would race. The SDK therefore uses one reader and routes messages to queues owned by the waiting request, the turn stream, or the server-request handler.
+const child = spawn(this.executablePath, commandArgs, {
+  env,
+  signal: args.signal,
+});
 
-```text
-pseudocode: SDK stream router
+child.stdin.write(args.input);
+child.stdin.end();
 
-start one reader for the process output stream
+const rl = readline.createInterface({
+  input: child.stdout,
+  crlfDelay: Infinity,
+});
 
-for each incoming protocol message:
-    if it completes a request id:
-        deliver it to the waiter for that id
-    else if it is a turn notification:
-        append it to the stream for the active thread or turn
-    else if it asks the client for a decision:
-        send it to the server-request handler
-    else:
-        report an unknown or unsupported message
+for await (const line of rl) {
+  yield line as string;
+}
+
+// ... spawn errors and non-zero exit handling omitted ...
 ```
 
-This design is not a Python detail. It is the client-side mirror of the app-server contract. The server promises typed messages; the SDK must preserve their ordering and destination without letting concurrent user code steal from the same stream.
+This is a valid SDK boundary, but it is narrower than "app-server client." It is a command wrapper with structured events. Claims about server-request replay, daemon-managed sockets, and remote-control cursors should not be projected onto that SDK unless the pinned source shows those hooks.
 
-One compatibility caveat deserves explicit mention. Default server-request handling can be convenient during automation, but approvals are policy-bearing events. A serious client should choose explicit handlers for command approval, file-change approval, dynamic tool calls, and elicitation rather than accidentally accepting behavior that belongs in the application.
+## 2. SDK Routing: One Ordered Stream, Many Local Owners
 
-### The TypeScript SDK
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sdk-message-router-569ff6a1.webp" alt="Python SDK MessageRouter diagram showing one process stdout reader routing messages to response waiters, turn queues, pending turn replay, global queue, and fail_all" loading="lazy" decoding="async" />
+  <figcaption>The Python SDK keeps one reader on the ordered stdout stream, routes responses and notifications to local owners, and uses the same router to wake blocked operations when the reader fails.</figcaption>
+</figure>
 
-The TypeScript SDK has a different architectural role. It wraps the execution command and consumes an experimental JSON event stream. That makes it useful for scriptable execution flows, but it is not the same thing as a full app-server protocol client.
+The Python SDK's most important internal invariant is visible in [`MessageRouter`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_message_router.py#L15-L29): "only the reader thread should consume stdout." That sentence explains the whole class. Stdio is ordered, but it is not automatically owned. If two high-level SDK methods both read the process output stream, a response can disappear into the wrong caller.
 
-This difference is not a flaw. It is a product choice. A process-oriented SDK can be easier to install, easier to reason about in short-lived jobs, and less coupled to app-server lifecycle. The cost is that it does not expose the complete thread-sharing, server-request, replay, and daemon-managed contract described in Chapter 14. Code that needs those semantics should use a protocol client. Code that needs "run this task and read structured events" may be better served by the command wrapper.
+The router therefore creates local ownership:
 
-### Daemon Lifecycle
+```python
+class MessageRouter:
+    """Route reader-thread messages to the SDK operation waiting for them."""
 
-The daemon turns app-server startup into an operating concern. It manages pid files, operation locks, probing, bootstrap, restart, remote-control enrollment, and update loops. Those words sound mundane until a client tries to connect while the server is starting, restarting, stale, or already owned by another process.
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._response_waiters: dict[str, queue.Queue[ResponseQueueItem]] = {}
+        self._turn_notifications: dict[str, queue.Queue[NotificationQueueItem]] = {}
+        self._pending_turn_notifications: dict[str, deque[Notification]] = {}
+        self._global_notifications: queue.Queue[NotificationQueueItem] = queue.Queue()
+```
 
-The daemon's job is to make the local server discoverable and stable without letting two supervisors corrupt the same state. Operation locks prevent overlapping lifecycle actions. Probing distinguishes "server is healthy" from "pid file exists." Restart behavior gives clients a path out of stale state. Update behavior lets the product improve the server without making every SDK invent a process manager.
+The four routing structures in that excerpt are not implementation decoration. They are the SDK's local equivalent of the app-server contract:
 
-A daemon is not just a convenience wrapper. It is the component that makes a long-lived local contract practical for short-lived tools and SDK processes.
+- `_response_waiters` maps request ids to one-shot JSON-RPC response queues.
+- `_turn_notifications` maps turn ids to queues for streams the caller is already consuming.
+- `_pending_turn_notifications` maps turn ids to deques for early events that arrive after `turn/start` but before the caller has registered the stream.
+- `_global_notifications` receives notifications that are not scoped to a turn.
 
-### Transport Choices
+The early-event case is the one that usually breaks naive SDKs. The source handles it in [`register_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_message_router.py#L53-L65): it pops pending events for the turn and puts them into the newly registered queue. [`route_notification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_message_router.py#L110-L128) does the other half, buffering non-completed turn notifications when the stream queue is not yet present.
 
-Different transports exist because different clients need different process and deployment shapes.
+```python
+def register_turn(self, turn_id: str) -> None:
+    turn_queue: queue.Queue[NotificationQueueItem] = queue.Queue()
+    with self._lock:
+        if turn_id in self._turn_notifications:
+            return
+        pending = self._pending_turn_notifications.pop(turn_id, deque())
+        self._turn_notifications[turn_id] = turn_queue
+    for notification in pending:
+        turn_queue.put(notification)
+```
 
-| Transport | Useful when | Architectural concern |
+This is the client-side version of a runtime recovery rule: "events may arrive before the consumer is ready, but they still belong to the same turn." Without it, fast turns would become flaky only under timing pressure.
+
+### 2.1 Failure must wake every blocked owner
+
+The router also owns failure propagation. [`fail_all`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_message_router.py#L130-L144) snapshots registered turn queues, clears response waiters and the pending-turn buffer, then puts the same exception into every response waiter, registered turn queue, and the global-notification queue. The source comment states the invariant directly: no SDK call should block forever waiting for a response that cannot arrive.
+
+That is why a stream router is more than a multiplexer. It is the local failure boundary. Once the reader thread exits, the router is the only component that knows which user-facing operations might be sleeping.
+
+### 2.2 Result collection is a projection, not the whole stream
+
+The high-level `run()` result is built from notifications. [`_collect_run_result`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_run.py#L59-L83) collects completed items, token usage, and the `turn/completed` notification for the target turn. It raises if the turn completion event never arrives.
+
+That means the public return value is a projection of the stream, not a replacement for the stream. A caller that only needs final text can use `run()`. A caller that needs progressive items, approvals, or custom UI behavior must treat the notification stream as the richer contract.
+
+### 2.3 Python and TypeScript are different on purpose
+
+| Question | Python SDK | TypeScript SDK |
 | --- | --- | --- |
-| Standard I/O | A client launches the server as a child process. | One reader must route all inbound messages. |
-| Local socket with WebSocket-style framing | A daemon or local client connects to an existing server. | Framing and disconnect behavior must match protocol expectations. |
-| Local WebSocket | Browser-like or network-capable local clients need framed messages. | Origin, lifecycle, and backpressure become visible. |
-| In-process transport | Tests or internal callers need the same contract without a process hop. | It must not bypass protocol semantics. |
-| Remote-control stream | A backend connects a remote client to the local app-server. | Reconnect, cursor ack, buffering, and identity are part of correctness. |
+| Primary input/output | App-server protocol over stdio. | `codex exec` process stdin/stdout. |
+| Stream owner | `MessageRouter` owns one reader and per-operation queues. | `readline` yields process output lines. |
+| Turn identity | Protocol methods and generated models expose thread/turn operations. | `thread.started` can set `_id`; `resume <id>` is passed to the executable. |
+| Failure boundary | Router wakes waiters and streams. | Child process errors, non-zero exit, and JSON parse failures become SDK errors. |
+| Best fit | Clients needing app-server semantics. | Scripts needing structured execution events. |
 
-The transport layer should make these options boring above the boundary. A request should not become semantically different because it arrived over a socket instead of standard I/O. What can differ is latency, lifecycle, authentication, framing, and failure behavior.
+This distinction keeps the article honest. If you need shared app-server thread ownership, server-request handling, and remote-control semantics, use a surface that actually exposes that contract. If you need a simple language wrapper around a command, the narrower event-stream surface can be the better tool.
 
-### Remote Control
+## 3. Daemon Lifecycle: Reliability Is Not A PID File
 
-Remote control extends the app-server contract through a backend-mediated stream. The local side enrolls with backend identity and installation metadata. Remote streams are mapped to app-server connection ids. Messages are chunked, cursors are acknowledged, outbound messages are buffered where appropriate, and reconnect can replay data the remote client has not yet acknowledged.
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/daemon-lifecycle-locks-569ff6a1.webp" alt="Daemon lifecycle diagram showing command, lock, probe, pid, backend, ready, update, and stale pid cleanup loop" loading="lazy" decoding="async" />
+  <figcaption>The daemon serializes lifecycle commands with an operation lock, probes actual socket health, reserves pid state under a separate lock, and cleans stale pid records before publishing readiness.</figcaption>
+</figure>
 
-The network makes the hidden assumptions visible. A local socket can often get away with "if it disconnects, it disconnects." Remote control cannot. It needs explicit cursor and replay behavior because a remote client may cross network failures while the local runtime keeps producing notifications.
+A local daemon sounds like a small convenience until two callers try to start, restart, update, or stop the same app-server at the same time. The source makes that risk explicit. The daemon defines state filenames such as [`app-server.pid`, `app-server-updater.pid`, and `daemon.lock`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L24-L31), then routes lifecycle commands through [`Daemon::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L189-L205).
 
-### Compatibility Costs
+The important pattern is that `Start`, `Restart`, and `Stop` acquire the operation lock before touching process state. `Version` does not, because it is a probe-style read.
 
-The app-server protocol has versioned concepts, but evolution still has costs. Some v2 behavior remains anchored to v1 initialization ideas. Some experimental support is checked at runtime and filtered in generated contracts. Some older clients need response or notification workarounds. Some threads are shared by connections with different capability levels.
+```rust
+async fn run(&self, command: LifecycleCommand) -> Result<LifecycleOutput> {
+    match command {
+        LifecycleCommand::Start => {
+            let _operation_lock = self.acquire_operation_lock().await?;
+            self.start().await
+        }
+        LifecycleCommand::Restart => {
+            let _operation_lock = self.acquire_operation_lock().await?;
+            self.restart().await
+        }
+        LifecycleCommand::Stop => {
+            let _operation_lock = self.acquire_operation_lock().await?;
+            self.stop().await
+        }
+        LifecycleCommand::Version => self.version().await,
+    }
+}
+```
 
-These costs are normal for a living protocol. The lesson is not "avoid compatibility"; it is "put compatibility at the boundary." A client-version workaround inside a request processor is easier to remove later than a workaround spread into core runtime state. A feature gate on a connection is easier to reason about than a silent failure in an SDK method. A schema drift check is cheaper than a bug report from a remote client that received an unknown server request.
+The lock itself is not an abstract mutex hidden in memory. [`acquire_operation_lock`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L491-L503) opens the daemon lock file, tries to lock it until a timeout, and sleeps between attempts. That file-backed design matters because separate CLI invocations and update loops can coordinate through the filesystem.
 
-### Failure Modes
+### 3.1 Probe first, then trust process records
 
-SDKs and daemons create their own failure surface.
+The daemon does not equate "pid file exists" with "server is usable." [`start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L207-L237) first loads settings and calls [`client::probe`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/client.rs#L29-L95) on the control socket. The probe connects, upgrades to a WebSocket, sends `initialize`, waits for the matching response, sends `initialized`, closes, and parses the app-server version from the response user agent.
 
-| Failure | Typical symptom | Boundary response |
+That is a stronger signal than a pid file. A stale pid record can remain after a crash. A healthy socket that responds to initialize proves the app-server is actually accepting the protocol.
+
+The daemon repeats this discipline in [`restart`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L239-L262): if a server is running but not managed by the daemon, restart returns an error instead of killing an unknown process. [`wait_until_ready`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L331-L349) polls the same probe until the app-server becomes ready or the start timeout expires.
+
+### 3.2 PID reservation protects the startup gap
+
+The pid backend has its own lock because startup has a dangerous middle state: one process has decided to start the server, but the pid record is not yet fully published. [`PidBackend::start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/backend/pid.rs#L93-L194) creates the pid directory, acquires a reservation lock, creates the pid file with `create_new`, removes stale records, spawns the detached process, reads its start time, writes a temp record, and renames it into place.
+
+The read side treats missing, empty, starting, running, and stale states differently. [`read_pid_file_state`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/backend/pid.rs#L258-L287) returns `Starting` when the pid file is missing but the reservation lock is active. [`refresh_after_stale_record`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/backend/pid.rs#L311-L345) reacquires the reservation lock before removing a stale record.
+
+This is the daemon's invariant ledger:
+
+| Pressure | Simpler approach that fails | Source mechanism | Invariant protected |
+| --- | --- | --- | --- |
+| Two commands start together. | Both spawn a server. | Operation lock in `Daemon::run`. | One lifecycle mutation at a time. |
+| PID exists but server is dead. | Trust the pid file. | Socket `initialize` probe. | Readiness means protocol acceptance. |
+| Process dies after reservation. | Treat empty pid as running. | Reservation lock and starting state. | Startup gap is observable. |
+| Update loop meets a busy daemon. | Restart anyway. | [`try_restart_if_running`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L265-L286) returns `Busy` when lock acquisition fails. | Updates do not race user lifecycle commands. |
+| Server belongs to another owner. | Kill whatever answers the socket. | Managed-backend checks before restart/stop. | Daemon only manages its own backend. |
+
+The daemon is therefore not just "where the server starts." It is the component that makes local app-server reach stable enough for SDKs, UIs, and update flows to depend on.
+
+## 4. Remote Control: Network Loss Becomes Runtime State
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/remote-control-cursor-replay-569ff6a1.webp" alt="Remote-control cursor replay diagram showing remote client, websocket, app-server, client tracker, message chunks, outbound buffer, ack cursor, reconnect, and replay" loading="lazy" decoding="async" />
+  <figcaption>Remote control turns network uncertainty into explicit state: client identity, stream identity, message chunks, outbound buffer entries, ack cursors, reconnect, and replay.</figcaption>
+</figure>
+
+Remote control is the chapter's sharpest boundary because it crosses a network. A local stdio client can often fail fast when the child process exits. A remote client can disconnect while the local runtime continues emitting server messages. If the bridge does not remember what the remote side has acknowledged, the client can silently miss notifications after reconnect.
+
+The remote-control module starts with explicit enablement and status. [`RemoteControlStartConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/mod.rs#L31-L34) carries the remote-control URL and installation id. [`RemoteControlHandle`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/mod.rs#L43-L67) can enable or disable the bridge and expose status updates. [`start_remote_control`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/mod.rs#L69-L130) normalizes the target immediately only when remote control is initially enabled; otherwise the later connect path normalizes it. It also initializes status as `Connecting` or `Disabled`, creates the websocket runner, and returns the handle.
+
+The protocol makes the recovery fields visible. [`ClientEnvelope`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/protocol.rs#L69-L84) includes `client_id`, optional `stream_id`, optional `seq_id`, and optional `cursor`. The source comment says `seq_id` is the backend-generated per-stream cursor for acknowledgements. [`ServerEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/protocol.rs#L93-L118) can carry `ServerMessage`, `ServerMessageChunk`, `Ack`, or `Pong`.
+
+```rust
+pub(crate) struct ClientEnvelope {
+    pub(crate) event: ClientEvent,
+    pub(crate) client_id: ClientId,
+    pub(crate) stream_id: Option<StreamId>,
+    /// For `Ack`, this is the backend-generated per-stream cursor over
+    /// `ServerEnvelope.seq_id`.
+    pub(crate) seq_id: Option<u64>,
+    pub(crate) cursor: Option<String>,
+}
+```
+
+The URL normalizer is also deliberately narrow. [`normalize_remote_control_url`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/protocol.rs#L155-L198) accepts HTTPS URLs for allowed ChatGPT hosts and HTTP/HTTPS only for localhost, then derives enroll and websocket endpoints. This is a transport contract, not a general-purpose arbitrary tunnel.
+
+### 4.1 ClientTracker turns remote messages into app-server connections
+
+[`ClientTracker::handle_message`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/client_tracker.rs#L86-L197) maps incoming remote envelopes to local app-server connection events. On an initialize-style message, it opens a new connection with [`ConnectionOrigin::RemoteControl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/client_tracker.rs#L158-L168). Later messages for the same `(client_id, stream_id)` become `TransportEvent::IncomingMessage`.
+
+That mapping is the bridge's semantic hinge. Remote control is not just "write JSON to a websocket." It creates a normal app-server connection origin, then lets the existing message processor handle app-server semantics above the transport boundary.
+
+### 4.2 OutboundBuffer is the replay ledger
+
+The outbound side stores unacknowledged server envelopes by `(client_id, stream_id)`. [`BoundedOutboundBuffer`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/websocket.rs#L67-L126) inserts every server envelope and removes only what the ack cursor covers.
+
+```rust
+fn ack(
+    &mut self,
+    client_id: &ClientId,
+    stream_id: &StreamId,
+    acked_seq_id: u64,
+    acked_segment_id: Option<usize>,
+) {
+    let key = (client_id.clone(), stream_id.clone());
+    let Some(buffer) = self.buffer_by_stream.get_mut(&key) else {
+        return;
+    };
+    let acked_cursor = (acked_seq_id, acked_segment_id.unwrap_or(usize::MAX));
+    buffer.retain(|server_envelope| {
+        let envelope_cursor = (
+            server_envelope.seq_id,
+            server_envelope.event.segment_id().unwrap_or_default(),
+        );
+        let is_acked = envelope_cursor <= acked_cursor;
+        !is_acked
+    });
+}
+```
+
+The full source also updates a usage watch channel and removes empty buffers. The important article-level point is the comparison key: sequence id plus optional segment id. That is what lets segment acknowledgements advance at wire-chunk granularity instead of pretending a large server message is atomic.
+
+[`run_server_writer_inner`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/websocket.rs#L598-L727) replays existing outbound-buffer envelopes when a websocket writer starts, then assigns contiguous sequence ids per stream to new server events, splits large messages for transport, inserts them into the buffer, and sends their JSON payloads. [`run_websocket_reader_inner`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/websocket.rs#L756-L879) reads client envelopes, stores the subscribe cursor, and calls `outbound_buffer.ack(...)` when it sees an ack with `seq_id` and `stream_id`.
+
+Shape-level sequence:
+
+```text
+connect with subscribe cursor C
+-> writer replays unacked server envelopes still in outbound buffer
+-> new server event gets next per-stream sequence id
+-> large message may split into chunks
+-> remote client sends ack cursor
+-> outbound buffer drops covered sequence/segment entries
+```
+
+No provider-internal behavior is needed for this explanation. The visible source contract already shows why cursor and replay exist: remote control must survive a websocket reconnect without losing app-server messages that the remote side has not acknowledged.
+
+### 4.3 Chunk reassembly is a safety boundary
+
+Remote clients can send chunked messages too. The [`REMOTE_CONTROL_SEGMENT_*` constants](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/segment.rs#L17-L20) define target, max segment, max reassembled size, and max segment count limits, while [`ClientSegmentReassembler`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/segment.rs#L39-L42) owns the in-progress assemblies. [`observe`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/segment.rs#L50-L94) drops segmented envelopes without required `seq_id` or `stream_id`, rejects invalid counts and sizes, and resets state on stream changes. The [`AssemblyUpdate` enum](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/segment.rs#L274-L279) names the outcomes; the [`observe` branch](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/segment.rs#L138-L223) rejects old, mismatched, out-of-order, oversized, invalid-base64, and invalid-JSON chunks before forwarding a reassembled `ClientMessage`.
+
+That is not just defensive parsing. It protects the app-server from receiving half-assembled or replay-confused protocol messages after a network interruption.
+
+## 5. Compatibility Belongs At The Edge
+
+SDKs, daemon supervision, and remote control all add compatibility costs, but the code tries to keep those costs at the boundary:
+
+| Boundary | Compatibility pressure | Edge response |
 | --- | --- | --- |
-| Process launch failure | SDK cannot start a server. | Report startup failure before any request is assumed accepted. |
-| Multiple stdout readers | Responses disappear or reach the wrong waiter. | Use a single reader and route internally. |
-| Stale pid file | Client believes a server exists but cannot connect. | Probe health instead of trusting pid state. |
-| Experimental mismatch | Client calls a method it does not support. | Gate by capability and return a protocol error. |
-| Remote reconnect gap | Client misses notifications after network loss. | Use cursor ack and replay buffered outbound messages. |
+| Python SDK | Initialize metadata can arrive through `serverInfo` or user-agent shape. | [`_validate_initialize`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L90-L130) normalizes required metadata before exposing the SDK. |
+| TypeScript SDK | Existing sessions are resumed through a command-line surface. | [`exec.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/exec.ts#L137-L139) passes `resume <threadId>` to the executable. |
+| Daemon | Server may be already running but not daemon-managed. | [`start`, `restart`, and `stop`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L207-L317) separate healthy unmanaged servers from daemon-owned backends. |
+| Remote control | Old clients may omit `stream_id` during initialization. | [`ClientTracker`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/client_tracker.rs#L97-L118) contains a documented legacy fallback around stream ids. |
+| Remote reconnect | Remote side may have received only part of a stream. | [`BoundedOutboundBuffer`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/websocket.rs#L67-L126) retains unacked envelopes by client and stream. |
 
-The goal is not to hide every failure. The goal is to keep failures located at the right boundary so the caller can decide whether to retry, restart, ask the user, or abort.
+The pattern is transferable: compatibility should be close to the surface that created it. A stream-id fallback belongs in the remote tracker, not in the core turn loop. User-agent normalization belongs in SDK initialize handling, not in every downstream call. Daemon ownership checks belong in process supervision, not in protocol message routing.
 
-### Trace Ledger
+## Common Misreadings
 
-| Question | Chapter 15 answer |
+| Misreading | Correction |
 | --- | --- |
-| Where is the user request now? | It may be inside an SDK call, a daemon-managed server connection, an execution wrapper, or a remote-control stream. |
-| What carries it? | Generated schema models, SDK queues, process streams, daemon probes, socket frames, remote chunks, cursors, and app-server connection ids. |
-| Who decides next? | The SDK router, daemon lifecycle manager, transport adapter, remote bridge, or app-server connection gate. |
-| What can fail here? | Launch failure, stale daemon state, stream routing race, unsupported client capability, transport backpressure, lost remote cursor, or replay mismatch. |
+| "All SDKs are app-server clients." | The Python SDK is an app-server protocol client; the TypeScript SDK wraps `codex exec` and parses JSON event lines. |
+| "A daemon is just a pid file." | The daemon uses operation locks, socket probes, pid reservation locks, stale-record cleanup, and readiness polling. |
+| "Remote control is just a WebSocket." | Remote control adds enrollment, client and stream identity, chunking, ack cursor, outbound buffering, reconnect, and replay. |
+| "Transport differences change turn semantics." | Transport origin is visible, but app-server protocol messages should keep their meaning above the transport boundary. |
+| "Final SDK results are the whole stream." | `run()` projections collect completed items, final response, usage, and failure status; the notification stream remains richer. |
 
 ## Apply This
 
-1. **Separate protocol from ergonomics.** Let schemas define the contract and SDKs define pleasant, safe usage.
-2. **Use one reader per stream.** Route messages internally instead of letting concurrent code compete for protocol bytes.
-3. **Supervise lifecycle explicitly.** Treat pid files, probes, locks, restarts, and updates as part of client reliability.
-4. **Preserve semantics across transports.** Let transports differ in mechanics, not in the meaning of protocol messages.
-5. **Put compatibility at the edge.** Gate experimental and version-sensitive behavior at connection and SDK boundaries.
+1. **Name the client boundary before judging it.** Protocol client, process wrapper, daemon, and remote bridge have different obligations.
+2. **Use one reader per ordered stream.** Route responses and notifications internally so concurrent user code cannot steal protocol bytes.
+3. **Probe health, not just existence.** A pid file is evidence; an initialize response from the control socket is stronger evidence.
+4. **Make reconnect explicit.** If a transport can disconnect while the runtime continues, cursor, buffer, and replay are part of correctness.
+5. **Keep compatibility near its owner.** Normalize SDK metadata in the SDK, process ownership in the daemon, and stream-id fallbacks in remote tracking.
 
 ## Closing
 
-SDKs, daemons, and remote control make the app-server contract reachable from real programs. They also show that a protocol is not finished when message types exist. It becomes usable when lifecycle, routing, transport, and compatibility are engineered as deliberately as the runtime itself. Chapter 16 turns to the most visible client of that contract: the terminal UI.
+SDKs, daemons, and remote control are not accessory code around the "real" runtime. They are where the app-server contract becomes usable from programs, scripts, local supervisors, and remote clients. The source-level theme is consistent: preserve one semantic contract, but let each boundary own the mechanics it is uniquely responsible for. Chapter 16 moves to the most visible local consumer of that contract: the terminal UI.
 
 <div class="source-equivalence">
 
@@ -150,12 +330,20 @@ SDKs, daemons, and remote control make the app-server contract reachable from re
 
 | Concept | Source anchor |
 | --- | --- |
-| App-server daemon lifecycle | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L34) |
-| Remote control mode | [`codex-rs/app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L92) |
-| Transport modes | [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57) |
-| stdio transport | [`codex-rs/app-server-transport/src/transport/stdio.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24) |
-| WebSocket transport | [`codex-rs/app-server-transport/src/transport/websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/websocket.rs#L82) |
-| Python public API | [`sdk/python/src/codex_app_server/api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72) |
-| TypeScript public API | [`sdk/typescript/src/codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11) |
+| Transport modes and connection origin | [`transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L53-L173) |
+| Python SDK public API and initialize normalization | [`api.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/api.py#L72-L175) |
+| Python SDK message routing | [`_message_router.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_message_router.py#L15-L158) |
+| Python SDK run-result projection | [`_run.py`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/python/src/codex_app_server/_run.py#L59-L112) |
+| TypeScript SDK public API | [`codex.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/codex.ts#L11-L38) |
+| TypeScript event stream and `run()` collection | [`thread.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/thread.ts#L70-L138) |
+| TypeScript process wrapper | [`exec.ts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/sdk/typescript/src/exec.ts#L137-L215) |
+| Daemon lifecycle commands, probe, bootstrap, and operation lock | [`app-server-daemon/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/lib.rs#L24-L503) |
+| Daemon control-socket probe | [`client.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/client.rs#L29-L108) |
+| PID backend reservation, stale cleanup, and process start | [`backend/pid.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-daemon/src/backend/pid.rs#L52-L345) |
+| Remote-control start handle | [`remote_control/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/mod.rs#L31-L130) |
+| Remote-control envelope, chunks, ack cursor, and URL normalization | [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/protocol.rs#L45-L198) |
+| Remote-control client tracking and connection origin | [`client_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/client_tracker.rs#L37-L285) |
+| Remote-control websocket buffering, reconnect writer, and ack handling | [`websocket.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/websocket.rs#L67-L879) |
+| Remote-control segment reassembly and drop rules | [`segment.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/remote_control/segment.rs#L17-L245) |
 
 </div>
