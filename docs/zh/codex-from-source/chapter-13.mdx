@@ -1,109 +1,290 @@
-
 # 第 13 章：Sandboxes、网络策略与平台边界
 
-> **阅读契约：** 用本章把 containment 具体化。跟住 sandbox selection、network policy、platform boundaries，以及最终接触外部世界的 executor。
+> **阅读契约：** 用本章跟随一个已获批准的 tool action 进入 containment。请把三个 owner 分开看：permission profile 负责描述允许的副作用；sandbox manager 负责把 profile 变成 execution request；platform backend 负责按操作系统能表达的方式执行。读完之后，你应该能解释为什么 approval 不是 sandbox bypass，为什么“network enabled”不等于“没有网络边界”，以及为什么 macOS、Linux、Windows 不是可以互换的 sandbox 方言。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-network-platform-boundary-df64b03.webp" alt="Sandbox 与网络边界图：展示 permission profiles、平台 transform、macOS Seatbelt、Linux Bubblewrap、Windows identities 和 managed proxy policy" loading="eager" decoding="async" />
-  <figcaption>Containment 是运行时选择结果，由 requested action、permission profile、network policy、platform sandbox 和 executor backend 共同决定。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-boundary-overview-569ff6a1.webp" alt="Codex sandbox boundary overview: tool attempt, permission profile, filesystem policy, network policy, sandbox manager, platform backend, executor, audit" loading="eager" decoding="async" />
+  <figcaption>Containment 发生在 tool 被允许尝试之后。Codex 把请求动作带过 permission profile，拆成 filesystem/network policy，交给 sandbox manager 做平台 transform，最后才进入 executor 和 audit surface。</figcaption>
 </figure>
 
-第 12 章描述了决定副作用能否继续的关卡。本章跟随一个已获批准的动作进入隔离层。Approval 说明谁授权了这次 attempt；sandboxing 说明这次 attempt 仍然能触碰什么。它们是不同控制，Codex 也刻意让它们保持不同。
+**源码边界：** 本章解释的是 OpenAI Codex 在 commit [`569ff6a1`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3) 的公开源码快照。凡是链接到该 commit 的 file path、function name、enum case 和短源码片段，都是 **verified source**。`policy compiler`、`platform dialect`、`containment ledger` 这类说法是基于可见源码的 **surrounding contract inference**，不是对 OpenAI 私有服务内部的断言。跨平台对比只描述 enforcement shape 的差异；本章不声称 macOS Seatbelt、Linux bwrap/seccomp、Windows identity/ACL/WFP 提供完全相同的安全保证。
 
-Sandbox 架构有三个阶段。第一，Codex 把 permission profile 解析成 filesystem policy 和 network policy。第二，sandbox manager 判断当前工具是否需要 platform sandbox，并在需要时改写 command。第三，platform helper 按该操作系统能表达的方式执行改写后的 command。
+第 12 章停在最后一个 approval 边界：tool call 已经被路由，hooks 可以观察或阻断，permission-request hooks 可以回答审批，Guardian 或用户可以批准，sandbox denial 还可能触发一次新的 retry decision。但真正触碰主机的部分还没开始。Approval 回答的是“Codex 可不可以尝试这个副作用？”Sandboxing 回答的是“这个已获批准的 attempt 仍然能触碰什么？”
 
-**源码边界：** sandbox type selection 和 platform choice 是 **verified source**，锚点在 [`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23)；macOS lowering 是 **verified source**，锚点在 [`seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L31)；Linux execution 与 proxy routing 是 **verified source**，锚点在 [`linux-sandbox`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/main.rs#L4) 和 [`proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L169)；Windows setup 是 **verified source**，锚点在 [`windows-sandbox-rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L85)。凡是跨平台等价的表述，都只作为 **surrounding contract inference**；本章不声称不同操作系统能执行完全相同的 sandbox。
+源码把这两个问题分得很开。`ReviewDecision::Approved` 不会让进程突然拥有无限权限。Permission profile 本身也不会执行命令。Platform sandbox 不是通过读 shell 字符串再猜它要做什么来选择的。运行时把一次 execution attempt 放进一条链：
 
+1. 解析 permission profile。
+2. 合并这条 command 获得的 additional permissions。
+3. 把 effective profile 拆成 filesystem policy 和 network policy。
+4. 根据 tool preference、policy shape、managed-network requirements 和平台支持情况选择初始 sandbox type。
+5. 把 command 或 execution request 改写成平台 backend 能执行的形状。
+6. 由 executor 运行改写后的 request，并把 evidence 交回 runtime。
 
-## Policy、Transform、Enforcement
+这就是本章的核心判断：Codex containment 是一条 policy transform pipeline，不是一个单一 sandbox 开关。
 
-这不是一个 sandbox，而是一个 policy compiler 加多个 enforcement backends。Compiler 是跨平台的；enforcement 是平台相关的。因此，同一个 permission profile 在不同操作系统上可能产生不同 command、warning 或 refusal。
+## 一、Approval 结束之后，Containment 才开始
 
-### Permission Profile 是现代单位
+最容易犯的错，是把 approval 当成“关闭 sandbox”的动作。正常路径不是这样。Approval 只允许 tool attempt 继续。后续的 `SandboxAttempt` 仍然把 manager、permission profile、selected sandbox type、managed network flag、sandbox cwd、Linux helper path 和 Windows sandbox settings 带进 transform。
 
-旧配置直接使用 sandbox modes。现代 Codex 把 permission profiles 作为主单位。Profile 可以描述 filesystem access、network behavior、additional granted permissions，以及一个 turn 或 session 内的 active modifications。Runtime 再把 profile 投影成 filesystem sandbox policy 和 network sandbox policy。
+这条桥在 [`SandboxAttempt::env_for`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421) 里很清楚：
 
-Additional permissions 会在 enforcement 前合并。工具可以请求某个可写 root 或 network access。实际 granted subset 会先与请求求交，再并入 effective profile。这样权限授予是有范围的：批准一个请求，不会悄悄把整个 session 变成 unrestricted execution。
-
-```text
-// Pseudocode - simplified for clarity.
-  base_profile = resolved_permissions_for_turn()
-  granted = merge_session_and_turn_grants()
-  effective_profile = apply_additional_permissions(base_profile, granted)
-
-  filesystem_policy, network_policy = split_profile(effective_profile)
-
-  sandbox_type = select_platform_sandbox(
-      filesystem_policy,
-      network_policy,
-      tool_preference,
-      managed_network_enabled
-  )
-
-  transformed = transform_command_for_platform(
-      command,
-      sandbox_type,
-      effective_profile,
-      network_proxy_state
-  )
-
-  execute(transformed)
+```rust
+self.manager
+    .transform(SandboxTransformRequest {
+        command,
+        permissions: self.permissions,
+        sandbox: self.sandbox,
+        enforce_managed_network: self.enforce_managed_network,
+        network,
+        sandbox_policy_cwd: self.sandbox_cwd,
+        codex_linux_sandbox_exe: self.codex_linux_sandbox_exe.map(PathBuf::as_path),
+        use_legacy_landlock: self.use_legacy_landlock,
+        windows_sandbox_level: self.windows_sandbox_level,
+        windows_sandbox_private_desktop: self.windows_sandbox_private_desktop,
+    })
 ```
 
-关键点是 transform 接收 policy，而不是通过检查 command string 重新发现权限。
+这个片段删掉了后续包装，只保留 handoff。重点不是 Rust 结构体语法，而是 owner boundary：tool attempt 携带的不是裸 `argv`，而是必须被降低成 execution request 的 policy context。
 
-### macOS：生成 Seatbelt Profile
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-attempt-transform-569ff6a1.webp" alt="Codex sandbox attempt lifecycle: approval result, sandbox attempt, effective profile, select sandbox, transform, child process, evidence, denial, retry approval, no sandbox" loading="lazy" decoding="async" />
+  <figcaption>Sandbox denial 不等于 approval 失败。它创建一条新分支：Codex 可以再次请求 retry approval，然后才创建单独的 no-sandbox attempt。</figcaption>
+</figure>
 
-在 macOS 上，Codex 会把 policy 降低成 Seatbelt profile，并通过固定的平台 sandbox runner 执行。生成的 profile 表达 readable roots、writable roots、protected metadata、denied read patterns、allowed sockets 和 network proxy allowances。Sandbox runner path 不通过用户 shell 的 `PATH` 查找；它是平台边界，不是便利命令。
+这样 retry path 才有清晰语义。第一次 sandboxed attempt 被平台拒绝时，orchestrator 可以为 no-sandbox retry 问一个新的 approval question。这个 retry 是新的风险决策，不是藏在 approval 里的静默逃逸。把这两个阶段混起来，后面的安全分支都会读错。
 
-Seatbelt 很适合表达文件访问和部分 socket allow rules，但 runtime 仍要仔细准备 policy。Path normalization、protected subpaths、missing paths 和 proxy sockets 都在 helper 运行前解析好。如果 transform 不能在平台上忠实表达请求的 policy，安全结果应该是拒绝或更窄执行，而不是无标记 fallback。
+## 二、Permission Profile 是 Codex 编译的单位
 
-### Linux：Bubblewrap、Namespaces、Seccomp 与 Proxy Routing
+旧的直觉是“sandbox mode”。这个快照里的源码更接近“permission profile”。Profile 可以来自 built-ins、自定义配置，也可以叠加 command-scoped additions。它随后被编译成两个 runtime policies：[`FileSystemSandboxPolicy`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L176-L180) 和 [`NetworkSandboxPolicy`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L78-L93)。
 
-在 Linux 上，Codex 使用 helper path，优先通过 Bubblewrap 构造 filesystem layout 和 namespace isolation。Helper 默认构造 read-only view，再把 writable roots bind 回来，把 protected subpaths 重新挂成 read-only，mask denied paths，并按 path specificity 处理更窄的 allow/deny carveouts。对兼容的 legacy policy，它也能走 legacy Landlock path。
+Built-in profile resolver 在 [`core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L54-L80) 里把 profile name 映射成 `read_only`、`workspace_write` 或 `Disabled`。自定义 profile compiler 会遍历 filesystem entries，对非 macOS 平台不支持的 glob 形状发 warning，校验 glob scan depth，并计算 network policy（[`compile_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L175-L234)）。Network runtime policy 的枚举很小：
 
-网络隔离是分层的。普通 restricted networking 足够时，helper 可以 unshare network namespace。Managed proxy routing 开启时，它会创建到配置 proxy endpoints 的受限路径，然后应用 seccomp，让命令不能用常见方式打开 bypass sockets。这比只设置 proxy environment variables 更强。
+```rust
+pub enum NetworkSandboxPolicy {
+    Restricted,
+    Enabled,
+}
+```
 
-Linux 还需要处理平台边界。无法提供所需 namespace 行为的 WSL 环境，会拒绝需要 Bubblewrap 的 sandboxed commands。缺少或不适合的 Bubblewrap 支持可能产生 startup warnings 或 bundled-helper fallback，但 runtime 仍会把边界暴露出来，而不是假装所有 Linux host 都等价。
+小不代表简单。`Restricted` 后续可能意味着“禁网”、“只允许 proxy sockets”、“unshare network namespace”，也可能意味着“准备 Windows firewall/WFP 状态”，取决于平台和 managed-network settings。`Enabled` 在 managed proxy 存在时也可能经过 proxy environment injection。这个 enum 是 policy signal，不是完整 packet-filter 说明书。
 
-### Windows：Identities、ACL、Firewall 与 WFP
+### 2.1 Additional Permissions 保持局部
 
-Windows 有两类主要 sandbox 路径：legacy restricted-token path，以及围绕 dedicated sandbox identities 构建的 elevated backend。Elevated path 会执行 setup 工作，例如创建或刷新用户、ACL、capability SIDs、firewall rules 和 Windows Filtering Platform filters。普通命令随后可以通过 runner protocol 在准备好的 identity 下运行。
+Command-scoped additional permissions 会在 enforcement 前合并。在 [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L69) 中，additional filesystem paths 会被 normalize，重复条目会被去掉，glob 的 read/write addition 会被拒绝，因为这条 additional-permission 路径只支持 deny-read glob entries。随后 runtime 重新计算 effective profile：
 
-这个拆分很重要，因为 Windows 不总能表达和 Unix sandboxes 相同的嵌套 filesystem policy。所选 backend 如果不能执行请求的 split filesystem policy，Codex 应拒绝，而不是 unsandboxed 运行并称其等价。平台边界本身就是安全模型的一部分。
+```rust
+let (file_system_policy, network_policy) = permission_profile.to_runtime_permissions();
+let effective_file_system_policy =
+    effective_file_system_sandbox_policy(&file_system_policy, additional_permissions);
+let effective_network_policy =
+    effective_network_sandbox_policy(network_policy, additional_permissions);
+PermissionProfile::from_runtime_permissions_with_enforcement(
+    permission_profile.enforcement(),
+    &effective_file_system_policy,
+    effective_network_policy,
+)
+```
 
-### Managed Network 不是通用防火墙
+这个源码形状保护了一个重要 invariant：给某个 tool 额外放开一个 writable root 或 network allowance，不会把 session base policy 原地改写。Transform 接收的是本条 command path 的 effective profile，而外层 runtime 仍然能分辨 grant 从哪里来。
 
-Codex 的 managed network proxy 是 application-level boundary。它可以运行 HTTP 和 SOCKS listeners，注入 proxy environment，评估 host/domain policy，在可见时执行 limited method policy，向 decider 请求 approval，并发出 audit records。它也可以和 platform forcing 配合，使 sandboxed command 没有简单路径绕过 proxy。
+### 2.2 Profile 先拆 policy，再进平台代码
 
-它不是通用 packet firewall。DNS rebinding、non-proxy-aware programs 和 host-level networking controls 属于平台或基础设施层。准确说法是：managed proxy 加 platform routing 可以强力塑造应用流量；但不应单独宣称自己提供完整网络隔离。
+拆成 filesystem policy 和 network policy 发生在 macOS、Linux、Windows 代码表达它们之前。这个顺序能防止两个错误说法：不能说“Linux 就是 sandbox”，也不能说“Seatbelt 就是 policy”。Platform helpers 是 enforcement dialects；permission profile 才是 runtime 想要降低的 source-level contract。
 
-### Shell Escalation
+| Profile 压力 | 源码机制 | 保护的 invariant |
+| --- | --- | --- |
+| 默认执行需要一个合理 containment baseline | [`permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L32-L80) 中的 built-in profile name 和 resolver | Session 从命名 profile 开始，而不是靠命令字符串临时猜权限。 |
+| 自定义 filesystem shape 可能包含不被平台支持的 glob | [`compile_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L191-L207) 里的 compiler warnings | 平台差异会暴露出来，而不是被静默放宽。 |
+| 单条 command 可能获得更窄的 grant | [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L119) 中的 additional-permission normalization 和 merge | 局部 grant 不会变成全局 session authority。 |
+| Managed network 可能在 filesystem 很宽时仍要求平台 forcing | [`should_require_platform_sandbox`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L509-L528) | Network requirements 可以独立于 file writes 强制选择 sandbox。 |
 
-某些 shell 路径在 sandbox denial 后需要请求 unsandboxed 或 escalated execution。Codex 把这当作新的风险决策。Shell escalation adapter 会把 wrapper protocol 和最终 process spawn 分开，通常通过 local socket 或 inherited channel 完成。这样 runtime 仍能围绕 escalation 保持 approval 和 audit semantics，而不是让 shell 静默逃出自己的 sandbox。
+## 三、Sandbox Manager 选择平台方言
+
+选出来的 sandbox type 在 [`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23-L28) 里是显式枚举：
+
+```rust
+pub enum SandboxType {
+    None,
+    MacosSeatbelt,
+    LinuxSeccomp,
+    WindowsRestrictedToken,
+}
+```
+
+这些名字需要小心读。`LinuxSeccomp` 是 manager 层的 sandbox type 名字，但真实 Linux 路径可以包含 bwrap filesystem layout、namespace work，然后再应用 seccomp。`WindowsRestrictedToken` 命名了一个 Windows sandbox branch，但 elevated Windows backend 还会准备 identities、ACL、firewall rules 和 WFP state。这个 enum 是 runtime routing value，不是完整 security design document。
+
+平台选择本身很窄：
+
+```rust
+pub fn get_platform_sandbox(windows_sandbox_enabled: bool) -> Option<SandboxType> {
+    if cfg!(target_os = "macos") {
+        Some(SandboxType::MacosSeatbelt)
+    } else if cfg!(target_os = "linux") {
+        Some(SandboxType::LinuxSeccomp)
+    } else if cfg!(target_os = "windows") {
+        if windows_sandbox_enabled {
+            Some(SandboxType::WindowsRestrictedToken)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+```
+
+随后 [`SandboxManager::select_initial`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L139-L166) 应用 tool preference：
+
+| Preference | Runtime 语义 |
+| --- | --- |
+| `Forbid` | 选择 `SandboxType::None`。这条 tool path 明确不走 platform sandbox。 |
+| `Require` | 当前 OS 暴露平台 sandbox 时，要求使用它。 |
+| `Auto` | 只有 filesystem、network 或 managed-network requirements 需要时才要求 platform sandbox。 |
+
+Transform step 会拿着 selected type 构造平台形状的 `SandboxExecRequest`（[`manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L168-L260)）。有三个细节最关键：
+
+- `effective_permission_profile` 是在 transform 内部、取出 command-scoped additions 之后计算的。
+- macOS 和 Linux 会把 `argv` 改写成 wrapper/helper command。
+- Windows 在这个 transform 层保持 command vector 不变，把 sandbox metadata 带给 Windows execution backend。
+
+因此，“命令字符串看起来不危险”不是边界。Runtime 不是事后从 shell syntax 猜 authority，而是先编译 policy，选择 dialect，再让 dialect 表达边界。
+
+## 四、平台后端并不等价
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/platform-sandbox-backends-569ff6a1.webp" alt="Codex platform sandbox backends: shared policy lowered into macOS Seatbelt, Linux bwrap plus seccomp, Windows identity ACL WFP, fail closed" loading="lazy" decoding="async" />
+  <figcaption>Shared policy 会被降低到不同操作系统方言。可移植的是请求的边界；enforcement mechanism 是平台相关的。</figcaption>
+</figure>
+
+### 4.1 macOS 生成 Seatbelt Profile
+
+在 macOS 上，transform 会为固定 Seatbelt executable 构造参数。[`MACOS_PATH_TO_SEATBELT_EXECUTABLE`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L25-L29) 是 `/usr/bin/sandbox-exec`，不是通过用户 shell 的 `PATH` 找到的便利命令。[`create_seatbelt_command_args`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L592-L727) 会把 read policy、write policy、deny-read glob policy、network policy 和 directory parameters 拼成一个 profile。
+
+macOS network generator 展示了最需要谨慎的部分。在 [`dynamic_network_policy_for_network`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L257-L313) 里，proxy ports、proxy configuration、managed-network enforcement 和 Unix-domain socket needs 都可能强制进入 restricted-network branch。在这个 pinned snapshot 中，proxy configuration 和 `enforce_managed_network` 已经是该 branch condition 的一部分，所以它们会停留在 restricted path。这个 branch 只会为显式 proxy ports 添加 outbound loopback allowances，并按条件添加 local-binding 或 Unix-socket allowances；如果没有推断出 loopback proxy ports，生成的 profile 仍然是受限的，而不是静默打开 broad outbound traffic。
+
+所以 macOS 边界不只是“跑 sandbox-exec”。准确说是：生成一个能表达该 profile 的 policy，覆盖 filesystem roots、protected metadata、denied read patterns、sockets 和 network/proxy behavior，然后通过固定平台 runner 执行。
+
+### 4.2 Linux 先构造 Filesystem View，再应用 Seccomp
+
+Linux 上，manager 会走 Codex Linux sandbox helper。Helper 在 [`linux_run_main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L143-L147) 的注释直接写出执行顺序：
+
+```rust
+/// 1. When needed, wrap the command with bubblewrap to construct the
+///    filesystem view.
+/// 2. Apply in-process restrictions (no_new_privs + seccomp).
+/// 3. `execvp` into the final command.
+```
+
+这就是为什么本文说 “Linux bwrap plus seccomp”。bwrap 构造 filesystem view 和 namespace 条件；inner stage 在最终 `execvp` 之前应用 seccomp/no-new-privileges。代码里也有 legacy Landlock branch，用于兼容的 legacy policies；但当前 bwrap 路径不会在所需平台行为不可用时假装成功。Manager 在构造 Linux command 前会检查 WSL1 和 bubblewrap support（[`manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L217-L239)）。
+
+Network 会进入 bwrap mode。[`bwrap_network_mode`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L361-L372) 在 managed proxy routing 开启时选择 `ProxyOnly`，在 network policy enabled 时选择 `FullAccess`，否则选择 `Isolated`。Managed proxy routing 随后在 host 侧准备 proxy sockets，并在 namespace 内重写 proxy environment（[`proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L70-L156)）。
+
+### 4.3 Windows 把工作放进 Setup 和 Runner Backends
+
+Windows transform branch 很容易被误读，因为 manager 没有像 macOS/Linux 那样 prepend wrapper executable。Transform 中的 `WindowsRestrictedToken` 返回原始 `argv`，同时把 sandbox type、Windows level、private desktop flag、permission profile、filesystem policy 和 network policy 放进 `SandboxExecRequest`（[`manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L241-L258)）。
+
+真正的 enforcement work 在 Windows sandbox crate 里。Setup refresh 会构造 elevation payload，里面包含 read roots、write roots、deny-write paths、proxy ports 和 local-binding behavior（[`setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L159-L192)）。Elevated setup path 会构造类似 payload，并判断是否需要 elevation（[`setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L710-L742)）。Elevated spawn backend 会准备 context，并带着 capability SIDs 和 sandbox credentials 发送 runner request（[`elevated.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/unified_exec/backends/elevated.rs#L22-L71)）。
+
+Identity、ACL、firewall 和 WFP 这些标签不是装饰。[`spawn_prep.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/spawn_prep.rs#L157-L330) 会准备 token、sandbox credentials、capability SIDs 和按 policy 计算的 ACL inputs；[`acl.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/acl.rs#L54-L260) 会读取并更新 DACL/ACE state。Setup helper 的 [`firewall.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/bin/setup_main/win/firewall.rs#L53-L202) 会配置 offline outbound 和 loopback proxy block rules；[`wfp_setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp_setup.rs#L126-L174) 会为 offline account 调用 [`install_wfp_filters_for_account`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp.rs#L75-L95)。具体 WFP filter shape 可以在 [`filter_specs.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp/filter_specs.rs#L25-L124) 里直接看到：按 user scoped 的 ICMP、DNS ports 和 SMB ports block。
+
+Legacy backend 有明确限制：它会拒绝 restricted read-only access，并说明该形状需要 elevated Windows sandbox backend（[`legacy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/unified_exec/backends/legacy.rs#L282-L306)）。这就是“有 Windows 分支”和“每个 Windows backend 都能表达每种 profile”之间的实际差别。
+
+### 4.4 正确的对照表
+
+| Platform path | Transform 或 backend 改变了什么 | Network expression | 必须诚实说明的边界 |
+| --- | --- | --- | --- |
+| macOS Seatbelt | 用 `/usr/bin/sandbox-exec` 和生成的 profile arguments 包装 command。 | 生成 policy 允许或拒绝 network、proxy ports 和 selected sockets。 | Policy generation 表达力强，但仍受 Seatbelt grammar 和 endpoint discovery 限制。 |
+| Linux bwrap/seccomp | 运行 Codex helper，构造 filesystem/namespace view，再在 `execvp` 前应用 no-new-privileges 和 seccomp。 | bwrap mode 选择 isolated、full access 或 proxy-only；proxy routes 可以 bridge 进 namespace。 | Host support 很关键：WSL1 和不合适的 bwrap 行为是真实平台边界。 |
+| Windows identity/ACL/WFP | Transform 把 metadata 带进 Windows setup 和 runner backends。 | Offline proxy settings、firewall allow/block rules 和 WFP setup 都参与 containment。 | Backend level 很关键；legacy 和 elevated paths 不能执行同样的 policy shapes。 |
+| `SandboxType::None` | 不应用 platform sandbox wrapper。 | Host process/network environment 不能被描述成等价 containment。 | 它是显式 unsandboxed path 或 unsupported platform result，不是隐藏 sandbox。 |
+
+## 五、Managed Network 强于环境变量，弱于通用防火墙
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/managed-network-boundary-569ff6a1-v2.webp" alt="Codex managed network boundary: tool process, proxy env, loopback proxy, policy decider, exact and wildcard domain rules, limited methods, platform forcing, audit, not a firewall" loading="lazy" decoding="async" />
+  <figcaption>Managed network 是 application proxy，加上可用时的平台 forcing。它可以强力塑造允许的流量，但不应被描述成通用 packet firewall。</figcaption>
+</figure>
+
+Proxy code 是很多描述走偏的地方。说得太弱，就会变成“Codex 只是设置 `HTTP_PROXY`”。说得太强，又会变成“Codex 有完整网络防火墙”。源码落在这两者之间。
+
+Proxy builder 可以 reserve HTTP 和 SOCKS listeners，应用 proxy environment overrides，为 loopback 和 private IP literals 设置 `NO_PROXY` defaults，对齐 websocket proxy environment variables，并在 SOCKS enabled 时设置 `ALL_PROXY`（[`proxy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/proxy.rs#L472-L535)）。Domain rules 会被 normalize 成 exact hosts 或 scoped wildcard host patterns，例如 `*.example.com` 和 `**.example.com`；denylist 会拒绝全局 `*` wildcard（[`policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/policy.rs#L193-L212)）。关键区别是 scope：允许的是有边界的 host pattern，而不是 bare match-everything rule。
+
+Limited method rule 在测试里很直接：
+
+```rust
+assert!(NetworkMode::Limited.allows_method("GET"));
+assert!(NetworkMode::Limited.allows_method("HEAD"));
+assert!(NetworkMode::Limited.allows_method("OPTIONS"));
+assert!(!NetworkMode::Limited.allows_method("POST"));
+assert!(!NetworkMode::Limited.allows_method("CONNECT"));
+```
+
+这段测试来自 [`network-proxy/src/policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/policy.rs#L369-L375)。这也是网络图把 `GET`、`HEAD`、`OPTIONS` 画成 limited mode allowed，而把 `POST`/`CONNECT` 画成 blocked 的原因。
+
+平台集成让它不只是普通环境变量提示：
+
+- macOS 上，生成的 Seatbelt policy 可以在需要 managed network 时把 network access 限制到 loopback proxy ports 和 selected Unix sockets。
+- Linux 上，proxy-only bwrap mode 可以把 proxy routes bridge 进 network namespace，再应用 seccomp。
+- Windows 上，setup payload 会携带 proxy ports 和 local-binding behavior，firewall 与 WFP setup 也参与 offline identity boundary。
+
+诚实的边界应该这样说：managed network 在 clients 和 platform constraints 配合时，可以路由并审查 application traffic；但它本身不能证明每一种 packet、DNS behavior 或 host-level escape 都被 proxy layer 控住。
+
+## 六、失败边界本身就是设计的一部分
+
+源码里有一些很容易被文章磨平的 failure edges。磨平它们会让文章更顺，但更没用。
+
+| 误读 | 源码正确读法 | 为什么重要 |
+| --- | --- | --- |
+| Approval 意味着“在 sandbox 外运行”。 | Approval 允许 attempt 继续；`SandboxAttempt::env_for` 仍然带着 policy 和 sandbox metadata 调 transform。 | Reviewer 可以批准命令，但不等于授予无限主机触达。 |
+| Permission profile 就是 sandbox。 | Profile 编译成 filesystem/network policies，再由平台 dialect 执行它能表达的部分。 | Config review 和 platform review 是不同工作。 |
+| Linux sandboxing 只有 seccomp。 | 当前 helper 可以先构造 bwrap filesystem/namespace view，再应用 seccomp；legacy Landlock 是另一条路径。 | File visibility 和 syscall filtering 是两层。 |
+| Windows transform 不包装 argv，所以没有 Windows sandbox。 | Windows 把 sandbox metadata 带进 setup 和 runner backends，而不是复制 Unix wrapper 形状。 | 看起来相同的 command vector，仍可能在不同 identity、ACL/firewall state 下运行。 |
+| Managed network 是 packet firewall。 | 它是 proxy boundary，可用时配合 platform forcing，并在可见层做 domain/method policy 和 audit。 | 过度承诺会让 non-proxy-aware programs 和 host networking 的空隙更难讨论。 |
+| `SandboxType::None` 是无害 fallback。 | 它是显式 no-platform-sandbox path 或 unsupported-platform result，不能被描述为等价 containment。 | UI、logs 和文章都不应该隐藏 containment 缺席。 |
 
 ## 应用到实践
 
-1. **区分授权与隔离。** Approval 允许动作继续；sandboxing 限制动作还能做什么。
-2. **执行前编译策略。** 先把 profiles 解析成 filesystem/network policy，再做平台 transform。
-3. **把平台当作不同 backend。** 不要假设 macOS、Linux、Windows 能执行完全相同的边界形状。
-4. **精确描述网络保证。** Managed proxy 配合 platform forcing 很强，但不是通用防火墙。
-5. **无法验证隔离时拒绝。** Backend 不能执行请求边界时，fail closed，而不是无标记运行。
+可以带走的规则很简单：把 authority、profile、transform、backend 放在不同盒子里。
 
-第三部分到这里结束：模型提出动作，Codex 路由它、治理它，通过结构化协议完成 mutation，经过 approval gates，最后把 policy 降低为平台执行。第四部分会打开 runtime 给更多客户端，让它们共享同一套 thread 和 side-effect model。
+1. **区分 approval 和 containment。** Approval 授权 attempt；sandbox transform 仍然决定 process boundary。
+2. **执行前先编译 profile。** 先看 effective filesystem/network policies，再判断平台行为。
+3. **说清平台方言。** 用 Seatbelt、bwrap/seccomp、Windows identity/ACL/WFP 或 no sandbox，而不是笼统说“sandbox”。
+4. **精确描述网络保证。** Managed proxy 加 platform forcing 很有意义，但它不是通用 packet firewall。
+5. **把 containment 缺席当成一等状态。** `SandboxType::None`、missing helpers 和 unsupported host features 都应该在 UI、logs 和文章里可见。
+
+| 当你看到... | 该问什么 | 应该查的源码 owner |
+| --- | --- | --- |
+| 用户或 hook approval | 它只是 authorize attempt，还是也请求了 no-sandbox retry？ | 第 12 章里的 tool orchestrator 和 approval decision flow。 |
+| Permission profile name | 它会编译成哪些 filesystem/network policies？ | [`core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L54-L80) 与 [`protocol/src/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L78-L180)。 |
+| 带额外 grant 的 command | 这些 grants 是否只为本条 effective profile normalize 和 merge？ | [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L119)。 |
+| Selected sandbox type | 请求的是哪种平台 dialect，当前 host 能不能提供？ | [`SandboxManager::select_initial`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L139-L166)。 |
+| Network claim | 它是 proxy policy、platform forcing、两者都有，还是都没有？ | [`network-proxy`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src) 和平台 sandbox sources。 |
+| Platform error | 这是 policy refusal、missing helper、unsupported OS capability，还是 backend limitation？ | Platform-specific transform 和 setup sources。 |
+
+第三部分到这里结束。Runtime 已经把模型提出的副作用带过 routing、governance、mutation protocols、hook/approval gates、retry semantics、permission compilation 和 platform containment。第四部分会从本地执行走向 clients 与 external runtimes：app-server、cloud tasks、memory 和 release machinery 都依赖同一条纪律，即 typed boundaries，而不是隐式副作用。
 
 <div class="source-equivalence">
 
 ## 源码地图
 
-| 概念 | 源码锚点 |
-| --- | --- |
-| Sandbox type selection | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23) |
-| Platform sandbox choice | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L48) |
-| macOS Seatbelt policy | [`codex-rs/sandboxing/src/seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L31) |
-| Linux helper entry | [`codex-rs/linux-sandbox/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/main.rs#L4) |
-| Linux proxy routing | [`codex-rs/linux-sandbox/src/proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L169) |
-| Windows sandbox setup | [`codex-rs/windows-sandbox-rs/src/setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L85) |
-| Network proxy policy | [`codex-rs/network-proxy/src/config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/config.rs#L271) |
+| Evidence class | Claim | Source anchor |
+| --- | --- | --- |
+| Verified source | Built-in profile resolution 会把 profile names 映射到 read-only、workspace-write 或 disabled profiles。 | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L54-L80) |
+| Verified source | Custom profiles 会在 platform transforms 之前编译 filesystem entries 和 network policy。 | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L175-L234) |
+| Verified source | Network sandbox policy 在 runtime policy 层只有 `Restricted` 和 `Enabled` 两种 case。 | [`codex-rs/protocol/src/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L78-L93) |
+| Verified source | Additional permissions 会被 normalize，并合并进 effective permission profile。 | [`codex-rs/sandboxing/src/policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L119) 和 [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L493-L507) |
+| Verified source | Sandbox type selection 区分 `None`、macOS Seatbelt、Linux seccomp 和 Windows restricted-token routes。 | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23-L61) |
+| Verified source | Initial sandbox selection 使用 tool preference、runtime policies、Windows level 和 managed-network requirements。 | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L139-L166) |
+| Verified source | Sandbox attempt 会把 command、permissions、selected sandbox、network proxy state、cwd 和 platform options 交给 transform。 | [`codex-rs/core/src/tools/sandboxing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421) |
+| Verified source | macOS transform 通过 `/usr/bin/sandbox-exec` 和生成的 policy sections 构造 Seatbelt command。 | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L193-L214) 和 [`seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L592-L727) |
+| Verified source | macOS proxy configuration 和 managed-network enforcement 会强制进入 restricted-network branch；只有显式 loopback proxy ports 会添加 outbound allowances。 | [`codex-rs/sandboxing/src/seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L257-L313) |
+| Verified source | Linux helper 会构造 bwrap filesystem/namespace state，应用 seccomp/no-new-privileges，再 exec command。 | [`codex-rs/linux-sandbox/src/linux_run_main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L143-L250) |
+| Verified source | Linux proxy routing 会在 host 侧准备 loopback proxy routes，并在 namespace 内重写 proxy environment。 | [`codex-rs/linux-sandbox/src/proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L70-L156) |
+| Verified source | Windows sandbox setup 会把 roots、deny-write paths、proxy ports 和 local-binding behavior 带进 elevated setup。 | [`codex-rs/windows-sandbox-rs/src/setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L159-L192) 和 [`setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L710-L742) |
+| Verified source | Windows spawn preparation 会选择 sandbox credentials、capability SIDs 和 ACL inputs；ACL helpers 会读取并更新 DACL/ACE state。 | [`codex-rs/windows-sandbox-rs/src/spawn_prep.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/spawn_prep.rs#L157-L330) 和 [`acl.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/acl.rs#L54-L260) |
+| Verified source | Windows firewall setup 会配置 offline outbound 和 loopback proxy rules；WFP setup 会安装 account-scoped filters。 | [`firewall.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/bin/setup_main/win/firewall.rs#L53-L202), [`wfp_setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp_setup.rs#L126-L174), [`wfp.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp.rs#L75-L95), 和 [`filter_specs.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp/filter_specs.rs#L25-L124) |
+| Verified source | Windows legacy backend 会拒绝 restricted read-only access，并要求 elevated backend 执行该形状。 | [`codex-rs/windows-sandbox-rs/src/unified_exec/backends/legacy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/unified_exec/backends/legacy.rs#L282-L306) |
+| Verified source | Limited network mode 允许 `GET`、`HEAD`、`OPTIONS`，但不允许 `POST` 或 `CONNECT`。 | [`codex-rs/network-proxy/src/policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/policy.rs#L369-L375) |
+| Surrounding contract inference | 可移植抽象是一条 permission-profile-to-platform-transform pipeline；OS backends 不等价。 | 由上述 manager、policy transform、platform helper 和 proxy sources 综合得出。 |
 
 </div>

@@ -1,116 +1,290 @@
-
 # Chapter 13: Sandboxes, Network Policy, and Platform Boundaries
 
-> **Reading Contract:** Use this chapter to make containment concrete. Track sandbox selection, network policy, platform boundaries, and the executor that finally touches the outside world.
+> **Reading Contract:** Use this chapter to follow an approved tool action into containment. Track three owners separately: the permission profile that describes allowed effects, the sandbox manager that turns that profile into an execution request, and the platform backend that enforces what its operating system can actually express. After reading, you should be able to explain why approval is not a sandbox bypass, why "network allowed" is not the same as "no network boundary", and why macOS, Linux, and Windows are not interchangeable sandbox dialects.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-network-platform-boundary-df64b03.webp" alt="Sandbox and network boundary map showing permission profiles, platform transforms, macOS Seatbelt, Linux Bubblewrap, Windows identities, and managed proxy policy" loading="eager" decoding="async" />
-  <figcaption>Containment is selected at runtime from requested action, permission profile, network policy, platform sandbox, and executor backend.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-boundary-overview-569ff6a1.webp" alt="Codex sandbox boundary overview showing tool attempt, permission profile, filesystem policy, network policy, sandbox manager, platform backend, executor, and audit" loading="eager" decoding="async" />
+  <figcaption>Containment starts after a tool is allowed to try. Codex carries the requested action through a permission profile, splits it into filesystem and network policy, asks the sandbox manager for a platform transform, and only then reaches the executor and audit surface.</figcaption>
 </figure>
 
-Chapter 12 described the gates that decide whether a side effect may proceed. This chapter follows an approved action into the isolation layer. Approval says who authorized the attempt. Sandboxing says what the attempt can still touch. Those are different controls, and Codex keeps them different.
+**Source boundary:** this chapter explains the public OpenAI Codex snapshot pinned at commit [`569ff6a1`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). File paths, function names, enum cases, and short code excerpts are **verified source** when linked to that commit. Terms such as "policy compiler", "platform dialect", and "containment ledger" are **surrounding contract inference** from visible source, not claims about private OpenAI service internals. Cross-platform comparisons are deliberately framed as differences in enforcement shape; this chapter does not claim that macOS Seatbelt, Linux bwrap/seccomp, and Windows identities/ACL/WFP provide identical guarantees.
 
-The sandbox architecture has three stages. First, Codex resolves a permission profile into filesystem and network policy. Second, a sandbox manager decides whether the current tool needs a platform sandbox and transforms the command when it does. Third, a platform helper enforces the transformed command as well as that operating system allows.
+Chapter 12 stopped at the last approval boundary. A tool call had been routed, hooks could observe or block it, permission-request hooks could answer approval, Guardian or the user could approve, and a sandbox denial could trigger a new retry decision. That still leaves the part of the runtime that actually touches the host. Approval answers "may Codex try this side effect?" Sandboxing answers "what can the approved attempt still reach?"
 
-**Source boundary:** sandbox type selection and platform choice are **verified source** in [`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23), macOS lowering is **verified source** in [`seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L31), Linux execution and proxy routing are **verified source** in [`linux-sandbox`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/main.rs#L4) and [`proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L169), and Windows setup is **verified source** in [`windows-sandbox-rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L85). Any cross-platform equivalence language is intentionally framed as a **surrounding contract inference**; the chapter does not claim the operating systems enforce identical sandboxes.
+The source keeps those questions separate. A `ReviewDecision::Approved` does not make the process omnipotent. A permission profile does not itself execute a command. A platform sandbox is not selected by reading a shell string and guessing what it might do. The runtime passes an execution attempt through a chain:
 
+1. Resolve a permission profile.
+2. Merge any additional permissions granted for the command.
+3. Split the effective profile into filesystem and network policies.
+4. Select an initial sandbox type from tool preference, policy shape, managed-network requirements, and platform support.
+5. Transform the command or execution request for the selected backend.
+6. Let the executor run the transformed request and report evidence.
 
-## Policy, Transform, Enforcement
+That chain is the chapter's main thesis: Codex containment is a policy transform pipeline, not a single sandbox toggle.
 
-This is not one sandbox. It is a policy compiler plus several enforcement backends. The compiler is cross-platform. Enforcement is platform-specific. That distinction is why the same permission profile can produce different commands, warnings, or refusals on different operating systems.
+## 1. Approval Ends Before Containment Begins
 
-| Platform path | Primary enforcement | Network story | Fail-closed case |
-| --- | --- | --- | --- |
-| macOS | Generated Seatbelt profile and fixed sandbox runner | Socket allowances and proxy sockets when expressible | Refuse or narrow execution when the generated profile cannot represent the requested policy. |
-| Linux | Bubblewrap filesystem view, namespaces, seccomp, optional legacy policy | Network namespace or managed proxy route plus socket restrictions | Refuse sandboxed commands on hosts that cannot provide required namespace behavior. |
-| Windows | Restricted token or dedicated sandbox identity with ACLs, firewall, WFP | Firewall and Windows Filtering Platform filters around prepared identities | Refuse when the backend cannot express the requested filesystem/network split. |
-| No platform sandbox | Explicit unsandboxed or unsupported path | Whatever the host process has | Must be marked as unsandboxed; should not masquerade as equivalent containment. |
+The easiest mistake is to treat approval as the thing that "turns off" the sandbox. That is not the normal path. Approval lets the tool attempt proceed. The subsequent `SandboxAttempt` still carries the manager, permission profile, selected sandbox type, managed network flag, sandbox cwd, Linux helper path, and Windows sandbox settings into the transform call.
 
-### Permission Profiles Are the Modern Unit
+The bridge is visible in [`SandboxAttempt::env_for`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421):
 
-Older configuration used direct sandbox modes. Modern Codex treats permission profiles as the primary unit. A profile can describe filesystem access, network behavior, additional granted permissions, and active modifications for a turn or session. The runtime then projects the profile into a filesystem sandbox policy and a network sandbox policy.
-
-Additional permissions are merged before enforcement. A tool may ask for a specific writable root or network access. The granted subset is intersected with the request and merged into the effective profile. This keeps permission granting scoped: approving one request does not silently convert the whole session into unrestricted execution.
-
-```text
-// Pseudocode - simplified for clarity.
-  base_profile = resolved_permissions_for_turn()
-  granted = merge_session_and_turn_grants()
-  effective_profile = apply_additional_permissions(base_profile, granted)
-
-  filesystem_policy, network_policy = split_profile(effective_profile)
-
-  sandbox_type = select_platform_sandbox(
-      filesystem_policy,
-      network_policy,
-      tool_preference,
-      managed_network_enabled
-  )
-
-  transformed = transform_command_for_platform(
-      command,
-      sandbox_type,
-      effective_profile,
-      network_proxy_state
-  )
-
-  execute(transformed)
+```rust
+self.manager
+    .transform(SandboxTransformRequest {
+        command,
+        permissions: self.permissions,
+        sandbox: self.sandbox,
+        enforce_managed_network: self.enforce_managed_network,
+        network,
+        sandbox_policy_cwd: self.sandbox_cwd,
+        codex_linux_sandbox_exe: self.codex_linux_sandbox_exe.map(PathBuf::as_path),
+        use_legacy_landlock: self.use_legacy_landlock,
+        windows_sandbox_level: self.windows_sandbox_level,
+        windows_sandbox_private_desktop: self.windows_sandbox_private_desktop,
+    })
 ```
 
-The important detail is that transformation receives policy. It does not rediscover permissions by inspecting the command string.
+The excerpt is trimmed to the handoff. The important fact is not the exact struct syntax; it is the owner boundary. The tool attempt does not carry only `argv`. It carries the policy context that must be lowered into an execution request.
 
-### macOS: Seatbelt as a Generated Profile
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/sandbox-attempt-transform-569ff6a1.webp" alt="Codex sandbox attempt lifecycle showing approval result, sandbox attempt, effective profile, sandbox selection, transform, child process, evidence, denial, retry approval, and no sandbox" loading="lazy" decoding="async" />
+  <figcaption>A sandbox denial does not retroactively mean approval failed. It creates a new branch: Codex may ask for retry approval and only then create a separate no-sandbox attempt.</figcaption>
+</figure>
 
-On macOS, Codex lowers policy into a Seatbelt profile and runs through a fixed platform sandbox runner. The generated profile represents readable roots, writable roots, protected metadata, denied read patterns, allowed sockets, and network proxy allowances. The sandbox runner path is not discovered through the user shell's `PATH`; it is a platform boundary, not a convenience command.
+This gives the retry path a clean meaning. If the first sandboxed attempt is denied by the platform, the orchestrator can ask a new approval question for a no-sandbox retry. That retry is a new risk decision, not a secret escape hatch hidden inside approval. Readers who collapse these two stages will misread almost every later security branch.
 
-Seatbelt is good at expressing file access and selected socket allowances, but the runtime still has to prepare the policy carefully. Path normalization, protected subpaths, missing paths, and proxy sockets are all resolved before the helper runs. If the transform cannot faithfully express the requested policy on the platform, the safe result is a refusal or a narrower execution, not an unmarked fallback.
+## 2. Permission Profiles Are the Unit Codex Compiles
 
-### Linux: Bubblewrap, Namespaces, Seccomp, and Proxy Routing
+The old mental model is "sandbox mode". The source in this snapshot is closer to "permission profile". A profile can come from built-ins, custom configuration, or command-scoped additions. It is then compiled into two runtime policies: [`FileSystemSandboxPolicy`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L176-L180) and [`NetworkSandboxPolicy`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L78-L93).
 
-On Linux, Codex uses a helper path that prefers Bubblewrap for filesystem layout and namespace isolation. The helper builds a read-only view by default, binds writable roots back in, remounts protected subpaths as read-only, masks denied paths, and handles narrower allow/deny carveouts in path-specificity order. It can also use a legacy Landlock path for compatible legacy policies.
+The built-in profile resolver in [`core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L54-L80) maps profile names to `read_only`, `workspace_write`, or `Disabled`. The custom profile compiler walks filesystem entries, warns for unsupported glob shapes on non-macOS platforms, validates glob scan depth, and computes the network policy ([`compile_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L175-L234)). The network side is intentionally small at the runtime-policy level:
 
-Network isolation is layered. When ordinary restricted networking is enough, the helper can unshare the network namespace. When managed proxy routing is active, it creates a constrained route to the configured proxy endpoints and then applies seccomp so the command cannot open bypass sockets in the usual way. This is stronger than merely setting proxy environment variables.
+```rust
+pub enum NetworkSandboxPolicy {
+    Restricted,
+    Enabled,
+}
+```
 
-Linux also has platform boundary checks. WSL environments that cannot provide the required namespace behavior are rejected for sandboxed commands that need Bubblewrap. Missing or unsuitable Bubblewrap support can produce startup warnings or bundled-helper fallbacks, but the runtime still surfaces the boundary instead of pretending all Linux hosts are equivalent.
+Small does not mean trivial. `Restricted` can later mean "deny network", "allow only proxy sockets", "unshare a namespace", or "prepare Windows firewall/WFP state", depending on platform and managed-network settings. `Enabled` can still pass through proxy environment injection when a managed proxy is configured. The enum is a policy signal, not a complete packet-filter description.
 
-### Windows: Identities, ACLs, Firewall, and WFP
+### 2.1 Additional Permissions Stay Scoped
 
-Windows has two broad sandbox paths: a legacy restricted-token path and an elevated backend built around dedicated sandbox identities. The elevated path performs setup work such as creating or refreshing users, ACLs, capability SIDs, firewall rules, and Windows Filtering Platform filters. Ordinary command execution can then run under the prepared identity through a runner protocol.
+Command-scoped additional permissions are merged before enforcement. In [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L69), additional filesystem paths are normalized, duplicate entries are removed, and glob write/read additions are rejected because only deny-read glob entries are supported in that additional-permission path. The effective profile is then recomputed:
 
-This split matters because Windows cannot always express the same nested filesystem policy shapes as Unix sandboxes. When the selected backend cannot enforce a requested split filesystem policy, Codex should refuse rather than run unsandboxed and call it equivalent. The platform boundary is part of the security model.
+```rust
+let (file_system_policy, network_policy) = permission_profile.to_runtime_permissions();
+let effective_file_system_policy =
+    effective_file_system_sandbox_policy(&file_system_policy, additional_permissions);
+let effective_network_policy =
+    effective_network_sandbox_policy(network_policy, additional_permissions);
+PermissionProfile::from_runtime_permissions_with_enforcement(
+    permission_profile.enforcement(),
+    &effective_file_system_policy,
+    effective_network_policy,
+)
+```
 
-### Managed Network Is Not a Universal Firewall
+That source shape protects a useful invariant: granting a tool one extra writable root or one network allowance does not rewrite the session's base policy in place. The transform receives an effective profile for this command path, while the surrounding runtime can still reason about where the grant came from.
 
-Codex's managed network proxy is an application-level boundary. It can run HTTP and SOCKS listeners, inject proxy environment, evaluate host/domain policy, enforce limited methods where visible, ask a decider for approval, and emit audit records. It can also be paired with platform forcing so a sandboxed command has no easy route except through the proxy.
+### 2.2 Profiles Split Policy Before Platform Code Runs
 
-It is not a universal packet firewall. DNS rebinding, non-proxy-aware programs, and host-level networking controls belong to the platform or infrastructure layer. The honest description is: managed proxy plus platform routing can strongly shape application traffic; it should not be advertised as complete network isolation by itself.
+The split into filesystem and network policy happens before macOS, Linux, or Windows code gets to express it. That order is what keeps the article from saying "Linux is the sandbox" or "Seatbelt is the policy". Platform helpers are enforcement dialects. The permission profile is the source-level contract the runtime is trying to lower.
 
-### Shell Escalation
+| Profile pressure | Source mechanism | Invariant protected |
+| --- | --- | --- |
+| Default execution needs a sane containment baseline | Built-in profile name and resolver in [`permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L32-L80) | A session starts from a named profile, not ad hoc command inspection. |
+| Custom filesystem shape may include unsupported globs | Compiler warnings in [`compile_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L191-L207) | Platform differences are surfaced instead of silently widened. |
+| One command may receive a narrower grant | Additional-permission normalization and merge in [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L119) | A local grant does not become global session authority. |
+| Managed network may require platform forcing even when filesystem is broad | [`should_require_platform_sandbox`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L509-L528) | Network requirements can force sandbox selection independently of file writes. |
 
-Some shell paths need to request an unsandboxed or escalated execution after a sandbox denial. Codex treats that as a new risk decision. The shell escalation adapter separates the wrapper protocol from the final process spawn, usually through a local socket or inherited channel. That lets the runtime keep approval and audit semantics around the escalation rather than letting the shell silently escape its own sandbox.
+## 3. The Sandbox Manager Chooses a Dialect
+
+The selected sandbox type is explicit in [`sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23-L28):
+
+```rust
+pub enum SandboxType {
+    None,
+    MacosSeatbelt,
+    LinuxSeccomp,
+    WindowsRestrictedToken,
+}
+```
+
+The enum names are worth reading carefully. `LinuxSeccomp` is the manager's sandbox type name, but the actual Linux path can include bwrap filesystem layout, namespace work, and then seccomp. `WindowsRestrictedToken` names a Windows sandbox branch, but the elevated Windows backend also prepares identities, ACLs, firewall rules, and WFP state. The enum is a runtime routing value, not a full security design document.
+
+Platform selection itself is deliberately narrow:
+
+```rust
+pub fn get_platform_sandbox(windows_sandbox_enabled: bool) -> Option<SandboxType> {
+    if cfg!(target_os = "macos") {
+        Some(SandboxType::MacosSeatbelt)
+    } else if cfg!(target_os = "linux") {
+        Some(SandboxType::LinuxSeccomp)
+    } else if cfg!(target_os = "windows") {
+        if windows_sandbox_enabled {
+            Some(SandboxType::WindowsRestrictedToken)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+```
+
+Then [`SandboxManager::select_initial`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L139-L166) applies the tool's preference:
+
+| Preference | Runtime meaning |
+| --- | --- |
+| `Forbid` | Select `SandboxType::None`. The tool path has opted out of platform sandboxing. |
+| `Require` | Ask for the platform sandbox when the current OS exposes one. |
+| `Auto` | Require a platform sandbox only when filesystem, network, or managed-network requirements need it. |
+
+The transform step then takes the selected type and builds a platform-shaped `SandboxExecRequest` ([`manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L168-L260)). Three details matter:
+
+- `effective_permission_profile` is computed inside the transform after taking command-scoped additions.
+- macOS and Linux rewrite `argv` into a wrapper/helper command.
+- Windows leaves the command vector unchanged at this transform layer and carries sandbox metadata to the Windows execution backend.
+
+That is why "the command string looked harmless" is not a serious boundary. The runtime is not trying to infer authority from shell syntax after the fact. It compiles policy, chooses a dialect, and asks that dialect to express the boundary.
+
+## 4. Platform Backends Are Not Equivalent
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/platform-sandbox-backends-569ff6a1.webp" alt="Codex platform sandbox backends showing shared policy lowered into macOS Seatbelt, Linux bwrap plus seccomp, and Windows identity ACL WFP with fail closed ribbon" loading="lazy" decoding="async" />
+  <figcaption>The shared policy is lowered into different operating-system dialects. The portable invariant is the requested boundary; the enforcement mechanism is platform-specific.</figcaption>
+</figure>
+
+### 4.1 macOS Generates a Seatbelt Profile
+
+On macOS, the transform constructs arguments for a fixed Seatbelt executable. [`MACOS_PATH_TO_SEATBELT_EXECUTABLE`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L25-L29) is `/usr/bin/sandbox-exec`, not a shell-resolved convenience binary. [`create_seatbelt_command_args`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L592-L727) builds read policy, write policy, deny-read glob policy, network policy, and directory parameters into one profile.
+
+The macOS network generator shows the careful part. In [`dynamic_network_policy_for_network`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L257-L313), proxy ports, proxy configuration, managed-network enforcement, and Unix-domain socket needs can force the restricted-network branch. In this pinned snapshot, proxy configuration and `enforce_managed_network` are already part of that branch condition, so they stay on the restricted path. The branch only adds outbound loopback allowances for explicit proxy ports, plus selected local-binding or Unix-socket allowances; without inferred loopback proxy ports, the generated profile remains restricted instead of silently opening broad outbound traffic.
+
+The macOS boundary is therefore not merely "run sandbox-exec". It is "generate a policy that represents the profile, including filesystem roots, protected metadata, denied read patterns, sockets, and network/proxy behavior, then execute through the fixed platform runner."
+
+### 4.2 Linux Builds the Filesystem View Before Seccomp
+
+On Linux, the manager routes through the Codex Linux sandbox helper. The helper comments in [`linux_run_main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L143-L147) state the execution order:
+
+```rust
+/// 1. When needed, wrap the command with bubblewrap to construct the
+///    filesystem view.
+/// 2. Apply in-process restrictions (no_new_privs + seccomp).
+/// 3. `execvp` into the final command.
+```
+
+That order explains the "Linux bwrap plus seccomp" phrasing. bwrap constructs the view and namespace conditions. The inner stage applies seccomp/no-new-privileges before the final `execvp`. The code path also has a legacy Landlock branch for compatible legacy policies, but the current bwrap path is not allowed to pretend success if the required platform behavior is unavailable. The manager checks for WSL1 and bubblewrap support before building the Linux command ([`manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L217-L239)).
+
+Network is folded into bwrap mode. [`bwrap_network_mode`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L361-L372) chooses `ProxyOnly` when managed proxy routing is active, `FullAccess` when the network policy is enabled, and `Isolated` otherwise. Managed proxy routing then prepares host proxy sockets and rewrites proxy environment inside the namespace ([`proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L70-L156)).
+
+### 4.3 Windows Moves Work Into Setup and Runner Backends
+
+The Windows transform branch is easy to misread because the manager does not prepend a wrapper executable in the same way it does for macOS or Linux. In the transform, `WindowsRestrictedToken` returns the original `argv` while carrying sandbox type, Windows level, private desktop flag, permission profile, filesystem policy, and network policy in the `SandboxExecRequest` ([`manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L241-L258)).
+
+The enforcement work appears in the Windows sandbox crate. Setup refresh builds an elevation payload with read roots, write roots, deny-write paths, proxy ports, and local-binding behavior ([`setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L159-L192)). The elevated setup path builds a similar payload and decides whether elevation is needed ([`setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L710-L742)). The elevated spawn backend prepares context and sends a runner request with capability SIDs and sandbox credentials ([`elevated.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/unified_exec/backends/elevated.rs#L22-L71)).
+
+The identity, ACL, firewall, and WFP labels are not decorative. [`spawn_prep.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/spawn_prep.rs#L157-L330) prepares tokens, sandbox credentials, capability SIDs, and per-policy ACL inputs, while [`acl.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/acl.rs#L54-L260) reads and updates DACL/ACE state. The setup helper's [`firewall.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/bin/setup_main/win/firewall.rs#L53-L202) configures offline outbound and loopback proxy block rules, and [`wfp_setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp_setup.rs#L126-L174) calls [`install_wfp_filters_for_account`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp.rs#L75-L95) for the offline account. The exact WFP filter shapes are visible in [`filter_specs.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp/filter_specs.rs#L25-L124): user-scoped blocks for ICMP, DNS ports, and SMB ports.
+
+The legacy backend has a clear limitation: it rejects restricted read-only access and says that path requires the elevated Windows sandbox backend ([`legacy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/unified_exec/backends/legacy.rs#L282-L306)). That is the practical difference between "there is a Windows branch" and "every Windows backend can enforce every profile."
+
+### 4.4 The Correct Comparison Table
+
+| Platform path | What the transform or backend changes | Network expression | Boundary to state honestly |
+| --- | --- | --- | --- |
+| macOS Seatbelt | Wraps command with `/usr/bin/sandbox-exec` and generated profile arguments. | Generated policy allows or denies network, proxy ports, and selected sockets. | Expressive policy generation, but still constrained by Seatbelt grammar and endpoint discovery. |
+| Linux bwrap/seccomp | Runs Codex helper, builds filesystem/namespace view, then applies no-new-privileges and seccomp before `execvp`. | bwrap mode chooses isolated, full access, or proxy-only; proxy routes can be bridged into the namespace. | Host support matters: WSL1 and unsuitable bwrap behavior are real platform boundaries. |
+| Windows identity/ACL/WFP | Carries metadata from transform into Windows setup and runner backends. | Offline proxy settings, firewall allow/block rules, and WFP setup participate in containment. | Backend level matters; legacy and elevated paths do not enforce the same policy shapes. |
+| `SandboxType::None` | No platform sandbox wrapper is applied. | The host process/network environment is not represented as equivalent containment. | Treat as an explicit unsandboxed path or unsupported platform result, not as a hidden sandbox. |
+
+## 5. Managed Network Is Stronger Than Environment Variables, Weaker Than a Universal Firewall
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/managed-network-boundary-569ff6a1-v2.webp" alt="Codex managed network boundary showing tool process, proxy environment, loopback proxy, policy decider, exact and wildcard domain rules, limited methods, platform forcing, audit, and not-a-firewall boundary" loading="lazy" decoding="async" />
+  <figcaption>Managed network is an application proxy plus platform forcing when available. It can strongly shape allowed traffic, but it should not be described as a universal packet firewall.</figcaption>
+</figure>
+
+The proxy code is where many descriptions become either too weak or too strong. Too weak: "Codex just sets `HTTP_PROXY`." Too strong: "Codex has a complete network firewall." The source lands between those claims.
+
+The proxy builder can reserve HTTP and SOCKS listeners, apply proxy environment overrides, set `NO_PROXY` defaults for loopback and private IP literals, align websocket proxy environment variables, and set `ALL_PROXY` when SOCKS is enabled ([`proxy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/proxy.rs#L472-L535)). Domain rules are normalized as exact hosts or scoped wildcard host patterns such as `*.example.com` and `**.example.com`, while a denylist rejects the global `*` wildcard ([`policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/policy.rs#L193-L212)). The important distinction is scope: bounded host patterns are allowed, but a bare match-everything rule is not.
+
+The limited method rule is visible in tests:
+
+```rust
+assert!(NetworkMode::Limited.allows_method("GET"));
+assert!(NetworkMode::Limited.allows_method("HEAD"));
+assert!(NetworkMode::Limited.allows_method("OPTIONS"));
+assert!(!NetworkMode::Limited.allows_method("POST"));
+assert!(!NetworkMode::Limited.allows_method("CONNECT"));
+```
+
+That test lives in [`network-proxy/src/policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/policy.rs#L369-L375). It is one reason the network figure uses `GET`, `HEAD`, and `OPTIONS` as allowed methods and `POST`/`CONNECT` as blocked examples under limited mode.
+
+The platform integration makes this more than ordinary environment-variable guidance:
+
+- On macOS, the generated Seatbelt policy can restrict network access to loopback proxy ports and selected Unix sockets when managed network is required.
+- On Linux, proxy-only bwrap mode can bridge proxy routes into the network namespace and then apply seccomp.
+- On Windows, setup payloads carry proxy ports and local-binding behavior, while firewall and WFP setup participate in the offline identity boundary.
+
+The honest boundary is therefore: managed network can route and police application traffic when clients and platform constraints cooperate. It is not proof that every possible packet, DNS behavior, or host-level escape is controlled by the proxy layer alone.
+
+## 6. Failure Cases Are Part of the Design
+
+The source has several failure edges that are easy to smooth over in prose. Smoothing them over would make the article nicer and less useful.
+
+| Misreading | Source-correct reading | Why it matters |
+| --- | --- | --- |
+| Approval means "run outside the sandbox". | Approval lets the attempt proceed; `SandboxAttempt::env_for` still calls the transform with policy and sandbox metadata. | A reviewer can approve a command without granting unlimited host reach. |
+| The permission profile is the sandbox. | The profile compiles to filesystem and network policies, then a platform dialect enforces what it can express. | Config review and platform review are different jobs. |
+| Linux sandboxing is only seccomp. | The current helper can build a bwrap filesystem/namespace view before applying seccomp; legacy Landlock is a separate path. | File visibility and syscall filtering are separate layers. |
+| Windows transform doing no argv wrapping means no Windows sandbox. | Windows carries sandbox metadata into setup and runner backends instead of using the same wrapper shape as Unix. | Equivalent-looking command vectors can still run under different identities and ACL/firewall state. |
+| Managed network is a packet firewall. | It is a proxy boundary with platform forcing where available, domain/method policy where visible, and audit hooks. | Overclaiming makes gaps such as non-proxy-aware programs and host networking harder to reason about. |
+| `SandboxType::None` is harmless fallback. | It is an explicit no-platform-sandbox path or unsupported-platform result that must not be described as equivalent containment. | UI, logs, and prose should not hide when containment is absent. |
 
 ## Apply This
 
-1. **Separate authorization from containment.** Approval lets an action proceed; sandboxing limits what it can still do.
-2. **Compile policy before execution.** Resolve profiles into filesystem and network policy before platform-specific transforms.
-3. **Treat platforms as different backends.** Do not assume macOS, Linux, and Windows can enforce identical shapes.
-4. **Be precise about network guarantees.** Managed proxy is powerful with platform forcing, but it is not a universal firewall.
-5. **Refuse unverifiable containment.** If a backend cannot enforce the requested boundary, fail closed instead of running unmarked.
+The transferable rule is simple: keep the authority, profile, transform, and backend in different boxes.
 
-Part III ends here: the model suggested an action, Codex routed it, governed it, mutated through structured protocols, passed approval gates, and finally lowered policy into platform execution. Part IV opens the runtime to clients that need to share this same thread and side-effect model.
+1. **Separate approval from containment.** Approval authorizes the attempt; the sandbox transform still decides the process boundary.
+2. **Compile profile before execution.** Review the effective filesystem and network policies before reasoning about platform behavior.
+3. **Name the platform dialect.** Say Seatbelt, bwrap/seccomp, Windows identity/ACL/WFP, or no sandbox instead of saying "the sandbox" generically.
+4. **Describe network guarantees narrowly.** Managed proxy plus platform forcing is meaningful, but it is not a universal packet firewall.
+5. **Treat missing containment as a first-class state.** `SandboxType::None`, missing helpers, and unsupported host features should be visible in UI, logs, and prose.
+
+| When you see... | Ask this question | Source owner to inspect |
+| --- | --- | --- |
+| A user or hook approval | Did this authorize the attempt, or did it also request a no-sandbox retry? | Tool orchestrator and approval decision flow from Chapter 12. |
+| A permission profile name | What filesystem and network policies does it compile into? | [`core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L54-L80) and [`protocol/src/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L78-L180). |
+| A command with extra grants | Were the grants normalized and merged only for this effective profile? | [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L119). |
+| A selected sandbox type | Which platform dialect is being requested, and can the host provide it? | [`SandboxManager::select_initial`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L139-L166). |
+| A network claim | Is it proxy policy, platform forcing, both, or neither? | [`network-proxy`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src) plus platform sandbox sources. |
+| A platform error | Is this a policy refusal, missing helper, unsupported OS capability, or backend limitation? | Platform-specific transform and setup sources. |
+
+Part III ends here. The runtime has taken a model-proposed side effect through routing, governance, mutation protocols, hook and approval gates, retry semantics, permission compilation, and platform containment. Part IV moves from local execution to clients and external runtimes: app-server, cloud tasks, memory, and release machinery all depend on the same discipline of typed boundaries instead of implicit side effects.
 
 <div class="source-equivalence">
 
 ## Source Map
 
-| Concept | Source anchor |
-| --- | --- |
-| Sandbox type selection | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23) |
-| Platform sandbox choice | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L48) |
-| macOS Seatbelt policy | [`codex-rs/sandboxing/src/seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L31) |
-| Linux helper entry | [`codex-rs/linux-sandbox/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/main.rs#L4) |
-| Linux proxy routing | [`codex-rs/linux-sandbox/src/proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L169) |
-| Windows sandbox setup | [`codex-rs/windows-sandbox-rs/src/setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L85) |
-| Network proxy policy | [`codex-rs/network-proxy/src/config.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/config.rs#L271) |
+| Evidence class | Claim | Source anchor |
+| --- | --- | --- |
+| Verified source | Built-in profile resolution maps profile names to read-only, workspace-write, or disabled profiles. | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L54-L80) |
+| Verified source | Custom profiles compile filesystem entries and network policy before platform transforms. | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L175-L234) |
+| Verified source | Network sandbox policy has the runtime-level `Restricted` and `Enabled` cases. | [`codex-rs/protocol/src/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/permissions.rs#L78-L93) |
+| Verified source | Additional permissions are normalized and merged into an effective permission profile. | [`codex-rs/sandboxing/src/policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L19-L119) and [`policy_transforms.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/policy_transforms.rs#L493-L507) |
+| Verified source | Sandbox type selection distinguishes `None`, macOS Seatbelt, Linux seccomp, and Windows restricted-token routes. | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L23-L61) |
+| Verified source | Initial sandbox selection uses tool preference, runtime policies, Windows level, and managed-network requirements. | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L139-L166) |
+| Verified source | A sandbox attempt hands command, permissions, selected sandbox, network proxy state, cwd, and platform options into the transform. | [`codex-rs/core/src/tools/sandboxing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/sandboxing.rs#L387-L421) |
+| Verified source | macOS transform builds a Seatbelt command through `/usr/bin/sandbox-exec` and generated policy sections. | [`codex-rs/sandboxing/src/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/manager.rs#L193-L214) and [`seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L592-L727) |
+| Verified source | macOS proxy configuration and managed-network enforcement force the restricted-network branch; only explicit loopback proxy ports add outbound allowances. | [`codex-rs/sandboxing/src/seatbelt.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/sandboxing/src/seatbelt.rs#L257-L313) |
+| Verified source | Linux helper builds bwrap filesystem/namespace state, applies seccomp/no-new-privileges, and then execs the command. | [`codex-rs/linux-sandbox/src/linux_run_main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/linux_run_main.rs#L143-L250) |
+| Verified source | Linux proxy routing prepares loopback proxy routes on the host and rewrites proxy environment inside the namespace. | [`codex-rs/linux-sandbox/src/proxy_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/linux-sandbox/src/proxy_routing.rs#L70-L156) |
+| Verified source | Windows sandbox setup carries roots, deny-write paths, proxy ports, and local-binding behavior into elevated setup. | [`codex-rs/windows-sandbox-rs/src/setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L159-L192) and [`setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/setup.rs#L710-L742) |
+| Verified source | Windows spawn preparation selects sandbox credentials, capability SIDs, and ACL inputs, and ACL helpers read/update DACL/ACE state. | [`codex-rs/windows-sandbox-rs/src/spawn_prep.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/spawn_prep.rs#L157-L330) and [`acl.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/acl.rs#L54-L260) |
+| Verified source | Windows firewall setup configures offline outbound and loopback proxy rules, while WFP setup installs account-scoped filters. | [`firewall.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/bin/setup_main/win/firewall.rs#L53-L202), [`wfp_setup.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp_setup.rs#L126-L174), [`wfp.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp.rs#L75-L95), and [`filter_specs.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/wfp/filter_specs.rs#L25-L124) |
+| Verified source | Windows legacy backend refuses restricted read-only access and requires the elevated backend for that shape. | [`codex-rs/windows-sandbox-rs/src/unified_exec/backends/legacy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/windows-sandbox-rs/src/unified_exec/backends/legacy.rs#L282-L306) |
+| Verified source | Limited network mode allows `GET`, `HEAD`, and `OPTIONS`, but not `POST` or `CONNECT`. | [`codex-rs/network-proxy/src/policy.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/network-proxy/src/policy.rs#L369-L375) |
+| Surrounding contract inference | The portable abstraction is a permission-profile-to-platform-transform pipeline; the OS backends are not equivalent. | Synthesized from the linked manager, policy transform, platform helper, and proxy sources above. |
 
 </div>
