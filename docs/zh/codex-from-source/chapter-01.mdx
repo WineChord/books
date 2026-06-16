@@ -1,154 +1,367 @@
+# 架构赌注：把 Agent 作为有边界的操作系统
 
-# 第 1 章：架构赌注：作为有边界操作系统的 Agent
-
-> **阅读契约：** 用本章给 Codex 命名：它是有边界的 agent 操作系统。先盯住 operation/event 边界、分层 authority 和三种 history，再看具体客户端。
+> **阅读契约：** 本章命名 Codex 背后的核心架构赌注。把它读成一个源码支撑的论证：用户请求进入 runtime 后不再只是 chat message；它变成 bounded operation，穿过 owned state，经过 authority gates，并留下可 replay 的 evidence。
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/bounded-agent-os-map-569ff6a1-v2.webp" alt="有边界 agent 操作系统地图：分开客户端表面、类型协议、session runtime、权限门、sandbox 与 rollout 证据" loading="eager" decoding="async" />
-  <figcaption>把 Codex 看成有边界的运行环境更容易理解：客户端、类型协议、session runtime、权限、沙箱和 rollout 各自有 owner。</figcaption>
+  <figcaption>把 Codex 读成有边界的运行环境更容易：clients 可替换，protocol 是 typed，session runtime 拥有 turns，authority 分层，evidence 超出屏幕生命周期。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章的 direct source facts 固定到 OpenAI Codex commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。被链接的 named files、types、functions、schemas 以及 request/event shapes 属于 **verified source**。“有边界的操作系统”、“owner”、“projection”、“runtime contract”等术语，是从这些公开锚点得出的 **surrounding contract inference**。它们不是关于 OpenAI 私有服务拓扑的断言。
 
-序言提出了本书的核心判断：Codex 值得研究，不是因为它只是把聊天界面接到模型上，而是因为它把语言模型产品做成了一个系统。这个系统接收意图、保存状态、调用工具、执行策略，并把过程证据报告给不同客户端。本章要命名这背后的架构赌注：Codex 把 Agent 当成一个有边界的操作系统来设计。它不是管理整台机器的通用操作系统，而是一个调度工作、仲裁权限、记录事实、并向多个客户端暴露稳定契约的运行时。
+一个普通 Codex 请求听起来很简单：修改文件，运行检查，解释发生了什么。如果 Codex 只是 chat wrapper，implementation 可以把这句话转发给模型，再把文本流回来。源码展示的形状要求更高。请求必须变成 typed operation。Runtime code 必须决定哪一个 turn 拥有它。Context 必须被选择。Tool requests 必须穿过 policy、approval、sandbox 和 execution boundaries。Clients 需要可渲染的 events。Persistence 需要可 replay 的 facts。
 
-“有边界”是关键词。通用操作系统必须承载任意进程、设备、用户、文件系统和网络。Codex 把世界缩小到一个明确领域：AI 辅助的软件工程对话。它仍然需要类似操作系统的职责，但每项职责都被产品词汇约束住。
+这就是架构赌注：Codex 把 agent 作为一个 **bounded operating system** 来处理。它不是面向任意机器进程的操作系统，而是服务一个受约束 workload 的 runtime：AI-assisted software engineering turns。在这个更窄的世界里，它仍然承担类似 OS 的职责：接收 system calls、拥有 sessions、仲裁 authority、约束 side effects、向 clients 投射 state，并保留 evidence。
 
-| 类操作系统职责 | Codex 中的职责 |
-| --- | --- |
-| 进程调度 | 管理 turn、工具调用、取消、后台任务。 |
-| 系统调用 | 接收 typed operation，而不是任意私有方法调用。 |
-| 设备驱动 | 路由模型请求、shell 命令、文件编辑、MCP 工具和 hooks。 |
-| 权限控制 | 编译审批策略、沙箱策略、permission profile 和 managed requirements。 |
-| 日志 | 追加 rollout 记录，并发出客户端可观察事件。 |
-| 用户会话 | 创建、恢复、fork 和重建 thread。 |
+这个 framing 很重要，因为它改变了源码读者应该在哪里寻找 truth。模型很重要，但它不是架构。TUI 很重要，但它也不是架构。架构是决定什么可以进入、谁拥有 work、哪些 side effects 可以运行，以及什么 evidence 会留下的一组边界。
 
-这个视角比“聊天包装器”更准确。包装器主要转发消息；有边界的操作系统则定义什么可以进入、什么可以发生、什么必须记录、谁可以观察。
+## 一、问题压力
 
-## 架构赌注
+Agent products 会很快积累 surfaces。Codex 有 CLI、terminal UI、headless execution mode、app-server、SDKs、remote-control paths、MCP 与 plugin extension planes、cloud-task clients，以及 release-time schema checks。每个 surface 都可能真实存在，但不等于中心。
 
-这个系统的核心命题可以写成一句契约：
+压力在于，文件树会让所有 surface 看起来同样 architectural。如果读者从可见 UI 开始，runtime 就会变成“UI 正在做的事”。如果读者从 shell execution 开始，模型似乎拥有 side effects。如果读者从 release workflows 开始，governance 看起来像 packaging。Codex 用 typed carriers 和 runtime owners 抵抗这种混淆。
 
-> Codex 是一个 event-sourced agent runtime；危险能力只能通过 typed
-> contracts、policy gates 和 replayable boundaries 暴露。
+bounded-OS 类比必须保持克制。下表不是说 Codex 实现了通用操作系统，而是命名 agent runtime 内保护 OS-like responsibilities 的源码 owners。
 
-这句话里的每个词都承担架构含义。
+| Runtime pressure | 要检查的 Codex owner | 受保护的 invariant |
+| --- | --- | --- |
+| 用户请求 work。 | Protocol submissions 和 operations。 | Intent 以 typed data 进入，而不是 UI text。 |
+| Work 需要调度。 | Session 和 turn runtime。 | 一个 owner 关联 context、cancellation、model streaming 和 pending input。 |
+| Model output 请求 action。 | Tool routing 和 approval code。 | Generated output 不是 execution authority。 |
+| Side effects 触碰 workspace。 | Sandbox、permission、hook 和 executor code。 | Commands 和 edits 可 deny、retry、review。 |
+| Clients 展示进度。 | Event streams、app-server mapping 和 TUI rendering。 | Screens 是 runtime facts 的 projections。 |
+| Releases 演进。 | Schemas、generated contracts、tests 和 workflows。 | Boundaries 只有在 checks 允许时才能 drift。 |
 
-Event-sourced 意味着系统把结构化事实当成持久记录。用户消息、turn 开始、模型 item、工具调用、patch 审批、shell 结果、turn 完成，都不只是屏幕文本。它们是可以 replay、reduce、映射成 app-server item、并用于恢复 thread 的事实。
+全书后续会详细跟踪这些 owners。本章建立第一原则：**不要把 Codex 读成套在 model 外面的 product UI；要把它读成由多个 clients 包裹的 bounded runtime。**
 
-Agent runtime 意味着模型不是架构本身。模型是调度器里的强大部件。运行时决定何时构造上下文、何时调用 provider、何时派发工具、何时请求审批、何时取消、何时结束。
+## 二、Runtime Contract
 
-Typed contracts 意味着客户端和子系统交换的是有名字的结构，而不是私有实现对象。命令行、终端 UI、headless exec、app-server、SDK 和测试都依赖这个纪律。
+### 2.1 Operation-Event Queue Pair
 
-Policy-gated side effects 意味着模型意图不等于执行权限。工具调用可以请求运行命令或修改文件，但运行时仍然要评估配置、requirements、hooks、沙箱、审批和执行位置。
+最小的 public shape 是一对队列。Caller 发送 submission；runtime 发出 event。在固定 commit 上，[`Submission`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123-L133) 和 [`Event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1247-L1254) 直接写出了这个边界：
 
-Replayable boundaries 意味着系统要保存足够的结构化证据来解释或重建工作。Codex 可以是交互式的，但它不是一次性脚本。
+```rust
+pub struct Submission {
+    pub id: String,
+    pub op: Op,
+    pub trace: Option<W3cTraceContext>,
+}
 
-上面的图把这些短语压缩成四条路径：意图以 operation 进入，模型输出以 item 返回，权限层决定副作用，事实变成 rollout 证据。最关键的路径仍然是图里没有画出的那条路径：模型输出永远不能直接抵达 shell 或文件系统。
-
-注意这张图反复维持的区别：operation 是进入 runtime 的请求，event 是离开 runtime 的事实。客户端可以替换，但 operation/event 契约和 runtime 边界保持稳定。
-
-### 核心词汇
-
-Part I 的任务是建立后续章节共同使用的语言。下面这些词不是装饰性的名称，而是系统的承重名词。
-
-| 术语 | 含义 |
-| --- | --- |
-| Thread | 持久的对话和工作上下文。Thread 有身份、配置、历史和可恢复状态。 |
-| Turn | Thread 内一次由用户驱动的工作单元。一个 turn 可以流式输出、调用工具、请求审批，并最终完成、失败或被中断。 |
-| Item | 对话或工作的结构化片段：用户输入、assistant 输出、reasoning summary、工具调用、命令输出、patch 更新或状态事实。 |
-| Operation | 提交给 runtime 的 typed request，例如开始 turn、中断工作、批准动作、刷新工具状态。 |
-| Event | Runtime 发出的 typed fact，供客户端、持久化和 projection 使用。Event 描述已经发生的事，而不是 UI 指令。 |
-| Tool | 通过 spec 暴露给模型、再通过 runtime handler 执行的能力。Spec 不等于执行权限。 |
-| Rollout | 用于 replay 和重建 thread 历史的 append-only 记录。 |
-| Permission profile | 解析后的策略包络，描述 Agent 能读、写、执行或访问什么。 |
-| Client surface | 使用 runtime 的方式：终端 UI、`exec`、app-server、SDK、桌面集成或测试 harness。 |
-
-Operation 和 event 的区别，是本书的第一条重要边界。Operation 是请求，event 是事实。请求可以被拒绝、延迟、转换或路由；事实应当足够持久，让后续代码不必询问最初的调用者就能理解它。
-
-### 为什么从契约开始
-
-很多系统可以从外到内讲：安装工具、运行命令、看屏幕、再读实现。这种方式适合上手，但容易遮蔽架构。Codex 有多个产品接入面，而没有哪个接入面单独等于整个系统。
-
-终端 UI 是 runtime 的客户端。Headless `exec` 是 runtime 的客户端。App-server 是围绕 runtime 的客户端边界。SDK 是协议客户端。Cloud task、plugin、MCP、review 等流程也复用更深层的词汇。若本书从某个 UI 开始，读者很容易把产品体验误认为架构契约。
-
-契约优先还能避免 Agent 系统里的常见错误：把模型响应当成事实来源。在 Codex 里，模型响应是 runtime 的输入之一。真正持久的事实，是被接受的 operation、发出的 event、工具决策和 rollout 记录。
-
-### 把 Turn 看成系统调用
-
-当用户提交工作时，操作系统类比会变得具体。一个 user turn 类似高级系统调用：它通过受控边界进入，并通过事件返回结果，而不是直接修改内部状态。
-
-```text
-// Pseudocode - illustrative pattern.
-function handle_user_turn(thread, user_input, turn_overrides):
-    operation = make_operation("start_turn", user_input, turn_overrides)
-    enqueue(thread.submissions, operation)
-
-    while thread.has_active_work():
-        event = await_next_runtime_event(thread)
-        persist_to_rollout(thread, event)
-        publish_to_clients(thread, event)
-
-        if event.requests_side_effect:
-            decision = evaluate_policy(event.requested_effect)
-            if decision.requires_human:
-                publish_to_clients(thread, make_approval_request(decision))
-                decision = await_approval_response(thread)
-            if decision.allowed:
-                execute_bounded_effect(event.requested_effect)
-            else:
-                record_denial(thread, decision)
+pub struct Event {
+    pub id: String,
+    pub msg: EventMsg,
+}
 ```
 
-这段是说明性伪代码，不是源码复刻。它强调的是形状：
+这一对是“发送文本、接收文本”的反面。`id` 让 runtime 把 output facts 与造成它们的 request 关联起来。`op` field 携带 typed operation。`msg` field 携带 typed event message。Trace field 承认 asynchronous handoffs，而不是假装系统是一个单一 blocking function call。
 
-1. 意图以 typed operation 进入。
-2. Runtime 进展以 event 离开。
-3. 持久化在工作推进时记录事实。
-4. 副作用需要单独决策。
-5. 客户端观察并偶尔回答请求，但不拥有 runtime。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/protocol-boundary-taxonomy-569ff6a1-v2.webp" alt="Protocol boundary taxonomy showing submissions, operations, events, items, app-server messages, generated schemas, and compatibility checks" loading="lazy" decoding="async" />
+  <figcaption>Protocol boundary 是第一个 bounded-OS 线索：submissions、operations、events、items、app-server messages、schemas 和 compatibility checks 是不同 carriers。</figcaption>
+</figure>
 
-这个形状会在后续章节反复出现。配置先解析，协议定义 operation 能携带什么，session loop 调度 turn，工具执行评估副作用，app-server 把 core event 映射成客户端通知，终端 UI 渲染这些通知。
+`Op` enum 让契约更显式。它包含 realtime messages、legacy input、更丰富的 turn input、approval responses、tool refreshes、memory updates、interruptions 和 shutdown。本章重点不在完整列表，而在这个事实：user work 通过一个命名 operation family 进入。在固定源码中，[`UserInputWithTurnContext`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L445-L520) 的关键字段把 input 与 turn-scoped constraints 绑定在一起：
 
-### 三种历史
+```rust
+UserInputWithTurnContext {
+    items: Vec<UserInput>,
+    // fields omitted here include environments, schema, client metadata,
+    // reasoning preferences, service tier, and collaboration settings.
+    cwd: Option<PathBuf>,
+    approval_policy: Option<AskForApproval>,
+    sandbox_policy: Option<SandboxPolicy>,
+    permission_profile: Option<PermissionProfile>,
+    model: Option<String>,
+}
+```
 
-Codex 必须区分多种历史，因为它们回答的问题不同。
+这就是为什么“用户说了一句话”不是足够精确的源码论断。用户提供了 input，但 runtime 也可能在同一个 queued operation 中收到 working directory、approval policy、sandbox policy、permission profile、model choice、reasoning settings 和 collaboration mode。任何 tool 可以运行之前，请求已经变成一个 controlled runtime object。
 
-| 历史 | 回答的问题 |
-| --- | --- |
-| 模型可见上下文 | 模型在生成下一个 item 时应该看到什么？ |
-| Rollout 记录 | 这个 thread 按 replay 顺序发生了什么？ |
-| 可查询 projection | 客户端怎样快速 list、filter、resume 或 summarize？ |
+### 2.2 Session Facade
 
-初学者可能期待一份 transcript 解决所有问题。这很诱人，但很脆弱。模型需要选择后的上下文，而不是每个内部事件。Replay 需要结构化保真，而不是漂亮文本。客户端需要快速 projection，而不是每次列表都完整 replay。把这些历史拆开，是 Codex 更像 runtime 而不是 API 脚本的原因之一。
+契约在高层 `Codex` interface 中变成可操作形状。它的注释非常直接：[`Codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364-L375) “operates as a queue pair where you send submissions and receive events.”
 
-### 权限是分层的
+```rust
+pub struct Codex {
+    pub(crate) tx_sub: Sender<Submission>,
+    pub(crate) rx_event: Receiver<Event>,
+    pub(crate) agent_status: watch::Receiver<AgentStatus>,
+    pub(crate) session: Arc<Session>,
+    pub(crate) session_loop_termination: SessionLoopTermination,
+}
+```
 
-模型可以提出动作，但 Codex 在任何危险动作发生前都会分层仲裁权限。这些层不会被折叠成一个布尔值。
+源码支撑了架构论断。这个 facade 不是 UI widget，也不是 provider client。它拥有 submission sender、event receiver、status watcher 和 session handle。也因此，它是 client surfaces 与 runtime ownership 相遇的位置。
 
-配置表达用户和环境偏好。Managed requirements 可以限制这些偏好。Permission profile 描述最终能力包络。Policy 评估具体动作。Hooks 可以加入组织特定检查或上下文。人类审批用于那些不能静默决策的情况。Sandbox 和 execution backend 在真正执行工作的地方提供第二道防线。
+Submit side 还说明 operation IDs 是 runtime facts，而不是 UI decorations。[`submit`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L688-L718) 在把 operation 送进 queue 前，用生成的 submission ID 包装它：
 
-把 authority path 当成一条从工具 spec 走向 sandbox 和 executor 的栈来看。这才是旧静态栈的真正替代：每一层都可以在出现观察结果之前收紧、阻断、延迟或解释这个请求。
+```rust
+pub async fn submit(&self, op: Op) -> CodexResult<String> {
+    self.submit_with_trace(op, /*trace*/ None).await
+}
 
-这种分层会带来摩擦，但这是有用的摩擦。它让 workspace 可以使用严格规则，而不需要改模型提示。它让 headless 客户端可以拒绝交互式审批，而不需要重写工具执行。它也让兼容性桥接可以继续读取旧 rollout，同时让新的 permission profile 演进。
+pub async fn submit_with_trace(
+    &self,
+    op: Op,
+    trace: Option<W3cTraceContext>,
+) -> CodexResult<String> {
+    let id = Uuid::now_v7().to_string();
+    let sub = Submission {
+        id: id.clone(),
+        op,
+        trace,
+    };
+    self.submit_with_id(sub).await?;
+    Ok(id)
+}
 
-### 客户端接入面可替换
+pub async fn submit_with_id(&self, mut sub: Submission) -> CodexResult<()> {
+    if sub.trace.is_none() {
+        sub.trace = current_span_w3c_trace_context();
+    }
+    self.tx_sub
+        .send(sub)
+        .await
+        .map_err(|_| CodexErr::InternalAgentDied)?;
+    Ok(())
+}
+```
 
-Codex 的架构假设产品接入面会变多。终端 UI 需要流式更新和审批弹窗。Headless 命令需要机器可读输出和确定性的退出行为。App-server 需要 JSON-RPC、请求串行化和重新加入语义。SDK 需要生成模型和稳定 schema。所有这些都受益于 runtime 统一拥有 thread、turn、item、operation 和 event。
+Receive side 同样窄。[`next_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L743-L749) 返回下一个 runtime event。Clients 可以 render、transform 或 persist 这个 event，但它们不发明 runtime fact。
 
-这就是为什么本书从契约开始。如果终端 UI 就是架构，新的客户端只能复制它或绕过它。如果 runtime contract 才是架构，客户端可以各不相同，而不需要 fork Agent。
+```rust
+pub async fn next_event(&self) -> CodexResult<Event> {
+    let event = self.rx_event.recv().await?;
+    Ok(event)
+}
+```
 
-## 应用到实践
+这是第一个 bounded-OS 机制：runtime work 穿过 queue boundary。Clients 提交 requests 并观察 facts。Terminal UI 感觉交互式，并不会抹掉它下面的 queue-pair contract。
 
-1. **先命名运行时名词。** 设计 Agent 功能前，先定义会跨越子系统边界的持久名词。
-2. **把意图和权限分开。** 允许模型请求副作用，但让另一层决定副作用是否可以发生。
-3. **记录事实，而不是屏幕。** 持久化可 replay、可 projection 的结构化事件，而不是只保存渲染后的文本。
-4. **让客户端位于契约下游。** UI、CLI、SDK 和服务接入面都应消费同一套 operation 和 event 词汇。
-5. **把约束当成架构。** Policy、requirements 和 sandboxing 是 runtime 设计的一部分，不是工具执行完成后再补上的安全补丁。
+## 三、有边界的 Runtime
 
-## 小结
+### 3.1 Runtime Responsibilities
 
-有边界操作系统这个模型解释了为什么 Codex 先围绕契约组织，再围绕界面组织。第 2 章会进入第一个具体边界：安装后的命令如何到达 Rust command router，同时又不让分发胶水变成产品架构。
+OS 类比只有在每项 responsibility 都有边界时才有用。Codex 没有把“prompting”、“state”、“tools”、“approval”和“display”折叠成一条长 script。
+
+| Responsibility | Source-backed boundary | 为什么保持 bounded |
+| --- | --- | --- |
+| Intent intake | `Submission` 和 `Op`。 | Callers 发送 typed operations，而不是 arbitrary runtime method calls。 |
+| Turn ownership | `run_turn` 和 `TurnContext`。 | Context、model session、input 和 cancellation 汇合在一个 owner 下。 |
+| State selection | `ContextManager`。 | Model-visible history 被 curated，而不等同于每一个 runtime fact。 |
+| Durable evidence | `RolloutTrace` 和 protocol events。 | Replay 和 diagnostics 使用 structured records。 |
+| Client projection | App-server event mapping 和 TUI rendering。 | UI state 位于 event facts 下游。 |
+| Authority | `UserInputWithTurnContext`、approval policy、sandbox policy、permission profile 和 tool orchestration。 | 模型可以请求 work，但另一层决定它是否可以发生。 |
+
+Input 变成 operation 后，turn runtime 展示了多少 ownership 被集中起来。[`run_turn`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139-L145) 的 signature 是一张紧凑地图：
+
+```rust
+pub(crate) async fn run_turn(
+    sess: Arc<Session>,
+    turn_context: Arc<TurnContext>,
+    input: Vec<UserInput>,
+    prewarmed_client_session: Option<ModelClientSession>,
+    cancellation_token: CancellationToken,
+) -> Option<String> {
+```
+
+这个 function 接收 session state、turn context、user input、optional provider session 和 cancellation。因此 turn 是 runtime unit，而不是单次 model call。后续章节会详细跟踪 loop；对于架构赌注，关键 fact 是 ownership boundary。Turn 拥有调用模型的条件，也拥有模型输出可以怎样请求 work 的条件。
+
+### 3.2 三种历史，不是一份 Transcript
+
+Chat wrapper 可以假装只有一份 transcript。Bounded runtime 不行。Codex 至少要回答三种不同的 history 问题：
+
+| History | 回答什么问题 | Source owner |
+| --- | --- | --- |
+| Model-visible context | 模型下一步应该看到什么？ | `ContextManager` |
+| Rollout record | 按 replayable order 发生了什么？ | rollout trace 和 protocol events |
+| Queryable projection | Clients 应该怎样快速 list、filter、resume 或 summarize？ | thread state 和 app-server projections |
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-session-durable-state-569ff6a1-v2.webp" alt="Thread durable state map showing thread identity, session facade, queues, history, projections, resume, fork, state ledger, and rollback" loading="lazy" decoding="async" />
+  <figcaption>Thread state 不是一份 transcript。Runtime state、model-visible context、durable replay、projections、resume、fork 和 rollback 服务不同读者。</figcaption>
+</figure>
+
+Model-visible side 出现在 [`ContextManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32-L51) 中。它存储 response items、version、token accounting，以及用于未来 diffing 的 reference context item：
+
+```rust
+pub(crate) struct ContextManager {
+    items: Vec<ResponseItem>,
+    history_version: u64,
+    token_info: Option<TokenUsageInfo>,
+    reference_context_item: Option<TurnContextItem>,
+}
+```
+
+这不同于 database list view。它是 model-visible history 的 context manager。它可以 compact、roll back、track token pressure，并决定什么必须 reinject 到 future turns。
+
+Replay side 是另一种形状。[`RolloutTrace`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/mod.rs#L52-L88) 是一个 reduced diagnostic graph，包含 turns、conversation items、inference calls、tool calls、terminals、compactions、interaction edges 和 raw payload references：
+
+```rust
+pub struct RolloutTrace {
+    pub schema_version: u32,
+    pub trace_id: String,
+    pub rollout_id: String,
+    pub started_at_unix_ms: i64,
+    pub ended_at_unix_ms: Option<i64>,
+    pub status: RolloutStatus,
+    pub root_thread_id: AgentThreadId,
+    pub threads: BTreeMap<AgentThreadId, AgentThread>,
+    pub codex_turns: BTreeMap<CodexTurnId, CodexTurn>,
+    pub conversation_items: BTreeMap<ConversationItemId, ConversationItem>,
+    pub inference_calls: BTreeMap<InferenceCallId, InferenceCall>,
+    pub code_cells: BTreeMap<CodeCellId, CodeCell>,
+    pub tool_calls: BTreeMap<ToolCallId, ToolCall>,
+    pub terminal_sessions: BTreeMap<TerminalId, TerminalSession>,
+    pub terminal_operations: BTreeMap<TerminalOperationId, TerminalOperation>,
+    pub compactions: BTreeMap<CompactionId, Compaction>,
+    pub compaction_requests: BTreeMap<CompactionRequestId, CompactionRequest>,
+    pub interaction_edges: BTreeMap<EdgeId, InteractionEdge>,
+    pub raw_payloads: BTreeMap<RawPayloadId, RawPayloadRef>,
+}
+```
+
+Queryable side 又不同。[`list_threads`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/threads.rs#L397-L430) 使用 database、filtering、ordering、pagination 和 anchors 返回一个 thread page：
+
+```rust
+pub async fn list_threads(
+    &self,
+    page_size: usize,
+    filters: ThreadFilterOptions<'_>,
+) -> anyhow::Result<crate::ThreadsPage> {
+```
+
+三种历史保护同一个 lesson：不要让一个 representation 承担所有目的。模型需要 selected context。Replay 需要 structured fidelity。Clients 需要 efficient projections。把这些塌缩成一份漂亮 transcript，会让系统更容易 demo，也更难 operate。
+
+## 四、Authority 与 Projection
+
+### 4.1 Authority Stack
+
+当模型请求副作用时，bounded-OS model 最重要。一个 model item 可能提出 shell command、patch、MCP call 或其他 tool use。这个 proposal 不是 authority。Authority 由 turn context、approval policy、permission profile、hooks、sandbox policy 和 executor selection 共同组成。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-approval-gates.webp" alt="Hooks and approval gates in Codex showing hook, policy, auto review, human approval, sandbox, feedback, and evidence paths" loading="lazy" decoding="async" />
+  <figcaption>Tool execution 是一条 gated path：hooks、policy、automated review、human approval、sandboxing、execution、feedback 和 evidence 是独立 concerns。</figcaption>
+</figure>
+
+Public protocol 已经在 `UserInputWithTurnContext` 中携带 authority inputs：`cwd`、`approval_policy`、`sandbox_policy` 和 `permission_profile`。Execution path 随后评估具体 tool request。在 [`ToolOrchestrator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L147-L151) 中，file-system 与 network sandbox policies 会先从 turn context 读取，然后再决定 approval requirement：
+
+```rust
+let file_system_sandbox_policy = turn_ctx.file_system_sandbox_policy();
+let network_sandbox_policy = turn_ctx.network_sandbox_policy();
+let requirement = tool.exec_approval_requirement(req).unwrap_or_else(|| {
+    default_exec_approval_requirement(approval_policy, &file_system_sandbox_policy)
+});
+```
+
+这个小 block 解释了为什么 prompt 不可能是完整安全故事。Approval requirement 取决于具体 request shape、approval policy 和 file-system sandbox policy。
+
+同一个 orchestrator 随后把 policy 变成可能 outcomes。一个 branch 可以立即拒绝 request：
+
+```rust
+ExecApprovalRequirement::Forbidden { reason } => {
+    return Err(ToolError::Rejected(reason));
+}
+```
+
+另一个 branch 请求 approval，并在 approval decision 未允许时拒绝 tool call：
+
+```rust
+ExecApprovalRequirement::NeedsApproval { reason, .. } => {
+    let guardian_review_id = use_guardian.then(new_guardian_review_id);
+    let approval_ctx = ApprovalCtx {
+        session: &tool_ctx.session,
+        turn: &tool_ctx.turn,
+        call_id: &tool_ctx.call_id,
+        guardian_review_id: guardian_review_id.clone(),
+        retry_reason: reason,
+        network_approval_context: None,
+    };
+    let decision = Self::request_approval(
+        tool,
+        req,
+        tool_ctx.call_id.as_str(),
+        approval_ctx,
+        tool_ctx,
+        /*evaluate_permission_request_hooks*/ !strict_auto_review,
+        &otel,
+    )
+    .await?;
+
+    Self::reject_if_not_approved(tool_ctx, guardian_review_id.as_deref(), decision)
+        .await?;
+    already_approved = true;
+}
+```
+
+只有之后才发生 sandbox selection。First attempt 不是默认“随便在哪里运行”，而是由 file-system policy、network policy、tool 的 first-attempt override、tool preference、Windows mode 和 managed network state 共同选择：
+
+```rust
+let initial_sandbox = match tool.sandbox_mode_for_first_attempt(req) {
+    SandboxOverride::BypassSandboxFirstAttempt => SandboxType::None,
+    SandboxOverride::NoOverride => self.sandbox.select_initial(
+        &file_system_sandbox_policy,
+        network_sandbox_policy,
+        tool.sandbox_preference(),
+        turn_ctx.windows_sandbox_level,
+        managed_network_active,
+    ),
+};
+```
+
+模型可以请求。Runtime 决定。Sandbox 执行约束。最终 event stream 记录发生了什么。这就是 bounded operating system bet 的核心。
+
+### 4.2 可替换客户端
+
+一旦 runtime 拥有 submissions、turns、events、histories 和 authority，clients 就可以不同，而不变成不同架构。Terminal UI 可以专注交互 rendering 和 approvals。`exec` 可以专注 deterministic command-line behavior。App-server 可以专注 JSON-RPC、request serialization、thread state、rejoin semantics、SDK models，以及 browser 或 desktop integration。
+
+源码保持了这种 downstream relationship。App-server event mapping 并不声称自己是整个 runtime。它的 helper 说自己会构造与单个 core event 对应的 notification，并把 surrounding state checks 留给 caller。在固定 commit 上，[`item_event_to_server_notification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L25-L34) 明确是 projection layer：
+
+```rust
+pub fn item_event_to_server_notification(
+    msg: EventMsg,
+    thread_id: &str,
+    turn_id: &str,
+) -> ServerNotification {
+```
+
+这种分离让 client surfaces 可以增加，而不复制 agent loop。UI 可以丰富地 render events。SDK 可以暴露 typed models。Daemon 可以管理 transport 和 rejoin behavior。这些 surface 都不应该成为“tool 是否被允许”、“turn 包含什么”或“哪些 facts 属于 replay”的 truth source。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-rollout-evidence-569ff6a1-v2.webp" alt="Observability and rollout evidence map showing client events, rollout trace, metrics, logs, replay, and source anchors" loading="lazy" decoding="async" />
+  <figcaption>Evidence 是 runtime 的 public memory：clients 可以 render 不同 views，但 replay、diagnostics、rollout trace、metrics 和 source anchors 需要 stable facts。</figcaption>
+</figure>
+
+这也是后续章节中 generated contracts 和 release checks 重要的原因。如果 clients 位于 typed runtime facts 下游，那么 schema export、compatibility tests 和 boundary checks 就不是 delivery chores。它们是 bounded OS 防止新 surfaces 把私有假设偷渡过 runtime boundary 的方式。
+
+## 五、应用到实践
+
+Bounded-OS model 在 Codex 之外也有用。它给任何能作用于用户环境的 agent system 提供一个 checklist。
+
+1. **在 intent 变成 work 之前让它 typed。** 定义携带 user input、cwd、policy、model choice 和 turn-scoped override 的 operation shape。
+2. **给 turn 一个 runtime owner。** 把 context、cancellation、provider state、pending input 和 completion 放在 clients 可以调用但不拥有的边界下。
+3. **按工作拆分 histories。** 不要强迫 model-visible context、replay evidence 和 queryable list views 进入同一份 transcript。
+4. **在 model output 之后 gate side effects。** 让 generated output 请求 work，再用 policy、approvals、hooks、sandboxing 和 executors 决定实际发生什么。
+5. **把 clients 当成 projections。** 在 runtime facts 之上构建 UI、CLI、SDK 和 service surfaces，而不是让每个 surface 长出自己的 agent loop。
+
+下面的 decision table 是这些规则的审计版。
+
+| Design choice | Runtime owner | Source anchor | Protected invariant | Failure if collapsed |
+| --- | --- | --- | --- | --- |
+| Submit work as typed operations. | Protocol crate 和 session facade。 | `Submission`, `Op`, `Codex::submit`。 | Intent 可以被 correlate 和 reject。 | UI text 变成隐式 runtime authority。 |
+| Emit facts as typed events. | Protocol crate 和 event stream。 | `Event`, `EventMsg`, `next_event`。 | Clients consume facts，而不是 invent facts。 | Screens 成为唯一 record。 |
+| Keep turn context with input. | Operation payload 和 turn runtime。 | `UserInputWithTurnContext`, `run_turn`。 | Policies、cwd、model 和 sandbox settings 随请求移动。 | 同一条 message 在不同 caller 中含义不同。 |
+| Separate histories. | Context manager、rollout trace、thread database。 | `ContextManager`, `RolloutTrace`, `list_threads`。 | Model context、replay 和 list views 可以为不同 jobs 优化。 | 一份 transcript 变得 slow、lossy 或 unsafe。 |
+| Gate side effects after model output. | Tool orchestrator 和 sandbox manager。 | Approval requirement 和 sandbox selection。 | 模型请求 work；runtime authority 决定。 | Tool execution 由 prompt 治理。 |
+| Treat clients as projections. | App-server、TUI、SDK 和 CLI adapters。 | Event mapping 和 generated schemas。 | Surfaces 可以演进，而不 fork runtime truth。 | 每个 client 长出自己的 agent loop。 |
+
+实际规则很简单：添加 agent feature 前，先命名会跨 subsystem boundary 的 runtime nouns。然后命名可以说 no 的 owner。这两个名字稳定后，UI 或 prompt shape 才应该被当成 implementation work。
+
+## 六、结语
+
+Bounded-operating-system model 解释了为什么 Codex 先围绕 contracts 组织，再围绕 interfaces 组织。请求以 operation 进入，在 session 与 turn owner 下运行，从 selected context 获取信息，通过 authority gates 请求 side effects，发出 events，并留下 clients 可以 project 的 evidence。这远不止 chat wrapper，也不是 general-purpose OS。力量来自边界。
+
+第 2 章会跟踪第一个具体 entry boundary：安装后的 command 怎样到达 Rust command router，同时不让 distribution glue 变成 product architecture。
 
 <div class="source-equivalence">
 
@@ -156,14 +369,18 @@ Codex 的架构假设产品接入面会变多。终端 UI 需要流式更新和�
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| 运行时词汇 | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L125) |
-| 操作枚举 | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) |
-| 事件流 | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1249) |
-| 会话门面 | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L366) |
-| 模型可见 history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L34) |
-| Rollout replay graph | [`codex-rs/rollout-trace/src/model/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/mod.rs#L54) |
-| 可查询 thread projection | [`codex-rs/state/src/runtime/threads.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/threads.rs#L398) |
-| 工具审批闸门 | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L149) |
-| Sandbox 选择 | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L218) |
+| Runtime vocabulary | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123) |
+| Operation enum | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403) |
+| Turn-scoped context operation | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L445) |
+| Event stream | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1247) |
+| Session facade | [`codex-rs/core/src/session/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L364) |
+| Submission and event methods | [`submit`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L688), [`next_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/mod.rs#L743) |
+| Turn runtime | [`codex-rs/core/src/session/turn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/session/turn.rs#L139) |
+| Model-visible history | [`codex-rs/core/src/context_manager/history.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/context_manager/history.rs#L32) |
+| Rollout replay graph | [`codex-rs/rollout-trace/src/model/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/rollout-trace/src/model/mod.rs#L52) |
+| Queryable thread projection | [`codex-rs/state/src/runtime/threads.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/state/src/runtime/threads.rs#L397) |
+| App-server event projection | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L25) |
+| Tool approval gate | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L149) |
+| Sandbox selection | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L218) |
 
 </div>

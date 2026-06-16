@@ -1,121 +1,491 @@
+# 从分发包装器到 Rust Router
 
-# 第 2 章：从分发包装器到 Rust Router
-
-> **阅读契约：** 用本章把启动过程读成逐步收窄。跟住 distribution wrapper、CLI parsing 和 Rust routing 如何把用户命令变成类型化路径，同时不让 packaging 拥有架构。
+> **阅读契约：** 跟着一次 `codex` invocation 从 package entry point 进入 Rust command router。追踪哪一层可以决定 delivery，哪一层可以暴露 helper aliases，哪一层拥有 product intent。读完本章后，你应该能解释为什么 JavaScript wrapper 有意保持 behavior-poor，而 Rust router 有意保持 typed。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/startup-router-narrowing-569ff6a1-v2.webp" alt="启动路由收窄图：从 npm wrapper 穿过 invocation dispatch、Rust CLI router、product surfaces 和 shared runtime crates" loading="eager" decoding="async" />
-  <figcaption>启动路径把宽泛命令逐层收窄成类型化运行时入口：wrapper、Rust CLI、命令路由，再到具体 surface。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/startup-router-narrowing-569ff6a1-v2.webp" alt="启动路由收窄图：从 npm wrapper 穿过 invocation dispatch、Rust CLI router、product surfaces 和 shared runtime crates" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>启动把一个宽泛的已安装命令收窄成一条 typed runtime path：package entry、native executable、helper dispatch、Rust command router，然后是被选中的 product surface。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章的 direct source facts 固定到 OpenAI Codex commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。被链接的 named files、constants、structs、enum variants、functions 和 branch behavior 属于 **verified source**。更高层的“delivery contract”、“product owner”、“helper alias”和“startup invariant”是从这些公开锚点得出的 **surrounding contract inference**，不是关于 OpenAI 私有服务内部的断言。
 
-第 1 章把 Codex 描述成一个有边界的操作系统：runtime 接收 typed operation，发出 event，并在副作用前执行策略闸门。本章进入用户触碰到的第一条边界：安装后的命令。这里的设计刻意保持不对称。JavaScript 负责分发机制，Rust 负责产品路由和 runtime 集成。
+Codex 用户触碰到的第一个架构边界，不是模型请求，而是 package manager 安装的 command。这个 command 必须跨 operating systems、CPU architectures、optional native packages、vendored artifacts、helper executables、terminal signals 和 shell exit semantics 工作。一个大型 CLI 很容易让 bootstrap script 长成第二个 product router。
 
-这条分界很容易被低估。许多命令行产品从一个脚本开始，然后脚本逐渐长出业务行为。Codex 避免了这种形状。面向 npm 的入口选择正确的 native artifact，调整进程环境，转发信号，然后退出架构中心。Rust binary 解析命令，解析共享启动状态，并分发到不同产品接入面。
+Codex 选择更窄的做法。npm package 把 [`codex`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L5-L7) 暴露为 `bin/codex.js`，这个 JavaScript 文件找到并启动 native binary。Rust 启动后，[`arg0_dispatch_or_else`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L175) 在 [`MultitoolCli::parse`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L803-L810) 把剩余 invocation 变成 typed command 之前处理 helper aliases。这个切分在代码上很小，在设计上很大：packaging 可以决定 binary **在哪里**；Rust 决定 Codex **意味着什么**。
 
-结果不只是一个更快的可执行文件，而是一条架构边界：分发层可以知道 binary 怎样被找到，但不应该知道 Agent 怎样工作。
+## 一、Delivery Contract
 
+Package entry point 只允许回答一个实际问题：给定这个 host 和 installation layout，应该运行哪一个 native executable？它不允许决定 configuration semantics、authentication behavior、remote mode、sandbox policy、thread state 或 tool authority。
 
-## 启动链路
+这个 contract 从 package manifest 开始：
 
-启动路径可以分成四个概念阶段：
-
-分发包装器存在，是因为用户会通过需要平台特定 artifact 的包渠道安装 Codex。它检测主机平台，找到匹配的 native package 或 vendored binary，在需要时加入 helper 路径，标记 install context，启动 native executable，并镜像进程退出状态。这些任务都不需要理解 thread、turn、approval、model 或 tool。
-
-随后 Rust binary 处理真正属于产品的工作。它可以启动终端 UI、运行 headless execution、管理登录、暴露 MCP 命令、运行 app-server、检查 feature flags、应用 Agent 产出的 diff、恢复或 fork thread、启动 sandbox helper，或调用隐藏的内部工具。Router 很宽，但这种宽度是显式的。
-
-| 层 | 拥有 | 不应拥有 |
-| --- | --- | --- |
-| 包装器 | 平台选择、binary 定位、信号转发、安装标记。 | Runtime 行为、配置语义、认证流程、工具执行。 |
-| 调用名分发 | Helper alias 和单 binary 复用。 | 产品策略或用户可见决策。 |
-| Rust command router | 根 flags、subcommands、隐藏内部命令、dispatch。 | 属于共享 crates 的长期 session 行为。 |
-| 产品接入面 | TUI、exec、app-server、login、review、cloud、plugin、MCP。 | Config、auth 或 runtime loop 的重复实现。 |
-| 共享 runtime crates | Config、auth、protocol、session、tools、state、sandboxing。 | 分发渠道假设。 |
-
-### 作为交付胶水的 JavaScript
-
-包装器的工作很机械，但很关键。它把“用户运行了安装后的命令”转换为“正确的 native executable 正在带着正确环境运行”。这包括平台选择、optional dependency 查找、vendored artifact fallback、额外 helper path、包管理器标记和信号处理。
-
-从架构上看，包装器是 bootloader。Bootloader 小，不代表它不重要；它重要，正因为它受约束。如果包装器开始解释 feature flag、读取项目配置或决定审批行为，产品就会拥有第二套控制平面。Rust runtime 将不再是命令行为定义的唯一位置。
-
-```text
-// Pseudocode - illustrative pattern.
-function wrapper_main(argv, environment):
-    target = detect_platform_target(environment)
-    binary = locate_native_binary(target)
-    helper_paths = discover_packaged_helper_paths(target)
-    child_environment = environment.with_path_prefix(helper_paths)
-    child_environment.set("install_origin", detected_package_manager())
-    result = spawn_and_forward_signals(binary, argv, child_environment)
-    exit_like_child(result)
+```json
+"bin": {
+  "codex": "bin/codex.js"
+}
 ```
 
-这段伪代码表达的是边界。包装器不会解析“启动 thread”或“批准 patch”。它转发参数，并保持进程行为。
+Manifest 没有暴露一组 JavaScript commands。它只暴露一个 installed command。压力在于 package channels 很宽，而 runtime semantics 应该保持窄。
 
-### 用调用名做路由
+| Startup pressure | 会失败的简单设计 | Source mechanism | Protected invariant |
+| --- | --- | --- | --- |
+| 一个 npm package 必须启动许多 native artifacts。 | 发布一个按平台长出 product behavior 的 script。 | [`PLATFORM_PACKAGE_BY_TARGET`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15-L22) 加 target selection。 | Platform choice 保持 delivery data。 |
+| Optional native packages 可能缺失或被 vendored。 | 假设只有一种 install layout，并给出不透明失败。 | Optional dependency lookup 和 [`localVendorRoot`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L87-L118) fallback。 | Binary discovery 显式且可诊断。 |
+| Helpers 可能需要被 child processes 找到。 | 把 helper paths 烘进 product commands。 | [`pathDir`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L161-L166) prepended to `PATH`。 | Helper discovery 保持 installation metadata。 |
+| Parent shells 需要正确 termination semantics。 | Spawn child 后让 Node 独立退出。 | Signal forwarding 和 exit mirroring。 | Scripts 观察 native process result。 |
 
-Native binary 启动后，Codex 还会根据可执行文件的调用方式进行第二层 dispatch。在类 Unix 系统里，一个 binary 可以在通过不同名字或受控参数调用时表现为多个 helper 工具。Codex 用这个模式支持 sandbox 启动、patch application、filesystem helper execution、shell escalation 等路径。
+这就是为什么 wrapper 应该被读成 boot boundary，而不是 agent runtime 的开端。Wrapper 准备 native child；它不变成 child。
 
-这是一个务实的交付决策。发布许多 executable 会增加打包复杂度、版本偏移和路径发现问题。用一个 binary 加受控 helper alias，可以让 release artifact 更简单，同时仍然给内部子系统稳定的 executable 名称。
+## 二、JavaScript Wrapper
 
-这个模式也有代价：启动时必须在普通命令解析前检查 invocation metadata。这个检查必须保持窄而确定。如果它长成产品级命令处理，就会和 command router 竞争。只要控制得当，它能让 runtime 把稳定 helper path 传给后续子系统，而不是把安装布局写死。
+### 2.1 Platform Target 是 Delivery Data
 
-### Rust Router
+Wrapper 从 Rust target triples 到 platform packages 的有限 map 开始：
 
-Command router 是产品第一次清晰显形的地方。它的根命令接收全局配置覆盖、feature toggles、remote options 和默认 interactive prompt。Subcommands 表示被支持的产品接入面。
+```javascript
+const PLATFORM_PACKAGE_BY_TARGET = {
+  "x86_64-unknown-linux-musl": "@openai/codex-linux-x64",
+  "aarch64-unknown-linux-musl": "@openai/codex-linux-arm64",
+  "x86_64-apple-darwin": "@openai/codex-darwin-x64",
+  "aarch64-apple-darwin": "@openai/codex-darwin-arm64",
+  "x86_64-pc-windows-msvc": "@openai/codex-win32-x64",
+  "aarch64-pc-windows-msvc": "@openai/codex-win32-arm64",
+};
+```
 
-| 接入面 | 架构角色 |
-| --- | --- |
-| Interactive UI | 基于共享 runtime 的 inline terminal client。 |
-| Headless execution | 面向 prompt、review 和机器输出的非交互客户端。 |
-| Login / logout | 凭据生命周期和状态检查。 |
-| MCP commands | 工具协议集成的配置和 server 入口。 |
-| App-server | 面向丰富客户端和 SDK 的 JSON-RPC 边界。 |
-| Plugin / marketplace commands | 扩展打包和发现流程。 |
-| Sandbox / exec-server helpers | 执行位置和隔离能力。 |
-| Resume / fork | 基于持久状态的 thread 生命周期操作。 |
-| Debug / feature commands | 面向 generated catalogs、trace 和 flags 的检查接入面。 |
+Map 之后是 [`process.platform` 与 `process.arch` switch](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L24-L76)，它要么选择一个已知 target triple，要么抛出 unsupported-platform error。产品重点不是“Codex 以 JavaScript 为先”。事实相反：JavaScript 把 package-manager reality 翻译成一个 native target，然后停止做 product decisions。
 
-Router 不会让所有流程都变简单；它让这些流程变显式。读者只要看 command tree，就能在阅读 session loop 之前知道产品有哪些接入面。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/js-wrapper-handoff-569ff6a1.webp" alt="JavaScript wrapper handoff showing platform target, vendor root, PATH helpers, native spawn, signal mirror, and delivery-only boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>JavaScript entry point 拥有 delivery mechanics：platform target、vendor root、helper path、child spawn，以及 parent/child termination semantics。</figcaption>
+</figure>
 
-### 隐藏命令仍然是契约
+### 2.2 Binary Discovery 有两种 Layout
 
-有些命令不会出现在普通 help 输出里，因为它们服务内部或实验流程。隐藏不等于随意。隐藏命令仍然有解析后的参数、测试和启动模型里的位置。这比把同样行为藏在临时环境变量或非结构化 shell 片段里更安全。
+Native package 可能作为 optional dependency 到达，也可能位于本地 `vendor` 目录下。Wrapper 让这个选择可见：
 
-这对 helper process 尤其重要。Sandbox、app-server proxy、schema generation、trace reduction、内部 relay 常常需要命令行入口。把它们作为 first-class parsed commands，可以让 release system、测试和其他 crates 以稳定方式调用它们。
+```javascript
+let vendorRoot;
+try {
+  const packageJsonPath = require.resolve(`${platformPackage}/package.json`);
+  vendorRoot = path.join(path.dirname(packageJsonPath), "vendor");
+} catch {
+  if (existsSync(localBinaryPath)) {
+    vendorRoot = localVendorRoot;
+  } else {
+    const packageManager = detectPackageManager();
+    const updateCommand =
+      packageManager === "bun"
+        ? "bun install -g @openai/codex@latest"
+        : "npm install -g @openai/codex@latest";
+    throw new Error(
+      `Missing optional dependency ${platformPackage}. Reinstall Codex: ${updateCommand}`,
+    );
+  }
+}
+```
 
-### 薄产品接入面
+这段代码故意普通。它不读取 `config.toml`，不检查 account state，也不根据 command intent 分支。它只发现 `vendorRoot`，然后用 `archRoot`、`codex` 和 platform-specific binary name 形成 [`binaryPath`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L117-L118)。Optional dependency 失败会变成 install diagnostic，而不是半个 runtime。
 
-Router 的核心设计纪律，是让产品接入面成为共享 runtime crates 上的薄层。Interactive mode 不应该拥有独立 config resolver。Headless execution 不应该拥有独立 auth 模型。App-server 不应该发明第二套 thread store。Review 不应该变成不相关的 Agent loop。
+### 2.3 Spawn 保留 Native Child
 
-这个纪律让后续章节可以把 Codex 解释成一个系统。每个接入面都有特殊行为，但共同部分位于共享契约之后：
+Handoff point 是这个文件里最重要的 wrapper code：
 
-这个 foundation 不是便利库，而是系统防止产品接入面漂移的架构手段。
+```javascript
+const additionalDirs = [];
+const pathDir = path.join(archRoot, "path");
+if (existsSync(pathDir)) {
+  additionalDirs.push(pathDir);
+}
+const updatedPath = getUpdatedPath(additionalDirs);
 
-### Install Context 是元数据
+const env = { ...process.env, PATH: updatedPath };
+const packageManagerEnvVar =
+  detectPackageManager() === "bun"
+    ? "CODEX_MANAGED_BY_BUN"
+    : "CODEX_MANAGED_BY_NPM";
+env[packageManagerEnvVar] = "1";
 
-Codex 还会保留 install context。一个 binary 可能来自 npm、Bun、Homebrew、standalone archive、desktop app 或未知来源。不同来源可能需要不同的更新提示、bundled helper 发现或诊断信息。关键在于，install context 是元数据，而不是行为权限。它应该解释进程从哪里来、打包资源在哪里；它不应该决定模型能否编辑文件。
+const child = spawn(binaryPath, process.argv.slice(2), {
+  stdio: "inherit",
+  env,
+});
+```
 
-这种分离避免交付关注点泄漏到策略层。Managed account requirement 应该约束 runtime 设置，而不关心 binary 怎样安装。Sandbox helper 应该能被发现，而不关心哪个产品接入面在运行。启动阶段把安装事实传下去，是为了让后续层不用重新探测世界。
+`process.argv.slice(2)` 是 product-intent clue。Wrapper 转发用户 arguments，而不是解释它们。它把 helper directories 和 package manager markers 加入 environment，然后让 native binary 解析 command。
 
-### Router 为什么影响后续章节
+Wrapper 还保持 shell behavior faithful：
 
-后续章节都依赖这条启动分界。配置和认证可以讲一次，因为所有主要命令路径都会到达同一个 foundation。协议可以作为产品边界来讲，因为 app-server、TUI 和 exec 都是共享 runtime 概念之上的接入面。工具执行可以作为 runtime capability 来讲，因为包装器不会绕过它。
+```javascript
+const forwardSignal = (signal) => {
+  if (child.killed) {
+    return;
+  }
+  try {
+    child.kill(signal);
+  } catch {
+    /* ignore */
+  }
+};
 
-因此 router 有两种职责：分发命令，并保护系统形状。
+["SIGINT", "SIGTERM", "SIGHUP"].forEach((sig) => {
+  process.on(sig, () => forwardSignal(sig));
+});
+```
 
-## 应用到实践
+Child 退出时，parent mirror 终止来自 signal 还是 exit code。这对 scripts 和 terminals 很重要，但仍然不会把 JavaScript 变成 runtime owner。它保留 native process 作为 observable authority。
 
-1. **让分发胶水保持低行为含量。** Wrapper 可以寻找并启动产品 binary，但产品语义应留在主实现里。
-2. **用一个 router 表达产品意图。** 一个宽而显式的命令树，比散落在启动路径里的隐藏行为更容易推理。
-3. **让 helper 入口显式化。** 内部工具也应有 typed arguments 和确定性 dispatch。
-4. **把安装事实作为事实传递。** Package origin 和 helper path 是元数据，不是第二套 policy system。
-5. **把共享行为下沉到接入面之下。** TUI、headless execution、app-server 和 plugins 应复用同一套 config、auth、protocol 和 runtime foundation。
+## 三、Arg0 Helper Dispatch
 
-## 小结
+Native binary 启动后，Codex 还有一个 pre-router job：按 invocation name 和受控 first argument 做 helper dispatch。[`arg0`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L152-L175) module 在注释里直接说明原因：Codex 想部署一个 CLI binary，同时在 Unix-like systems 上把某些功能暴露为 distinct helper CLIs。
 
-命令到达 Rust 时，分发关注点已经被压缩成元数据和 helper path。第 3 章会继续讨论 router 在任何接入面安全开始工作前必须解析的内容：配置、认证、feature state 和 managed requirements。
+这不是第二个 product router。它是 helper boundary，用于后续 subsystem 需要稳定 executable name 的场景，例如 `apply_patch` 或 sandbox helper。
+
+把 `arg0` 读成 executable identity 最后一次允许改变 control flow 的地方。如果 process 被作为 helper 调用，helper branch 会在 product parsing 前评估。如果它作为普通 `codex` 被调用，alias machinery 只准备后续 children 可以找到的名字。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/arg0-alias-lifecycle-569ff6a1.webp" alt="Arg0 helper dispatch showing argv0 check, direct helper branch, temporary alias directory, PATH prepend, main runtime, and guard cleanup" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`arg0` 把 direct helper invocations 与 ordinary startup 分开：一个 binary 可以暴露 stable helper names，而 main runtime 仍然到达 Rust command router。</figcaption>
+</figure>
+
+### 3.1 Direct Helpers 在普通 Parsing 前停止
+
+第一个 branch 检查 executable 是怎样被调用的：
+
+```rust
+pub fn arg0_dispatch() -> Option<Arg0PathEntryGuard> {
+    // Determine if we were invoked via the special alias.
+    let mut args = std::env::args_os();
+    let argv0 = args.next().unwrap_or_default();
+    let exe_name = Path::new(&argv0)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+
+    #[cfg(unix)]
+    if exe_name == EXECVE_WRAPPER_ARG0 {
+        let mut args = std::env::args();
+        let _ = args.next();
+        let file = match args.next() {
+            Some(file) => file,
+            None => std::process::exit(1),
+        };
+        let argv = args.collect::<Vec<_>>();
+```
+
+这个 pattern 有意 pre-parser。它检查 executable name，剥离 helper-specific arguments，并在 ordinary command tree 看见 invocation 前把 control 交给 helper code。
+
+同一个 function 后面还识别 Linux sandbox name、`apply_patch`、misspelled compatibility name `applypatch`，以及 first-argument helper modes：
+
+```rust
+if exe_name == CODEX_LINUX_SANDBOX_ARG0 {
+    // Safety: [`run_main`] never returns.
+    codex_linux_sandbox::run_main();
+} else if exe_name == APPLY_PATCH_ARG0 || exe_name == MISSPELLED_APPLY_PATCH_ARG0 {
+    codex_apply_patch::main();
+}
+
+let argv1 = args.next().unwrap_or_default();
+if argv1 == CODEX_FS_HELPER_ARG1 {
+    codex_exec_server::run_fs_helper_main();
+}
+```
+
+这些 branches 有意很早。Helper invocation 不应该 fall through 到 `codex exec`、`codex login` 或 app-server parsing。Helper name 本身已经是 contract。
+
+### 3.2 普通 Startup 创建临时 Aliases
+
+如果没有 direct helper 消耗 process，startup 会为 child re-execs 准备 helper aliases。源码明确说明 path entry 为什么存在：
+
+```rust
+/// This temporary directory is prepended to the PATH environment variable so
+/// that `apply_patch` can be on the PATH without requiring the user to
+/// install a separate `apply_patch` executable, simplifying the deployment of
+/// Codex CLI.
+/// Note: In debug builds the temp-dir guard is disabled to ease local testing.
+///
+/// IMPORTANT: This function modifies the PATH environment variable, so it MUST
+/// be called before multiple threads are spawned.
+pub fn prepend_path_entry_for_codex_aliases() -> std::io::Result<Arg0PathEntryGuard> {
+```
+
+注释携带两个 startup invariants。Alias availability 只在当前 process lifetime 内有效，`PATH` 必须在 Codex 启动可能引入多线程的 work 前被修改。
+
+在 Unix 上，这个 function 把 selected helper names symlink 到当前 executable：
+
+```rust
+for filename in &[
+    APPLY_PATCH_ARG0,
+    MISSPELLED_APPLY_PATCH_ARG0,
+    #[cfg(target_os = "linux")]
+    CODEX_LINUX_SANDBOX_ARG0,
+    #[cfg(unix)]
+    EXECVE_WRAPPER_ARG0,
+] {
+    let exe = std::env::current_exe()?;
+
+    #[cfg(unix)]
+    {
+        let link = path.join(filename);
+        symlink(&exe, &link)?;
+    }
+```
+
+然后它把临时目录 prepend 到 `PATH`，并通过 `Arg0DispatchPaths` 返回 stable helper paths：
+
+```rust
+unsafe {
+    std::env::set_var("PATH", updated_path_env_var);
+}
+
+let paths = Arg0DispatchPaths {
+    codex_self_exe: std::env::current_exe().ok(),
+    codex_linux_sandbox_exe: {
+        #[cfg(target_os = "linux")]
+        {
+            Some(path.join(CODEX_LINUX_SANDBOX_ARG0))
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            None
+        }
+    },
+    main_execve_wrapper_exe: {
+        #[cfg(unix)]
+        {
+            Some(path.join(EXECVE_WRAPPER_ARG0))
+        }
+```
+
+临时目录不是 loose side effect。`Arg0PathEntryGuard` 持有 tempdir 和 lock，生命周期覆盖 process；[`run_main_with_arg0_guard`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L195-L220) 只有在 async main function 完成后才 drop 这个 guard。这就是 startup invariant：helper names 在 runtime 可能需要它们时可用，但不永久安装第二套 executable family。
+
+## 四、Rust Command Router
+
+到这里，distribution 和 helper identity 已经被解决。剩下的是作为 arguments 的 user intent。Rust router 的工作，是把 argument vector 变成一个 typed surface，只把 root-level facts 携带到能够 honor 它们的 surface。
+
+### 4.1 Root Flags 被收集一次
+
+Helper dispatch 后，`main` 调用 [`cli_main`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L796-L803)，`cli_main` 解析一个 root command。Parser shape 是 Rust 中第一个 product surface：
+
+```rust
+/// Codex CLI
+///
+/// If no subcommand is specified, options will be forwarded to the interactive CLI.
+#[derive(Debug, Parser)]
+#[clap(
+    author,
+    version,
+    // If a sub-command is given, ignore requirements of the default args.
+    subcommand_negates_reqs = true,
+    // The executable is sometimes invoked via a platform-specific name like
+    // `codex-x86_64-unknown-linux-musl`, but the help output should always use
+    // the generic `codex` command name that users run.
+    bin_name = "codex",
+    override_usage = "codex [OPTIONS] [PROMPT]\n       codex [OPTIONS] <COMMAND> [ARGS]"
+)]
+struct MultitoolCli {
+    #[clap(flatten)]
+    pub config_overrides: CliConfigOverrides,
+
+    #[clap(flatten)]
+    pub feature_toggles: FeatureToggles,
+```
+
+Root config overrides 和 feature toggles 在 selected subcommand 运行前被收集。这不意味着 wrapper 拥有 configuration。它意味着 Rust parser 有一个地方接收 root-level startup facts，然后把它们传给 selected product surface。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/rust-command-router-569ff6a1-v2.webp" alt="Rust command router showing root flags, subcommand enum, remote guard, typed product surfaces, and shared crates" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Rust router 拥有 product intent：root flags 被 fold 一次，subcommands 是 typed，remote restrictions 被检查，被选中的 surfaces 调用 shared crates。</figcaption>
+</figure>
+
+### 4.2 Subcommands 是 Public Surface Map
+
+[`Subcommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L105-L182) enum 是 Codex command surfaces 的可读地图。有些 variants 是普通 user-facing entries：
+
+```rust
+#[derive(Debug, clap::Subcommand)]
+enum Subcommand {
+    /// Run Codex non-interactively.
+    #[clap(visible_alias = "e")]
+    Exec(ExecCli),
+
+    /// Run a code review non-interactively.
+    Review(ReviewArgs),
+
+    /// Manage login.
+    Login(LoginCommand),
+
+    /// Remove stored authentication credentials.
+    Logout(LogoutCommand),
+
+    /// Manage external MCP servers for Codex.
+    Mcp(McpCli),
+```
+
+其他 variants 暴露 app-server、desktop app、completion、update、sandbox、debug、resume、fork、cloud tasks、exec-server 和 feature inspection。重要设计点不是每个 command 都简单，而是 command intent 在 behavior 运行前表示为 typed Rust variants。
+
+### 4.3 Dispatch 收窄到一个 Owner
+
+Main dispatch 先解析 root command，并把 feature toggles fold 进 config overrides：
+
+```rust
+async fn cli_main(arg0_paths: Arg0DispatchPaths) -> anyhow::Result<()> {
+    let MultitoolCli {
+        config_overrides: mut root_config_overrides,
+        feature_toggles,
+        remote,
+        mut interactive,
+        subcommand,
+    } = MultitoolCli::parse();
+
+    // Fold --enable/--disable into config overrides so they flow to all subcommands.
+    let toggle_overrides = feature_toggles.to_overrides()?;
+    root_config_overrides.raw_overrides.extend(toggle_overrides);
+    let root_remote = remote.remote;
+    let root_remote_auth_token_env = remote.remote_auth_token_env;
+
+    match subcommand {
+```
+
+然后每个 branch 选择一个具体 owner。没有 subcommand 时，TUI 运行。对于 `exec`，Codex 会拒绝该 subcommand 不支持的 remote-only root flags，继承 shared exec options，prepend root config flags，并调用 `codex_exec`：
+
+```rust
+Some(Subcommand::Exec(mut exec_cli)) => {
+    reject_remote_mode_for_subcommand(
+        root_remote.as_deref(),
+        root_remote_auth_token_env.as_deref(),
+        "exec",
+    )?;
+    exec_cli
+        .shared
+        .inherit_exec_root_options(&interactive.shared);
+    prepend_config_flags(
+        &mut exec_cli.config_overrides,
+        root_config_overrides.clone(),
+    );
+    codex_exec::run_main(exec_cli, arg0_paths.clone()).await?;
+}
+```
+
+这个 branch 很好地体现了 router discipline。它可以把 root facts 适配给一个 surface，但仍然把 work 交给该 surface 的 crate，而不是 inline 实现 headless execution。
+
+App-server 也遵循同样模式，只是 owner 不同：
+
+```rust
+Some(Subcommand::AppServer(app_server_cli)) => {
+    let AppServerCommand {
+        subcommand,
+        listen,
+        analytics_default_enabled,
+        auth,
+    } = app_server_cli;
+    reject_remote_mode_for_app_server_subcommand(
+        root_remote.as_deref(),
+        root_remote_auth_token_env.as_deref(),
+        subcommand.as_ref(),
+    )?;
+    match subcommand {
+        None => {
+            let transport = listen;
+            let auth = auth.try_into_settings()?;
+            codex_app_server::run_main_with_transport(
+```
+
+Router 很宽，因为 command surface 很宽。它仍然是 router，因为每个 branch 选择一个 downstream owner，而不是 inline 执行每个 surface。
+
+## 五、Visible 和 Hidden Contracts
+
+Hidden commands 很容易被误读。它们是从普通 help output 中隐藏，而不是非正式 shell hacks。源码对 hidden variants 使用同一套 Clap machinery：
+
+```rust
+/// Execpolicy tooling.
+#[clap(hide = true)]
+Execpolicy(ExecpolicyCommand),
+```
+
+同一个 enum 还包含 hidden internal relay surfaces：
+
+```rust
+/// Internal: run the responses API proxy.
+#[clap(hide = true)]
+ResponsesApiProxy(ResponsesApiProxyArgs),
+
+/// Internal: relay stdio to a Unix domain socket.
+#[clap(hide = true, name = "stdio-to-uds")]
+StdioToUds(StdioToUdsCommand),
+```
+
+App-server 有自己的 hidden schema-generation variant：
+
+```rust
+/// [internal] Generate internal JSON Schema artifacts for Codex tooling.
+#[clap(hide = true)]
+GenerateInternalJsonSchema(GenerateInternalJsonSchemaCommand),
+```
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/visible-hidden-command-contracts-569ff6a1-v2.webp" alt="Visible and hidden command contracts sharing the same parser, typed arguments, and stable command contract" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Hidden commands 仍然穿过 typed command definitions。即使命令不面向普通 help output，contract 仍然 source-visible。</figcaption>
+</figure>
+
+这个区别保护 maintainability。Internal helpers 可以从 casual users 面前隐藏，同时仍然像普通 Rust commands 一样被 parsed、reviewed、tested 和 routed。如果同样行为存在于 ad hoc environment variables 或 unstructured shell snippets 中，release tooling 和后来的读者会少一个可推理 surface。
+
+Remote-mode rejection helpers 展示同一条纪律。源码没有让 `--remote` 静默泄漏到每个 subcommand：
+
+```rust
+fn reject_remote_mode_for_subcommand(
+    remote: Option<&str>,
+    remote_auth_token_env: Option<&str>,
+    subcommand: &str,
+) -> anyhow::Result<()> {
+    if let Some(remote) = remote {
+        anyhow::bail!(
+            "`--remote {remote}` is only supported for interactive TUI commands, not `codex {subcommand}`"
+        );
+    }
+    if remote_auth_token_env.is_some() {
+        anyhow::bail!(
+            "`--remote-auth-token-env` is only supported for interactive TUI commands, not `codex {subcommand}`"
+        );
+    }
+    Ok(())
+}
+```
+
+没有 negative checks 的 broad router 会变成 permissive router。Codex 使用 typed variants 加 explicit rejection，防止 root-level affordances 意外变成 global behavior。
+
+## 六、这个边界保护什么
+
+按执行顺序看，startup 有四项工作：把 installed command 解析到 native executable，在 executable 需要 stable names 时暴露 helper aliases，解析一次 root flags 和 subcommands，并拒绝某个 surface 无法 honor 的 root modes。它不构建 session、不选择 model、不决定 approvals、不执行 tools，也不拥有 app-server protocol behavior。它逐步收窄 invocation，直到选中一个 typed owner。
+
+| Startup 中看到的 fact | 收窄后的 runtime owner | 错误放置 | 避免的 failure mode |
+| --- | --- | --- | --- |
+| Host platform 和 CPU architecture。 | JavaScript wrapper。 | Rust product parser。 | Native package selection 泄漏到 command semantics。 |
+| Optional package 或 local vendor layout。 | JavaScript wrapper。 | User-facing subcommands。 | 每个 product surface 都重复 install probing。 |
+| Helper executable names。 | `arg0` dispatch 和 temporary PATH guard。 | Permanent extra binaries 或 ad hoc scripts。 | Helper version drift 和 path skew。 |
+| Root config flags 和 feature toggles。 | `MultitoolCli` 和 `cli_main`。 | npm wrapper。 | Packaging 变成 policy/config control plane。 |
+| Remote mode constraints。 | Rust dispatch rejection helpers。 | 只放在 individual downstream crates。 | Unsupported root flags 到达不能 honor 它们的 surfaces。 |
+| Hidden internal tools。 | Typed hidden Clap variants。 | Environment-variable backdoors。 | Internal tools 对 source review 不可见。 |
+
+三个常见误读值得提前切断。
+
+第一，“wrapper 找到了 binary”不等于“wrapper 拥有 startup semantics”。它拥有 target selection、binary discovery、PATH adjustment、package-manager markers、spawn 和 signal mirroring。它转发 `process.argv.slice(2)` 的瞬间，product intent 已经离开 JavaScript。
+
+第二，“arg0 dispatch 发生在 Clap 之前”不等于“有两个 public CLIs”。`arg0` 处理 helper aliases 和 first-argument helper modes，这些必须在 ordinary parsing 前停止。普通 user intent 仍然流入 `MultitoolCli`。
+
+第三，“hidden command”不等于“没有 contract 的 private behavior”。Hidden variants 是 source-visible typed commands。它们从 help output 隐藏，是因为服务 internal 或 specialized workflows，而不是因为绕过 router。
+
+## 七、应用到实践
+
+1. **让 package wrappers 保持 behavior-poor。** 它们可以选择 artifacts、准备 helper paths、保留 signals，并启动 native binary；product semantics 留在拥有 runtime 的实现语言里。
+2. **把 helper aliases 当成 contracts，而不是 shortcuts。** 如果一个 binary 必须呈现多个 helper names，让 dispatch deterministic，并显式保持它的 lifetime。
+3. **只解析一次 product intent。** Root flags、feature toggles 和 subcommands 应该进入一个 typed router，而不是被每个 surface 重新解释。
+4. **尽早拒绝 unsupported root modes。** 一个 shared flag 只有在 surface 能 honor 时才应该被允许；否则在 downstream crate 开始 work 前失败。
+5. **即使 hidden，也让 internal commands typed。** 隐藏 help output 没问题；隐藏结构不行。Internal tools 仍应有 named variants、arguments 和 source-visible dispatch。
+
+## 八、结语
+
+当 Codex 到达 product surface 时，startup 已经完成了收窄工作。JavaScript 解决 delivery。`arg0` 暴露 helper aliases，但没有创建第二套 product CLI。Rust 解析一个 command tree 并选择一个 owner。第 3 章继续追踪这个 owner 下一步需要什么：configuration 和 authentication facts，它们必须在 runtime work 可以安全开始前被解析。
 
 <div class="source-equivalence">
 
@@ -123,9 +493,21 @@ Codex 还会保留 install context。一个 binary 可能来自 npm、Bun、Home
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| npm 启动包装器 | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L175) |
-| Rust 命令路由 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L106) |
-| App 命令边界 | [`codex-rs/cli/src/app_cmd.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/app_cmd.rs#L5) |
-| App-server daemon 命令 | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L417) |
+| npm `codex` binary mapping | [`codex-cli/package.json`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/package.json#L5-L7) |
+| Platform target package map | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L15-L22) |
+| Host platform target selection | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L24-L76) |
+| Optional dependency and local vendor fallback | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L87-L118) |
+| PATH helper injection and native spawn | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L161-L178) |
+| Signal forwarding and exit mirroring | [`codex-cli/bin/codex.js`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-cli/bin/codex.js#L189-L228) |
+| `Arg0DispatchPaths` helper path carrier | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L21-L31) |
+| Direct `argv0` and `argv1` helper dispatch | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L54-L135) |
+| Arg0 trick design comment and wrapper | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L152-L175) |
+| Temporary helper alias directory and PATH prepend | [`codex-rs/arg0/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/arg0/src/lib.rs#L270-L409) |
+| Root CLI parser | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L73-L103) |
+| Command surface enum | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L105-L182) |
+| Main parse and dispatch entry | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L796-L846) |
+| App-server transport dispatch | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L898-L920) |
+| Hidden app-server schema command | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L472-L489) |
+| Remote-mode rejection helpers | [`codex-rs/cli/src/main.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cli/src/main.rs#L1607-L1654) |
 
 </div>

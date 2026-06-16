@@ -1,121 +1,330 @@
+# 配置、认证与 Managed Requirements
 
-# 第 3 章：配置、认证与 Managed Requirements
-
-> **阅读契约：** 用本章把配置读成约束。跟住 auth、policy、managed requirements、profiles 和环境事实如何变成后续代码必须服从的 envelope。
+> **阅读契约：** 把配置读成 authority boundary，而不是散落在进程里的 preferences。追踪哪一层拥有 provenance，哪一层拥有 requirements，哪一层拥有 permission profiles，哪一层拥有 auth refresh。读完本章后，你应该能解释为什么 Codex turn 只在一个 resolved envelope 存在后才开始。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/config-auth-constraint-stack.webp" alt="配置与认证约束栈：展示 defaults、可信项目配置、auth snapshot、managed requirements 和 resolved permissions" loading="eager" decoding="async" />
-  <figcaption>配置不是装饰项；defaults、profiles、auth、managed requirements 和 permissions 会编译成一次 turn 必须遵守的契约。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/config-layer-stack-569ff6a1.webp" alt="Configuration layers flowing into ConfigLayerStack, provenance, source-aware errors, and a resolved runtime envelope" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Configuration 只有在 layers、provenance、profiles、project trust 和 overrides 被编译成一个 source-aware runtime envelope 后才可用。</figcaption>
 </figure>
 
-第 2 章沿着启动路径，从分发包装器走到了 Rust command router。当 router 知道要启动哪个产品接入面之后，Agent 仍然不能立刻开始工作。它必须先解析运行包络：effective configuration、authenticated identity、feature state，以及 managed requirements。
+**源码边界：** 本章的 direct source claims 固定到 OpenAI Codex commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。`ConfigBuilder`、`Config`、`Permissions`、`ManagedFeatures`、permission profile compilation 和 `AuthManager` behavior 在链接处属于 **verified source**。“runtime envelope”、“constraint clamp”和“same answer before tools”等术语，是从这些 source shapes 和 public app-server permission schema 得出的 **surrounding contract inference**；它们不是关于 OpenAI 隐藏服务内部的断言。
 
-本章讨论的正是这个包络。Codex 不允许每个子系统各自读取喜欢的配置文件或环境变量。系统会构造一份解析后的、带来源信息的视图，并把受约束的 runtime settings 交给后续层。这个不变量非常关键：session loop、model provider、tools、app-server、hooks 和 sandboxing 代码应该消费同一个答案：“这里允许什么？”
-
-**源码边界：** 关于 resolved permissions 的说法是 **verified source**，锚点在 [`config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L236)；permission compilation 是 **verified source**，锚点在 [`permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L300)；managed feature gates 是 **verified source**，锚点在 [`managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L25)。本章把它们称为 runtime envelope，是从这些 resolved shapes 和 [`app-server-protocol`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L375) 的公开 permission profile 做出的 **surrounding contract inference**，不是对隐藏服务内部的断言。
-
-
-## 配置是一组 Layer，不是一个文件
-
-Codex 配置是分层的。有些 layer 来自 system 或 managed settings；有些来自用户 home config；有些来自 project；还有些来自命令行覆盖、session state 或 thread-level choices。重点不只是优先级，还包括 provenance，也就是来源。
-
-图中的 disabled layer 很重要。Project-local configuration 可以被发现，即使 trust 阻止它影响 runtime 行为。这比假装该 layer 不存在更好。客户端可以解释为什么某个值被忽略，用户也可以决定是否信任该项目。
-
-Layering 还让诊断成为可能。如果某个设置失败，Codex 可以区分“未知字段”“被更高优先级 layer 覆盖”“因为项目未受信任而 disabled”“被 requirements 拒绝”。这些是不同问题，对应不同解决方式。
-
-### Preference 与 Requirement 不同
-
-常见配置错误，是把所有设置都当成 preference。Codex 没有这样做。Preference 表示用户或接入面想要什么；requirement 表示环境允许什么。Requirements 是 restrictive overlays。
-
-例如，用户 preference 可能请求一个宽松的 sandbox mode。Managed requirement 可能只允许更严格的 permission profile。正确结果不是把二者作为同级配置合并，而是让 requirement 约束 preference，并在 preference 无法合法化时产生带来源的失败。
-
-| 概念 | 角色 |
-| --- | --- |
-| Config layer | 表达期望的默认值或覆盖。 |
-| Feature flag | 控制 staged behavior、aliases、warnings 和 dependencies。 |
-| Requirement | 限制合法 resolved values 的集合。 |
-| Constrained value | 同时携带允许值和约束来源。 |
-| Resolution error | 解释哪个来源让请求值非法。 |
-
-这也是 Codex 开始表现得像 enterprise-ready local runtime 的地方。Managed account 或 host policy 可以约束 network behavior、filesystem access、approval style、hooks、plugins、MCP servers、web search、residency 和 permission profiles，而不需要修改每个产品接入面。
-
-### Trust-Gated Project Configuration
-
-Project configuration 很有用，因为不同仓库需要不同默认值。它也危险，因为仓库可能来自别人。一个本地 Agent 如果盲目遵守 project config，就等于允许 workspace 配置一个即将检查和修改该 workspace 的工具。
-
-因此 Codex 对 project config 做 trust gate。Loader 可以发现 project layer，保存它的来源，并展示它存在；但不安全的 project-local values 需要 trust，才能变成 effective。这里不是一个特殊 case，而是一种设计模式。系统不需要知道哪个 UI 会展示 trust state；它只需要保留足够信息，让任何客户端都能解释结果。
+第 2 章停在 Rust command router。Router 现在可以决定 invocation 是 TUI、`exec`、review、app-server、MCP、plugin 或另一个 surface。即便如此，agent turn 仍不能开始。任何 surface 运行 tools 或调用 model 前，Codex 必须先回答另一个问题：
 
 ```text
-// Pseudocode - illustrative pattern.
-function load_effective_settings(inputs):
-    layers = []
-    layers.add(load_system_layer())
-    layers.add(load_user_layer())
-
-    project_layer = discover_project_layer(inputs.cwd)
-    if project_layer.exists and project_is_trusted(project_layer):
-        layers.add(project_layer)
-    else:
-        layers.add_disabled(project_layer, reason = "project_not_trusted")
-
-    layers.add(make_cli_override_layer(inputs.flags))
-    preferences = merge_by_precedence(layers.enabled_only())
-
-    requirements = load_requirements(inputs.auth, inputs.host)
-    return constrain(preferences, requirements)
+What is allowed in this process, for this workspace, under this identity,
+with these managed requirements?
 ```
 
-伪代码省略了实现细节，但保留了关键顺序：普通 preferences 先合并，requirements 后约束。
+把这个答案叫“configuration”会低估这个边界。Model choice、provider settings、approval mode、permission profile、filesystem roots、network policy、feature state、web search mode、managed hooks、MCP server requirements 和 auth state 都会塑造后续代码可以做什么。如果每个 subsystem 都自己重新读取 files 和 environment variables，一个 component 可能认为 workspace writable，另一个 component 认为 read-only，第三个 component 可能在 auth layer 已刷新后仍使用旧 token。
 
-### Feature Flags 是生命周期管理
+Codex 选择提前编译一个 envelope。后续 subsystem 仍然可以接收 scoped updates，但这些 updates 会穿过 constrained values 和 known owners。这就是一堆 settings 与 runtime contract 的区别。
 
-Codex 中的 feature flags 不是散落各处的字符串判断。它们有名称、默认值、阶段、aliases、warnings、dependencies，有时还有结构化配置。集中管理让产品可以演进，而不必让每个子系统都变成兼容性表。
+## 一、Stack 被编译，而不是被抽样
 
-一个 feature 可能是 experimental、staged、renamed、deprecated，或只能由 requirements 设置。用户可见命令可能需要对 alias 发出 warning。App-server schema generation 可能需要过滤 experimental fields。Runtime 代码需要检查 normalized feature state，而不是原始字符串。
+核心源码路径从 [`ConfigBuilder::build_inner`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L936-L1038) 开始。Builder 解析 Codex home directory，解析 effective working directory，把 CLI overrides 传给 loader，并接收一个 `ConfigLayerStack`。只有之后，它才把 merged TOML deserialize 成 `ConfigToml`。
 
-这也是有边界操作系统思路的一个例子。普通程序可以在任何地方检查环境变量；一个拥有多个客户端和 generated contracts 的 runtime，需要统一的 feature vocabulary。
+```rust
+let config_layer_stack = load_config_layers_state(
+    LOCAL_FS.as_ref(),
+    &codex_home,
+    Some(cwd),
+    &cli_overrides,
+    loader_overrides,
+    cloud_requirements,
+    thread_config_loader
+        .as_deref()
+        .unwrap_or(&codex_config::NoopThreadConfigLoader),
+)
+.await?;
+let merged_toml = config_layer_stack.effective_config();
 
-### 认证是一份 Snapshot
+// Each layer already resolved relative paths against its config file.
+let config_toml: ConfigToml = match merged_toml.try_into() {
+    Ok(config_toml) => config_toml,
+    Err(err) => {
+        if let Some(config_error) = codex_config::first_layer_config_error::<ConfigToml>(
+            &config_layer_stack,
+            codex_config::CONFIG_TOML_FILE,
+        )
+        .await
+        {
+            return Err(codex_config::io_error_from_config_error(
+                std::io::ErrorKind::InvalidData,
+                config_error,
+                Some(err),
+            ));
+        }
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, err));
+    }
+};
+```
 
-配置说明进程想做什么。认证说明是谁在做，以及哪些 backend capability 可以使用。Codex 支持多种 auth shape：API-key auth、ChatGPT OAuth、外部提供的 bearer token，以及任务型集成使用的 agent identity flows。
+两个细节很重要。第一，stack 不只是最终 values 的 map。`Config` struct 会保留 [`config_layer_stack`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L387-L423)，作为 final config 如何被推导出来的 provenance。第二，relative path resolution 发生在 final deserialization 之前。来自 project layer 的 path 与来自 home layer 的 path 不应该被解释到错误目录下。
 
-架构用 auth manager 隐藏这些存储和刷新差异。目标不只是方便，而是防止一个子系统使用旧凭据，同时另一个子系统已经刷新或使其失效。长时间运行的进程需要一种稳定方式来询问：“当前 auth state 是什么？遇到 unauthorized response 时能否恢复？”
+| Layer role | 能表达什么 | 为什么 provenance 重要 |
+| --- | --- | --- |
+| Built-in defaults | 没有 user layer 时的 baseline behavior。 | Defaulted values 不应该被归咎于 user file。 |
+| User/home config | 持久 personal defaults。 | Errors 可以指回 user-owned layer。 |
+| Profile config | 命名 mode choices。 | Profile 可以被选中，而不会丢失 source identity。 |
+| Project config | Workspace-specific settings。 | Trust 决定 workspace 是否可以影响 runtime。 |
+| CLI overrides | Invocation-specific choices。 | 当前 command 可以 override lower layers，而不抹掉来源。 |
+| Requirements | Managed constraints。 | Illegal choices 应该说明哪个 policy source 拒绝了它们。 |
 
-Snapshot 可以代表不同 auth mode，但后续层不应该关心 token 存在哪里，也不应该关心 refresh command 怎样执行。它们关心的是能否构造 authenticated client、account metadata 是否可用、是否必须获取 policy requirements。
+这就是为什么简单的 “last writer wins” config merge 太弱。它可以生成一个 value，但不能可靠解释这个 value。
 
-### Managed Requirements 与 Fail-Closed
+### 1.1 Project Trust 改变默认 Envelope
 
-Managed requirements 把 account 或 host policy 转成 local constraints。它们可能来自本地 managed configuration、平台管理系统，或 cloud-backed account policy。对于符合条件的 managed accounts，requirements 加载失败可能是 fail-closed 条件。这个选择有意带来不便。如果账号要求中心化策略，本地 runtime 静默跳过策略继续运行，恰好会在最需要策略时削弱可信度。
+Project config 很强，因为 repositories 需要 local defaults。它也危险，因为 repository 是 input data。在固定源码中，[`ProjectConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_toml.rs#L529-L543) 存储 optional `TrustLevel`，config builder 先从 current working directory 和 repository root 解析 active project，再选择 permission defaults。
 
-Requirements layer 也保留来源信息。由 cloud policy 约束的值，应该和由本地 requirements file 约束的值有不同报告方式。Source-aware errors 让系统能向用户、管理员和客户端接入面解释自己。
+```rust
+let repo_root = resolve_root_git_project_for_trust(fs, &resolved_cwd).await;
+let active_project = cfg
+    .get_active_project(
+        resolved_cwd.as_path(),
+        repo_root.as_ref().map(AbsolutePathBuf::as_path),
+    )
+    .unwrap_or(ProjectConfig { trust_level: None });
+```
 
-### Resolved Runtime Envelope
+默认 permission profile 随 active project 和 platform sandbox situation 改变。在 [`default_builtin_permission_profile_name`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L35-L43) 中，有显式 trusted 或 untrusted decision 的 project 通常默认 `:workspace`；否则 Codex fallback 到 `:read-only`。在没有可用 sandbox 的 Windows 上，默认仍保持 conservative。
 
-当某个 command surface 真正开始工作时，它应拿到一份 resolved runtime envelope：
+关键阅读不是“trusted 就 safe”。关键阅读是“trust 是 envelope 的 first-class input”。Project 只能通过 resolved trust decision 影响 workspace defaults，而不是静默变成另一个 global config file。
 
-| Envelope 字段 | 为什么必须提前解析 |
+Trust 回答 project 是否可以贡献 defaults。Requirements 回答每个 preference layer 发言后 resolved values 是否合法。
+
+## 二、Requirements Clamp Preferences
+
+Preferences 表示 user、profile 或 surface 想要什么。Requirements 表示 environment 允许什么。Codex 在 [`ConfigRequirements`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L81-L100) 中保持这个区别可见。这个 struct 携带 approval policy、reviewer choice、permission profile、web search mode、residency、network 与 filesystem constraints、feature requirements、hooks、MCP servers、plugins、exec policy 等 constrained values，并携带 Guardian policy config 的 source。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/requirements-clamp-569ff6a1.webp" alt="Managed requirements clamping preferences for approval, web search, sandbox, feature pins, residency, and illegal requests" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Requirements 是 restrictive overlays：requested setting 必须通过 allowed policy set，才能成为 runtime envelope 的一部分。</figcaption>
+</figure>
+
+面向 TOML 的 shape [`ConfigRequirementsToml`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L637-L657) 展示 policy vocabulary。Managed layer 可以限制 approval policies、reviewers、sandbox modes、web search modes、features、hooks、MCP servers、plugins、apps、exec rules、residency、network behavior、permissions 和 Guardian policy config。
+
+```rust
+pub struct ConfigRequirements {
+    pub approval_policy: ConstrainedWithSource<AskForApproval>,
+    pub approvals_reviewer: ConstrainedWithSource<ApprovalsReviewer>,
+    pub permission_profile: ConstrainedWithSource<PermissionProfile>,
+    pub web_search_mode: ConstrainedWithSource<WebSearchMode>,
+    pub feature_requirements: Option<Sourced<FeatureRequirementsToml>>,
+    pub managed_hooks: Option<ConstrainedWithSource<ManagedHooksRequirementsToml>>,
+    pub mcp_servers: Option<Sourced<BTreeMap<String, McpServerRequirement>>>,
+    pub plugins: Option<Sourced<BTreeMap<String, PluginRequirementsToml>>>,
+    pub exec_policy: Option<Sourced<RequirementsExecPolicy>>,
+    pub enforce_residency: ConstrainedWithSource<Option<ResidencyRequirement>>,
+    pub network: Option<Sourced<NetworkConstraints>>,
+    pub filesystem: Option<Sourced<FilesystemConstraints>>,
+    pub guardian_policy_config_source: Option<RequirementSource>,
+}
+```
+
+Source wrapper 不是装饰。`ConfigRequirementsWithSources` 使用 [`Sourced<T>`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L665-L677)，让 rejected value 能说明哪个 requirement source 拒绝了它。测试 [`constraint_error_includes_cloud_requirements_source`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L1796-L1820) 锁住这个行为：当 cloud requirements 只允许 `OnRequest`，却尝试设置 `AskForApproval::Never` 时，返回的 invalid-value error 会携带 `RequirementSource::CloudRequirements`。
+
+这个小测试捕捉了更大的规则：preference resolution 只有在 managed policy 接受 value 或产生 attributable rejection 后才算完成。
+
+### 2.1 Final Config 必须消费每个 Requirement Field
+
+在 [`Config::load_config_with_layer_stack`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2088-L2217) 内部，Codex 把 `ConfigRequirements` destructure 成 local bindings。注释很直接：每个 field 都必须应用到 final `Config`。
+
+```rust
+// Ensure that every field of ConfigRequirements is applied to the final
+// Config.
+let ConfigRequirements {
+    approval_policy: mut constrained_approval_policy,
+    approvals_reviewer: mut constrained_approvals_reviewer,
+    permission_profile: mut constrained_permission_profile,
+    web_search_mode: mut constrained_web_search_mode,
+    feature_requirements,
+    managed_hooks: _,
+    mcp_servers,
+    plugins: _,
+    exec_policy: _,
+    enforce_residency,
+    network: network_requirements,
+    filesystem: filesystem_requirements,
+    guardian_policy_config_source: _,
+} = config_layer_stack.requirements().clone();
+```
+
+这个 destructuring pattern 是 maintenance guard。如果出现新的 requirements field，compiler 会让 construction site 直面它。Managed requirements file 中不应该存在 runtime 忘记应用的 policy field。
+
+### 2.2 Source-Aware Errors 是 Product Behavior
+
+Source-aware errors 同时是 user-experience feature 和 safety feature。用户看到“approval policy rejected”时，需要知道 rejection 来自 local file、cloud policy、system management 还是另一个 layer。否则可用修复只有猜：改错文件、放宽错设置，或误以为 product broken。
+
+Code path 也让 policy 可审计。[`ConfigRequirementsWithSources::merge_unset_fields`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L705-L776) 只填 missing fields，用 `RequirementSource` 标记 accepted values，并在 lower-precedence source 出现 disablement 时给 app enablement 一个 restrictive merge path。Final `Config` 可以继续携带 constrained values，而不是把 policy flatten 成 anonymous booleans。
+
+## 三、Permission Profile 是 Canonical Security Shape
+
+章标题说“configuration”，但最 security-sensitive 的部分是 permission resolution。在固定源码中，[`Permissions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L234-L263) 不只存 legacy sandbox mode。它存 constrained canonical `PermissionProfile`、optional active profile identity、network proxy config、login-shell policy、shell environment policy 和 Windows sandbox settings。
+
+Public app-server schema 也镜像了同一个架构拆分。在 [`app-server-protocol`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L371-L390) 中，`PermissionProfile` 有三个 variants：
+
+| Public shape | Meaning |
 | --- | --- |
-| Working directory 和 roots | Tool execution 与 project trust 依赖它们。 |
-| Model 和 provider settings | Turn construction 与 auth 可能依赖 provider choice。 |
-| Approval behavior | Tool routing 需要知道交互是否可能。 |
-| Permission profile 与 sandbox | Side-effect policy 依赖一致的能力模型。 |
-| Feature state | Protocol、UI、runtime 和 schema filtering 必须一致。 |
-| Auth state | Backend calls、cloud requirements 和 model calls 需要一致身份。 |
-| Managed requirements | 后续子系统不应该重新解释 policy。 |
+| `Managed` | Codex 拥有 filesystem 和 network 的 sandbox construction。 |
+| `Disabled` | 不应该应用 outer sandbox。 |
+| `External` | Filesystem isolation 由 external caller enforced，而 network policy 仍被表示。 |
 
-这个 envelope 不代表永远静态。Thread 或 turn 可以更新部分设置。但更新仍然遵守同一思想：保留来源、验证约束，并让后续执行消费 resolved values。
+这个 schema 很重要，因为 clients 需要谈论 permissions，而不重建 private core types。UI 可以显示 active profile。App-server client 可以收到 profile snapshot。Session 稍后可以加入 bounded writable-root modification。所有这些都不同于“模型要求运行命令”。
 
-## 应用到实践
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/permission-profile-compiler-569ff6a1-v2.webp" alt="Permission profile compiler turning builtin and custom profiles into filesystem policy, network policy, writable roots, deny globs, and startup warnings" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Permission profiles 会在 tool execution 看见它们之前，被编译成具体 filesystem 与 network policy。</figcaption>
+</figure>
 
-1. **让值携带来源。** 没有 source metadata 的配置，无法解释 runtime 为什么这样运行。
-2. **区分 preference 和 constraint。** 先合并期望设置，再把 requirements 作为 restrictive policy 应用。
-3. **对不可信本地配置设 gate。** 可以发现 project config，但不要自动允许 project 控制 Agent。
-4. **用一个 manager 归一化 auth。** Storage、refresh、OAuth 和外部 token command 应产出一致的进程级 auth snapshot。
-5. **在非法 envelope 上早失败。** 不要让 tools、models 或 clients 在副作用已经开始后才发现 policy 冲突。
+### 3.1 Built-In Profiles 直接转成 Runtime Permissions
 
-## 小结
+Compiler entry point 是 [`compile_permission_profile_selection`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L237-L256)。Built-in profiles 会直接转换成 runtime permissions。Custom profiles 必须存在于 `[permissions]` 下，不能使用 reserved built-in prefixes，并且必须能编译其 filesystem 和 network entries。
 
-第 2 章中的 router 现在可以用一份 resolved operating envelope 启动接入面。第 4 章会转向让这些接入面和 runtime 共享同一种持久语言的边界：operations、events、model items、app-server messages 和 generated protocol schemas。
+```rust
+pub(crate) fn compile_permission_profile_selection(
+    permissions: Option<&PermissionsToml>,
+    profile_name: &str,
+    workspace_write: Option<&SandboxWorkspaceWrite>,
+    policy_cwd: &Path,
+    startup_warnings: &mut Vec<String>,
+) -> io::Result<(FileSystemSandboxPolicy, NetworkSandboxPolicy)> {
+    if let Some(permission_profile) = builtin_permission_profile(profile_name, workspace_write) {
+        return Ok(permission_profile.to_runtime_permissions());
+    }
+    reject_unknown_builtin_permission_profile(profile_name)?;
+
+    let permissions = permissions.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "default_permissions requires a `[permissions]` table",
+        )
+    })?;
+    compile_permission_profile(permissions, profile_name, policy_cwd, startup_warnings)
+}
+```
+
+更低层的 [`compile_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L175-L235) 从 restricted policy 出发，编译 filesystem entries，验证 glob scan depth，并解析 network policy。如果没有 filesystem entries，它会 push startup warning，而不是假装 profile 说了它没有说的东西。
+
+### 3.2 Active Profile 是稳定 Client Contract
+
+Profiles active 后，config builder 选择 default profile，编译它，构造 canonical `PermissionProfile`，并在安全时记录 `ActivePermissionProfile`。[`default_permissions`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2352-L2372) 和 [`active_permission_profile`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2417-L2443) 附近的源码值得一起读。
+
+如果 profile 是 implicit，而 legacy workspace-write customizations 处于 active 状态，Codex 会避免把它宣传成可 re-select 的 active profile，因为这样会丢失 roots、network 或 temp settings。如果请求了 additional writable roots 且 profile 仍是 managed，它会把这些 roots 记录为 active profile modifications。微妙点在于：client-visible state 必须可 round-trip，而不能只是 descriptive。
+
+一旦 permission resolution 有 canonical shape，同样模式也会出现在不那么显眼的地方：feature state 和 auth state 也需要 owner，runtime 才能把它们当成 facts。
+
+## 四、Managed Features 是 Lifecycle Policy
+
+Feature flags 看起来比 permission profiles 更软，但在 multi-surface runtime 中仍然需要 owner。Codex 用 [`ManagedFeatures`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L20-L27) 包装 feature state。这个 wrapper 存储 constrained value 和 pinned features map。
+
+Construction path 很短，也很说明问题：
+
+```rust
+let (pinned_features, source) = match feature_requirements {
+    Some(Sourced {
+        value: feature_requirements,
+        source,
+    }) => (
+        parse_feature_requirements(feature_requirements, &source, startup_warnings),
+        Some(source),
+    ),
+    None => (BTreeMap::new(), None),
+};
+
+let normalized_features = normalize_candidate(configured_features, &pinned_features);
+validate_pinned_features(&normalized_features, &pinned_features, source.as_ref())?;
+```
+
+这段来自 [`ManagedFeatures::from_configured_with_optional_warnings`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L66-L87)。Helper [`normalize_candidate`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L152-L160) 设置 pinned values，然后 normalize dependencies。Validator 在 normalized candidate 违反 sourced requirement 时报告 invalid-value error。附近的 [`parse_feature_requirements`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L207-L242) 路径保持 compatibility 可见：canonical keys 被接受，legacy keys warning 后向前映射，unknown requirement keys warning 而不会变成 hidden runtime facts。
+
+| Feature state pressure | Mechanism | Invariant |
+| --- | --- | --- |
+| Profile 和 global config 都设置 feature values。 | [`Features::from_sources`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/features/src/lib.rs#L454-L476) 在 management 前 merge sources。 | 一个 normalized feature object 进入 config。 |
+| Managed requirement pin 住 feature。 | `ManagedFeatures` 存储 `pinned_features`。 | 后续 mutation 不能静默违反 policy。 |
+| Legacy feature key 出现。 | `parse_feature_requirements` 映射或 warning。 | Compatibility 可见，而不是隐藏。 |
+| Feature 暗含另一个 feature。 | [`normalize_dependencies`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/features/src/lib.rs#L484-L526)。 | Runtime 看到 dependency-consistent set。 |
+
+这是 lifecycle management。Feature 可以被 renamed、aliased、pinned、warned 或 staged，而不需要每个 downstream subsystem 理解每一种历史拼写。
+
+## 五、Auth 是一致 Snapshot
+
+Configuration 说明 process 允许尝试什么。Auth 说明 process 可以使用哪个 identity 和 backend capabilities。Codex 把这个 concern 放在 `codex-login` 中，而 `Config` 实现 [`AuthManagerConfig`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L863-L879)，让 auth manager 可以从已经 resolved 的 config 创建，而不依赖 core internals。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/auth-manager-snapshot-569ff6a1.webp" alt="AuthManager snapshot with API key, ChatGPT OAuth, external bearer, cached auth, guarded reload, refresh lock, consumers, and unauthorized recovery" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>AuthManager 给后续层一个 coherent auth snapshot，并串行化 refresh，避免不同 clients 观察到 competing identities。</figcaption>
+</figure>
+
+[`AuthManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1240-L1254) 上方的源码注释直接说明设计：对 `auth.json` 的外部修改不会被观察到，直到 explicit reload；这符合避免 mid-run auth data 不一致的目标。
+
+```rust
+pub async fn auth(&self) -> Option<CodexAuth> {
+    if let Some(auth) = self.resolve_external_api_key_auth().await {
+        return Some(auth);
+    }
+
+    let auth = self.auth_cached()?;
+    if Self::is_stale_for_proactive_refresh(&auth)
+        && let Err(err) = self.refresh_token().await
+    {
+        tracing::error!("Failed to refresh token: {}", err);
+        return Some(auth);
+    }
+    self.auth_cached()
+}
+```
+
+这个 [`auth`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1401-L1417) method 先在配置存在时解析 external API-key auth，再读取 cached auth snapshot，可能 refresh stale managed ChatGPT auth，最后返回 current cached value。它没有邀请每个 caller 自己 parse storage。
+
+### 5.1 Refresh 由 Account Identity Guard
+
+Refresh path 也以 snapshot 为中心。在 [`refresh_token`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1652-L1690) 中，Codex 获取 refresh lock，跳过 API-key auth，记录 expected account id，仅当 persisted account id 仍然匹配时 reload，并且只有 on-disk value 没有已经变化时才从 authority refresh。
+
+这防止了一个常见的 long-running-process bug。假设一个 surface 注意到 401 并开始 refresh，同时另一个 sign-in action 改变了 account。Naive refresh 可能覆盖或复用错误 identity 的 credentials。Guarded reload path 把 auth snapshot 当成 scoped state，而不是 global string。
+
+更低层的 [`refresh_token_from_authority_impl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1707-L1738) 选择正确的 authority behavior：external ChatGPT tokens 通过 external auth provider refresh；managed ChatGPT auth refresh 并 persist new token data；API key 和 agent identity auth 对这个 path 已经是 terminal。
+
+## 六、Envelope 只 Handoff 一次
+
+到 config construction 结束时，runtime 拥有一个由几个 owner 组成的 envelope：
+
+| Owner | Resolved value | Later consumers |
+| --- | --- | --- |
+| Config loader | Layered、source-aware settings。 | TUI、exec、app-server、session startup。 |
+| Requirements engine | Constrained approval、permissions、features、web search、residency、hooks、MCP 和 plugins。 | Config construction 和 client-visible errors。 |
+| Permission compiler | Canonical permission profile 加 filesystem/network policy。 | Tool runtime、sandbox selection、app-server permissions schema。 |
+| Managed features | Dependency-normalized feature state，带 pinned requirements。 | UI behavior、schema filtering、runtime feature checks。 |
+| Auth manager | Cached identity 和 guarded refresh path。 | Model clients、backend APIs、unauthorized recovery。 |
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/runtime-envelope-handoff-569ff6a1.webp" alt="Resolved envelope handed to session loop, model provider, tool runtime, and app-server with invalid envelope blocked before execution" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>受保护的 invariant 很简单：session loop、model provider、tool runtime 和 app-server 应该在 tools 运行前消费同一个答案。</figcaption>
+</figure>
+
+这个 handoff 解释了为什么后续章节可以把 tools、sandboxes、sessions、protocol messages、hooks 和 MCP 作为分离边界讨论。它们是不同 owner，但不能发明各自不同的 permission 和 identity 答案。如果 envelope invalid，execution 应该在副作用前失败。如果 envelope valid，downstream code 可以 specialize 这个答案，而不重新打开整个 configuration stack。
+
+## 七、常见误读
+
+| Misreading | Correction |
+| --- | --- |
+| “Config 只是用户 preference。” | Requirements 是 restrictive constraints，且多个 fields 携带 requirement source。 |
+| “Project config 要么被忽略，要么完全 trusted。” | Project trust 是 resolved input，会改变 defaults 和 effective project behavior。 |
+| “`sandbox_mode` 是 security model。” | 现代代码以 canonical `PermissionProfile` 为中心，再在需要处 project compatibility sandbox policy。 |
+| “Feature flags 是普通 booleans。” | `ManagedFeatures` normalize dependencies，并 enforce pinned requirement values。 |
+| “Auth refresh 只是获取新 token。” | Auth refresh 由 snapshot equality、account identity 和 refresh lock guard。 |
+
+## 八、应用到实践
+
+1. **让 config values 携带 provenance。** 当用户必须 debug 为什么 policy rejected 一个 value 时，final value 不够。
+2. **先合并 preferences，再应用 requirements。** Requirements 应该 constrain result，而不是作为另一个 peer preference layer 竞争。
+3. **让 trust 成为 explicit input。** Project config 不应该静默控制即将在 project 内操作的 agent。
+4. **优先使用 canonical permission profiles。** Legacy sandbox modes 是 compatibility projections；tooling 应尽可能围绕 profile 推理。
+5. **把 auth 当成 scoped state。** Long-running processes 需要 cached snapshots、explicit reloads 和 guarded refresh，而不是 ad hoc token reads。
+
+## 九、结语
+
+第 2 章解释了 startup 怎样把 package command 收窄成 typed Rust surface。本章解释为什么这个 surface 仍要等待 resolved envelope。第 4 章进入下一个边界：一旦 envelope 存在，work 必须作为 durable protocol messages 跨越 process 和 client boundaries，而不是通过 private method calls。
 
 <div class="source-equivalence">
 
@@ -123,9 +332,22 @@ Requirements layer 也保留来源信息。由 cloud policy 约束的值，应�
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| 解析后的权限 | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L236) |
-| 权限编译 | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L300) |
-| 托管 feature gate | [`codex-rs/core/src/config/managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L25) |
-| 公开权限 profile | [`codex-rs/app-server-protocol/src/protocol/v2/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L375) |
+| Config builder and layer stack | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L936-L1038) |
+| `Config` and `Permissions` shapes | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L234-L263) |
+| Requirements shape and source tracking | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L81-L100) |
+| Requirements TOML vocabulary | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L637-L657) |
+| Requirement source merge | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L705-L776) |
+| Requirement source error test | [`codex-rs/config/src/config_requirements.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_requirements.rs#L1796-L1820) |
+| Project trust | [`codex-rs/config/src/config_toml.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/config/src/config_toml.rs#L529-L543) |
+| Active project resolution | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2244-L2250) |
+| Default permission profile | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L35-L43) |
+| Permission profile compilation | [`codex-rs/core/src/config/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/permissions.rs#L237-L256) |
+| Active profile round-trip behavior | [`codex-rs/core/src/config/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/mod.rs#L2417-L2443) |
+| Public permission profile schema | [`codex-rs/app-server-protocol/src/protocol/v2/permissions.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/permissions.rs#L371-L390) |
+| Managed features | [`codex-rs/core/src/config/managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L20-L27) |
+| Feature source merge | [`codex-rs/features/src/lib.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/features/src/lib.rs#L454-L476) |
+| Feature requirement parsing | [`codex-rs/core/src/config/managed_features.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/config/managed_features.rs#L207-L242) |
+| Auth manager snapshot | [`codex-rs/login/src/auth/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1240-L1254) |
+| Guarded auth refresh | [`codex-rs/login/src/auth/manager.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/login/src/auth/manager.rs#L1652-L1690) |
 
 </div>

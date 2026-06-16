@@ -1,120 +1,485 @@
+# 协议边界
 
-# 第 4 章：协议边界
-
-> **阅读契约：** 用本章进入词汇边界。跟住 operations、events、items、submissions 和 protocol schemas 如何成为 clients、sessions 与 replay 的共同语言。
+> **阅读契约：** 把本章当成 vocabulary gate。跟踪 client request 怎样变成 queued submission，runtime 怎样返回 correlated events，app-server 怎样把这些 events 投射成 client-facing items，以及 generated schemas 怎样让这个边界可审计。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/protocol-boundary-taxonomy-569ff6a1-v2.webp" alt="协议边界分类图：覆盖 submissions、operations、events、items、app-server messages、generated schemas 和 compatibility" loading="eager" decoding="async" />
-  <figcaption>协议词汇是共享语言：operations 进入、submissions 排队、events 发出、items 渲染，schemas 保持客户端一致。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/protocol-boundary-taxonomy-569ff6a1-v2.webp" alt="协议边界分类图：覆盖 submissions、operations、events、items、app-server messages、generated schemas 和 compatibility" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Protocol vocabulary 是共享语言：submissions 进入，operations 携带 intent，events 报告 facts，items 投射 state，schemas 保持 clients 对齐。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章 direct claims 固定到 OpenAI Codex commit [`569ff6a1c400bd514ff79f5f1050a684dc3afde3`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3)。`Submission`、`Op`、`Event`、`EventMsg`、app-server JSON-RPC envelope types、event-to-item mapping、app-server request macros 和 schema export behavior 在链接处属于 **verified source**。“protocol kernel”、“projection”、“client contract”和“governance gate”等术语，是从这些 source shapes 得出的 **surrounding contract inference**；它们不是关于 OpenAI 私有服务内部的断言。
 
-第 3 章说明，Codex 只有在配置、认证、feature state 和 managed requirements 被解析成受约束的 runtime envelope 之后，才会开始工作。本章解释承载工作的语言。协议边界是这样一个位置：产品意图不再是私有方法调用，而变成持久消息，包括 submissions、events、model items、app-server JSON-RPC requests、server-to-client requests 和 generated schemas。
+第 3 章构造了 runtime envelope：configuration、auth、managed requirements、feature state 和 permission profiles 会在后续代码开始 work 前解析完成。下一个边界是语言。一旦某个 surface 拥有 valid envelope，它仍然需要一种有纪律的方式来请求 work 并观察发生了什么。
 
-协议是产品边界，不是序列化附属品。它告诉客户端可以请求什么，告诉 runtime 必须报告什么，也告诉未来版本已经继承了哪些兼容性义务。
+这条纪律就是 protocol boundary。Codex 不让 client 伸进 session 调用任意 private methods。它给 clients 一组 durable nouns：submission、operation、event、item、request、response、notification、schema。重点不是 serialization aesthetics，而是 ownership。
 
+如果一个概念跨越 protocol boundary，其他 code 就能依赖它。Terminal UI 可以 render 它。App-server client 可以 replay 它。Schema export 可以锁住它。旧 client 可以继续发送它。因此 protocol design 是 runtime behavior，而不是 documentation exercise。
 
-## Core Runtime Protocol
+## 一、Core Runtime Queue
 
-Core runtime protocol 的外层形状很简单：
+### 1.1 Submission 与 Event Correlation
 
-| 方向 | 概念 | 含义 |
-| --- | --- | --- |
-| 进入 runtime | Submission | 由客户端或 host 发送的排队工作单元。 |
-| 进入 runtime | Operation | Submission 内部的 typed action：开始 turn、中断、批准、响应工具请求、刷新状态等。 |
-| 离开 runtime | Event | Runtime 发出的有序事实。 |
-| 离开 runtime | Event message | 事实的 typed payload：setup、progress、item delta、approval request、tool result、completion、error。 |
+最小 core loop 在 [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123-L133) 中可见。`Submission` 是 queue entry。它携带 correlation id、`Op` 和 optional W3C trace context。
 
-这个拆分让 runtime 像 evented kernel 一样工作。客户端不直接调用私有 session 方法。它们提交 operation，并观察 event。Runtime 可以根据 active state 对 operation 排队、拒绝、转换或串行化。
-
-序列图经过简化，但契约准确：只有 runtime 会把提交的意图转换为持久进展。
-
-### Item 不只是 Message
-
-简单聊天应用里，“message”往往足以承载大部分系统。Codex 需要更丰富的 item vocabulary。一个 thread 可能包含用户文本、图片、模型输出、reasoning summary、命令调用、命令输出、文件变化、审批记录、工具观察、plan update、hook activity、realtime transcript 和 collaboration event。
-
-把这些都叫 message，会掩盖关键差异：不同 item 在 streaming、persistence、display、replay 和 compatibility 上有不同规则。Command output delta 不应该被当作 assistant paragraph。Patch update 不应该被当作模型可见 instruction。Approval request 在被 resolve 前也不是最终历史。
-
-因此 item model 是架构词汇。它让 runtime、app-server、终端 UI、SDK 和 rollout reducers 能对正在处理的事实类型达成一致。
-
-### App-Server JSON-RPC
-
-App-server 引入第二条协议边界。它不是 core runtime protocol 的替代品，而是围绕 threads、turns、items、approvals、filesystem APIs、process APIs、MCP、plugins、account state 和 remote-control flows 的客户端侧分布式系统层。
-
-它的 wire shape 类似 JSON-RPC：request 期待 response，notification 不期待 response，error 携带结构化失败信息，server-to-client request 允许 runtime 侧要求已连接客户端作出决定，例如 approval 或 input。Codex 刻意保持 envelope 轻量，但 request、response、notification 的区别仍然是核心。
-
-App-server boundary 加入了本地终端 UI 往往可以隐藏的关注点：connection initialization、experimental capability negotiation、request serialization、backpressure、replay on rejoin、thread listeners、pending approvals 和 derived status。这些都是协议问题，因为客户端可能是拥有独立生命周期的另一个进程。
-
-从 core events 到 app-server items 的映射，是这里最重要的翻译层：
-
-客户端不应该通过解析 terminal text 来重建这个 projection。Server 统一完成映射，暴露稳定的 item 和 notification shape，并保留足够的 request id 与 pending-request state，把 decision 重新连接回它解锁的 turn。
-
-### 从 App Request 到 Core Operation
-
-App-server model 使用 thread、turn、item、environment selection 等用户可见概念。Core runtime 使用 submission 和 operation。因此，一个 start turn 请求必须先验证，再翻译。
-
-```text
-// Pseudocode - illustrative pattern.
-function handle_turn_start(request, connection):
-    require_initialized(connection)
-    require_experimental_fields_enabled(request, connection.capabilities)
-
-    thread = find_loaded_thread(request.thread_id)
-    overrides = resolve_turn_overrides(request)
-    operation = build_runtime_operation(
-        kind = "user_turn",
-        input = request.input_items,
-        settings = overrides
-    )
-
-    turn = register_in_progress_turn(thread)
-    submit_to_core(thread, operation)
-    return response_with_turn(turn)
-
-function map_core_event(event):
-    item_update = reconstruct_thread_item(event)
-    if item_update.exists:
-        notify_client("item_updated", item_update)
-    if event.requests_client_decision:
-        send_server_request(event.decision_request)
+```rust
+/// Submission Queue Entry - requests from user
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
+pub struct Submission {
+    /// Unique id for this Submission to correlate with Events
+    pub id: String,
+    /// Payload
+    pub op: Op,
+    /// Optional W3C trace carrier propagated across async submission handoffs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<W3cTraceContext>,
+}
 ```
 
-这仍然是伪代码。关键思想是带验证的翻译。App-server 不是把任意 JSON 盲目转发给 core 的隧道。它拥有客户端契约，并把该契约映射到 runtime operations。
+匹配的 outbound shape 是 [`Event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1247-L1254)。它携带 submission id 和 `EventMsg` payload。这种对称性是第一个 protocol invariant：
 
-### Generated Schemas 作为治理
+```rust
+/// Event Queue Entry - events from agent
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Event {
+    /// Submission `id` that this event is correlated with.
+    pub id: String,
+    /// Payload
+    pub msg: EventMsg,
+}
+```
 
-Generated schemas 让协议可以在 Rust 之外被审计。JSON Schema 和面向 TypeScript 的 artifact，让客户端、测试和 release checks 能发现 drift。它们也迫使 source types 携带足够元数据，从而区分 stable surface 和 experimental surface。
+Client 可以提交 intent，随后把 emitted facts 关联回造成它们的 intent。Runtime 可以 serialize、reject、transform 或 interrupt operations，而不暴露 private state。Observability 可以跟随 trace 穿过 async handoffs，而不让 trace data 成为每个 domain payload 的一部分。
 
-Schema generation 是一种架构治理。没有它，一个字段可能被加到 Rust type 上，然后意外成为客户端义务。有了它，协议演进必须经过 exported contracts、compatibility filters 和能注意到变化的测试。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/core-submission-event-kernel-569ff6a1.webp" alt="Core protocol kernel showing a submission with id, op, and trace entering a runtime queue and correlated events leaving with id and EventMsg" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Core protocol 是 queue-shaped：submissions 把 intent 带入 runtime；events 把 correlated facts 带回来。</figcaption>
+</figure>
 
-这尤其重要，因为 Codex 不止一种客户端生成目标。Rust app-server client、Python SDK、generated TypeScript bindings 和 test clients 都需要共享 wire model，即使它们暴露的 ergonomics 并不相同。
+这个 split 很重要，因为 agent work 不是一次 function call。一个 turn 可能 stream tokens、request approval、run commands、emit deltas、apply patches、handle interrupts，并以 usage information 完成。Caller 不能等待一个 return value，然后把它称为完整 interaction。
 
-### Compatibility 是代码路径
+### 1.2 Operations 是 Typed Entrances，不是 Arbitrary Commands
 
-Codex 中的协议兼容性是显式的。某些值接受 legacy aliases。旧请求形式和新的 turn-context operation 共存。App-server v1 和 v2 概念有重叠。Experimental fields 由 connection capability gate，并从 stable schema output 过滤。Deprecated fields 即使被忽略，也可能继续被接受，以便旧客户端还能工作。
+`Op` enum 是 runtime 的 typed entrance list。它从 lifecycle 和 realtime operations 开始，随后是 user-input operations、approval answers、permission responses、context operations、background terminal controls 和其他影响 thread 的 requests。关键阅读是：每个 operation 都是 source-level variant，而不是 string command。下面第一个锚点覆盖 turn-entry variants；approval、permission 和 dynamic-tool response variants 在同一个 enum 后面继续，约在 [`ExecApproval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L662-L719) 附近。
 
-这不是偶然的杂乱，而是协议边界的成本。字段一旦跨越边界，删除它就不再等同于重构私有 helper。它可能破坏 terminal、SDK、daemon、extension 或已持久化 rollout。
+[`Op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403-L470) 的删节源码展示了 pattern：
 
-有边界操作系统的类比在这里也有帮助。操作系统为了旧应用保留系统调用兼容性。想支持多个客户端的 Agent runtime，也会继承一个较小版本的同样义务。
+```rust
+pub enum Op {
+    /// Abort current task without terminating background terminal processes.
+    /// This server sends [`EventMsg::TurnAborted`] in response.
+    Interrupt,
 
-### 什么能进入，什么能离开
+    /// Legacy user input.
+    ///
+    /// Prefer [`Op::UserTurn`] so the caller provides full turn context
+    /// (cwd/approval/sandbox/model/etc.) for each turn.
+    UserInput {
+        /// User input items, see `InputItem`
+        items: Vec<UserInput>,
+        /// Optional turn-scoped environments.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        environments: Option<Vec<TurnEnvironmentSelection>>,
+        /// Optional JSON Schema used to constrain the final assistant message for this turn.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        final_output_json_schema: Option<Value>,
+        /// Optional turn-scoped Responses API `client_metadata`.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        responsesapi_client_metadata: Option<HashMap<String, String>>,
+    },
 
-到 Part I 结束，架构已经建立了四道 gate：
+    /// Similar to [`Op::UserInput`], but first applies persistent turn-context
+    /// overrides in the same queued operation. This preserves submission order
+    /// and prevents the input from starting if the overrides are rejected.
+    UserInputWithTurnContext {
+        items: Vec<UserInput>,
+        environments: Option<Vec<TurnEnvironmentSelection>>,
+        final_output_json_schema: Option<Value>,
+        responsesapi_client_metadata: Option<HashMap<String, String>>,
+        cwd: Option<PathBuf>,
+        approval_policy: Option<AskForApproval>,
+        // ...
+    },
+}
+```
 
-Runtime 强大，恰恰因为边界狭窄。客户端可以启动或 steering 工作、中断工作、回答 approval request、提供 dynamic tool output、刷新外部状态，或请求 thread 生命周期动作。客户端可以观察 setup、streaming、tool activity、approval prompts、errors、completion 和 reconstructed items。它不能伸进 session 里直接修改私有状态。
+`UserInputWithTurnContext` 的注释是设计线索。Turn-context overrides 与 input 在同一个 queued operation 中应用。这保留了 ordering，并在 overrides 被拒绝时阻止 turn 开始。
 
-## 应用到实践
+这就是为什么“configuration”和“protocol”不能干净分开。第 3 章解析 envelope。第 4 章展示 turn context 的后续变化仍然必须穿过 typed operations，而不是 out of band mutation。
 
-1. **让协议名词持久化。** 如果客户端依赖某个概念，就在协议里命名它，而不是泄漏私有实现状态。
-2. **区分 envelope 和 domain payload。** Request IDs、responses、errors、notifications 和 tracing 应位于 Agent-specific payload 之外。
-3. **在边界处翻译。** 面向 app 的请求应被验证并映射成 runtime operation，而不是作为任意 JSON 转发。
-4. **给 experimental surface 加 gate。** Experimental fields 需要 runtime checks 和 generated-contract filtering，而不只是文档标签。
-5. **把 compatibility 当成行为。** Aliases、deprecated fields 和 v1/v2 bridges 应是被测试的代码路径，而不是历史注释。
+| Entrance type | Source-level consequence |
+| --- | --- |
+| `Interrupt` | Runtime 可以 emit typed aborted event，而不是依赖 signal side channel。 |
+| `UserInput` | Legacy input 仍被接受，这是 compatibility obligation。 |
+| `UserInputWithTurnContext` | Input 和 context changes 被一起排序。 |
+| Approval and permission responses | Client decision 以 typed operation 重新进入，而不是 terminal text。 |
+| Realtime and background-terminal operations | Long-running subsystems 仍跨越同一个 queue boundary。 |
 
-## 小结
+Runtime 强大，是因为 entrance 窄。Client 可以请求许多种 work，但每个 request 都必须变成 `Op`。
 
-Part I 建立了契约：分发层到达 Rust router，router 解析受约束的 runtime envelope，protocol messages 定义什么可以进入或离开 Agent。Part II 可以在这个基础上打开 runtime 本身，从 threads、sessions 和 durable state 开始。
+### 1.3 Events 是 Facts，并携带 Compatibility Debt
+
+[`EventMsg`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1256-L1430) 远比 chat message enum 大。它包含 errors、warnings、realtime lifecycle、model reroutes、compaction、rollback、turn start and completion、token usage、agent messages、reasoning、MCP、web search、image generation、shell execution、approvals、permission requests、patch application、plan updates、shutdown、review mode、raw response items、item lifecycle、hooks、deltas 和 collaboration。
+
+这种广度不是偶然。不同 event families 有不同的 persistence、display、replay 和 compatibility rules。Command output delta 不是 assistant paragraph。Permission request 不是 final history。Patch update 不是 model-visible instruction。Thread rollback 不是普通 message。
+
+这个 enum 还携带 explicit compatibility details。直接源码 excerpt 展示 turn events 保留 v1 wire names，同时接受 v2 aliases：
+
+```rust
+/// Agent has started a turn.
+/// v1 wire format uses `task_started`; accept `turn_started` for v2 interop.
+#[serde(rename = "task_started", alias = "turn_started")]
+TurnStarted(TurnStartedEvent),
+
+/// Agent has completed all actions.
+/// v1 wire format uses `task_complete`; accept `turn_complete` for v2 interop.
+#[serde(rename = "task_complete", alias = "turn_complete")]
+TurnComplete(TurnCompleteEvent),
+```
+
+同一个 enum 后面的删节源码展示 side-effect 和 client-decision events 作为 first-class variants：
+
+```rust
+ExecCommandBegin(ExecCommandBeginEvent),
+ExecCommandOutputDelta(ExecCommandOutputDeltaEvent),
+TerminalInteraction(TerminalInteractionEvent),
+ExecCommandEnd(ExecCommandEndEvent),
+
+ExecApprovalRequest(ExecApprovalRequestEvent),
+RequestPermissions(RequestPermissionsEvent),
+RequestUserInput(RequestUserInputEvent),
+DynamicToolCallRequest(DynamicToolCallRequest),
+ApplyPatchApprovalRequest(ApplyPatchApprovalRequestEvent),
+```
+
+另一个直接 excerpt 展示 item/delta vocabulary：
+
+```rust
+RawResponseItem(RawResponseItemEvent),
+
+ItemStarted(ItemStartedEvent),
+ItemCompleted(ItemCompletedEvent),
+HookStarted(HookStartedEvent),
+HookCompleted(HookCompletedEvent),
+
+AgentMessageContentDelta(AgentMessageContentDeltaEvent),
+PlanDelta(PlanDeltaEvent),
+ReasoningContentDelta(ReasoningContentDeltaEvent),
+ReasoningRawContentDelta(ReasoningRawContentDeltaEvent),
+```
+
+这些 source shapes 支撑中心论断：Codex 暴露的不是“assistant 说了什么”这一种 event，而是一个 typed event language，用于 long-running agent turn 能创造的不同 facts。
+
+## 二、App-Server Projection Contract
+
+### 2.1 Events 变成 Client Items
+
+Core events 不是最终 client contract。App-server boundary 必须把 selected runtime events 变成 client-visible notifications 和 items。源码在 [`event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L25-L34) 中显式给出这个 mapping。下面的删节源码保留 helper 的 documented boundary，省略 body：
+
+```rust
+/// Build the v2 app-server notification that directly corresponds to a single core event.
+///
+/// This only covers the stateless event-to-notification projections that have a one-to-one
+/// mapping. Callers remain responsible for any surrounding state checks or side effects before
+/// invoking this helper.
+pub fn item_event_to_server_notification(
+    msg: EventMsg,
+    thread_id: &str,
+    turn_id: &str,
+) -> ServerNotification {
+    // ...
+}
+```
+
+注释很重要。这个 helper 不是整个 app-server state machine。它覆盖 stateless one-to-one projections。Surrounding code 仍拥有 checks 和 side effects。但这个 helper 固定了 projection rule：core `EventMsg` 可以变成 `ServerNotification`，而不让 clients parse terminal text。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/event-item-projection-569ff6a1.webp" alt="Event-to-item projection showing core EventMsg families flowing through a mapping helper into ServerNotification item started, item completed, delta, and ThreadItem view" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>App-server projection 把 selected runtime events 变成稳定的 client-facing item 与 delta notifications。</figcaption>
+</figure>
+
+一个删节 source excerpt 展示三类重要 mapping。Message deltas 保持 deltas。Item lifecycle events 变成 item notifications。Exec events 被转换成 command-execution items：
+
+```rust
+match msg {
+    EventMsg::AgentMessageContentDelta(event) => {
+        let codex_protocol::protocol::AgentMessageContentDeltaEvent { item_id, delta, .. } =
+            event;
+        ServerNotification::AgentMessageDelta(AgentMessageDeltaNotification {
+            thread_id,
+            turn_id,
+            item_id,
+            delta,
+        })
+    }
+    EventMsg::ItemStarted(item_started_event) => {
+        ServerNotification::ItemStarted(ItemStartedNotification {
+            thread_id,
+            turn_id,
+            item: item_started_event.item.into(),
+            started_at_ms: item_started_event.started_at_ms,
+        })
+    }
+    EventMsg::ExecCommandOutputDelta(exec_command_output_delta_event) => {
+        let item_id = exec_command_output_delta_event.call_id;
+        let delta = String::from_utf8_lossy(&exec_command_output_delta_event.chunk).to_string();
+        ServerNotification::CommandExecutionOutputDelta(
+            CommandExecutionOutputDeltaNotification {
+                thread_id,
+                turn_id,
+                item_id,
+                delta,
+            },
+        )
+    }
+    EventMsg::ExecCommandEnd(exec_command_end_event) => {
+        ServerNotification::ItemCompleted(ItemCompletedNotification {
+            thread_id,
+            turn_id,
+            item: build_command_execution_end_item(&exec_command_end_event),
+            completed_at_ms: exec_command_end_event.completed_at_ms,
+        })
+    }
+    _ => unreachable!("unsupported item event"),
+}
+```
+
+这个 projection 是 UI independence 的来源。TUI cell、app-server client 和 SDK stream 都可以 consume 同一个 item language，而不需要从 raw stdout 重建 command，或从 paragraph 重建 patch。
+
+### 2.2 JSON-RPC-Style Envelope
+
+App-server 是围绕 threads、turns、files、processes、MCP、plugins、accounts、permissions 和 remote-control flows 的第二条边界。它的低层 wire envelope 位于 [`jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L1-L42)。源码 note 很精确：Codex 不发送也不期待 `"jsonrpc": "2.0"` field，尽管文件保留了 familiar request/notification/response split。下面的删节源码把这个 note 与 message enum 放在一起：
+
+```rust
+//! We do not do true JSON-RPC 2.0, as we neither send nor expect the
+//! "jsonrpc": "2.0" field.
+
+/// Refers to any valid JSON-RPC object that can be decoded off the wire, or encoded to be sent.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize, JsonSchema, TS)]
+#[serde(untagged)]
+pub enum JSONRPCMessage {
+    Request(JSONRPCRequest),
+    Notification(JSONRPCNotification),
+    Response(JSONRPCResponse),
+    Error(JSONRPCError),
+}
+```
+
+Request、notification、response 和 error structs 的删节源码省略 derive 与 serde attributes，但保留 field shapes：
+
+```rust
+/// A request that expects a response.
+pub struct JSONRPCRequest {
+    pub id: RequestId,
+    pub method: String,
+    pub params: Option<serde_json::Value>,
+    /// Optional W3C Trace Context for distributed tracing.
+    pub trace: Option<W3cTraceContext>,
+}
+
+/// A notification which does not expect a response.
+pub struct JSONRPCNotification {
+    pub method: String,
+    pub params: Option<serde_json::Value>,
+}
+
+/// A successful (non-error) response to a request.
+pub struct JSONRPCResponse {
+    pub id: RequestId,
+    pub result: Result,
+}
+
+/// A response to a request that indicates an error occurred.
+pub struct JSONRPCError {
+    pub error: JSONRPCErrorError,
+    pub id: RequestId,
+}
+```
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-jsonrpc-envelope-569ff6a1.webp" alt="App-server message envelope separating request, notification, response, and error objects with id, method, params, trace, result, and error fields" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>App-server 使用 JSON-RPC-style envelope，同时保持 Codex-specific request、notification、response 和 error obligations 显式。</figcaption>
+</figure>
+
+这就是为什么 app-server 不是“runtime 外面套一层 HTTP”。Core runtime queue 知道 submissions 和 events。App-server 知道 connection-facing requests、responses、notifications、server-to-client requests、resource serialization、experimental gates 和 schema export。
+
+### 2.3 Request Definitions 携带 Serialization Scope
+
+App-server request surface 由 [`common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L157-L221) 中的 macro definitions 生成。Macro 之前，源码定义了 serialization scope enum：
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClientRequestSerializationScope {
+    Global(&'static str),
+    GlobalSharedRead(&'static str),
+    Thread { thread_id: String },
+    ThreadPath { path: PathBuf },
+    CommandExecProcess { process_id: String },
+    Process { process_handle: String },
+    FuzzyFileSearchSession { session_id: String },
+    FsWatch { watch_id: String },
+    McpOauth { server_name: String },
+}
+```
+
+这是 protocol design choice。Request 不只是“method plus params”。它可以说哪个 resource 必须被 serialized：thread、thread path、command process、MCP OAuth server、filesystem watch、global config，或没有 serialized resource。
+
+Macro body 的删节源码展示 generated `ClientRequest` methods 怎样暴露这个 scope；`$variant` markers 是 Rust macro variables，不是 pseudocode：
+
+```rust
+impl ClientRequest {
+    pub fn id(&self) -> &RequestId {
+        match self {
+            $(Self::$variant { request_id, .. } => request_id,)*
+        }
+    }
+
+    pub fn method(&self) -> String {
+        serde_json::to_value(self)
+            .ok()
+            .and_then(|value| {
+                value
+                    .get("method")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_owned)
+            })
+            .unwrap_or_else(|| "<unknown>".to_string())
+    }
+
+    pub fn serialization_scope(&self) -> Option<ClientRequestSerializationScope> {
+        match self {
+            $(
+                Self::$variant { params, .. } => {
+                    let _ = params;
+                    serialization_scope_expr!(
+                        params, $serialization $( ( $($serialization_args)* ) )?
+                    )
+                }
+            )*
+        }
+    }
+}
+```
+
+真实 macro 会扩展到许多 methods。同一个文件中的几个例子展示了 variety：
+
+| Method family | Source serialization clue | Why it matters |
+| --- | --- | --- |
+| `thread/resume`, `thread/fork` | `thread_or_path(...)` | Request 可能指向 loaded thread 或 disk path。 |
+| `thread/archive`, `thread/read` | `thread_id(...)` | Thread state operations 按 thread serialization。 |
+| `skills/list` | `global_shared_read("config")` | 某些 reads 可以共享 global config access。 |
+| `hooks/list`, marketplace operations | `global("config")` | Config mutation 是 globally serialized。 |
+| `command/exec/*` | `optional_command_process_id(...)`, `command_process_id(...)` | Process control 不能与自己 race。 |
+
+Protocol boundary 因此携带 concurrency policy。如果 serialization scope 只存在于 private handler，client-facing request types 就更难审计。
+
+## 三、Schema Governance
+
+### 3.1 Generated Schemas 把 Drift 变成 Build Problem
+
+最后一块是 governance。App-server protocol types derive `JsonSchema` 和 `TS`，但 repository 仍需要 export code 写出 stable artifacts，并过滤 experimental surface area。
+
+[`export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L75-L80) 中的 top-level generator 导出 TypeScript 和 JSON schemas：
+
+```rust
+type JsonSchemaEmitter = fn(&Path) -> Result<GeneratedSchema>;
+pub fn generate_types(out_dir: &Path, prettier: Option<&Path>) -> Result<()> {
+    generate_ts(out_dir, prettier)?;
+    generate_json(out_dir)?;
+    Ok(())
+}
+```
+
+TypeScript path 的删节源码展示 requests、responses、notifications 和 server-side counterparts 被导出，然后在没有显式请求 experimental output 时过滤 experimental types：
+
+```rust
+pub fn generate_ts_with_options(
+    out_dir: &Path,
+    prettier: Option<&Path>,
+    options: GenerateTsOptions,
+) -> Result<()> {
+    let v2_out_dir = out_dir.join("v2");
+    ensure_dir(out_dir)?;
+    ensure_dir(&v2_out_dir)?;
+
+    ClientRequest::export_all_to(out_dir)?;
+    export_client_responses(out_dir)?;
+    ClientNotification::export_all_to(out_dir)?;
+
+    ServerRequest::export_all_to(out_dir)?;
+    export_server_responses(out_dir)?;
+    ServerNotification::export_all_to(out_dir)?;
+
+    if !options.experimental_api {
+        filter_experimental_ts(out_dir)?;
+    }
+    // ...
+}
+```
+
+JSON path 的删节源码展示 envelope schemas、stable/experimental filtering，以及 root 和 v2 bundle writes。省略的中间部分会先收集 parameter、response 和 notification schemas，再 bundle：
+
+```rust
+let envelope_emitters: Vec<JsonSchemaEmitter> = vec![
+    |d| write_json_schema_with_return::<crate::RequestId>(d, "RequestId"),
+    |d| write_json_schema_with_return::<crate::JSONRPCMessage>(d, "JSONRPCMessage"),
+    |d| write_json_schema_with_return::<crate::JSONRPCRequest>(d, "JSONRPCRequest"),
+    |d| write_json_schema_with_return::<crate::JSONRPCNotification>(d, "JSONRPCNotification"),
+    |d| write_json_schema_with_return::<crate::JSONRPCResponse>(d, "JSONRPCResponse"),
+    |d| write_json_schema_with_return::<crate::JSONRPCError>(d, "JSONRPCError"),
+    |d| write_json_schema_with_return::<crate::JSONRPCErrorError>(d, "JSONRPCErrorError"),
+    |d| write_json_schema_with_return::<crate::ClientRequest>(d, "ClientRequest"),
+    |d| write_json_schema_with_return::<crate::ServerRequest>(d, "ServerRequest"),
+    |d| write_json_schema_with_return::<crate::ClientNotification>(d, "ClientNotification"),
+    |d| write_json_schema_with_return::<crate::ServerNotification>(d, "ServerNotification"),
+];
+
+// ...
+
+let mut bundle = build_schema_bundle(schemas)?;
+if !experimental_api {
+    filter_experimental_schema(&mut bundle)?;
+}
+write_pretty_json(
+    out_dir.join("codex_app_server_protocol.schemas.json"),
+    &bundle,
+)?;
+let flat_v2_bundle = build_flat_v2_schema(&bundle)?;
+write_pretty_json(
+    out_dir.join("codex_app_server_protocol.v2.schemas.json"),
+    &flat_v2_bundle,
+)?;
+```
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/schema-governance-filter-569ff6a1.webp" alt="Generated schema governance path from Rust protocol types through schema export, TypeScript, JSON Schema, experimental filter, clients, and drift checks" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Generated protocol artifacts 让 drift 可见：Rust types 必须穿过 TypeScript、JSON Schema 和 experimental filters，clients 才能依赖它们。</figcaption>
+</figure>
+
+这就是 local API 与 boundary 的区别。Private Rust helper 可以安静 refactor。Protocol field 会跨入 generated artifacts 和 client code。一旦跨越，compatibility 就成为 behavior。
+
+## 四、常见误读
+
+第一个误读，是把 `EventMsg` 当成 fancy chat transcript。它是 runtime event vocabulary。有些 events 是 model output，但许多是 tool lifecycles、approval requests、patch updates、permission requests、reasoning deltas、hooks 或 collaboration records。
+
+第二个误读，是把 app-server 称为“the protocol”并忽略 core submission/event queue。至少有两个可见边界：core runtime queue 和 app-server client envelope。它们有重叠，但不拥有同一组 concerns。
+
+第三个误读，是认为 generated schemas 是 passive documentation。它们是 executable governance。它们让 protocol drift 对 build checks、generated clients 和 compatibility filters 可见。
+
+第四个误读，是把旧 aliases 当成死注释删掉。v1/v2 turn-event aliases 展示 compatibility 可以直接生活在 source types 上。一旦 client 依赖某个 boundary，cleanup 的成本就不再等同于重构 private helper。
+
+## 五、应用到实践
+
+1. **在源码中命名 boundary nouns。** 如果 clients 依赖某个概念，就给它 typed protocol shape，而不是泄漏 private runtime state。
+2. **为每个 async handoff 做 correlation。** Queue entries、events、responses 和 errors 都应该携带足够 identity，说明它们回答哪个 request。
+3. **先 translation，再 rendering。** UIs 和 SDKs 应消费 typed item 与 notification shapes，而不是 scrape terminal strings。
+4. **把 concurrency 放进 contract。** 如果 requests 必须按 thread、path、process 或 global config serialize，就让这个 scope 在 protocol code 中可见。
+5. **生成 client boundary。** TypeScript 和 JSON Schema exports 把 protocol drift 变成 reviewable artifact，而不是 runtime surprise。
+
+## 六、结语
+
+Part I 现在已经从外向内建立 contract。Distribution 到达 Rust router。Router 只有在 constrained envelope 存在后才开始。Work 随后跨越 typed protocol boundaries，而不是 private method calls。
+
+Part II 可以打开 runtime 本身了。第 5 章跟踪 thread 和 session model：durable state、input queues、turn context、history、resume、fork 和 rollback 怎样让 protocol vocabulary 落在真实 runtime 上。
 
 <div class="source-equivalence">
 
@@ -122,10 +487,23 @@ Part I 建立了契约：分发层到达 Rust router，router 解析受约束的
 
 | 概念 | 源码锚点 |
 | --- | --- |
-| Core submission 与 event | [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L125) |
-| App-server JSON-RPC envelope | [`codex-rs/app-server-protocol/src/jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L37) |
-| V2 协议族 | [`codex-rs/app-server-protocol/src/protocol/v2/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/v2/mod.rs#L3) |
-| Event 到 item 映射 | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L30) |
-| Schema 导出 | [`codex-rs/app-server-protocol/src/export.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L54) |
+| Core `Submission` queue entry | [`codex-rs/protocol/src/protocol.rs#L123-L133`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L123-L133) |
+| `Op` variants and turn-context ordering | [`codex-rs/protocol/src/protocol.rs#L403-L470`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L403-L470) |
+| Approval, permission, and dynamic tool response operations | [`codex-rs/protocol/src/protocol.rs#L662-L719`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L662-L719) |
+| Core `Event` shape | [`codex-rs/protocol/src/protocol.rs#L1247-L1254`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1247-L1254) |
+| `EventMsg` enum and v1/v2 aliases | [`codex-rs/protocol/src/protocol.rs#L1256-L1305`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1256-L1305) |
+| Side-effect and approval events | [`codex-rs/protocol/src/protocol.rs#L1350-L1376`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1350-L1376) |
+| Item lifecycle and delta events | [`codex-rs/protocol/src/protocol.rs#L1417-L1427`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1417-L1427) |
+| Event-to-notification mapping helper | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L25-L34`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L25-L34) |
+| Event-to-item projection cases | [`codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L345-L449`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L345-L449) |
+| JSON-RPC-style envelope note and message enum | [`codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L1-L42`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L1-L42) |
+| Request, notification, response, and error structs | [`codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L44-L88`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L44-L88) |
+| Client request serialization scopes | [`codex-rs/app-server-protocol/src/protocol/common.rs#L77-L88`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L77-L88) |
+| Client request macro and serialization scope accessor | [`codex-rs/app-server-protocol/src/protocol/common.rs#L157-L221`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L157-L221) |
+| Request definitions and example scopes | [`codex-rs/app-server-protocol/src/protocol/common.rs#L434-L620`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L434-L620) |
+| Command execution request scopes | [`codex-rs/app-server-protocol/src/protocol/common.rs#L897-L920`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L897-L920) |
+| Generated type entry point | [`codex-rs/app-server-protocol/src/export.rs#L75-L80`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L75-L80) |
+| TypeScript export and experimental filtering | [`codex-rs/app-server-protocol/src/export.rs#L101-L124`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L101-L124) |
+| JSON Schema export, bundle writing, and filtering | [`codex-rs/app-server-protocol/src/export.rs#L192-L238`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/export.rs#L192-L238) |
 
 </div>
