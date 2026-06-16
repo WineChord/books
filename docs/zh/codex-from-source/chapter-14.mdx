@@ -1,170 +1,404 @@
-
 # 第 14 章：App-Server 契约
 
-> **阅读契约：** 用本章理解 app-server 作为 contract boundary。跟住 JSON-RPC methods、request serialization、event mapping，以及客户端如何重新接入而不拥有 runtime。
+> **阅读契约：** 用本章理解 app-server 作为共享 thread 外围的 protocol boundary。请跟住三个 owner：client 拥有 connection，并回答 server requests；app-server 拥有 typed request ordering、replay 和 notification shape；core 拥有正在运行的 agent thread。读完以后，你应该能解释为什么重新连接的 client 可以恢复 live turn，而不需要把 terminal transcript 当作唯一事实来源。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-contract-bridge.webp" alt="JSON-RPC app-server 契约桥：统一 transport、按资源串行化、映射 runtime event，并让客户端重新接入共享 thread" loading="eager" decoding="async" />
-  <figcaption>App-server 是契约桥：JSON-RPC methods、request processors、thread runtime、event mapping 和 client views 保持对齐。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-contract-bridge.webp" alt="JSON-RPC app-server 契约桥：统一 transport、按资源串行化、映射 runtime event，并让客户端重新接入共享 thread" width="1672" height="941" loading="eager" decoding="async" />
+  <figcaption>App-server 是一座契约桥：transport 变成 connection，client request 变成 typed operation，core event 变成稳定 notification，重新接入的 client 从 server-owned thread state 恢复视图。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章提到的 files、types、functions、request shapes 和 event mappings，只有链接到固定 Codex commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3` 时，才作为 **verified source**。Owner、contract boundary、runtime projection、replay invariant 这类架构归纳，是从这些可见锚点推出的 **surrounding contract inference**，不是对 OpenAI 服务内部实现的断言。
 
-第 13 章停在 runtime 边界：permissions、sandbox selection 和 managed networking 决定一次 tool attempt 可以触碰什么。本章再往外走一层。当 runtime 已经能够执行这些决策，它还需要一份契约，让 terminal client、SDK client、 daemon 管理的 client 和 remote client 共享同一套 thread，而不是共享同一份实现。
+第 13 章停在执行边界：permission profiles、sandbox backends 和 managed-network policy 决定一次 tool attempt 能碰什么。第 14 章往外走一层。即使 runtime 已经能执行这些决策，Codex 仍然需要一份契约，让 terminal client、SDK client、daemon 管理的 client 和 remote client 共享同一个 thread，而不共享同一份实现。
 
-App-server 就是这份契约。它很容易被误读成一个本地 Web API：请求进来，响应出去，状态藏在 server 后面。源码里的结构更接近一个运行在本机、也可能跨过 remote-control bridge 的小型分布式系统。它负责统一 transports，按资源序列化工作，把 runtime events 转成 client 可见的 items，保存足够的历史以便 client 重新加入，并在 runtime 需要人或 client 做决定时发出 server-to-client requests。
+最容易犯的错误，是把 app-server 当成一层很薄的 HTTP 或 JSON-RPC wrapper。源码显示的结构更具体：app-server 是把多个 client connections 转成同一个 shared thread lifecycle 上有序操作的边界。它解析松散的 transport envelope，转换成 generated protocol types，执行 initialization gate 和 experimental method gate，按资源序列化工作，把 core events 投影为 client-facing notifications，并记住 pending server-to-client requests，让重新连接的 client 可以接回 conversation。
 
-更有用的心智模型不是“core 外面包了一层 HTTP”，而是“围绕 thread ownership 的 protocol boundary”。Client 不拥有 agent loop。Client 拥有 connection、capabilities、UI state，以及对 server requests 的响应。Server 拥有 thread lifecycle、turn submission、replay、status derivation，以及 core events 到公开契约的映射。
+所以本章不按文件名组织，而按 ownership 组织。关键问题不是“哪个 handler 收到消息”，而是“下一次状态转移应该由哪个 owner 决定”。
 
+## 一、边界是双向的
 
-## 契约表面
+App-server 契约有五类可见形状。
 
-App-server protocol 有四种可见形状。
-
-| 形状 | 方向 | 作用 |
+| Shape | Direction | Stable responsibility |
 | --- | --- | --- |
-| Client request | client 到 server | 请求 initialize、start/resume thread、begin/interrupt turn、列出 capability、读取状态，或执行旁路操作。 |
-| Client response | server 到 client | 用成功或失败完成某个 request id。 |
-| Server notification | server 到 client | 广播 thread、turn、item、status 或 lifecycle 的可观察变化。 |
-| Server request | server 到 client，再返回 | 请求 client 或用户审批、补充输入、刷新认证、运行 client-owned tool，或回答 elicitation。 |
+| Client request | client 到 server | 初始化 connection、start/resume thread、start/steer turn、列出状态，或执行旁路操作。 |
+| Client response | server 到 client | 用成功结果或 JSON-RPC 风格错误完成一个 client request id。 |
+| Client notification | client 到 server | 发送 one-way client facts；当前 message processor 记录这些 notification，而不是把它们当普通控制流。 |
+| Server notification | server 到 client | 广播 thread、turn、item、status、goal 和 lifecycle 的变化。 |
+| Server request | server 到 client，再返回 | 向 client 或用户请求 approval、input、MCP elicitation data、dynamic-tool execution，或另一种 client-owned decision。 |
 
-这些形状重要，是因为它们避免架构坍缩。如果 client 只收到终端文本，就只能猜发生了什么。如果 client 只能发送命令，runtime 就无法向它请求决定。契约必须是双向的，因为 agent runtime 本身就是双向的：它产生 observations，也可能在继续之前需要新的授权。
+双向形状来自产品约束。Coding agent 不只是 streaming output。它可能在 command 前需要 approval，在继续前需要用户回答，或者在 turn 继续前需要 client-owned tool result。如果这些暂停被藏成 callback，rejoin 和 replay 就会很脆弱。App-server 把它们变成 protocol objects。
 
-这张图省略了很多具体 request family，但保留了支配性思想：incoming bytes 不能直接进入 core。它们要经过 transport normalization、initialization checks、feature gates、resource serialization 和 request processors。Outgoing data 也不是裸 core event stream，而是经过 lifecycle handlers、history builders、pending request tracking、compatibility filtering 和每个 connection 的 send queue。
+### 1.1 Transport 只创建 connection，不决定语义
 
-### Transport Normalization
+Transport crate 通过 [`AppServerTransport`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L53-L59) 暴露 standard I/O、Unix socket、WebSocket 和 off modes。[`from_listen_url`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L92-L135) 识别 `stdio://`、`unix://`、`ws://` 和 `off`；它不决定 `turn/start` 或 `thread/resume` 的含义。Remote control 是单独导出的 transport helper，并且作为 [`ConnectionOrigin::RemoteControl`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L167-L173) 出现，不是 `AppServerTransport` variant。
 
-App-server 可以通过多种 transport 访问：standard I/O、本地 socket、类似 WebSocket 的 channel、in-process client，或 remote-control stream。Protocol 层不应该关心消息由哪条路径带来。它需要的是 incoming message、outgoing sender、connection metadata，以及检测 cancellation 或 disconnect 的方式。
+Standard I/O 路径让边界很具体。[`start_stdio_connection`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/stdio.rs#L24-L100) 分配 connection id，打开 bounded writer channel，发出 `ConnectionOpened`，把每一行输入转发成 incoming message，在 EOF 时发出 `ConnectionClosed`，并把 outgoing JSON line 写回 stdout。从这之后，app-server 其他部分看到的是 connection 和 message，不是 stdin。
 
-因此，transport normalization 不是表面工程。它给 server 其他部分一套统一词汇，用来描述 framing、backpressure、close events 和 outbound queueing。Standard I/O 上的一行文本和 socket 上的一帧，都变成同一种 incoming event。Response、notification 或 server request，也都变成同一种 outbound event。Transport adapter 负责机制；message processor 负责含义。
+第一条 invariant 是：transport adapter 拥有 framing 和 disconnection；message processor 拥有 meaning。如果这两层混在一起，每条 client path 都要重新实现 initialization、backpressure、response matching 和 replay ordering。
 
-这也解释了为什么即使所有 process 都在同一台机器上，local app-server 仍然像分布式系统。Client 可能断开。Response 可能延迟。Notification 可能需要 replay 给重新加入的 client。某个 connection 可能支持 experimental method，而另一个 connection 不支持。慢速 receiver 会带来 backpressure。契约必须显式处理这些情况，不能依赖普通函数调用的假设。
+## 二、Request path 把 bytes 变成有序工作
 
-### Initialization 与 Capability Gates
+普通 request path 有一个很窄的腰部：
 
-Connection 使用 runtime 前，必须先说明自己是什么 client。Initialization 记录 client identity、支持的 protocol concepts 和 feature capability。之后 request handling 会应用两类检查。
+1. 解码 wire envelope。
+2. 转成 typed `ClientRequest`。
+3. 在普通 initialized traffic 之前处理 `initialize`。
+4. 拒绝未初始化或不支持 experimental API 的 traffic。
+5. 计算这个 request 的 serialization scope。
+6. 只有相关 resource queue 允许时，才执行匹配的 processor。
 
-第一类是正确性 gate：connection 是否已经 initialized，method 是否已知，payload 是否有效，引用的 thread 是否存在，请求在当前状态是否合法。第二类是兼容性 gate：method 是否 experimental，这个 client 是否理解 response shape，某个 notification 是否需要对该 connection 过滤或转换。
+### 2.1 Envelope 故意保持轻量
 
-关键设计点是：capability 属于 connection，而 thread 可以被共享。Thread 可以比创建它的 client 活得更久，另一个 client 可以稍后 resume 或 observe 它。因此 app-server 不能只把“client 能理解什么”存在 thread 上；它还必须记住 connection contract，并在边界处应用它。
+[`jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L1-L88) 直接说明：实现没有使用真正的 JSON-RPC 2.0，因为它既不发送也不期待 `"jsonrpc": "2.0"` 字段。实际形状仍然熟悉：request、notification、response 和 error objects，通过 serde 的 untagged decoding 区分。
 
-### Request Serialization
+```rust
+#[serde(untagged)]
+pub enum JSONRPCMessage {
+    Request(JSONRPCRequest),
+    Notification(JSONRPCNotification),
+    Response(JSONRPCResponse),
+    Error(JSONRPCError),
+}
 
-不是所有 request 都能同时运行。全局 settings 写入、thread resume、process operation 和 filesystem watch update 会干扰不同资源。App-server 使用 resource-scoped serialization，所以不必在“不安全并发”和“一个全局大锁”之间二选一。
-
-| 序列化范围 | 为什么存在 |
-| --- | --- |
-| Global state | 防止共享 configuration 或 account state 出现冲突更新。 |
-| Thread | 保证同一 thread 的 turn start、resume、interrupt 和 history change 有序。 |
-| Path | 避免观察或修改同一路径的 filesystem operations 互相竞争。 |
-| Process | 防止 process lifecycle messages 互相越过。 |
-| OAuth 或 connector state | 防止重复 refresh 或外部 auth transition 不一致。 |
-
-这也是“app-server 只是 API”这个模型不够用的地方。普通 API handler 往往立即开始工作；app-server 会先问：这个 request 应该和哪个资源串行化？然后才调用执行操作的 processor。
-
-```text
-pseudocode: message handling
-
-当 transport message 到达:
-    parse protocol envelope
-    找到 connection state
-
-    如果 connection 尚未 initialized:
-        只允许 initialization-compatible methods
-
-    检查 method、payload 和 capability gates
-    计算 request 的 serialization key
-
-    把 request 排到该 key 对应队列后面
-
-    当 request 到达队首:
-        调用匹配的 request processor
-        processor 完成后发送 response
+pub struct JSONRPCRequest {
+    pub id: RequestId,
+    pub method: String,
+    pub params: Option<serde_json::Value>,
+    pub trace: Option<W3cTraceContext>,
+}
 ```
 
-这段 pseudocode 故意保持朴素。架构事实是 validation 和 execution 之间的 queue。正是这个 queue，把多个并发 client 变成对共享 runtime state 的有序操作。
+这段代码很小，但解释了很多。Wire envelope 不是 domain model。它只携带 id、method、params 和可选 trace context。真正的 typed app-server protocol，要从转换成 `ClientRequest` 之后才开始。
 
-### Threads、Turns 与 Items
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-jsonrpc-envelope-569ff6a1.webp" alt="App-server message envelope 分离 request、notification、response 和 error，并标出 id、method、params、trace、result 与 error fields" width="1672" height="941" loading="lazy" decoding="async" />
+  <figcaption>Wire layer 是一层紧凑 envelope。它让 transports 可以承载 requests、notifications、responses 和 errors，但不会把 envelope 本身变成 app-server 的 domain model。</figcaption>
+</figure>
 
-App-server 用用户可见模型暴露 runtime：threads 包含 turns；turns 产生 items；items 可以 replay、update 或 complete。Core 内部可以有更细的 events，但 client 不应该理解每一种内部 runtime message。它们需要一份稳定契约，说明 conversation 是什么，以及它如何变化。
+### 2.2 Typed request 自带 serialization scope
 
-Thread start 是最清楚的例子。Server 加载 effective configuration，验证 dynamic tools 和 permissions，创建或附着到 core thread，注册 listener，发送 request response，然后广播 thread 已存在。Turn start 类似但范围更窄：验证 input 和 overrides，把 operation 提交给 core thread，把 request id 关联到生成的 turn id，用 in-progress state 响应，然后让 live notifications 承载后续进展。
+[`common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L157-L221) 里的 protocol macro 生成 `ClientRequest` variants 和 `serialization_scope()` 方法。Scope 词汇是显式的：
 
-Response 和 notification 的分离非常关键。Request response 表示 server 接受并启动了操作；notifications 表示操作在时间中发生了什么。这样 long-running turn 不会阻塞整个 request processor，同时 client 仍然能获得结构化进度。
+```rust
+pub enum ClientRequestSerializationScope {
+    Global(&'static str),
+    GlobalSharedRead(&'static str),
+    Thread { thread_id: String },
+    ThreadPath { path: PathBuf },
+    CommandExecProcess { process_id: String },
+    Process { process_handle: String },
+    FuzzyFileSearchSession { session_id: String },
+    FsWatch { watch_id: String },
+    McpOauth { server_name: String },
+}
+```
 
-### Event Mapping
+这不是为了写文章而发明的比喻，而是 source-level contract。一个 request 会声明自己可能和哪个 resource 竞争。`thread/resume` 与 filesystem watch、MCP OAuth transition 需要串行化的原因不同，但 processor 可以共用同一套 queueing mechanism。
 
-Core runtime 用自己的词汇发出 events。App-server 把这些 events 映射成 client-facing notifications 和 server requests。有些映射很直接：turn started、item appeared、output grew、command finished、turn completed。另一些是 lifecycle decisions：thread 变成 idle、active、input-pending 或 system-error。还有一些是双向的：file change 或 command approval 需要 client 回答后才能继续。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-serialization-queues-569ff6a1.webp" alt="App-server request serialization queues 按 global state、thread、path、process、file watch 和 MCP OAuth resources 分 key 排队" width="1672" height="941" loading="lazy" decoding="async" />
+  <figcaption>Resource-scoped queues 让 app-server 能保护不同 owner，而不是把所有 request 都塞进一个全局瓶颈。这张图背后的硬边界，就是源码里的 scope enum 和 queue mapping。</figcaption>
+</figure>
 
-这个 mapping layer 也是 app-server 保护 clients 免受内部变化影响的地方。Core 可以增加更细的 event，或改变内部 rollout 表达，而不强迫每个 client 同时改变。公开契约应该有意识地演进：新的 item kind、新的 notification fields、新的 server request，都应该通过版本或 gate 管理，让 client 能承受过渡期。
+### 2.3 Initialization 是特殊 gate
 
-### Replay 与 Rejoin
+[`MessageProcessor::process_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L526-L556) 把 JSON-RPC request 转成 `ClientRequest`，然后委托给 typed in-process clients 也会使用的同一个 request handler。In-process 路径 [`process_client_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L561-L606) 绕过 JSON 反序列化，但仍然调用 `handle_client_request`，所以 transport choice 不会改变语义。
 
-Threads 足够持久，client 可以离开后再回来。Rejoin 不只是“打开当前 transcript”。Server 必须从存储的 rollout data 重建 client view，然后接入 live stream，并且不能丢失或重复 events。
+Handler 给 `Initialize` 单独分支，然后对其他流量应用 initialized gate 和 experimental gate：
 
-这里的 ordering 问题很细。假设 client 在一个 turn 仍在 streaming 时 resume thread。Server 必须 replay committed history、attach listener，然后按 client 可渲染的顺序交付 live notifications。如果 replay 和 live subscription 竞争，UI 可能显示重复 items，漏掉 pending approval，或者在 thread 仍 active 时报告 idle。
+```rust
+if let ClientRequest::Initialize { request_id, params } = codex_request {
+    let connection_initialized = self
+        .initialize_processor
+        .initialize(
+            connection_id,
+            request_id,
+            params,
+            &session,
+            outbound_initialized,
+        )
+        .await?;
+    if connection_initialized {
+        self.thread_processor
+            .connection_initialized(
+                connection_id,
+                ConnectionCapabilities {
+                    request_attestation: session.request_attestation(),
+                },
+            )
+            .await;
+    }
+    return Ok(());
+}
 
-App-server 用 thread 周围的 listener state 和 command queues 解决这个问题。Resume operation 可以向已加载 thread 请求有序 replay 和 subscription behavior，而不是在旁边重建第二份模型。得到的状态来自 runtime facts：loaded state、active turns、pending approvals、pending user input、system errors 和 listener history。
+if !session.initialized() {
+    return Err(invalid_request("Not initialized"));
+}
 
-### Server-To-Client Requests
+if let Some(reason) = codex_request.experimental_reason()
+    && !session.experimental_api_enabled()
+{
+    return Err(invalid_request(experimental_required_message(reason)));
+}
+```
 
-Server requests 是这份契约最能区分 agent runtime 和传统服务的部分。Server 可以在 runtime 继续之前，请 client 做一件事。
+关键点是 connection scope。Thread 可以比创建它的 client 活得更久，但 initialization 和 experimental API support 属于当前正在说话的 connection。如果 capability 只挂在线程上，重新连接的旧 client 可能收到它没有协商过的 shape。
 
-常见 request family 包括：
+### 2.4 Queue 位于 validation 和 execution 之间
 
-| Request family | Client responsibility |
-| --- | --- |
-| Command 或 file approval | 展示风险，并返回 allow、deny 或 modified decision。 |
-| User input | Runtime 等待时向用户索取更多信息。 |
-| MCP elicitation | 展示 tool server 对用户提供数据的请求。 |
-| Dynamic tool execution | 运行 client-owned tool，并返回结构化结果。 |
-| Auth refresh 或 attestation | 完成 client-visible 的 trust 或 identity step。 |
+Initialization checks 之后，[`dispatch_initialized_client_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L775-L836) 计算 `serialization_scope()`。如果存在 scope，就通过 [`RequestSerializationQueueKey::from_scope`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_serialization.rs#L53-L103) 映射到 queue key；否则 request 可以直接 spawn。
 
-Server 会跟踪这些 pending requests，因为它们属于 turn state。Runtime 正等待某个 client 回答时，client disconnect 不能被当作无害 UI 事件。根据 request type 和 policy，server 可能 cancel、timeout、reassign、replay，或报告 turn 正处于 input-pending。
+```rust
+let serialization_scope = codex_request.serialization_scope();
 
-### Backpressure 与 Overload
+if let Some(scope) = serialization_scope {
+    let (key, access) = RequestSerializationQueueKey::from_scope(connection_id, scope);
+    self.request_serialization_queues.enqueue(key, access, request).await;
+} else {
+    tokio::spawn(async move {
+        request.run().await;
+    });
+}
+```
 
-契约也必须说明 clients 或 transports 跟不上时会发生什么。没有 backpressure，快速 runtime 会构造无界 outbound queues，或者嘈杂 client 会用 work 淹没 processor。App-server 把 overload 当作 protocol concern，而不仅是日志 concern。
+Queue 实现足够小，可以一次读完。[`enqueue`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_serialization.rs#L138-L167) 为每个 key 创建一个 draining task。[`drain`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_serialization.rs#L169-L200) 按 FIFO 弹出请求，并且有一个优化：同一个 key 下连续的 `SharedRead` requests 可以一起运行。
 
-Ingress backpressure 保护 request processing。Outbound backpressure 保护每个 connection。Resource queues 保护共享 state。Pending server requests 防止双向工作被遗忘。这些机制并不华丽，但它们定义了产品的可靠性边界。如果一个 well-typed notification 在描述关键状态转换时被静默丢弃，它就没有实际价值。
+```rust
+if access == RequestSerializationAccess::SharedRead {
+    while queue.front().is_some_and(|request| {
+        request.access == RequestSerializationAccess::SharedRead
+    }) {
+        let Some(request) = queue.pop_front() else { break };
+        requests.push(request);
+    }
+}
 
-### Derived Status
+join_all(requests.into_iter().map(|request| request.request.run())).await;
+```
 
-Clients 想要简单 status：loaded、idle、active、waiting for input、waiting for approval 或 failed。Runtime 并不把这个 status 存成一个单一 truth field。它从事实派生：thread 是否 loaded，是否有 active turn，是否有 pending server requests，listener 是否看到未恢复的 system error，当前 operation 是否在等待用户输入。
+第二条 invariant 是：ordering 挂在 resource owner 上，而不是挂在 transport 上，也不是挂在整个 server 上。因此 app-server 可以接受多个 client connections，同时不让两个操作乱序修改同一个 thread、process 或 auth transition。
 
-Derived status 比复制状态更安全。如果 server 维护一个独立的 `threadStatus` 字段，每个边缘情况都可能造成 drift。Derivation 让 server 从同一批 events 和 pending-work records 重建 status，而这些事实也正是 replay 的来源。
+## 三、Thread path 保护 replay order
 
-### Trace Ledger
+当 request 进入 processor 之后，app-server 仍然没有变成 agent runtime。Core 拥有正在运行的 conversation。App-server 拥有 core events 到 client-visible contract 的 projection，以及 client 依赖的 replay 和 subscription order。
 
-| 问题 | 第 14 章答案 |
-| --- | --- |
-| 用户请求现在在哪里？ | 它已经跨过 client connection，并作为针对共享 thread state 的 protocol request 存在。 |
-| 什么数据结构携带它？ | Transport events、protocol envelopes、connection capability、resource queues、request processors、thread listeners 和 outgoing senders。 |
-| 谁拥有下一步决策？ | Message processor、resource serializer、相关 request processor、core thread，或正在回答 server request 的 client。 |
-| 这里可能怎么失败？ | Initialization mismatch、unsupported capability、malformed payload、resource contention、overload、disconnect、replay race，或 unanswered server request。 |
+### 3.1 Listener 是 live thread 的 serialization point
+
+Thread lifecycle processor 通过 [`ensure_listener_task_running`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/thread_lifecycle.rs#L212-L378) 启动或复用 listener task。这个 task 在三类工作之间 `select`：listener commands、`conversation.next_event()` 和 unload timing。在发出 typed translations 之前，它先把当前事件记录到 `ThreadState`：
+
+```rust
+let raw_events_enabled = {
+    let mut thread_state = thread_state.lock().await;
+    thread_state.track_current_turn_event(&event.id, &event.msg);
+    thread_state.experimental_raw_events
+};
+```
+
+[`ThreadState`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/thread_state.rs#L69-L145) 不是第二份 transcript。它保存 listener generation、pending interrupts、pending rollback state、current turn history builder、raw-event opt-in 和 listener command sender。Client view 是从 stored history 加 current listener facts 重建的，不是从 terminal text 重建的。
+
+### 3.2 Rejoin 是有序的 listener command
+
+最细的情况，是一个 turn 还在 running 时发生 `thread/resume`。Client 需要 committed history、active turn snapshot、token usage、goal state 和 pending server requests；它还必须在正确的位置订阅未来 notifications。如果这些动作互相竞争，UI 可能重复显示 items，漏掉 approval，或者在 core 仍 active 时显示 idle。
+
+源码通过 [`ThreadListenerCommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/thread_state.rs#L39-L59) 处理这件事。Resume response、goal updates、goal snapshots 和 server-request resolution 都走 listener 的 command channel。
+
+```rust
+pub(crate) enum ThreadListenerCommand {
+    SendThreadResumeResponse(Box<PendingThreadResumeRequest>),
+    EmitThreadGoalUpdated { goal: ThreadGoal },
+    EmitThreadGoalCleared,
+    EmitThreadGoalSnapshot { state_db: StateDbHandle },
+    ResolveServerRequest {
+        request_id: RequestId,
+        completion_tx: oneshot::Sender<()>,
+    },
+}
+```
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-listener-rejoin-569ff6a1.webp" alt="Thread listener rejoin flow 按序处理 stored history、active turn snapshot、subscription、pending requests、token usage 和 goal continuation" width="1672" height="941" loading="lazy" decoding="async" />
+  <figcaption>Rejoin 不是重新加载 transcript。Listener 按序处理 history reconstruction、live subscription、pending-request replay、token usage、goal state，以及可能发生的 goal continuation。</figcaption>
+</figure>
+
+[`handle_pending_thread_resume_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/thread_lifecycle.rs#L511-L668) 展示了顺序。它读取 active turn snapshot，只在 `pending.include_turns` 设置时从 rollout history 填充 turns，解析 loaded status，把 connection 加到 thread，发送 resume response，按条件发出 token usage 和 goal state，replay pending server requests，最后只在 `pending.emit_thread_goal_update` 设置时允许 goal continuation：
+
+```rust
+if pending.include_turns {
+    populate_thread_turns_from_history(
+        &mut thread,
+        &pending.history_items,
+        active_turn.as_ref(),
+    );
+}
+
+let response = ThreadResumeResponse {
+    thread,
+    model,
+    model_provider: model_provider_id,
+    service_tier,
+    cwd,
+    instruction_sources,
+    approval_policy: approval_policy.into(),
+    approvals_reviewer: approvals_reviewer.into(),
+    sandbox,
+    permission_profile: Some(permission_profile.into()),
+    active_permission_profile,
+    reasoning_effort,
+};
+
+let token_usage_thread = pending.include_turns.then(|| response.thread.clone());
+outgoing.send_response(request_id, response).await;
+if let Some(token_usage_thread) = token_usage_thread {
+    let token_usage_turn_id = latest_token_usage_turn_id_from_rollout_items(
+        &pending.history_items,
+        token_usage_thread.turns.as_slice(),
+    );
+    send_thread_token_usage_update_to_connection(
+        outgoing,
+        connection_id,
+        conversation_id,
+        &token_usage_thread,
+        conversation.as_ref(),
+        token_usage_turn_id,
+    )
+    .await;
+}
+if pending.emit_thread_goal_update {
+    if let Some(state_db) = pending.thread_goal_state_db {
+        send_thread_goal_snapshot_notification(outgoing, conversation_id, &state_db).await;
+    }
+}
+outgoing
+    .replay_requests_to_connection_for_thread(connection_id, conversation_id)
+    .await;
+
+if pending.emit_thread_goal_update
+    && let Err(err) = conversation.continue_active_goal_if_idle().await
+{
+    tracing::warn!("failed to continue active goal after running-thread resume: {err}");
+}
+```
+
+第三条 invariant 是：replay 和 live subscription 是 listener 周围的一次有序操作。它们不是从两个独立事实来源各读一次。
+
+### 3.3 Event mapping 是 projection，不是 dump
+
+Event mapping helper 把 projection boundary 说得很清楚。[`item_event_to_server_notification`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L25-L34) 只覆盖 stateless one-to-one projections；调用方负责周围的 state checks 和 side effects。代表性的 cases 把 core deltas 和 command events 映射成稳定 notifications，例如 [`event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L345-L449) 中的 `AgentMessageDelta`、`ItemStarted`、`FileChangePatchUpdated`、`CommandExecutionOutputDelta` 和 `ItemCompleted`。
+
+这种分层对 compatibility 很重要。Client 不应该理解每一种 core 内部 event 才能渲染 thread。公开契约可以有意识地增加 item kinds 和 notification fields，而 app-server 吸收 core vocabulary 与 client-visible view 之间的差异。
+
+## 四、Reverse path 让 client decisions 可 replay
+
+Server-to-client requests 最能区分 agent runtime 和传统服务。Core 可能因为 approval、elicitation、input 或 client-owned tool execution 而被阻塞。App-server 必须让这些等待可见、可按 id 匹配，并且在 rejoin 时可 replay。
+
+### 4.1 Server request 是 generated protocol type
+
+同一个 protocol file 生成 [`ServerRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1035-L1137)、typed responses、payload constructors 和 export helpers。具体 request families 包括 command approval、file-change approval、tool user input、MCP server elicitation、permissions approval 和 dynamic tool execution，对应 [`server_request_definitions!`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1277-L1315)。
+
+```rust
+pub enum ServerRequest {
+    $variant {
+        #[serde(rename = "id")]
+        request_id: RequestId,
+        params: $params,
+    },
+}
+
+pub enum ServerRequestPayload {
+    $( $variant($params), )*
+}
+
+impl ServerRequestPayload {
+    pub fn request_with_id(self, request_id: RequestId) -> ServerRequest {
+        match self {
+            $(Self::$variant(params) => ServerRequest::$variant { request_id, params },)*
+        }
+    }
+}
+```
+
+Generated shape 让 runtime 可以向 client 提问，而不绑定某一个 UI。TUI、SDK client、remote client 都能收到同一个 typed request family，并返回匹配的 typed response。
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/app-server-server-request-loop-569ff6a1.webp" alt="Server-to-client request loop 包含 generated request id、pending callback storage、client response matching、rejoin replay 和 resolved notification" width="1672" height="941" loading="lazy" decoding="async" />
+  <figcaption>Server request 是 protocol state。App-server 分配 id，保存 callback，向 connections 发送 request，匹配 client response，在 rejoin 时 replay 未解决请求，并按 listener order 发出 resolved notification。</figcaption>
+</figure>
+
+### 4.2 Outgoing state 跟踪 pending decisions
+
+[`OutgoingMessageSender`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L93-L116) 拥有 `next_server_request_id`、outbound envelope sender、`request_id_to_callback`、request contexts 和 analytics。[`send_request_to_connections`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L270-L333) 分配 id，构造 typed `ServerRequest`，保存 callback 和可选 thread id，然后 broadcast 或发送给指定 connections。
+
+```rust
+let id = self.next_request_id();
+let request = request.request_with_id(id.clone());
+let (tx_approve, rx_approve) = oneshot::channel();
+
+request_id_to_callback.insert(
+    id,
+    PendingCallbackEntry {
+        callback: tx_approve,
+        thread_id,
+        request: request.clone(),
+    },
+);
+```
+
+Client 稍后发送 JSON-RPC response 时，[`process_response`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L717-L722) 会调用 [`notify_client_response`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L357-L375)，查找 callback 并完成等待中的 runtime path。如果 client 发送 error object，[`notify_client_error`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L377-L390) 用错误完成同一个 callback。
+
+### 4.3 Rejoin 会 replay 未解决的 server requests
+
+Pending request table 也解释了为什么 rejoin 能恢复一个 blocked turn。[`pending_requests_for_thread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L424-L437) 按 thread id 过滤 unresolved server requests，并按 id 排序。[`replay_requests_to_connection_for_thread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L336-L355) 在 resume response 发送后，把这些 unresolved requests 发给重新接入的 connection。
+
+Resolution 同样通过 listener 排序。[`resolve_server_request_on_thread_listener`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/thread_state.rs#L147-L170) 入队 `ResolveServerRequest`，[`resolve_pending_server_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/thread_lifecycle.rs#L717-L740) 向 subscribed connections 发出 `ServerRequestResolved`。
+
+这里的 invariant 很精确：server request 不只是 outbound message。它是一个 pending runtime decision，带有 id、可选 thread ownership、callback、rejoin replay behavior，以及有序的 resolution notification。
+
+## 五、Failure conditions 定义契约
+
+App-server 源码里有很多小 gate，因为每个 gate 保护不同的 failure boundary。
+
+| Failure pressure | Simpler design that breaks | App-server mechanism | Protected invariant |
+| --- | --- | --- | --- |
+| 多种 transports | 每种 transport 自己定义 request semantics | Transport events 统一 connection open、incoming message、outgoing queue 和 close | Client path 不能改变 request meaning。 |
+| 未初始化 connection | 解析成功就允许任何 method 运行 | `Initialize` branch 在 initialized dispatch 之前执行 | Capability 属于当前正在说话的 connection。 |
+| 共享 thread mutation | 每个 request 都立即 spawn | `ClientRequestSerializationScope` 加 queue keys | 同一个 owner 看到有序 mutations。 |
+| Long-running turn | 一直 hold 住原 request 直到完成 | Request response 接受工作，notifications streaming progress | Acceptance 和 progress 分离。 |
+| Streaming 时 reconnect | 从本地 transcript 重建 UI | Listener command 排序 history、active turn snapshot、subscription、token usage 和 pending requests | Rejoin 不丢失或重复 live state。 |
+| Runtime 等待 client | 把 approval 或 elicitation 当内部 callback | `ServerRequest` 加 pending callback table | Blocked work 可见、可匹配、可 replay。 |
+| Core event churn | 直接暴露每个 core event | Event mapping 投影成稳定 notification types | Client 渲染 contract，而不是内部 churn。 |
+
+这些机制不花哨，但它们决定了 app-server 到底只是一个 JSON-RPC endpoint，还是一个可以支撑 shared、durable、bidirectional agent threads 的 protocol boundary。
 
 ## 应用到实践
 
-1. **先定义契约，再做便利性。** 先确定稳定的 client-visible shapes，再优化某一条 client path。
-2. **按资源序列化。** 用 scoped ordering 保护共享状态，而不是依赖全局瓶颈或不安全并发。
-3. **区分接受与进展。** 快速返回 request acceptance，把 long-running work 作为 notifications streaming 出去。
-4. **显式建模双向性。** 把 approval、elicitation 和 dynamic tool execution 建模为 server requests，而不是隐藏 callback。
-5. **从事实派生 status。** 用 events 和 pending work 重建 client status，而不是维护第二套 transcript model。
+1. **先定义 protocol ownership。** 在添加便利 handler 之前，先决定什么属于 connection、thread、runtime 和 client。
+2. **按资源序列化。** 用 scoped ordering 保护 shared owners，而不是依赖全局锁或不安全并行。
+3. **区分接受与进展。** Request response 应该说明 work 已被接受；notifications 承载 long-running timeline。
+4. **把 reverse calls 变成一等对象。** Approval、elicitation、user input 和 client-owned tools 都需要 id、callback、replay 和 resolution event。
+5. **把 replay 当作 runtime contract。** Reconnect 应该从 durable history 加 live listener state 读取，而不是从 UI text 或第二份 transcript model 读取。
 
 ## 收束
 
-App-server 契约把 runtime 变成共享平台。Client 可以创建 threads、观察 turns、replay history、回答 requests，而不需要导入 core runtime。第 15 章继续看使用这份契约的客户端：generated SDK models、language-specific facades、local daemon 和 remote-control streams。
+App-server 契约把 Codex runtime state 变成共享平台表面。Client 可以创建 threads、观察 turns、replay history、回答 runtime requests，而不需要导入 core runtime。这条边界之所以有用，是因为它在该窄的地方足够窄：wire envelope 和 generated types；在必须严格的地方足够严格：initialization、resource ordering、listener rejoin 和 pending server requests。
+
+第 15 章会继续看使用这份契约的客户端：generated SDK models、daemon startup、local transport choices 和 remote-control streams。
 
 <div class="source-equivalence">
 
 ## 源码地图
 
-| 概念 | 源码锚点 |
-| --- | --- |
-| Protocol envelopes and schemas | [`codex-rs/app-server-protocol/src`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src) |
-| Transport normalization | [`codex-rs/app-server-transport/src/transport/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-transport/src/transport/mod.rs#L57) |
-| Message processor | [`codex-rs/app-server/src/message_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L272) |
-| Request serialization | [`codex-rs/app-server/src/request_serialization.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_serialization.rs#L19) |
-| Thread state and pending requests | [`codex-rs/app-server/src/thread_state.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/thread_state.rs#L70) |
+| Evidence class | Claim | Source anchor |
+| --- | --- | --- |
+| Verified source | Wire envelope 类似 JSON-RPC，但实现刻意省略必需的 `"jsonrpc": "2.0"` 字段。 | [`jsonrpc_lite.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/jsonrpc_lite.rs#L1-L88) |
+| Verified source | Client request types 由 macro 生成，并带有 `serialization_scope()`；scope 包含 global、thread、path、process、fs watch、fuzzy search 和 MCP OAuth owners。 | [`common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L77-L221) |
+| Verified source | JSON request 和 typed in-process request 都委托给 `handle_client_request`；`Initialize` 成功前 initialized traffic 会被拒绝。 | [`message_processor.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/message_processor.rs#L526-L836) |
+| Verified source | Scoped request queues 按 FIFO drain；同一个 key 下连续 shared reads 可以一起运行。 | [`request_serialization.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_serialization.rs#L18-L200) |
+| Verified source | Thread listener 排序 listener commands、core events 和 unload timing，并在发出 projections 之前跟踪 current-turn state。 | [`thread_lifecycle.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/thread_lifecycle.rs#L212-L378) |
+| Verified source | Running-thread resume 会读取 active turn state，按条件重建 history 和 token usage，发送 response，按条件发出 goal state，replay pending server requests，然后按条件允许 goal continuation。 | [`thread_lifecycle.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/request_processors/thread_lifecycle.rs#L511-L668) |
+| Verified source | Server requests 是 generated typed protocol objects，带 typed client responses 和 request id constructors。 | [`common.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/common.rs#L1035-L1137) |
+| Verified source | Outgoing server requests 保存 callbacks 和可选 thread ids；未解决的 thread requests 会 replay 给重新连接的 connection。 | [`outgoing_message.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L93-L116), [`send_request_to_connections`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L270-L355), [`pending_requests_for_thread`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server/src/outgoing_message.rs#L424-L437) |
+| Verified source | Event mapping 只覆盖 stateless one-to-one event projections；调用方负责周围 state checks 和 side effects。 | [`event_mapping.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L25-L34), [`event cases`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/app-server-protocol/src/protocol/event_mapping.rs#L345-L449) |
+| Surrounding contract inference | App-server 更适合被理解为 thread ownership boundary，而不是薄 API wrapper。 | 由上面的 transport、request serialization、listener resume、event projection 和 server-request verified anchors 推出。 |
 
 </div>
