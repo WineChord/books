@@ -132,6 +132,19 @@ Identity has its own failure modes. A runtime id can mismatch stored key materia
 
 The practical rule is simple: do not let a remote success imply a local success until the local boundary has checked it. A completed task means the backend has produced an outcome. It does not mean the user's current checkout accepted that outcome.
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| Question | Chapter 21 answer |
+| --- | --- |
+| Where is the user request now? | It has crossed from a local prompt into a backend task contract, then may return as task text, messages, attempts, or a diff. |
+| What carries it? | `TaskId`, `TaskSummary`, `TaskText`, `TurnAttempt`, environment id, git ref, signed task identity, and optional diff override. |
+| Who decides next? | Backend state decides task progress; local Codex decides environment selection, attempt selection, preflight, and whether a returned diff mutates the checkout. |
+| What can fail here? | missing auth, ambiguous environment, branch fallback, stale remote diff, absent attempt diff, partial apply, identity mismatch, or unverifiable JWT material. |
+
+</div>
+
 ## Apply This
 
 1. **Backend/local split.** Solves cloud-task ambiguity -> keep backend task lifecycle separate from local turn lifecycle -> Pitfall: saying remote success means local mutation succeeded.

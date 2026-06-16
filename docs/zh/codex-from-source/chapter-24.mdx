@@ -83,6 +83,19 @@ publish({
 
 这就是打包值得独立成章的原因。它不只是“怎么发布”，而是防止发布关注点改变被发布的产品。
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| 问题 | 第 24 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 它已经变成可安装 command path：native binary、wrapper package、可选 platform payload、installer 或 release artifact。 |
+| 什么数据结构携带它？ | package metadata、staged npm files、platform-specific native components、vendor payloads、release workflows、checksums、signatures 和 helper dependency rules。 |
+| 谁拥有下一步决策？ | Release scripts 与 package selectors 决定哪个 artifact 到达用户；启动后 Rust binary 仍拥有 runtime behavior。 |
+| 这里可能怎么失败？ | native component 缺失、platform package 错误、vendor archive 过期、payload 未签名或未校验、optional dependency failure 不可诊断，或 installer-only 行为漂移。 |
+
+</div>
+
 ## 应用到实践
 
 1. **薄分发 wrapper** -> 解决生态特定安装而不复制运行时行为 -> 让原生二进制保持权威，wrapper 只选择并启动它 -> 风险：把产品逻辑放进 wrapper。

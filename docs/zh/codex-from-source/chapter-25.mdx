@@ -70,6 +70,19 @@ report 是设计的一部分。只说“failed”的策略会训练开发者去�
 
 这也是为什么治理作为本书收尾。Codex 的架构不是一组图，而是一组能在日常开发中继续存在的规则。最好的系统会让重要规则遵守起来便宜、意外破坏起来困难。
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| 问题 | 第 25 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 它已经变成 repository change pressure：protocol edit、dependency edit、binary artifact、UI import、generated output 或 release workflow change。 |
+| 什么数据结构携带它？ | workflow lanes、generated artifact checks、blob-size policy、dependency policy、boundary scripts、test matrices 和 release gates。 |
+| 谁拥有下一步决策？ | CI 无法判断设计品味，但可以在 review 变成记忆劳动之前阻止破坏指定架构不变量的变更。 |
+| 这里可能怎么失败？ | gate 过宽、policy scripts 过期、generated artifacts 缺失、TUI/core 直接 import、无法解释的大 blob，或失败时没有修复路径。 |
+
+</div>
+
 ## 应用到实践
 
 1. **可执行架构策略** -> 解决边界随时间侵蚀 -> 把关键架构承诺变成 CI 检查 -> 风险：执行的是品味而不是风险。
@@ -78,7 +91,7 @@ report 是设计的一部分。只说“failed”的策略会训练开发者去�
 4. **诊断型失败** -> 解决 policy fatigue -> 每个失败都命名边界和修复路径 -> 风险：让开发者反向解析治理脚本。
 5. **比例化执行** -> 解决治理膨胀 -> 只 gate 保护兼容性、安全性或发布正确性的规则 -> 风险：硬性失败低价值偏好。
 
-### 下一步
+## 下一步
 
 这本书的机器已经完整：契约、运行时、工具、客户端、扩展、协调、记忆、构建、打包和治理。epilogue 会从 Codex 抽身出来，命名那些即使你的系统不是 AI coding agent 也值得带走的架构经验。
 

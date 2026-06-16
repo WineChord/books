@@ -87,6 +87,19 @@ The release system has one product obligation: preserve the runtime's contract w
 
 That is why packaging deserves its own chapter. It is not just about "how to ship." It is about preventing shipping concerns from changing what was shipped.
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| Question | Chapter 24 answer |
+| --- | --- |
+| Where is the user request now? | It has become an installable command path: native binary, wrapper package, optional platform payload, installer, or release artifact. |
+| What carries it? | package metadata, staged npm files, platform-specific native components, vendor payloads, release workflows, checksums, signatures, and helper dependency rules. |
+| Who decides next? | Release scripts and package selectors decide which artifact reaches the user; the Rust binary remains the owner of runtime behavior after launch. |
+| What can fail here? | missing native component, wrong platform package, stale vendor archive, unsigned or unchecked payload, opaque optional dependency failure, or installer-only behavior drift. |
+
+</div>
+
 ## Apply This
 
 1. **Thin distribution wrapper** -> Solves ecosystem-specific installation

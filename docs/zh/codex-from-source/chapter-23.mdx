@@ -96,6 +96,19 @@ write_if_changed("generated-contracts", schema)
 
 所以构建系统也是治理面。它不只回答“能不能编译”，还回答“是否保留了让 agent 可以被嵌入、扩展、发布和调试的契约”。
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| 问题 | 第 23 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 它已经离开 runtime execution，进入判断源码变化是否仍生成同一组公开承诺的 repository contract layer。 |
+| 什么数据结构携带它？ | Cargo manifests、Bazel module 与 macros、schema exporters、已提交 JSON schemas、generated TypeScript 和 CI verification targets。 |
+| 谁拥有下一步决策？ | 开发者修改 Rust types；generators 与 build checks 决定 client-facing artifacts、hermetic targets 和 committed outputs 是否仍然匹配。 |
+| 这里可能怎么失败？ | generated files 过期、experimental fields 泄漏进 stable schemas、Cargo/Bazel drift、test launcher 失效、native dependency mismatch，或 boundary checks 不再覆盖真实风险。 |
+
+</div>
+
 ## 应用到实践
 
 1. **双接口构建** -> 解决开发速度与发布可复现性的张力 -> 保留顺手工具作为源头，从它推导 hermetic target -> 风险：overlay 变成第二套架构。

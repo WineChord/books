@@ -100,6 +100,19 @@ It is tempting to treat build files as peripheral. In Codex, they are where arch
 
 This makes the build system a governance surface. It is not only answering "can we compile?" It is answering "did we preserve the contracts that make the agent safe to embed, extend, ship, and debug?"
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| Question | Chapter 23 answer |
+| --- | --- |
+| Where is the user request now? | It has left runtime execution and entered the repository contract layer that decides whether source changes still generate the same public promises. |
+| What carries it? | Cargo manifests, Bazel module and macros, schema exporters, checked-in JSON schemas, generated TypeScript, and CI verification targets. |
+| Who decides next? | Developers change Rust types; generators and build checks decide whether client-facing artifacts, hermetic targets, and committed outputs still match. |
+| What can fail here? | stale generated files, experimental fields leaking into stable schemas, Cargo/Bazel drift, broken test launchers, native dependency mismatch, or boundary checks that no longer cover real risk. |
+
+</div>
+
 ## Apply This
 
 1. **Dual-interface build** -> Solves the tension between developer speed and

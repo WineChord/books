@@ -58,6 +58,16 @@ The design is not free. Typed contracts create compatibility burden. Durable rol
 
 Those costs are acceptable only because the product needs them. If you are building a small internal tool, do not cargo-cult the entire architecture. Take the pressure-tested ideas: typed events, negotiated side effects, explicit runtime contracts, raw-fact persistence, and executable policy.
 
+## A Decision Table for Reuse
+
+| Pressure in your system | Codex pattern to steal | Invariant protected |
+| --- | --- | --- |
+| One planner can trigger dangerous work | route every side effect through a typed request, policy check, and observable outcome | the planner suggests; the runtime authorizes |
+| Multiple clients need the same agent | build one runtime contract and make clients projections over it | clients render state instead of inventing state |
+| Long work must be resumed or audited | record raw facts before deriving friendly views | replay and debugging do not depend on UI text |
+| Extensions need to grow without taking over | separate packaging, provenance, routing, and trust planes | optional capability does not become ambient authority |
+| Architecture keeps drifting in reviews | encode the highest-risk rules as executable checks | important boundaries fail before they silently erode |
+
 ## The Book's Final Mental Model
 
 Use the opening figure as the book's final map:

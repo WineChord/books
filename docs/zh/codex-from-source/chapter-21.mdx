@@ -132,6 +132,19 @@ Identity 有自己的失败模式。Runtime id 可能和 stored key material 不
 
 实践规则很简单：不要让 remote success 直接等价于 local success，直到本地 边界完成检查。Completed task 只表示 backend 产生了 outcome；它不表示用户 当前 checkout 已经接受这个 outcome。
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| 问题 | 第 21 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 它已经从本地 prompt 进入 backend task contract，之后可能以 task text、messages、attempts 或 diff 回来。 |
+| 什么数据结构携带它？ | `TaskId`、`TaskSummary`、`TaskText`、`TurnAttempt`、environment id、git ref、signed task identity 和可选 diff override。 |
+| 谁拥有下一步决策？ | Backend state 决定 task progress；本地 Codex 决定 environment selection、attempt selection、preflight，以及返回 diff 是否改变 checkout。 |
+| 这里可能怎么失败？ | 缺 auth、environment 歧义、branch fallback、remote diff 过期、attempt diff 缺失、partial apply、identity mismatch 或 JWT material 不可验证。 |
+
+</div>
+
 ## 应用到实践
 
 1. **Backend/local split。** 解决 cloud-task 含混问题；分开 backend task

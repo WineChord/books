@@ -72,6 +72,19 @@ The standard should be: would this rule protect an architectural promise that a 
 
 This proportionality is why governance closes the book. Codex's architecture is not a set of diagrams; it is a collection of rules that survive contact with daily development. The best systems make the important rules cheap to follow and hard to violate accidentally.
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| Question | Chapter 25 answer |
+| --- | --- |
+| Where is the user request now? | It has become repository change pressure: a protocol edit, dependency edit, binary artifact, UI import, generated output, or release workflow change. |
+| What carries it? | workflow lanes, generated artifact checks, blob-size policy, dependency policy, boundary scripts, test matrices, and release gates. |
+| Who decides next? | CI cannot judge design taste, but it can block changes that violate selected architecture invariants before review becomes memory work. |
+| What can fail here? | over-broad gates, stale policy scripts, missing generated artifacts, direct TUI/core imports, unexplained large blobs, or checks that fail without a repair path. |
+
+</div>
+
 ## Apply This
 
 1. **Executable architecture policy** -> Solves boundary erosion over time ->

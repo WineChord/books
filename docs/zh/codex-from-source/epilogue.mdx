@@ -56,6 +56,16 @@ rollout、trace、graph edge、projection、app-server history 和生成 schema 
 
 只有产品真的需要这些成本时，它们才值得。如果你在做一个小型内部工具，不要照搬整套架构。带走经过压力测试的思想：类型化事件、协商式副作用、显式运行时契约、原始事实持久化和可执行策略。
 
+## 可迁移决策表
+
+| 你自己的系统压力 | 值得借鉴的 Codex pattern | 被保护的不变量 |
+| --- | --- | --- |
+| 一个 planner 可以触发危险工作 | 让每个 side effect 都经过 typed request、policy check 和 observable outcome | planner 只建议，runtime 才授权 |
+| 多个客户端需要同一个 agent | 建立一套 runtime contract，让 clients 成为它的 projections | clients 渲染状态，而不是发明状态 |
+| 长工作需要恢复或审计 | 先记录 raw facts，再派生友好视图 | replay 和 debug 不依赖 UI 文本 |
+| 扩展要增长但不能接管系统 | 分离 packaging、provenance、routing 和 trust planes | 可选 capability 不变成 ambient authority |
+| 架构规则总在 review 中漂移 | 把最高风险规则编码成 executable checks | 重要边界先失败，而不是悄悄腐蚀 |
+
 ## 最后的心智模型
 
 把开篇图作为全书最后的路线图来读：

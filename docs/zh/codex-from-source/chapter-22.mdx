@@ -113,6 +113,19 @@ Read path 也会 fail closed。Invalid paths、hidden paths、symlinks、invalid
 
 最重要的失败边界是 feedback。一个会总结自己 consolidation sessions 的 memory system 会放大错误。Codex 通过跳过 sub-agent sessions、把 consolidation agent 标成 ephemeral，并在该 agent 内禁用 memory features 来 避免这一点。
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| 问题 | 第 22 章答案 |
+| --- | --- |
+| 用户请求现在在哪里？ | 它可以读取受预算限制的长期 context，而 memory generation 作为 startup side pipeline 处理过去 rollouts。 |
+| 什么数据结构携带它？ | memory summaries、citation entries、read-only MCP file operations、Stage 1 claims、Stage 1 outputs、workspace diffs 和 Stage 2 lock state。 |
+| 谁拥有下一步决策？ | Active session 只能读取；memory pipeline 决定 extraction、redaction、retention、consolidation 与 workspace publication。 |
+| 这里可能怎么失败？ | state DB 不可用、ephemeral sessions 被跳过、memory path 非法、symlink、empty query、extraction schema failure、lock contention 或 recursive consolidation。 |
+
+</div>
+
 ## 应用到实践
 
 1. **Memory as side channel。** 解决隐藏长期上下文问题；让 memory 显式、

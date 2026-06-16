@@ -114,6 +114,19 @@ The read path also fails closed. Invalid paths, hidden paths, symlinks, invalid 
 
 The most important failure boundary is feedback. A memory system that summarizes its own consolidation sessions can amplify mistakes. Codex avoids that by skipping sub-agent sessions, marking the consolidation agent ephemeral, and disabling memory features inside that agent.
 
+<div class="trace-ledger">
+
+### Trace Ledger
+
+| Question | Chapter 22 answer |
+| --- | --- |
+| Where is the user request now? | It may read bounded long-term context, while memory generation runs as a startup side pipeline over past rollouts. |
+| What carries it? | memory summaries, citation entries, read-only MCP file operations, Stage 1 claims, Stage 1 outputs, workspace diffs, and Stage 2 lock state. |
+| Who decides next? | The active session can read; the memory pipeline decides extraction, redaction, retention, consolidation, and workspace publication. |
+| What can fail here? | state DB unavailability, skipped ephemeral sessions, invalid memory paths, symlinks, empty queries, extraction schema failure, lock contention, or recursive consolidation. |
+
+</div>
+
 ## Apply This
 
 1. **Memory as side channel.** Solves hidden long-term context -> make memory explicit, inspectable, and separately disabled -> Pitfall: smuggling permanent instructions through chat history.
