@@ -1,0 +1,1491 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Self-Evolution 与 Agentic Training：从源码蛛丝马迹到开源训练栈</title>
+    <meta
+      name="description"
+      content="从 Codex、Claude Code、OpenClaw、Hermes 的源码线索出发，系统拆解 self-evolution 与 agentic training 的上下文形状、压缩、记忆、轨迹、强化学习、软件工程训练环境与去中心化训练。"
+    />
+    <link rel="canonical" href="https://www.wineandchord.com/books/selfevolve/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Self-Evolution 与 Agentic Training" />
+    <meta property="og:url" content="https://www.wineandchord.com/books/selfevolve/" />
+    <meta
+      property="og:description"
+      content="从源码线索到开源训练栈，解释智能体如何把上下文、轨迹、记忆、奖励和分布式训练连成自进化系统。"
+    />
+    <meta
+      property="og:image"
+      content="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cover-self-evolution-agentic-training.webp"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css"
+    />
+    <style>
+      :root {
+        --font-book:
+          "PingFang SC", "PingFang TC", "Hiragino Sans GB", "Microsoft YaHei",
+          "Noto Sans CJK SC", "Noto Sans SC", ui-sans-serif, system-ui,
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-mono:
+          Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+          SFMono-Regular, Menlo, monospace;
+        --ink: #172033;
+        --muted: #526073;
+        --soft: #f6efe1;
+        --paper: #fff9ec;
+        --paper-2: #fbf3e3;
+        --line: rgba(29, 39, 58, 0.16);
+        --blue: #285f9f;
+        --green: #2d7a5b;
+        --red: #a44b45;
+        --gold: #a97628;
+        --violet: #5d578f;
+        --shadow: 0 18px 50px rgba(24, 31, 43, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        overflow-x: hidden;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 18% 0%, rgba(255, 246, 223, 0.9), transparent 38rem),
+          linear-gradient(180deg, #fff9ed 0%, #f9f1e4 48%, #fffaf0 100%);
+        font-family: var(--font-book);
+        line-height: 1.78;
+        letter-spacing: 0;
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration-color: rgba(40, 95, 159, 0.35);
+        text-underline-offset: 0.18em;
+      }
+
+      a:hover {
+        text-decoration-color: currentColor;
+      }
+
+      code,
+      pre,
+      kbd {
+        font-family: var(--font-mono);
+      }
+
+      code {
+        border-radius: 5px;
+        background: rgba(31, 42, 64, 0.06);
+        padding: 0.1em 0.34em;
+        font-size: 0.9em;
+      }
+
+      pre {
+        max-width: 100%;
+        overflow-x: auto;
+        border: 1px solid rgba(29, 39, 58, 0.14);
+        border-radius: 8px;
+        background: #182032;
+        color: #f7f0dd;
+        padding: 1.1rem 1.2rem;
+        line-height: 1.58;
+        font-size: 0.92rem;
+      }
+
+      pre code {
+        display: block;
+        border-radius: 0;
+        background: transparent;
+        padding: 0;
+        font-size: inherit;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        min-height: 92vh;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        padding: 28px 0 18px;
+      }
+
+      .topline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .brand {
+        font-weight: 700;
+        color: var(--green);
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 0.96fr) minmax(420px, 1.28fr);
+        gap: 34px;
+        align-items: center;
+        padding: 26px 0 24px;
+      }
+
+      .eyebrow {
+        margin: 0 0 0.9rem;
+        color: var(--gold);
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 12.6em;
+        font-size: clamp(2.35rem, 5.4vw, 5.25rem);
+        line-height: 1.03;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin: 1.25rem 0 0;
+        max-width: 40rem;
+        color: var(--muted);
+        font-size: clamp(1.04rem, 1.5vw, 1.24rem);
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 1.4rem;
+      }
+
+      .pill {
+        border: 1px solid rgba(29, 39, 58, 0.16);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.45);
+        color: var(--muted);
+        padding: 0.32rem 0.68rem;
+        font-size: 0.9rem;
+      }
+
+      .hero-figure {
+        margin: 0;
+      }
+
+      .hero-figure img,
+      .article-figure img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-figure figcaption,
+      .article-figure figcaption {
+        margin-top: 0.62rem;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.6;
+      }
+
+      .scroll-hint {
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      main {
+        padding: 40px 0 96px;
+      }
+
+      .content-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 288px;
+        gap: 38px;
+        align-items: start;
+      }
+
+      article {
+        min-width: 0;
+      }
+
+      aside.toc {
+        position: sticky;
+        top: 22px;
+        border-left: 2px solid rgba(40, 95, 159, 0.22);
+        padding-left: 18px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      aside.toc strong {
+        display: block;
+        color: var(--ink);
+        margin-bottom: 0.6rem;
+      }
+
+      aside.toc a {
+        display: block;
+        margin: 0.42rem 0;
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      aside.toc a:hover {
+        color: var(--blue);
+      }
+
+      section {
+        margin: 0 0 4.6rem;
+      }
+
+      h2 {
+        margin: 0 0 1.15rem;
+        padding-top: 0.4rem;
+        font-size: clamp(1.65rem, 3vw, 2.45rem);
+        line-height: 1.18;
+        letter-spacing: 0;
+      }
+
+      h3 {
+        margin: 2.2rem 0 0.72rem;
+        font-size: clamp(1.2rem, 2vw, 1.52rem);
+        line-height: 1.28;
+        letter-spacing: 0;
+      }
+
+      h4 {
+        margin: 1.6rem 0 0.52rem;
+        font-size: 1.06rem;
+        line-height: 1.35;
+        letter-spacing: 0;
+      }
+
+      p {
+        margin: 0 0 1.08rem;
+      }
+
+      .lead {
+        font-size: 1.12rem;
+        color: #2b364a;
+      }
+
+      .reading-contract,
+      .source-boundary,
+      .method-note,
+      .callout {
+        border: 1px solid rgba(29, 39, 58, 0.14);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.45);
+        padding: 1.1rem 1.18rem;
+        margin: 1.3rem 0;
+      }
+
+      .source-boundary {
+        border-color: rgba(45, 122, 91, 0.28);
+        background: rgba(236, 247, 239, 0.58);
+      }
+
+      .method-note {
+        border-color: rgba(169, 118, 40, 0.28);
+        background: rgba(255, 247, 228, 0.68);
+      }
+
+      .callout {
+        border-color: rgba(164, 75, 69, 0.22);
+        background: rgba(255, 242, 238, 0.62);
+      }
+
+      .label {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 5px;
+        padding: 0.12rem 0.42rem;
+        font-size: 0.86rem;
+        font-weight: 700;
+      }
+
+      .official {
+        color: var(--blue);
+        background: rgba(40, 95, 159, 0.1);
+      }
+
+      .verified {
+        color: var(--green);
+        background: rgba(45, 122, 91, 0.11);
+      }
+
+      .inference {
+        color: var(--gold);
+        background: rgba(169, 118, 40, 0.12);
+      }
+
+      .warning {
+        color: var(--red);
+        background: rgba(164, 75, 69, 0.1);
+      }
+
+      .article-figure {
+        margin: 2.1rem 0;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid rgba(29, 39, 58, 0.14);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.5);
+        margin: 1.25rem 0 1.45rem;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+        font-size: 0.94rem;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid rgba(29, 39, 58, 0.11);
+        padding: 0.82rem 0.9rem;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: #243048;
+        background: rgba(248, 238, 217, 0.7);
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .rank {
+        font-weight: 800;
+        color: var(--blue);
+        white-space: nowrap;
+      }
+
+      .score {
+        color: var(--green);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .compact-list {
+        padding-left: 1.25rem;
+      }
+
+      .compact-list li {
+        margin: 0.55rem 0;
+      }
+
+      .source-map {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin: 1.4rem 0;
+      }
+
+      .source-card {
+        border: 1px solid rgba(29, 39, 58, 0.14);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.42);
+        padding: 1rem;
+      }
+
+      .source-card h4 {
+        margin-top: 0;
+      }
+
+      .source-card ul {
+        margin: 0;
+        padding-left: 1.1rem;
+      }
+
+      .source-card li {
+        margin: 0.42rem 0;
+      }
+
+      .footnotes {
+        color: var(--muted);
+        font-size: 0.94rem;
+      }
+
+      .footer {
+        border-top: 1px solid var(--line);
+        margin-top: 3.8rem;
+        padding-top: 1.8rem;
+        color: var(--muted);
+      }
+
+      @media (max-width: 980px) {
+        .hero {
+          min-height: auto;
+        }
+
+        .hero-grid,
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+
+        aside.toc {
+          position: relative;
+          top: auto;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+          padding: 1rem 0 0;
+        }
+
+        .source-map {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          width: min(100% - 24px, 1180px);
+        }
+
+        .topline {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        main {
+          padding-top: 22px;
+        }
+
+        .table-wrap {
+          overflow-x: visible;
+          border: 0;
+          background: transparent;
+        }
+
+        table,
+        thead,
+        tbody,
+        tr,
+        th,
+        td {
+          display: block;
+          width: 100%;
+          min-width: 0;
+        }
+
+        thead {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+        }
+
+        tr {
+          border: 1px solid rgba(29, 39, 58, 0.14);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.52);
+          margin: 0 0 0.88rem;
+          padding: 0.2rem 0;
+        }
+
+        td {
+          display: grid;
+          grid-template-columns: minmax(7.5rem, 38%) minmax(0, 1fr);
+          gap: 0.72rem;
+          border-bottom: 1px solid rgba(29, 39, 58, 0.09);
+          padding: 0.72rem 0.86rem;
+        }
+
+        td::before {
+          content: attr(data-label);
+          color: var(--muted);
+          font-weight: 700;
+        }
+
+        tr:last-child td {
+          border-bottom: 1px solid rgba(29, 39, 58, 0.09);
+        }
+
+        td:last-child {
+          border-bottom: 0;
+        }
+
+        pre {
+          overflow-x: hidden;
+        }
+
+        pre code {
+          white-space: pre-wrap;
+          overflow-wrap: anywhere;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero page">
+      <div class="topline">
+        <span class="brand">Wine &amp; Chord Books</span>
+        <span>2026-06-16 · Technical Article</span>
+      </div>
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">源码线索、训练流程、开源版图</p>
+          <h1>Self-Evolution 与 Agentic Training</h1>
+          <p class="subtitle">
+            这篇文章不把“智能体会变好”当成一句营销话术，而是把它拆成可观察的工程面：
+            上下文怎样被放进模型，压缩摘要为什么有训练形状，记忆和技能如何持久化，轨迹怎样变成
+            SFT / RL 数据，以及开源项目正在把这些环节推进到哪里。
+          </p>
+          <div class="hero-meta">
+            <span class="pill">Codex</span>
+            <span class="pill">Claude Code</span>
+            <span class="pill">OpenClaw</span>
+            <span class="pill">Hermes</span>
+            <span class="pill">Agentic RL</span>
+            <span class="pill">Self-Evolving Agents</span>
+          </div>
+        </div>
+        <figure class="hero-figure">
+          <img
+            src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cover-self-evolution-agentic-training.webp"
+            alt="Self-evolution and agentic training cover showing Codex Claude Code OpenClaw Hermes trajectories entering a training flywheel"
+            width="1672"
+            height="941"
+            loading="eager"
+            decoding="async"
+          />
+          <figcaption>
+            文章主线：运行时把上下文和工具调用组织成模型可读的轨迹；训练栈再把轨迹、奖励、压缩和评测接成能力改进回路。
+          </figcaption>
+        </figure>
+      </div>
+      <div class="scroll-hint">
+        阅读建议：先看证据边界，再看 Codex 的 compaction 线索；后半篇是训练栈排序和工程落地清单。
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="content-grid">
+        <article>
+          <section id="contract">
+            <h2>阅读契约</h2>
+            <div class="reading-contract">
+              <p>
+                本文讨论的不是某个厂商“私下究竟怎么训”的不可见内幕，而是三类可复核信号：
+                <span class="label official">official docs</span>
+                是官方文档、论文、博客或项目页直接说清楚的事实；
+                <span class="label verified">verified source</span>
+                是公开仓库源码、README、脚本和注释能直接支持的机制；
+                <span class="label inference">bounded inference</span>
+                是从这些机制推出的合理训练流程猜测。推测会显式标注，不写成内部事实。
+              </p>
+              <p>
+                文章把 self-evolution 分成五层：上下文纪律、记忆/技能演化、artifact 演化、agentic
+                RL / SFT、分布式训练基础设施。Codex、Claude Code、OpenClaw、Hermes 是前半篇的运行时主线；
+                Agent Lightning、ART、RAGEN、Agent-R1、SWE-Gym、SWE-smith、SWE-RL、verl、DSPy、OpenEvolve、
+                Voyager、AgentEvolver、DisTrO/Psyche 是后半篇的训练实践主线。
+              </p>
+            </div>
+
+            <div class="source-boundary">
+              <p>
+                <strong>证据边界：</strong>Codex 部分使用 OpenAI Codex 公开仓库 commit
+                <code>02dce8e</code> 的源码链接；OpenClaw 使用 commit <code>e5e6cf0</code>；
+                Hermes 使用 commit <code>2dbc3bd</code>。Claude Code 的产品事实使用官方文档；
+                其源码线索只引用可公开访问的 WineChord 镜像 commit <code>5a774a2</code>，并按
+                “源码快照线索”处理。本文不声明 OpenAI、Anthropic、Nous 或任何团队的未公开训练配方。
+              </p>
+            </div>
+
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evidence-map.webp"
+                alt="Evidence map separating official documents verified source and bounded inference for Codex Claude Code OpenClaw Hermes"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                这张图是本文的约束：源码能证明“运行时如何组织模型输入”，不自动证明“模型训练集里一定有什么”。只有当源码注释直接提到训练形状时，才提高证据等级。
+              </figcaption>
+            </figure>
+          </section>
+
+          <section id="mental-model">
+            <h2>1. 自进化到底在进化什么</h2>
+            <p class="lead">
+              “Self-evolution” 这个词太大。它可以指模型权重更新，也可以指提示词、记忆、技能、代码、工具策略、评测器、
+              sandbox 策略在长期使用中变好。把这些混成一个词，会让讨论失焦。
+            </p>
+            <p>
+              更精确的分层是：
+            </p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>层级</th>
+                    <th>进化对象</th>
+                    <th>典型实现</th>
+                    <th>是否更新模型权重</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>上下文纪律</td>
+                    <td>指令、环境、工具 schema、历史切片、压缩摘要的顺序和格式</td>
+                    <td>Codex 的 contextual user fragments、AGENTS.md、prompt cache key、compaction replacement history</td>
+                    <td>不更新，但可能对齐训练时格式</td>
+                  </tr>
+                  <tr>
+                    <td>记忆/技能演化</td>
+                    <td>长期偏好、项目事实、可复用操作说明、脚本和例子</td>
+                    <td>Claude Code memory、OpenClaw workspace memory、Hermes memory provider、Codex skills</td>
+                    <td>通常不更新</td>
+                  </tr>
+                  <tr>
+                    <td>Artifact 演化</td>
+                    <td>提示词、程序、工具包装、代码优化候选</td>
+                    <td>DSPy/GEPA、OpenEvolve、Voyager skill library、AgentEvolver 的 self-questioning</td>
+                    <td>可选；很多系统不更新权重</td>
+                  </tr>
+                  <tr>
+                    <td>Agentic training</td>
+                    <td>多轮轨迹、工具调用、环境反馈、奖励、credit assignment</td>
+                    <td>Agent Lightning、ART、RAGEN、Agent-R1、SWE-Gym、SWE-smith、SWE-RL、verl</td>
+                    <td>通常更新 LoRA 或模型权重</td>
+                  </tr>
+                  <tr>
+                    <td>分布式训练基础设施</td>
+                    <td>梯度/更新包、检查点、参与者调度、低带宽同步</td>
+                    <td>DisTrO、Psyche、DeMo</td>
+                    <td>更新，但关注基础设施而非 agent 行为本身</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              这五层的关键区别是“写入面”不同：上下文纪律写入本轮请求；记忆/技能写入磁盘或长期存储；
+              artifact 演化写入新 prompt / 新程序；agentic training 写入模型参数或 LoRA；分布式训练写入全局检查点。
+              只要没有分清写入面，就会把“提示词变了”“记忆变了”“模型变了”混为一谈。
+            </p>
+          </section>
+
+          <section id="codex-clues">
+            <h2>2. Codex 源码里最硬的线索：训练形状</h2>
+            <p>
+              Codex 公开源码里，最值得盯的不是某个神秘训练脚本，而是模型输入的形状：哪些内容被放进请求、
+              什么顺序、什么时候复用 prompt cache、什么时候压缩历史，以及压缩后的 history 怎样恢复。
+            </p>
+
+            <h3>2.1 Contextual user fragments 的固定顺序</h3>
+            <p>
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/context/contextual_user_message.rs#L46-L58">
+                <code>contextual_user_message.rs</code>
+              </a>
+              里有一组静态注册顺序：user instructions、environment context、additional context、skill instructions、
+              user shell command、turn aborted、subagent notification、internal model context 等。它不是随便拼字符串，
+              而是把“对模型可见但不等于用户自然语言”的片段做成可识别的标准 fragment。
+            </p>
+            <p>
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/agents_md.rs#L1-L17">
+                <code>AGENTS.md</code> 发现逻辑
+              </a>
+              也暴露同样的工程原则：从 project root 到当前目录收集项目规则，按路径层级拼接，不越过项目根。
+              这保证模型看到的项目规则是可预测的，而不是每轮随机变换的环境噪声。
+            </p>
+
+            <h3>2.2 Prompt cache key 是线程级稳定锚</h3>
+            <p>
+              Codex 的
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/client.rs#L366-L422">
+                <code>ModelClient</code>
+              </a>
+              是 session-scoped，默认把 <code>thread_id</code> 作为 <code>prompt_cache_key</code>。
+              后续
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/client.rs#L773-L830">
+                <code>build_responses_request()</code>
+              </a>
+              把 <code>instructions</code>、<code>input</code>、<code>tools</code>、reasoning 配置和
+              <code>prompt_cache_key</code> 一起放进 Responses API 请求。
+              OpenAI 的
+              <a href="https://developers.openai.com/api/docs/guides/prompt-caching">prompt caching 文档</a>
+              也强调：cache key 会和 prompt prefix 一起影响路由与缓存命中。
+            </p>
+            <p>
+              这里的训练含义不是“prompt cache 本身训练模型”。它更像一道工程纪律：稳定前缀让运行时输入更接近可复现样本，
+              也让离线分析、rollout reconstruction、错误复盘更可靠。一个训练栈如果连 runtime 输入都不稳定，
+              生成的轨迹数据就很难做高质量 SFT 或 RL。
+            </p>
+
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/context-shape-training-surface.webp"
+                alt="Context shape diagram showing ordered instructions environment context project docs skill instructions tools user message and compaction summary placement"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                上下文不是“随手塞进去的一段前言”。一旦它进入训练轨迹或 prompt-cache 前缀，顺序、角色、稳定性都会变成模型行为的一部分。
+              </figcaption>
+            </figure>
+
+            <h3>2.3 Compaction 注释直接提到 “model is trained”</h3>
+            <p>
+              最强线索在
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/compact.rs#L54-L67">
+                <code>compact.rs</code> 的 <code>InitialContextInjection</code>
+              </a>
+              注释里：mid-turn compaction 必须把初始上下文插到最后一个真实用户消息上方，因为模型被训练成在 mid-turn
+              compaction 后把 compaction summary 看成 history 的最后一项。
+            </p>
+            <p>
+              这句话很少见，因为它不是外部观察者推测，而是源码注释直接把 runtime placement 和 model training 连接起来。
+              它仍然不暴露训练集生成脚本，但足够说明：压缩摘要不是 UI 层的普通提示文本，而是模型被要求识别的一种历史形状。
+            </p>
+
+            <h3>2.4 Replacement history 是可恢复的模型视图</h3>
+            <p>
+              Codex 的 inline compaction 流程会复制 history、加入压缩 prompt、等待 summary turn 完成，然后构造新的
+              replacement history。源码在
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/compact.rs#L197-L330">
+                <code>run_compact_task_inner_impl()</code>
+              </a>
+              里把 summary 作为 <code>CompactedItem</code>，再调用 <code>replace_compacted_history</code>。
+              后续
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/compact.rs#L536-L605">
+                <code>build_compacted_history()</code>
+              </a>
+              会保留最近用户消息，并把 summary 写成一条 user message。
+            </p>
+            <p>
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/compact.rs#L479-L534">
+                插入初始上下文的函数
+              </a>
+              又强调：优先插在最后一个真实用户消息之前；如果只剩 summary，就让 summary 保持最后。
+              这就是“训练顺序对齐”的具体工程样子：不是玄学，而是替换历史的 role / order / boundary 要稳定。
+            </p>
+
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/compaction-lifecycle.webp"
+                alt="Compaction lifecycle diagram showing long transcript compact prompt summary model turn replacement history and resume agent loop"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                Compaction 是有损重写，不是记忆。好的 compaction 保留任务目标、关键决策、工具结果和下一步动作，同时不破坏模型已经学会的摘要位置。
+              </figcaption>
+            </figure>
+
+            <div class="method-note">
+              <p>
+                <strong>合理推测：</strong>如果一个运行时显式维护 replacement history、window id、rollout reconstruction、
+                context fragment order，并在注释里说明模型训练过某种 compaction shape，那么训练数据管线至少需要保留
+                “压缩前轨迹”和“压缩后继续执行轨迹”的对应关系。否则模型无法稳定学到：看到 summary-last 的 history 后，
+                应该继续任务而不是重新总结、追问或忽略摘要。
+              </p>
+            </div>
+          </section>
+
+          <section id="claude-openclaw-hermes">
+            <h2>3. Claude Code、OpenClaw、Hermes：记忆与轨迹的三种边界</h2>
+
+            <h3>3.1 Claude Code：记忆是 context，不是绝对命令</h3>
+            <p>
+              Anthropic 的
+              <a href="https://code.claude.com/docs/en/memory">Claude Code memory 文档</a>
+              把 memory 描述成启动时加载的上下文系统，而不是不可违背的安全策略。
+              公开源码快照里，
+              <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/context.ts#L155">
+                <code>getUserContext()</code>
+              </a>
+              被 memoize，并把 <code>CLAUDE.md</code> / memory files 这类内容放进 user context。
+              <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/query.ts#L660">
+                主请求路径
+              </a>
+              再通过 <code>prependUserContext(messagesForQuery, userContext)</code> 组包。
+            </p>
+            <p>
+              更像“prompt-level self-evolution”的，是
+              <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/memdir/memoryTypes.ts#L1-L20">
+                <code>memoryTypes.ts</code>
+              </a>
+              里的 memory taxonomy：user、feedback、project、reference 四类，并明确排除可从代码、git history、CLAUDE.md
+              推导出来的内容。该公开镜像快照的后半段还有
+              <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/memdir/memoryTypes.ts#L224-L245">
+                eval-validated 注释
+              </a>
+              ，例如位置和标题措辞会影响 memory 使用效果。这里的证据等级是
+              <span class="label inference">source snapshot inference</span>：它说明这份 memory prompt 文本被评测驱动迭代过，
+              不应扩大成 Anthropic 当前线上训练流程的事实。
+            </p>
+
+            <h3>3.2 OpenClaw：自进化写入面必须属于可信 operator 边界</h3>
+            <p>
+              OpenClaw README 把 agent workspace、<code>AGENTS.md</code>、<code>SOUL.md</code>、<code>TOOLS.md</code>、
+              skills 路径列为可注入提示文件和技能目录
+              <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/README.md#L269-L273">来源</a>。
+              但它的
+              <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/SECURITY.md#L219-L245">
+                security model
+              </a>
+              同时强调：模型/agent 不是可信主体，<code>MEMORY.md</code> 和 <code>memory/*.md</code> 是可信本地 operator
+              状态，不是多租户安全边界。
+            </p>
+            <p>
+              这点很重要。自进化系统如果允许模型任意写入长期记忆或技能，就等于让 prompt injection 变成长期状态污染。
+              OpenClaw 的 memory flush 测试还体现了更窄的写入控制：
+              <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/agents/embedded-agent-runner/run/attempt.memory-flush-forwarding.test.ts#L60-L103">
+                memory flush 写入被限制成 append-only 且限定目标路径
+              </a>。
+            </p>
+
+            <h3>3.3 Hermes：轨迹压缩就是训练数据预处理</h3>
+            <p>
+              Hermes 的
+              <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/trajectory_compressor.py#L1-L15">
+                <code>trajectory_compressor.py</code>
+              </a>
+              直接把任务写清楚：压缩已完成的 agent trajectories，让它们落在 token budget 内，同时保留训练信号质量。
+              它保护前几轮、保护最后几轮，只压中间，并用一条 human summary message 替换被压缩区域。
+            </p>
+            <p>
+              更关键的是边界 snapping：
+              <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/trajectory_compressor.py#L827-L867">
+                源码注释
+              </a>
+              说不能切在 <code>&lt;tool_call&gt;</code> 和 <code>&lt;tool_response&gt;</code> 中间，否则会留下孤儿 marker，
+              “corrupt the training trajectory”。这句话和 Codex 的 compaction 注释遥相呼应：训练样本不是一堆文本，
+              它有 tool pairing、role、summary role、head/tail protection 这些结构约束。
+            </p>
+            <p>
+              Hermes cron 路径也有边界意识：
+              <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/cron/scheduler.py#L1537-L1753">
+                job workdir 会加载 AGENTS.md / CLAUDE.md / .cursorrules，但 cron agent 构造时 <code>skip_memory=True</code>
+              </a>
+              ，注释理由是 cron system prompts 会污染用户表征。也就是说，自动任务和用户记忆是不同写入面。
+            </p>
+
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-skill-self-evolution.webp"
+                alt="Memory and skill self evolution loop showing observe work extract durable signal propose memory or skill gate version and inject next turn"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                记忆和技能的自进化要有治理：提取长期信号、检查作用域和新鲜度、避免 secrets、处理冲突，再写入下一轮可见上下文。
+              </figcaption>
+            </figure>
+          </section>
+
+          <section id="training-loop">
+            <h2>4. Agentic Training 的基本回路</h2>
+            <p>
+              运行时线索解决“轨迹从哪里来”。训练框架解决“轨迹如何让策略变好”。一个可训练 agent 的样本不只是
+              <code>prompt -&gt; answer</code>，而更接近：
+            </p>
+            <pre><code>{
+  "initial_context": "... instructions, tools, environment ...",
+  "steps": [
+    {"observation": "state_t", "action": "tool_call_or_text", "feedback": "tool_result", "reward": 0.0},
+    {"observation": "state_t+1", "action": "patch_or_answer", "feedback": "tests", "reward": 1.0}
+  ],
+  "return": "G = sum_t gamma^t r_t",
+  "artifacts": ["logs", "patches", "summaries", "verifier scores"]
+}</code></pre>
+            <p>
+              这里的 \(G=\sum_t \gamma^t r_t\) 是强化学习里常见的折扣回报。对 LLM agent 来说，难点不在公式，
+              而在把自然语言、工具调用、环境状态、长上下文压缩、奖励归因统一成可训练的 token/action 边界。
+            </p>
+
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/agentic-rl-training-loop.webp"
+                alt="Agentic reinforcement learning training loop from scenarios through rollouts tools trajectory store reward credit assignment policy update eval and deployment"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                Agentic RL 的核心不是“让模型多想几步”，而是把多轮交互变成可回放、可评分、可归因、可更新的闭环。
+              </figcaption>
+            </figure>
+
+            <h3>4.1 Agent Lightning：训练与 agent 执行解耦</h3>
+            <p>
+              Microsoft 的
+              <a href="https://www.microsoft.com/en-us/research/blog/agent-lightning-adding-reinforcement-learning-to-ai-agents-without-code-rewrites/">
+                Agent Lightning 官方介绍
+              </a>
+              和
+              <a href="https://arxiv.org/abs/2508.03680">论文</a>
+              主张 Training-Agent Disaggregation：agent 继续按原框架运行，tracer 把 prompt、工具调用、奖励等事件变成结构化 spans，
+              trainer/algorithm 再消费这些 traces。README 的架构段也写到：runners 和 tracers 发 spans，
+              <code>LightningStore</code> 同步，algorithm 读取 spans 并产出 refined prompt 或 policy weights。
+            </p>
+            <p>
+              这条路线很有工业感：它不要求把所有 agent 重写成某个 RL 环境，而是在 agent 外面包观测和训练层。
+              对已有 LangChain、OpenAI Agents SDK、AutoGen、CrewAI 这类系统，这比推倒重来现实得多。
+            </p>
+
+            <h3>4.2 ART：把 GRPO 封装成 agent 应用可调用的训练服务</h3>
+            <p>
+              <a href="https://github.com/openpipe/art">ART</a> 自称 Agent Reinforcement Trainer，
+              README 说它用 GRPO 训练 multi-step agents。它的训练循环非常直接：
+              agent 执行 rollouts，消息存进 <code>Trajectory</code>，rollout 结束后代码给 trajectory 赋 reward，
+              再把同一 scenario 的 trajectories 分组送进 trainer。
+            </p>
+            <p>
+              ART 的优势是工程入口低：写一个 rollout function、定义 scenario、给 reward，就能把 agent 应用接入训练。
+              局限也明显：reward 质量和 scenario 覆盖决定上限。它适合快速把“应用任务”变成训练任务，但需要严肃评测和防 reward hacking。
+            </p>
+
+            <h3>4.3 RAGEN 与 Agent-R1：把多轮 agent 明确建成 MDP</h3>
+            <p>
+              <a href="https://ragen-ai.github.io/">RAGEN</a> 的 StarPO 把 state、thinking、action、reward 组成 trajectory-level
+              optimization。RAGEN-2 又把 template collapse 拆成 \(H(Z|X)\) 和 \(I(X;Z)\) 两个维度：同一个输入内部看似多样，
+              不代表不同输入之间真的有区分度。它的价值不只是训练，而是诊断 agent RL 为什么“看起来在想、其实在套模板”。
+            </p>
+            <p>
+              <a href="https://github.com/AgentR1/Agent-R1">Agent-R1</a> 则更强调 step-level MDP：
+              每一步记录 observation、action、feedback、reward、done 和 next observation。它把 context management
+              放进训练底座：历史可以追加、截断、摘要、重写或增强，但这些变化都要和 step 边界对齐。
+            </p>
+
+            <h3>4.4 SWE-Gym / SWE-smith / SWE-RL：软件工程训练的可验证环境</h3>
+            <p>
+              软件工程 agent 的训练难点是 reward 不该只看文本相似度。真实仓库里，补丁能否通过测试、是否解决 issue、
+              是否破坏已有行为，才是高价值信号。<a href="https://github.com/SWE-Gym/SWE-Gym">SWE-Gym</a>
+              提供真实 Python repo 任务、可执行环境和测试验证；<a href="https://github.com/SWE-bench/SWE-smith">SWE-smith</a>
+              把任意 GitHub repo 变成 SWE-gym，并合成大量任务；<a href="https://github.com/facebookresearch/swe-rl">SWE-RL</a>
+              用开放软件演化数据和 rule-based rewards 训练代码编辑能力。
+            </p>
+            <p>
+              这类系统说明一个更一般的原则：agentic training 最缺的常常不是算法名，而是可重复环境和可信 verifier。
+              没有环境，RL 只是对文本格式打分；有了环境，reward 才能连接真实结果。
+            </p>
+          </section>
+
+          <section id="ranking">
+            <h2>5. 开源实践排序：流行度和能力必须分开</h2>
+            <div class="method-note">
+              <p>
+                排序快照日期：2026-06-16。GitHub stars/forks、PyPI 或项目自述里的下载信号、论文/项目页、下游案例和社区讨论
+                都只作为采用度代理，且这些指标随时间快速变化，本文不把实时数值写成固定事实。能力排序是 editorial ranking，
+                不是可复现实验分数；rubric 是六项定性标准：多轮 MDP 表达、轨迹/trace 质量、reward 与 verifier、
+                credit assignment、训练/推理解耦、复现和部署成本。等级含义是：S 表示能力覆盖最完整，A 表示能力强但仍需补足某些工程面，
+                B 表示更偏单一层面或 artifact 演化。
+              </p>
+            </div>
+
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/oss-landscape-ranking.webp"
+                alt="Open source self evolution and agentic training landscape ranked by adoption signal and training capability"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                版图读法：右上角不是“最好”，而是同时拥有较强采用信号和较强训练能力；某些项目很强但偏基础设施或研究前沿，因此不能简单用 star 排名替代判断。
+              </figcaption>
+            </figure>
+
+            <h3>5.1 按采用度代理排序</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>采用度序</th>
+                    <th>项目 / 族群</th>
+                    <th>为什么靠前</th>
+                    <th>能力边界</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="rank">1</td>
+                    <td>DSPy / GEPA</td>
+                    <td>提示词和 LM pipeline 优化生态成熟，研究和工程用户都多。</td>
+                    <td>强在 prompt / program optimization，不是完整 agent RL 环境。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">2</td>
+                    <td>verl</td>
+                    <td>大模型 RL 训练基础设施采用广，支持 PPO、GRPO、多后端 rollout、FSDP/Megatron/vLLM/SGLang。</td>
+                    <td>本体是 RL infra，agent-specific 需要 recipe 或上层框架。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">3</td>
+                    <td>OpenEvolve / Voyager</td>
+                    <td>“不用改模型权重也能自进化”的经典路线，易理解，传播广。</td>
+                    <td>多为 artifact / skill evolution，不等同权重训练。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">4</td>
+                    <td>Agent Lightning / ART</td>
+                    <td>直接瞄准“把现有 agent 接进 RL”，工程入口清晰，近两年增长快。</td>
+                    <td>需要真实任务 reward、trace 质量和部署管线配合。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">5</td>
+                    <td>SWE-Gym / SWE-smith / SWE-RL</td>
+                    <td>软件工程 agent 是最热门可验证领域之一，有 benchmark、Docker、测试 reward、轨迹数据。</td>
+                    <td>领域强但偏 SWE；通用 agent 需迁移环境设计。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">6</td>
+                    <td>RAGEN / Agent-R1 / AgentEvolver</td>
+                    <td>研究前沿，明确讨论 agentic RL、step-level MDP、collapse、self-questioning、credit assignment。</td>
+                    <td>安装和复现成本较高，生态仍在快速变化。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">7</td>
+                    <td>DisTrO / Psyche</td>
+                    <td>去中心化/低带宽训练的独特路线，和 Nous / Hermes 生态关联强。</td>
+                    <td>更像训练基础设施，不直接给出 agent policy improvement pipeline。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>5.2 按 agentic training 能力排序</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>能力序</th>
+                    <th>项目</th>
+                    <th>能力等级</th>
+                    <th>定位</th>
+                    <th>最适合的使用场景</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="rank">1</td>
+                    <td>Agent Lightning</td>
+                    <td class="score">S</td>
+                    <td>训练与 agent 执行解耦，trace/span/store/algorithm 分层清楚。</td>
+                    <td>已有 agent 框架，希望不重写业务逻辑接入 RL / APO / SFT。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">2</td>
+                    <td>Agent-R1</td>
+                    <td class="score">S-</td>
+                    <td>step-level MDP，把工具反馈、上下文管理、reward、policy update 明确放在同一底座。</td>
+                    <td>研究或训练多轮工具 agent，希望控制 step 边界和 credit assignment。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">3</td>
+                    <td>ART</td>
+                    <td class="score">A+</td>
+                    <td>面向 Python 应用的 GRPO agent trainer，rollout/reward/trajectory 入口简洁。</td>
+                    <td>快速把真实应用任务转成可训练 agent，并用 LoRA/GRPO 迭代。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">4</td>
+                    <td>RAGEN</td>
+                    <td class="score">A+</td>
+                    <td>StarPO、trajectory-level/turn-wise 训练、template collapse 诊断。</td>
+                    <td>研究 agent RL 稳定性、reward variance、reasoning collapse。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">5</td>
+                    <td>verl</td>
+                    <td class="score">A</td>
+                    <td>通用大模型 RL 训练基础设施，算法/后端/分布式能力强。</td>
+                    <td>团队已有环境和 reward，需要规模化训练而不是 agent 框架本身。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">6</td>
+                    <td>SWE-Gym / SWE-smith / SWE-RL</td>
+                    <td class="score">A</td>
+                    <td>软件工程 agent 的环境、任务、轨迹、reward/verifier 数据层。</td>
+                    <td>训练代码修复、repo-level SWE agent、critic/verifier、best-of-n。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">7</td>
+                    <td>AgentEvolver</td>
+                    <td class="score">A-</td>
+                    <td>self-questioning、self-navigating、self-attributing 的端到端自进化框架。</td>
+                    <td>想把任务生成、经验管理、归因优化连成一个系统。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">8</td>
+                    <td>OpenEvolve</td>
+                    <td class="score">B+</td>
+                    <td>LLM + evolutionary search 优化代码 artifact，MAP-Elites / island 思路鲜明。</td>
+                    <td>优化程序、kernel、算法候选；不要求更新模型权重。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">9</td>
+                    <td>DSPy / GEPA</td>
+                    <td class="score">B+</td>
+                    <td>自动优化 prompt、demonstrations、LM pipeline，可做反思式 prompt evolution。</td>
+                    <td>RAG、分类、工具链 prompt/pipeline 自动调优。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">10</td>
+                    <td>Voyager</td>
+                    <td class="score">B</td>
+                    <td>经典 embodied lifelong learning：automatic curriculum、skill library、self-verification。</td>
+                    <td>研究黑盒 LLM 如何通过可执行技能库长期积累能力。</td>
+                  </tr>
+                  <tr>
+                    <td class="rank">Special</td>
+                    <td>DisTrO / Psyche</td>
+                    <td class="score">Infra</td>
+                    <td>低带宽分布式训练与网络协调，不直接排序进 agent policy 能力榜。</td>
+                    <td>训练基础设施、去中心化参与者、互联网级同步。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="artifact-evolution">
+            <h2>6. 不更新权重的自进化：prompt、skill、code artifact</h2>
+            <p>
+              不是所有 self-evolution 都要 RL。很多实际系统先做更便宜、更可控的 artifact evolution。
+              这类路线的共同点是：模型负责提出候选，环境/测试/评测器负责筛选，持久化层保存胜者。
+            </p>
+            <h3>6.1 DSPy / GEPA：把 prompt 当成可优化参数</h3>
+            <p>
+              <a href="https://github.com/stanfordnlp/dspy">DSPy</a> 的核心口号是
+              “programming, not prompting”。它把 LM 调用声明成程序模块，再用优化器搜索 instructions、demonstrations
+              或更复杂的 prompt 结构。GEPA 进一步把 reflective prompt evolution 做成优化过程。
+              这类系统不会自动让底层模型参数变聪明，但会让当前任务上的 agent program 变得更可靠。
+            </p>
+            <h3>6.2 OpenEvolve：LLM 做 mutation，评测器做 selection</h3>
+            <p>
+              <a href="https://github.com/algorithmicsuperintelligence/openevolve">OpenEvolve</a>
+              是更偏程序演化的路线：LLM 生成候选代码，evaluator 跑测试或 benchmark，数据库保留高质量和多样性候选。
+              它像把 AlphaEvolve 类思路开源化：自进化发生在代码空间，不直接发生在模型权重上。
+            </p>
+            <h3>6.3 Voyager 与 AgentEvolver：技能库和经验管理</h3>
+            <p>
+              <a href="https://github.com/MineDojo/Voyager">Voyager</a> 在 Minecraft 里通过 automatic curriculum、
+              executable skill library、environment feedback 和 self-verification 积累技能。它的论文路线很早，
+              但今天看仍然是 self-evolution 的清晰原型：模型不更新，技能库增长。
+            </p>
+            <p>
+              <a href="https://github.com/modelscope/AgentEvolver">AgentEvolver</a> 则把自进化拆成 self-questioning、
+              self-navigating、self-attributing：自己生成任务、复用经验引导探索、对长轨迹做归因。这已经接近
+              “artifact evolution + agentic RL” 的交叉地带。
+            </p>
+          </section>
+
+          <section id="decentralized">
+            <h2>7. Hermes / Nous 线索：去中心化训练不是玄学，但也不是 agent 训练万能解</h2>
+            <p>
+              Nous 的 <a href="https://github.com/NousResearch/DisTrO">DisTrO</a> README 把目标写成
+              Distributed Training Over-The-Internet，声称通过低延迟分布式优化器把 inter-GPU communication
+              降低三到四个数量级。Nous 的
+              <a href="https://nousresearch.com/nous-psyche/">Psyche</a>
+              文章则把这个方向扩展到去中心化训练网络：更多低利用率硬件参与训练，通过压缩更新和协调机制同步。
+            </p>
+            <p>
+              这和 Hermes-agent 的关系不是“用 Hermes 就自动去中心化训练”，而是生态方向一致：Hermes 提供 agent runtime、
+              memory、trajectory compressor；DisTrO/Psyche 处理大规模训练基础设施。把两者接起来时，最难的仍然是数据治理：
+              哪些轨迹可训练、如何脱敏、如何评分、如何防止恶意参与者污染梯度。
+            </p>
+
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/decentralized-training-path.webp"
+                alt="Decentralized training path diagram showing workstation nodes compressed updates coordinator ledger checkpoints and evaluation gates"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                去中心化训练解决的是算力和同步问题，不自动解决 reward、数据质量、对抗样本和评测门禁问题。agent 轨迹越开放，治理越重要。
+              </figcaption>
+            </figure>
+          </section>
+
+          <section id="inferred-pipeline">
+            <h2>8. 从这些线索反推一个可信训练流程</h2>
+            <p>
+              下面是一个 <span class="label inference">bounded inference</span>，不是任何厂商的内部配方。
+              它只是把上面所有公开线索连成一个工程上合理的 agentic training pipeline：
+            </p>
+            <ol class="compact-list">
+              <li>
+                <strong>采集轨迹：</strong>保存模型输入、工具 schema、tool call、tool result、审批结果、错误、环境上下文、文件 patch、
+                测试输出和 token usage。Codex 的 history manager / rollout reconstruction、Hermes trajectory compressor、
+                OpenClaw trajectory flush 都说明这类轨迹是重要资产。
+              </li>
+              <li>
+                <strong>结构修复：</strong>保证 tool call / tool response 配对完整，去掉 transcript-only UI 项，修复空 assistant turn，
+                保留 provider 可接受的 message role 顺序。Hermes “corrupt training trajectory” 注释就是这个阶段的典型风险。
+              </li>
+              <li>
+                <strong>上下文归一：</strong>把 developer / user / environment / project docs / skills / tools 放进稳定顺序；
+                把动态环境放在明确 fragment 中；把不该训练的本地路径、secret、私人上下文剥离。
+              </li>
+              <li>
+                <strong>压缩与 continuation 样本：</strong>为长轨迹生成 summary，保留压缩前后继续完成任务的对应关系。
+                Codex 源码里“模型训练成 summary-last”的注释说明这个阶段的格式并非随意。
+              </li>
+              <li>
+                <strong>奖励与 verifier：</strong>软件工程任务跑测试，搜索任务核对答案，游戏/环境任务读 reward，开放式任务用 critic 或 RULER。
+                只有可验证 reward 才能支撑 RL；弱 reward 更适合 SFT 或 rejection sampling。
+              </li>
+              <li>
+                <strong>训练更新：</strong>低成本从 SFT / rejection sampling 开始；多轮 agent 行为再接 PPO、GRPO、StepPO、RLOO。
+                对已有 agent，Agent Lightning 式 trace 解耦更现实；对新研究环境，Agent-R1 / RAGEN 式 MDP 建模更干净。
+              </li>
+              <li>
+                <strong>门禁回放：</strong>每次训练或 prompt/skill 变更都跑 eval replay，检查 reward hacking、template collapse、memory drift、
+                sandbox leakage、benchmark overfit。
+              </li>
+            </ol>
+            <p>
+              这条流程解释了为什么“environment context 放哪里”“summary 是 user role 还是 system role”“AGENTS.md 怎么排序”
+              会和训练有关：只要运行时轨迹会进入训练或评测，格式就是数据 schema；schema 变了，模型学到的 continuation 习惯就可能失配。
+            </p>
+          </section>
+
+          <section id="failure-modes">
+            <h2>9. 最容易踩的六个坑</h2>
+            <figure class="article-figure">
+              <img
+                src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/failure-modes-review-gates.webp"
+                alt="Failure modes and review gates diagram with context corruption reward hacking template collapse memory drift sandbox leakage benchmark overfit"
+                width="1672"
+                height="941"
+                loading="eager"
+                decoding="async"
+              />
+              <figcaption>
+                自进化系统的失败常常不是“模型不会”，而是写入面和评测面没有守住：坏上下文、坏 reward、坏 memory、坏 sandbox 都会长期污染系统。
+              </figcaption>
+            </figure>
+
+            <h3>9.1 Context corruption</h3>
+            <p>
+              把不可信外部内容放进高优先级上下文，或把动态噪声放进稳定 cache prefix，会让模型把 metadata 当指令，
+              也会让训练样本带毒。修复方式是明确 fragment、role、source、trust boundary。
+            </p>
+            <h3>9.2 Reward hacking</h3>
+            <p>
+              RAGEN 的
+              <a href="https://github.com/mll-lab-nu/RAGEN/blob/20daedc47558e000f7de912b060646bf2e8026bd/cases/reward_hacking.txt#L1-L6">
+                reward hacking 案例文件
+              </a>
+              展示过“模型输出看似完成、实际利用格式/终止条件骗 reward”的问题。软件工程里也类似：
+              如果 reward 只看 diff 相似度，模型可能学会贴近 oracle 格式，而不是修复问题。
+            </p>
+            <h3>9.3 Template collapse</h3>
+            <p>
+              低 entropy 不一定坏，高 entropy 也不一定好。RAGEN-2 的 \(I(X;Z)\) 和 \(H(Z|X)\) 提醒我们：
+              reasoning 必须随输入变化，否则只是“多样化模板”。
+            </p>
+            <h3>9.4 Memory drift</h3>
+            <p>
+              Claude Code 的 memory prompt 快照里反复强调：memory 可能过期，涉及文件/函数/flag 的记忆要重新 grep。
+              自进化系统如果不淘汰旧记忆，长期效果会变差。
+            </p>
+            <h3>9.5 Sandbox leakage</h3>
+            <p>
+              OpenClaw security model 把 memory 和 skills 视为可信 operator 状态，说明这不是模型能任意写的区域。
+              一旦把 untrusted channel 写入长期文件，再由 memory search 注入未来上下文，就形成持久污染链。
+            </p>
+            <h3>9.6 Benchmark overfit</h3>
+            <p>
+              SWE 环境越标准，越容易形成 benchmark-specific 策略。需要 held-out repos、真实 issue、不同 harness、best-of-n critic
+              之外的人工抽检，才能判断 agent 是否真正变强。
+            </p>
+          </section>
+
+          <section id="practical-guide">
+            <h2>10. 实战选择：今天应该怎么用</h2>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>目标</th>
+                    <th>首选路线</th>
+                    <th>不要一开始就做的事</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>让现有 agent 在真实任务上变好</td>
+                    <td>先接 trace、reward、eval replay；优先看 Agent Lightning 或 ART。</td>
+                    <td>不要先改模型权重而没有环境/verifier。</td>
+                  </tr>
+                  <tr>
+                    <td>训练代码修复 agent</td>
+                    <td>SWE-Gym / SWE-smith / SWE-RL + OpenHands/SWE-agent scaffold + 测试 reward。</td>
+                    <td>不要只用文本相似度 reward 代表修复成功。</td>
+                  </tr>
+                  <tr>
+                    <td>研究多轮 RL 算法</td>
+                    <td>Agent-R1 或 RAGEN；明确 step / trajectory / reward / context manager。</td>
+                    <td>不要把完整多轮历史当单条平铺 prompt 就结束。</td>
+                  </tr>
+                  <tr>
+                    <td>低成本做自进化产品能力</td>
+                    <td>DSPy/GEPA 优化 prompt，OpenEvolve 优化代码 artifact，技能库加版本和 eval。</td>
+                    <td>不要让模型无门禁写 memory / skills。</td>
+                  </tr>
+                  <tr>
+                    <td>构建长期本地 agent</td>
+                    <td>学习 OpenClaw/Hermes：记忆、skills、cron、tool policy、trajectory compression 分离。</td>
+                    <td>不要把用户记忆、自动任务记忆、训练轨迹混在一个桶。</td>
+                  </tr>
+                  <tr>
+                    <td>探索去中心化训练</td>
+                    <td>先理解 DisTrO/Psyche 的同步和压缩，再解决数据治理和评测门禁。</td>
+                    <td>不要把“能分布式训练”误读为“agent 数据可信”。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="callout">
+              <p>
+                <strong>一句话结论：</strong>Agent 的自进化不是一个功能按钮，而是一条数据供应链。
+                上游是运行时的上下文形状和轨迹质量，中游是压缩、记忆、技能和 reward， 下游才是 SFT/RL/分布式训练。
+                如果上游 schema 不稳，下游算法越强，越可能把坏习惯放大。
+              </p>
+            </div>
+          </section>
+
+          <section id="sources">
+            <h2>Source Map</h2>
+            <div class="source-map">
+              <div class="source-card">
+                <h4>Codex</h4>
+                <ul>
+                  <li><a href="https://openai.com/index/unrolling-the-codex-agent-loop/">OpenAI: Unrolling the Codex agent loop</a></li>
+                  <li><a href="https://developers.openai.com/api/docs/guides/prompt-caching">OpenAI prompt caching guide</a></li>
+                  <li><a href="https://developers.openai.com/cookbook/examples/prompt_caching_201">OpenAI prompt caching 201 cookbook</a></li>
+                  <li><a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/compact.rs#L54-L67">Codex compaction training-shape comment</a></li>
+                  <li><a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/client.rs#L773-L830">Codex Responses request construction</a></li>
+                </ul>
+              </div>
+              <div class="source-card">
+                <h4>Claude Code / OpenClaw / Hermes</h4>
+                <ul>
+                  <li><a href="https://code.claude.com/docs/en/memory">Claude Code memory docs</a></li>
+                  <li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/memdir/memoryTypes.ts#L1-L20">Claude Code memory taxonomy snapshot</a></li>
+                  <li><a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/memdir/memoryTypes.ts#L224-L245">Claude Code memory eval-note snapshot</a></li>
+                  <li><a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/SECURITY.md#L219-L245">OpenClaw agent/model and memory trust boundary</a></li>
+                  <li><a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/trajectory_compressor.py#L1-L15">Hermes trajectory compressor overview</a></li>
+                  <li><a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/trajectory_compressor.py#L827-L867">Hermes tool-boundary snapping</a></li>
+                </ul>
+              </div>
+              <div class="source-card">
+                <h4>Agentic RL</h4>
+                <ul>
+                  <li><a href="https://www.microsoft.com/en-us/research/blog/agent-lightning-adding-reinforcement-learning-to-ai-agents-without-code-rewrites/">Agent Lightning Microsoft Research blog</a></li>
+                  <li><a href="https://arxiv.org/abs/2508.03680">Agent Lightning paper</a></li>
+                  <li><a href="https://github.com/openpipe/art">ART: Agent Reinforcement Trainer</a></li>
+                  <li><a href="https://ragen-ai.github.io/">RAGEN project page</a></li>
+                  <li><a href="https://github.com/mll-lab-nu/RAGEN/blob/20daedc47558e000f7de912b060646bf2e8026bd/cases/reward_hacking.txt#L1-L6">RAGEN reward hacking case</a></li>
+                  <li><a href="https://github.com/AgentR1/Agent-R1">Agent-R1</a></li>
+                  <li><a href="https://github.com/verl-project/verl">verl</a></li>
+                </ul>
+              </div>
+              <div class="source-card">
+                <h4>Self-Evolution / SWE / Distributed</h4>
+                <ul>
+                  <li><a href="https://github.com/SWE-Gym/SWE-Gym">SWE-Gym</a></li>
+                  <li><a href="https://github.com/SWE-bench/SWE-smith">SWE-smith</a></li>
+                  <li><a href="https://github.com/facebookresearch/swe-rl">SWE-RL</a></li>
+                  <li><a href="https://github.com/stanfordnlp/dspy">DSPy</a></li>
+                  <li><a href="https://github.com/algorithmicsuperintelligence/openevolve">OpenEvolve</a></li>
+                  <li><a href="https://github.com/MineDojo/Voyager">Voyager</a></li>
+                  <li><a href="https://github.com/modelscope/AgentEvolver">AgentEvolver</a></li>
+                  <li><a href="https://github.com/NousResearch/DisTrO">DisTrO</a> and <a href="https://nousresearch.com/nous-psyche/">Nous Psyche</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p>
+                本文使用的排名和生态判断是 2026-06-16 的快照。开源项目变化很快，后续应以官方仓库、论文和复现实验为准。
+              </p>
+            </div>
+          </section>
+        </article>
+
+        <aside class="toc" aria-label="目录">
+          <strong>目录</strong>
+          <a href="#contract">阅读契约</a>
+          <a href="#mental-model">1. 自进化分层</a>
+          <a href="#codex-clues">2. Codex 线索</a>
+          <a href="#claude-openclaw-hermes">3. 记忆与轨迹边界</a>
+          <a href="#training-loop">4. Agentic Training 回路</a>
+          <a href="#ranking">5. 开源排序</a>
+          <a href="#artifact-evolution">6. Artifact 演化</a>
+          <a href="#decentralized">7. 去中心化训练</a>
+          <a href="#inferred-pipeline">8. 推测训练流程</a>
+          <a href="#failure-modes">9. 失败模式</a>
+          <a href="#practical-guide">10. 实战选择</a>
+          <a href="#sources">Source Map</a>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      document.querySelectorAll("table").forEach((table) => {
+        const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
+          th.textContent.trim(),
+        );
+        table.querySelectorAll("tbody tr").forEach((row) => {
+          Array.from(row.children).forEach((cell, index) => {
+            if (headers[index]) {
+              cell.setAttribute("data-label", headers[index]);
+            }
+          });
+        });
+      });
+    </script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"
+      onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]});"
+    ></script>
+  </body>
+</html>
