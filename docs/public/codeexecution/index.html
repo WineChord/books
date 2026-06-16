@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code Execution 的六层栈 | Wine &amp; Chord</title>
+    <meta
+      name="description"
+      content="从 Codex、Claude Code、OpenClaw、Hermes 到 OpenHands、SWE-agent、AutoGen、Daytona、E2B 和微虚拟机，系统拆解 code execution 的工具、权限、沙箱、会话、观测和恢复。"
+    />
+    <link rel="canonical" href="https://www.wineandchord.com/books/codeexecution/" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Code Execution 的六层栈" />
+    <meta
+      property="og:description"
+      content="模型负责提出意图，execution plane 负责把意图变成可审计、可取消、可恢复、可隔离的真实副作用。"
+    />
+    <meta
+      property="og:image"
+      content="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cover-codeexecution-stack.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      :root {
+        --font-book: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "Helvetica Neue", Arial,
+          sans-serif;
+        --font-code: Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace,
+          SFMono-Regular, Menlo, monospace;
+        --ink: #1d1b18;
+        --muted: #70675d;
+        --line: #ded2c3;
+        --paper: #fffaf0;
+        --soft: #f5ead8;
+        --panel: #fff4df;
+        --accent: #a3442b;
+        --accent-2: #1f6b68;
+        --accent-3: #7c5b16;
+        --code-bg: #2b2520;
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-book);
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgba(119, 72, 43, 0.055) 1px, transparent 1px),
+          linear-gradient(rgba(119, 72, 43, 0.045) 1px, transparent 1px),
+          var(--paper);
+        background-size: 28px 28px;
+        line-height: 1.78;
+        letter-spacing: 0;
+      }
+
+      a {
+        color: #7d2f1f;
+        text-decoration-color: rgba(125, 47, 31, 0.35);
+        text-underline-offset: 0.18em;
+      }
+
+      a:hover {
+        text-decoration-color: currentColor;
+      }
+
+      code,
+      pre,
+      kbd {
+        font-family: var(--font-code);
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 58px;
+        padding: 0 24px;
+        border-bottom: 1px solid rgba(104, 78, 52, 0.18);
+        background: rgba(255, 250, 240, 0.88);
+        backdrop-filter: blur(16px);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--ink);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(125, 47, 31, 0.45);
+        border-radius: 50%;
+        color: var(--accent);
+        font-size: 13px;
+        line-height: 1;
+      }
+
+      .topbar-meta {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .page {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 288px;
+        gap: 34px;
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 46px 28px 84px;
+      }
+
+      article {
+        min-width: 0;
+      }
+
+      .hero {
+        padding: 16px 0 22px;
+      }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-book);
+        line-height: 1.22;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        max-width: 980px;
+        margin: 0;
+        font-size: 72px;
+        font-weight: 850;
+      }
+
+      .dek {
+        max-width: 820px;
+        margin: 22px 0 0;
+        color: #4d453c;
+        font-size: 23px;
+        line-height: 1.62;
+      }
+
+      .byline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 18px;
+        margin: 24px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .pill {
+        border: 1px solid rgba(125, 47, 31, 0.23);
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: rgba(255, 244, 223, 0.72);
+        color: #654232;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      figure {
+        margin: 34px 0;
+      }
+
+      figure.hero-figure {
+        margin-top: 36px;
+      }
+
+      img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+
+      figure img {
+        width: 100%;
+        border: 1px solid rgba(104, 78, 52, 0.22);
+        border-radius: 8px;
+        box-shadow: 0 18px 48px rgba(63, 39, 20, 0.14);
+      }
+
+      figcaption {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      section {
+        margin-top: 58px;
+      }
+
+      h2 {
+        margin: 0 0 18px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(104, 78, 52, 0.18);
+        font-size: 42px;
+      }
+
+      h3 {
+        margin: 34px 0 12px;
+        font-size: 28px;
+      }
+
+      p {
+        margin: 14px 0;
+        font-size: 18px;
+      }
+
+      .lead {
+        font-size: 20px;
+        color: #423a31;
+      }
+
+      .callout {
+        margin: 26px 0;
+        padding: 20px 22px;
+        border: 1px solid rgba(31, 107, 104, 0.28);
+        border-left: 5px solid var(--accent-2);
+        border-radius: 8px;
+        background: rgba(241, 250, 244, 0.72);
+      }
+
+      .callout strong {
+        color: #184f4c;
+      }
+
+      .rank-note {
+        margin: 18px 0 26px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin: 24px 0;
+        border: 1px solid rgba(104, 78, 52, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 244, 223, 0.55);
+      }
+
+      table {
+        width: 100%;
+        min-width: 760px;
+        border-collapse: collapse;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      th,
+      td {
+        padding: 12px 13px;
+        border-bottom: 1px solid rgba(104, 78, 52, 0.14);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: rgba(232, 214, 188, 0.58);
+        color: #392f27;
+        font-weight: 800;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .score {
+        white-space: nowrap;
+        color: #184f4c;
+        font-weight: 800;
+      }
+
+      .tag {
+        display: inline-block;
+        margin: 0 4px 5px 0;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(163, 68, 43, 0.1);
+        color: #743322;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .source-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin: 22px 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .source-list li {
+        padding: 14px 16px;
+        border: 1px solid rgba(104, 78, 52, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 244, 223, 0.52);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      pre {
+        overflow-x: auto;
+        padding: 18px;
+        border-radius: 8px;
+        background: var(--code-bg);
+        color: #f5ead8;
+        font-size: 14px;
+        line-height: 1.62;
+      }
+
+      .toc {
+        position: sticky;
+        top: 82px;
+        align-self: start;
+        max-height: calc(100vh - 104px);
+        overflow: auto;
+        padding: 18px;
+        border: 1px solid rgba(104, 78, 52, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 244, 223, 0.82);
+      }
+
+      .toc-title {
+        margin: 0 0 12px;
+        color: #47362a;
+        font-size: 13px;
+        font-weight: 850;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .toc a {
+        display: block;
+        padding: 7px 0;
+        color: #5c5147;
+        font-size: 14px;
+        line-height: 1.35;
+        text-decoration: none;
+      }
+
+      .toc a:hover,
+      .toc a.active {
+        color: var(--accent);
+      }
+
+      .footnotes {
+        margin-top: 70px;
+        padding-top: 28px;
+        border-top: 1px solid rgba(104, 78, 52, 0.18);
+        color: #5c5147;
+      }
+
+      .footnotes p,
+      .footnotes li {
+        font-size: 15px;
+      }
+
+      @media (max-width: 980px) {
+        .page {
+          display: block;
+          padding: 32px 18px 70px;
+        }
+
+        h1 {
+          font-size: 54px;
+        }
+
+        .dek {
+          font-size: 21px;
+        }
+
+        h2 {
+          font-size: 36px;
+        }
+
+        h3 {
+          font-size: 25px;
+        }
+
+        .toc {
+          position: static;
+          margin-top: 28px;
+        }
+
+        .source-list {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .topbar {
+          padding: 0 16px;
+        }
+
+        .topbar-meta {
+          display: none;
+        }
+
+        p {
+          font-size: 17px;
+        }
+
+        h1 {
+          font-size: 44px;
+        }
+
+        .dek {
+          font-size: 20px;
+        }
+
+        h2 {
+          font-size: 30px;
+        }
+
+        h3 {
+          font-size: 23px;
+        }
+
+        .table-wrap {
+          overflow: visible;
+          border: 0;
+          background: transparent;
+        }
+
+        table {
+          min-width: 0;
+        }
+
+        thead {
+          display: none;
+        }
+
+        table,
+        tbody,
+        tr,
+        td {
+          display: block;
+          width: 100%;
+        }
+
+        tr {
+          margin: 0 0 12px;
+          overflow: hidden;
+          border: 1px solid rgba(104, 78, 52, 0.18);
+          border-radius: 8px;
+          background: rgba(255, 244, 223, 0.7);
+        }
+
+        tr:last-child {
+          margin-bottom: 0;
+        }
+
+        td {
+          display: grid;
+          grid-template-columns: 92px minmax(0, 1fr);
+          gap: 12px;
+          padding: 11px 13px;
+          border-bottom: 1px solid rgba(104, 78, 52, 0.12);
+        }
+
+        td::before {
+          color: #7c5b16;
+          font-weight: 850;
+        }
+
+        tr:last-child td {
+          border-bottom: 1px solid rgba(104, 78, 52, 0.12);
+        }
+
+        td:last-child {
+          border-bottom: 0;
+        }
+
+        .table-popularity td:nth-child(1)::before {
+          content: "排名";
+        }
+
+        .table-popularity td:nth-child(2)::before {
+          content: "项目";
+        }
+
+        .table-popularity td:nth-child(3)::before {
+          content: "Stars";
+        }
+
+        .table-popularity td:nth-child(4)::before {
+          content: "Forks";
+        }
+
+        .table-popularity td:nth-child(5)::before {
+          content: "归类";
+        }
+
+        .table-popularity td:nth-child(6)::before {
+          content: "判断";
+        }
+
+        .table-capability td:nth-child(1)::before {
+          content: "梯队";
+        }
+
+        .table-capability td:nth-child(2)::before {
+          content: "项目";
+        }
+
+        .table-capability td:nth-child(3)::before {
+          content: "强项";
+        }
+
+        .table-capability td:nth-child(4)::before {
+          content: "边界";
+        }
+
+        .table-capability td:nth-child(5)::before {
+          content: "适用";
+        }
+
+        .table-choice td:nth-child(1)::before {
+          content: "场景";
+        }
+
+        .table-choice td:nth-child(2)::before {
+          content: "优先看";
+        }
+
+        .table-choice td:nth-child(3)::before {
+          content: "原因";
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/books/">
+        <span class="brand-mark">W</span>
+        <span>Wine &amp; Chord</span>
+      </a>
+      <span class="topbar-meta">Code Execution Field Guide</span>
+    </header>
+
+    <main class="page">
+      <article>
+        <header class="hero">
+          <p class="eyebrow">Agent Infrastructure</p>
+          <h1>Code Execution 的六层栈</h1>
+          <p class="dek">
+            模型负责提出意图，execution plane 负责把意图变成可审计、可取消、可恢复、可隔离的真实副作用。真正困难的部分，不是把一段命令跑起来，而是决定它能不能跑、在哪里跑、跑多久、输出多少、失败后还能不能解释。
+          </p>
+          <div class="byline">
+            <span>Wine &amp; Chord 技术长文</span>
+            <span>更新：2026-06-16</span>
+            <span>路径：/books/codeexecution/</span>
+          </div>
+          <div class="pill-row" aria-label="covered systems">
+            <span class="pill">Codex</span>
+            <span class="pill">Claude Code</span>
+            <span class="pill">OpenClaw</span>
+            <span class="pill">Hermes Agent</span>
+            <span class="pill">OpenHands</span>
+            <span class="pill">SWE-agent</span>
+            <span class="pill">AutoGen</span>
+            <span class="pill">Daytona / E2B</span>
+            <span class="pill">Microsandbox</span>
+          </div>
+        </header>
+
+        <figure class="hero-figure">
+          <img
+            src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/cover-codeexecution-stack.webp"
+            alt="手绘风格的 code execution 六层栈，从模型意图到策略、沙箱、运行时、观测和恢复"
+            width="2400"
+            height="1350"
+            loading="eager"
+          />
+          <figcaption>
+            Code execution 的核心不是“执行命令”，而是围绕真实副作用建立一套可治理的执行平面。
+          </figcaption>
+        </figure>
+
+        <section id="boundary">
+          <h2>先把证据边界说清楚</h2>
+          <p class="lead">
+            这篇文章按公开仓库和官方文档交叉验证。公开仓库的源码引用尽量固定到 commit SHA；产品行为只在官方文档或可见源码能支持时陈述；不可公开复核的实现观察不参与本文的公开结论。
+          </p>
+          <div class="callout">
+            <strong>本文的排序分两种。</strong>
+            流行度排序只看 GitHub metadata 在 2026-06-16 的快照，主要指标是 stars；能力排序按隔离边界、权限治理、环境广度、长任务生命周期、观测恢复和产品集成综合判断。stars 不是安全性、正确性或工程质量的证明。
+          </div>
+          <p>
+            主线项目是 Codex、Claude Code、OpenClaw 和 Hermes Agent。它们代表四类不同的执行哲学：Codex 把本地命令执行做成平台化执行平面；Claude Code 的公开文档展示了 Bash 工具、权限配置和 sandbox 体验如何进入产品交互；OpenClaw 把审批、网关和安全命令策略前置成操作员治理；Hermes Agent 把“在哪个环境执行”抽象成可切换的 backend，包括 Docker、Daytona、Modal、SSH、Singularity 和 local。
+          </p>
+          <p>
+            行业实践部分覆盖 OpenHands、SWE-agent、mini-SWE-agent、AutoGen、smolagents、Aider、Open Interpreter、Gemini CLI、Qwen Code、Daytona、E2B、Microsandbox，以及 Firecracker、gVisor、Kata、bubblewrap、firejail、nsjail 等底层隔离组件。这里的目标不是列百科，而是回答一个工程问题：当 agent 需要真正改文件、跑测试、开服务、读日志、调用工具时，execution plane 应该长什么样。
+          </p>
+        </section>
+
+        <section id="model">
+          <h2>一个可用的六层模型</h2>
+          <p>
+            Code execution 可以拆成六层：第一层是模型意图，把“想做什么”表达出来；第二层是工具契约，用 schema、参数和命令形态限制意图；第三层是权限闸门，决定允许、询问、拒绝或收窄权限；第四层是沙箱边界，选择本机、容器、远端 workspace、微虚拟机或专用解释器；第五层是进程会话，负责 shell、PTY、代码解释器、后台任务和取消；第六层是观测账本，截断、流式传输、保存输出、记录错误，并支撑审计、重试和恢复。
+          </p>
+          <p>
+            这个模型能解释为什么最简实现看起来很短，却很快遇到工程极限。一个 <code>subprocess.run</code> 可以完成本地命令，但它通常没有细粒度权限、没有跨平台沙箱转换、没有长任务复用、没有增量输出、没有输出上限策略，也没有把用户审批和系统策略变成可复盘的记录。相反，一个成熟 execution plane 的代码量往往花在“边界”上：权限边界、状态边界、输出边界、时间边界和责任边界。
+          </p>
+        </section>
+
+        <section id="popularity">
+          <h2>流行度排序：先按 stars 严格排</h2>
+          <p>
+            下面的表只表达“GitHub 上的可见关注度”。其中 OpenClaw 和 Hermes Agent 的 stars 极高，说明它们在当前样本中是强势观察对象；但底层隔离组件和 hosted sandbox 往往不是以 stars 反映实际生产渗透率，所以后面还要单独做能力排序。
+          </p>
+          <p class="rank-note">GitHub metadata snapshot：2026-06-16。排序键：stars，降序。</p>
+          <div class="table-wrap">
+            <table class="table-popularity">
+              <thead>
+                <tr>
+                  <th>排名</th>
+                  <th>项目</th>
+                  <th>Stars</th>
+                  <th>Forks</th>
+                  <th>本文归类</th>
+                  <th>一句话判断</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td><a href="https://github.com/openclaw/openclaw">openclaw/openclaw</a></td>
+                  <td>378,894</td>
+                  <td>79,274</td>
+                  <td>Agent execution governance</td>
+                  <td>审批、网关、命令策略和运行宿主是第一公民。</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td><a href="https://github.com/NousResearch/hermes-agent">NousResearch/hermes-agent</a></td>
+                  <td>194,503</td>
+                  <td>34,106</td>
+                  <td>Environment router</td>
+                  <td>把代码执行、终端和多种环境 backend 串成一个工具系统。</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td><a href="https://github.com/google-gemini/gemini-cli">google-gemini/gemini-cli</a></td>
+                  <td>105,308</td>
+                  <td>14,073</td>
+                  <td>CLI coding agent</td>
+                  <td>高流行度 CLI，shell tool 和 sandbox manager 都是主路径。</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td><a href="https://github.com/openai/codex">openai/codex</a></td>
+                  <td>91,271</td>
+                  <td>13,479</td>
+                  <td>Product-grade execution plane</td>
+                  <td>从协议、审批、sandbox transform 到输出观测的边界最清晰。</td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td><a href="https://github.com/OpenHands/OpenHands">OpenHands/OpenHands</a></td>
+                  <td>77,246</td>
+                  <td>9,813</td>
+                  <td>Remote workspace agent</td>
+                  <td>把 sandbox 当作会话边界，适合浏览器和远端工作区产品。</td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td><a href="https://github.com/daytonaio/daytona">daytonaio/daytona</a></td>
+                  <td>72,426</td>
+                  <td>5,615</td>
+                  <td>Hosted sandbox substrate</td>
+                  <td>提供 sandbox、process、PTY、port preview 和 snapshot API。</td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td><a href="https://github.com/openinterpreter/open-interpreter">openinterpreter/open-interpreter</a></td>
+                  <td>63,986</td>
+                  <td>5,552</td>
+                  <td>Local interpreter</td>
+                  <td>强调多语言本地解释器和流式输出，不以强隔离为默认卖点。</td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td><a href="https://github.com/microsoft/autogen">microsoft/autogen</a></td>
+                  <td>58,976</td>
+                  <td>8,896</td>
+                  <td>Framework executor</td>
+                  <td>把代码块执行抽象成 executor，默认倾向 Docker。</td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td><a href="https://github.com/Aider-AI/aider">Aider-AI/aider</a></td>
+                  <td>46,271</td>
+                  <td>4,590</td>
+                  <td>Pair programming shell</td>
+                  <td>实用主义本地命令流，适合测试、lint 和补丁验证。</td>
+                </tr>
+                <tr>
+                  <td>10</td>
+                  <td><a href="https://github.com/firecracker-microvm/firecracker">firecracker-microvm/firecracker</a></td>
+                  <td>34,942</td>
+                  <td>2,443</td>
+                  <td>MicroVM substrate</td>
+                  <td>不是 agent，但定义了强隔离执行 substrate 的上限想象。</td>
+                </tr>
+                <tr>
+                  <td>11</td>
+                  <td><a href="https://github.com/huggingface/smolagents">huggingface/smolagents</a></td>
+                  <td>27,877</td>
+                  <td>2,689</td>
+                  <td>Framework executor</td>
+                  <td>Python code agent，有本地 AST 风格限制和远端 executor。</td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td><a href="https://github.com/QwenLM/qwen-code">QwenLM/qwen-code</a></td>
+                  <td>25,246</td>
+                  <td>2,514</td>
+                  <td>CLI coding agent</td>
+                  <td>公开可见的 Bash approval UI 适合观察权限确认交互。</td>
+                </tr>
+                <tr>
+                  <td>13</td>
+                  <td><a href="https://github.com/SWE-agent/SWE-agent">SWE-agent/SWE-agent</a></td>
+                  <td>19,523</td>
+                  <td>2,135</td>
+                  <td>SWE benchmark agent</td>
+                  <td>围绕 shell session、blocklist 和 observation template 组织。</td>
+                </tr>
+                <tr>
+                  <td>14</td>
+                  <td><a href="https://github.com/google/gvisor">google/gvisor</a></td>
+                  <td>18,538</td>
+                  <td>1,638</td>
+                  <td>Container sandbox substrate</td>
+                  <td>用用户态内核思路强化容器隔离边界。</td>
+                </tr>
+                <tr>
+                  <td>15</td>
+                  <td><a href="https://github.com/e2b-dev/E2B">e2b-dev/E2B</a></td>
+                  <td>12,600</td>
+                  <td>932</td>
+                  <td>Hosted sandbox substrate</td>
+                  <td>面向 AI app 的云端 sandbox 和 process API。</td>
+                </tr>
+                <tr>
+                  <td>16</td>
+                  <td><a href="https://github.com/kata-containers/kata-containers">kata-containers/kata-containers</a></td>
+                  <td>8,100</td>
+                  <td>1,354</td>
+                  <td>VM-backed container substrate</td>
+                  <td>在容器体验和 VM 隔离之间取中间路线。</td>
+                </tr>
+                <tr>
+                  <td>17</td>
+                  <td><a href="https://github.com/containers/bubblewrap">containers/bubblewrap</a></td>
+                  <td>7,613</td>
+                  <td>348</td>
+                  <td>Linux namespace sandbox</td>
+                  <td>小而直接，适合在本地 CLI 中做 Linux 沙箱封装。</td>
+                </tr>
+                <tr>
+                  <td>18</td>
+                  <td><a href="https://github.com/netblue30/firejail">netblue30/firejail</a></td>
+                  <td>7,475</td>
+                  <td>669</td>
+                  <td>Linux application sandbox</td>
+                  <td>更偏通用应用隔离，agent 系统可借鉴策略模型。</td>
+                </tr>
+                <tr>
+                  <td>19</td>
+                  <td><a href="https://github.com/superradcompany/microsandbox">superradcompany/microsandbox</a></td>
+                  <td>6,562</td>
+                  <td>321</td>
+                  <td>MicroVM execution API</td>
+                  <td>把 VM 配置、exec 协议、PTY 和 rlimits 暴露为开发接口。</td>
+                </tr>
+                <tr>
+                  <td>20</td>
+                  <td><a href="https://github.com/SWE-agent/mini-swe-agent">SWE-agent/mini-swe-agent</a></td>
+                  <td>5,193</td>
+                  <td>713</td>
+                  <td>Minimal SWE agent</td>
+                  <td>刻意保持 shell 执行最小化，便于理解和替换 backend。</td>
+                </tr>
+                <tr>
+                  <td>21</td>
+                  <td><a href="https://github.com/google/nsjail">google/nsjail</a></td>
+                  <td>3,962</td>
+                  <td>333</td>
+                  <td>Linux process jail</td>
+                  <td>CTF 和服务隔离场景常见，适合做低层 jail 参考。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <figure>
+            <img
+              src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/popularity-capability-map.webp"
+              alt="按流行度和能力维度绘制的 code execution 项目地图"
+              width="2400"
+              height="1350"
+              loading="lazy"
+            />
+            <figcaption>
+              stars 更像“被看见的程度”；能力要看它到底解决了 execution plane 的哪几层。
+            </figcaption>
+          </figure>
+        </section>
+
+        <section id="capability">
+          <h2>能力排序：把“能跑”拆成六个维度</h2>
+          <p>
+            能力排序也沿着六层模型展开，但换成更便于比较的工程维度：隔离边界、权限治理、环境广度、长任务生命周期、观测恢复、产品集成。下面的排序不是数学评分，而是面向 agent code execution 的工程优先级排序：谁更接近一个能被真实用户长期使用、能被团队审计和运维的执行平面。
+          </p>
+          <div class="table-wrap">
+            <table class="table-capability">
+              <thead>
+                <tr>
+                  <th>能力梯队</th>
+                  <th>项目</th>
+                  <th>强项</th>
+                  <th>短板或边界</th>
+                  <th>最适合的使用方式</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="score">A+</td>
+                  <td>Codex</td>
+                  <td><span class="tag">审批</span><span class="tag">沙箱转换</span><span class="tag">输出上限</span><span class="tag">协议化</span></td>
+                  <td>依赖平台 sandbox 能力；不同 OS 的安全边界不完全等价。</td>
+                  <td>本地仓库编码、补丁验证、可审计命令执行。</td>
+                </tr>
+                <tr>
+                  <td class="score">A+</td>
+                  <td>OpenClaw</td>
+                  <td><span class="tag">网关审批</span><span class="tag">安全命令策略</span><span class="tag">执行宿主</span><span class="tag">运维治理</span></td>
+                  <td>强治理带来更重的系统形态；需要把策略和部署模型配好。</td>
+                  <td>企业内 agent、远端节点执行、多人协作和审批场景。</td>
+                </tr>
+                <tr>
+                  <td class="score">A</td>
+                  <td>Hermes Agent</td>
+                  <td><span class="tag">多 backend</span><span class="tag">工具 RPC</span><span class="tag">环境路由</span><span class="tag">Docker hardening</span></td>
+                  <td>能力分布在环境 backend；本机强沙箱不是唯一核心。</td>
+                  <td>需要在 Docker、Daytona、SSH、Modal 等环境间切换的 agent。</td>
+                </tr>
+                <tr>
+                  <td class="score">A</td>
+                  <td>Claude Code</td>
+                  <td><span class="tag">Bash 工具</span><span class="tag">权限配置</span><span class="tag">产品交互</span><span class="tag">sandbox 体验</span></td>
+                  <td>能力判断以公开文档为主；本地快照只作为不公开展开的背景观察。</td>
+                  <td>产品化 CLI 编程助手，强调交互权限和工作流连续性。</td>
+                </tr>
+                <tr>
+                  <td class="score">A-</td>
+                  <td>OpenHands</td>
+                  <td><span class="tag">远端 workspace</span><span class="tag">会话 sandbox</span><span class="tag">浏览器集成</span></td>
+                  <td>更偏完整应用平台；本地轻量使用成本高于单 CLI。</td>
+                  <td>浏览器里的软件工程 agent、远端 workspace 产品。</td>
+                </tr>
+                <tr>
+                  <td class="score">A-</td>
+                  <td>Daytona / E2B</td>
+                  <td><span class="tag">hosted sandbox</span><span class="tag">process API</span><span class="tag">snapshot</span><span class="tag">PTY</span></td>
+                  <td>它们是远端 workspace/sandbox service，不等于完整 coding agent。</td>
+                  <td>把 agent 的执行层外包给远端隔离环境。</td>
+                </tr>
+                <tr>
+                  <td class="score">A-</td>
+                  <td>Microsandbox</td>
+                  <td><span class="tag">microVM</span><span class="tag">exec protocol</span><span class="tag">rlimits</span><span class="tag">PTY</span></td>
+                  <td>更像底层 execution API/substrate；产品工作流需要上层 agent 组合。</td>
+                  <td>多租户代码执行、强隔离实验和自建 sandbox runtime。</td>
+                </tr>
+                <tr>
+                  <td class="score">B+</td>
+                  <td>SWE-agent / AutoGen / smolagents</td>
+                  <td><span class="tag">框架抽象</span><span class="tag">Docker 倾向</span><span class="tag">代码块执行</span><span class="tag">benchmark</span></td>
+                  <td>偏研究和框架层；产品治理和长期运维需要额外补齐。</td>
+                  <td>实验、benchmark、教学、定制多 agent 工作流。</td>
+                </tr>
+                <tr>
+                  <td class="score">B</td>
+                  <td>Gemini CLI / Qwen Code</td>
+                  <td><span class="tag">CLI 体验</span><span class="tag">确认 UI</span><span class="tag">shell surface</span></td>
+                  <td>Gemini 的 shell runtime 证据更完整；Qwen Code 在本文只引用其 Bash approval UI。</td>
+                  <td>对比现代 CLI agent 如何把 shell 能力暴露给用户确认。</td>
+                </tr>
+                <tr>
+                  <td class="score">B-</td>
+                  <td>Aider / Open Interpreter / mini-SWE-agent</td>
+                  <td><span class="tag">简单</span><span class="tag">可读</span><span class="tag">本地实用</span></td>
+                  <td>安全边界、审批和恢复能力通常要由调用方补齐。</td>
+                  <td>个人本地自动化、快速验证、理解最小执行循环。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <figure>
+            <img
+              src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/environment-isolation-ladder.webp"
+              alt="从本地 subprocess 到容器、远端 workspace 和微虚拟机的隔离阶梯"
+              width="2400"
+              height="1350"
+              loading="lazy"
+            />
+            <figcaption>
+              能力排序的关键不是“更重就更好”，而是边界是否匹配风险。
+            </figcaption>
+          </figure>
+        </section>
+
+        <section id="codex">
+          <h2>Codex：执行平面最完整的样板</h2>
+          <p>
+            Codex 的 Rust 实现把 code execution 拆得很干净。模型侧看到的是结构化工具调用；协议层有 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/protocol/src/protocol.rs#L820-L853"><code>AskForApproval</code></a> 和 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/protocol/src/protocol.rs#L912-L964"><code>SandboxPolicy</code></a>；core 层把 exec 参数、审批动作、超时、输出截断和捕获策略收拢；sandboxing crate 再根据平台把命令转换成 macOS seatbelt、Linux sandbox 或无沙箱执行。
+          </p>
+          <p>
+            在 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/exec.rs#L307-L327"><code>process_exec_tool_call</code></a> 这一段，可以看到它不是直接 spawn：先构造 request，再进入审批和 sandbox 决策，再执行并把输出变成协议事件。<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/exec.rs#L51-L82">默认超时、输出 cap 和 drain timeout</a> 也在同一个文件里显式定义。这种设计的好处是，每一次命令执行都处在同一条可审计路径上。
+          </p>
+          <figure>
+            <img
+              src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/codex-sandbox-route.webp"
+              alt="Codex 的命令请求、审批策略和平台 sandbox 转换路线"
+              width="2400"
+              height="1350"
+              loading="lazy"
+            />
+            <figcaption>
+              Codex 的关键优势是把“模型请求”和“系统实际允许的能力”分开，中间用策略和平台 sandbox 做交叉约束。
+            </figcaption>
+          </figure>
+          <p>
+            <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/sandboxing/src/manager.rs#L197-L224"><code>select_initial</code></a> 和 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/sandboxing/src/manager.rs#L226-L338"><code>transform</code></a> 是 Codex execution plane 的中枢：前者选择初始 sandbox 类型，后者把“想执行什么”变成“在当前平台上如何受限地执行”。再往下看 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/sandboxing/src/policy_transforms.rs#L125-L195">permission profile intersection</a>，Codex 不是让请求覆盖授权，而是把请求权限和已授予权限求交集。这是安全系统常见的好味道：更具体的请求只能收窄边界，不能扩大边界。
+          </p>
+          <p>
+            另一个容易忽略的点是输出。Codex 的 <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/protocol/src/exec_output.rs#L39-L47"><code>ExecToolCallOutput</code></a> 把 stdout、stderr、aggregated output、exit code 和 duration 都变成结构化结果；<a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/exec-server/src/process.rs#L38-L47">exec server</a> 还有 replay buffer 和 live fanout。对 agent 来说，输出不是打印给用户看的日志，而是下一步推理的输入，必须有上限、有增量、有恢复。
+          </p>
+        </section>
+
+        <section id="claude">
+          <h2>Claude Code：把 Bash 工具产品化</h2>
+          <p>
+            Claude Code 的公开文档强调命令执行需要权限确认、可配置的工具权限和 sandbox 选项。因为本文不能给出可公开复核的 Claude Code 源码锚点，所以这一节只讨论公开文档能支撑的产品层设计，不把内部实现细节作为能力排序依据。
+          </p>
+          <p>
+            它最值得学习的是 Bash 工具被放在用户可理解的权限系统里：用户可以配置哪些工具默认可用，危险操作需要确认，sandbox 让命令执行从“全信任本机”退到一个更明确的风险边界。也就是说，Bash 不再是隐藏在 agent 背后的实现细节，而是产品界面和用户心智的一部分。
+          </p>
+          <p>
+            这种设计说明一件事：用户对“允许执行”的理解不是静态的。一个 <code>git diff</code>、一个 <code>npm test</code>、一个 <code>curl</code>、一个 <code>rm</code> 在风险上完全不同；同一个命令在只读目录、项目目录、家目录或网络可用环境里的风险也完全不同。所以成熟的 Bash 工具不应该只问“是否运行 shell”，而应该让用户看见命令意图、作用范围和可撤销程度。
+          </p>
+        </section>
+
+        <section id="openclaw">
+          <h2>OpenClaw：治理优先的执行系统</h2>
+          <p>
+            OpenClaw 把 code execution 放进一个更像“操作员控制台”的系统里。<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/process/exec.ts#L164-L175">它明确避免在 argv-based 执行里默认开启 shell</a>，需要 shell 时走显式 wrapper；<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/process/exec.ts#L364-L610"><code>runCommandWithTimeout</code></a> 处理 cwd、env、timeout、no-output-timeout、abort signal、Windows 进程树终止和输出 decode；默认输出上限也在同一模块里被显式管理。
+          </p>
+          <p>
+            更有辨识度的是审批层。<a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/infra/exec-approvals.ts#L23-L29"><code>ExecHost</code>、<code>ExecSecurity</code>、<code>ExecAsk</code>、<code>ExecMode</code></a> 把 sandbox、gateway、node、allowlist、deny、ask、auto、full 等策略维度显式建模。审批 payload 不是“同意或不同意”这么简单，还包含 system run plan、显示文案、socket/file 协调、目录权限和链接安全检查。
+          </p>
+          <figure>
+            <img
+              src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/approval-governance-patterns.webp"
+              alt="OpenClaw 风格的审批治理模式，包含用户、网关、节点和安全命令策略"
+              width="2400"
+              height="1350"
+              loading="lazy"
+            />
+            <figcaption>
+              OpenClaw 代表的是治理优先路线：把“谁批准、批准什么、在哪个宿主运行、如何记录”放到执行之前。
+            </figcaption>
+          </figure>
+          <p>
+            <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/infra/exec-safe-bin-policy-profiles.ts#L26-L222">safe bin policy profiles</a> 也很有价值：它把 <code>jq</code>、<code>grep</code>、<code>sort</code>、<code>head</code>、<code>tail</code>、<code>wc</code> 等常见命令归入更细的允许或拒绝策略。很多系统只区分“读命令”和“写命令”，但真实 shell 风险来自组合：<code>find</code> 可以遍历隐私路径，<code>xargs</code> 可以扩散副作用，<code>curl</code> 可以出网，<code>sh -c</code> 可以隐藏真实意图。OpenClaw 的价值在于它愿意把这些灰度细节做成可维护的策略资产。
+          </p>
+        </section>
+
+        <section id="hermes">
+          <h2>Hermes Agent：环境路由和工具 RPC</h2>
+          <p>
+            Hermes Agent 的 code execution 不是只围绕一个本地 shell 展开，而是把终端和代码工具放进统一环境抽象。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/code_execution_tool.py#L1-L29"><code>code_execution_tool.py</code></a> 开头就说明了两种 transport：local UDS 和 remote file RPC。它还强调一个重要限制：远端工具调用结果不自动进入模型上下文，默认只返回 stdout。这会逼迫系统把“给模型看的观测”和“环境里真实发生的事情”区分开。
+          </p>
+          <p>
+            Hermes 的环境层更像一个 router。<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/environments/base.py#L1-L7">base environment</a> 使用 spawn-per-call 模型，但维护 session snapshot 和 cwd tracking；<a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/environments/base.py#L483-L760">wait/drain loop</a> 处理 timeout、中断、子进程输出管道和 UTF-8 增量 decode；Docker backend 通过 <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/environments/docker.py#L312-L367">cap-drop、no-new-privileges、pids limit、tmpfs、network none</a> 做 hardening；Daytona backend 则负责 resume/create sandbox、同步文件、执行和 cleanup。
+          </p>
+          <p>
+            这条路线适合多环境 agent：同一套工具协议可以落到 local、Docker、Singularity、Modal、Daytona 或 SSH。它的强项不是单点最硬隔离，而是把 backend 切换、文件同步、凭据挂载、stdout/stderr 管理和终端生命周期收在一个抽象下面。
+          </p>
+        </section>
+
+        <section id="remote">
+          <h2>远端 workspace 与微虚拟机：OpenHands、Daytona、E2B、Microsandbox</h2>
+          <p>
+            当 agent 不只跑单条命令，而是要打开浏览器、启动服务、预览端口、保留 workspace、多人协作和跨会话恢复时，本地 shell 的模型就不够了。OpenHands 把 sandbox 看成会话对象：<a href="https://github.com/OpenHands/OpenHands/blob/8fdf41d33115da92200a70ff1633f7814b801f20/openhands/app_server/sandbox/remote_sandbox_service.py#L444-L521">start sandbox</a>、resume、pause、delete 都是 app server 的显式职责；conversation router 在发送事件前还会检查 sandbox 和 agent server URL，并带上 session API key。
+          </p>
+          <p>
+            Daytona 和 E2B 更像“agent 的执行云”。Daytona 的 <a href="https://github.com/daytonaio/daytona/blob/41c16eec6c54a3c74a1bc1ec456e49987e5b5202/libs/toolbox-api-client-go/api_process.go#L23-L121">process API</a> 覆盖 code run、PTY session、shell session 和命令执行；<a href="https://github.com/daytonaio/daytona/blob/41c16eec6c54a3c74a1bc1ec456e49987e5b5202/libs/api-client-go/api_sandbox.go#L26-L64">sandbox API</a> 覆盖创建、snapshot、SSH access、delete、fork 和 port preview。E2B 也提供面向 AI app 的云端 sandbox、process 和 file primitives。它们的共同点是把隔离和生命周期变成远端服务，而不是让每个 agent 自己维护容器细节。
+          </p>
+          <figure>
+            <img
+              src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hosted-sandbox-lifecycle.webp"
+              alt="hosted sandbox 的创建、同步、执行、端口预览、暂停和快照生命周期"
+              width="2400"
+              height="1350"
+              loading="lazy"
+            />
+            <figcaption>
+              远端 workspace 的核心能力是生命周期：创建、恢复、同步、预览、暂停、快照和销毁。
+            </figcaption>
+          </figure>
+          <p>
+            Microsandbox 不属于同一类 hosted workspace service，它更靠近底层 microVM execution API。它的 <a href="https://github.com/superradcompany/microsandbox/blob/0580a1c24f910ee3387927f4522aa4b5a2de5430/crates/protocol/lib/exec.rs#L11-L48"><code>ExecRequest</code></a> 包含 cmd、args、env、cwd、user、tty、rows、cols 和 rlimits；<a href="https://github.com/superradcompany/microsandbox/blob/0580a1c24f910ee3387927f4522aa4b5a2de5430/crates/runtime/lib/vm.rs#L69-L122">VM config</a> 覆盖 vCPU、memory、rootfs、mounts、env、workdir、exec 和 network；agentd session 再暴露 PTY、stdin/stdout/stderr 和 signal。它不是完整 coding agent，却非常适合做多租户 code execution 的安全 substrate。
+          </p>
+        </section>
+
+        <section id="frameworks">
+          <h2>框架路线：SWE-agent、AutoGen、smolagents</h2>
+          <p>
+            SWE-agent 的优势是把软件工程任务抽象成 shell session 加 observation template。<a href="https://github.com/SWE-agent/SWE-agent/blob/da31587839406e114556505ed494e1fe49e47a42/sweagent/environment/swe_env.py#L197-L232"><code>communicate</code></a> 负责命令交互，工具配置里有交互命令和独立命令的 blocklist，agent config 里有 timeout 和输出截断模板。它不是最强的产品执行平面，却非常适合 benchmark、研究和复现实验。
+          </p>
+          <p>
+            mini-SWE-agent 则走反方向：<a href="https://github.com/SWE-agent/mini-swe-agent/blob/3df30a4bb564add41470c768559481e135607761/src/minisweagent/environments/local.py#L23-L53">local environment</a> 直接用 <code>subprocess.run(shell=True)</code>，设置 cwd、env 和 timeout，把 stdout/stderr 合并返回。它的价值在于把最小闭环暴露得非常清楚：如果你要教学、写实验或快速替换 execution backend，这种可读性比“大而全”更重要。
+          </p>
+          <p>
+            AutoGen 和 smolagents 更像框架级 executor。AutoGen 的 <a href="https://github.com/microsoft/autogen/blob/027ecf0a379bcc1d09956d46d12d44a3ad9cee14/python/packages/autogen-ext/src/autogen_ext/code_executors/__init__.py#L41-L80">default executor</a> 倾向优先使用 Docker，local executor 文档也明确提示本地执行风险；CodeExecutorAgent 只从 fenced code block 提取代码执行。smolagents 的 <a href="https://github.com/huggingface/smolagents/blob/df846f842241aab5a7a17f8136574928e347feb6/src/smolagents/local_python_executor.py#L57-L62">local Python executor</a> 设置输出、操作数、循环和时间限制，也维护危险模块和函数列表；remote executor 覆盖 E2B、Modal、Docker 和 Wasm 等 backend。
+          </p>
+          <figure>
+            <img
+              src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/framework-executor-patterns.webp"
+              alt="框架型 code executor 的常见模式：代码块、解释器、本地限制和远端 backend"
+              width="2400"
+              height="1350"
+              loading="lazy"
+            />
+            <figcaption>
+              框架型 executor 的设计重点是组合性：让 agent、工具、代码块和执行 backend 能被调用方自由拼装。
+            </figcaption>
+          </figure>
+        </section>
+
+        <section id="cli">
+          <h2>本地 CLI 路线：Aider、Open Interpreter、Gemini CLI、Qwen Code</h2>
+          <p>
+            Aider 的 shell 设计很直接：<a href="https://github.com/Aider-AI/aider/blob/5dc9490bb35f9729ef2c95d00a19ccd30c26339c/aider/run_cmd.py#L11-L23">有 TTY 时选择 pexpect，否则使用 subprocess</a>，输出按字符流式返回。这很适合个人开发中的“跑测试、看失败、改代码、再跑测试”循环，但安全边界主要来自用户所在环境和用户自己的判断。
+          </p>
+          <p>
+            Open Interpreter 更强调多语言解释器。它的 <a href="https://github.com/openinterpreter/open-interpreter/blob/e00f08e2ed54e97a530326cc2b1a93389bbe5f7c/interpreter/core/computer/terminal/terminal.py#L82-L154">terminal</a> 会按语言管理 active process 并流式输出；subprocess language 层负责启动解释器、重试和读取输出。这类系统的价值是“能控制本机”，风险也来自同一件事：本机就是边界。
+          </p>
+          <p>
+            Gemini CLI 和 Qwen Code 展示了现代 coding CLI 的另一种收敛。Gemini SDK 的 <a href="https://github.com/google-gemini/gemini-cli/blob/d2cd12a7cbdd149a4bd6140be89b312f781cd907/packages/sdk/src/shell.ts#L19-L85">AgentShell</a> 通过 shell tool、confirmation 和 ShellExecutionService 执行命令；Qwen Code 的 <a href="https://github.com/QwenLM/qwen-code/blob/53d3d7f6ff374ad888bf17f8a3b149c099ecc326/packages/webui/src/components/PermissionDrawer.tsx#L78-L94">PermissionDrawer</a> 至少能证明它把 Bash command approval 暴露成明确 UI。这里的稳妥结论是：现代 CLI agent 已经不再把 shell 风险藏在实现里，而是越来越倾向把执行意图放到用户可确认的界面上。
+          </p>
+        </section>
+
+        <section id="substrate">
+          <h2>底层隔离：不要把 Docker 当作安全答案的终点</h2>
+          <p>
+            许多 agent 项目默认把 Docker 作为第一层隔离，这很合理：它普及、可组合、开发体验好。但多租户 code execution 不能把“跑在容器里”直接等同于“安全”。隔离 substrate 大致可以按强度和成本排成阶梯：本地 subprocess 最轻也最危险；语言解释器限制适合 Python code agent；Linux namespace 工具如 bubblewrap、firejail、nsjail 更贴近进程 jail；Docker 和 gVisor 改善容器边界；Kata 和 Firecracker 把 VM 或 microVM 引入边界；Hosted sandbox 再把生命周期、网络、存储和审计做成服务。
+          </p>
+          <p>
+            工程上真正要问的是三件事：第一，攻击者模型是谁，是自己的模型误操作，还是不可信用户提交任意代码；第二，副作用面在哪里，是文件系统、网络、凭据、GPU、内网、浏览器还是长跑服务；第三，失败时是否能快速销毁和复原。如果这三个问题没有答案，换成更“硬”的隔离技术也只是把风险推迟暴露。
+          </p>
+        </section>
+
+        <section id="design">
+          <h2>设计一套 execution plane 的原则</h2>
+          <h3>1. 权限要描述能力，不要只描述命令字符串</h3>
+          <p>
+            <code>grep</code>、<code>cat</code>、<code>python</code>、<code>node</code>、<code>sh -c</code> 都不是天然安全或危险。权限策略应该关注能力：读哪些路径、写哪些路径、能不能出网、能不能读环境变量、能不能启动后台进程、能不能打开端口、能不能访问凭据、能不能跨 workspace。命令字符串只能作为策略输入之一。
+          </p>
+          <h3>2. 审批应该收窄权限，而不是临时放大全局权限</h3>
+          <p>
+            Codex 的 permission profile intersection、OpenClaw 的 exec mode、Claude Code 的 Bash permission flow 都在解决同一件事：模型请求和用户授权必须相交。用户同意跑一次测试，不等于同意后续所有 shell 命令；用户同意读项目目录，不等于同意读家目录和系统密钥。
+          </p>
+          <h3>3. stdout 不是审计日志</h3>
+          <p>
+            给模型看的输出需要截断、摘要和去噪；给用户看的日志需要可解释；给审计看的记录需要完整、结构化、带时间和环境信息。把三者混在一起，会同时损害推理质量、用户体验和安全追踪。
+          </p>
+          <h3>4. 长任务需要进程身份、取消和 replay</h3>
+          <p>
+            真实项目里的 <code>npm install</code>、测试套件、dev server、容器 build、模型下载都可能超过一个模型回合。没有 process id、session id、cancel signal、output replay 和 resource cleanup，agent 很容易留下失控任务或丢失关键输出。
+          </p>
+          <h3>5. 环境状态必须显式</h3>
+          <p>
+            cwd、env、PATH、依赖缓存、挂载目录、网络策略、端口映射、用户身份、session snapshot 都是执行语义的一部分。成熟系统会把这些状态显式建模；简陋系统则让它们散落在 shell 进程里，最终只能靠猜。
+          </p>
+          <h3>6. 沙箱失败要 fail closed</h3>
+          <p>
+            如果系统本来应该进入 sandbox，却因为平台缺依赖、权限不足或策略转换失败而退回裸执行，那就是最危险的故障模式。更好的行为是拒绝执行、解释原因、给出可恢复操作，或要求用户显式切换到较低安全等级。
+          </p>
+        </section>
+
+        <section id="choose">
+          <h2>怎么选：按风险和产品形态选择</h2>
+          <div class="table-wrap">
+            <table class="table-choice">
+              <thead>
+                <tr>
+                  <th>你的场景</th>
+                  <th>优先看</th>
+                  <th>原因</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>本地 coding agent，需要改仓库、跑测试、给用户审批</td>
+                  <td>Codex、Claude Code、Gemini CLI、Qwen Code</td>
+                  <td>工具调用、审批和本地沙箱路径最接近用户日常开发。</td>
+                </tr>
+                <tr>
+                  <td>企业内 agent，需要网关、节点执行和命令治理</td>
+                  <td>OpenClaw</td>
+                  <td>它把审批、执行宿主和 safe command policy 做成系统边界。</td>
+                </tr>
+                <tr>
+                  <td>需要跨 Docker、云 sandbox、SSH、Modal 等环境切换</td>
+                  <td>Hermes Agent</td>
+                  <td>环境路由和工具 RPC 是核心设计目标。</td>
+                </tr>
+                <tr>
+                  <td>浏览器里的远端软件工程 agent</td>
+                  <td>OpenHands、Daytona、E2B</td>
+                  <td>workspace 生命周期、端口预览、恢复和协作比单命令更重要。</td>
+                </tr>
+                <tr>
+                  <td>研究、benchmark、课程或快速原型</td>
+                  <td>SWE-agent、mini-SWE-agent、AutoGen、smolagents</td>
+                  <td>框架和最小实现更容易改造，也更容易解释实验结果。</td>
+                </tr>
+                <tr>
+                  <td>不可信用户提交任意代码，多租户执行</td>
+                  <td>Microsandbox、Firecracker、gVisor、Kata、nsjail</td>
+                  <td>此时 agent 体验不是第一优先级，microVM、系统调用边界和资源限制才是。</td>
+                </tr>
+                <tr>
+                  <td>个人本地自动化和解释器式交互</td>
+                  <td>Aider、Open Interpreter</td>
+                  <td>简单、直接、反馈快，但要清楚它们默认更依赖本机信任边界。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="closing">
+          <h2>结论：execution plane 是 agent 的可信边界</h2>
+          <p>
+            Code execution 的成熟度，决定了 agent 能不能从“会说怎么做”变成“能安全地做”。最小实现可以是一行 subprocess；生产实现却必须面对权限、沙箱、长任务、输出、恢复、审计、远端 workspace 和底层隔离。Codex 展示了协议化和平台 sandbox 的清晰边界；Claude Code 展示了 Bash 工具产品化；OpenClaw 展示了治理优先；Hermes 展示了多环境路由；OpenHands、Daytona、E2B 和 Microsandbox 展示了远端 sandbox 与微虚拟机 substrate；SWE-agent、AutoGen、smolagents、Aider、Open Interpreter 则给出了从研究框架到本地实用工具的完整光谱。
+          </p>
+          <p>
+            最终判断一个 code execution 系统，不要只问“它能不能运行命令”。更好的问题是：它能不能解释为什么允许运行；能不能把允许范围限制到最小；能不能在正确的环境运行；能不能控制时间、输出和资源；能不能恢复和审计；当沙箱不可用时，能不能拒绝冒险。这些问题的答案，才是 agent 工程里真正的分水岭。
+          </p>
+        </section>
+
+        <section class="footnotes" id="sources">
+          <h2>主要来源与复核入口</h2>
+          <p>
+            下面列出本文最依赖的公开入口。源码链接固定到具体 commit；官方文档用于产品层表述；GitHub stars 是 2026-06-16 快照。
+          </p>
+          <ul class="source-list">
+            <li>
+              <strong>Codex</strong><br />
+              <a href="https://developers.openai.com/codex/">OpenAI Codex docs</a><br />
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/core/src/exec.rs#L307-L327">core exec flow</a> ·
+              <a href="https://github.com/openai/codex/blob/02dce8eb8daaa7c7d83eb8f33ba34d712862dc28/codex-rs/sandboxing/src/manager.rs#L197-L338">sandbox manager</a>
+            </li>
+            <li>
+              <strong>Claude Code</strong><br />
+              <a href="https://docs.anthropic.com/en/docs/claude-code/overview">Claude Code docs</a><br />
+              本文只把公开文档作为可复核引用，不使用不可公开复核的实现细节支撑结论。
+            </li>
+            <li>
+              <strong>OpenClaw</strong><br />
+              <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/process/exec.ts#L364-L610">process execution</a> ·
+              <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/infra/exec-approvals.ts#L23-L139">exec approvals</a> ·
+              <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/src/infra/exec-safe-bin-policy-profiles.ts#L26-L222">safe bin profiles</a>
+            </li>
+            <li>
+              <strong>Hermes Agent</strong><br />
+              <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/code_execution_tool.py#L1-L29">code execution tool</a> ·
+              <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/environments/base.py#L483-L760">environment wait loop</a> ·
+              <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/tools/environments/docker.py#L312-L367">Docker hardening</a>
+            </li>
+            <li>
+              <strong>OpenHands</strong><br />
+              <a href="https://docs.all-hands.dev/">OpenHands docs</a><br />
+              <a href="https://github.com/OpenHands/OpenHands/blob/8fdf41d33115da92200a70ff1633f7814b801f20/openhands/app_server/sandbox/remote_sandbox_service.py#L444-L521">remote sandbox start</a>
+            </li>
+            <li>
+              <strong>Daytona / E2B</strong><br />
+              <a href="https://www.daytona.io/docs/">Daytona docs</a> ·
+              <a href="https://e2b.dev/docs">E2B docs</a>
+            </li>
+            <li>
+              <strong>Microsandbox</strong><br />
+              <a href="https://github.com/superradcompany/microsandbox/blob/0580a1c24f910ee3387927f4522aa4b5a2de5430/crates/protocol/lib/exec.rs#L11-L48">exec protocol</a> ·
+              <a href="https://github.com/superradcompany/microsandbox/blob/0580a1c24f910ee3387927f4522aa4b5a2de5430/crates/runtime/lib/vm.rs#L69-L122">VM config</a>
+            </li>
+            <li>
+              <strong>SWE-agent / AutoGen / smolagents</strong><br />
+              <a href="https://github.com/SWE-agent/SWE-agent/blob/da31587839406e114556505ed494e1fe49e47a42/sweagent/environment/swe_env.py#L197-L232">SWE-agent communicate</a> ·
+              <a href="https://github.com/microsoft/autogen/blob/027ecf0a379bcc1d09956d46d12d44a3ad9cee14/python/packages/autogen-ext/src/autogen_ext/code_executors/__init__.py#L41-L80">AutoGen executor</a> ·
+              <a href="https://github.com/huggingface/smolagents/blob/df846f842241aab5a7a17f8136574928e347feb6/src/smolagents/local_python_executor.py#L57-L62">smolagents limits</a>
+            </li>
+            <li>
+              <strong>CLI agents</strong><br />
+              <a href="https://github.com/Aider-AI/aider/blob/5dc9490bb35f9729ef2c95d00a19ccd30c26339c/aider/run_cmd.py#L11-L23">Aider run_cmd</a> ·
+              <a href="https://github.com/openinterpreter/open-interpreter/blob/e00f08e2ed54e97a530326cc2b1a93389bbe5f7c/interpreter/core/computer/terminal/terminal.py#L82-L154">Open Interpreter terminal</a> ·
+              <a href="https://github.com/google-gemini/gemini-cli/blob/d2cd12a7cbdd149a4bd6140be89b312f781cd907/packages/sdk/src/shell.ts#L19-L85">Gemini shell</a>
+            </li>
+          </ul>
+        </section>
+      </article>
+
+      <aside class="toc" aria-label="目录">
+        <p class="toc-title">目录</p>
+        <a href="#boundary">证据边界</a>
+        <a href="#model">心智模型</a>
+        <a href="#popularity">流行度排序</a>
+        <a href="#capability">能力排序</a>
+        <a href="#codex">Codex</a>
+        <a href="#claude">Claude Code</a>
+        <a href="#openclaw">OpenClaw</a>
+        <a href="#hermes">Hermes Agent</a>
+        <a href="#remote">远端 workspace</a>
+        <a href="#frameworks">框架路线</a>
+        <a href="#cli">本地 CLI</a>
+        <a href="#substrate">底层隔离</a>
+        <a href="#design">设计原则</a>
+        <a href="#choose">怎么选</a>
+        <a href="#closing">结论</a>
+        <a href="#sources">来源</a>
+      </aside>
+    </main>
+
+    <script>
+      const links = Array.from(document.querySelectorAll(".toc a"));
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      const setActive = () => {
+        const y = window.scrollY + 120;
+        let active = sections[0]?.id;
+        for (const section of sections) {
+          if (section.offsetTop <= y) active = section.id;
+        }
+        for (const link of links) {
+          link.classList.toggle("active", link.getAttribute("href") === `#${active}`);
+        }
+      };
+
+      setActive();
+      window.addEventListener("scroll", setActive, { passive: true });
+    </script>
+  </body>
+</html>
