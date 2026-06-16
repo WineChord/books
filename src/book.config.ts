@@ -16,6 +16,8 @@ export interface PageConfig {
   zhTitle?: string;
   description: string;
   zhDescription?: string;
+  image?: string;
+  zhImage?: string;
   kind: "front" | "chapter" | "epilogue" | "reference";
 }
 
@@ -123,7 +125,9 @@ const codexFromSourcePages: PageConfig[] = [
   chapter(13, "Sandboxes, Network Policy, and Platform Boundaries", "Sandboxes、网络策略与平台边界", "Platform containment and network mediation.", "梳理平台隔离与网络访问调解。"),
   chapter(14, "The App-Server Contract", "App-Server 契约", "The JSON-RPC boundary for clients and SDKs.", "解释面向客户端和 SDK 的 JSON-RPC 边界。"),
   chapter(15, "SDKs, Daemons, and Remote Control", "SDK、Daemon 与远程控制", "How external clients reach the same runtime.", "说明外部客户端如何接入同一个运行时。"),
-  chapter(16, "The TUI as an Event Renderer", "TUI 作为事件渲染器", "Terminal UI as projection, not alternate runtime.", "把终端 UI 解释为事件投影，而不是另一个运行时。"),
+  chapter(16, "The TUI as an Event Renderer", "TUI 作为事件渲染器", "Terminal UI as projection, not alternate runtime.", "把终端 UI 解释为事件投影，而不是另一个运行时。", "codex-from-source", {
+    image: "https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-event-renderer-569ff6a1-v3.webp",
+  }),
   chapter(17, "MCP: External Tools Without Runtime Entanglement", "MCP：没有运行时耦合的外部工具", "External tool servers behind provenance and routing boundaries.", "说明外部工具服务器如何通过来源和路由边界接入。"),
   chapter(18, "Skills, Plugins, Connectors, and Typed Extensions", "Skills、Plugins、Connectors 与类型化扩展", "Extension packaging with explicit trust planes.", "解释扩展打包和显式信任平面。"),
   chapter(19, "External Migration and Backward Compatibility", "外部迁移与向后兼容", "Compatibility as a runtime and product constraint.", "把兼容性作为运行时和产品约束。"),
@@ -503,6 +507,7 @@ export function localizePage(page: PageConfig, lang: "en" | "zh") {
     path: lang === "zh" ? page.zhPath ?? page.path : page.path,
     title: lang === "zh" ? page.zhTitle ?? page.title : page.title,
     description: lang === "zh" ? page.zhDescription ?? page.description : page.description,
+    image: lang === "zh" ? page.zhImage ?? page.image : page.image,
   };
 }
 
@@ -602,6 +607,7 @@ function chapter(
   description: string,
   zhDescription: string,
   book = "codex-from-source",
+  options: Pick<PageConfig, "image" | "zhImage"> = {},
 ): PageConfig {
   const file = String(number).padStart(2, "0");
   return {
@@ -613,6 +619,7 @@ function chapter(
     zhTitle,
     description,
     zhDescription,
+    ...options,
     kind: "chapter",
   };
 }

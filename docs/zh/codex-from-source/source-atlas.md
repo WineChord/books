@@ -1,15 +1,15 @@
 # 源码索引
 
-> **阅读契约：** 只有在叙事已经清楚后再用本页。打开 pinned links 是为了核对 owner、boundary 和 evidence，不是从源码里重新发现故事。
+> **阅读契约：** 只有在叙事已经清楚后再用本页。打开 pinned links 是为了核对 owner、boundary 和 evidence class，不是从源码里重新发现故事。
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-569ff6a1-v2.webp" alt="固定源码证据索引：把章节论断映射到已核验 owner、公开源码锚点和审计规则" loading="eager" decoding="async" />
-  <figcaption>在正文已经提出论断之后使用源码索引：它把叙事语句映射到 subsystem owner、固定源码行和审计结果。</figcaption>
+  <figcaption>在正文已经提出论断之后使用源码索引：它把叙事语句映射到 subsystem owner、固定源码行和审计分类。</figcaption>
 </figure>
 
 这个索引用于审计全书的源码依据。所有 Codex 链接都指向公开 GitHub 代码，并固定到 commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3`。正文应该可以独立阅读；源码索引用于验证，而不是要求读者自己补课。
 
-审计规则：打开 anchor 只为确认 claim class。直接展示 type、function、constant、workflow 或 test 行为的，算 **verified source**；从多个 anchor 组合出来的边界，算 **surrounding contract inference**，在正文和图中都应保持抽象。任何依赖 private service internals 的内容都是 **not visible**，因此不会进入本索引。
+审计规则：使用 anchor 是为了确认 claim class。直接展示 type、function、constant、workflow 或 test 行为的，算 **verified source**；从多个 anchor 组合出来的边界，算 **surrounding contract inference**，在正文和图中都应保持抽象。任何依赖 private service internals 的内容都是 **not visible**，因此不会进入本索引。
 
 ## 章节锚点
 
@@ -191,11 +191,13 @@
 
 ### 第 16 章：TUI 作为事件渲染器
 
-- TUI chat widget: [`codex-rs/tui/src/chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658)
-- Bottom pane state: [`codex-rs/tui/src/bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199)
-- TUI app-server session: [`codex-rs/tui/src/app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148)
-- App events: [`codex-rs/tui/src/app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L72)
-- Rendering tests: [`codex-rs/tui/src/chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34)
+- TUI ownership surface 覆盖 app state、select loop、terminal event handling、draw/resize、cursor 与 external-editor handoff: [`app.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L453-L534)、[`App::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1019-L1067)、[`handle_tui_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1110-L1185)
+- Internal routing surface 覆盖 app event bus、dispatcher 与 runtime command boundary: [`app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L131-L240)、[`event_dispatch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L12-L237)、[`app_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_command.rs#L25-L109)
+- Runtime crossing surface 覆盖 app-server session facade、turn start/steer、active-thread command routing 与 request resolution: [`app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148-L280)、[`turn_start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L521-L594)、[`thread_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L508-L740)
+- Conversation projection surface 覆盖 chat widget ownership、protocol notification projection、outbound command submission 与 assistant streaming: [`chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658-L760)、[`chatwidget/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/protocol.rs#L4-L330)、[`submit_op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L9966-L9985)、[`flush_answer_stream_with_separator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1547-L1575)
+- Focus and decision surface 覆盖 bottom pane focus model、active views 与 approval overlay: [`bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L194-L234)、[`as_renderable`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L1525-L1565)、[`approval_overlay.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/approval_overlay.rs#L1-L167)
+- Pending request and scrollback surface 覆盖 app-server request ledger、server-event routing、source-backed message consolidation 与 resize reflow: [`app_server_requests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L69-L240)、[`app_server_events.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L30-L180)、[`agent_message_consolidation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/agent_message_consolidation.rs#L1-L91)、[`resize_reflow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/resize_reflow.rs#L1-L260)
+- Rendering 与 consolidation tests: [`status_and_layout.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs#L245-L316)、[`exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34)
 
 ### 第 17 章：MCP：没有运行时耦合的外部工具
 

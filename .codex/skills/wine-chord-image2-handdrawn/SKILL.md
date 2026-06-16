@@ -306,6 +306,10 @@ Use deterministic composition when accuracy requires it:
 - Overlay exact labels, node titles, arrows, or callouts with a script or design
   renderer only when source accuracy requires it and the result still matches
   the generated hand-drawn style.
+- Never publish a generated-background figure that relies on live HTML, CSS, SVG,
+  canvas, or DOM text layers for its final labels. If deterministic labels are
+  needed, rasterize them into one final PNG/WebP and inspect the final raster at
+  full size.
 - Do not use deterministic composition to paste text pills onto empty generated
   plaques, tags, shelves, panels, or cards. The label's baseline, rotation,
   stroke weight, fill opacity, shadow, and surrounding paper grain must match
@@ -459,6 +463,14 @@ Inspect every generated figure before publishing:
 - The published article references the PicGo remote URL for each generated
   figure. The local PNG may remain in the repo as source/backing material, but
   it should not be the published `src` for generated article images.
+- The final asset directory contains only reproducible backing rasters and useful
+  regeneration files. Do not leave SVG, Mermaid, canvas, browser-screenshot,
+  contact-sheet, or code-generated placeholder figures that could be mistaken for
+  the image2/imagegen source of the published artwork.
+- If a draft used deterministic SVG/canvas/HTML composition before image
+  generation, replace it with an image2/imagegen-derived final raster before
+  publication and verify that public URLs, local basenames, and social metadata
+  all point at that generated raster family.
 - No private instruction, prompt, TODO, or process note is visible.
 - Mobile rendering keeps the image legible at article width.
 - The figure fits the Prompt Cache visual family when viewed beside the

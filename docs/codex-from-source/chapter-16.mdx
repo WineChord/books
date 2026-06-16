@@ -1,131 +1,381 @@
-
 # Chapter 16: The TUI as an Event Renderer
 
-> **Reading Contract:** Use this chapter to read the TUI as a projection. Track event rendering, layout state, streaming Markdown, approvals, and why the terminal is not a second runtime.
+> **Reading Contract:** Use this chapter to answer one practical question: when a rich terminal conversation is on screen, which layer owns the fact, which layer owns the interaction, and which layer is only rendering a projection? Track four boundaries: the `App::run` select loop, `ChatWidget` protocol projection, `BottomPane` interruption state, and source-backed scrollback. Afterward, you should be able to tell whether a claim belongs to runtime authority, UI ownership, or terminal mechanics.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-event-renderer-df64b03.webp" alt="TUI event renderer map showing terminal input, app commands, chat cells, bottom pane state, streaming Markdown, approval modals, and runtime events" loading="eager" decoding="async" />
-  <figcaption>The TUI is a projection, not the owner of truth: session events become render state, streaming Markdown, approval controls, and terminal feedback.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-event-renderer-569ff6a1-v3.webp" alt="TUI event renderer map showing AppEvent, active thread, TuiEvent, and app-server sources entering App run select loop and fanning out to ChatWidget, BottomPane, protocol commands, frame draw, and source-backed scrollback" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>The Codex TUI is a projection engine: it multiplexes local UI events and app-server protocol events, then projects them into chat state, bottom-pane views, protocol commands, frames, and source-backed scrollback.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** source-level claims in this chapter count as **verified source** only when they link to the pinned Codex commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3` or to the Source Map. Design language such as "projection", "ownership boundary", "terminal substrate", and "runtime authority" is **surrounding contract inference** from those visible files. This chapter does not infer OpenAI service internals or treat terminal UI behavior as the authoritative agent runtime.
 
-Chapter 15 showed that Codex has more than one client shape: SDKs, daemon connections, execution wrappers, and remote-control streams all reach the runtime through disciplined boundaries. This chapter studies the client most users feel first. The terminal UI is not the runtime. It is an event renderer, input coordinator, and approval surface built on top of the app-server-backed thread model.
+Chapter 15 studied the external reach of Codex: SDKs, daemons, and remote-control bridges preserve or narrow the app-server contract. Chapter 16 moves to the client most users experience directly. The terminal UI can look like "the app" because the user types there, approves commands there, watches output there, and copies transcript rows from there. That intuition is understandable, but it assigns ownership to the wrong layer.
 
-That distinction changes how to read the architecture. A conventional terminal application often owns the whole loop: read a key, update state, draw a frame. Codex has that loop, but the state it draws is largely produced elsewhere. The TUI routes user input into app commands, sends those commands to an app-server session, receives protocol notifications and requests, updates chat state, and renders the result inside a live terminal viewport while preserving real scrollback.
+The TUI does not own the agent runtime. It owns the interactive projection of a thread.
 
+That single sentence explains why the code is shaped the way it is. The app-server session owns typed calls such as `turn/start`, `turn/steer`, request resolution, rollback, review, compaction, and shutdown. The thread event stream owns protocol observations: turn started, item completed, message delta, error, server request. `ChatWidget` owns the projection of those observations into cells, streams, status, and local interaction state. `BottomPane` owns focused input and interruption views. The terminal layer owns raw mode, draw cadence, resize, cursor, and scrollback mechanics.
 
-## Inline, Not Fullscreen
+The useful reading move is to stop asking only "where is the UI state?" and ask the sharper question: "which state is a fact, which state is a request, and which state is only a rendered view?"
 
-The TUI is inline by default. It does not behave like a classic fullscreen alternate-screen application that owns every row until exit. It treats terminal scrollback as part of the product. Completed transcript cells can be committed to real scrollback, while active cells, the composer, status, and modal surfaces occupy a live viewport.
+## 1. Inline TUI Means Scrollback Is Part Of The Product
 
-This choice has consequences. Rendering cannot assume it can repaint the entire historical screen forever. It must decide what is committed, what is still mutable, and what needs to be redrawn. Resize handling must reflow source-backed content. Streaming markdown must avoid committing text whose layout may change. External-editor flows must release and reacquire terminal event ownership cleanly.
+Codex's TUI is not a conventional fullscreen alternate-screen program that can repaint a private screen forever. It behaves like an inline terminal application. Completed transcript material can be written into real terminal scrollback, while the live viewport keeps mutable state: current assistant stream, composer, status surfaces, approval prompts, selection views, and redraw-sensitive cells.
 
-The inline model is harder than a simple fullscreen UI, but it matches the way developers use terminals: they want the conversation to remain in scrollback, copyable, searchable, and interleaved with the rest of their shell work.
+That choice shows up in initialization and rendering. [`App`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L453-L534) owns terminal-facing orchestration state such as `app_event_tx`, `chat_widget`, transcript cells, overlays, thread channels, pending app-server requests, and terminal title/status flags. It does not become "the session runtime." Instead, it holds an [`AppServerSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148-L152), the facade that talks to app-server methods.
 
-### Startup Path
+The inline model creates three concrete obligations:
 
-Startup joins three worlds: configuration/auth state, terminal capability, and app-server session state. The TUI loads configuration, determines account and model context, initializes terminal behavior, creates or resumes a thread, and then enters an event loop that multiplexes UI events with runtime events.
+- **Do not trust painted rows as durable state.** Rows wrap differently after resize and can be cleared or replayed.
+- **Do not block protocol progress behind visual state.** If the runtime asks for an approval, the UI must preserve or resolve that request even when views change.
+- **Do not turn every keypress into runtime authority.** Most keypresses are local editor gestures; only some become `AppCommand` values.
 
-Terminal capability is not decorative. Keyboard enhancement, focus behavior, tmux handling, color palette support, desktop notifications, inline viewport behavior, image paste, and clipboard paths can all change what the UI should attempt. The app-server gives the TUI a runtime contract. Terminal detection gives it a physical display contract.
+This is why the TUI code can look more actor-like than tree-like. It is not just a nested widget hierarchy. It is an event renderer with explicit ownership boundaries.
 
-### The Spatial Model
+## 2. The Select Loop Is The Event Ownership Table
 
-Before reading the event loop, picture the screen as four layers. Real scrollback is already committed and belongs to the terminal. The live viewport contains mutable cells for in-flight work. The bottom pane owns composition and focused transient views. Modal layers interrupt the composer only when a protocol request or UI task needs a decision.
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-event-loop-owners-569ff6a1-v2.webp" alt="Four event owners diagram showing AppEvent, active thread, TuiEvent, and app-server event entering App run and producing UI state mutation, AppCommand, server response, and frame request" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`App::run` is the ownership table: each event that wins the select loop is routed to the handler allowed to mutate local state, submit an app-server command, resolve a request, or schedule a frame.</figcaption>
+</figure>
 
-The diagram explains the inline choice. The UI is not repainting a private world. It is deciding which runtime facts are stable enough to commit to the terminal's world and which still need to remain mutable.
+The mechanical center of the TUI is the [`App::run` select loop](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1019-L1067). It waits on four inputs:
 
-### Four Event Sources
+| Event source | Handler | What it owns locally |
+| --- | --- | --- |
+| `app_event_rx` | `handle_event` | Internal UI requests, consolidation, exits, browser/open-link actions, and outbound `AppCommand` routing. |
+| `active_thread_rx` | `handle_active_thread_event` | Buffered notifications for the active thread and replay-sensitive thread state. |
+| `tui_events` | `handle_tui_event` | Terminal input, paste normalization, draw, resize, cursor, and external-editor handoff. |
+| `app_server.next_event()` | `handle_app_server_event` | App-server notifications, app-server requests, disconnects, and global server messages. |
 
-Once running, the app loop is a multiplexer. It listens to internal app events, active-thread protocol events, terminal input events, and app-server session events. It then turns them into one of three outcomes: send an app command, mutate transcript or UI state, or schedule a frame.
+An abbreviated source excerpt makes the boundary concrete:
 
-This event shape is why the TUI is better understood as actor-like than as a single mutable widget tree. The app object owns orchestration. The chat widget owns conversation state. The bottom pane owns input and transient views. Terminal control owns raw mode, resize, buffer diffing, and viewport behavior. Each component is stateful, but they communicate through typed events and commands rather than by reaching through every layer.
-
-### App Commands
-
-The TUI converts user intent into app commands. A submitted prompt, an interrupt, an approval response, a model switch, a file mention, a slash command, or an external-editor completion should not directly mutate runtime state. It becomes a typed command that the app can route.
-
-This keeps UI gestures separate from runtime authority. Pressing a key may move the cursor, open a modal, accept a completion, or submit structured input. Only the last category crosses into app-server state. The command boundary is where the TUI decides whether it is handling presentation or asking the runtime to do work.
-
-```text
-pseudocode: TUI event step
-
-for each event selected by the app loop:
-    if it is terminal input:
-        let the focused component handle the key
-        collect any app command it emits
-
-    if it is a protocol notification:
-        update chat history, active cells, or status
-
-    if it is a server request:
-        enqueue an approval, elicitation, or input prompt
-        show the appropriate modal surface
-
-    if an app command is ready:
-        send it through the app-server session
-
-    request a frame when visible state changed
+```rust
+let control = select! {
+    Some(event) = app_event_rx.recv() => {
+        app.handle_event(tui, &mut app_server, event).await?
+    }
+    active = async {
+        if let Some(rx) = app.active_thread_rx.as_mut() {
+            rx.recv().await
+        } else {
+            None
+        }
+    }, if App::should_handle_active_thread_events(...) => {
+        if let Some(event) = active {
+            app.handle_active_thread_event(tui, &mut app_server, event).await?;
+        } else {
+            app.clear_active_thread().await;
+        }
+        AppRunControl::Continue
+    }
+    event = tui_events.next() => {
+        // terminal input, draw, resize, or terminal stream closure
+    }
+    app_server_event = app_server.next_event(), if listen_for_app_server_events => {
+        // notifications, requests, disconnects
+        AppRunControl::Continue
+    }
+};
 ```
 
-The pseudocode again avoids implementation detail. The durable idea is that runtime mutations leave the UI through commands, while runtime observations enter the UI through protocol events.
+The important point is not the syntax of `tokio::select!`; it is the authority attached to each branch. A terminal paste can update the composer. A server request can block runtime progress until answered. An internal `AppEvent::ConsolidateAgentMessage` can rewrite transcript cell ownership after streaming ends. A draw event should not invent protocol state; it should render what is already owned elsewhere.
 
-### Chat Widget
+### 2.1 Terminal input stays local until it crosses a command boundary
 
-The chat widget is the conversation controller. It owns committed history cells, active cells for in-flight work, stream controllers, status surfaces, pending queues, and protocol handling for the active thread. It is not merely a renderer. It decides how events become display units.
+[`handle_tui_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1110-L1185) keeps this split explicit. A `Key` goes to `handle_key_event`. A `Paste` normalizes `\r` to `\n` before giving text to `ChatWidget`. A `Draw` or `Resize` performs pre-render work, lets the chat widget tick timers, computes desired height, and calls either `draw_with_resize_reflow` or `draw`.
 
-The distinction between committed and active cells is central. A committed cell represents transcript content whose source is stable enough to live in history. An active cell represents content still changing: streaming assistant text, command output still growing, an approval waiting for response, or a turn whose status is not final. Keeping those apart lets the UI be both responsive and correct. It can redraw mutable content without rewriting the past.
+The draw path is abbreviated below:
 
-### Bottom Pane
+```rust
+TuiEvent::Draw | TuiEvent::Resize => {
+    self.chat_widget.maybe_post_pending_notification(tui);
+    self.chat_widget.pre_draw_tick();
+    let desired_height = self.chat_widget.desired_height(tui.terminal.size()?.width);
+    if terminal_resize_reflow_enabled {
+        tui.draw_with_resize_reflow(desired_height, |frame| {
+            let area = frame.area();
+            self.chat_widget.render(area, frame.buffer);
+            if let Some((x, y)) = self.chat_widget.cursor_pos(area) {
+                frame.set_cursor_style(self.chat_widget.cursor_style(area));
+                frame.set_cursor_position((x, y));
+            }
+        })?;
+    } else {
+        tui.draw(desired_height, |frame| { /* same render closure */ })?;
+    }
+}
+```
 
-The bottom pane is where persistent composition and transient interruption meet. The composer holds ordinary user input. Modal views handle approval, elicitation, feedback, selection, file or skill mentions, slash-command completion, and other focused tasks. These modes interrupt the composer without destroying it.
+This is why "the TUI is the runtime" is the wrong model. Draw is a projection step. It can ask `ChatWidget` what the current view should look like; it cannot decide that a turn has completed or that an approval has been granted. Those facts must arrive through the protocol path or through an explicit command response.
 
-Approval handling shows why this matters. A command approval is not just a line of text in the transcript. It is a pending server request tied to runtime progress. The TUI must present enough context, accept a decision, send the response through the app-server session, and then return the user to the conversation. If the modal were only a visual overlay with no connection to pending protocol state, the runtime could remain blocked after the UI seemed to move on.
+### 2.2 Internal app events are routed, not globally mutable
 
-### Streaming Markdown
+[`AppEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L131-L240) is the internal message bus. The module documentation states the intent: widgets can request app-layer actions without directly reaching into `App`; exit is explicitly modeled. That local architecture rule has practical consequences.
 
-Streaming output is the hardest rendering path. The model may emit partial markdown, and later tokens can change how earlier visible text should wrap or parse. Tables are the clearest example: a later row can change column widths for earlier rows. The TUI therefore separates stable committed source from a mutable live tail.
+For example, `ChatWidget` does not directly own the app-server session. When it wants to submit runtime work, it sends `AppEvent::CodexOp(AppCommand)` or a targeted `SubmitThreadOp`. When it finishes streaming assistant text, it sends `AppEvent::ConsolidateAgentMessage`. When it needs a browser link or external editor, it sends an app event. The app dispatcher then decides which submodule handles the event.
 
-The rule is conservative: commit only what can be treated as stable source, and leave incomplete or layout-sensitive content in the live viewport. That lets scrollback remain readable while still showing fresh output quickly.
+The [`handle_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L12-L220) match is intentionally exhaustive and routing-heavy. Large domain actions are delegated to focused app modules. That keeps the central loop a boundary instead of a catch-all mutator.
 
-### Rich and Raw Rendering
+## 3. AppCommand Is The Runtime Crossing
 
-The TUI needs two render personalities. Rich rendering makes the terminal experience readable: markdown structure, status labels, command cells, diffs, approval prompts, and active progress surfaces. Raw or copy-friendly rendering keeps transcript content usable outside the UI: text should be selectable, logs should remain comprehensible, and committed scrollback should not depend on hidden widget state.
+The TUI uses [`AppCommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_command.rs#L25-L109) as the typed form of user intent that can cross out of presentation. A prompt submission, interrupt, approval response, permissions response, rollback, compact request, review request, shell command, or reload is not just "some UI happened." It becomes a command with an explicit routing path.
 
-This is another reason source-backed rendering matters. If history cells keep their original source where possible, resize reflow and copy behavior can be derived from content rather than from a stale screen buffer. A terminal UI that stores only painted rows will eventually lose to resize, wrapping, selection, and transcript reconstruction.
+`ChatWidget`'s [`submit_op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L9966-L9985) shows the local boundary:
 
-### Terminal Control
+```rust
+pub(crate) fn submit_op<T>(&mut self, op: T) -> bool
+where
+    T: Into<AppCommand>,
+{
+    let op: AppCommand = op.into();
+    self.prepare_local_op_submission(&op);
+    match &self.codex_op_target {
+        CodexOpTarget::Direct(codex_op_tx) => {
+            crate::session_log::log_outbound_op(&op);
+            if let Err(e) = codex_op_tx.send(op) {
+                tracing::error!("failed to submit op: {e}");
+                return false;
+            }
+        }
+        CodexOpTarget::AppEvent => {
+            self.app_event_tx.send(AppEvent::CodexOp(op));
+        }
+    }
+    true
+}
+```
 
-The terminal layer owns mechanics that application logic should not know in detail: raw mode, keyboard enhancement, event streams, resize notifications, inline viewport size, buffer diffing, and terminal restoration. Codex also has support crates for ANSI conversion, terminal detection, feedback capture, debugging, cancellation helpers, and code-mode execution. These are not side quests. They keep external-interface complexity out of the chat controller.
+The two targets matter. In test or direct paths, the command can go to a direct sender. In the app-server-backed TUI, it first becomes an internal app event, so the app layer can resolve pending requests or submit to the active thread through `AppServerSession`.
 
-One concrete example is external editor use. While an editor owns the terminal, the TUI cannot keep assuming it owns standard input events. The event stream may need to be dropped and recreated around the editor flow. That kind of terminal ownership problem belongs in the terminal substrate, not in the logic that maps a turn notification into a history cell.
+The next boundary is [`try_submit_active_thread_op_via_app_server`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L508-L620). Its `UserTurn` branch first checks whether an active turn can be steered. If a turn is active, the TUI tries `turn_steer`; if not, or if the active-turn state races and clears, it starts a new turn through `turn_start`. The UI does not sample the model. It asks the app-server to steer or start a turn.
 
-### Code Mode and Nested Work
+The app-server facade makes that explicit. [`AppServerSession::turn_start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L521-L594) builds a typed `ClientRequest::TurnStart` with `thread_id`, input items, cwd, approval policy, reviewer, sandbox/permission overrides, model, service tier, reasoning effort, summary, personality, schema, and collaboration mode. That is the runtime boundary.
 
-Code mode adds another event-rendering challenge. A JavaScript runtime can execute code, preserve host-managed session state, wait on long-running work, and route nested tool calls through host callbacks. From the TUI's point of view, these are still events, commands, statuses, and renderable cells. The UI should not become the owner of the execution engine. It should show the state, send the user's decisions, and keep the transcript coherent.
+The boundary becomes practical in this table:
 
-That is the recurring architecture of this chapter: specialized subsystems may be complex, but their interaction with the TUI is mediated through events, commands, cells, and modal state.
+| UI gesture | Local owner | Runtime crossing |
+| --- | --- | --- |
+| Move cursor, edit draft, open completion popup | `BottomPane` / composer | None. |
+| Paste text | `handle_tui_event` then `ChatWidget` | None until submitted. |
+| Submit prompt | `ChatWidget` builds input | `AppCommand::UserTurn` to `turn_steer` or `turn_start`. |
+| Interrupt | `ChatWidget` / `App` | `turn_interrupt` or startup interrupt. |
+| Approve a command | `ApprovalOverlay` records choice | `AppCommand::ExecApproval` resolves a server request. |
+| Redraw frame | Terminal layer and `ChatWidget::render` | None. |
 
-### Trace Ledger
+This table keeps UI richness from becoming architectural confusion. A rich terminal surface can still remain a client.
 
-| Question | Chapter 16 answer |
+## 4. ChatWidget Projects Protocol Events Into Conversation State
+
+[`ChatWidget`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658-L760) is the conversation controller. Its source comments say it owns state derived from the protocol event stream: history cells, streaming buffers, bottom-pane overlays, transient status text, and keypress-to-intent conversion. It is not responsible for running the agent.
+
+That line is easy to underestimate. `ChatWidget` is more than a renderer, but less than a runtime. It owns display-level semantics:
+
+- how turn notifications update progress and task lifecycle;
+- how completed items become history cells;
+- how streaming assistant output becomes a live tail;
+- how status, warnings, rate limits, tool runs, patches, and diffs appear;
+- how local user actions become `AppCommand` or internal `AppEvent` values.
+
+The protocol projection is visible in [`chatwidget/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/protocol.rs#L4-L140). `handle_server_notification` matches app-server notifications and calls local handlers. `TurnStarted` updates lifecycle and starts task state. `TurnCompleted` finalizes or interrupts. `ItemStarted` and `ItemCompleted` become command, patch, MCP, web-search, image-generation, review, or other item surfaces. `AgentMessageDelta` enters `on_agent_message_delta`.
+
+An abbreviated slice shows the event-to-projection shape:
+
+```rust
+match notification {
+    ServerNotification::TurnStarted(notification) => {
+        self.turn_lifecycle.last_turn_id = Some(notification.turn.id);
+        self.on_task_started();
+    }
+    ServerNotification::TurnCompleted(notification) => {
+        self.handle_turn_completed_notification(notification, replay_kind);
+    }
+    ServerNotification::ItemStarted(notification) => {
+        self.handle_item_started_notification(notification, replay_kind.is_some());
+    }
+    ServerNotification::ItemCompleted(notification) => {
+        self.handle_item_completed_notification(notification, replay_kind);
+    }
+    ServerNotification::AgentMessageDelta(notification) => {
+        self.on_agent_message_delta(notification.delta);
+    }
+    // more protocol notifications omitted
+}
+```
+
+The app-server notification is the fact. The local method call is the projection decision. That distinction is why replay and live handling can share the same conceptual boundary: the TUI can render a history event without claiming it originated the event.
+
+### 4.1 `ChatWidget` owns process-level interaction, `BottomPane` owns local focus
+
+The `ChatWidget` source comment also calls out quit and interrupt behavior: local input routing belongs to the bottom pane, while process-level decisions such as interrupting active work, arming double-press quit, and shutdown-first exit belong to `ChatWidget`. This is a useful example of ownership being split by authority instead of by screen area.
+
+If a user presses Ctrl+C, the currently focused bottom-pane view may consume it. If an approval view is active, Ctrl+C may cancel that view. If no local view consumes it, `ChatWidget` may decide that active work should be interrupted or that exit should be requested. Same key, different ownership boundary.
+
+That split prevents two concrete bugs:
+
+- a local text editor mode should not accidentally send `turn/interrupt`;
+- an active runtime turn should not be left running because the UI treated Ctrl+C as only a text-editing gesture.
+
+The codebase expresses that split through typed views, app events, and commands rather than through one giant key handler that mutates everything.
+
+## 5. BottomPane Is An Interruption System, Not A Footer
+
+[`BottomPane`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L194-L234) is documented as the owning container for `ChatComposer` and `BottomPaneView`. It handles local input routing, rendering, and time-based hints, while leaving process-level decisions to `ChatWidget`. The correct mental model is therefore not "footer" but focused interaction plane.
+
+It owns the composer, a view stack, delayed approval requests, pending input previews, pending thread approvals, status/footer surfaces, key state, paste state, and context-window display. Its [`as_renderable`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L1525-L1565) path gives the active view priority and otherwise composes status/footer, pending approval, pending preview, and composer surfaces.
+
+That distinction matters because many app-server interactions are not linear transcript text. A command approval, permissions request, MCP elicitation, user-input request, app-link view, or picker is not just an output row. It is a focused state machine that must return a decision or preserve pending state.
+
+## 6. Approval Requests Are Protocol State With A View
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-approval-request-boundary-569ff6a1-v2.webp" alt="Approval request boundary diagram showing ServerRequest entering PendingAppServerRequests, appearing through ApprovalOverlay, becoming AppCommand response, and resolving the app-server request" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>An approval modal is only the visible view of pending protocol state; the request must remain queued or be resolved through the app-server request response path.</figcaption>
+</figure>
+
+Approval handling is the clearest place to see why "UI projection" does not mean "stateless UI." The app-server can send a `ServerRequest` that must be answered. The TUI has to remember it, show it, accept a decision, serialize the matching response, and send that response back to the app-server. A modal that disappears without resolving or preserving the request is a correctness bug, not merely a UX bug.
+
+The pending ledger is [`PendingAppServerRequests`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L69-L158):
+
+```rust
+pub(super) struct PendingAppServerRequests {
+    exec_approvals: HashMap<String, AppServerRequestId>,
+    file_change_approvals: HashMap<String, AppServerRequestId>,
+    permissions_approvals: HashMap<String, AppServerRequestId>,
+    user_inputs: HashMap<String, VecDeque<PendingUserInputRequest>>,
+    mcp_requests: HashMap<McpRequestKey, AppServerRequestId>,
+}
+
+pub(super) fn note_server_request(
+    &mut self,
+    request: &ServerRequest,
+) -> Option<UnsupportedAppServerRequest> {
+    match request {
+        ServerRequest::CommandExecutionRequestApproval { request_id, params } => {
+            let approval_id = params
+                .approval_id
+                .clone()
+                .unwrap_or_else(|| params.item_id.clone());
+            self.exec_approvals.insert(approval_id, request_id.clone());
+            None
+        }
+        ServerRequest::FileChangeRequestApproval { request_id, params } => {
+            self.file_change_approvals.insert(params.item_id.clone(), request_id.clone());
+            None
+        }
+        // permissions, user input, MCP elicitation, and unsupported cases omitted
+    }
+}
+```
+
+The app-server event handler records the request before it decides how to show it. [`handle_server_request_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L142-L180) calls `note_server_request`, rejects unsupported request families with an app-server error, extracts the target thread, and routes supported requests to the primary or active thread state. That sequencing matters: the UI view is downstream of the protocol ledger.
+
+Resolution is the mirror path. [`take_resolution`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L160-L240) maps an `AppCommand` back to an app-server request id and serializes the correct response type. [`try_resolve_app_server_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L711-L740) then calls `resolve_server_request`.
+
+`ApprovalOverlay` is therefore a view over pending protocol state, not the state itself. Its module docs say it converts approval requests into list-selection views and emits explicit decision events; MCP elicitation Escape maps to cancel; it does not evaluate whether an action is safe. The safety decision belongs to policy and runtime layers. The overlay's job is to present, collect, and route a decision.
+
+## 7. Streaming Markdown Forces Source-Backed Rendering
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-source-backed-scrollback-569ff6a1-v2.webp" alt="Source-backed scrollback diagram showing AgentMessageDelta streaming rows, live tail, flush stream, AgentMarkdownCell source document, transcript cells ledger, resize reflow, and stable terminal scrollback" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Streaming assistant text starts as mutable rows, but resize-safe scrollback depends on consolidated source-backed cells that can replay the transcript at a new terminal width.</figcaption>
+</figure>
+
+Streaming assistant text is the hardest rendering path because incomplete Markdown is not layout stable. A later token can change whether earlier text is a paragraph, list, table, code block, or link. Terminal width can also change while the stream is still live. If the TUI only stored painted rows, it would eventually lose track of the underlying content.
+
+Codex solves this by separating temporary stream rows from source-backed transcript cells.
+
+The streaming start path is in [`handle_streaming_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L4168-L4204). Before starting an agent stream, it flushes active exec state, handles separators, and creates a `StreamController` using the current stream width and render mode. [`on_agent_message_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L2119-L2121) is deliberately small: it pushes the delta into that streaming path.
+
+The consolidation path is the key:
+
+```rust
+fn flush_answer_stream_with_separator(&mut self) {
+    let had_stream_controller = self.stream_controller.is_some();
+    if let Some(mut controller) = self.stream_controller.take() {
+        let scrollback_reflow = if controller.has_live_tail() {
+            ConsolidationScrollbackReflow::Required
+        } else {
+            ConsolidationScrollbackReflow::IfResizeReflowRan
+        };
+        self.clear_active_stream_tail();
+        let (cell, source) = controller.finalize();
+        let deferred_history_cell = if scrollback_reflow == Required {
+            cell
+        } else {
+            if let Some(cell) = cell {
+                self.add_boxed_history(cell);
+            }
+            None
+        };
+        if let Some(source) = source {
+            self.app_event_tx.send(AppEvent::ConsolidateAgentMessage {
+                source,
+                cwd: self.config.cwd.to_path_buf(),
+                scrollback_reflow,
+                deferred_history_cell,
+            });
+        }
+    }
+    if had_stream_controller && self.stream_controllers_idle() {
+        self.app_event_tx.send(AppEvent::StopCommitAnimation);
+    }
+}
+```
+
+The source comment at [`flush_answer_stream_with_separator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1547-L1575) states the invariant directly: consolidate the run of streaming `AgentMessageCell`s into a single `AgentMarkdownCell` that can re-render from source after resize.
+
+The app side receives that event in [`event_dispatch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L220-L237), then delegates to [`agent_message_consolidation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/agent_message_consolidation.rs#L1-L91). That module's docs explain the whole design: during streaming, transient `AgentMessageCell`s let stable lines animate into scrollback while the mutable tail stays in the bottom pane; after finish, the app replaces the trailing run with a source-backed `AgentMarkdownCell`, making the transcript the canonical owner of raw markdown source for future resize re-renders.
+
+### 7.1 Resize reflow is a transcript replay, not a screen stretch
+
+[`resize_reflow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/resize_reflow.rs#L1-L15) is explicit about the contract. It connects terminal resize events to source-backed transcript scrollback rebuilds. It stores history as `HistoryCell`s but writes finalized history into terminal scrollback. When width changes, it uses stored cells as source, clears Codex-owned terminal history, and re-emits the transcript.
+
+That is a different model from "just redraw whatever was on screen." It is closer to a projection rebuild:
+
+| Thing | Owner | Resize behavior |
+| --- | --- | --- |
+| Raw markdown source | `AgentMarkdownCell` / transcript cells | Re-render from source. |
+| Temporary streaming rows | stream controller / active tail | Consolidate or require final reflow. |
+| Terminal scrollback rows | terminal substrate | Can be cleared and replayed. |
+| Overlay transcript view | app overlay state | Receives cell consolidation and frame scheduling. |
+
+That is why "source-backed scrollback" is not decorative wording. It is what keeps inline terminal history from becoming stale after resize, streaming, or replay.
+
+## 8. App-Server Events Keep The TUI Honest
+
+The TUI has its own rich local state, but app-server events keep it honest. [`handle_app_server_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L30-L58) distinguishes lag, notification, request, and disconnect events. A disconnect becomes a chat error plus `FatalExitRequest`. A server request goes through the pending-request ledger. A notification may be global or thread-scoped.
+
+[`handle_server_notification_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L60-L140) has another important boundary: it resolves pending app-server requests when a `ServerRequestResolved` notification arrives, updates account/rate-limit/global state for global notifications, and otherwise routes thread-targeted notifications to the primary thread or another thread. Only after target selection does `ChatWidget` handle the notification.
+
+That target selection is why multi-thread and side-conversation behavior can exist without turning `ChatWidget` into a global runtime. The app layer owns routing. The chat widget owns projection for the active conversation.
+
+## 9. Failure Modes: What Goes Wrong When You Misread The Boundary
+
+Misreading the TUI as "the runtime" usually produces one of five bugs:
+
+| Misread | Concrete failure |
 | --- | --- |
-| Where is the user request now? | It is either being composed in the bottom pane, represented as an app command, or reflected back as protocol events in the chat surface. |
-| What carries it? | App events, app commands, app-server session messages, chat cells, stream controllers, modal queues, and terminal frame requests. |
-| Who decides next? | The focused UI component, chat widget, app orchestrator, app-server session, or user responding to an approval or elicitation modal. |
-| What can fail here? | Lost terminal ownership, resize mismatch, duplicated replay, blocked approval, malformed streaming markdown, stale active cell, or scrollback/render drift. |
+| Treat painted terminal rows as state. | Resize or replay produces stale scrollback, broken wrapping, or duplicate stream tails. |
+| Treat approval modals as plain UI. | The app-server request remains blocked or is lost after view dismissal. |
+| Treat key handling as direct runtime mutation. | Local editor gestures interrupt turns, or runtime interrupts are swallowed by local views. |
+| Treat `ChatWidget` as the app-server owner. | Protocol requests, request resolution, and thread routing become tangled with display state. |
+| Treat every notification as active-thread display. | Side-thread or global notifications leak into the wrong transcript. |
 
-## Apply This
+The codebase's answer is not "make the UI thinner." The answer is "make ownership typed." Rich UI state is allowed; it just has to stay on the correct side of the boundary.
 
-1. **Treat UI as a client.** Keep runtime authority behind protocol commands and events.
-2. **Separate active from committed.** Redraw mutable work in the live viewport and commit only stable transcript content.
-3. **Render from source.** Preserve content source so resize, copy, and replay can rebuild display instead of trusting painted rows.
-4. **Model interruptions explicitly.** Represent approvals, elicitations, and feedback as modal state tied to pending protocol work.
-5. **Isolate terminal mechanics.** Keep raw mode, keyboard behavior, viewport control, and buffer diffing below application state.
+## 10. Apply This
+
+1. **Read the TUI as a projection.** Runtime facts arrive as app-server notifications and requests; the TUI renders, routes, and responds.
+2. **Separate local interaction from runtime authority.** Draft editing, popups, and cursor movement are local. `AppCommand` values are the crossing.
+3. **Keep pending protocol work in a ledger.** Approval, permissions, user-input, and MCP elicitation requests must be resolved or preserved, never silently dropped.
+4. **Render scrollback from source and verify it visually.** Painted rows are a projection cache, not the canonical transcript; figures, snippets, and lazy images still need to render clearly in the actual book layout.
+5. **Let the app layer route targets.** `App` decides primary-thread, side-thread, global, and fatal paths; `ChatWidget` should not become a global message bus.
 
 ## Closing
 
-The TUI completes Part IV's argument. The runtime becomes a platform because its clients share a thread model without sharing a UI. The app-server defines the contract, SDKs and daemons make that contract reachable, and the terminal UI proves that a rich interactive surface can still be an event renderer rather than a second runtime. Part V turns from clients to extension points: the protocols and packages that add new capability to the system.
+The TUI completes the client-side arc of this book. Chapter 14 defined the app-server as the shared thread contract. Chapter 15 showed how SDKs, daemons, and remote-control bridges preserve or narrow that contract. Chapter 16 shows how a rich terminal surface can remain a client: it owns interaction, projection, source-backed scrollback, and user decisions, but it does not usurp the runtime.
+
+That distinction matters beyond Codex. Agent systems increasingly need multiple frontends: CLIs, IDE panes, browsers, remote dashboards, SDK consumers, and automation hooks. The transferable pattern is not "copy Codex's terminal UI." It is "keep runtime authority behind typed protocol boundaries, and let each client own only the projection it can honestly maintain." Part V turns from clients to extension surfaces: MCP, skills, plugins, connectors, and the governance needed when new capabilities enter the runtime.
 
 <div class="source-equivalence">
 
@@ -133,10 +383,12 @@ The TUI completes Part IV's argument. The runtime becomes a platform because its
 
 | Concept | Source anchor |
 | --- | --- |
-| TUI chat widget | [`codex-rs/tui/src/chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658) |
-| Bottom pane state | [`codex-rs/tui/src/bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199) |
-| TUI app-server session | [`codex-rs/tui/src/app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148) |
-| App events | [`codex-rs/tui/src/app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L72) |
-| Rendering tests | [`codex-rs/tui/src/chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34) |
+| TUI app state and select loop | [`codex-rs/tui/src/app.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L453-L534), [`App::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1019-L1067), [`handle_tui_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1110-L1185) |
+| Internal app event bus and command routing | [`app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L131-L240), [`event_dispatch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L12-L237), [`app_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_command.rs#L25-L109) |
+| App-server session facade and turn submission | [`app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148-L280), [`turn_start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L521-L594), [`thread_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L508-L740) |
+| Chat widget protocol projection and streaming | [`chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658-L760), [`chatwidget/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/protocol.rs#L4-L330), [`flush_answer_stream_with_separator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1547-L1575), [`handle_streaming_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L4168-L4204) |
+| Bottom pane and approval overlay | [`bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L194-L234), [`as_renderable`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L1525-L1565), [`approval_overlay.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/approval_overlay.rs#L1-L167) |
+| App-server requests and source-backed scrollback | [`app_server_requests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L69-L240), [`app_server_events.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L30-L180), [`agent_message_consolidation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/agent_message_consolidation.rs#L1-L91), [`resize_reflow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/resize_reflow.rs#L1-L260) |
+| Rendering and consolidation tests | [`chatwidget/tests/status_and_layout.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs#L245-L316), [`chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34) |
 
 </div>

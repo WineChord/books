@@ -1,142 +1,394 @@
-
 # 第 16 章：TUI 作为事件渲染器
 
-> **阅读契约：** 用本章把 TUI 读成 projection。跟住 event rendering、layout state、streaming Markdown、approvals，并记住 terminal 不是第二个 runtime。
+> **阅读契约：** 本章回答一个具体问题：当一个丰富的终端对话界面出现在屏幕上时，哪一层拥有事实，哪一层拥有交互，哪一层只是在渲染投影？阅读时抓住四条边界：`App::run` select loop、`ChatWidget` 的协议投影、`BottomPane` 的中断状态，以及 source-backed scrollback。读完后，应该能分清一个说法到底属于 runtime authority、UI ownership，还是 terminal mechanics。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-event-renderer-df64b03.webp" alt="TUI 事件渲染图：展示 terminal input、app commands、chat cells、bottom pane state、streaming Markdown、approval modals 和 runtime events" loading="eager" decoding="async" />
-  <figcaption>TUI 是投影，不是真相 owner：session events 被渲染成状态、流式 Markdown、approval 控件和终端反馈。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-event-renderer-569ff6a1-v3.webp" alt="TUI event renderer 图：AppEvent、active thread、TuiEvent 与 app-server sources 进入 App run select loop，再输出到 ChatWidget、BottomPane、protocol commands、frame draw 和 source-backed scrollback" loading="eager" decoding="async" width="1672" height="941" />
+  <figcaption>Codex TUI 是 projection engine：它多路复用本地 UI 事件和 app-server protocol events，再把它们投影成 chat state、bottom-pane views、protocol commands、frames 和 source-backed scrollback。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章的 source-level 论断，只有在链接到固定 Codex commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3` 或本章 Source Map 时，才视为 **verified source**。像 projection、ownership boundary、terminal substrate、runtime authority 这类设计语言，是从可见源码锚点得出的 **surrounding contract inference**。本章不推断 OpenAI 服务内部实现，也不把 terminal UI 行为当作 authoritative agent runtime。
 
-第 15 章说明 Codex 不止一种 client shape：SDK、daemon connections、execution wrappers 和 remote-control streams 都通过有纪律的边界触达 runtime。本章研究用户最先感受到的 client。Terminal UI 不是 runtime，而是建立在 app-server-backed thread model 之上的 event renderer、input coordinator 和 approval surface。
+第 15 章看的是 Codex 的外部触达：SDK、daemon 和 remote-control bridge 如何保留或收窄 app-server contract。第 16 章转向用户最直接感知到的 client。终端 UI 很容易被误认为“应用本身”，因为用户在那里输入、审批命令、看输出、复制 transcript 行。这个直觉可以理解，但它会把 ownership 放到错误的层上。
 
-这个区别会改变阅读架构的方式。传统 terminal application 往往拥有整个 loop：读一个 key，更新 state，画一帧。Codex 也有这样的 loop，但它绘制的状态大多在别处产生。TUI 把用户输入路由成 app commands，把这些 commands 发送到 app-server session，接收 protocol notifications 和 requests，更新 chat state，并在保留真实 scrollback 的同时，把结果渲染到 live terminal viewport 里。
+TUI 不拥有 agent runtime。它拥有一个 thread 的交互式投影。
 
+这句话能解释这一章的大部分代码结构。App-server session 拥有 `turn/start`、`turn/steer`、request resolution、rollback、review、compaction 和 shutdown 这类 typed calls。Thread event stream 拥有协议观察：turn started、item completed、message delta、error、server request。`ChatWidget` 拥有这些观察到 cells、streams、status 和本地 interaction state 的投影过程。`BottomPane` 拥有 focused input 和 interruption views。Terminal layer 拥有 raw mode、draw cadence、resize、cursor 和 scrollback mechanics。
 
-## Inline，而不是 Fullscreen
+所以读这章时，不要只问“UI state 在哪里”。更好的问题是：“哪个状态是事实，哪个状态是请求，哪个状态只是渲染出来的 view？”
 
-TUI 默认是 inline 的。它不像传统 fullscreen alternate-screen application 那样，在退出前拥有每一行。它把 terminal scrollback 当作产品行为的一部分。Completed transcript cells 可以提交到真实 scrollback，而 active cells、composer、status 和 modal surfaces 占用 live viewport。
+## 一、Inline TUI 让 scrollback 成为产品的一部分
 
-这个选择有后果。Rendering 不能假设自己可以永远 repaint 整个历史屏幕。它必须判断什么已经 committed，什么仍然 mutable，什么需要 redraw。Resize handling 必须用 source-backed content 重新 reflow。Streaming markdown 不能过早提交那些 layout 还可能变化的文本。External-editor flows 必须干净地释放并重新获得 terminal event ownership。
+Codex TUI 不是传统 fullscreen alternate-screen 程序，不是一个可以永远重绘私有屏幕的界面。它更像 inline terminal application。已经完成的 transcript 内容可以写入真实 terminal scrollback；live viewport 则保留可变状态：当前 assistant stream、composer、status surfaces、approval prompts、selection views，以及 redraw-sensitive cells。
 
-Inline model 比简单 fullscreen UI 更难，但它符合开发者使用终端的方式：conversation 应该留在 scrollback 中，可复制、可搜索，并能与 shell 里的其他工作交织。
+这个选择在初始化和渲染路径里很明显。[`App`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L453-L534) 拥有面向终端的编排状态，比如 `app_event_tx`、`chat_widget`、transcript cells、overlays、thread channels、pending app-server requests、terminal title/status flags。但它没有变成“session runtime”。它持有 [`AppServerSession`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148-L152)，由这个 facade 去调用 app-server methods。
 
-### Startup Path
+Inline 模型带来三个具体约束：
 
-Startup 连接三个世界：configuration/auth state、terminal capability 和 app-server session state。TUI 加载 configuration，确定 account 与 model context，初始化 terminal behavior，create 或 resume thread，然后进入一个同时处理 UI events 与 runtime events 的 event loop。
+- **不能把 painted rows 当成 durable state。** Resize 之后行会重新换行，历史行也可能被清掉再 replay。
+- **不能让协议进度卡在视觉状态里。** Runtime 发来 approval request 后，UI 必须保留或解析这个 request，即使当前 view 切换了。
+- **不能把每次按键都当成 runtime authority。** 大多数按键只是本地编辑动作；只有一部分会变成 `AppCommand`。
 
-Terminal capability 不是装饰。Keyboard enhancement、focus behavior、tmux handling、color palette support、desktop notifications、inline viewport behavior、image paste 和 clipboard paths 都可能改变 UI 应该尝试什么。App-server 给 TUI runtime contract；terminal detection 给它物理显示 contract。
+所以 TUI 代码看起来更像 event renderer，而不是单纯的 nested widget tree。它有明确的 ownership boundaries。
 
-### 空间模型
+## 二、Select loop 是事件所有权表
 
-在阅读 event loop 之前，先把屏幕想成四层。真实 scrollback 已经 committed，属于 terminal。Live viewport 包含 in-flight work 的 mutable cells。Bottom pane 拥有 composition 和 focused transient views。Modal layer 只有在 protocol request 或 UI task 需要决策时才打断 composer。
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-event-loop-owners-569ff6a1-v2.webp" alt="Four event owners 图：AppEvent、active thread、TuiEvent 和 app-server event 进入 App run，并产出 UI state mutation、AppCommand、server response 与 frame request" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>`App::run` 是所有权表：每个赢得 select loop 的 event，都会被路由到有权修改本地状态、提交 app-server command、resolve request 或 schedule frame 的 handler。</figcaption>
+</figure>
 
-这张图解释了 inline 选择。UI 不是在 repaint 一个私有世界，而是在判断哪些 runtime facts 已足够稳定、可以提交给 terminal 的世界，哪些仍必须保持 mutable。
+TUI 的机械中心是 [`App::run` select loop](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1019-L1067)。它等待四类输入：
 
-### 四个 Event Sources
+| Event source | Handler | 本地拥有的职责 |
+| --- | --- | --- |
+| `app_event_rx` | `handle_event` | 内部 UI requests、consolidation、exit、browser/open-link actions，以及 outbound `AppCommand` routing。 |
+| `active_thread_rx` | `handle_active_thread_event` | Active thread 的 buffered notifications 和 replay-sensitive thread state。 |
+| `tui_events` | `handle_tui_event` | Terminal input、paste normalization、draw、resize、cursor 和 external-editor handoff。 |
+| `app_server.next_event()` | `handle_app_server_event` | App-server notifications、app-server requests、disconnects 和 global server messages。 |
 
-运行后，app loop 是一个 multiplexer。它监听 internal app events、active-thread protocol events、terminal input events 和 app-server session events。然后把它们转成三类结果：发送 app command，修改 transcript 或 UI state，或者 schedule 一帧。
+下面的源码摘录把边界说清楚：
 
-这种 event shape 解释了为什么 TUI 更像 actor-like 系统，而不是一棵单一 mutable widget tree。App object 拥有 orchestration。Chat widget 拥有 conversation state。Bottom pane 拥有 input 和 transient views。Terminal control 拥有 raw mode、resize、buffer diffing 和 viewport behavior。每个 component 都有状态，但它们通过 typed events 和 commands 通信，而不是跨层直接伸手修改。
-
-### App Commands
-
-TUI 把 user intent 转成 app commands。Submitted prompt、interrupt、approval response、model switch、file mention、slash command 或 external-editor completion，都不应该直接修改 runtime state。它先变成 typed command，再由 app 路由。
-
-这样可以把 UI gestures 与 runtime authority 分开。按下一个 key 可能只是移动 cursor，打开 modal，接受 completion，或提交 structured input。只有最后一种会跨入 app-server state。Command boundary 是 TUI 判断“我在处理呈现”还是“我在请求 runtime 工作”的地方。
-
-```text
-pseudocode: TUI event step
-
-对 app loop 选中的每个 event:
-    如果它是 terminal input:
-        让 focused component 处理 key
-        收集它产生的 app command
-
-    如果它是 protocol notification:
-        更新 chat history、active cells 或 status
-
-    如果它是 server request:
-        enqueue approval、elicitation 或 input prompt
-        显示对应 modal surface
-
-    如果 app command 已就绪:
-        通过 app-server session 发送
-
-    visible state 改变时 request frame
+```rust
+let control = select! {
+    Some(event) = app_event_rx.recv() => {
+        app.handle_event(tui, &mut app_server, event).await?
+    }
+    active = async {
+        if let Some(rx) = app.active_thread_rx.as_mut() {
+            rx.recv().await
+        } else {
+            None
+        }
+    }, if App::should_handle_active_thread_events(...) => {
+        if let Some(event) = active {
+            app.handle_active_thread_event(tui, &mut app_server, event).await?;
+        } else {
+            app.clear_active_thread().await;
+        }
+        AppRunControl::Continue
+    }
+    event = tui_events.next() => {
+        // terminal input, draw, resize, or terminal stream closure
+    }
+    app_server_event = app_server.next_event(), if listen_for_app_server_events => {
+        // notifications, requests, disconnects
+        AppRunControl::Continue
+    }
+};
 ```
 
-这段 pseudocode 同样避开实现细节。持久设计是：runtime mutations 通过 commands 离开 UI，runtime observations 通过 protocol events 进入 UI。
+重点不在 `tokio::select!` 语法，而在每个 event source 携带的 authority 不同。Terminal paste 可以更新 composer。Server request 会阻塞 runtime progress，直到被回答。内部的 `AppEvent::ConsolidateAgentMessage` 可以在 streaming 结束后重写 transcript cell ownership。Draw event 不应该发明 protocol state；它只应该渲染已经被其他层拥有的状态。
 
-### Chat Widget
+### 2.1 Terminal input 保持本地，直到跨过 command boundary
 
-Chat widget 是 conversation controller。它拥有 committed history cells、in-flight work 的 active cells、stream controllers、status surfaces、pending queues，以及 active thread 的 protocol handling。它不只是 renderer，而是决定 events 如何变成 display units 的组件。
+[`handle_tui_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1110-L1185) 明确保留了这个拆分。`Key` 交给 `handle_key_event`。`Paste` 会先把 `\r` 归一化成 `\n`，再交给 `ChatWidget`。`Draw` 或 `Resize` 会做 pre-render work，让 chat widget 处理 timers，计算 desired height，然后调用 `draw_with_resize_reflow` 或 `draw`。
 
-Committed 和 active cells 的区别是核心。Committed cell 表示 source 已足够稳定、可以进入 history 的 transcript content。Active cell 表示仍在变化的内容：streaming assistant text、仍在增长的 command output、等待响应的 approval，或 status 未 final 的 turn。二者分开后，UI 才能既 responsive 又正确：它可以 redraw mutable content，而不重写过去。
+Draw path 的简化摘录如下：
 
-### Bottom Pane
+```rust
+TuiEvent::Draw | TuiEvent::Resize => {
+    self.chat_widget.maybe_post_pending_notification(tui);
+    self.chat_widget.pre_draw_tick();
+    let desired_height = self.chat_widget.desired_height(tui.terminal.size()?.width);
+    if terminal_resize_reflow_enabled {
+        tui.draw_with_resize_reflow(desired_height, |frame| {
+            let area = frame.area();
+            self.chat_widget.render(area, frame.buffer);
+            if let Some((x, y)) = self.chat_widget.cursor_pos(area) {
+                frame.set_cursor_style(self.chat_widget.cursor_style(area));
+                frame.set_cursor_position((x, y));
+            }
+        })?;
+    } else {
+        tui.draw(desired_height, |frame| { /* same render closure */ })?;
+    }
+}
+```
 
-Bottom pane 是 persistent composition 与 transient interruption 交汇的地方。Composer 保存普通用户输入。Modal views 处理 approval、elicitation、feedback、selection、file 或 skill mentions、slash-command completion，以及其他 focused tasks。这些 modes 会 interrupt composer，但不会摧毁它。
+这就是为什么“把 TUI 当 runtime”是错误模型。Draw 是 projection step。它可以问 `ChatWidget` 当前 view 应该怎么显示；它不能决定 turn 已经完成，也不能决定 approval 已经被批准。这些事实必须来自 protocol path，或者来自显式 command response。
 
-Approval handling 展示了为什么这很重要。Command approval 不只是 transcript 里的一行文本，而是绑定 runtime progress 的 pending server request。TUI 必须展示足够 context，接受 decision，通过 app-server session 发送 response，然后把用户带回 conversation。如果 modal 只是没有 pending protocol state 的视觉 overlay，runtime 可能在 UI 看似继续后仍然 blocked。
+### 2.2 Internal app events 是路由，不是全局可变状态
 
-### Streaming Markdown
+[`AppEvent`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L131-L240) 是内部 message bus。模块文档说得很直白：widgets 可以请求 app-layer actions，而不是直接访问 `App`；exit 也被显式建模。这条本地架构规则有实际后果。
 
-Streaming output 是最难的 rendering path。Model 可能输出 partial markdown，后续 tokens 会改变早先可见文本的 wrap 或 parse。Tables 是最清楚的例子：后来的 row 可能改变前面 rows 的 column widths。因此 TUI 把 stable committed source 和 mutable live tail 分开。
+例如，`ChatWidget` 并不直接拥有 app-server session。它要提交 runtime work 时，会发送 `AppEvent::CodexOp(AppCommand)` 或 targeted `SubmitThreadOp`。它完成 assistant streaming 时，会发送 `AppEvent::ConsolidateAgentMessage`。它要打开 browser link 或 external editor 时，也发送 app event。然后 app dispatcher 决定由哪个子模块处理。
 
-规则是保守的：只 commit 可以被视为 stable source 的内容，把 incomplete 或 layout-sensitive 内容留在 live viewport。这让 scrollback 保持可读，同时仍能快速展示新输出。
+[`handle_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L12-L220) 的 match 是 exhaustive 且偏路由的。大的 domain action 会被分派给更聚焦的 app submodule。这样 central loop 才是边界，而不是全局可变状态的杂糅点。
 
-### Rich 与 Raw Rendering
+## 三、AppCommand 是跨入 runtime 的边界
 
-TUI 需要两种 rendering personality。Rich rendering 让 terminal experience 可读：markdown structure、status labels、command cells、diffs、approval prompts 和 active progress surfaces。Raw 或 copy-friendly rendering 让 transcript content 能离开 UI 使用：text 应该可选择，logs 应该可理解，committed scrollback 不应该依赖隐藏 widget state。
+TUI 用 [`AppCommand`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_command.rs#L25-L109) 表达可以跨出 presentation 层的 typed user intent。一次 prompt submission、interrupt、approval response、permissions response、rollback、compact request、review request、shell command 或 reload，不只是“UI 发生了什么”。它会变成一条有显式路由路径的 command。
 
-这也是 source-backed rendering 重要的原因。如果 history cells 尽量保留原始 source，resize reflow 和 copy behavior 就能从 content 派生，而不是从过期 screen buffer 派生。只存 painted rows 的 terminal UI，最终会在 resize、wrapping、selection 和 transcript reconstruction 面前失败。
+`ChatWidget` 的 [`submit_op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L9966-L9985) 展示了本地边界：
 
-### Terminal Control
+```rust
+pub(crate) fn submit_op<T>(&mut self, op: T) -> bool
+where
+    T: Into<AppCommand>,
+{
+    let op: AppCommand = op.into();
+    self.prepare_local_op_submission(&op);
+    match &self.codex_op_target {
+        CodexOpTarget::Direct(codex_op_tx) => {
+            crate::session_log::log_outbound_op(&op);
+            if let Err(e) = codex_op_tx.send(op) {
+                tracing::error!("failed to submit op: {e}");
+                return false;
+            }
+        }
+        CodexOpTarget::AppEvent => {
+            self.app_event_tx.send(AppEvent::CodexOp(op));
+        }
+    }
+    true
+}
+```
 
-Terminal layer 拥有 application logic 不该知道太多的机制：raw mode、keyboard enhancement、event streams、resize notifications、inline viewport size、buffer diffing 和 terminal restoration。Codex 还有支持 ANSI conversion、terminal detection、feedback capture、debugging、cancellation helpers 和 code-mode execution 的辅助 crates。这些不是支线任务，它们把外部 interface complexity 留在 chat controller 之外。
+两个 target 都重要。在测试或 direct path 里，command 可以直接发给 sender。在 app-server-backed TUI 里，它会先变成内部 app event，这样 app layer 可以先 resolve pending request，或者通过 `AppServerSession` 把 command 提交给 active thread。
 
-一个具体例子是 external editor。Editor 拥有 terminal 时，TUI 不能继续假设自己拥有 standard input events。Event stream 可能需要在 editor flow 前后 drop 并重新创建。这类 terminal ownership problem 应属于 terminal substrate，而不是属于把 turn notification 映射成 history cell 的逻辑。
+下一道边界是 [`try_submit_active_thread_op_via_app_server`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L508-L620)。它处理 `UserTurn` 时，会先看当前是否有 active turn 可以 steer。如果有，就尝试 `turn_steer`；如果没有，或者 active-turn state 发生 race 并被清掉，就通过 `turn_start` 开新 turn。UI 不采样模型。它请求 app-server 去 steer 或 start 一个 turn。
 
-### Code Mode 与嵌套工作
+App-server facade 把这点写得更清楚。[`AppServerSession::turn_start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L521-L594) 构造 typed `ClientRequest::TurnStart`，包含 `thread_id`、input items、cwd、approval policy、reviewer、sandbox/permission overrides、model、service tier、reasoning effort、summary、personality、schema 和 collaboration mode。这才是 runtime boundary。
 
-Code mode 带来另一种 event-rendering 挑战。JavaScript runtime 可以执行 code，保留 host-managed session state，等待 long-running work，并通过 host callbacks 路由 nested tool calls。从 TUI 的角度看，这些仍然是 events、commands、statuses 和 renderable cells。UI 不应该成为 execution engine 的 owner。它应该显示状态，发送用户 decision，并保持 transcript coherent。
+这个边界可以压缩成一张实用表：
 
-这就是本章反复出现的结构：specialized subsystem 可以很复杂，但它与 TUI 的交互通过 events、commands、cells 和 modal state 调停。
+| UI gesture | 本地 owner | Runtime crossing |
+| --- | --- | --- |
+| 移动光标、编辑 draft、打开 completion popup | `BottomPane` / composer | 无。 |
+| Paste text | `handle_tui_event` 然后 `ChatWidget` | 提交前无。 |
+| Submit prompt | `ChatWidget` 组织 input | `AppCommand::UserTurn` 到 `turn_steer` 或 `turn_start`。 |
+| Interrupt | `ChatWidget` / `App` | `turn_interrupt` 或 startup interrupt。 |
+| Approve command | `ApprovalOverlay` 记录选择 | `AppCommand::ExecApproval` 解析 server request。 |
+| Redraw frame | Terminal layer 和 `ChatWidget::render` | 无。 |
 
-### Trace Ledger
+这张表可以防止 UI 丰富度变成架构混乱。一个强交互终端表面仍然可以保持为 client。
 
-| 问题 | 第 16 章答案 |
+## 四、ChatWidget 把 protocol events 投影成 conversation state
+
+[`ChatWidget`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658-L760) 是 conversation controller。源码注释说它拥有从 protocol event stream 派生出来的状态：history cells、streaming buffers、bottom-pane overlays、transient status text，以及 keypress-to-intent conversion。它不负责运行 agent。
+
+这句话很关键。`ChatWidget` 不只是 renderer，但也不是 runtime。它拥有 display-level semantics：
+
+- turn notifications 如何更新 progress 和 task lifecycle；
+- completed items 如何变成 history cells；
+- streaming assistant output 如何变成 live tail；
+- status、warnings、rate limits、tool runs、patches、diffs 如何显示；
+- 本地用户动作如何变成 `AppCommand` 或内部 `AppEvent`。
+
+Protocol projection 在 [`chatwidget/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/protocol.rs#L4-L140) 里很直接。`handle_server_notification` match app-server notifications，并调用本地 handler。`TurnStarted` 更新 lifecycle 并启动 task state。`TurnCompleted` 做 finalize 或 interrupt。`ItemStarted` 与 `ItemCompleted` 变成 command、patch、MCP、web-search、image-generation、review 等 surfaces。`AgentMessageDelta` 进入 `on_agent_message_delta`。
+
+简化摘录如下：
+
+```rust
+match notification {
+    ServerNotification::TurnStarted(notification) => {
+        self.turn_lifecycle.last_turn_id = Some(notification.turn.id);
+        self.on_task_started();
+    }
+    ServerNotification::TurnCompleted(notification) => {
+        self.handle_turn_completed_notification(notification, replay_kind);
+    }
+    ServerNotification::ItemStarted(notification) => {
+        self.handle_item_started_notification(notification, replay_kind.is_some());
+    }
+    ServerNotification::ItemCompleted(notification) => {
+        self.handle_item_completed_notification(notification, replay_kind);
+    }
+    ServerNotification::AgentMessageDelta(notification) => {
+        self.on_agent_message_delta(notification.delta);
+    }
+    // more protocol notifications omitted
+}
+```
+
+App-server notification 是事实。本地方法调用是 projection decision。这就是为什么 replay 和 live handling 可以共享同一条概念边界：TUI 可以渲染一个 history event，但不能声称这个 event 是自己发明的。
+
+### 4.1 `ChatWidget` 拥有 process-level interaction，`BottomPane` 拥有 local focus
+
+`ChatWidget` 注释还特别提到 quit/interrupt：local input routing 属于 bottom pane；process-level decisions，例如 interrupt active work、arming double-press quit、shutdown-first exit，属于 `ChatWidget`。这是一个很好的所有权拆分例子：边界不是按屏幕区域划，而是按 authority 划。
+
+用户按 Ctrl+C 时，当前 focused bottom-pane view 可能会消费它。如果 approval view active，Ctrl+C 可能取消当前 view。如果本地 view 没有消费，`ChatWidget` 才可能决定 active work 是否应该被 interrupt，或者是否请求 exit。同一个 key，不同 owner boundary。
+
+这个拆分防止两类具体 bug：
+
+- 本地文本编辑模式不应该误发 `turn/interrupt`；
+- active runtime turn 不应该因为 UI 把 Ctrl+C 当成本地编辑动作而继续跑着没人管。
+
+代码通过 typed views、app events 和 commands 表达这个拆分，而不是靠一个巨大的 key handler 到处改状态。
+
+## 五、BottomPane 是 interruption system，不是 footer
+
+[`BottomPane`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L194-L234) 的文档说它是 `ChatComposer` 和 `BottomPaneView` 的 owning container。它处理 local input routing、rendering 和 time-based hints，把 process-level decisions 留给 `ChatWidget`。正确的 mental model 不是 footer，而是 focused interaction plane。
+
+它拥有 composer、view stack、delayed approval requests、pending input previews、pending thread approvals、status/footer surfaces、key state、paste state 和 context-window display。它的 [`as_renderable`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L1525-L1565) 会让 active view 优先，否则再组合 status/footer、pending approval、pending preview 和 composer surfaces。
+
+这点重要，是因为很多 app-server interactions 并不是线性的 transcript text。Command approval、permissions request、MCP elicitation、user-input request、app-link view 或 picker，都不是一行输出而已。它们是 focused state machine，必须返回 decision 或保留 pending state。
+
+## 六、Approval request 是带 view 的协议状态
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-approval-request-boundary-569ff6a1-v2.webp" alt="Approval request boundary 图：ServerRequest 进入 PendingAppServerRequests，通过 ApprovalOverlay 显示，变成 AppCommand response，再解析 app-server request" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Approval modal 只是 pending protocol state 的可见 view；request 必须继续留在队列里，或者通过 app-server request response path 被解析。</figcaption>
+</figure>
+
+Approval handling 最能说明“UI projection”不等于“无状态 UI”。App-server 可以发送一个必须回答的 `ServerRequest`。TUI 要记住它、展示它、接受 decision、序列化对应 response，再把 response 发回 app-server。一个消失了但没有 resolve 或 preserve request 的 modal，是 correctness bug，不只是 UX bug。
+
+Pending ledger 是 [`PendingAppServerRequests`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L69-L158)：
+
+```rust
+pub(super) struct PendingAppServerRequests {
+    exec_approvals: HashMap<String, AppServerRequestId>,
+    file_change_approvals: HashMap<String, AppServerRequestId>,
+    permissions_approvals: HashMap<String, AppServerRequestId>,
+    user_inputs: HashMap<String, VecDeque<PendingUserInputRequest>>,
+    mcp_requests: HashMap<McpRequestKey, AppServerRequestId>,
+}
+
+pub(super) fn note_server_request(
+    &mut self,
+    request: &ServerRequest,
+) -> Option<UnsupportedAppServerRequest> {
+    match request {
+        ServerRequest::CommandExecutionRequestApproval { request_id, params } => {
+            let approval_id = params
+                .approval_id
+                .clone()
+                .unwrap_or_else(|| params.item_id.clone());
+            self.exec_approvals.insert(approval_id, request_id.clone());
+            None
+        }
+        ServerRequest::FileChangeRequestApproval { request_id, params } => {
+            self.file_change_approvals.insert(params.item_id.clone(), request_id.clone());
+            None
+        }
+        // permissions, user input, MCP elicitation, and unsupported cases omitted
+    }
+}
+```
+
+App-server event handler 会先记录 request，再决定如何显示它。[`handle_server_request_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L142-L180) 会调用 `note_server_request`，用 app-server error 拒绝 unsupported request families，提取 target thread，然后把 supported requests 路由到 primary 或 active thread state。这个顺序很关键：UI view 是 protocol ledger 的下游。
+
+Resolution 是镜像路径。[`take_resolution`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L160-L240) 把 `AppCommand` 映射回 app-server request id，并序列化正确的 response type。[`try_resolve_app_server_request`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L711-L740) 再调用 `resolve_server_request`。
+
+所以 `ApprovalOverlay` 是 pending protocol state 的 view，不是 state 本身。它的模块文档说它把 approval requests 转成 list-selection view，并发出 explicit decision events；MCP elicitation 的 Escape 映射成 cancel；它不评估 action 是否安全。安全判断属于 policy 和 runtime layers。Overlay 的职责是 present、collect、route decision。
+
+## 七、Streaming Markdown 迫使渲染 source-backed
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tui-source-backed-scrollback-569ff6a1-v2.webp" alt="Source-backed scrollback 图：AgentMessageDelta streaming rows、live tail、flush stream、AgentMarkdownCell source document、transcript cells ledger、resize reflow 与 stable terminal scrollback" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Streaming assistant text 一开始是 mutable rows；但 resize-safe scrollback 依赖 consolidated source-backed cells，才能在新的 terminal width 上 replay transcript。</figcaption>
+</figure>
+
+Streaming assistant text 是最难的渲染路径，因为未完成的 Markdown 不具备布局稳定性。后续 token 可能改变前面文本到底是 paragraph、list、table、code block 还是 link。Terminal width 也可能在 streaming 过程中变化。如果 TUI 只存 painted rows，它迟早会丢掉内容的真实 source。
+
+Codex 的解法，是把 temporary stream rows 和 source-backed transcript cells 分开。
+
+Streaming start path 在 [`handle_streaming_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L4168-L4204)。开始 agent stream 前，它会 flush active exec state，处理 separators，然后用当前 stream width 和 render mode 创建 `StreamController`。[`on_agent_message_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L2119-L2121) 故意很小：它只是把 delta 推入 streaming path。
+
+关键是 consolidation path：
+
+```rust
+fn flush_answer_stream_with_separator(&mut self) {
+    let had_stream_controller = self.stream_controller.is_some();
+    if let Some(mut controller) = self.stream_controller.take() {
+        let scrollback_reflow = if controller.has_live_tail() {
+            ConsolidationScrollbackReflow::Required
+        } else {
+            ConsolidationScrollbackReflow::IfResizeReflowRan
+        };
+        self.clear_active_stream_tail();
+        let (cell, source) = controller.finalize();
+        let deferred_history_cell = if scrollback_reflow == Required {
+            cell
+        } else {
+            if let Some(cell) = cell {
+                self.add_boxed_history(cell);
+            }
+            None
+        };
+        if let Some(source) = source {
+            self.app_event_tx.send(AppEvent::ConsolidateAgentMessage {
+                source,
+                cwd: self.config.cwd.to_path_buf(),
+                scrollback_reflow,
+                deferred_history_cell,
+            });
+        }
+    }
+    if had_stream_controller && self.stream_controllers_idle() {
+        self.app_event_tx.send(AppEvent::StopCommitAnimation);
+    }
+}
+```
+
+[`flush_answer_stream_with_separator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1547-L1575) 的源码注释直接写出 invariant：把一串 streaming `AgentMessageCell`s consolidate 成一个可以在 resize 后从 source 重新渲染的 `AgentMarkdownCell`。
+
+App side 在 [`event_dispatch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L220-L237) 接收这个 event，然后委托给 [`agent_message_consolidation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/agent_message_consolidation.rs#L1-L91)。该模块文档解释了完整设计：streaming 期间，transient `AgentMessageCell`s 让 stable lines 可以 animate into scrollback，而 mutable tail 留在 bottom pane；结束后，app 用 source-backed `AgentMarkdownCell` 替换 trailing run，让 transcript 成为 raw markdown source 的 canonical owner，供之后 resize re-render 使用。
+
+### 7.1 Resize reflow 是 transcript replay，不是屏幕拉伸
+
+[`resize_reflow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/resize_reflow.rs#L1-L15) 把 contract 说得很明确。它把 terminal resize events 连接到 source-backed transcript scrollback rebuilds。历史以 `HistoryCell`s 形式存储，但 finalized history 写入 terminal scrollback。宽度变化时，它用 stored cells 作为 source，清掉 Codex-owned terminal history，再重新 emit transcript。
+
+这和“把屏幕上已有内容重新画一遍”不同。它更像 projection rebuild：
+
+| Thing | Owner | Resize behavior |
+| --- | --- | --- |
+| Raw markdown source | `AgentMarkdownCell` / transcript cells | 从 source 重新渲染。 |
+| Temporary streaming rows | stream controller / active tail | Consolidate，或要求 final reflow。 |
+| Terminal scrollback rows | terminal substrate | 可以清掉并 replay。 |
+| Overlay transcript view | app overlay state | 接收 cell consolidation 并 schedule frame。 |
+
+所以 source-backed scrollback 不是修辞。它是 inline terminal history 在 resize、streaming、replay 后仍然可信的机制。
+
+## 八、App-server events 让 TUI 保持诚实
+
+TUI 有丰富的本地状态，但 app-server events 让它保持诚实。[`handle_app_server_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L30-L58) 区分 lag、notification、request 和 disconnect。Disconnect 会变成 chat error 加 `FatalExitRequest`。Server request 进入 pending-request ledger。Notification 可能是 global，也可能是 thread-scoped。
+
+[`handle_server_notification_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L60-L140) 还有一个重要边界：收到 `ServerRequestResolved` notification 时，它会解析 pending app-server requests；account/rate-limit/global state 由 global notification 更新；其他 thread-targeted notifications 会被路由到 primary thread 或其他 thread。只有完成 target selection 后，`ChatWidget` 才处理 notification。
+
+这个 target selection 让 multi-thread 和 side-conversation behavior 可以存在，而不需要把 `ChatWidget` 变成全局 runtime。App layer 拥有 routing。Chat widget 拥有 active conversation 的 projection。
+
+## 九、误读边界会产生什么故障
+
+把 TUI 误读成 runtime，通常会产生五类 bug：
+
+| 误读 | 具体故障 |
 | --- | --- |
-| 用户请求现在在哪里？ | 它要么正在 bottom pane 中被 compose，要么表示为 app command，要么以 protocol events 的形式回到 chat surface。 |
-| 什么数据结构携带它？ | App events、app commands、app-server session messages、chat cells、stream controllers、modal queues 和 terminal frame requests。 |
-| 谁拥有下一步决策？ | Focused UI component、chat widget、app orchestrator、app-server session，或正在 approval/elicitation modal 中回应的用户。 |
-| 这里可能怎么失败？ | Terminal ownership 丢失、resize mismatch、duplicated replay、blocked approval、malformed streaming markdown、stale active cell，或 scrollback/render drift。 |
+| 把 painted terminal rows 当 state。 | Resize 或 replay 后出现 stale scrollback、错误换行、重复 stream tail。 |
+| 把 approval modal 当普通 UI。 | App-server request 被卡住，或 view 消失后 request 丢失。 |
+| 把 key handling 当 runtime mutation。 | 本地编辑动作误 interrupt turn，或者 runtime interrupt 被本地 view 吞掉。 |
+| 把 `ChatWidget` 当 app-server owner。 | Protocol requests、request resolution 和 thread routing 被 display state 缠在一起。 |
+| 把每条 notification 都当 active-thread display。 | Side-thread 或 global notifications 泄漏进错误 transcript。 |
 
-## 应用到实践
+代码库的答案不是“让 UI 变薄”。答案是“让 ownership typed”。Rich UI state 可以存在，但必须待在正确的边界一侧。
 
-1. **把 UI 当作 client。** 让 runtime authority 留在 protocol commands 和 events 后面。
-2. **区分 active 与 committed。** 在 live viewport redraw mutable work，只把 stable transcript content commit 进去。
-3. **从 source 渲染。** 保留 content source，让 resize、copy 和 replay 可以重建 display，而不是信任 painted rows。
-4. **显式建模 interruption。** 把 approvals、elicitations 和 feedback 表示为绑定 pending protocol work 的 modal state。
-5. **隔离 terminal mechanics。** 把 raw mode、keyboard behavior、viewport control 和 buffer diffing 放在 application state 之下。
+## 十、应用模式
 
-## 收束
+1. **把 TUI 当 projection 读。** Runtime facts 以 app-server notifications 和 requests 到达；TUI 负责 render、route 和 respond。
+2. **区分 local interaction 和 runtime authority。** Draft editing、popups、cursor movement 是本地状态；`AppCommand` 才是 crossing。
+3. **用 ledger 保存 pending protocol work。** Approval、permissions、user-input、MCP elicitation request 必须被 resolve 或 preserve，不能悄悄丢掉。
+4. **从 source 渲染 scrollback，并在真实页面验证。** Painted rows 是投影缓存，不是 canonical transcript；图、代码块、lazy images 仍然必须在真实 book layout 里清晰渲染。
+5. **让 app layer 负责 target routing。** `App` 决定 primary-thread、side-thread、global 和 fatal paths；`ChatWidget` 不应该变成全局 message bus。
 
-TUI 完成了第四部的论证。Runtime 能成为平台，是因为它的 clients 共享 thread model，而不是共享 UI。App-server 定义契约，SDKs 和 daemons 让契约可达，terminal UI 证明一个丰富的 interactive surface 仍然可以是 event renderer，而不是第二套 runtime。第五部将从 clients 转向 extension points：那些给系统加入新能力的 protocols 和 packages。
+## 结语
+
+TUI 完成了本书 client-side 的论证链。第 14 章把 app-server 定义为 shared thread contract。第 15 章说明 SDK、daemon 和 remote-control bridge 怎样保留或收窄这份 contract。第 16 章说明一个丰富终端界面仍然可以只是 client：它拥有 interaction、projection、source-backed scrollback 和用户 decision，但不篡夺 runtime。
+
+这个区别不只适用于 Codex。Agent systems 会越来越需要多个前端：CLI、IDE pane、browser、remote dashboard、SDK consumer、automation hook。可迁移模式不是“照抄 Codex 的终端 UI”，而是“把 runtime authority 保留在 typed protocol boundaries 后面，让每个 client 只拥有它能诚实维护的 projection”。下一部分转向 extension surfaces：MCP、skills、plugins、connectors，以及新 capability 进入 runtime 时需要的治理。
 
 <div class="source-equivalence">
 
-## 源码地图
+## Source Map
 
-| 概念 | 源码锚点 |
+| Concept | Source anchor |
 | --- | --- |
-| TUI chat widget | [`codex-rs/tui/src/chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658) |
-| Bottom pane state | [`codex-rs/tui/src/bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199) |
-| TUI app-server session | [`codex-rs/tui/src/app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148) |
-| App events | [`codex-rs/tui/src/app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L72) |
-| Rendering tests | [`codex-rs/tui/src/chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34) |
+| TUI app state 与 select loop | [`codex-rs/tui/src/app.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L453-L534)、[`App::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1019-L1067)、[`handle_tui_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1110-L1185) |
+| Internal app event bus 与 command routing | [`app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L131-L240)、[`event_dispatch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L12-L237)、[`app_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_command.rs#L25-L109) |
+| App-server session facade 与 turn submission | [`app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148-L280)、[`turn_start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L521-L594)、[`thread_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L508-L740) |
+| Chat widget protocol projection 与 streaming | [`chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658-L760)、[`chatwidget/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/protocol.rs#L4-L330)、[`flush_answer_stream_with_separator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1547-L1575)、[`handle_streaming_delta`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L4168-L4204) |
+| Bottom pane 与 approval overlay | [`bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L194-L234)、[`as_renderable`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L1525-L1565)、[`approval_overlay.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/approval_overlay.rs#L1-L167) |
+| App-server requests 与 source-backed scrollback | [`app_server_requests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L69-L240)、[`app_server_events.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L30-L180)、[`agent_message_consolidation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/agent_message_consolidation.rs#L1-L91)、[`resize_reflow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/resize_reflow.rs#L1-L260) |
+| Rendering 与 consolidation tests | [`chatwidget/tests/status_and_layout.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs#L245-L316)、[`chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34) |
 
 </div>

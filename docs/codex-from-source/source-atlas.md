@@ -1,15 +1,15 @@
 # Source Atlas
 
-> **Reading Contract:** Use this atlas only after the narrative is clear. Open pinned links to verify owners, boundaries, and evidence rather than to discover the story from scratch.
+> **Reading Contract:** Use this atlas after the narrative is clear. Open pinned links to verify owners, boundaries, and evidence classes, not to reconstruct the story from scratch.
 
 <figure class="wc-article-figure">
   <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/pinned-source-evidence-map-569ff6a1-v2.webp" alt="Pinned source evidence atlas mapping chapter claims to verified owners, public source anchors, and audit rules" loading="eager" decoding="async" />
-  <figcaption>Use the atlas after the prose has made a claim: it maps narrative statements to subsystem owners, pinned source lines, and audit results.</figcaption>
+  <figcaption>Use the atlas after the prose has made a claim: it maps narrative statements to subsystem owners, pinned source lines, and audit classes.</figcaption>
 </figure>
 
-This atlas is the source-audit index for the book. All Codex links point to public GitHub code pinned to commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3`. The chapters should be readable without opening these links; the atlas exists so a reader can verify the book's claims without hunting through the repository.
+This atlas is the book's source-audit index. All Codex links point to public GitHub code pinned to commit `569ff6a1c400bd514ff79f5f1050a684dc3afde3`. The chapters should be readable without opening these links; the atlas exists so a reader can verify the book's claims without hunting through the repository.
 
-Audit rule: open an anchor only to confirm the claim class. Direct type, function, constant, workflow, or test behavior counts as **verified source**. A boundary that emerges from several anchors counts as **surrounding contract inference** and should stay abstract in prose and figures. Anything that depends on private service internals is **not visible** and is intentionally absent from this atlas.
+Audit rule: use an anchor to classify a claim. Direct type, function, constant, workflow, or test behavior counts as **verified source**. A boundary that emerges from several anchors counts as **surrounding contract inference** and should stay abstract in prose and figures. Anything that depends on private service internals is **not visible** and is intentionally absent from this atlas.
 
 ## Chapter Anchors
 
@@ -191,11 +191,13 @@ Use this group as a surface map, not as proof that every client exposes the same
 
 ### Chapter 16: The TUI as an Event Renderer
 
-- TUI chat widget: [`codex-rs/tui/src/chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658)
-- Bottom pane state: [`codex-rs/tui/src/bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L199)
-- TUI app-server session: [`codex-rs/tui/src/app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148)
-- App events: [`codex-rs/tui/src/app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L72)
-- Rendering tests: [`codex-rs/tui/src/chatwidget/tests/exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34)
+- TUI ownership surface for app state, select loop, terminal event handling, draw/resize, cursor, and external-editor handoff: [`app.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L453-L534), [`App::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1019-L1067), [`handle_tui_event`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app.rs#L1110-L1185)
+- Internal routing surface for app event bus, dispatcher, and runtime command boundary: [`app_event.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_event.rs#L131-L240), [`event_dispatch.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/event_dispatch.rs#L12-L237), [`app_command.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_command.rs#L25-L109)
+- Runtime crossing surface for app-server session facade, turn start/steer, active-thread command routing, and request resolution: [`app_server_session.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L148-L280), [`turn_start`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app_server_session.rs#L521-L594), [`thread_routing.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/thread_routing.rs#L508-L740)
+- Conversation projection surface for chat widget ownership, protocol notification projection, outbound command submission, and assistant streaming: [`chatwidget.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L658-L760), [`chatwidget/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/protocol.rs#L4-L330), [`submit_op`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L9966-L9985), [`flush_answer_stream_with_separator`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget.rs#L1547-L1575)
+- Focus and decision surface for bottom pane focus model, active views, and approval overlay: [`bottom_pane/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L194-L234), [`as_renderable`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/mod.rs#L1525-L1565), [`approval_overlay.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/bottom_pane/approval_overlay.rs#L1-L167)
+- Pending request and scrollback surface for app-server request ledger, server-event routing, source-backed message consolidation, and resize reflow: [`app_server_requests.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_requests.rs#L69-L240), [`app_server_events.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/app_server_events.rs#L30-L180), [`agent_message_consolidation.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/agent_message_consolidation.rs#L1-L91), [`resize_reflow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/app/resize_reflow.rs#L1-L260)
+- Rendering and consolidation tests: [`status_and_layout.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs#L245-L316), [`exec_flow.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/tui/src/chatwidget/tests/exec_flow.rs#L34)
 
 ### Chapter 17: MCP: External Tools Without Runtime Entanglement
 
