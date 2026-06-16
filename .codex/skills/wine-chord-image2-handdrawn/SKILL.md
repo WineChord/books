@@ -168,6 +168,11 @@ Brand mark candidate set:
 - If post-processing is needed, repair only small defects such as stray marks,
   spacing, or paper cleanup. Do not crop, blur, recolor, stretch, or paste a
   separate rectangular logo block into the final figure.
+- When normalizing image2 output to the article's final aspect ratio, avoid
+  `cover`-style cropping if any title, legend, border, or bottom-right brand
+  mark sits near an edge. Prefer a fresh generation with larger safe margins or
+  a `contain`-style resize onto matching paper background, then inspect the full
+  top edge and bottom-right corner before publication.
 
 ## Reference Image Roles
 
@@ -454,6 +459,10 @@ Inspect every generated figure before publishing:
 - No missing-glyph boxes, clipped words, accidental line breaks inside code
   identifiers, or forced wraps such as splitting `observation` across lines.
 - Labels do not escape boxes.
+- Titles, legends, borders, and the bottom-right `Wine & Chord` mark keep clear
+  visible padding from every canvas edge. Inspect at least the top title area
+  and bottom-right signature crop at full size; contact sheets alone can hide
+  edge clipping.
 - Arrows do not cross in confusing ways.
 - The figure matches the article's source claims.
 - The Wine & Chord mark is naturally integrated into the bottom-right paper
