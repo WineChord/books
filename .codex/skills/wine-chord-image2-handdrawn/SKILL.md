@@ -90,6 +90,13 @@ brand mark placement, and source-accurate labels.
 - A figure must faithfully teach the mechanism it represents. It may be lively
   and metaphorical, but the node order, ownership boundary, data flow, and
   failure/recovery path must match the article's verified claims.
+- Treat visible diagram labels as public source claims. Before publication,
+  audit every exact default value, API field, event name, hook payload,
+  fallback step, retry condition, version, and capability label in the image
+  against the article's cited sources. If a generated figure invents or
+  over-specifies any of these details, regenerate it or replace the label with a
+  source-safe abstraction such as `additional metadata`, `fallback path`, or
+  `configured limit`.
 
 ## Visual System
 
