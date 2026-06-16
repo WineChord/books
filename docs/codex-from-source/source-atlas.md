@@ -118,11 +118,28 @@ Audit rule: open an anchor only to confirm the claim class. Direct type, functio
 
 ### Chapter 12: Hooks and Human Approval
 
-- Hook event vocabulary: [`codex-rs/hooks/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L92)
-- Hook registry: [`codex-rs/hooks/src/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/registry.rs#L47)
-- Prompt hook runtime: [`codex-rs/core/src/hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L321)
-- Guardian review path: [`codex-rs/core/src/guardian/review.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L103)
-- Tool orchestrator gates: [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50)
+#### Hook Surfaces
+
+- Legacy hook payload contrast: [`codex-rs/hooks/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L90-L97)
+- Protocol hook event names and run summaries: [`codex-rs/protocol/src/protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1451-L1573)
+- Hook list vs runnable handler model: [`codex-rs/hooks/src/engine/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/mod.rs#L42-L96)
+- Discovery, normalized hashes, and trust filtering: [`codex-rs/hooks/src/engine/discovery.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L367-L520)
+
+#### Runtime Hook Outcomes
+
+- Pre-tool hook request, preview, block, and context recording: [`codex-rs/core/src/hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L138-L186)
+- Pre-tool outcome parser for block/context: [`codex-rs/hooks/src/events/pre_tool_use.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/pre_tool_use.rs#L67-L130)
+- User-prompt hook and additional-context recording: [`codex-rs/core/src/hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L346-L448)
+- Permission-request hook contract and decision fold: [`codex-rs/hooks/src/events/permission_request.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L1-L168)
+
+#### Approval, Sandbox, and Guardian Boundaries
+
+- Approval protocol inputs and requests: [`UserInput`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L662-L679), [`EventMsg`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1364-L1379)
+- Approval policy and decision enum: [`AskForApproval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L889-L920), [`ReviewDecision`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3590-L3646)
+- Permission hook before Guardian/user approval: [`ToolOrchestrator::request_approval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L384-L448)
+- Approval requirement before first sandbox attempt: [`ToolOrchestrator::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L255)
+- Sandbox-denial retry branch: [`ToolOrchestrator::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379)
+- Guardian routing, fail-closed review, and constrained review session: [`codex-rs/core/src/guardian/review.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L142-L622)
 
 ### Chapter 13: Sandboxes, Network Policy, and Platform Boundaries
 

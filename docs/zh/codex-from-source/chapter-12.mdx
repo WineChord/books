@@ -1,100 +1,290 @@
-
 # 第 12 章：Hooks 与人工审批
 
-> **阅读契约：** 用本章把 hooks 和 approvals 看成风险前面的门。跟住 humans、policies 与 hooks 什么时候可以延迟、拒绝或标注一个 side effect。
+> **阅读契约：** 用本章区分四个很容易被混在一起的边界：观察事件的 hook 程序、可以回答审批提示的 permission-request hook、授权副作用的 approval decision，以及真正约束执行的 sandbox attempt。读完以后，你应该能解释为什么 hook list 不是可运行权限列表，为什么 approval 不等于绕过 sandbox，以及为什么 Guardian review 有自己的失败状态。
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-approval-gates.webp" alt="Hooks 与审批门：展示 pre-tool hooks、permission policy、自动 review、人工决策、sandbox 和 post-tool feedback" loading="eager" decoding="async" />
-  <figcaption>Hooks 和 approvals 是风险门禁：在不可逆副作用发生前，它们可以 annotate、delay、deny 或 continue。</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-approval-surfaces-569ff6a1.webp" alt="Codex hooks 与 approval surfaces：展示 tool request、pre-tool hook、policy、permission hook、approval、sandbox、post-tool hook 和 evidence" loading="eager" decoding="async" />
+  <figcaption>Hooks 和 approvals 相邻，但回答的是不同问题：automation 可以观察或标注什么，policy 要求什么，谁授权 side effect，attempt 在哪里受约束，以及什么 evidence 回到 turn。</figcaption>
 </figure>
 
-**源码边界：** 本章只有在链接到固定 Codex commit 或本章源码地图的 files、types、functions、tests、schemas、request/event shapes 时，才把说法视为 **verified source**。像 runtime、owner、projection、contract 这类架构归纳是从可见 anchors 得出的 **surrounding contract inference**，不是对 OpenAI 服务内部的断言。
+**源码边界：** 本章解释固定在 commit [`569ff6a1`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3) 的 OpenAI Codex 公开快照。文件路径、函数、枚举、request struct 与 event shape 只有在链接到这个 commit 时才算 **verified source**。代码块都是为了阅读而裁剪的短摘录；完整定义以旁边的固定源码链接为准。`gate stack`、`authority boundary`、`human surface` 这类说法是从可见源码得出的 **surrounding contract inference**，不是对 OpenAI 私有服务内部的断言。
 
-第 11 章展示了文件系统 mutation 如何在应用前被解析和验证。本章研究 runtime 已经理解某个动作之后，仍然可以阻止、修正或解释它的关卡：hooks、approval policy、Guardian review 和 user approval。它们彼此相关，但不是同一层。
+第 11 章停在一个已经验证过的 patch：runtime 解析了编辑语言，评估了被触碰的文件，通过自己的 filesystem owner 应用了 hunks，并记录了最终 delta。这里还剩一个实际问题：当 Codex 已经理解某个动作之后，什么东西还能阻止、修正或解释这个风险动作？
 
-Hooks 是配置好的程序，用来观察或影响 runtime events。Approval 是允许或拒绝副作用的控制面决策。Guardian 是可以回答部分 approval requests 的自动 reviewer。用户界面是人工决策表面。Codex 把这些层分开，因此每一层失败时都能给出精确语义。
+直觉答案是 approval。这个答案太粗。Pre-tool hook 可以在普通审批路由前阻断命令。Permission-request hook 可以在 Guardian 或用户看到审批请求前给出答案。Approval protocol 可以区分 approve once、approve for session、deny、timeout 和 policy amendment。Guardian 可以自动 review 某些审批请求，但它的 timeout 不等同于用户拒绝。最后，sandbox 仍然可以拒绝一个已批准的 action，因为 approval 和 enforcement 是两个 owner。
 
+源码围绕这种分离来组织。Hooks 是 event-scoped programs。Approval 是 decision shape。Guardian 是由 policy 选择的 automated reviewer。Sandboxing 是 execution attempt 的约束。把它们都叫作泛泛的 "safety middleware" 会让描述变简单，但会让系统更难推理。
 
-## Gate Stack
+## 一、Hooks 是事件，不是泛化权限
 
-这个 stack 是有顺序的，不是装饰。Hooks 可以添加 context 或阻断特定事件。Permission-request hooks 可以在常规 review path 前回答 approval。Guardian 或用户可以决定剩余未解决的 approvals。只有这些 gate 产出 allowed decision 后，tool attempt 才会发生。
+### 1.1 Event vocabulary 才是边界
 
-### 一个命令如何穿过 Gate
+公开 runtime 通过两个相关但不同的表面暴露 hook work。这个快照里的旧 [`codex-rs/hooks/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L90-L97) `HookEvent` enum 只带 legacy `AfterAgent` payload。当前 hook engine 使用的更完整 runtime event vocabulary 在 protocol 层的 [`HookEventName`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1451-L1462)：
 
-理解这些层分离的最简单方式，是跟随一条 shell command。模型请求一个命令。Codex 先运行匹配的 pre-tool hooks；这些 hooks 可以在 policy 评估副作用前添加 context、给出 warning，或直接 block。如果 hooks 没有阻断，approval policy 会根据当前 permission profile 判断这个命令是否可以运行。如果需要决策，permission-request hook 可以自动回答；如果没有回答，Guardian 或面向用户的 client 会收到请求。只有 allow decision 到达后，shell handler 才会进入 sandbox selection 和 process execution。结果返回后，post-tool hooks 可以观察输出，并把结构化 feedback 喂回 turn。
-
-重点不是 command 本身，而是每一道 gate 拥有不同问题：automation 观察什么，policy 允许什么，reviewer 授权什么，sandbox 包含什么，以及什么结果进入 durable state。
-
-### Hook Discovery 与 Trust
-
-Codex 可以从多种来源加载 hooks：system 或 managed configuration、user configuration、project configuration、session flags、plugins、cloud requirements，以及 legacy managed files。每个 hook 都有 event identity、matcher state、command text、timeout、source metadata、display order 和 trust status。
-
-Trust 不由“文件存在”推导。Managed hooks 按策略可信。User 或 project hooks 只有在 normalized identity hash 和已保存 trusted hash 匹配时才可信。如果 hook 内容变了，它会成为 modified，而不是继续静默运行。Disabled hooks 仍能在 listing 中可见，但不会参与 runtime。
-
-这个设计保护两类工作流。运营方可以集中管理用户不需要逐个批准的 hooks。用户也能添加自己的 hooks，但改变后的 hook 必须重新获得信任，才能进入运行时。
-
-### Hook Events 与 Results
-
-Hook event vocabulary 不只覆盖命令执行。它包括 session start、user prompt submit、pre-tool use、permission request、post-tool use、pre/post compact 和 stop。这些都是架构检查点：工具 mutation 前、工具报告输出后、上下文压缩前、turn 可能停止时，以及 prompt 进入 runtime 时。
-
-Hook handlers 通过 stdin 接收 JSON，通过 stdout 返回结构化 JSON，在部分失败模式下通过 stderr 给模型反馈。Outcome 不只是 success 或 failure。Hook 可以提供 additional model context、warning、block、stop、feedback，也可以失败但允许 operation 继续，具体取决于 event contract。
-
-```text
-// Pseudocode - simplified for clarity.
-  handlers = discover_hooks(config_layers, plugins, managed_sources)
-  trusted_handlers = filter_enabled_and_trusted(handlers)
-
-  preview = build_hook_run_summaries(trusted_handlers, event)
-  emit_hook_started(preview)
-
-  results = run_matching_hooks_with_json_io(trusted_handlers, event)
-  emit_hook_completed(results)
-
-  if any result blocks or stops:
-      return rejected_or_stopped_result(results.feedback)
-
-  add_context_for_model(results.context)
-  continue_to_policy_or_tool_execution()
+```rust
+pub enum HookEventName {
+    PreToolUse,
+    PermissionRequest,
+    PostToolUse,
+    PreCompact,
+    PostCompact,
+    SessionStart,
+    UserPromptSubmit,
+    Stop,
+}
 ```
 
-Preview/run 分离让客户端能在 hook 真正完成前展示 pending work。这对 terminal UI、app-server 和 headless context 都重要，因为 hook 可能很慢，也可能阻断动作。
+这个差异很重要，因为 "hook" 并不表示任意代码可以在任意地方运行。每个事件都有自己的 request shape 和 outcome contract。[`PreToolUseRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/pre_tool_use.rs#L21-L41) 接收 tool name、matcher aliases、tool id 和 JSON tool input；结果可以 block，也可以补充 model context。[`PostToolUseRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/post_tool_use.rs#L21-L43) 接收 tool response，可以在工具运行后补充 feedback。[`UserPromptSubmitRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/user_prompt_submit.rs#L21-L38) 在用户 prompt 被 turn 接受前运行。[`StopRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/stop.rs#L22-L42) 可以把一个即将停止的 turn 变成带 continuation fragments 的继续工作。
 
-### Approval 是另一道门
+### 1.2 Hook run 是 typed runtime fact
 
-当 policy 认为某个工具需要决策，或 sandboxed attempt 失败且可能进行 unsandboxed retry 时，approval 开始。Approval payload 是 tool-specific 的：shell approval 包含 command 和 cwd，patch approval 包含 file changes，MCP approval 包含 server 和 tool metadata，permission request 包含请求的 additional filesystem 或 network access。
+共享的事件 envelope 体现在 [`HookRunSummary`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1538-L1573)。一个 hook run 有 id、event name、handler type、execution mode、scope、source path、source、display order、status、timing 和 entries。Client 不需要从随机 stderr 里猜 hook 状态；它会收到一等的 `HookStarted` 和 `HookCompleted` runtime facts。
 
-Runtime 可以按 key 缓存 session approvals。Shell-like command 通常只有一个 approval key。Patch 可能按每个 affected path 建 key，所以一次多文件 patch 如果被批准为 session scope，之后触碰其中子集的请求也可以安全跳过提示。
+这是本章第一个不变量：hook effect 是 event-local 的。Pre-tool hook 可以说“不要运行这个 tool call”或“加入这段 context”。Permission-request hook 可以回答某个具体 approval request。Post-tool hook 可以针对具体结果返回 feedback。这些能力彼此相邻，但不会自动互相推出。
 
-Approval decisions 比 yes/no 丰富。它们可以是 approve once、approve for session、deny、abort、timeout、approve exec-policy amendment，或 approve network-policy amendment。差异很重要，因为 amendment 会改变未来策略；一次性 approval 只授权当前动作。
+## 二、Discovery 先列出，再由 trust 过滤运行时
 
-### Guardian、Headless Mode 与 UI 中断
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-trust-filter-569ff6a1.webp" alt="Hook discovery 与 trust filter：展示 system、user、project、plugin、registry、trust gate、active hooks、modified hooks 和 disabled hooks" loading="lazy" decoding="async" />
+  <figcaption>Hook discovery 的 listing metadata 比 runtime authority 更宽：modified 与 disabled hooks 可以继续可见，但只有 enabled managed 或 trusted hooks 会成为 active handlers。</figcaption>
+</figure>
 
-Guardian 是 approval-like requests 的自动 review path。当审批路由选择 automated review 时，runtime 会创建一个和 tool call id 分开的 review id，并等待决策。Denial、timeout 和 abort 是不同结果，这样用户可见消息才能说明发生了什么，而不是统一成“失败”。
+Hook registry 刻意把 listing 和 execution 分开。[`ClaudeHooksEngine`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/mod.rs#L98-L135) 存 runnable `ConfiguredHandler`s 和 warnings。[`HookListEntry`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/mod.rs#L79-L96) 则携带用户可见 metadata：event name、handler type、matcher、command、timeout、source、plugin id、display order、enabled state、current hash 和 trust status。
 
-Headless execution 不能依赖交互 modal。如果某个请求需要人工审批，但当前没有人工审批通道，安全行为是 reject，而不是永远等待。TUI 则可以用 modal decision surface 打断普通流程，并在决策到达后继续 turn。
+### 2.1 Listing metadata 比 runtime authority 更宽
 
-MCP 和 dynamic tools 还增加了一层 approval 维度。它们的工具元数据可能来自 hosted、connector-backed 或 client supplied 来源。审批表面必须展示与信任相关的 provenance 和参数，但不能把原始内部名称当作用户可见的信任边界。
+这个拆分不是装饰。一个 list entry 可以是 untrusted、modified 或 disabled。它仍然值得展示给用户看，但不应该静默变成可执行 runtime code。[`append_matcher_groups`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L367-L477) 会为每个 command hook 计算 normalized identity hash，然后决定它能不能变成 runnable handler：
+
+```rust
+let current_hash = command_hook_hash(event_name, matcher, &group, normalized_handler);
+let enabled = hook_enabled(source.is_managed, state);
+let trusted_hash = hook_trusted_hash(source.is_managed, state);
+let trust_status = hook_trust_status(source.is_managed, &current_hash, trusted_hash);
+
+hook_entries.push(HookListEntry { enabled, current_hash, trust_status, .. });
+
+if enabled && matches!(trust_status, HookTrustStatus::Managed | HookTrustStatus::Trusted) {
+    handlers.push(ConfiguredHandler { event_name, matcher, command, .. });
+}
+```
+
+这个摘录只保留 trust boundary：metadata 先进入 `hook_entries`，随后只有最后这个 `if` 会把 command 移入 runnable `handlers`。
+
+### 2.2 Trust 是 hash-matched execution claim
+
+Trust function 很小，但很硬。Managed source 直接是 `Managed`。非 managed hook 只有在 stored trusted hash 和 current normalized hash 相等时才是 `Trusted`；否则是 `Modified` 或 `Untrusted`（[`hook_trust_status`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L507-L520)）。这个 normalized identity 不是 raw source bytes；[`command_hook_hash`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L479-L505) 序列化 event name、matcher group、timeout、async flag、status message 与 command identity，让 TOML 和 `hooks.json` 形式收敛到同一个 trust record。
+
+因此，一个操作结论很明确：“hook 出现在列表里”不等于它会运行。Runtime authority 还要求 hook feature enabled、handler 受支持、hook enabled，并且 trust status 是 managed 或 trusted。
+
+## 三、Runtime hooks 会先 preview，再 resolve
+
+### 3.1 Preview 产生 pending state
+
+当某个 hook event 触发，Codex 会先问 registry 哪些 handlers 会匹配，发出 pending view，再运行 handlers 并发出 completion。[`run_pre_tool_use_hooks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L138-L186) 展示了这个形状：
+
+```rust
+let request = PreToolUseRequest {
+    session_id: sess.conversation_id,
+    turn_id: turn_context.sub_id.clone(),
+    cwd: turn_context.cwd.clone(),
+    permission_mode: hook_permission_mode(turn_context),
+    tool_name: tool_name.name().to_string(),
+    matcher_aliases: tool_name.matcher_aliases().to_vec(),
+    tool_use_id,
+    tool_input: tool_input.clone(),
+    ..
+};
+
+let preview_runs = hooks.preview_pre_tool_use(&request);
+emit_hook_started_events(sess, turn_context, preview_runs).await;
+
+let outcome = hooks.run_pre_tool_use(request).await;
+emit_hook_completed_events(sess, turn_context, outcome.hook_events).await;
+```
+
+这个摘录省略了 transcript path、model 和 post-run context recording，让 lifecycle 更清楚：构造 typed request、preview matching handlers、执行 handlers、再发 completion。
+
+Preview 不是 UI 润色。慢 hook 否则会看起来像 tool call 卡死；blocking hook 否则会看起来像 handler 内部失败。事件模型让 terminal、app-server 和 headless client 都能在最终 outcome 落地前展示“hook work pending”。
+
+### 3.2 Block/context 不是 approval
+
+`PreToolUse` 最容易被误读。它的 parser 可以把 hook result 转成 `should_block`、block reason 和 additional model context（[`pre_tool_use.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/pre_tool_use.rs#L67-L130)）。这是 hook block，不是 approval decision。如果 pre-tool hook block，工具不会进入 approval routing。如果 hook 只是添加 context，普通 policy 和 approval 仍然要继续运行。
+
+同样的 pattern 出现在 turn 的其他边界。[`inspect_pending_input`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L346-L371) 会在 pending user input 被接受前运行 user-prompt-submit hooks。[`record_additional_contexts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L428-L448) 把 hook-provided context 存成 developer messages。Runtime 没有把 hooks 当成非结构化 stderr；它把 hook outcomes 翻译成 typed turn consequences。
+
+## 四、Permission-request hook 位于 approval 内部
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/permission-request-hook-569ff6a1.webp" alt="Permission request hook flow：展示 tool asks、policy、permission hook、deny wins、allow、no decision、guardian、user 和 events" loading="lazy" decoding="async" />
+  <figcaption>Permission-request hook 不是换了名字的 pre-tool hook：它在 policy 产生 approval request 之后、普通 Guardian 或用户审批路径之前运行。</figcaption>
+</figure>
+
+### 4.1 Request 仍然是 hook event
+
+本章最关键的 hook，恰好也是最像 approval 的 hook。[`permission_request.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L1-L15) 直接写清楚了 contract：这个 event 在 approval path 中运行，发生在 Guardian 或 user approval UI 被展示之前。和 `PreToolUse` 不同，它不会 rewrite tool input，也不会通过停止执行来 block；它可以返回一个具体 allow/deny decision，或者拒绝决策，让正常 approval flow 继续。
+
+它的 request shape 带着 policy hook 需要推理动作的身份信息：session id、turn id、cwd、transcript path、model、permission mode、tool name、matcher aliases、run id suffix 和 tool input（[`PermissionRequestRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L34-L58)）。Decision type 刻意很小：
+
+```rust
+pub enum PermissionRequestDecision {
+    Allow,
+    Deny { message: String },
+}
+```
+
+它的 fold rule 很保守。[`resolve_permission_request_decision`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L148-L168) 把任何 deny 当成最终结果。如果没有 handler deny，allow 可以批准请求。如果没有 handler 决策，approval 会继续进入普通 route。
+
+### 4.2 Orchestrator 让 permission hook 先回答
+
+具体 orchestration 点在 [`ToolOrchestrator::request_approval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L384-L448)：
+
+```rust
+if evaluate_permission_request_hooks
+    && let Some(permission_request) = tool.permission_request_payload(req)
+{
+    match run_permission_request_hooks(...).await {
+        Some(PermissionRequestDecision::Allow) => return Ok(ReviewDecision::Approved),
+        Some(PermissionRequestDecision::Deny { message }) => {
+            return Err(ToolError::Rejected(message));
+        }
+        None => {}
+    }
+}
+
+let decision = tool.start_approval_async(req, approval_ctx).await;
+Ok(decision)
+```
+
+这段代码只保留 decision order。完整函数还会记录 telemetry，并区分后续 decision 是来自 Guardian 还是用户审批路径。
+
+这里 ordering 变得很具体。Permission-request hooks 优先回答 approval prompts。只有 unresolved case 才会落到 Guardian 或用户审批。因此，把 hooks 只描述成“approval 前的额外校验”是不准确的：有一类 hook 本身就位于 approval routing 内部。
+
+## 五、Approval 是协议决策，不只是 modal
+
+### 5.1 Approval 通过 protocol 流动
+
+Approval request 和 approval response 都是 protocol input，不只是 UI dialog。[`UserInput`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L662-L679) 包含 `ExecApproval` 与 `PatchApproval`，二者都带 submission id 和 `ReviewDecision`。Runtime events 包含 [`ExecApprovalRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1364) 与 [`ApplyPatchApprovalRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1376)，所以 client 能展示正确 surface，而不必自己发明 transport。
+
+决定是否可能提示用户的 policy 是 [`AskForApproval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L889-L920)。它区分 `UnlessTrusted`、`OnFailure`、`OnRequest`、`Granular` 和 `Never`。这里的注释就是 contract 的一部分：`Never` 表示 Codex 不询问用户，失败直接返回而不是升级；`Granular` 可以在某个字段为 false 时自动拒绝对应 prompt category。
+
+### 5.2 Decision enum 保留 recovery semantics
+
+Response 比 yes/no 丰富得多。[`ReviewDecision`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3590-L3646) 保留了多个 outcome：
+
+| Decision | Runtime meaning |
+| --- | --- |
+| `Approved` | 授权当前 request。 |
+| `ApprovedForSession` | 在 session-scoped approval cache 内授权等价后续 prompts。 |
+| `ApprovedExecpolicyAmendment` | 批准并持久化 proposed exec-policy amendment。 |
+| `NetworkPolicyAmendment` | 对同一 host 的未来 requests 持久化 allow 或 deny rule。 |
+| `Denied` | 拒绝 action，让 session 尝试别的办法。 |
+| `TimedOut` | Automated review 在 deadline 前没有完成。 |
+| `Abort` | 停止，直到用户下一条 command。 |
+
+这个 shape 避免了两个常见实现 bug。第一，session-scoped approval 不能被拍平成“永久批准”；它有 cache scope。第二，timeout 不能渲染成“用户拒绝”；Guardian timeout 有不同 recovery message，也有不同 analytics。
+
+## 六、Orchestrator 把 approval 放在 sandbox 之前
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/approval-orchestrator-loop-569ff6a1-v2.webp" alt="Tool orchestrator flow：展示 requirement、skip、forbidden、needs approval、decision、sandbox attempt、sandbox denied、retry approval 和 no-sandbox retry" loading="lazy" decoding="async" />
+  <figcaption>Orchestrator 先解析 approval requirement，再选择 sandbox attempt；后续 sandbox denial 可能在 no-sandbox retry 前再次请求 approval。</figcaption>
+</figure>
+
+核心 ordering 位于 [`ToolOrchestrator::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L214)。这个函数先从工具或默认 policy 计算 `ExecApprovalRequirement`，然后处理三种 shape：
+
+### 6.1 Approval requirement 先发生
+
+```rust
+let requirement = tool.exec_approval_requirement(req)
+    .unwrap_or_else(|| default_exec_approval_requirement(...));
+
+match requirement {
+    ExecApprovalRequirement::Skip { .. } => { /* maybe strict auto-review */ }
+    ExecApprovalRequirement::Forbidden { reason } => {
+        return Err(ToolError::Rejected(reason));
+    }
+    ExecApprovalRequirement::NeedsApproval { reason, .. } => {
+        let decision = Self::request_approval(...).await?;
+        Self::reject_if_not_approved(..., decision).await?;
+        already_approved = true;
+    }
+}
+```
+
+这段摘录刻意停在 pre-sandbox 阶段。此时 orchestrator 还没有选择 platform sandbox；它只是在判断这个 request 是否允许被尝试。
+
+只有这个 approval phase 结束后，orchestrator 才会选择 first sandbox attempt（[`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L216-L255)）。这是本章第二个不变量：approval 决定 Codex 是否可以尝试 side effect；sandboxing 决定这个 attempt 在哪里、如何受约束。
+
+### 6.2 Sandbox denial 是新分支，不是 approval failure
+
+Sandbox-denial branch 证明了这种区别。如果 first attempt 因 sandbox denial 失败，runtime 会检查 tool 是否能 escalate、approval policy 是否允许 no-sandbox approval，以及是否存在 network denial context。只有这些条件满足后，它才会请求 retry approval，并创建 `SandboxType::None` 的 escalated `SandboxAttempt`（[`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379)）。
+
+Rejection step 也保留 decision semantics。[`reject_if_not_approved`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L451-L478) 区分 `Denied`、`Abort` 与 `TimedOut`；而 `Approved`、`ApprovedForSession`、exec-policy amendments 与 allow-network amendments 可以继续。Network amendment 如果是 deny action，仍然会 reject。源码再一次避免了 boolean approval shortcut。
+
+## 七、Guardian 是 reviewer，有自己的失败边界
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/guardian-review-boundary-569ff6a1.webp" alt="Guardian review boundary：展示 approval request、review id、review session、read only、approved、denied、timed out、abort、warning 和 event ledger" loading="lazy" decoding="async" />
+  <figcaption>Guardian review 由 approval policy 和 reviewer config 选择，在受约束的 review session 中运行，并把 timeout、abort、denial 与 approval 作为不同状态上报。</figcaption>
+</figure>
+
+### 7.1 Guardian 由 policy 和 reviewer config 选择
+
+Guardian 不是每个 tool call 内的隐式分支。[`routes_approval_to_guardian`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L142-L150) 只有在 approval policy 是 `OnRequest` 或 `Granular`，且 config 选择 `ApprovalsReviewer::AutoReview` 时，才把 approval prompt 路由给 reviewer。Orchestrator 也可能为某个 turn 启用 strict auto-review，但那仍然会产生单独的 `guardian_review_id` 和普通 `ReviewDecision`。
+
+### 7.2 Fail-closed 不会压扁状态
+
+Review function 明确 fail closed。[`run_guardian_review`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L231-L393) 会发送 in-progress `GuardianAssessment` event，运行 review session，并把 explicit allow/deny、timeout、cancellation、prompt-build failure、session failure 和 parse failure 映射成不同 terminal behavior。Timeout 返回 `ReviewDecision::TimedOut`；cancellation 返回 `ReviewDecision::Abort`；build/session/parse failure 会变成 high-risk deny，而不是隐式 allow。
+
+### 7.3 Review session 受约束
+
+Review session 本身也受约束。[`run_guardian_review_session`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L608-L622) 的注释写明，Guardian 不应该 mutate state 或触发进一步 approval，所以这个 session 被固定到 read-only sandbox，`approval_policy = never`，并关闭非必要 agent features。它可以复用 parent 的 managed-network allowlist 做 read-only checks，但不会继承 exec-policy rules。
+
+因此 Guardian 的角色很窄：对 approval request 做 automated review。它不是 tool runtime owner，不是 sandbox，也不是静默的 policy amendment engine。用户可见表面仍然会收到 structured events 和 warnings，主工具路径最终消费的仍然是一个 `ReviewDecision`。
+
+## 八、这套设计阻止了什么
+
+这套架构比单个“问用户”callback 复杂，但每个部件都在阻止一个具体失败模式。
+
+### 8.1 常见误读
+
+| 误读 | 源码校正 | 避免的失败 |
+| --- | --- | --- |
+| Hook list 就是 runnable handler list。 | `HookListEntry` 记录更宽的 metadata；只有 enabled managed/trusted entries 会变成 `ConfiguredHandler`s。 | Modified project automation 在变更后静默运行。 |
+| Pre-tool hook 就是 approval。 | `PreToolUseOutcome` 负责 block 或 add context；permission-request hook 才在 approval path 中产生 allow/deny decision。 | 一个 validation hook 意外变成 authority grant。 |
+| Approval 意味着 no sandbox。 | Orchestrator 在选择 sandbox attempt 之前解析 approval；no-sandbox retry 是单独分支。 | 已批准命令默认逃出 containment。 |
+| Guardian denial、timeout 和 abort 都只是 failed。 | `ReviewDecision` 与 `GuardianAssessmentStatus` 保留这些状态。 | UI 无法解释到底是 risk、time 还是 cancellation 停止了 action。 |
+| `Never` approval policy 表示“全部信任”。 | Protocol 表示 Codex 永不询问用户；policy conflict 会返回 failure，而不是升级。 | Headless 或 non-interactive run 永远等待一个不存在的 modal。 |
 
 ## 应用到实践
 
-1. **区分 hooks 和 approvals。** Hooks 观察或影响事件；approval 授权副作用。
-2. **显式信任配置代码。** 对 user/project hooks 做 hash，并把 modified hooks 当作未信任。
-3. **预览长耗时关卡。** 在客户端看起来卡住前，发出 pending hook 或 approval state。
-4. **精确建模审批结果。** 区分 deny、abort、timeout、one-time approval、session approval 和 policy amendment。
-5. **没有审批通道时 fail closed。** Headless execution 应拒绝无法展示的 interactive approvals。
+可以迁移到其他 agent runtime 的规则也很直接：
 
-第 13 章会跟随一个已批准动作进入隔离层：permission profiles 如何变成 filesystem/network policy，再下降成 platform sandboxes、managed networking 和 execution metadata。
+1. **把 automation listing 和 runnable automation 分开。** Discovery 应该暴露 untrusted 与 modified hooks，但不能执行它们。
+2. **把 validation hooks 和 approval hooks 分开。** Block、context injection 和 allow decision 的 blast radius 不同。
+3. **把 approval 建模成 enum，不要建模成 boolean。** Session cache、policy amendment、network amendment、denial、timeout 和 abort 都需要不同处理。
+4. **让 automated reviewer 在受约束 session 中运行。** 一个可以 mutate 自己所 review 状态的 reviewer，不是真 reviewer。
+5. **让 sandboxing 保持第二 owner。** Approval 授权 attempt；containment 仍然可以 reject 或强制进入新的 approval path。
+
+第 13 章会跟随一个已批准 attempt 进入 containment 层：permission profiles、filesystem/network policy、platform sandboxes、managed networking，以及 remote execution metadata。
 
 <div class="source-equivalence">
 
 ## 源码地图
 
-| 概念 | 源码锚点 |
-| --- | --- |
-| Hook event vocabulary | [`codex-rs/hooks/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L92) |
-| Hook registry | [`codex-rs/hooks/src/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/registry.rs#L47) |
-| Prompt hook runtime | [`codex-rs/core/src/hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L321) |
-| Guardian review path | [`codex-rs/core/src/guardian/review.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L103) |
-| Tool orchestrator gates | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
+| 概念 | 证据类型 | 源码锚点 |
+| --- | --- | --- |
+| Hook event names 与 run events | Verified source | [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1451-L1573) |
+| Legacy hook payload 对照 | Verified source | [`types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L90-L97) |
+| Hook list 与 runnable handler 拆分 | Verified source | [`engine/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/mod.rs#L42-L96) / [`discovery.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L367-L520) |
+| Pre-tool hook block/context outcome | Verified source | [`hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L138-L186) / [`pre_tool_use.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/pre_tool_use.rs#L67-L130) |
+| User-prompt hook 与 additional-context recording | Verified source | [`hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L346-L448) |
+| Permission-request hook decision fold | Verified source | [`permission_request.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L1-L168) |
+| Approval protocol inputs 与 requests | Verified source | [`UserInput`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L662-L679) / [`EventMsg`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1364-L1379) |
+| Permission hook before Guardian/user approval | Verified source | [`request_approval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L384-L448) |
+| Approval policy 与 decisions | Verified source | [`AskForApproval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L889-L920) / [`ReviewDecision`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3590-L3646) |
+| Approval requirement before first sandbox attempt | Verified source | [`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L255) |
+| Sandbox-denial retry branch | Verified source | [`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379) |
+| Guardian routing、fail-closed review 与 constrained session | Verified source | [`review.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L142-L622) |
 
 </div>

@@ -1,100 +1,290 @@
-
 # Chapter 12: Hooks and Human Approval
 
-> **Reading Contract:** Use this chapter to read hooks and approvals as gates in front of risk. Track when humans, policies, and hooks can delay, deny, or annotate a side effect.
+> **Reading Contract:** Use this chapter to separate four boundaries that are easy to collapse: hook programs that observe events, permission-request hooks that may answer approval prompts, approval decisions that authorize side effects, and sandbox attempts that still constrain execution. After reading, you should be able to explain why a hook list is not a runnable authority list, why an approval is not a sandbox bypass, and why Guardian review has its own failure states.
 
 <figure class="wc-article-figure">
-  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-approval-gates.webp" alt="Hooks and approval gates showing pre-tool hooks, permission policy, automated review, human decisions, sandboxing, and post-tool feedback" loading="eager" decoding="async" />
-  <figcaption>Hooks and approvals are gates around risk: they can annotate, delay, deny, or continue work before irreversible side effects happen.</figcaption>
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-approval-surfaces-569ff6a1.webp" alt="Codex hooks and approval surfaces showing tool request, pre-tool hook, policy, permission hook, approval, sandbox, post-tool hook, and evidence" loading="eager" decoding="async" />
+  <figcaption>Hooks and approvals are adjacent, but they answer different questions: what automation may observe or annotate, what policy requires, who authorizes the side effect, where the attempt is constrained, and what evidence returns to the turn.</figcaption>
 </figure>
 
-**Source boundary:** named files, types, functions, tests, schemas, and request or event shapes are **verified source** only where this chapter links to the pinned Codex commit or its Source Map. Broader architecture terms such as "runtime", "owner", "projection", and "contract" are **surrounding contract inference** from those visible anchors, not claims about OpenAI service internals.
+**Source boundary:** this chapter explains the public OpenAI Codex snapshot pinned at commit [`569ff6a1`](https://github.com/openai/codex/tree/569ff6a1c400bd514ff79f5f1050a684dc3afde3). File paths, functions, enums, request structs, and event shapes are **verified source** when linked to that commit. Code blocks are short, trimmed excerpts for reading; use the nearby pinned links for complete definitions. Terms such as "gate stack", "authority boundary", and "human surface" are **surrounding contract inference** from visible source, not claims about private OpenAI service internals.
 
-Chapter 11 showed that filesystem mutation can be parsed and verified before it is applied. This chapter studies the gates that can still stop, amend, or explain an action after the runtime understands it: hooks, approval policy, Guardian review, and user approval. They are related, but they are not the same layer.
+Chapter 11 ended at a verified patch: the runtime had parsed an edit language, assessed the files being touched, applied the hunks through its filesystem owner, and recorded the committed delta. That still leaves a practical question: what can stop or reshape a risky action after Codex understands what the action is?
 
-Hooks are configured programs that observe or influence runtime events. Approval is the control-plane decision that allows or rejects a side effect. Guardian is an automated reviewer that may answer certain approval requests. The user interface is the human decision surface. Codex keeps these layers separate so each can fail in a precise way.
+The tempting answer is "approval". That is too coarse. A pre-tool hook can block a command before normal approval routing. A permission-request hook can answer an approval prompt before Guardian or a user sees it. The approval protocol can distinguish "approved once", "approved for this session", "denied", "timed out", and policy amendments. Guardian can review some approval requests automatically, but its timeout is not the same as a user denial. Finally, the sandbox can still deny an approved action because approval and enforcement are separate owners.
 
+The source is designed around that separation. Hooks are event-scoped programs. Approval is a decision shape. Guardian is an automated reviewer selected by policy. Sandboxing is the execution attempt's constraint. Treating them as one generic "safety middleware" makes the system easier to describe and harder to reason about.
 
-## The Gate Stack
+## 1. Hooks Are Events, Not General Authority
 
-The stack is ordered, not ornamental. Hooks can add context or block specific events. Permission-request hooks can answer an approval before the normal review path. Guardian or the user can decide unresolved approvals. The tool attempt happens only after the gates produce an allowed decision.
+### 1.1 The Event Vocabulary Is the Boundary
 
-### One Command Through the Gates
+The public runtime exposes hook work through two related but different surfaces. The older [`codex-rs/hooks/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L90-L97) `HookEvent` enum in this snapshot only carries a legacy `AfterAgent` payload. The broader runtime event vocabulary used by the current hook engine is the protocol-level [`HookEventName`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1451-L1462):
 
-The easiest way to see the separation is to follow one shell command. The model requests a command. Codex first runs matching pre-tool hooks; those hooks can add context, warn, or block before policy evaluates the side effect. If hooks do not block, approval policy decides whether this command can run under the current permission profile. If the policy requires a decision, a permission-request hook may answer automatically. If it does not, Guardian or the user-facing client receives a request. Only after an allow decision does the shell handler reach sandbox selection and process execution. After the result is available, post-tool hooks can observe output and feed structured feedback back into the turn.
-
-The point is not the command itself. The point is that each gate owns a different question: what automation observes, what policy permits, what the reviewer authorizes, what the sandbox contains, and what result becomes durable.
-
-### Hook Discovery and Trust
-
-Codex can load hooks from multiple sources: system or managed configuration, user configuration, project configuration, session flags, plugins, cloud requirements, and legacy managed files. Each hook has event identity, matcher state, command text, timeout, source metadata, display order, and trust status.
-
-Trust is not inferred from existence. Managed hooks are trusted by policy. User or project hooks are trusted only when their normalized identity hash matches the stored trusted hash. If a hook changes, its status becomes modified rather than silently continuing as trusted. Disabled hooks remain visible in listings but do not run.
-
-This design protects two different workflows. Operators can centrally manage hooks that users should not have to approve one by one. Individual users can still add hooks, but a changed hook must regain trust before it participates in the runtime.
-
-### Hook Events and Results
-
-The hook event vocabulary covers more than command execution. It includes session start, user prompt submit, pre-tool use, permission request, post-tool use, pre/post compact, and stop. These are architectural checkpoints: before a tool mutates, after a tool reports output, before context is compressed, when a turn might stop, and when a prompt enters the runtime.
-
-Hook handlers receive JSON on stdin and return structured JSON on stdout, with stderr used for feedback in some failure modes. Outcomes are not just success or failure. A hook can provide additional model context, warn, block, stop, return feedback, or fail while allowing the operation to continue depending on the event contract.
-
-```text
-// Pseudocode - simplified for clarity.
-  handlers = discover_hooks(config_layers, plugins, managed_sources)
-  trusted_handlers = filter_enabled_and_trusted(handlers)
-
-  preview = build_hook_run_summaries(trusted_handlers, event)
-  emit_hook_started(preview)
-
-  results = run_matching_hooks_with_json_io(trusted_handlers, event)
-  emit_hook_completed(results)
-
-  if any result blocks or stops:
-      return rejected_or_stopped_result(results.feedback)
-
-  add_context_for_model(results.context)
-  continue_to_policy_or_tool_execution()
+```rust
+pub enum HookEventName {
+    PreToolUse,
+    PermissionRequest,
+    PostToolUse,
+    PreCompact,
+    PostCompact,
+    SessionStart,
+    UserPromptSubmit,
+    Stop,
+}
 ```
 
-The preview/run split lets clients show that hook work is pending before the command actually finishes. That matters in terminal UI, app-server, and headless contexts because a hook can be slow or can block the action.
+That distinction matters because "hook" does not mean "arbitrary code runs anywhere". Each event has a request shape and outcome contract. [`PreToolUseRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/pre_tool_use.rs#L21-L41) receives the tool name, matcher aliases, tool id, and JSON tool input; its outcome can block and return extra model context. [`PostToolUseRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/post_tool_use.rs#L21-L43) receives the tool response and can add feedback after the tool has run. [`UserPromptSubmitRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/user_prompt_submit.rs#L21-L38) operates before a user prompt is accepted into the turn. [`StopRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/stop.rs#L22-L42) can turn a would-be stop into continuation fragments.
 
-### Approval Is a Different Gate
+### 1.2 A Hook Run Is a Typed Runtime Fact
 
-Approval begins when policy says a tool needs a decision or when a sandboxed attempt fails and an unsandboxed retry is possible. The approval payload is tool-specific: shell approval includes command and cwd, patch approval includes file changes, MCP approval includes server and tool metadata, and permission requests include the additional filesystem or network access being requested.
+The shared event envelope is visible in [`HookRunSummary`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1538-L1573). A hook run has an id, event name, handler type, execution mode, scope, source path, source, display order, status, timing, and entries. The client does not have to infer hook state from a random terminal line; it receives `HookStarted` and `HookCompleted` events as first-class runtime facts.
 
-The runtime can cache session approvals by key. Shell-like commands usually have one approval key. A patch may have one key per affected path so approving a multi-file patch for the session can also approve later subsets safely.
+This is the first invariant of the chapter: hook effects are event-local. A pre-tool hook can say "do not run this tool call" or "add this context". A permission-request hook can answer a specific approval request. A post-tool hook can return feedback about a specific result. None of those capabilities automatically imply the others.
 
-Approval decisions are richer than yes/no. They may approve once, approve for session, deny, abort, time out, approve an exec-policy amendment, or approve a network-policy amendment. The difference matters because an amendment changes future policy; a one-time approval only authorizes the current action.
+## 2. Discovery Produces a List, Then Trust Filters Runtime
 
-### Guardian, Headless Mode, and UI Interruption
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/hooks-trust-filter-569ff6a1.webp" alt="Hook discovery and trust filter showing system, user, project, plugin, registry, trust gate, active hooks, modified hooks, and disabled hooks" loading="lazy" decoding="async" />
+  <figcaption>Hook discovery keeps listing metadata broader than runtime authority: modified and disabled hooks can remain visible while only enabled managed or trusted hooks become active handlers.</figcaption>
+</figure>
 
-Guardian is an automated review path for approval-like requests. When approval routing selects automated review, the runtime creates a review id separate from the tool call id and waits for a decision. Denial, timeout, and abort are distinct outcomes so the user-facing message can say what happened rather than flattening everything into "failed."
+The hook registry is deliberately split between listing and execution. [`ClaudeHooksEngine`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/mod.rs#L98-L135) stores runnable `ConfiguredHandler`s and warnings. [`HookListEntry`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/mod.rs#L79-L96), by contrast, carries user-facing metadata: event name, handler type, matcher, command, timeout, source, plugin id, display order, enabled state, current hash, and trust status.
 
-Headless execution cannot rely on an interactive modal. If a request requires human approval and no human approval channel exists, the safe behavior is to reject rather than to wait forever. The TUI, by contrast, can interrupt the normal flow with a modal decision surface and then resume the turn after the decision arrives.
+### 2.1 Listing Metadata Is Wider Than Runtime Authority
 
-MCP and dynamic tools add another approval dimension. Their tool metadata may be hosted, connector-backed, or client supplied. The approval surface must show the provenance and parameters that matter without leaking raw internal names as the user-facing trust boundary.
+That split is not cosmetic. A list entry can be untrusted, modified, or disabled. It still matters to show the user that it exists, but it should not silently become executable runtime code. The discovery path in [`append_matcher_groups`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L367-L477) computes a normalized identity hash for each command hook and then decides whether it can become a runnable handler:
+
+```rust
+let current_hash = command_hook_hash(event_name, matcher, &group, normalized_handler);
+let enabled = hook_enabled(source.is_managed, state);
+let trusted_hash = hook_trusted_hash(source.is_managed, state);
+let trust_status = hook_trust_status(source.is_managed, &current_hash, trusted_hash);
+
+hook_entries.push(HookListEntry { enabled, current_hash, trust_status, .. });
+
+if enabled && matches!(trust_status, HookTrustStatus::Managed | HookTrustStatus::Trusted) {
+    handlers.push(ConfiguredHandler { event_name, matcher, command, .. });
+}
+```
+
+The excerpt is trimmed to the trust boundary: metadata is pushed into `hook_entries` before the runnable-handler filter, and only the final `if` moves a command into `handlers`.
+
+### 2.2 Trust Is a Hash-Matched Execution Claim
+
+The trust function itself is small and strict. Managed sources become `Managed`. Non-managed hooks become `Trusted` only when the stored trusted hash equals the current normalized hash; otherwise they are `Modified` or `Untrusted` ([`hook_trust_status`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L507-L520)). The normalized identity is not raw source bytes; [`command_hook_hash`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L479-L505) serializes the event name, matcher group, timeout, async flag, status message, and command identity so TOML and `hooks.json` forms converge on the same trust record.
+
+The operational consequence is simple: "the hook appears in a list" is not evidence that it will run. Runtime authority requires the hook feature to be enabled, the handler to be supported, the hook to be enabled, and the trust status to be managed or trusted.
+
+## 3. Runtime Hooks Are Previewed Before They Resolve
+
+### 3.1 Preview Produces the Pending State
+
+When a hook event fires, Codex first asks the registry which handlers would match, emits a pending view, then runs the handlers and emits completion. [`run_pre_tool_use_hooks`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L138-L186) shows the shape:
+
+```rust
+let request = PreToolUseRequest {
+    session_id: sess.conversation_id,
+    turn_id: turn_context.sub_id.clone(),
+    cwd: turn_context.cwd.clone(),
+    permission_mode: hook_permission_mode(turn_context),
+    tool_name: tool_name.name().to_string(),
+    matcher_aliases: tool_name.matcher_aliases().to_vec(),
+    tool_use_id,
+    tool_input: tool_input.clone(),
+    ..
+};
+
+let preview_runs = hooks.preview_pre_tool_use(&request);
+emit_hook_started_events(sess, turn_context, preview_runs).await;
+
+let outcome = hooks.run_pre_tool_use(request).await;
+emit_hook_completed_events(sess, turn_context, outcome.hook_events).await;
+```
+
+This excerpt omits transcript path, model, and post-run context recording so the lifecycle stays visible: construct the typed request, preview matching handlers, execute them, then emit completion.
+
+The preview step is not merely UI polish. A slow hook can otherwise look like a frozen tool call. A blocking hook can otherwise appear to have failed "inside" the handler. The event model lets terminal, app-server, and headless clients show "hook work is pending" before the final outcome lands.
+
+### 3.2 Block and Context Are Not Approval
+
+`PreToolUse` is the easiest event to misread. Its parser can convert a hook result into `should_block`, a block reason, and additional model context ([`pre_tool_use.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/pre_tool_use.rs#L67-L130)). That is a hook block, not an approval decision. The tool never reaches approval routing if the pre-tool hook blocks. If the hook merely adds context, normal policy and approval still run.
+
+The same pattern appears at other turn edges. [`inspect_pending_input`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L346-L371) runs user-prompt-submit hooks before pending user input is accepted. [`record_additional_contexts`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L428-L448) stores hook-provided context as developer messages. The runtime is not treating hooks as unstructured stderr; it is translating hook outcomes into typed turn consequences.
+
+## 4. Permission-Request Hooks Sit Inside Approval
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/permission-request-hook-569ff6a1.webp" alt="Permission request hook flow showing tool asks, policy, permission hook, deny wins, allow, no decision, guardian, user, and events" loading="lazy" decoding="async" />
+  <figcaption>A permission-request hook is not a pre-tool hook with a different name: it runs after policy has produced an approval request and before the normal Guardian or user approval path.</figcaption>
+</figure>
+
+### 4.1 The Request Is Still a Hook Event
+
+The most important hook in this chapter is the one that sounds most like approval. [`permission_request.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L1-L15) states its contract directly: the event runs in the approval path before Guardian or user approval UI is shown. Unlike `PreToolUse`, it does not rewrite input or block by stopping execution; it can return a concrete allow or deny decision, or decline to decide.
+
+Its request shape carries the same identity information a policy hook needs to reason about the action: session id, turn id, cwd, transcript path, model, permission mode, tool name, matcher aliases, run id suffix, and tool input ([`PermissionRequestRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L34-L58)). Its decision type is intentionally tiny:
+
+```rust
+pub enum PermissionRequestDecision {
+    Allow,
+    Deny { message: String },
+}
+```
+
+The fold rule is conservative. [`resolve_permission_request_decision`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L148-L168) treats any deny as final. If no handler denies, an allow can approve the request. If no handler decides, approval continues through the normal route.
+
+### 4.2 The Orchestrator Gives Permission Hooks First Answer
+
+The orchestration point is [`ToolOrchestrator::request_approval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L384-L448):
+
+```rust
+if evaluate_permission_request_hooks
+    && let Some(permission_request) = tool.permission_request_payload(req)
+{
+    match run_permission_request_hooks(...).await {
+        Some(PermissionRequestDecision::Allow) => return Ok(ReviewDecision::Approved),
+        Some(PermissionRequestDecision::Deny { message }) => {
+            return Err(ToolError::Rejected(message));
+        }
+        None => {}
+    }
+}
+
+let decision = tool.start_approval_async(req, approval_ctx).await;
+Ok(decision)
+```
+
+The snippet is shortened to the decision order. The full function also records telemetry and chooses whether a later decision came from Guardian or the user-facing approval path.
+
+This is where the ordering becomes concrete. Permission-request hooks take top precedence for answering approval prompts. Only the unresolved case falls through to Guardian or user approval. That is why it is wrong to describe hooks as merely "extra validation before approval": one hook family lives inside approval routing.
+
+## 5. Approval Is a Protocol Decision, Not a Modal
+
+### 5.1 Approval Travels Through the Protocol
+
+Approval requests and approval responses are protocol input, not only UI dialogs. [`UserInput`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L662-L679) includes `ExecApproval` and `PatchApproval`, both carrying a submission id and a `ReviewDecision`. Runtime events include [`ExecApprovalRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1364) and [`ApplyPatchApprovalRequest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1376), so clients can present the right surface without inventing their own transport.
+
+The policy that decides whether prompts are possible is [`AskForApproval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L889-L920). It distinguishes `UnlessTrusted`, `OnFailure`, `OnRequest`, `Granular`, and `Never`. The comments are part of the contract: `Never` means Codex does not ask the user and failures are returned instead of escalated; `Granular` can automatically reject prompt categories when a field is false.
+
+### 5.2 The Decision Enum Preserves Recovery Semantics
+
+The response is richer than yes/no. [`ReviewDecision`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3590-L3646) preserves several outcomes:
+
+| Decision | Runtime meaning |
+| --- | --- |
+| `Approved` | Authorize the current request. |
+| `ApprovedForSession` | Authorize equivalent future prompts in the session-scoped approval cache. |
+| `ApprovedExecpolicyAmendment` | Approve and persist a proposed exec-policy amendment. |
+| `NetworkPolicyAmendment` | Persist an allow or deny rule for future requests to the same host. |
+| `Denied` | Reject the action and let the session try something else. |
+| `TimedOut` | Automated review did not finish before its deadline. |
+| `Abort` | Stop until the user's next command. |
+
+This shape prevents two common implementation bugs. First, a session-scoped approval cannot be flattened into "approved forever"; it has a cache scope. Second, a timeout cannot be rendered as "user denied"; Guardian timeout has a different recovery message and different analytics.
+
+## 6. The Orchestrator Keeps Approval Before Sandbox
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/approval-orchestrator-loop-569ff6a1-v2.webp" alt="Tool orchestrator flow showing requirement, skip, forbidden, needs approval, decision, sandbox attempt, sandbox denied, retry approval, and no-sandbox retry" loading="lazy" decoding="async" />
+  <figcaption>The orchestrator first resolves the approval requirement, then selects a sandbox attempt; a later sandbox denial may ask again before a no-sandbox retry.</figcaption>
+</figure>
+
+The central ordering lives in [`ToolOrchestrator::run`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L214). The function computes an `ExecApprovalRequirement` from the tool or default policy, then handles three shapes:
+
+### 6.1 Approval Requirement Comes First
+
+```rust
+let requirement = tool.exec_approval_requirement(req)
+    .unwrap_or_else(|| default_exec_approval_requirement(...));
+
+match requirement {
+    ExecApprovalRequirement::Skip { .. } => { /* maybe strict auto-review */ }
+    ExecApprovalRequirement::Forbidden { reason } => {
+        return Err(ToolError::Rejected(reason));
+    }
+    ExecApprovalRequirement::NeedsApproval { reason, .. } => {
+        let decision = Self::request_approval(...).await?;
+        Self::reject_if_not_approved(..., decision).await?;
+        already_approved = true;
+    }
+}
+```
+
+The excerpt is intentionally pre-sandbox. At this point the orchestrator has not chosen the platform sandbox; it is only deciding whether the request may be attempted.
+
+Only after this approval phase does the orchestrator select the first sandbox attempt ([`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L216-L255)). That separation is the second invariant of the chapter: approval decides whether Codex may try the side effect; sandboxing decides where and how the attempt is constrained.
+
+### 6.2 Sandbox Denial Is a New Branch, Not Proof of Approval Failure
+
+The sandbox-denial branch proves the distinction. If the first attempt fails with a sandbox denial, the runtime checks whether the tool can escalate, whether the approval policy allows a no-sandbox approval, and whether network denial context exists. Only then does it ask for retry approval and create an escalated `SandboxAttempt` with `SandboxType::None` ([`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379)).
+
+The rejection step also preserves decision semantics. [`reject_if_not_approved`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L451-L478) treats `Denied`, `Abort`, and `TimedOut` differently, while `Approved`, `ApprovedForSession`, exec-policy amendments, and allow-network amendments can proceed. A network amendment with a deny action still rejects. Again, the source avoids a boolean approval shortcut.
+
+## 7. Guardian Is a Reviewer With Its Own Failure Boundary
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/guardian-review-boundary-569ff6a1.webp" alt="Guardian review boundary showing approval request, review id, review session, read only, approved, denied, timed out, abort, warning, and event ledger" loading="lazy" decoding="async" />
+  <figcaption>Guardian review is selected by approval policy and reviewer configuration, runs in a constrained review session, and reports timeout, abort, denial, and approval as distinct states.</figcaption>
+</figure>
+
+### 7.1 Guardian Is Selected by Policy and Reviewer Config
+
+Guardian is not an implicit branch inside every tool call. [`routes_approval_to_guardian`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L142-L150) routes approval prompts to the reviewer only when the approval policy is `OnRequest` or `Granular` and the configuration selects `ApprovalsReviewer::AutoReview`. The orchestrator may also enable strict auto-review for a turn, but that still produces a separate `guardian_review_id` and a normal `ReviewDecision`.
+
+### 7.2 Fail-Closed Does Not Collapse States
+
+The review function deliberately fails closed. [`run_guardian_review`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L231-L393) sends an in-progress `GuardianAssessment` event, runs the review session, and maps explicit allow/deny, timeout, cancellation, prompt-build failure, session failure, and parse failure into distinct terminal behavior. A timeout returns `ReviewDecision::TimedOut`; cancellation returns `ReviewDecision::Abort`; build/session/parse failures become a high-risk deny rather than an implicit allow.
+
+### 7.3 The Review Session Is Constrained
+
+The review session itself is constrained. The comments on [`run_guardian_review_session`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L608-L622) state that Guardian should not mutate state or trigger further approvals, so the session is pinned to a read-only sandbox with `approval_policy = never` and nonessential agent features disabled. It may reuse the parent's managed-network allowlist for read-only checks, but it intentionally runs without inherited exec-policy rules.
+
+That gives Guardian a narrow role: automated review of an approval request. It is not the owner of the tool runtime, not a sandbox, and not a silent policy amendment engine. The user-visible surface still receives structured events and warnings, and the main tool path still consumes a `ReviewDecision`.
+
+## 8. What This Design Prevents
+
+The architecture is more complex than a single "ask the user" callback, but each piece prevents a specific failure mode.
+
+### 8.1 Common Misreadings
+
+| Misreading | Source-backed correction | Failure avoided |
+| --- | --- | --- |
+| A hook list is a runnable handler list. | `HookListEntry` records broad metadata; only enabled managed/trusted entries become `ConfiguredHandler`s. | Modified project automation silently runs after a change. |
+| A pre-tool hook is approval. | `PreToolUseOutcome` blocks or adds context; permission-request hooks produce allow/deny decisions in the approval path. | A validation hook accidentally becomes an authority grant. |
+| Approval means no sandbox. | The orchestrator resolves approval before selecting a sandbox attempt; no-sandbox retry is a separate branch. | Approved commands escape containment by default. |
+| Guardian denial, timeout, and abort are all "failed". | `ReviewDecision` and `GuardianAssessmentStatus` keep those states distinct. | The UI cannot explain whether risk, time, or cancellation stopped the action. |
+| `Never` approval policy means "trust everything". | The protocol says Codex never asks the user; policy conflicts return failures instead of escalation. | Headless or non-interactive runs wait forever for a modal that cannot exist. |
 
 ## Apply This
 
-1. **Keep hooks and approvals separate.** Hooks observe or influence events; approval authorizes side effects.
-2. **Trust configured code explicitly.** Hash user/project hooks and treat modified hooks as untrusted until accepted.
-3. **Preview long-running gates.** Emit pending hook or approval state before clients appear frozen.
-4. **Model approval decisions precisely.** Distinguish deny, abort, timeout, one-time approval, session approval, and policy amendment.
-5. **Fail closed without an approval channel.** Headless execution should reject interactive approvals it cannot present.
+The transferable rule is to preserve ownership boundaries in your own agent runtimes:
 
-Chapter 13 follows an approved action into the isolation layer. It explains how permission profiles become filesystem and network policy, then platform sandboxes, managed networking, and execution metadata.
+1. **List automation separately from runnable automation.** Discovery should expose untrusted and modified hooks without executing them.
+2. **Keep validation hooks separate from approval hooks.** A block, a context injection, and an allow decision have different blast radii.
+3. **Model approval as an enum, not a boolean.** Session cache, policy amendments, network amendments, denial, timeout, and abort need different handling.
+4. **Run automated reviewers in constrained sessions.** A reviewer that can mutate the same state it reviews is not a reviewer.
+5. **Let sandboxing remain a second owner.** Approval authorizes an attempt; containment can still reject or force a new approval path.
+
+Chapter 13 follows the approved attempt into that containment layer: permission profiles, filesystem and network policy, platform sandboxes, managed networking, and remote execution metadata.
 
 <div class="source-equivalence">
 
 ## Source Map
 
-| Concept | Source anchor |
-| --- | --- |
-| Hook event vocabulary | [`codex-rs/hooks/src/types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L92) |
-| Hook registry | [`codex-rs/hooks/src/registry.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/registry.rs#L47) |
-| Prompt hook runtime | [`codex-rs/core/src/hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L321) |
-| Guardian review path | [`codex-rs/core/src/guardian/review.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L103) |
-| Tool orchestrator gates | [`codex-rs/core/src/tools/orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L50) |
+| Concept | Evidence class | Source anchor |
+| --- | --- | --- |
+| Hook event names and run events | Verified source | [`protocol.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1451-L1573) |
+| Legacy hook payload contrast | Verified source | [`types.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/types.rs#L90-L97) |
+| Hook list vs runnable handler split | Verified source | [`engine/mod.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/mod.rs#L42-L96) / [`discovery.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/engine/discovery.rs#L367-L520) |
+| Pre-tool hook block/context outcome | Verified source | [`hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L138-L186) / [`pre_tool_use.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/pre_tool_use.rs#L67-L130) |
+| User-prompt hook and additional-context recording | Verified source | [`hook_runtime.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/hook_runtime.rs#L346-L448) |
+| Permission-request hook decision fold | Verified source | [`permission_request.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/hooks/src/events/permission_request.rs#L1-L168) |
+| Approval protocol inputs and requests | Verified source | [`UserInput`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L662-L679) / [`EventMsg`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L1364-L1379) |
+| Permission hook before Guardian/user approval | Verified source | [`request_approval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L384-L448) |
+| Approval policy and decisions | Verified source | [`AskForApproval`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L889-L920) / [`ReviewDecision`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/protocol/src/protocol.rs#L3590-L3646) |
+| Approval requirement before first sandbox attempt | Verified source | [`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L127-L255) |
+| Sandbox-denial retry branch | Verified source | [`orchestrator.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/orchestrator.rs#L264-L379) |
+| Guardian routing, fail-closed review, and constrained session | Verified source | [`review.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/guardian/review.rs#L142-L622) |
 
 </div>
