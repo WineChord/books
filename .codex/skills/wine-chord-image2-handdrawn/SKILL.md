@@ -238,6 +238,12 @@ identifier labels for exact code concepts. Do not let a broad category such as
 awkward translation glosses such as `代码智能体` unless they make the figure
 easier to understand.
 
+For ecosystem maps, ranking diagrams, or landscape summaries with many exact
+project names, keep the generated image abstract or lightly labeled and put the
+precise names, order, dates, and metrics in the article table. Do not force a
+generated figure to carry more product labels than can be visually inspected for
+spelling and source accuracy.
+
 Those traceability links must follow the article skill's source-link contract:
 canonical GitHub repository, immutable commit SHA, verified path, and line
 anchor. Never use a moving branch or a local workspace directory name as the

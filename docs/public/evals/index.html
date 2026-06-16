@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Evals 与 Observability：从源码到开源生态的工程地图</title>
+  <meta name="description" content="围绕 Codex、Claude Code、OpenClaw、Hermes Agent 和主流开源实现，系统讲解 agent evals 与 observability 的技术结构、源码机制、平台排序、能力边界和落地路线。">
+  <link rel="canonical" href="https://www.wineandchord.com/books/evals/">
+  <meta property="og:title" content="Agent Evals 与 Observability：从源码到开源生态的工程地图">
+  <meta property="og:description" content="从 agent runtime 源码、OpenTelemetry、数据集、评分器、trace、CI gate 和生产监控解释 evals 与 observability 为什么必须放在同一个闭环里。">
+  <meta property="og:url" content="https://www.wineandchord.com/books/evals/">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evals-observability-cover.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root {
+      --bg: #f7f8f4;
+      --paper: #fffffb;
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --blue: #0f4c81;
+      --green: #1f7a4d;
+      --amber: #b7791f;
+      --code-bg: #f3f6f8;
+      --font-book: "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", sans-serif;
+      --font-mono: Monaco, "Cascadia Code", Consolas, "Courier New", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html {
+      max-width: 100vw;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    body {
+      margin: 0;
+      min-width: 320px;
+      max-width: 100vw;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-book);
+      line-height: 1.78;
+      text-rendering: optimizeLegibility;
+    }
+    .page-shell {
+      width: min(100%, 1400px);
+      margin: 0 auto;
+      padding: 48px 22px 88px;
+      display: grid;
+      grid-template-columns: minmax(0, 300px) minmax(0, 1020px);
+      gap: 28px;
+      align-items: start;
+    }
+    main {
+      width: 100%;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-panel {
+      position: sticky;
+      top: 24px;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 16px 10px;
+      border: 1px solid rgba(15, 76, 129, 0.14);
+      border-radius: 10px;
+      background: rgba(255, 255, 251, 0.92);
+      box-shadow: 0 12px 34px rgba(16, 42, 67, 0.07);
+    }
+    .toc-title {
+      margin: 0 0 10px;
+      padding: 0 8px 10px;
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+      color: #102a43;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .toc-nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .toc-nav li {
+      margin: 0;
+      font-size: 14px;
+    }
+    .toc-link {
+      display: block;
+      position: relative;
+      border-radius: 7px;
+      padding: 6px 8px;
+      color: var(--muted);
+      line-height: 1.35;
+      text-decoration: none;
+    }
+    .toc-link:hover,
+    .toc-link.active {
+      background: rgba(31, 122, 77, 0.11);
+      color: #14532d;
+    }
+    .toc-level-2 {
+      margin-top: 11px;
+      padding: 8px 10px;
+      color: #102a43;
+      background: rgba(15, 76, 129, 0.055);
+      border-left: 3px solid rgba(15, 76, 129, 0.55);
+      font-weight: 700;
+    }
+    .toc-level-3 {
+      margin-left: 10px;
+      padding: 5px 8px 5px 18px;
+      font-size: 13px;
+    }
+    .toc-level-4 {
+      margin-left: 26px;
+      padding: 4px 6px 4px 16px;
+      color: #66788a;
+      font-size: 12.5px;
+      line-height: 1.32;
+    }
+    .toc-level-3::before,
+    .toc-level-4::before {
+      content: "";
+      position: absolute;
+      top: 0.95em;
+      left: 6px;
+      width: 7px;
+      border-top: 1px solid rgba(82, 96, 109, 0.32);
+    }
+    article {
+      background: var(--paper);
+      border: 1px solid rgba(15, 76, 129, 0.12);
+      border-radius: 8px;
+      padding: clamp(24px, 4vw, 58px);
+      box-shadow: 0 14px 40px rgba(16, 42, 67, 0.08);
+    }
+    h1, h2, h3, h4 {
+      line-height: 1.28;
+      color: #102a43;
+      letter-spacing: 0;
+      scroll-margin-top: 24px;
+      overflow-wrap: anywhere;
+    }
+    h1 {
+      margin: 0 0 24px;
+      font-size: clamp(26px, 2.8vw, 38px);
+      max-width: 900px;
+    }
+    h2 {
+      margin: 86px 0 26px;
+      padding: 22px 0 12px;
+      font-size: clamp(25px, 2.7vw, 32px);
+      border-top: 3px solid rgba(15, 76, 129, 0.22);
+      border-bottom: 1px solid rgba(15, 76, 129, 0.12);
+    }
+    h3 {
+      margin: 46px 0 14px;
+      padding-left: 14px;
+      font-size: clamp(19px, 2vw, 23px);
+      border-left: 4px solid var(--green);
+    }
+    h4 {
+      margin: 30px 0 10px;
+      padding-left: 12px;
+      color: #243b53;
+      font-size: clamp(16px, 1.6vw, 18px);
+      border-left: 2px solid rgba(15, 76, 129, 0.35);
+    }
+    p, li {
+      font-size: 18px;
+      overflow-wrap: break-word;
+    }
+    p { margin: 18px 0; }
+    a {
+      color: var(--blue);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.14em;
+    }
+    a:hover { text-decoration-thickness: 2px; }
+    a code {
+      color: var(--blue);
+      background: rgba(15, 76, 129, 0.08);
+    }
+    strong { color: #102a43; }
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 28px auto;
+      border-radius: 8px;
+      border: 1px solid rgba(16, 42, 67, 0.08);
+      background: #fffaf0;
+    }
+    figure {
+      margin: 34px 0 38px;
+    }
+    figure > img {
+      width: 100%;
+      box-shadow: 0 1px 2px rgba(36, 27, 8, 0.04), 0 16px 44px rgba(36, 27, 8, 0.09);
+    }
+    figcaption {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+    code, pre, kbd {
+      font-family: var(--font-mono);
+    }
+    code {
+      font-size: 0.9em;
+      color: #9b2c2c;
+      background: rgba(155, 44, 44, 0.08);
+      border-radius: 5px;
+      padding: 0.12em 0.32em;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 22px 0;
+      padding: 18px 20px;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.62;
+    }
+    pre code {
+      display: block;
+      padding: 0;
+      color: #243b53;
+      background: transparent;
+      font-size: 15px;
+      white-space: pre;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    ul, ol {
+      padding-left: 1.35em;
+      margin: 16px 0 22px;
+    }
+    li + li { margin-top: 8px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 28px 0;
+      font-size: 16px;
+      display: block;
+      overflow-x: auto;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      min-width: 150px;
+      overflow-wrap: break-word;
+    }
+    th {
+      background: #e6f0f8;
+      color: #102a43;
+      text-align: left;
+    }
+    blockquote {
+      margin: 26px 0;
+      padding: 2px 0 2px 20px;
+      border-left: 4px solid var(--green);
+      color: var(--muted);
+    }
+    details {
+      margin: 24px 0;
+      padding: 16px 18px;
+      border: 1px solid rgba(15, 76, 129, 0.18);
+      border-radius: 8px;
+      background: #f8fbfb;
+    }
+    summary {
+      cursor: pointer;
+      color: #102a43;
+      font-weight: 700;
+    }
+    details > *:last-child { margin-bottom: 0; }
+    .reading-contract {
+      margin: 24px 0 30px;
+      padding: 18px 20px;
+      border: 1px solid rgba(31, 122, 77, 0.2);
+      border-radius: 8px;
+      background: rgba(31, 122, 77, 0.06);
+    }
+    .reading-contract p {
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .rank-note {
+      color: var(--muted);
+      font-size: 15px;
+    }
+    @media (max-width: 1180px) {
+      .page-shell {
+        width: min(100%, 1080px);
+        display: block;
+      }
+      .toc-panel {
+        position: relative;
+        top: auto;
+        max-height: 360px;
+        margin: 0 0 18px;
+      }
+      .toc-level-3 { margin-left: 6px; }
+      .toc-level-4 { margin-left: 18px; }
+    }
+    @media (max-width: 720px) {
+      .page-shell { padding: 20px 12px 56px; }
+      .toc-panel {
+        max-height: 260px;
+        margin-bottom: 14px;
+        padding: 12px 10px;
+      }
+      .toc-title { font-size: 14px; }
+      .toc-link {
+        padding: 5px 6px;
+        font-size: 13px;
+      }
+      article { padding: 22px 16px; }
+      p, li { font-size: 16px; }
+      pre code { font-size: 13px; }
+      table {
+        display: block;
+        width: 100%;
+        overflow: visible;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 15px;
+      }
+      table thead { display: none; }
+      table tbody,
+      table tr,
+      table td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+      }
+      table tr {
+        margin: 14px 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      table td {
+        position: relative;
+        border: 0;
+        border-top: 1px solid var(--line);
+        padding: 10px 12px 10px 98px;
+      }
+      table td:first-child {
+        border-top: 0;
+        padding-left: 12px;
+        background: rgba(15, 76, 129, 0.07);
+        color: #102a43;
+        font-weight: 700;
+      }
+      table td:not(:first-child)::before {
+        content: attr(data-label);
+        position: absolute;
+        top: 10px;
+        left: 12px;
+        width: 74px;
+        color: #52606d;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+      h2 { margin-top: 54px; }
+      h3 { margin-top: 34px; padding-left: 10px; }
+      h4 { margin-top: 24px; padding-left: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="toc-panel" aria-label="文章目录">
+      <div class="toc-title">目录</div>
+      <nav id="toc" class="toc-nav"></nav>
+    </aside>
+    <main>
+      <article>
+        <h1>Agent Evals 与 Observability：从源码到开源生态的工程地图</h1>
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/evals-observability-cover.webp" alt="AI agent evals and observability as one operating loop across datasets, traces, scores, gates, drift, and agent runtimes" width="1672" height="941" loading="eager" fetchpriority="high" decoding="async">
+          <figcaption>Agent 不是一次函数调用，而是一条会改变文件、调用工具、跨轮恢复、被用户打断、被生产环境拖拽的运行时链路。evals 和 observability 只有合成一个闭环，才能判断这条链路是否真的变好。</figcaption>
+        </figure>
+
+        <div class="reading-contract">
+          <p><strong>阅读契约：</strong>这篇文章回答一个问题：一个能写代码、调用工具、维护长期上下文的 agent，应该怎样同时被评测和被观测？</p>
+          <p>读的时候请跟踪三类 owner：离线 eval owner、runtime observability owner、生产反馈 owner。读完之后，你应该能判断一个开源工具到底是在做数据集评测、trace 采集、LLM-as-judge、红队、实验管理、生产监控，还是把它们连成了闭环。</p>
+        </div>
+
+        <p>很多团队第一次给 agent 做质量体系时，会先写一组 prompt 测试：输入问题，跑模型，拿输出和期望答案比一比。这个阶段很自然，因为它像普通单元测试。但真正上线以后，问题很快变形：模型没有直接答错，却选错工具；答案正确，但用了 6 倍 token；本地 eval 通过，生产里某个仓库规则让上下文溢出；一次失败看起来是模型幻觉，回放 trace 后才发现是工具返回被截断。</p>
+
+        <p>这就是 evals 和 observability 必须放在一起讲的原因。evals 负责在可控数据集上回答“这个系统在已知任务上是否变好”；observability 负责在真实运行中回答“它为什么这样做、代价是多少、失败边界在哪里”。对 agent 来说，二者不是前后两个团队的事情，而是一条证据链的两种投影。</p>
+
+        <p>本文以四个 agent runtime 为主线：<a href="https://github.com/openai/codex">Codex</a>、<a href="https://github.com/WineChord/claude-code">Claude Code 公开源码镜像</a>、<a href="https://github.com/openclaw/openclaw">OpenClaw</a>、<a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>。再把它们和 <a href="https://github.com/langfuse/langfuse">Langfuse</a>、<a href="https://github.com/Arize-ai/phoenix">Phoenix</a>、<a href="https://github.com/promptfoo/promptfoo">promptfoo</a>、<a href="https://github.com/confident-ai/deepeval">DeepEval</a>、<a href="https://github.com/openai/evals">OpenAI Evals</a>、<a href="https://github.com/comet-ml/opik">Opik</a>、<a href="https://github.com/tensorzero/tensorzero">TensorZero</a>、<a href="https://github.com/Portkey-AI/gateway">Portkey gateway</a>、<a href="https://github.com/Helicone/helicone">Helicone</a>、<a href="https://github.com/traceloop/openllmetry">OpenLLMetry</a>、<a href="https://github.com/Arize-ai/openinference">OpenInference</a> 等开源实现放到同一个地图里看。</p>
+
+        <p>证据边界也先说清楚。官方产品能力、协议和 API 语义以官方文档和公开仓库为准；源码机制只在链接到的公开 commit、文件和行号范围内成立；Claude Code 这里使用的是公开源码镜像，不等同于 Anthropic 官方源码发布，也不用于推断 Anthropic 服务端内部实现。排名数据来自 2026-06-16 的 GitHub API 查询，stars 只是流行度信号，不等于技术适配度。</p>
+
+        <h2>一、先把 eval 和 observability 分开，再合起来</h2>
+
+        <h3>1.1 Eval 回答“是否满足任务契约”</h3>
+        <p>一个 eval 最小需要四个东西：数据集、运行器、评分器、决策规则。数据集定义输入和期望行为；运行器把同一批任务送进同一个系统；评分器把输出压成可比较的事实；决策规则决定是否允许合并、发布、回滚或继续观察。</p>
+
+        <pre><code class="language-json">{
+  "case": {
+    "input": "修复这个失败测试并说明原因",
+    "workspace": "fixture: repo-with-bug",
+    "expected": {
+      "tests": "pass",
+      "diff_policy": "minimal",
+      "explanation": "names the root cause"
+    }
+  },
+  "run": {
+    "agent": "candidate-runtime",
+    "model": "selected-model",
+    "tools": ["read", "edit", "shell"]
+  },
+  "scores": {
+    "task_success": 1,
+    "patch_quality": 0.82,
+    "tool_budget": 0.74
+  },
+  "gate": "block if task_success &lt; 1 or patch_quality &lt; 0.75"
+}</code></pre>
+
+        <p>这里的重点不是“评分器是不是一个 LLM”。评分器可以是断言、正则、单元测试、检索指标、pairwise judge、人审 rubric，或者它们的组合。真正重要的是它能否稳定地把任务契约转成决策信号。</p>
+
+        <h3>1.2 Observability 回答“运行中发生了什么”</h3>
+        <p>Observability 的最小单位不是 test case，而是一次运行的事实链：trace、span、log、metric、event、artifact。对普通后端服务来说，trace 解释请求为什么慢；对 agent runtime 来说，trace 还要解释模型看到了什么、调用了什么工具、工具返回了什么、哪一步触发恢复、token 和成本在哪里增长。</p>
+
+        <p>这就是为什么 OpenTelemetry 体系在 agent 领域变得重要。它不是因为所有问题都要上云端可观测性平台，而是因为 agent 的失败经常跨越模型、工具、文件系统、网络、UI 和持久化记录。没有 trace context，失败会碎成几段日志；没有低基数字段，观测后端会被 prompt 和路径打爆；没有内容采集开关，调试会直接变成数据泄露风险。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/eval-observability-two-loops.webp" alt="Pre-deploy evaluation loop and production observability loop connected by golden traces and instrumentation feedback" width="1672" height="941" loading="lazy" decoding="async">
+          <figcaption>Eval loop 和 observability loop 的 owner 不同，但中间必须有桥：生产 trace 变成 golden traces 和新 eval cases，失败 eval 反过来要求 runtime 暴露更好的 instrumentation。</figcaption>
+        </figure>
+
+        <h3>1.3 为什么 agent 不能只做一种</h3>
+        <p>只做 eval，会得到一组漂亮的离线分数，却不知道真实失败时系统看见了什么。只做 observability，会有很多漂亮的 trace，却没有稳定门禁告诉你一次改动是否让关键任务退化。agent 的质量闭环要同时持有两种事实：</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>问题</th>
+              <th>Eval 更擅长</th>
+              <th>Observability 更擅长</th>
+              <th>闭环做法</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>新模型是否可替换旧模型</td>
+              <td>固定数据集、固定 budget、固定 scorer 对比</td>
+              <td>上线后成本、延迟、工具错误和回退路径</td>
+              <td>先用 regression suite gate，再用 production drift 监控</td>
+            </tr>
+            <tr>
+              <td>工具调用为什么失败</td>
+              <td>可复现 fixture 和 expected tool sequence</td>
+              <td>真实 span、stderr、重试、超时、权限和 traceparent</td>
+              <td>把失败 trace 提炼成 eval case，而不是只修 prompt</td>
+            </tr>
+            <tr>
+              <td>RAG 或代码检索是否退化</td>
+              <td>context precision、faithfulness、answer correctness</td>
+              <td>检索 span、召回条目、context token、cache 命中和索引版本</td>
+              <td>指标判断结果，trace 解释原因</td>
+            </tr>
+            <tr>
+              <td>是否存在安全或数据泄露风险</td>
+              <td>红队插件、policy judge、越权任务集</td>
+              <td>内容采集 gate、PII redaction、低基数字段和审计日志</td>
+              <td>风险 eval 进 CI，高风险 trace 进审计队列</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>二、从四个 agent runtime 看观测面的真正 owner</h2>
+
+        <h3>2.1 Codex：先记录 rollout，再把事实投影成 telemetry</h3>
+        <p>Codex 的一个关键特点是把会话历史、回滚、分叉和恢复放在 rollout 事实链里，而不是只看最终 prompt。可见源码里，<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/thread_rollout_truncation.rs#L35">`user_message_positions_in_rollout`</a> 会扫描 rollout items 找用户消息边界，并且在遇到 <code>ThreadRolledBack</code> 事件时修正有效历史；<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/core/src/thread_rollout_truncation.rs#L69">`fork_turn_positions_in_rollout`</a> 则把真实用户消息和触发 turn 的 inter-agent communication 都视为 fork 边界。</p>
+
+        <p>这说明 Codex 的可观测性并不只是“把 API 延迟打点”。它先保留足够的运行事实，让后面的 resume、rollback、fork、replay 可以解释“当前有效历史是怎么来的”。如果只记录最终模型请求，回滚后的线程会像被神秘截断；如果只记录 UI，fork 的触发边界会被普通聊天消息淹没。</p>
+
+        <p>在跨系统 trace 上，Codex 还有单独的 W3C trace context 处理。<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/otel/src/trace_context.rs#L29">`current_span_w3c_trace_context`</a> 从当前 tracing span 注入 <code>traceparent</code> / <code>tracestate</code>；<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/otel/src/trace_context.rs#L97">`context_from_trace_headers`</a> 则从 headers 反向恢复上下文。这个边界的价值在于：本地 runtime、远端任务、provider 请求和下游日志可以共享一个可传播的 trace 语义，而不是各自发明 request id。</p>
+
+        <p>Codex 也把低层组件的 telemetry 做成可插拔 sink。<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/state/src/telemetry.rs#L14">`DbTelemetry`</a> 明确要求数据库行为不依赖 telemetry 是否发送成功；<a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/codex-api/src/telemetry.rs#L18">`SseTelemetry`</a> 和 <a href="https://github.com/openai/codex/blob/d959664420a5f39641eba661c240c35e3739607c/codex-rs/codex-api/src/telemetry.rs#L35">`WebsocketTelemetry`</a> 把 transport 层的 poll、request、event 单独抽象出来。这里的设计纪律很清楚：先让业务路径可恢复，再让每个边界可测量，而且 telemetry 失败不能反过来改变业务结果。</p>
+
+        <h3>2.2 Claude Code：analytics 必须先过隐私与采样边界</h3>
+        <p>Claude Code 的公开源码镜像显示出另一种压力：客户端 analytics 需要大量环境和工具上下文，但这些上下文也最容易泄露路径、代码片段、MCP server 名、skill 名或用户配置。它的 <a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/analytics/config.ts#L13">`isAnalyticsDisabled`</a> 会受测试环境、第三方 provider、privacy level 等条件影响；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/analytics/firstPartyEventLogger.ts#L57">`shouldSampleEvent`</a> 对事件级采样做动态配置；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/analytics/firstPartyEventLogger.ts#L312">`initialize1PEventLogging`</a> 使用 OpenTelemetry logs SDK 建一个本地 provider，再通过批处理 exporter 发送内部事件。</p>
+
+        <p>更值得注意的是 metadata 层。<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/analytics/metadata.ts#L45">`AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS`</a> 这个类型标记不是运行时加密，而是让开发者在类型层明确承诺“这个字符串不是代码或文件路径”；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/analytics/metadata.ts#L70">`sanitizeToolNameForAnalytics`</a> 会把 MCP 工具名收敛成 <code>mcp_tool</code>；<a href="https://github.com/WineChord/claude-code/blob/5a774a2b62d7949c1d94e0b726281554d7893cfd/src/services/analytics/metadata.ts#L236">tool input truncation 常量</a> 则限制字符串、JSON 字符数、collection 个数和深度。</p>
+
+        <p>这类代码给 eval/observability 一个很实际的提醒：质量证据不应该通过“多发一点原始内容”来获得。agent 的输入常常就是代码、路径、token、客户数据和内部 prompt。没有采样、redaction、opt-out、低基数和内容开关，observability 很容易把调试系统变成另一个风险面。</p>
+
+        <h3>2.3 OpenClaw：把 diagnostics 设计成 OTLP 产品面</h3>
+        <p>OpenClaw 的观测面更像一个面向生产部署的 contract。它的 OpenTelemetry 文档直接把三层关系写清楚：in-process diagnostics events、<code>diagnostics-otel</code> plugin、OTLP/HTTP 导出的 metrics/traces/logs；同时说明 provider calls 会收到由 OpenClaw 信任的 model-call span context 生成的 W3C <code>traceparent</code> header，而 plugin 发出的 trace context 不会被传播。这个契约在 <a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/docs/gateway/opentelemetry.md#L15">OpenClaw OpenTelemetry 文档的系统说明</a>里是公开可读的。</p>
+
+        <p>它更重要的一点是内容采集默认关闭。文档的 <a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/docs/gateway/opentelemetry.md#L128">privacy and content capture</a> 部分明确说明，raw model/tool content 默认不导出，span 只携带 bounded identifiers；只有配置 <code>diagnostics.otel.captureContent.*</code> 时，才会把输入、输出、工具参数、工具结果、system prompt 或 tool definitions 作为受控内容导出。它还说明已有 caller-supplied <code>traceparent</code> 会被替换，避免 plugin 或自定义 provider options 伪造跨服务 trace 祖先。</p>
+
+        <p>OpenClaw 还把这些 contract 变成 QA 场景。<a href="https://github.com/openclaw/openclaw/blob/9b6bed7a75a7c3d6c59095082aabc8bdb192aad9/qa/scenarios/runtime/otel-trace-smoke.md#L12">`otel-trace-smoke`</a> 的目标不是“能不能启动一个 agent”，而是验证 QA-lab gateway run 会通过 diagnostics-otel plugin 产生 bounded OpenTelemetry traces、metrics 和 logs，并且不泄露内容或原始诊断标识。这就是 eval 和 observability 交叉处最有价值的样子：eval case 检查观测 contract 本身。</p>
+
+        <h3>2.4 Hermes Agent：把 eval harness 当成可测路径，而不是演示脚本</h3>
+        <p>Hermes Agent 的观测面更偏工程实验。<a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/scripts/tool_search_livetest.py#L31">`tool_search_livetest.py`</a> 用一组 fake MCP tools 构造真实形状的检索场景，记录 transcript、tool calls、实际调用、最终响应、timing 和 round-trip count；<a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/scripts/benchmark_browser_eval.py#L1">`benchmark_browser_eval.py`</a> 对比 supervisor WebSocket 路径和 subprocess eval 路径的浏览器 runtime evaluate 延迟；<a href="https://github.com/NousResearch/hermes-agent/blob/55cb4103beba5822303c06b662635e1491ae72f5/gateway/memory_monitor.py#L1">`memory_monitor.py`</a> 则把长进程 RSS、GC stats、thread count 做成 grep-friendly 的周期日志。</p>
+
+        <p>这类实现不一定像 Langfuse 或 Phoenix 那样提供完整产品 UI，但它非常适合 agent runtime 的内部质量工程：当你在改工具检索、浏览器控制、TUI 性能、内存泄漏时，最需要的不是一个通用平台，而是可复现、可比较、可贴进 PR 描述的实验记录。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/runtime-observability-lanes.webp" alt="Four source-derived observability lanes for Codex, Claude Code, OpenClaw, and Hermes Agent feeding an evidence board" width="1672" height="941" loading="lazy" decoding="async">
+          <figcaption>四个 runtime 的观测 owner 不一样：Codex 重视 rollout 和恢复事实，Claude Code 重视 analytics 隐私边界，OpenClaw 把 diagnostics 公开成 OTLP 契约，Hermes 更像一组可复现实验 harness。</figcaption>
+        </figure>
+
+        <h2>三、Eval 的类型谱系：不要把所有分数都叫 benchmark</h2>
+
+        <h3>3.1 从最快到最真实，是一条连续谱</h3>
+        <p>agent eval 的第一层误区，是把“有一批问题和一个平均分”都叫 benchmark。对工程系统来说，benchmark 只是 eval 的一种形态。更实用的谱系是从快到真：</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>回答的问题</th>
+              <th>优点</th>
+              <th>盲点</th>
+              <th>代表实现</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Unit checks</td>
+              <td>输出是否满足显式断言</td>
+              <td>快、便宜、适合 CI</td>
+              <td>难覆盖开放式推理</td>
+              <td><a href="https://github.com/openai/simple-evals">simple-evals</a>、自定义断言</td>
+            </tr>
+            <tr>
+              <td>Prompt matrix</td>
+              <td>多个 prompt、provider、变量组合谁更好</td>
+              <td>适合回归测试和模型替换</td>
+              <td>容易停留在单轮输出</td>
+              <td><a href="https://github.com/promptfoo/promptfoo">promptfoo</a>、<a href="https://github.com/microsoft/promptflow">Prompt Flow</a></td>
+            </tr>
+            <tr>
+              <td>RAG metrics</td>
+              <td>答案是否忠实、检索是否相关</td>
+              <td>把回答和 context 分开测</td>
+              <td>指标依赖任务定义和 judge 稳定性</td>
+              <td><a href="https://github.com/vibrantlabsai/ragas">Ragas</a>、<a href="https://github.com/confident-ai/deepeval">DeepEval</a></td>
+            </tr>
+            <tr>
+              <td>Agent trajectory</td>
+              <td>路径、工具、恢复和最终状态是否正确</td>
+              <td>最贴近 coding agent 和 workflow agent</td>
+              <td>采集和回放成本高</td>
+              <td><a href="https://github.com/UKGovernmentBEIS/inspect_ai">Inspect</a>、OpenAI Evals、内部 trace replay</td>
+            </tr>
+            <tr>
+              <td>Red team</td>
+              <td>是否会越权、泄露、被注入或违反 policy</td>
+              <td>能发现普通任务集发现不了的风险</td>
+              <td>分数不等于真实风险概率</td>
+              <td>promptfoo redteam、DeepEval safety metrics</td>
+            </tr>
+            <tr>
+              <td>Human review</td>
+              <td>系统在真实语境下是否可信</td>
+              <td>能覆盖审美、业务语义和边界判断</td>
+              <td>慢、贵、需要 rubric 和抽样纪律</td>
+              <td>Langfuse/Opik/Phoenix annotation queues、review workflows</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/eval-taxonomy-ladder.webp" alt="Taxonomy of practical LLM and agent evaluation from unit checks through prompt matrix, RAG metrics, agent trajectory, red team, and human review" width="1672" height="941" loading="lazy" decoding="async">
+          <figcaption>越靠左越快、越适合 CI；越靠右越接近真实运行，但采集、标注和回放成本也越高。成熟团队通常不是选一种，而是把它们分层组合。</figcaption>
+        </figure>
+
+        <h3>3.2 Scorer 不是越智能越好</h3>
+        <p>LLM-as-judge 很有用，但它不是默认答案。一个好的 scorer 应该先问：这个任务有没有可执行事实？如果 patch 可以跑测试，就先跑测试；如果工具必须按顺序调用，就检查 trace；如果答案必须引用来源，就检查 source attribution；只有当语义本身无法用 deterministic check 表达时，才把 judge 放进链路。</p>
+
+        <p><a href="https://github.com/braintrustdata/autoevals/blob/edfa259bb568c17b5089335262418744f9cc95f2/py/autoevals/llm.py#L306">AutoEvals 的 `LLMClassifier`</a> 是一个很典型的可复用 judge 形态：用 prompt 和 choice_scores 把开放式判断转成可比较分数；它还在 <a href="https://github.com/braintrustdata/autoevals/blob/edfa259bb568c17b5089335262418744f9cc95f2/py/autoevals/llm.py#L351">trace 参数</a>上支持从多轮 thread 中取变量。这类 scorer 的价值在于快速搭建语义评估，但它必须和 deterministic scorer、人工抽查、分数校准一起使用。</p>
+
+        <h3>3.3 Agent trajectory eval 要看路径，而不是只看最终回答</h3>
+        <p>coding agent 的任务成功往往取决于路径：有没有读对文件、有没有误删、有没有跑测试、有没有处理失败命令、有没有把大型工具输出合理摘要。最终一句“已修复”可能完全正确，也可能只是自信地覆盖了失败。trajectory eval 要把 trace 当成一等输入。</p>
+
+        <pre><code class="language-json">{
+  "trajectory": [
+    { "span": "read_file", "target": "failing_test", "ok": true },
+    { "span": "edit_patch", "changed_files": 1, "ok": true },
+    { "span": "shell", "command": "npm test", "exit": 1 },
+    { "span": "shell", "command": "npm test -- --runInBand", "exit": 0 }
+  ],
+  "scorers": [
+    "final_tests_pass",
+    "minimal_diff",
+    "explains_failed_retry",
+    "no_unapproved_network"
+  ]
+}</code></pre>
+
+        <p>这个例子解释了为什么 observability 会反哺 eval：没有 trace，eval 只能看最后输出；有 trace，eval 才能判断“失败后是否恢复”“是否用了危险路径”“是否因为工具输出丢失而误判”。</p>
+
+        <h2>四、热门开源实现排序：先分赛道，再看 star</h2>
+
+        <p>下面的排序使用 2026-06-16 的 GitHub API 数据。流行度主要看 stars，forks 作为辅助；近期 push 只用于确认仓库仍有维护痕迹，不进入表格排序。能力评分按公开 README、docs、源码结构和产品边界综合判断。这个排名不是采购建议，而是工程定位图：你先要知道自己缺的是 eval runner、observability backend、trace schema、judge library、red-team harness，还是完整 LLMOps 平台。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/open-source-landscape-map.webp" alt="Open-source eval and observability landscape grouped into Eval CI, Platform, Trace SDK, and Gateway Logs shelves" width="1672" height="941" loading="lazy" decoding="async">
+          <figcaption>项目名和具体排名放在表格里，图只保留能力分区：Eval CI、Platform、Trace SDK、Gateway Logs。这样不会把命令行评测器和生产观测后端混成一个榜单。</figcaption>
+        </figure>
+
+        <h3>4.1 综合流行度榜：stars 先给生态热度，不给适配答案</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>项目</th>
+              <th>Stars</th>
+              <th>Forks</th>
+              <th>主要定位</th>
+              <th>最适合先看的人</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td><a href="https://github.com/langfuse/langfuse">Langfuse</a></td><td>29.1k</td><td>3.0k</td><td>LLM observability、evals、datasets、prompt management</td><td>要自托管完整 AI engineering 平台的团队</td></tr>
+            <tr><td>2</td><td><a href="https://github.com/mlflow/mlflow">MLflow</a></td><td>26.5k</td><td>5.8k</td><td>ML/LLM/agent 统一实验与监控平台</td><td>已有 MLflow/Databricks 生态的团队</td></tr>
+            <tr><td>3</td><td><a href="https://github.com/promptfoo/promptfoo">promptfoo</a></td><td>22.2k</td><td>2.0k</td><td>prompt/agent/RAG 测试、CI、红队</td><td>想快速把 prompt eval 放进 CI 的团队</td></tr>
+            <tr><td>4</td><td><a href="https://github.com/comet-ml/opik">Opik</a></td><td>19.7k</td><td>1.5k</td><td>trace、evaluation、monitoring、annotation</td><td>要把调试、标注、评估放在同一 UI 的团队</td></tr>
+            <tr><td>5</td><td><a href="https://github.com/openai/evals">OpenAI Evals</a></td><td>18.7k</td><td>3.0k</td><td>LLM eval framework 和 benchmark registry</td><td>要理解 benchmark registry 和 OpenAI 风格 eval 的读者</td></tr>
+            <tr><td>6</td><td><a href="https://github.com/confident-ai/deepeval">DeepEval</a></td><td>16.2k</td><td>1.5k</td><td>LLM/RAG/agent metrics 和测试框架</td><td>Python-first、希望用 pytest 心智写 eval 的团队</td></tr>
+            <tr><td>7</td><td><a href="https://github.com/raga-ai-hub/RagaAI-Catalyst">RagaAI Catalyst</a></td><td>16.2k</td><td>3.6k</td><td>agent observability、monitoring、evaluation SDK</td><td>关注 multi-agent timeline 和 analytics 的团队</td></tr>
+            <tr><td>8</td><td><a href="https://github.com/vibrantlabsai/ragas">Ragas</a></td><td>14.4k</td><td>1.5k</td><td>RAG application evaluation</td><td>先解决 RAG faithfulness/context 质量的人</td></tr>
+            <tr><td>9</td><td><a href="https://github.com/Portkey-AI/gateway">Portkey gateway</a></td><td>12.1k</td><td>1.1k</td><td>AI gateway、routing、guardrails、MCP gateway observability</td><td>先从统一 provider gateway、路由和治理切入的团队</td></tr>
+            <tr><td>10</td><td><a href="https://github.com/tensorzero/tensorzero">TensorZero</a></td><td>11.6k</td><td>0.9k</td><td>LLMOps gateway、observability、evaluation、optimization、experimentation</td><td>希望把网关、反馈、实验和优化连起来的人</td></tr>
+            <tr><td>11</td><td><a href="https://github.com/microsoft/promptflow">Prompt Flow</a></td><td>11.2k</td><td>1.1k</td><td>LLM app prototyping、testing、deployment、monitoring</td><td>Azure/Microsoft toolchain 用户</td></tr>
+            <tr><td>12</td><td><a href="https://github.com/Arize-ai/phoenix">Phoenix</a></td><td>10.2k</td><td>0.9k</td><td>AI observability and evaluation</td><td>重视 OpenInference 和 tracing-first 调试的团队</td></tr>
+            <tr><td>13</td><td><a href="https://github.com/evidentlyai/evidently">Evidently</a></td><td>7.6k</td><td>0.9k</td><td>ML/LLM observability、tests、monitoring</td><td>已有数据/ML monitoring 体系的团队</td></tr>
+            <tr><td>14</td><td><a href="https://github.com/traceloop/openllmetry">OpenLLMetry</a></td><td>7.2k</td><td>1.0k</td><td>OpenTelemetry-based GenAI observability instrumentation</td><td>想用 OTel 把 LLM calls 接进现有 backend 的团队</td></tr>
+            <tr><td>15</td><td><a href="https://github.com/Helicone/helicone">Helicone</a></td><td>5.8k</td><td>0.6k</td><td>LLM observability gateway、cost、experiments</td><td>希望从 provider gateway 快速接入日志和成本的人</td></tr>
+            <tr><td>16</td><td><a href="https://github.com/AgentOps-AI/agentops">AgentOps</a></td><td>5.6k</td><td>0.6k</td><td>agent monitoring、LLM cost、benchmarking SDK</td><td>Python agent SDK 用户</td></tr>
+            <tr><td>17</td><td><a href="https://github.com/openai/simple-evals">simple-evals</a></td><td>4.5k</td><td>0.5k</td><td>轻量 eval scripts</td><td>想读最小可理解 eval 模板的人</td></tr>
+            <tr><td>18</td><td><a href="https://github.com/truera/trulens">TruLens</a></td><td>3.4k</td><td>0.3k</td><td>LLM experiments、feedback functions、records</td><td>关注 feedback functions 和 conversation grouping 的团队</td></tr>
+            <tr><td>19</td><td><a href="https://github.com/openlit/openlit">OpenLIT</a></td><td>2.5k</td><td>0.3k</td><td>OTel-native LLM observability、guardrails、evals</td><td>想把 observability、guardrails、evals 合在轻平台的人</td></tr>
+            <tr><td>20</td><td><a href="https://github.com/UKGovernmentBEIS/inspect_ai">Inspect</a></td><td>2.2k</td><td>0.6k</td><td>large language model evaluations framework</td><td>做严肃 benchmark、solver/scorer/task 结构的人</td></tr>
+            <tr><td>21</td><td><a href="https://github.com/wandb/weave">Weave</a></td><td>1.1k</td><td>0.2k</td><td>AI app tracing and evaluation toolkit</td><td>Weights &amp; Biases 生态用户</td></tr>
+            <tr><td>22</td><td><a href="https://github.com/langchain-ai/openevals">OpenEvals</a></td><td>1.1k</td><td>0.1k</td><td>ready-made evaluators</td><td>LangChain/LangSmith 生态用户</td></tr>
+            <tr><td>23</td><td><a href="https://github.com/Arize-ai/openinference">OpenInference</a></td><td>1.0k</td><td>0.3k</td><td>AI observability semantic conventions and instrumentation</td><td>希望统一 GenAI trace schema 的团队</td></tr>
+            <tr><td>24</td><td><a href="https://github.com/braintrustdata/autoevals">AutoEvals</a></td><td>0.9k</td><td>0.1k</td><td>pre-built model output scorers</td><td>需要一组轻量 judge/scorer library 的团队</td></tr>
+          </tbody>
+        </table>
+        <p class="rank-note">注意：LangSmith/Braintrust 等商业平台在业界使用很广，但平台本体并非完全以同样方式开源；本文只把公开仓库纳入开源排序。AutoEvals 是 Braintrust 的开源 scorer 库，因此单独列入。</p>
+
+        <h3>4.2 Eval/CI 赛道能力排序</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>能力排名</th>
+              <th>首选项目</th>
+              <th>为什么排在这里</th>
+              <th>短板</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><a href="https://github.com/promptfoo/promptfoo">promptfoo</a></td>
+              <td>声明式配置、provider matrix、assertions、redteam、CI/CLI、tracing 接入都很完整；源码里的 <a href="https://github.com/promptfoo/promptfoo/blob/ca757794c53c48422d9c20c133e5d1704e5adff0/src/evaluate.ts#L317">`evaluateWithSource`</a> 展示了加载 provider、构造 test suite、记录 eval 结果和分享的主路径。</td>
+              <td>复杂 agent 轨迹回放需要自己设计数据模型和 fixtures。</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><a href="https://github.com/confident-ai/deepeval">DeepEval</a></td>
+              <td>Python 体验好，metrics 丰富，RAG 和 agent 场景覆盖强，适合把 eval 当测试写。</td>
+              <td>生产 trace、dataset lifecycle、annotation workflow 需要和外部平台配合。</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><a href="https://github.com/vibrantlabsai/ragas">Ragas</a></td>
+              <td>RAG 专项能力强，faithfulness/context precision 等指标深入，适合先把检索增强质量做扎实。</td>
+              <td>不应该被当成通用 agent observability 平台。</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><a href="https://github.com/UKGovernmentBEIS/inspect_ai">Inspect</a></td>
+              <td>task、solver、scorer 结构适合严肃模型评测和可复现实验。</td>
+              <td>对 prompt 产品团队来说，上手成本高于 promptfoo/simple-evals。</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><a href="https://github.com/openai/evals">OpenAI Evals</a> / <a href="https://github.com/openai/simple-evals">simple-evals</a></td>
+              <td>适合理解 eval registry、基准设计和最小脚本心智模型。</td>
+              <td>不是一个完整生产观测后端。</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td><a href="https://github.com/braintrustdata/autoevals">AutoEvals</a> / <a href="https://github.com/langchain-ai/openevals">OpenEvals</a></td>
+              <td>作为 scorer/evaluator library 很方便，适合嵌入已有平台。</td>
+              <td>单独使用时缺少 dataset、trace、gate 的完整运行面。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>4.3 Observability/Platform 赛道能力排序</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>能力排名</th>
+              <th>首选项目</th>
+              <th>为什么排在这里</th>
+              <th>适合的落点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><a href="https://github.com/langfuse/langfuse">Langfuse</a></td>
+              <td>traces、observations、scores、datasets、prompts、evals 形成了清晰产品对象。公开源码里的 <a href="https://github.com/langfuse/langfuse/blob/53433e881d2c8aeaf948eccfe4bc0dd89444ce85/packages/shared/src/interfaces/tableNames.ts#L7">table names</a> 直接展示了这些核心表；<a href="https://github.com/langfuse/langfuse/blob/53433e881d2c8aeaf948eccfe4bc0dd89444ce85/worker/src/services/IngestionService/index.ts#L162">IngestionService</a> 按 trace、observation、score、dataset_run_item 分流。</td>
+              <td>自托管完整平台、需要 prompt/dataset/score 联动的团队。</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><a href="https://github.com/comet-ml/opik">Opik</a></td>
+              <td>trace、evaluation、monitoring、annotation queue 的产品闭环强，尤其适合把线上样本转成人审和 eval。</td>
+              <td>希望快速有 UI 和 annotation workflow 的团队。</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><a href="https://github.com/Arize-ai/phoenix">Phoenix</a></td>
+              <td>tracing-first，和 OpenInference 生态贴合。<a href="https://github.com/Arize-ai/phoenix/blob/f478e7e37d11101db2250ae62b6108ba85308461/packages/phoenix-otel/src/phoenix/otel/otel.py#L64">`register`</a> 会创建 OpenTelemetry tracer provider 并配置 Phoenix endpoint。</td>
+              <td>想用 OTel/OpenInference 方式调试 LLM apps、RAG 和 agent traces 的团队。</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><a href="https://github.com/mlflow/mlflow">MLflow</a></td>
+              <td>传统 ML 实验管理基础强，正在向 agents、LLMs、monitoring 延伸；适合已有 MLflow 基础设施的组织。</td>
+              <td>统一模型、实验、agent 质量资产，而不是只给 LLM 调用打点。</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><a href="https://github.com/tensorzero/tensorzero">TensorZero</a></td>
+              <td>更偏 LLM gateway 到 feedback/eval/optimization 的闭环。其 README 把 <a href="https://github.com/tensorzero/tensorzero/blob/62eb8f63e8ec62018d70420dbf1a8c5d1c026315/README.md#L7-L16">gateway、observability、evaluation、optimization、experimentation</a> 放在同一个平台口径里，并强调和 OpenTelemetry、主流 provider 配合。</td>
+              <td>希望从 inference gateway 开始，把反馈、A/B、prompt/model 优化接到同一条链路的人。</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td><a href="https://github.com/Portkey-AI/gateway">Portkey gateway</a></td>
+              <td>网关能力强，README 明确定位为面向大量模型的 <a href="https://github.com/Portkey-AI/gateway/blob/669825cbe89ee51569918b8f78a9db486fd69dd4/README.md#L35">fast, reliable and secure routing</a>，并在 <a href="https://github.com/Portkey-AI/gateway/blob/669825cbe89ee51569918b8f78a9db486fd69dd4/README.md#L43-L50">功能清单</a>里列出 retries、fallbacks、guardrails、agentic workflow 和 MCP gateway observability。</td>
+              <td>先统一 provider access、路由、guardrails、MCP gateway，再逐步接入 eval/trace 平台。</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td><a href="https://github.com/Helicone/helicone">Helicone</a></td>
+              <td>gateway/proxy 接入路径短，成本、日志、实验、监控上手快。</td>
+              <td>先从 provider call observability 和成本控制切入的团队。</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td><a href="https://github.com/wandb/weave">Weave</a> / <a href="https://github.com/truera/trulens">TruLens</a> / <a href="https://github.com/openlit/openlit">OpenLIT</a></td>
+              <td>各有优势：Weave 贴近 W&amp;B 实验链路，TruLens 强调 feedback functions 和 records，OpenLIT 强调 OTel-native + guardrails + evals。</td>
+              <td>已经有对应生态或想采用轻平台的人。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>4.4 Trace SDK / Semantic convention 赛道</h3>
+        <p>这个赛道不是要替代平台，而是让你把 LLM/agent 调用转成标准 trace。<a href="https://github.com/traceloop/openllmetry">OpenLLMetry</a> 更像 provider/framework instrumentation 套件；<a href="https://github.com/Arize-ai/openinference">OpenInference</a> 更像 AI observability 的语义约定和 instrumentation 家族；<a href="https://github.com/AgentOps-AI/agentops">AgentOps</a> 则把 agent monitoring SDK、trace lifecycle 和 validation API 包在一起。AgentOps 的 <a href="https://github.com/AgentOps-AI/agentops/blob/a855a92dfaa7fd4423f9a68b1ba0295a3a72da80/agentops/__init__.py#L227">`start_trace`</a> / <a href="https://github.com/AgentOps-AI/agentops/blob/a855a92dfaa7fd4423f9a68b1ba0295a3a72da80/agentops/__init__.py#L258">`end_trace`</a> 就是典型 SDK-level trace lifecycle。</p>
+
+        <p>选择这类项目时，最重要的问题不是“有没有 UI”，而是它是否能进入你已有的 OpenTelemetry collector、Datadog、Grafana Tempo、Honeycomb、New Relic 或内部 trace backend。如果不能和现有观测面汇合，它很容易变成另一个孤岛。</p>
+
+        <h2>五、Trace-to-Eval 数据模型：把生产事实变成可复现样本</h2>
+
+        <h3>5.1 关键对象不是 trace，而是 trace、dataset、score 的连接</h3>
+        <p>最成熟的 agent 质量系统会把生产 trace 转成 eval case。这个转换不能直接复制原始 payload，因为 trace 里可能有 secret、路径、用户数据、版权内容、内部配置和一次性 token。正确的数据模型通常是：</p>
+
+        <pre><code class="language-json">{
+  "trace": {
+    "trace_id": "stable public id",
+    "spans": ["model_call", "tool_call", "retrieval", "shell"],
+    "metrics": ["latency", "input_tokens", "output_tokens", "cost"]
+  },
+  "normalization": {
+    "redacted": true,
+    "content_policy": "bounded fields only",
+    "artifacts": ["fixture diff", "tool summary", "expected state"]
+  },
+  "dataset_item": {
+    "input": "minimal reproducible task",
+    "expected_output": "behavioral contract",
+    "metadata": {
+      "source": "golden trace",
+      "failure_mode": "tool timeout then recovery"
+    }
+  },
+  "scores": [
+    { "name": "task_success", "score": 1 },
+    { "name": "cost_budget", "score": 0.68 },
+    { "name": "safe_tool_use", "score": 1 }
+  ]
+}</code></pre>
+
+        <p>Langfuse 的对象模型很好地体现了这条链。它把 <code>traces</code>、<code>observations</code>、<code>scores</code>、<code>dataset_items</code>、<code>dataset_run_items</code> 都放在核心表名里；ingestion 服务会把 trace、observation、score 和 dataset run item 分开处理。这说明平台型 observability 的目标不是只画 trace 树，而是把 trace、dataset、score、prompt 和 experiment 变成可查询、可回放、可比较的对象。</p>
+
+        <h3>5.2 promptfoo 的 OTLP receiver 说明 eval 工具也在吸收 trace</h3>
+        <p>promptfoo 是 eval/CI 工具，但它也在吸收 observability 语义。它的 <a href="https://github.com/promptfoo/promptfoo/blob/ca757794c53c48422d9c20c133e5d1704e5adff0/test/tracing/otlpReceiver.test.ts#L155">OTLP receiver 测试</a>覆盖 JSON traces；同一测试文件还覆盖 <a href="https://github.com/promptfoo/promptfoo/blob/ca757794c53c48422d9c20c133e5d1704e5adff0/test/tracing/otlpReceiver.test.ts#L590">ingest-time redaction</a> 等行为。测试中还出现了把 Claude Code log 转成 <a href="https://github.com/promptfoo/promptfoo/blob/ca757794c53c48422d9c20c133e5d1704e5adff0/test/tracing/otlpReceiver.test.ts#L1305"><code>claude_code.tool.execution</code> child span</a> 的断言，以及把 Codex log 通过 <a href="https://github.com/promptfoo/promptfoo/blob/ca757794c53c48422d9c20c133e5d1704e5adff0/test/tracing/otlpReceiver.test.ts#L1542">resource trace context</a> 挂回 trace 的路径。</p>
+
+        <p>这很能说明趋势：eval runner 不再只读 prompt 和 output。它要知道一次 agent run 的 trace，才能把工具错误、日志、span linkage、redaction policy 和最终分数放在一起解释。</p>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/trace-to-eval-ledger.webp" alt="Trace records normalized into dataset items, judge jobs, scores, reviewer notes, and regression feedback" width="1672" height="941" loading="lazy" decoding="async">
+          <figcaption>Trace-to-eval 的核心不是“保存更多原始内容”，而是经过 redaction 和 normalization 后，把真实失败转成可复现 dataset item，再把 score 和 reviewer note 回写到质量账本。</figcaption>
+        </figure>
+
+        <h3>5.3 Phoenix 和 OpenInference 代表 trace schema 路线</h3>
+        <p>Phoenix 的 <a href="https://github.com/Arize-ai/phoenix/blob/f478e7e37d11101db2250ae62b6108ba85308461/packages/phoenix-otel/src/phoenix/otel/otel.py#L200">`TracerProvider`</a> 扩展 OpenTelemetry SDK，并用 Phoenix-aware defaults 配置 endpoint、project name、batch/simple processor。这个路线的价值是复用 OTel 生态：instrumentation 负责把 provider/framework 事件变成 spans，平台负责展示、筛选、标注、关联 eval。</p>
+
+        <p>OpenInference 则更强调语义约定：哪些字段叫 input、output、retrieval documents、tool call、LLM model、session、conversation。没有这层约定，不同框架的 trace 只是形状相似的日志；有了语义约定，平台才可能把 LangChain、LlamaIndex、OpenAI、Anthropic、自定义 agent runtime 的事件放在同一个查询模型里。</p>
+
+        <h2>六、常见误读：分数、trace 和人审都可能骗人</h2>
+
+        <h3>6.1 高平均分不等于可上线</h3>
+        <p>平均分最容易掩盖长尾失败。一个 coding agent 在简单 bugfix 上从 82% 到 87% 的提升，可能同时让高风险命令误用从 0.5% 增加到 2%。如果 eval suite 没有按任务类型、风险等级、仓库规模、工具类型分层，你看到的是一个混合均值，不是上线证据。</p>
+
+        <p>更稳的做法是为不同 failure mode 建立单独 gate：任务成功率、危险工具调用、未授权网络、diff 面积、测试通过、成本预算、latency p95、恢复成功、用户可解释性。这些 gate 可以用同一批 trace 产生，但不应该被压成一个“智能程度总分”。</p>
+
+        <h3>6.2 Trace 多不等于可观测</h3>
+        <p>Trace 的价值来自低基数、可关联、可回放、可保护。如果每个 span 都塞 prompt 全文、工具输出全文、文件路径和用户标识，短期看似方便，长期会让存储、查询、权限和合规全部失控。OpenClaw 把 content capture 做成显式 opt-in，Claude Code 对 analytics metadata 做类型标记、sanitization 和 truncation，都是在保护这个边界。</p>
+
+        <h3>6.3 LLM judge 不等于人类 reviewer</h3>
+        <p>LLM judge 能稳定处理一部分 rubric，但它也会受 prompt、模型版本、temperature、输入顺序和上下文长度影响。人类 reviewer 则能处理业务语境和边界判断，但吞吐低、成本高、也会漂移。更好的结构是三层：deterministic scorer 先处理可执行事实，LLM judge 处理语义维度，人审抽样校准 judge 并处理高风险样本。</p>
+
+        <details>
+          <summary>为什么不推荐一开始就上“全自动综合评分”</summary>
+          <p>综合评分的问题不是数学上不能做，而是组织上太容易被误用。它把任务成功、成本、延迟、风险、体验、可维护性压到一个数字里，导致每次 regression 都要重新争论权重。早期更好的做法是保留多个清晰指标：哪些是 hard gate，哪些是 soft signal，哪些只用于趋势观察。等指标稳定后，再为特定发布决策设计加权分。</p>
+        </details>
+
+        <h2>七、落地路线：从一个失败 trace 开始，而不是从平台采购开始</h2>
+
+        <h3>7.1 七站闭环</h3>
+        <p>如果从零开始建设 agent evals and observability，最有效的路线不是先比较 20 个平台，而是从一个真实失败 trace 开始：</p>
+
+        <ol>
+          <li><strong>Capture：</strong>拿到一次完整失败运行，包括用户输入、工具链路、模型调用、日志、token/cost、最终状态。</li>
+          <li><strong>Label：</strong>给失败打标签：任务理解、工具选择、权限、检索、上下文、输出格式、成本、恢复、产品体验。</li>
+          <li><strong>Replay：</strong>把它压成可复现 fixture。去掉一次性数据，保留最小必要上下文。</li>
+          <li><strong>Score：</strong>先写 deterministic scorer，再补 LLM judge 和 reviewer rubric。</li>
+          <li><strong>Gate：</strong>把高风险指标变成 CI 或 release gate，而不是只在 dashboard 里展示。</li>
+          <li><strong>Monitor：</strong>上线后看同类 failure mode 的频率、成本和 drift。</li>
+          <li><strong>Repair：</strong>失败修复后，把新 trace 回写到 golden traces，防止同类问题复发。</li>
+        </ol>
+
+        <figure>
+          <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/operational-playbook-loop.webp" alt="Operational playbook loop from capture, label, replay, score, gate, monitor, and repair around an agent runtime" width="1672" height="941" loading="lazy" decoding="async">
+          <figcaption>从 Capture 到 Repair 的闭环，比“先买一个 observability 平台”更重要。平台只是承载这些对象，真正的质量体系来自稳定的失败分类、回放和 gate。</figcaption>
+        </figure>
+
+        <h3>7.2 工具选择建议</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>当前痛点</th>
+              <th>优先工具</th>
+              <th>原因</th>
+              <th>不要先做什么</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>prompt 或模型替换经常回归</td>
+              <td>promptfoo、DeepEval、simple-evals</td>
+              <td>快速把矩阵测试和 scorer 放进 CI</td>
+              <td>不要一开始就建设完整 trace warehouse</td>
+            </tr>
+            <tr>
+              <td>RAG 回答不稳定</td>
+              <td>Ragas、DeepEval、Phoenix</td>
+              <td>先把 retrieval、context、faithfulness 分开测</td>
+              <td>不要只看 final answer 评分</td>
+            </tr>
+            <tr>
+              <td>生产 agent 失败不可解释</td>
+              <td>Langfuse、Phoenix、Opik、OpenLLMetry/OpenInference</td>
+              <td>先打通 trace、span、score、dataset 和 annotation</td>
+              <td>不要把 prompt 全文无边界写进 logs</td>
+            </tr>
+            <tr>
+              <td>provider 成本和请求日志失控</td>
+              <td>Helicone、Portkey gateway、TensorZero、OpenLIT、OpenTelemetry collector</td>
+              <td>gateway 和 OTel 接入路径短，先解决 visibility、routing、guardrails 和成本归因</td>
+              <td>不要用人工 spreadsheet 追 token/cost</td>
+            </tr>
+            <tr>
+              <td>agent runtime 正在自研</td>
+              <td>自定义 rollout ledger + OTel + promptfoo/AutoEvals</td>
+              <td>runtime-specific 事实必须自己拥有，再接平台</td>
+              <td>不要让平台数据模型倒逼 runtime 历史结构</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>八、可以迁移的工程规则</h2>
+
+        <p>最后把整篇文章压成一组可执行规则。</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>规则</th>
+              <th>保护的 invariant</th>
+              <th>违反后的症状</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>先记录 runtime facts，再解释分数</td>
+              <td>失败可以回放和审计</td>
+              <td>eval 失败只剩一句“模型答错了”</td>
+            </tr>
+            <tr>
+              <td>trace、dataset、score 必须有稳定关联键</td>
+              <td>生产样本能转成回归用例</td>
+              <td>dashboard 和 CI 各说各话</td>
+            </tr>
+            <tr>
+              <td>内容采集默认关闭，必要时按字段打开</td>
+              <td>调试能力不变成泄露面</td>
+              <td>日志后端出现 prompt、路径、secret 或客户数据</td>
+            </tr>
+            <tr>
+              <td>用多 scorer，而不是一个万能 judge</td>
+              <td>可执行事实和语义判断分层</td>
+              <td>平均分上涨但风险和成本一起上涨</td>
+            </tr>
+            <tr>
+              <td>把失败 trace 升级成 golden trace</td>
+              <td>事故修复能进入长期记忆</td>
+              <td>同类 failure mode 在几周后复发</td>
+            </tr>
+            <tr>
+              <td>按赛道选工具，不按 star 盲选</td>
+              <td>工具解决正确层级的问题</td>
+              <td>用 eval runner 期待生产监控，或用 dashboard 期待 CI gate</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>真正成熟的 agent 质量体系，不是一个分数面板，也不是一个 trace 瀑布图，而是一套运行纪律：每一次真实失败都能被捕获、归因、脱敏、回放、评分、进入门禁，并在下一次部署后被继续观察。evals 让系统在已知任务上不退化；observability 让未知失败能变成下一批已知任务。两者合起来，agent 才有工程意义上的进步。</p>
+
+        <h2>参考资料</h2>
+        <ul>
+          <li><a href="https://github.com/openai/codex">OpenAI Codex repository</a> and pinned source links in this article.</li>
+          <li><a href="https://github.com/WineChord/claude-code">Claude Code public source mirror</a> and <a href="https://docs.anthropic.com/">Anthropic official documentation</a> for provider/product contracts.</li>
+          <li><a href="https://github.com/openclaw/openclaw">OpenClaw</a>, especially its OpenTelemetry diagnostics documentation and QA scenarios.</li>
+          <li><a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>, especially live eval, benchmark, and memory monitor scripts.</li>
+          <li><a href="https://github.com/langfuse/langfuse">Langfuse</a>, <a href="https://github.com/Arize-ai/phoenix">Phoenix</a>, <a href="https://github.com/promptfoo/promptfoo">promptfoo</a>, <a href="https://github.com/comet-ml/opik">Opik</a>, <a href="https://github.com/tensorzero/tensorzero">TensorZero</a>, <a href="https://github.com/Portkey-AI/gateway">Portkey gateway</a>, <a href="https://github.com/Helicone/helicone">Helicone</a>, <a href="https://github.com/traceloop/openllmetry">OpenLLMetry</a>, and <a href="https://github.com/Arize-ai/openinference">OpenInference</a>.</li>
+          <li><a href="https://opentelemetry.io/docs/specs/otel/trace/">OpenTelemetry Trace specification</a> and <a href="https://www.w3.org/TR/trace-context/">W3C Trace Context</a>.</li>
+        </ul>
+      </article>
+    </main>
+  </div>
+  <script>
+    const headings = [...document.querySelectorAll("article h2, article h3, article h4")];
+    const slugCounts = new Map();
+    const slugify = (text) => {
+      const base = text
+        .trim()
+        .toLowerCase()
+        .replace(/[`"'“”‘’]/g, "")
+        .replace(/[^\p{L}\p{N}]+/gu, "-")
+        .replace(/^-+|-+$/g, "") || "section";
+      const count = slugCounts.get(base) || 0;
+      slugCounts.set(base, count + 1);
+      return count ? `${base}-${count + 1}` : base;
+    };
+    const toc = document.getElementById("toc");
+    const rootList = document.createElement("ul");
+    const stack = [{ level: 1, list: rootList }];
+    headings.forEach((heading) => {
+      if (!heading.id) heading.id = slugify(heading.textContent || "");
+      const level = Number(heading.tagName.slice(1));
+      while (stack.length > 1 && level <= stack[stack.length - 1].level) stack.pop();
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `#${heading.id}`;
+      link.textContent = heading.textContent;
+      link.className = `toc-link toc-level-${heading.tagName.slice(1)}`;
+      item.appendChild(link);
+      stack[stack.length - 1].list.appendChild(item);
+      const childList = document.createElement("ul");
+      childList.className = "toc-children";
+      item.appendChild(childList);
+      stack.push({ level, list: childList });
+    });
+    toc.appendChild(rootList);
+    toc.querySelectorAll("ul:empty").forEach((emptyList) => emptyList.remove());
+
+    const links = [...document.querySelectorAll(".toc-link")];
+    const byId = new Map(links.map((link) => [decodeURIComponent(link.hash.slice(1)), link]));
+    const setActiveLink = (link) => {
+      links.forEach((candidate) => {
+        candidate.classList.remove("active");
+        candidate.removeAttribute("aria-current");
+      });
+      link?.classList.add("active");
+      link?.setAttribute("aria-current", "location");
+    };
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (!visible.length) return;
+      setActiveLink(byId.get(visible[0].target.id));
+    }, { rootMargin: "-12% 0px -76% 0px", threshold: [0, 1] });
+    headings.forEach((heading) => observer.observe(heading));
+
+    document.querySelectorAll("table").forEach((table) => {
+      const headers = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+      table.querySelectorAll("tbody tr").forEach((row) => {
+        [...row.children].forEach((cell, index) => {
+          cell.setAttribute("data-label", headers[index] || "");
+        });
+      });
+    });
+  </script>
+</body>
+</html>
