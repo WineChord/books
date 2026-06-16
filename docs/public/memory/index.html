@@ -371,6 +371,7 @@
         <li><a class="toc-link toc-level-2" href="#model">一、先把 memory 拆成工程对象</a></li>
         <li><a class="toc-link toc-level-3" href="#planes">1.1 四类长期状态</a></li>
         <li><a class="toc-link toc-level-3" href="#contract">1.2 Memory Contract</a></li>
+        <li><a class="toc-link toc-level-3" href="#llm-wiki">1.3 Artifact Memory</a></li>
         <li><a class="toc-link toc-level-2" href="#runtimes">二、四条 runtime 主线</a></li>
         <li><a class="toc-link toc-level-3" href="#codex">2.1 Codex：受控旁路</a></li>
         <li><a class="toc-link toc-level-3" href="#claude">2.2 Claude Code：文件型协作记忆</a></li>
@@ -448,6 +449,12 @@
 }</code></pre>
           <p>这个 shape-level 例子故意不绑定任何 vendor。真正重要的是字段的 owner：`scope` 决定谁能复用；`source` 决定能不能相信；`write_policy` 决定是否会自修改；`read_policy` 决定 token budget；`governance` 决定出错后能不能修。</p>
           <p>如果系统没有这些字段，它仍然可以在 demo 中“记住用户喜欢黑暗模式”，但一旦进入多人项目、客户支持、合规环境或 coding agent，它会很快遇到边界问题：团队 memory 是否覆盖个人 memory？用户说“forget”时删哪一层？一次失败的工具调用能不能被记录？模型生成的总结能不能成为未来指令？</p>
+
+          <h3 id="llm-wiki">1.3 Artifact Memory：LLM 维护的 wiki</h3>
+          <p><a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f#file-llm-wiki-md-L74-L80">Karpathy 的 LLM Wiki note</a> 很适合放在这里讨论，因为它不是一个 provider，也不是普通 RAG，而是一种 <strong>artifact memory</strong> 模式：raw sources 保持不可变，LLM 维护一组互相链接的 Markdown wiki 页面，schema 文件（例如 `CLAUDE.md` 或 `AGENTS.md`）约束目录结构、命名、写入流程和查询习惯。</p>
+          <p>它补上了“长上下文 vs RAG”之外的第三条路。传统 RAG 每次问答都从原始文档重新检索、重新拼接；LLM Wiki 把一次次阅读、提问和整理沉淀成可 diff、可链接、可审阅的中间层。raw sources 是 source of truth，wiki 是 LLM 写入和维护的综合层，schema 是 procedural memory（见 <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f#file-llm-wiki-md-L88-L94">三层 architecture</a>）。</p>
+          <p>按本文的 contract 看，LLM Wiki 的关键不在“文件比数据库更好”，而在 owner 清楚：raw sources 由人策展、不可变；wiki 由 agent 维护、可 review；index.md 和 log.md 分别承担内容索引与时间线账本；lint pass 定期找矛盾、陈旧 claim、孤儿页面和缺失交叉引用（见 <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f#file-llm-wiki-md-L95-L106">operations 与 index/log</a>）。这正是 memory system 需要的可解释写入路径和治理面。</p>
+          <p>它的边界也要说清楚：LLM Wiki 更适合个人知识库、研究主题、团队文档和 coding-agent 工作区，不等于用户画像服务，也不替代百万级 token 语料上的检索系统。规模小、来源可控、需要长期 synthesis 时，artifact memory 会比“每次都 RAG 一遍 raw docs”更稳定；规模大、权限复杂、实时变化快时，它应该变成 graph/vector/profile provider 的上游或旁路，而不是唯一 memory。</p>
         </section>
 
         <section id="runtimes">
@@ -825,7 +832,7 @@
             <li>Open-source memory systems: <a href="https://github.com/mem0ai/mem0">mem0</a>, <a href="https://github.com/supermemoryai/supermemory">Supermemory</a>, <a href="https://github.com/getzep/graphiti">Graphiti</a>, <a href="https://github.com/getzep/zep">Zep</a>, <a href="https://github.com/letta-ai/letta">Letta</a>, <a href="https://github.com/topoteretes/cognee">Cognee</a>, <a href="https://github.com/MemTensor/MemOS">MemOS</a>, <a href="https://github.com/langchain-ai/langmem">LangMem</a>, <a href="https://github.com/thedotmack/claude-mem">Claude-Mem</a>, <a href="https://github.com/vectorize-io/hindsight">Hindsight</a>.</li>
             <li>Hermes Agent memory provider source: <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/plugins/memory/__init__.py#L1-L20">provider discovery</a>, <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/agent/memory_manager.py#L1-L24">MemoryManager contract</a>, <a href="https://github.com/NousResearch/hermes-agent/blob/2dbc3bd93795f4307ec76661700aa902cc21c189/run_agent.py#L3014-L3047">post-turn sync boundary</a>.</li>
             <li>OpenClaw source anchors: <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/README.md#L159-L175">local gateway and sandbox highlights</a>, <a href="https://github.com/openclaw/openclaw/blob/e5e6cf04a2f403ffbdd545bcb1ea6f7c6c944c89/SECURITY.md#L238-L244">workspace memory trust boundary</a>.</li>
-            <li>Provider and product docs: <a href="https://support.claude.com/en/articles/12123587-import-and-export-your-memory-from-claude">Claude memory import/export</a>, <a href="https://www.anthropic.com/news/enabling-claude-code-to-work-more-autonomously">Claude Code autonomy update</a>, <a href="https://mem0.ai/research">mem0 research page</a>, <a href="https://arxiv.org/abs/2501.13956">Zep / Graphiti paper</a>.</li>
+            <li>Provider and product docs: <a href="https://support.claude.com/en/articles/12123587-import-and-export-your-memory-from-claude">Claude memory import/export</a>, <a href="https://www.anthropic.com/news/enabling-claude-code-to-work-more-autonomously">Claude Code autonomy update</a>, <a href="https://mem0.ai/research">mem0 research page</a>, <a href="https://arxiv.org/abs/2501.13956">Zep / Graphiti paper</a>, <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Karpathy LLM Wiki note</a>.</li>
           </ul>
           <p class="footnote">本文中的排序是工程选型排序，不是投资、采购或性能承诺。上线前仍需用自己的数据集评估 recall、precision、latency、token cost、delete propagation 和 privacy boundary。</p>
         </section>
