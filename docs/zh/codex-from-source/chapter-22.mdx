@@ -27,6 +27,12 @@ Write path 在 root-session startup 后台运行。它扫描符合条件的过�
 
 Read path 有两个职责。第一，它可以把有界 summary 注入当前 session 的 developer instructions，让模型在不扫描目录的情况下看到长期 context 的压缩 视图。第二，MCP memory service 让模型在需要更多证据时 list、read 和 search memory files。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-lifecycle-20260616.webp" alt="Memory lifecycle：capture、extract、store、retrieve、inject，以及 citation、audit、prune 和 feedback paths" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Memory side channel 有生命周期：capture、extract、store、retrieve、inject、cite、audit 与 prune 是不同操作。</figcaption>
+</figure>
+
 MCP service 被刻意设计成 read-only 且 path-scoped。它拒绝 parent directory traversal、absolute paths、hidden components、symlinked files 和 symlinked ancestors。它会分页 list 和 search results，按 token budget 截断大文件读取， 并返回 relative paths。这些是普通 filesystem hardening 决策；在 memory system 中，它们还有第二个目的：防止“记忆”变成任意本地文件访问。
 
 Search 也是结构化的。Request 可以匹配任意 query、要求所有 queries 在同一行， 或要求所有 queries 落在一个 line window 内。Response 包含 matching content、 line numbers、matched queries、pagination 和 truncation flag。这是 tool contract，不是终端 grep output。
@@ -96,6 +102,12 @@ Stage 2 使用 model-guided agent，是因为 consolidation 是编辑工作：�
 - 禁用 network access。
 
 这就是 memory system 的核心安全模式。Codex 允许模型执行语义部分，但移除 ambient authority。Internal agent 可以编辑 memory artifacts；它不能浏览网络、 调用任意工具、继续委派更多 agents，或制造另一个 memory loop。
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-governance-boundaries-20260616.webp" alt="Memory governance boundaries：stale、secret、overreach、loop、authority risks 通过 consent、scope、redaction、citation、audit 控制" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Memory governance 解释了为什么 extraction、redaction、usage accounting、locks 与 restricted agents 必须分盒。</figcaption>
+</figure>
 
 ### Memory Selection 受 Usage 影响
 

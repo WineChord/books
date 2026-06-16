@@ -32,6 +32,12 @@ The live graph store is intentionally narrow. [`ThreadSpawnEdgeStatus`](https://
 
 That narrowness is a feature. The graph store should not know how a model phrased the task, how a TUI renders the child, or how a trace viewer draws causality. It answers operational topology questions.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-runtime-record-569ff6a1.webp" alt="Thread runtime record with thread identity, session facade, queues, history, projections, resume state, fork state, and rollback ledger" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>A child agent is still a thread record with queues, history, projections, resume state, and rollback evidence.</figcaption>
+</figure>
+
 ## 2. Spawn Creates A Thread, A Status Edge, And A Client Event
 
 The `spawn_agent` handler makes the lifecycle visible. [`spawn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/spawn.rs#L44-L196) parses arguments, checks depth, emits `CollabAgentSpawnBeginEvent`, builds child config, starts a child through `agent_control.spawn_agent_with_metadata()`, emits `CollabAgentSpawnEndEvent`, records telemetry, and returns a model-visible result.
@@ -144,6 +150,12 @@ Confusing them creates design bugs:
 | Treat trace graph as runtime state | active coordination depends on replay artifact availability |
 | Treat transcript text as graph | compaction or formatting can erase coordination facts |
 | Treat nickname as identity | renamed agents break routing and trace joins |
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-reducer-graph-569ff6a1.webp" alt="Raw trace events and payload references entering a strict reducer that emits a rollout trace graph with pending queues and raw links" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The trace graph is reconstructed from recorded facts, so pending queues and raw links must be explicit instead of inferred from prose.</figcaption>
+</figure>
 
 ## 7. Pending Queues Make Races Explicit
 

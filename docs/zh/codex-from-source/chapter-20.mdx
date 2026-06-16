@@ -32,6 +32,12 @@ Live graph store 刻意很窄。[`ThreadSpawnEdgeStatus`](https://github.com/ope
 
 这种窄边界是优点。Graph store 不该知道模型如何描述任务，不该知道 TUI 如何渲染 child，也不该知道 trace viewer 如何画 causality。它只回答 operational topology questions。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/thread-runtime-record-569ff6a1.webp" alt="Thread runtime record：thread identity、session facade、queues、history、projections、resume state、fork state 与 rollback ledger" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Child agent 仍然是 thread record，拥有 queues、history、projections、resume state 和 rollback evidence。</figcaption>
+</figure>
+
 ## 二、Spawn 同时创建 thread、status edge 和 client event
 
 `spawn_agent` handler 把 lifecycle 展开得很清楚。[`spawn.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/tools/handlers/multi_agents/spawn.rs#L44-L196) 解析 arguments，检查 depth，发 `CollabAgentSpawnBeginEvent`，构建 child config，通过 `agent_control.spawn_agent_with_metadata()` 启动 child，发 `CollabAgentSpawnEndEvent`，记录 telemetry，并返回 model-visible result。
@@ -144,6 +150,12 @@ Trace graph 是语义图。它在 raw protocol/runtime/tool/model events 被捕�
 | 把 trace graph 当 runtime state | active coordination 依赖 replay artifact availability |
 | 把 transcript text 当 graph | compaction 或 formatting 会抹掉 coordination facts |
 | 把 nickname 当 identity | renamed agents 会破坏 routing 与 trace joins |
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/observability-reducer-graph-569ff6a1.webp" alt="Raw trace events 和 payload references 进入 strict reducer，输出带 pending queues 和 raw links 的 rollout trace graph" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Trace graph 是从记录事实重建出来的，所以 pending queues 与 raw links 必须显式存在，而不是靠 prose 推断。</figcaption>
+</figure>
 
 ## 七、Pending queue 把 races 显式化
 

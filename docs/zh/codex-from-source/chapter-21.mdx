@@ -12,6 +12,12 @@
 
 这个分离非常关键。Local Codex turn 会流式输出模型结果，并在本地权限上下文 里执行工具。Cloud task 会把工作提交到 backend environment，稍后获取 task state，并可能把返回的 patch 应用到当前工作树。这两个体验相关，但不是同一 个执行边界。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-runtime-split-569ff6a1.webp" alt="Turn sampling 的 response events 进入 runtime boundary，并分出 realtime sideband、backend tasks、task lifecycle 与 apply diff" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Cloud task work 会从 local turn streaming 分叉，之后通过 task state 与可 apply 的 diff contract 返回。</figcaption>
+</figure>
+
 **源码边界：** backend task surface 是 **verified source**，锚点在 [`cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22)；HTTP transport 是 **verified source**，锚点在 [`http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L24)；mock implementation 是 **verified source**，锚点在 [`cloud-tasks-mock-client`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-mock-client/src/mock.rs#L18)。本章把 task identity、remote workflow 与 local apply 连接起来，是基于这些 client shapes、[`agent-identity`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40) 和 [`turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18) 做出的 **surrounding contract inference**。
 
 
@@ -84,6 +90,12 @@ Cloud tasks 中最重要的边界是 apply。Task 可以在云端运行，但 ap
 
 Preflight 很重要，因为 remote output 可能相对本地 checkout 已经过期。即使 cloud task 生成时完全正确，用户之后也可能改过文件。本地 preflight 会在真正 mutation 之前把这种不确定性变成可见结果。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-delta-evidence-569ff6a1.webp" alt="Committed patch deltas 进入 turn diff tracker；exact evidence 渲染 diff，不确定 evidence 会让 display 失效" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Remote completion 不会直接改变 checkout；local diff evidence 与 preflight 决定什么可以被 apply。</figcaption>
+</figure>
+
 Apply outcome 有三类：success、partial 和 error。Partial 不是装饰状态。 它告诉客户端：有些 paths 被应用了，或产生了 conflict，另一些被 skipped。 这会改变用户接下来应该如何检查工作树。
 
 ### Cloud TUI 是 Task Operator
@@ -109,6 +121,12 @@ Identity layer 的职责不同于普通用户认证：
   metadata。
 
 这个设计避免把“用户已经登录”和“这个 runtime 可以代表这个 task 行动”混为 一谈。用户认证可以建立 account context；agent identity 把某个 runtime key 绑定到某个 task authorization。这个区别让 backend 可以推理远程 agent，而 不是按本地进程名盲目信任。
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/task-scoped-identity-trust-path-20260616.webp" alt="Task-scoped identity trust path：分开 user auth、runtime key registration、signed task authorization、task id、JWT claims、BOM 与 backend task boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Task-scoped identity 把 account context 和被授权代表某个 backend task 行动的 runtime key 分开。</figcaption>
+</figure>
 
 ### 本地执行与远程执行保持分离
 

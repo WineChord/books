@@ -64,6 +64,12 @@ Generated artifacts need especially strict handling because drift can be ambiguo
 
 The state machine is small, but it changes behavior. A contract change becomes reviewable as a contract change. The repository no longer asks reviewers to infer client impact from internal type diffs.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/generated-artifact-drift-state-machine-20260616.webp" alt="Generated artifact drift state machine from source type change through generator output, artifact diff, CI gate, fail regenerate path, review path, and pass contract change" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Generated drift becomes governance only when the repository turns changed source types into visible diffs, CI outcomes, repair paths, and reviewable contract changes.</figcaption>
+</figure>
+
 ### Governance Has to Stay Proportional
 
 Executable policy can go wrong. If every preference becomes a hard gate, the project becomes slower without becoming safer. Codex's useful checks are tied to product risk: client compatibility, release reproducibility, runtime boundaries, artifact trust, dependency safety, and generated contract drift.

@@ -93,6 +93,12 @@ Tool discovery can create too many declarations for a single prompt. Codex there
 
 This is why MCP discovery is a runtime projection, not a registry mutation. The complete capability set can exist behind the boundary while only a safe subset enters the model-visible view.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-provenance-deferred-569ff6a1.webp" alt="MCP and client tools passing through canonical names, provenance, direct spec, deferred tool search, unavailable placeholders, and route-back handler lookup" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Tool provenance keeps discovery, model-visible naming, deferred exposure, and route-back handler lookup separate.</figcaption>
+</figure>
+
 ## 2. Server Lifecycle Belongs Behind The Boundary
 
 The connection manager is deliberately more than a map of functions. Its source comment says it owns running clients, startup status events, server origin metadata, aggregated tools/resources/templates, tool routing, and the public manager API used by core. The fields on [`McpConnectionManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L71-L78) match that statement: managed clients, server metadata, hosted app enablement, elicitation requests, and a startup cancellation token.
@@ -167,6 +173,12 @@ MCP failures are extension failures before they are agent failures. Preserving t
 | resource pagination failure | per-server resource aggregation warning | one server failed a read/list family | keep other servers' resources |
 | elicitation cancelled | elicitation manager resolution path | required input was not provided | stop that operation without inventing data |
 | unknown outbound tool | outbound `handle_call_tool()` | external client asked for a non-contract operation | return MCP tool error |
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-router-payload-gate-569ff6a1.webp" alt="Tool router converting function, custom, local shell, tool search, and MCP response items into payload kinds before handler matching" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The router gate is where a model-visible call becomes a classified payload before any runtime handler executes it.</figcaption>
+</figure>
 
 The failure table is also the trust table. Anything that cannot be proven by config, connection status, connector access, or provenance should not be promoted to model-visible capability.
 

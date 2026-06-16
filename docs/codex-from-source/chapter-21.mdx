@@ -12,6 +12,12 @@ Chapter 20 showed that local multi-agent coordination becomes understandable whe
 
 The separation is crucial. Local Codex turns stream model output and execute tools in a local permission context. Cloud tasks submit work to a backend environment, later fetch task state, and may apply a returned patch to the current working tree. Those are related product experiences, but they are not the same execution boundary.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/provider-runtime-split-569ff6a1.webp" alt="Turn sampling response events entering a runtime boundary and splitting toward realtime sideband, backend tasks, task lifecycle, and apply diff" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Cloud task work branches away from local turn streaming; it returns through task state and applyable diff contracts.</figcaption>
+</figure>
+
 **Source boundary:** the backend task surface is **verified source** in [`cloud-tasks-client/src/api.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/api.rs#L22), HTTP transport is **verified source** in [`http.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-client/src/http.rs#L24), and the mock implementation is **verified source** in [`cloud-tasks-mock-client`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/cloud-tasks-mock-client/src/mock.rs#L18). Claims that connect task identity, remote workflow, and local apply are **surrounding contract inference** from those client shapes, [`agent-identity`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/agent-identity/src/lib.rs#L40), and the local diff discipline in [`turn_diff_tracker.rs`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core/src/turn_diff_tracker.rs#L18).
 
 
@@ -84,6 +90,12 @@ The most important boundary in cloud tasks is apply. A task may run in the cloud
 
 Preflight matters because remote output can be stale relative to the local checkout. Even if the cloud task was correct when produced, the user may have changed files since then. A local preflight turns that uncertainty into a visible result before mutation.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/patch-delta-evidence-569ff6a1.webp" alt="Committed patch deltas entering a turn diff tracker, with exact evidence rendering a diff and uncertain evidence invalidating the display" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Remote completion does not mutate the checkout; local diff evidence and preflight decide what can be applied.</figcaption>
+</figure>
+
 The apply outcome reports three classes: success, partial, and error. Partial is not a cosmetic state. It tells the client that some paths were applied or conflicted while others were skipped, which changes how the user should inspect the working tree.
 
 ### The Cloud TUI Is a Task Operator
@@ -109,6 +121,12 @@ The identity layer has a distinct job from ordinary user authentication:
   location.
 
 The design avoids conflating "the user is logged in" with "this runtime may act for this task." User auth can establish account context; agent identity binds a particular runtime key to a particular task authorization. That distinction is what lets a backend reason about remote agents without trusting arbitrary local processes by name.
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/task-scoped-identity-trust-path-20260616.webp" alt="Task-scoped identity trust path separating user authentication, runtime key registration, signed task authorization, task id, JWT claims, bill of materials, and backend task boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Task-scoped identity keeps account context separate from the runtime key that is authorized to act for one backend task.</figcaption>
+</figure>
 
 ### Local and Remote Execution Stay Separate
 

@@ -94,6 +94,12 @@ Importer 永远不应该猜 permission boundary。如果 source command 依赖 C
 
 Session import 不同于 config migration，因为 history 不是未来 capability，而是过去 conversation 的证据。Session importer 必须把外部 JSONL transcript 中足够多内容翻译成 Codex rollout items，让 thread 可以 list、resume、audit，同时仍标记 source 是 imported。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/history-surface-fanout-569ff6a1.webp" alt="History surface fanout：durable transcript、model projection、UI history、resume reconstruction、fork baseline 与 audit evidence 分流" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Imported history 必须说明自己在重建哪一层：transcript evidence、model projection、UI history，还是 resume baseline。</figcaption>
+</figure>
+
 Verified lifecycle 是：
 
 1. Detection 只在 records 含 cwd、至少一条 user/assistant message，以及 latest timestamp 时总结 candidate sessions。[`summarize_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L24-L85) 构建这个 summary。
@@ -133,6 +139,12 @@ Shape-level：
 ```
 
 这只是 shape-level example，不是精确 serialized rollout record。关键不变量是：imported history 可以作为 history 使用，但不会被当作另一个 runtime 内部状态的 lossless replay。
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/replay-resume-fork-569ff6a1.webp" alt="Replay、resume 与 fork path：从 stored history、forked items、rollback state 和 continuation baseline 重建 thread" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Session import 的安全点在于 imported items 变成 forked native baseline，而不是外部 runtime replay。</figcaption>
+</figure>
 
 ### 3.2 Ledger 基于 content，不只基于 path
 

@@ -93,6 +93,12 @@ Tool discovery 可能生成太多 declarations，无法全部塞进一次 prompt
 
 所以 MCP discovery 是 runtime projection，不是 registry mutation。完整 capability set 可以存在边界之后，只有安全子集进入 model-visible view。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-provenance-deferred-569ff6a1.webp" alt="MCP 与 client tools 经过 canonical name、provenance、direct spec、deferred tool search、unavailable placeholder 和 route-back handler lookup" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Tool provenance 把 discovery、model-visible naming、deferred exposure 与 route-back handler lookup 分开。</figcaption>
+</figure>
+
 ## 二、Server lifecycle 留在边界后方
 
 Connection manager 不只是 function map。源码注释说明它拥有 running clients、startup status events、server origin metadata、aggregated tools/resources/templates、tool routing，以及 core 使用的 public manager API。[`McpConnectionManager`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/codex-mcp/src/connection_manager.rs#L71-L78) 的字段也对应这个说法：managed clients、server metadata、hosted app enablement、elicitation requests、startup cancellation token。
@@ -167,6 +173,12 @@ MCP failure 首先是 extension failure，然后才可能是 agent failure。保
 | resource pagination failure | per-server resource aggregation warning | 某个 server 的 read/list family 失败 | 保留其他 servers 的 resources |
 | elicitation cancelled | elicitation manager resolution path | 必要 input 未提供 | 停止该 operation，不编造数据 |
 | unknown outbound tool | outbound `handle_call_tool()` | 外部 client 请求了非契约 operation | 返回 MCP tool error |
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-router-payload-gate-569ff6a1.webp" alt="Tool router 把 function、custom、local shell、tool search 和 MCP response items 转成 payload kinds，再进入 handler matching" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Router gate 是 model-visible call 变成分类 payload 的位置，之后 runtime handler 才能执行。</figcaption>
+</figure>
 
 这张 failure table 也是 trust table。任何无法由 config、connection status、connector access 或 provenance 证明的东西，都不该提升为 model-visible capability。
 

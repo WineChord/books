@@ -42,6 +42,12 @@ else:
 
 wrapper 很小，但失败模式很重要。打包错误应该可诊断，而不是神秘。用户不关心失败来自 npm optional dependency 解析、缺失归档还是权限问题；分发层必须把这些问题翻译成可行动的产品错误。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/npm-native-payload-selection-20260616.webp" alt="NPM native payload selection lifecycle：meta package、platform option、wrapper、Rust binary、diagnostic fallback 与 platform facts" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>npm-facing layer 在 delivery boundary 选择 native payload；wrapper 负责诊断平台问题，而不是变成 runtime logic。</figcaption>
+</figure>
+
 ### 独立安装器消费发布产物
 
 独立安装器解决另一个问题：用户可能希望不依赖 JavaScript 包管理器也能使用 Codex。这不意味着安装器应该发明第二套产物模型。更强的模式是让安装器消费打包已经产生的同一批发布 payload，然后暴露稳定命令 shim。
@@ -53,6 +59,12 @@ wrapper 很小，但失败模式很重要。打包错误应该可诊断，而不
 原生依赖通常是发布系统失控的地方。Codex 必须处理 helper 二进制、沙箱支撑、平台链接，以及部分 vendored 或 patch 过的依赖。有些依赖只是普通 Rust crate；另一些需要归档、校验和、build script、平台条件或兼容模式。
 
 可复用模式是隔离。原生复杂性属于 `third_party`、patch 目录、Bazel repository rules、发布脚本和 helper 包组装。产品 crate 应该消费稳定 capability，而不是一团平台构建细节。
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/native-dependency-quarantine-trust-20260616.webp" alt="Native dependency quarantine and trust transfer：分开 native inputs、patches、checksums、helper package、build artifact、signed artifact、manifest、installer 与 runtime clean boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Native dependency quarantine 让 archive、patch、checksum、helper、signing 和 installer concerns 留在 release engineering，而不是泄漏进 turn loop。</figcaption>
+</figure>
 
 这个设计不免费。隔离区本身需要维护：校验和要更新，patch 要有理由，发布资产必须存在，平台 selector 必须被测试。收益是维护面可见且集中，而不是分散在运行时代码里。
 

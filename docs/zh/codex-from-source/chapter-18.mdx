@@ -71,6 +71,12 @@ Shape-level 上，一个 loaded skill 不只是 text：
 
 简单做法是拼接所有发现的 instructions；这会让 invalid、disabled 或 irrelevant workflows 拥有与当前任务相同的权威。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/optional-context-budget-board.png" alt="Optional context budget board：skills、plugins、memory、hooks、tool output 和 images 竞争 model window space" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Extension loading 也是 context-budget 问题：known material 仍要决定是否进入当前 model view。</figcaption>
+</figure>
+
 ## 二、Plugins：package 是 classifier，不是 runtime authority
 
 Plugins 回答另一个问题：extension assets 如何到达、如何保持 package scope、如何贡献到其他 planes？Manifest model 让这一点可见。[`PluginManifest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L37-L45) 有 identity、interface fields 和 `PluginManifestPaths`。这些 paths 可以指向 `skills`、`mcp_servers`、`apps` 和 `hooks`。
@@ -127,6 +133,12 @@ Connectors 规范化 hosted app directory metadata。Connector source 首先定�
 | hosted app MCP tool | connector-backed tool metadata | origin/provenance 等同于 local MCP server |
 
 这就是第 17 章的 MCP exposure 必须按 connector 和 app-tool enablement 过滤 hosted app MCP tools 的原因。Connector plane 提供 directory 与 access facts；model-facing tool boundary 在更后面。
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-spec-planner-569ff6a1.webp" alt="Tool spec planner 接收 config、features、MCP、dynamic 和 hosted 输入，并把 model specs 与 registry handlers 分成两条输出" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Extension planes 只在 planning 后汇合：model-visible specs 与 registry handlers 仍是不同输出。</figcaption>
+</figure>
 
 ## 四、Typed extensions：compile-time slots 代替 dynamic code
 

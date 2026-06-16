@@ -32,6 +32,12 @@ Agent 运行时对构建漂移特别敏感。普通 CLI 也许可以容忍本地
 
 这个图就是本章的形状：一个源码图喂给两个构建接口；一个运行时图吐出多个公开契约。只要这些输出开始分叉，架构在用户运行命令之前就已经失败了。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/dual-build-governance-overview-20260616.webp" alt="Dual build governance overview：一个 Rust source graph 输入 Cargo、Bazel overlay、generated schemas、CI drift gate 与 release checks" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>一个 source graph 同时服务开发构建、hermetic overlay、客户端 schema、drift gate 和 release check，但不制造第二套架构。</figcaption>
+</figure>
+
 ### Cargo 是开发者源头
 
 Cargo 拥有日常开发循环。它定义 Rust workspace、crate 依赖、二进制目标、features、测试、lint 预期和 lockfile 解析。这个选择很实际：Rust 工程师熟悉 Cargo，IDE 理解 Cargo，大多数库级推理也发生在 crate 边界。
@@ -68,6 +74,12 @@ launcher 这个盒子很容易被低估。测试经常假设工作目录、snaps
 这就是第 4 章协议纪律在构建时的版本。运行时可以内部演进，但客户端契约需要稳定词汇。生成产物让漂移可见：
 
 过期 schema 不只是“文档没更新”。它说明代码和契约已经不再描述同一个产品。Codex 把这当作正确性问题，因为 app-server 客户端、SDK、hook 作者和配置生成器都可能依赖这些 schema。
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/schema-governance-filter-569ff6a1.webp" alt="Generated schema governance path：Rust protocol types 经过 schema export、TypeScript、JSON Schema、experimental filter、clients 与 drift checks" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Schema generation 是 contract path：它把 Rust types 变成 client-facing artifacts 与 drift checks。</figcaption>
+</figure>
 
 ### 深入：不泄露实现的契约生成
 

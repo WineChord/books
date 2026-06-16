@@ -27,6 +27,12 @@ The separation prevents a common mistake: letting the active model write its own
 
 The read path has two jobs. First, it can inject a bounded summary into the active session's developer instructions. That gives the model a compact view of known long-term context without forcing it to scan a directory. Second, the MCP memory service lets the model list, read, and search memory files when it needs more evidence.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-lifecycle-20260616.webp" alt="Memory lifecycle with capture, extract, store, retrieve, inject, citation, audit, prune, and feedback paths" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The memory side channel has a lifecycle: capture, extract, store, retrieve, inject, cite, audit, and prune are separate operations.</figcaption>
+</figure>
+
 The MCP service is deliberately read-only and path-scoped. It rejects parent directory traversal, absolute paths, hidden components, symlinked files, and symlinked ancestors. It paginates list and search results, truncates large reads by token budget, and returns relative paths. These are ordinary filesystem hardening decisions, but in a memory system they have a second purpose: they keep "remembering" from turning into arbitrary local file access.
 
 Search is also structured. A request can match any query, require all queries on the same line, or require all queries within a line window. The response contains matching content, line numbers, matched queries, pagination, and a truncation flag. That is a tool contract, not terminal grep output.
@@ -97,6 +103,12 @@ Its configuration is constrained:
 - network access is disabled.
 
 This is the core safety pattern of the memory system. Codex allows a model to perform the semantic part, but it removes ambient authority. The internal agent can edit memory artifacts; it cannot browse the network, call arbitrary tools, delegate to more agents, or create another memory loop.
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/memory-governance-boundaries-20260616.webp" alt="Memory governance boundaries where stale, secret, overreach, loop, and authority risks are controlled by consent, scope, redaction, citation, and audit" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Memory governance is the reason extraction, redaction, usage accounting, locks, and restricted agents stay in separate boxes.</figcaption>
+</figure>
 
 ### Memory Selection Is Usage-Aware
 

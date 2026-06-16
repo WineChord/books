@@ -32,6 +32,12 @@ The clever part is not "use Bazel." The clever part is that Bazel is not allowed
 
 This diagram is the shape to keep in mind. One source graph feeds two build interfaces. One runtime graph emits several public contracts. If those outputs diverge, the architecture has already failed before a user runs a command.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/dual-build-governance-overview-20260616.webp" alt="Dual build governance overview showing one Rust source graph feeding Cargo, Bazel overlay, generated schemas, CI drift gate, and release checks" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>One source graph feeds the developer build, the hermetic overlay, client-facing schemas, drift gates, and release checks without creating a second architecture.</figcaption>
+</figure>
+
 ### Cargo as the Developer Source of Truth
 
 Cargo owns the ordinary development loop. It defines the Rust workspace, crate dependencies, binary targets, features, tests, lint expectations, and lockfile resolution that a contributor sees during day-to-day work. That is a pragmatic choice: Rust engineers understand Cargo, IDEs understand Cargo, and most library-level reasoning happens at the crate boundary.
@@ -72,6 +78,12 @@ Generated schemas are not build byproducts. They are commitments. Codex uses typ
 This is the build-time version of the protocol discipline from Chapter 4. The runtime can evolve internally, but client contracts need stable vocabulary. Generated artifacts make drift visible:
 
 A stale schema is not merely "docs out of date." It is evidence that the code and contract no longer describe the same product. Codex's build pipeline treats that as a correctness problem because app-server clients, SDKs, hook authors, and config generators may all depend on those schemas.
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/schema-governance-filter-569ff6a1.webp" alt="Generated schema governance path from Rust protocol types through schema export, TypeScript, JSON Schema, experimental filter, clients, and drift checks" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Schema generation is the contract path that turns Rust types into client-facing artifacts and drift checks.</figcaption>
+</figure>
 
 ### Deep Dive: Contract Generation Without Source Leakage
 

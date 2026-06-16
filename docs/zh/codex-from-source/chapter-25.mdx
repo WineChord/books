@@ -62,6 +62,12 @@ report 是设计的一部分。只说“failed”的策略会训练开发者去�
 
 这个状态机很小，但它改变行为。契约变化会作为契约变化被 review。仓库不再要求 reviewer 从内部类型 diff 里猜客户端影响。
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/generated-artifact-drift-state-machine-20260616.webp" alt="Generated artifact drift state machine：source type change、generator output、artifact diff、CI gate、fail regenerate path、review path 与 pass contract change" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Generated drift 只有在源码类型变化变成 visible diff、CI outcome、repair path 和可 review contract change 时，才真正成为治理。</figcaption>
+</figure>
+
 ### 治理必须保持比例感
 
 可执行策略也可能走错。如果每个偏好都变成硬 gate，项目会变慢但不一定更安全。Codex 里有价值的检查都和产品风险相关：客户端兼容性、发布可复现性、运行时边界、产物信任、依赖安全、生成契约漂移。

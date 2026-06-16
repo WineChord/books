@@ -94,6 +94,12 @@ The importer should never guess a permission boundary. If a source command relie
 
 Session import is different from config migration because history is not a future capability. It is evidence of past conversation. The session importer has to translate enough of an external JSONL transcript into Codex rollout items that a thread can be listed, resumed, and audited, while still marking the source as imported.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/history-surface-fanout-569ff6a1.webp" alt="History surface fanout showing durable transcript, model projection, UI history, resume reconstruction, fork baseline, and audit evidence" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Imported history must choose which surface it is rebuilding: transcript evidence, model projection, UI history, or resume baseline.</figcaption>
+</figure>
+
 The verified lifecycle is:
 
 1. Detection summarizes candidate sessions only when records contain a cwd, at least one user/assistant message, and a latest timestamp. [`summarize_session()`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/external-agent-sessions/src/records.rs#L24-L85) builds that summary.
@@ -133,6 +139,12 @@ becomes a Codex-importable conversation message such as:
 ```
 
 This is a shape-level example, not the exact serialized rollout record. The key point is the invariant: imported history is useful as history, but it is not treated as a lossless replay of another runtime's internal state.
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/replay-resume-fork-569ff6a1.webp" alt="Replay, resume, and fork path reconstructing a thread from stored history, forked items, rollback state, and continuation baseline" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Session import is safe only when imported items become a forked native baseline rather than a foreign runtime replay.</figcaption>
+</figure>
 
 ### 3.2 The Ledger Is Content-Based, Not Just Path-Based
 

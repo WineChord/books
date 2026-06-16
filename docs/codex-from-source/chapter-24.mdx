@@ -42,6 +42,12 @@ else:
 
 The wrapper is small, but its failure mode matters. A packaging error should be diagnostic, not mysterious. Users do not care whether failure came from npm optional dependency resolution, a missing archive, or a permission issue. The distribution layer has to translate those problems into actionable product errors.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/npm-native-payload-selection-20260616.webp" alt="NPM native payload selection lifecycle from meta package through platform option, wrapper, Rust binary, diagnostic fallback, and platform facts" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The npm-facing layer selects a native payload at the delivery boundary; the wrapper reports platform problems instead of becoming runtime logic.</figcaption>
+</figure>
+
 This is also where DotSlash and helper packages matter. The public package family is not only one binary: it includes platform-specific optional dependencies, selected helper binaries, and release-built tooling used by governance checks. Native packages should make those pieces discoverable without teaching the user which archive, helper, or platform suffix was chosen.
 
 ### Standalone Installers Consume Release Artifacts
@@ -57,6 +63,12 @@ Native dependencies are where release systems often become unmaintainable. Codex
 V8 and Bubblewrap are the useful examples. V8 brings archive selection, checksums, source-built versus release-compatible modes, and platform ABI differences. Bubblewrap is part of the Linux sandbox delivery story and may be provided by the host or by helper packaging. Neither concern belongs in the turn loop; both must be visible to release engineering.
 
 The reusable pattern is quarantine. Native complexity belongs in `third_party`, patch directories, Bazel repository rules, release scripts, and helper package assembly. Product crates should consume a stable capability, not a maze of platform build details.
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/native-dependency-quarantine-trust-20260616.webp" alt="Native dependency quarantine and trust transfer separating native inputs, patches, checksums, helper package, build artifact, signed artifact, manifest, installer, and runtime clean boundary" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Native dependency quarantine keeps archive, patch, checksum, helper, signing, and installer concerns visible in release engineering instead of leaking into the turn loop.</figcaption>
+</figure>
 
 The design is not free. Quarantine creates a maintenance surface: checksums must be updated, patches must be justified, release assets must be present, and platform selectors must be tested. The benefit is that the maintenance surface is visible and centralized instead of being smeared across runtime code.
 

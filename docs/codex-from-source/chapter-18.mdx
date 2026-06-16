@@ -71,6 +71,12 @@ Those phases protect three different invariants:
 
 The simpler design would concatenate every discovered instruction. That fails because it gives invalid, disabled, or irrelevant workflows the same authority as the requested task.
 
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/optional-context-budget-board.png" alt="Optional context budget board where skills, plugins, memory, hooks, tool output, and images compete for model window space" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>Extension loading is also a context-budget problem: known material still has to earn a place in the current model view.</figcaption>
+</figure>
+
 ## 2. Plugins: Packages Are Classifiers, Not Runtime Authority
 
 Plugins answer a different question: how do extension assets arrive, remain scoped to a package, and contribute to other planes? The manifest model makes this visible. [`PluginManifest`](https://github.com/openai/codex/blob/569ff6a1c400bd514ff79f5f1050a684dc3afde3/codex-rs/core-plugins/src/manifest.rs#L37-L45) has identity and interface fields plus `PluginManifestPaths`. Those paths can point to `skills`, `mcp_servers`, `apps`, and `hooks`.
@@ -127,6 +133,12 @@ That last detail is the boundary. A connector can be known before it is usable.
 | hosted app MCP tool | connector-backed tool metadata | that origin/provenance is the same as a local MCP server |
 
 This is why Chapter 17's MCP exposure had to filter hosted app MCP tools by connector and app-tool enablement. The connector plane supplies directory and access facts; the model-facing tool boundary is later.
+
+
+<figure class="wc-article-figure">
+  <img src="https://cdn.jsdelivr.net/gh/WineChord/typora-images/img/tool-spec-planner-569ff6a1.webp" alt="Tool spec planner taking config, features, MCP, dynamic, and hosted inputs and splitting model specs from registry handlers" loading="lazy" decoding="async" width="1672" height="941" />
+  <figcaption>The extension planes converge only after planning: model-visible specs and registry handlers remain different outputs.</figcaption>
+</figure>
 
 ## 4. Typed Extensions: Compile-Time Slots Instead Of Dynamic Code
 
