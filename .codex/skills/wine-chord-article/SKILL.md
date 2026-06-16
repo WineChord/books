@@ -209,6 +209,14 @@ PicGo upload fails, stop and report the blocker instead of silently falling back
 to local paths. Existing legacy local-image references may remain until the
 figure is touched or regenerated.
 
+Exception: static `docs/public/<slug>/index.html` articles may reference
+already-tracked final raster assets from their own `docs/public/<slug>/assets/`
+directory when that same-site path is the intended production delivery path.
+Use a page-relative or site-root URL that works under the repository's deployed
+base path, keep social metadata absolute, and validate the rendered page through
+the project preview server. This exception does not apply to newly generated or
+regenerated figures whose PicGo upload step has failed.
+
 MUST NOT: Do not publish hand-authored HTML, inline SVG, Mermaid, canvas, CSS
 shape compositions, DOM diagrams, or other code-drawn substitutes as article
 figures. They may be used only as private planning scaffolds or temporary
@@ -571,6 +579,8 @@ that covers the edit:
   hidden process language, prompt text, or private rationale.
 - Check generated TOC, table `data-label` behavior, and mobile body
   `scrollWidth`.
+- If images use lazy loading, scroll through the rendered page in preview and
+  verify every public image reaches a non-zero natural size.
 - If links were added or changed, sample-check official docs and representative
   GitHub line anchors.
 - Run repository content/build checks when the touched files participate in the
