@@ -361,6 +361,9 @@ PicGo publication protocol:
 
 1. Finish the image2 generation, deterministic label fixes, and integrated
    `Wine & Chord` brand mark cleanup first.
+   Inspect every generated brand/signature string at full size before upload;
+   common near-misses such as `Wine & Chords`, `Wine and Chord`, or clipped
+   lettering must be corrected or removed before publication.
 2. Save the final PNG locally under the article's assets directory so the source
    package remains reproducible.
    For public page loading, also export a same-dimension WebP derivative unless
