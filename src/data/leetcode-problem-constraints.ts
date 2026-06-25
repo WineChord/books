@@ -296,7 +296,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "remove-duplicates-from-sorted-array": [
     "1 <= nums.length <= 3 * 10^4",
-    "-10 0 0",
+    "-100 <= nums[i] <= 100",
     "nums 已按 非递减 顺序排列。"
   ],
   "merge-strings-alternately": [
@@ -509,7 +509,7 @@ export const leetcodeProblemConstraints = ({
     "pos 为 -1 或者链表中的一个 有效索引。"
   ],
   "largest-rectangle-in-histogram": [
-    "1 <= heights.length <=10^5",
+    "1 <= heights.length <= 10^5",
     "0 <= heights[i] <= 10^4"
   ],
   "largest-number": [
@@ -4554,7 +4554,7 @@ export const leetcodeProblemConstraints = ({
   ],
   "number-of-closed-islands": [
     "1 <= grid.length, grid[0].length <= 100",
-    "0 <= grid[i][j] <=1"
+    "0 <= grid[i][j] <= 1"
   ],
   "minimum-number-of-days-to-disconnect-island": [
     "m == grid.length",
@@ -4568,7 +4568,7 @@ export const leetcodeProblemConstraints = ({
     "1 <= m, n <= 1000",
     "1 <= m * n <= 10^5",
     "0 <= grid[i][j] <= 10^6",
-    "1 <= k < = 10^6"
+    "1 <= k <= 10^6"
   ],
   "range-sum-query-mutable": [
     "1 <= nums.length <= 3 * 10^4",
@@ -4582,10 +4582,10 @@ export const leetcodeProblemConstraints = ({
     "m == matrix.length",
     "n == matrix[i].length",
     "1 <= m, n <= 200",
-    "-10 00 00",
+    "-1000 <= matrix[i][j] <= 1000",
     "0 <= row < m",
     "0 <= col < n",
-    "-10 00 00",
+    "-1000 <= val <= 1000",
     "0 <= row1 <= row2 < m",
     "0 <= col1 <= col2 < n",
     "最多调用5000 次 sumRegion 和 update 方法"

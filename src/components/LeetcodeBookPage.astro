@@ -4919,7 +4919,7 @@ const shortcutRows = [
           node.outerHTML = renderRelatedQuestions(problem);
         }
         if (target === "statement-preview") {
-          node.outerHTML = renderProblemStatementPreview(problem);
+          node.outerHTML = renderProblemStatementPreviewContent(problem);
         }
         if (target === "approach") {
           node.outerHTML = renderApproachPreview(problem);
@@ -16600,18 +16600,14 @@ const shortcutRows = [
     function renderProblemConstraints(problem) {
       const items = problemConstraintItems(problem);
       if (!items.length) return "";
-      const separator = ";";
       return `
         <p class="leetcode-statement-constraints">
           <strong>${isChinesePage ? "数据范围：" : "Constraints:"}</strong>
-          ${items
-            .map((item, index) => {
-              const prefix = index
-                ? `<span class="leetcode-statement-constraint-separator">${separator}</span>`
-                : "";
-              return `${prefix}<span class="leetcode-statement-constraint-item">${item}</span>`;
-            })
-            .join("")}
+          <span class="leetcode-statement-constraint-list">
+            ${items
+              .map((item) => `<span class="leetcode-statement-constraint-item">${item}</span>`)
+              .join("")}
+          </span>
         </p>
       `;
     }
@@ -16619,18 +16615,14 @@ const shortcutRows = [
     function renderProblemConstraintsPreview(problem) {
       const items = problemConstraintItems(problem);
       if (!items.length) return "";
-      const separator = ";";
       return `
         <span class="leetcode-statement-preview-constraints">
           <strong>${isChinesePage ? "数据范围：" : "Constraints:"}</strong>
-          ${items
-            .map((item, index) => {
-              const prefix = index
-                ? `<span class="leetcode-statement-constraint-separator">${separator}</span>`
-                : "";
-              return `${prefix}<span class="leetcode-statement-constraint-item">${item}</span>`;
-            })
-            .join("")}
+          <span class="leetcode-statement-constraint-list">
+            ${items
+              .map((item) => `<span class="leetcode-statement-constraint-item">${item}</span>`)
+              .join("")}
+          </span>
         </span>
       `;
     }
@@ -16645,29 +16637,13 @@ const shortcutRows = [
         : `Hover for ${name}; click or Enter/Space to pin`;
     }
 
-    function renderProblemStatementPreview(problem) {
+    function renderProblemStatementPreviewContent(problem) {
       if (problem.detailLoadFailed) {
         return `<span class="leetcode-popover-muted">${
           isChinesePage
             ? "题面预览加载失败，可刷新页面重试。"
             : "Statement preview failed to load; refresh to retry."
         }</span>`;
-      }
-      if (!isProblemDetailLoaded(problem)) {
-        return `
-          ${renderPopoverHint(
-            isChinesePage
-              ? "悬浮查看题面；点击标题打开力扣原题"
-              : "Hover for statement; click the title to open LeetCode",
-          )}
-          ${lazyDetailShell(
-            problem.titleSlug,
-            "statement-preview",
-            isChinesePage
-              ? "题面预览正在加载。"
-              : "Statement preview is loading.",
-          )}
-        `;
       }
       const paragraphs = problemStatementParagraphs(problem);
       const body = paragraphs.length
@@ -16687,11 +16663,6 @@ const shortcutRows = [
               : "Local statement pending; open LeetCode for the full problem."
           }</span>`;
       return `
-        ${renderPopoverHint(
-          isChinesePage
-            ? "悬浮查看题面；点击标题打开力扣原题"
-            : "Hover for statement; click the title to open LeetCode",
-        )}
         <span class="leetcode-popover-heading">
           ${isChinesePage ? "题面" : "Statement"}
         </span>
@@ -16699,6 +16670,36 @@ const shortcutRows = [
           ${body}
           ${renderProblemConstraintsPreview(problem)}
         </span>
+      `;
+    }
+
+    function renderProblemStatementPreview(problem) {
+      if (problem.detailLoadFailed) {
+        return renderProblemStatementPreviewContent(problem);
+      }
+      if (!isProblemDetailLoaded(problem)) {
+        return `
+          ${renderPopoverHint(
+            isChinesePage
+              ? "悬浮查看题面；点击标题打开力扣原题"
+              : "Hover for statement; click the title to open LeetCode",
+          )}
+          ${lazyDetailShell(
+            problem.titleSlug,
+            "statement-preview",
+            isChinesePage
+              ? "题面预览正在加载。"
+              : "Statement preview is loading.",
+          )}
+        `;
+      }
+      return `
+        ${renderPopoverHint(
+          isChinesePage
+            ? "悬浮查看题面；点击标题打开力扣原题"
+            : "Hover for statement; click the title to open LeetCode",
+        )}
+        ${renderProblemStatementPreviewContent(problem)}
       `;
     }
 
@@ -21587,6 +21588,8 @@ const shortcutRows = [
 
     .leetcode-practice-panel .leetcode-statement-body
       .leetcode-statement-constraints {
+      display: grid;
+      gap: 0.3rem;
       color: var(--color-secondary);
       font-family: inherit;
       font-size: inherit;
@@ -21599,20 +21602,31 @@ const shortcutRows = [
 
     .leetcode-statement-constraints strong {
       color: var(--color-charcoal);
+      display: block;
       font-family: inherit;
       font-size: inherit;
       font-weight: inherit;
-      margin-right: 0.24rem;
+      margin-right: 0;
+    }
+
+    .leetcode-statement-constraint-list {
+      display: grid;
+      gap: 0.24rem;
+      min-width: 0;
     }
 
     .leetcode-statement-constraint-item {
-      display: inline;
+      display: block;
       font-size: inherit;
       font-weight: inherit;
+      max-width: 100%;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .leetcode-statement-constraint-separator {
       color: #5f5b53;
+      display: none;
       font-size: inherit;
       font-weight: inherit;
       margin: 0 0.38rem;
@@ -23230,6 +23244,8 @@ const shortcutRows = [
     }
 
     .leetcode-statement-preview-constraints {
+      display: grid;
+      gap: 0.3rem;
       margin-top: 0.55rem;
       color: var(--color-secondary);
       font-family: inherit;
@@ -23242,10 +23258,11 @@ const shortcutRows = [
 
     .leetcode-statement-preview-constraints strong {
       color: var(--color-charcoal);
+      display: block;
       font-family: inherit;
       font-size: inherit;
       font-weight: inherit;
-      margin-right: 0.24rem;
+      margin-right: 0;
     }
 
     .leetcode-popover-section {

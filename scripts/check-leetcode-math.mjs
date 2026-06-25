@@ -6,6 +6,7 @@ const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const problemDataPath = join(rootDir, "src/data/leetcode-problems.ts");
 const byteDanceDataPath = join(rootDir, "src/data/leetcode-bytedance.ts");
 const seriesDataPath = join(rootDir, "src/data/leetcode-series.ts");
+const constraintDataPath = join(rootDir, "src/data/leetcode-problem-constraints.ts");
 const mathDataPath = join(rootDir, "src/data/leetcode-problem-math.ts");
 
 const badPlainTextPatterns = [
@@ -29,6 +30,11 @@ const statementExamplePattern =
 const badConstraintTextPatterns = [
   { label: "dangling exponent marker", regex: /\^\s*(?:之间|以内|内|$)/ },
   { label: "space before Chinese punctuation", regex: /\s+[。！？；：，、]/u },
+];
+const badRawConstraintPatterns = [
+  { label: "split comparison operator", regex: /[<>!]\s+=/ },
+  { label: "missing space after comparison", regex: /(?:<=|>=|<|>)\d/ },
+  { label: "corrupt spaced number", regex: /^-?10\s+0+\s+0+$/ },
 ];
 const badMathHtmlPatterns = [
   {
@@ -167,6 +173,10 @@ const byteDanceProblems = extractJsonExport(
   "leetcodeByteDanceProblems",
 );
 const seriesProblems = extractJsonExport(seriesSource, "leetcodeSeriesProblems");
+const rawConstraints = extractJsonExport(
+  readFileSync(constraintDataPath, "utf8"),
+  "leetcodeProblemConstraints",
+);
 const statements = extractJsonExport(mathSource, "leetcodeProblemStatementHtml");
 const constraints = extractJsonExport(
   mathSource,
@@ -301,6 +311,13 @@ if (!constraints["two-sum"].some((item) => item.includes("10^{4}"))) {
 }
 
 const failures = [];
+Object.entries(rawConstraints).forEach(([slug, items]) => {
+  items.forEach((item) => {
+    badRawConstraintPatterns.forEach(({ label, regex }) => {
+      if (regex.test(item)) failures.push(`${slug} raw constraints: ${label}`);
+    });
+  });
+});
 Object.entries(statements).forEach(([slug, html]) => {
   const text = stripGeneratedMath(html);
   badPlainTextPatterns.forEach(({ label, regex }) => {
