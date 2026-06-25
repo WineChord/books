@@ -2,7 +2,10 @@ import { leetcodeCodeTemplates } from "./leetcode-code-templates";
 import { leetcodeImplementationReferences } from "./leetcode-implementation-references";
 import { leetcodeGeneratedImplementationReferences } from "./leetcode-implementation-generated";
 import { leetcodeByteDanceProblems } from "./leetcode-bytedance";
-import { leetcodeProblems } from "./leetcode-problems";
+import {
+  leetcodeDuplicateAudit,
+  leetcodeProblems,
+} from "./leetcode-problems";
 import {
   leetcodeProblemConstraintHtml,
   leetcodeProblemStatementHtml,
@@ -18,6 +21,7 @@ import {
   leetcodeLingShenProblems,
 } from "./leetcode-lingshen";
 import { leetcodeContestRatings } from "./leetcode-contest-ratings";
+import { leetcodeXiaohongshuProblems } from "./leetcode-xiaohongshu";
 
 const leetcodeTargetLimit = 888;
 const relatedTopicPeerLimit = 6;
@@ -25,6 +29,18 @@ const missingFrequencyRank = 999999;
 const byteDanceBySlug = new Map(
   leetcodeByteDanceProblems.map((problem) => [problem.titleSlug, problem]),
 );
+const xiaohongshuBySlug = new Map(
+  leetcodeXiaohongshuProblems.map((problem) => [problem.titleSlug, problem]),
+);
+const xiaohongshuDuplicateStudySourceBySlug = new Map(
+  leetcodeDuplicateAudit.map((item) => [
+    item.duplicateTitleSlug,
+    item.keptTitleSlug,
+  ]),
+);
+const xiaohongshuManualStudySourceBySlug = new Map([
+  ["zui-xiao-de-kge-shu-lcof", "smallest-k-lcci"],
+]);
 const seriesRomanTokenValues = new Map([
   ["i", 1],
   ["ii", 2],
@@ -203,6 +219,8 @@ function relatedSummary(question, catalogBySlug, currentSlug) {
     titleSlug: question.titleSlug,
     topRank: bookProblem?.topRank ?? null,
     url: bookProblem?.url ?? relatedQuestionUrl(question.titleSlug),
+    xiaohongshu: Boolean(bookProblem?.xiaohongshu),
+    xiaohongshuRank: bookProblem?.xiaohongshuRank ?? null,
   };
 }
 
@@ -338,6 +356,22 @@ function contestRatingFields(slug, lingShen) {
   };
 }
 
+function xiaohongshuFields(slug) {
+  const entry = xiaohongshuBySlug.get(slug);
+  return {
+    xiaohongshu: Boolean(entry),
+    xiaohongshuRank: entry?.xiaohongshuRank ?? null,
+    xiaohongshuAcRate: entry?.acRate ?? null,
+    xiaohongshuSource: entry?.source ?? null,
+  };
+}
+
+function xiaohongshuStudySourceSlug(slug) {
+  return xiaohongshuManualStudySourceBySlug.get(slug) ??
+    xiaohongshuDuplicateStudySourceBySlug.get(slug) ??
+    slug;
+}
+
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
   const lingShen = lingShenBySlug.get(problem.titleSlug);
@@ -363,6 +397,7 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
     ...contestRatingFields(problem.titleSlug, lingShen),
+    ...xiaohongshuFields(problem.titleSlug),
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -406,6 +441,7 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     seriesPrimaryKey:
       leetcodeSeriesProblemBySlug.get(problem.titleSlug)?.seriesPrimaryKey ?? "",
     seriesTitles: seriesTitlesFor(problem.titleSlug),
+    ...xiaohongshuFields(problem.titleSlug),
   }));
 const existingWithByteDanceSlugs = new Set([
   ...leetcodeProblems.map((problem) => problem.titleSlug),
@@ -458,6 +494,7 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     seriesPrimaryKey: problem.seriesPrimaryKey,
     seriesTitles: seriesTitlesFor(problem.titleSlug),
     seriesSupplement: true,
+    ...xiaohongshuFields(problem.titleSlug),
   }));
 const existingWithSeriesSlugs = new Set([
   ...existingWithByteDanceSlugs,
@@ -515,12 +552,89 @@ const leetcodeLingShenSupplements = leetcodeLingShenProblems
       leetcodeSeriesProblemBySlug.get(problem.titleSlug)?.seriesPrimaryKey ?? "",
     seriesTitles: seriesTitlesFor(problem.titleSlug),
     lingShenSupplement: true,
+    ...xiaohongshuFields(problem.titleSlug),
   }));
-const mergedLeetcodeProblems = [
+const existingWithLingShenSlugs = new Set([
+  ...existingWithSeriesSlugs,
+  ...leetcodeLingShenSupplements.map((problem) => problem.titleSlug),
+]);
+const leetcodeProblemsBeforeXiaohongshu = [
   ...leetcodeProblemsWithByteDance,
   ...leetcodeByteDanceSupplements,
   ...leetcodeSeriesSupplements,
   ...leetcodeLingShenSupplements,
+];
+const leetcodeProblemsBeforeXiaohongshuBySlug = new Map(
+  leetcodeProblemsBeforeXiaohongshu.map((problem) => [problem.titleSlug, problem]),
+);
+const leetcodeXiaohongshuSupplements = leetcodeXiaohongshuProblems
+  .filter((problem) => !existingWithLingShenSlugs.has(problem.titleSlug))
+  .map((problem, index) => {
+    const sourceSlug = xiaohongshuStudySourceSlug(problem.titleSlug);
+    const source = leetcodeProblemsBeforeXiaohongshuBySlug.get(sourceSlug);
+    const lingShen = lingShenBySlug.get(sourceSlug);
+    return {
+      topRank: null,
+      frequencyRank:
+        leetcodeTargetLimit +
+        leetcodeByteDanceSupplements.length +
+        leetcodeSeriesSupplements.length +
+        leetcodeLingShenSupplements.length +
+        index +
+        1,
+      hotRank: null,
+      frontendId: problem.frontendId,
+      titleCn: problem.titleCn,
+      titleSlug: problem.titleSlug,
+      url: problem.url,
+      difficulty: problem.difficulty,
+      acRate: problem.acRate,
+      frequency: "小红书补充",
+      bytedance: false,
+      bytedanceVerified: false,
+      bytedancePeriods: {
+        past3Months: null,
+        past6Months: null,
+        before6Months: null,
+      },
+      bytedanceBuckets: {
+        all: null,
+        thirtyDays: null,
+        threeMonths: null,
+        sixMonths: null,
+        moreThanSixMonths: null,
+      },
+      bytedanceBucketSources: {},
+      bytedanceRank: null,
+      bytedanceSource: null,
+      hot100: false,
+      paidOnly: problem.paidOnly,
+      tags: source?.tags ?? [],
+      statementPreview:
+        source?.statementPreview ??
+        `${problem.titleCn} 是小红书公司题单中的算法面试题，题面请以力扣原题为准。`,
+      approachPreview:
+        source?.approachPreview ??
+        "先按题面约束写出可验证的基线解法，再按标签优化到面试可讲清的复杂度。",
+      followUps: source?.followUps ?? [],
+      seriesKeys: source?.seriesKeys ?? seriesKeysFor(sourceSlug),
+      seriesPrimaryKey: source?.seriesPrimaryKey ?? "",
+      seriesTitles: source?.seriesTitles ?? seriesTitlesFor(sourceSlug),
+      seriesSupplement: false,
+      lingShen: Boolean(source?.lingShen),
+      lingShenGroupKeys: source?.lingShenGroupKeys ?? [],
+      lingShenGroupTitles: source?.lingShenGroupTitles ?? [],
+      lingShenRank: source?.lingShenRank ?? null,
+      lingShenRating: source?.lingShenRating ?? null,
+      ...contestRatingFields(sourceSlug, lingShen),
+      ...xiaohongshuFields(problem.titleSlug),
+      xiaohongshuStudySourceSlug: sourceSlug,
+      xiaohongshuSupplement: true,
+    };
+  });
+const mergedLeetcodeProblems = [
+  ...leetcodeProblemsBeforeXiaohongshu,
+  ...leetcodeXiaohongshuSupplements,
 ];
 const leetcodeProblemCatalogBySlug = new Map(
   mergedLeetcodeProblems.map((problem) => [problem.titleSlug, problem]),
@@ -531,6 +645,10 @@ const leetcodeSeriesCatalog = buildSeriesCatalog(
 );
 const leetcodeSeriesGroupsBySlug = leetcodeSeriesCatalog.groupsBySlug;
 export const leetcodeMergedProblems = mergedLeetcodeProblems;
+
+function problemDetailSourceSlug(problem) {
+  return problem.xiaohongshuStudySourceSlug || problem.titleSlug;
+}
 
 function buildRelatedQuestions(problem) {
   const seenSeriesSlugs = new Set();
@@ -612,6 +730,9 @@ function problemSearchText(problem, implementationReferences, relatedQuestions) 
       item.company,
       item.sourceTitle,
     ]),
+    problem.xiaohongshu ? "小红书 xiaohongshu redbook red note company" : "",
+    problem.xiaohongshuRank ? `小红书排名 ${problem.xiaohongshuRank}` : "",
+    problem.xiaohongshuRank ? `xiaohongshu rank ${problem.xiaohongshuRank}` : "",
     problem.contestRating ? `周赛难度分 ${problem.contestRating}` : "",
     problem.contestRating ? `contest rating ${problem.contestRating}` : "",
     problem.contestTitle,
@@ -649,25 +770,27 @@ function problemSearchText(problem, implementationReferences, relatedQuestions) 
 
 const leetcodeProblemDetailsBySlug = new Map(
   mergedLeetcodeProblems.map((problem) => {
+    const detailSlug = problemDetailSourceSlug(problem);
     const implementationReferences = [
-      ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
-      ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
+      ...(leetcodeImplementationReferences[detailSlug] ?? []),
+      ...(leetcodeGeneratedImplementationReferences[detailSlug] ?? []),
     ];
     const relatedQuestions = buildRelatedQuestions(problem);
     return [
       problem.titleSlug,
       {
         approachPreview: problem.approachPreview ?? "",
-        codeTemplates: leetcodeCodeTemplates[problem.titleSlug] ?? [],
+        codeTemplates: leetcodeCodeTemplates[detailSlug] ?? [],
         companyFollowUps: problem.companyFollowUps ?? [],
-        constraintHtml: leetcodeProblemConstraintHtml[problem.titleSlug] ?? [],
+        constraintHtml: leetcodeProblemConstraintHtml[detailSlug] ?? [],
         constraints: problem.constraints ?? [],
+        detailSourceSlug: detailSlug,
         detailsLoaded: true,
         followUps: problem.followUps ?? [],
         implementationReferences,
         relatedQuestions,
-        statementAssets: leetcodeProblemStatementAssets[problem.titleSlug] ?? [],
-        statementHtml: leetcodeProblemStatementHtml[problem.titleSlug] ?? "",
+        statementAssets: leetcodeProblemStatementAssets[detailSlug] ?? [],
+        statementHtml: leetcodeProblemStatementHtml[detailSlug] ?? "",
         statementPreview: problem.statementPreview ?? "",
         titleSlug: problem.titleSlug,
       },
@@ -760,9 +883,10 @@ function packedRecordPayload(records) {
 }
 
 const leetcodeProblemSummaries = mergedLeetcodeProblems.map((problem) => {
+  const detailSlug = problemDetailSourceSlug(problem);
   const implementationReferences = [
-    ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
-    ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
+    ...(leetcodeImplementationReferences[detailSlug] ?? []),
+    ...(leetcodeGeneratedImplementationReferences[detailSlug] ?? []),
   ];
   const relatedQuestions =
     leetcodeProblemDetailsBySlug.get(problem.titleSlug)?.relatedQuestions ??
@@ -779,14 +903,15 @@ const leetcodeProblemSummaries = mergedLeetcodeProblems.map((problem) => {
     bytedancePeriods,
     ...summary
   } = problem;
-  const codeTemplates = leetcodeCodeTemplates[problem.titleSlug] ?? [];
   return {
     ...summary,
     bytedanceBuckets: packedByteDanceBuckets(summary.bytedanceBuckets),
     bytedanceBucketSources: packedByteDanceBucketSources(
       summary.bytedanceBucketSources,
     ),
-    codeTemplateLanguageSlugs: packedCodeTemplateLanguageSlugs(codeTemplates),
+    codeTemplateLanguageSlugs: packedCodeTemplateLanguageSlugs(
+      leetcodeCodeTemplates[detailSlug] ?? [],
+    ),
     companyFollowUpCount: (companyFollowUps || []).length,
     implementationReferenceCount: implementationReferences.length,
     relatedQuestionCount: relatedQuestions.total ?? 0,
@@ -800,9 +925,10 @@ export const leetcodeProblemSummaryPayload = packedRecordPayload(
 );
 export const leetcodeProblemSearchIndex = mergedLeetcodeProblems
   .map((problem) => {
+    const detailSlug = problemDetailSourceSlug(problem);
     const implementationReferences = [
-      ...(leetcodeImplementationReferences[problem.titleSlug] ?? []),
-      ...(leetcodeGeneratedImplementationReferences[problem.titleSlug] ?? []),
+      ...(leetcodeImplementationReferences[detailSlug] ?? []),
+      ...(leetcodeGeneratedImplementationReferences[detailSlug] ?? []),
     ];
     const relatedQuestions =
       leetcodeProblemDetailsBySlug.get(problem.titleSlug)?.relatedQuestions ??

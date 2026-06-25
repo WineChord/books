@@ -12,6 +12,11 @@ import {
   leetcodeByteDanceStats,
 } from "../data/leetcode-bytedance";
 import {
+  leetcodeXiaohongshuProblems,
+  leetcodeXiaohongshuSourceUrl,
+  leetcodeXiaohongshuStats,
+} from "../data/leetcode-xiaohongshu";
+import {
   leetcodeDataSource,
   leetcodeDataUpdatedAt,
   leetcodeDuplicateAudit,
@@ -110,6 +115,9 @@ const resetAllDraftsTitle = isZh
 const filterShortcutTitles = {
   all: isZh ? "范围：全部（Option+1）" : "Scope: all (Option+1)",
   hot100: isZh ? "范围：Hot100（Option+2）" : "Scope: Hot100 (Option+2)",
+  xiaohongshu: isZh
+    ? "范围：小红书（Option+3）"
+    : "Scope: Xiaohongshu (Option+3)",
   bytedanceAll: isZh ? "字节：全部（Option+4）" : "ByteDance: all (Option+4)",
   bytedanceThirtyDays: isZh
     ? "字节：近 30 天（Option+5）"
@@ -139,6 +147,9 @@ const toolbarHintText = {
   scopeHot100: isZh
     ? "范围：Hot100。只显示 LeetCode Hot 100 题单内的题。"
     : "Scope: Hot100. Show only problems from the LeetCode Hot 100 list.",
+  scopeXiaohongshu: isZh
+    ? "范围：小红书。只显示小红书 LeetCode 公司题单内的算法面试题。"
+    : "Scope: Xiaohongshu. Show problems from the Xiaohongshu LeetCode company list.",
   bytedanceAll: isZh
     ? "字节：全部。只看字节企业题库里所有时间段的题。"
     : "ByteDance: all. Show every ByteDance-tagged problem.",
@@ -191,6 +202,18 @@ const relatedTopicPeerLimit = 6;
 const byteDanceBySlug = new Map(
   leetcodeByteDanceProblems.map((problem) => [problem.titleSlug, problem]),
 );
+const xiaohongshuBySlug = new Map(
+  leetcodeXiaohongshuProblems.map((problem) => [problem.titleSlug, problem]),
+);
+const xiaohongshuDuplicateStudySourceBySlug = new Map(
+  leetcodeDuplicateAudit.map((item) => [
+    item.duplicateTitleSlug,
+    item.keptTitleSlug,
+  ]),
+);
+const xiaohongshuManualStudySourceBySlug = new Map([
+  ["zui-xiao-de-kge-shu-lcof", "smallest-k-lcci"],
+]);
 const seriesRomanTokenValues = new Map([
   ["i", 1],
   ["ii", 2],
@@ -814,6 +837,9 @@ function practiceProblemRank(problem, collectionKey) {
       missingFrequencyRank
     );
   }
+  if (collectionKey === "xiaohongshu") {
+    return problem.xiaohongshuRank ?? missingFrequencyRank;
+  }
   return problemFrequencyOrder(problem);
 }
 
@@ -1035,6 +1061,8 @@ function relatedSummary(question, catalogBySlug, currentSlug) {
     titleSlug: question.titleSlug,
     topRank: bookProblem?.topRank ?? null,
     url: bookProblem?.url ?? relatedQuestionUrl(question.titleSlug),
+    xiaohongshu: Boolean(bookProblem?.xiaohongshu),
+    xiaohongshuRank: bookProblem?.xiaohongshuRank ?? null,
   };
 }
 
@@ -1068,6 +1096,7 @@ function topicPeerScore(problem, candidate, shared) {
     strongShared.length * 6000 +
     (candidate.hot100 ? 3000 : 0) +
     (candidate.bytedance ? 1800 : 0) +
+    (candidate.xiaohongshu ? 1600 : 0) +
     rankScore
   );
 }
@@ -1158,6 +1187,22 @@ function contestRatingFields(slug, lingShen) {
   };
 }
 
+function xiaohongshuFields(slug) {
+  const entry = xiaohongshuBySlug.get(slug);
+  return {
+    xiaohongshu: Boolean(entry),
+    xiaohongshuRank: entry?.xiaohongshuRank ?? null,
+    xiaohongshuAcRate: entry?.acRate ?? null,
+    xiaohongshuSource: entry?.source ?? null,
+  };
+}
+
+function xiaohongshuStudySourceSlug(slug) {
+  return xiaohongshuManualStudySourceBySlug.get(slug) ??
+    xiaohongshuDuplicateStudySourceBySlug.get(slug) ??
+    slug;
+}
+
 const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
   const entry = byteDanceBySlug.get(problem.titleSlug);
   const lingShen = lingShenBySlug.get(problem.titleSlug);
@@ -1183,6 +1228,7 @@ const leetcodeProblemsWithByteDance = leetcodeProblems.map((problem) => {
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
     ...contestRatingFields(problem.titleSlug, lingShen),
+    ...xiaohongshuFields(problem.titleSlug),
   };
 });
 const existingSlugs = new Set(leetcodeProblems.map((problem) => problem.titleSlug));
@@ -1228,6 +1274,7 @@ const leetcodeByteDanceSupplements = leetcodeByteDanceProblems
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
     ...contestRatingFields(problem.titleSlug, lingShen),
+    ...xiaohongshuFields(problem.titleSlug),
   };
   });
 const existingWithByteDanceSlugs = new Set([
@@ -1283,6 +1330,7 @@ const leetcodeSeriesSupplements = leetcodeSeriesProblems
     lingShenRank: lingShen?.lingshenRank ?? null,
     lingShenRating: lingShen?.rating ?? null,
     ...contestRatingFields(problem.titleSlug, lingShen),
+    ...xiaohongshuFields(problem.titleSlug),
   };
   });
 const existingWithSeriesSlugs = new Set([
@@ -1341,13 +1389,90 @@ const leetcodeLingShenSupplements = leetcodeLingShenProblems
     lingShenRank: problem.lingshenRank,
     lingShenRating: problem.rating,
     ...contestRatingFields(problem.titleSlug, problem),
+    ...xiaohongshuFields(problem.titleSlug),
     lingShenSupplement: true,
   }));
-const mergedLeetcodeProblems = [
+const existingWithLingShenSlugs = new Set([
+  ...existingWithSeriesSlugs,
+  ...leetcodeLingShenSupplements.map((problem) => problem.titleSlug),
+]);
+const leetcodeProblemsBeforeXiaohongshu = [
   ...leetcodeProblemsWithByteDance,
   ...leetcodeByteDanceSupplements,
   ...leetcodeSeriesSupplements,
   ...leetcodeLingShenSupplements,
+];
+const leetcodeProblemsBeforeXiaohongshuBySlug = new Map(
+  leetcodeProblemsBeforeXiaohongshu.map((problem) => [problem.titleSlug, problem]),
+);
+const leetcodeXiaohongshuSupplements = leetcodeXiaohongshuProblems
+  .filter((problem) => !existingWithLingShenSlugs.has(problem.titleSlug))
+  .map((problem, index) => {
+    const sourceSlug = xiaohongshuStudySourceSlug(problem.titleSlug);
+    const source = leetcodeProblemsBeforeXiaohongshuBySlug.get(sourceSlug);
+    const lingShen = lingShenBySlug.get(sourceSlug);
+    return {
+      topRank: null,
+      frequencyRank:
+        leetcodeTargetLimit +
+        leetcodeByteDanceSupplements.length +
+        leetcodeSeriesSupplements.length +
+        leetcodeLingShenSupplements.length +
+        index +
+        1,
+      hotRank: null,
+      frontendId: problem.frontendId,
+      titleCn: problem.titleCn,
+      titleSlug: problem.titleSlug,
+      url: problem.url,
+      difficulty: problem.difficulty,
+      acRate: problem.acRate,
+      frequency: "小红书补充",
+      bytedance: false,
+      bytedanceVerified: false,
+      bytedancePeriods: {
+        past3Months: null,
+        past6Months: null,
+        before6Months: null,
+      },
+      bytedanceBuckets: {
+        all: null,
+        thirtyDays: null,
+        threeMonths: null,
+        sixMonths: null,
+        moreThanSixMonths: null,
+      },
+      bytedanceBucketSources: {},
+      bytedanceRank: null,
+      bytedanceSource: null,
+      hot100: false,
+      paidOnly: problem.paidOnly,
+      tags: source?.tags ?? [],
+      statementPreview:
+        source?.statementPreview ??
+        `${problem.titleCn} 是小红书公司题单中的算法面试题，题面请以力扣原题为准。`,
+      approachPreview:
+        source?.approachPreview ??
+        "先按题面约束写出可验证的基线解法，再按标签优化到面试可讲清的复杂度。",
+      followUps: source?.followUps ?? [],
+      seriesKeys: source?.seriesKeys ?? seriesKeysFor(sourceSlug),
+      seriesPrimaryKey: source?.seriesPrimaryKey ?? "",
+      seriesTitles: source?.seriesTitles ?? seriesTitlesFor(sourceSlug),
+      seriesSupplement: false,
+      lingShen: Boolean(source?.lingShen),
+      lingShenGroupKeys: source?.lingShenGroupKeys ?? [],
+      lingShenGroupTitles: source?.lingShenGroupTitles ?? [],
+      lingShenRank: source?.lingShenRank ?? null,
+      lingShenRating: source?.lingShenRating ?? null,
+      ...contestRatingFields(sourceSlug, lingShen),
+      ...xiaohongshuFields(problem.titleSlug),
+      xiaohongshuStudySourceSlug: sourceSlug,
+      xiaohongshuSupplement: true,
+    };
+  });
+const mergedLeetcodeProblems = [
+  ...leetcodeProblemsBeforeXiaohongshu,
+  ...leetcodeXiaohongshuSupplements,
 ];
 const leetcodeProblemCatalogBySlug = new Map(
   mergedLeetcodeProblems.map((problem) => [problem.titleSlug, problem]),
@@ -1493,6 +1618,16 @@ const leetcodePracticeCategoryCollections = [
       "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
     problems: leetcodeProblemsWithReferences.filter((problem) => problem.bytedance),
   }),
+  buildPracticeCategoryCollection({
+    key: "xiaohongshu",
+    title: "小红书算法面试题单",
+    titleEn: "Xiaohongshu Interview List",
+    description:
+      "按小红书 LeetCode 公司题单排名和主算法标签拆分，分类按公司题单顺序优先，组内按题号和系列递进顺序。",
+    descriptionEn:
+      "Xiaohongshu company-list problems split by primary algorithm tag, ordered by company-list rank with problem-number and series progression inside each group.",
+    problems: leetcodeProblemsWithReferences.filter((problem) => problem.xiaohongshu),
+  }),
   buildOrderedPracticeGroupCollection({
     key: "lingshen",
     title: "灵神题单",
@@ -1529,9 +1664,9 @@ const shortcutRows = [
     en: "Focus search",
   },
   {
-    keys: "Option+1 / 2",
-    zh: "范围筛选：全部 / Hot100",
-    en: "Scope filters: all / Hot100",
+    keys: "Option+1 / 2 / 3",
+    zh: "范围筛选：全部 / Hot100 / 小红书",
+    en: "Scope filters: all / Hot100 / Xiaohongshu",
   },
   {
     keys: "Option+4-8",
@@ -1683,8 +1818,8 @@ const shortcutRows = [
         <h1 class="leetcode-title">{isZh ? book.zhTitle : book.title}</h1>
         <p class="leetcode-copy">
           {isZh
-            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、灵神题单、相关题、题意/思路/实现预览、本地状态和扩展提交。"
-            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance lists, LingShen topics, related problems, previews, local state, and extension submit."}
+            ? "目标覆盖 Top888；合并 Hot100、重复题核对、字节企业题库、小红书算法面试题、灵神题单、相关题、题意/思路/实现预览、本地状态和扩展提交。"
+            : "Targets Top 888 with Hot 100, duplicate audit, ByteDance lists, Xiaohongshu interview problems, LingShen topics, related problems, previews, local state, and extension submit."}
         </p>
         <div class="leetcode-actions">
           <a href={pageUrl(base, `${book.slug}/spec`)} class="leetcode-primary-link">
@@ -1775,6 +1910,7 @@ const shortcutRows = [
               <div class="leetcode-filter-group" role="group" aria-label={isZh ? "范围筛选" : "Scope filters"}>
                 <button type="button" class="is-active" data-filter="all" aria-label={filterShortcutTitles.all} data-ui-tip={toolbarHintText.scopeAll}>{isZh ? "全部" : "All"}</button>
                 <button type="button" data-filter="hot100" aria-label={filterShortcutTitles.hot100} data-ui-tip={toolbarHintText.scopeHot100}>Hot100</button>
+                <button type="button" data-filter="xiaohongshu" aria-label={filterShortcutTitles.xiaohongshu} data-ui-tip={toolbarHintText.scopeXiaohongshu}>{isZh ? "小红书" : "XHS"}</button>
               </div>
             </div>
           </div>
@@ -1910,6 +2046,7 @@ const shortcutRows = [
           <span>Top</span>
           <span>Hot</span>
           <span>BD</span>
+          <span>XHS</span>
           <span class="leetcode-problem-head">
             <span>{isZh ? "题目" : "Problem"}</span>
             <label class="leetcode-series-filter leetcode-series-filter-head" data-ui-tip={isZh ? "系列筛选：只显示同一系列题。开启顺序流后会按该系列顺序练完。" : "Series filter: show one problem family. List flow then follows that family order."}>
@@ -2364,6 +2501,10 @@ const shortcutRows = [
         <p>{isZh ? "字节题库" : "ByteDance"}</p>
       </div>
       <div>
+        <span>{leetcodeXiaohongshuStats.syncedAll}/{leetcodeXiaohongshuStats.targetAll}</span>
+        <p>{isZh ? "小红书面试题" : "Xiaohongshu"}</p>
+      </div>
+      <div>
         <span>{leetcodeSeriesStats.series}/{leetcodeSeriesSupplements.length}</span>
         <p>{isZh ? "系列/补题" : "Series/extras"}</p>
       </div>
@@ -2395,6 +2536,14 @@ const shortcutRows = [
         {isZh
           ? `${leetcodeRelatedQuestionStats.questions} 条官方相关题已同步`
           : `${leetcodeRelatedQuestionStats.questions} official related problems synced`}
+      </span>
+      <span>
+        {isZh
+          ? `${leetcodeXiaohongshuStats.syncedAll} 道小红书算法面试题已同步，来源：`
+          : `${leetcodeXiaohongshuStats.syncedAll} Xiaohongshu interview problems synced from `}
+        <a href={leetcodeXiaohongshuSourceUrl} target="_blank" rel="noopener noreferrer">
+          xiaohongshu-all
+        </a>
       </span>
       <span>
         {isZh
@@ -2491,6 +2640,9 @@ const shortcutRows = [
       </a>
       <a href={leetcodeSpecUrl} target="_blank" rel="noopener noreferrer">
         {isZh ? "页面规格" : "Page spec"}
+      </a>
+      <a href={leetcodeXiaohongshuSourceUrl} target="_blank" rel="noopener noreferrer">
+        {isZh ? "小红书题单" : "Xiaohongshu list"}
       </a>
       <a href={leetcodeChangelogUrl} target="_blank" rel="noopener noreferrer">
         {isZh ? "更新日志" : "Changelog"}
@@ -2657,6 +2809,7 @@ const shortcutRows = [
     const practiceListKindSeries = "series";
     const practiceListKindHot100 = "hot100";
     const practiceListKindByteDance = "bytedance";
+    const practiceListKindXiaohongshu = "xiaohongshu";
     const practiceListKindLingShen = "lingshen";
 
     function unpackLingShenRoadmap(payload) {
@@ -2817,6 +2970,16 @@ const shortcutRows = [
           descriptionEn:
             "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
           members: practiceListMembersFor(practiceListKindByteDance),
+        },
+        {
+          key: practiceListKindXiaohongshu,
+          title: "小红书算法面试题单",
+          titleEn: "Xiaohongshu Interview List",
+          description:
+            "按小红书 LeetCode 公司题单排名和主算法标签拆分，适合作为小红书算法面试手撕题入口。",
+          descriptionEn:
+            "Xiaohongshu LeetCode company problems split by primary algorithm tag for interview practice.",
+          members: practiceListMembersFor(practiceListKindXiaohongshu),
         },
         {
           key: practiceListKindLingShen,
@@ -3067,6 +3230,7 @@ const shortcutRows = [
     const filterShortcutByCode = {
       Digit1: "all",
       Digit2: "hot100",
+      Digit3: "xiaohongshu",
       Digit4: "bytedanceAll",
       Digit5: "bytedanceThirtyDays",
       Digit6: "bytedanceThreeMonths",
@@ -3076,7 +3240,7 @@ const shortcutRows = [
       Digit0: "review",
       Minus: "unmastered",
     };
-    const scopeFilterValues = new Set(["all", "hot100"]);
+    const scopeFilterValues = new Set(["all", "hot100", "xiaohongshu"]);
     const byteDanceFilterValues = new Set([
       "bytedanceAll",
       "bytedanceThirtyDays",
@@ -3209,6 +3373,8 @@ const shortcutRows = [
     const recommendationHotRankValueCap = 6;
     const recommendationByteDanceValueBase = 8;
     const recommendationByteDanceBucketValueCap = 16;
+    const recommendationXiaohongshuValueBase = 10;
+    const recommendationXiaohongshuRankValueCap = 10;
     const recommendationCoreTagValueCap = 12;
     const recommendationRelatedValueCap = 10;
     const recommendationCompanyFollowUpValue = 4;
@@ -3225,6 +3391,7 @@ const shortcutRows = [
     const recommendationRankFallback = 999999;
     const recommendationHotRankMax = 100;
     const recommendationByteDanceBucketRankMax = 100;
+    const recommendationXiaohongshuRankMax = 77;
     const recommendationRelatedValueWeight = 2;
     const recommendationCoreTagValueWeight = 4;
     const recommendationByteDanceBucketWeights = {
@@ -9651,6 +9818,16 @@ const shortcutRows = [
         Math.min(recommendationByteDanceBucketValueCap, bucketScore);
     }
 
+    function xiaohongshuValueScore(problem) {
+      if (!problem?.xiaohongshu) return 0;
+      return recommendationXiaohongshuValueBase +
+        rankValueScore(
+          problem.xiaohongshuRank,
+          recommendationXiaohongshuRankMax,
+          recommendationXiaohongshuRankValueCap,
+        );
+    }
+
     function coreTagValueScore(problem) {
       const coreTagCount = (problem?.tags || [])
         .filter((tag) => recommendationCoreTagSlugs.has(tag.slug))
@@ -9692,6 +9869,7 @@ const shortcutRows = [
         frequencyScore +
           hotScore +
           byteDanceValueScore(problem) +
+          xiaohongshuValueScore(problem) +
           coreTagValueScore(problem) +
           relatedValueScore(problem) +
           followUpScore,
@@ -10002,6 +10180,8 @@ const shortcutRows = [
       const reasons = [];
       if (isUnacceptedHot100Insight(item)) {
         reasons.push(isChinesePage ? "Hot100 未完整 AC" : "Hot100 not accepted");
+      } else if (item.problem?.xiaohongshu && !item.accepted) {
+        reasons.push(isChinesePage ? "小红书面试题" : "Xiaohongshu interview");
       } else if (!item.accepted) {
         reasons.push(isChinesePage ? "未完整 AC" : "not accepted yet");
       } else if (item.dueScore >= 50) {
@@ -10757,6 +10937,9 @@ const shortcutRows = [
       const values = [];
       if (problem.hot100) values.push("hot100", "hot 100");
       if (problem.bytedance) values.push("字节", "字节跳动", "bytedance", "bd");
+      if (problem.xiaohongshu) {
+        values.push("小红书", "小红书面试", "小红书算法", "xiaohongshu", "xhs", "redbook");
+      }
       if (problem.seriesSupplement) values.push("系列补充", "series supplement");
       if (problem.lingShen) values.push("灵神", "灵神题单", "lingshen", "ling shen");
       if (problem.lingShenSupplement) {
@@ -10799,6 +10982,14 @@ const shortcutRows = [
         values.push(
           `字节排名 ${byteDanceRank}`,
           `bytedance rank ${byteDanceRank}`,
+        );
+      }
+      if (problem.xiaohongshuRank) {
+        values.push(
+          `小红书排名 ${problem.xiaohongshuRank}`,
+          `小红书第 ${problem.xiaohongshuRank} 题`,
+          `xiaohongshu rank ${problem.xiaohongshuRank}`,
+          `xhs rank ${problem.xiaohongshuRank}`,
         );
       }
       const buckets = byteDanceBuckets(problem);
@@ -11178,6 +11369,9 @@ const shortcutRows = [
       if (listOption.key === practiceListKindByteDance) {
         state.filters.bytedance = "bytedanceAll";
       }
+      if (listOption.key === practiceListKindXiaohongshu) {
+        state.filters.scope = "xiaohongshu";
+      }
       syncFilterButtons();
       state.page = 1;
       render();
@@ -11233,6 +11427,9 @@ const shortcutRows = [
       };
       if (category.collectionKey === "hot100") {
         state.filters.scope = "hot100";
+      }
+      if (category.collectionKey === "xiaohongshu") {
+        state.filters.scope = "xiaohongshu";
       }
       if (category.collectionKey === "bytedance") {
         state.filters.bytedance = "bytedanceAll";
@@ -11394,6 +11591,7 @@ const shortcutRows = [
         return false;
       }
       if (scopeFilter === "hot100" && !problem.hot100) return false;
+      if (scopeFilter === "xiaohongshu" && !problem.xiaohongshu) return false;
       if (byteDanceFilter === "bytedanceAll" && !byteDance.all) return false;
       if (byteDanceFilter === "bytedanceThirtyDays" && !byteDance.thirtyDays) return false;
       if (byteDanceFilter === "bytedanceThreeMonths" && !byteDance.threeMonths) return false;
@@ -11493,6 +11691,11 @@ const shortcutRows = [
       }
       if (scopeFilter === "hot100") {
         return (a, b) => (a.hotRank || 999) - (b.hotRank || 999);
+      }
+      if (scopeFilter === "xiaohongshu") {
+        return (a, b) =>
+          (a.xiaohongshuRank || 999) - (b.xiaohongshuRank || 999) ||
+          compareProblemsByOriginalOrder(a, b);
       }
       return compareProblemsByOriginalOrder;
     }
@@ -11906,6 +12109,22 @@ const shortcutRows = [
           return `<span>${escapeHtml(label)} #${escapeHtml(count)}${escapeHtml(suffix)}</span>`;
         })
         .join("");
+    }
+
+    function renderXiaohongshu(problem) {
+      if (!problem.xiaohongshu) return "";
+      const rank = problem.xiaohongshuRank || "";
+      const label = rank
+        ? (isChinesePage ? `小红书算法面试题 #${rank}` : `Xiaohongshu interview #${rank}`)
+        : (isChinesePage ? "小红书算法面试题" : "Xiaohongshu interview problem");
+      return `<span aria-label="${escapeHtml(label)}">${escapeHtml(rank)}</span>`;
+    }
+
+    function renderXiaohongshuMeta(problem) {
+      if (!problem.xiaohongshu) return "";
+      const rank = problem.xiaohongshuRank || "";
+      const label = isChinesePage ? "小红书面试" : "Xiaohongshu";
+      return `<span>${escapeHtml(label)}${rank ? ` #${escapeHtml(rank)}` : ""}</span>`;
     }
 
     function localizedDescription(item) {
@@ -12550,6 +12769,7 @@ const shortcutRows = [
           <span class="leetcode-series-member-meta">
             <em class="leetcode-difficulty ${badgeClass(problem.difficulty)}">${escapeHtml(problem.difficulty)}</em>
             ${problem.paidOnly ? `<em class="leetcode-paid-label">${isChinesePage ? "付费" : "Paid"}</em>` : ""}
+            ${problem.xiaohongshu ? `<em class="leetcode-xhs-label">XHS${problem.xiaohongshuRank ? ` #${escapeHtml(problem.xiaohongshuRank)}` : ""}</em>` : ""}
             ${rating}
           </span>
         </button>
@@ -12644,6 +12864,7 @@ const shortcutRows = [
         <span class="leetcode-tag-popover">
           ${topLabel ? `<span>freq ${escapeHtml(topLabel)}</span>` : ""}
           ${problem.hot100 ? "<span>Hot100</span>" : ""}
+          ${renderXiaohongshuMeta(problem)}
           ${problem.bytedanceVerified === false ? "<span>企业待核</span>" : ""}
           ${problem.seriesSupplement ? `<span>${isChinesePage ? "系列补充" : "Series supplement"}</span>` : ""}
           ${problem.lingShen ? `<span>${isChinesePage ? "灵神题单" : "LingShen"}</span>` : ""}
@@ -12694,6 +12915,7 @@ const shortcutRows = [
           : null,
         { label: item.seriesTitle },
         { label: item.hot100 ? "Hot100" : "" },
+        { label: item.xiaohongshu ? `XHS${item.xiaohongshuRank ? ` #${item.xiaohongshuRank}` : ""}` : "" },
         { label: item.paidOnly ? (isChinesePage ? "付费" : "Paid") : "" },
         ...(item.sharedTags || []).map((tag) => ({ label: tag.name })),
       ].filter(Boolean);
@@ -16701,12 +16923,14 @@ const shortcutRows = [
       const hotRank = problem.hotRank ?? "";
       const bytedanceRank = byteDanceRankFor(problem) ?? "";
       const byteDance = renderByteDance(problem);
+      const xiaohongshu = renderXiaohongshu(problem);
       const topLabel = problem.topRank === null ? `#${problem.frequencyRank}` : "";
       return `
         <article class="leetcode-row${visitedClass}" data-slug="${escapeHtml(problem.titleSlug)}">
           <div class="leetcode-rank">${topRank}</div>
           <div class="leetcode-rank is-hot">${hotRank}</div>
           <div class="leetcode-rank is-bytedance">${bytedanceRank}</div>
+          <div class="leetcode-rank is-xiaohongshu">${xiaohongshu}</div>
           <div class="leetcode-problem-main">
             <span class="leetcode-title-preview" data-preview aria-expanded="false">
               <a class="leetcode-problem-link" href="${escapeHtml(problem.url)}" target="_blank" rel="noopener noreferrer" data-link-slug="${escapeHtml(problem.titleSlug)}">
@@ -20667,6 +20891,14 @@ const shortcutRows = [
       font-weight: 700;
     }
 
+    .leetcode-xhs-label {
+      border-radius: 999px;
+      background: rgb(201 63 75 / 10%);
+      color: #c93f4b;
+      font-weight: 800;
+      padding: 0.05rem 0.3rem;
+    }
+
     .leetcode-extension-guide a {
       color: var(--color-terracotta);
       text-decoration: none;
@@ -20777,7 +21009,7 @@ const shortcutRows = [
     .leetcode-table-head,
     .leetcode-row {
       display: grid;
-      grid-template-columns: 2.45rem 2.45rem 2.45rem minmax(16rem, 1fr) 3.5rem 4.1rem 4.15rem 5rem 7.35rem;
+      grid-template-columns: 2.35rem 2.35rem 2.35rem 2.35rem minmax(15rem, 1fr) 3.5rem 4.1rem 4.15rem 5rem 7.35rem;
       min-width: 0;
       gap: 0.3rem;
       align-items: center;
@@ -20808,7 +21040,8 @@ const shortcutRows = [
 
     .leetcode-table-head > span:nth-child(1),
     .leetcode-table-head > span:nth-child(2),
-    .leetcode-table-head > span:nth-child(3) {
+    .leetcode-table-head > span:nth-child(3),
+    .leetcode-table-head > span:nth-child(4) {
       text-align: center;
     }
 
@@ -21067,6 +21300,11 @@ const shortcutRows = [
     .leetcode-rank.is-bytedance {
       color: #b77b00;
       font-weight: 700;
+    }
+
+    .leetcode-rank.is-xiaohongshu {
+      color: #c93f4b;
+      font-weight: 800;
     }
 
     .leetcode-problem-link {
@@ -23372,6 +23610,7 @@ const shortcutRows = [
 
     html.dark .leetcode-difficulty.is-hard,
     html.dark .leetcode-contest-rating.is-high,
+    html.dark .leetcode-rank.is-xiaohongshu,
     html.dark .leetcode-submit-note [data-tone="error"],
     html.dark .leetcode-manual-case-status[data-tone="error"] {
       color: var(--leetcode-dark-danger);
@@ -23688,6 +23927,11 @@ const shortcutRows = [
       color: var(--leetcode-dark-accent-strong);
     }
 
+    html.dark .leetcode-xhs-label {
+      background: rgb(255 104 112 / 14%);
+      color: var(--leetcode-dark-danger);
+    }
+
     @media (max-width: 1180px) {
       .leetcode-toolbar {
         flex-wrap: wrap;
@@ -23816,7 +24060,7 @@ const shortcutRows = [
       }
 
       .leetcode-row {
-        grid-template-columns: 2.1rem 2.1rem 2.1rem minmax(0, 1fr);
+        grid-template-columns: 2.1rem 2.1rem 2.1rem 2.1rem minmax(0, 1fr);
         row-gap: 0.25rem;
       }
 
@@ -23826,6 +24070,11 @@ const shortcutRows = [
       }
 
       .leetcode-row > div:nth-child(5) {
+        grid-column: 5;
+        grid-row: 1;
+      }
+
+      .leetcode-row > div:nth-child(6) {
         grid-column: 1;
         grid-row: 2;
       }

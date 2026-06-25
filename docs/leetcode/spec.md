@@ -53,6 +53,18 @@ months rank; legacy rows remain marked as old data. The page must expose the
 source of each bucket instead of pretending the 1,503-row company list is
 complete.
 
+Xiaohongshu interview membership comes from the LeetCode China company favorite
+list `xiaohongshu-all`, observed from the logged-in Chrome-rendered company
+page on June 25, 2026. The synced list contains the 77 visible problems from
+that page and is stored in `src/data/leetcode-xiaohongshu.ts` with the company
+rank, LeetCode frontend id, title slug, difficulty, and acceptance rate. The
+page exposes this list as an independent scope filter, a table rank column, a
+practice-list/category entry, search markers such as `xiaohongshu` and `xhs`,
+and a source link back to the company list. Problems not already present in Top
+888, Hot 100, ByteDance, series, or LingShen data can be appended as
+Xiaohongshu-only supplemental rows by the same merge path; company rank order
+must be preserved for the Xiaohongshu scope and practice list.
+
 LingShen membership comes from the 12 topic links in 灵茶山艾府's "How to
 practice scientifically" post: sliding window and two pointers, binary search,
 monotonic stack, grid graphs, bit manipulation, graph algorithms, dynamic
@@ -195,7 +207,9 @@ Each row shows the identifiers that matter for practice:
 1. the Top 888 frequency rank;
 2. the Hot 100 rank, sorted by frequency rather than by the study-plan order;
 3. the ByteDance company rank when the row is in the ByteDance company list;
-4. the original LeetCode frontend problem id inside the clickable title.
+4. the Xiaohongshu company rank when the row is in the Xiaohongshu interview
+   list;
+5. the original LeetCode frontend problem id inside the clickable title.
 
 Approach, implementation, tags, and related controls are attached to the title
 cell so the pointer does not need to cross the table. Clicking the linked title
@@ -262,14 +276,14 @@ the working list. Search, filters, pagination, and the problem rows remain the
 first visual priority and should appear without excessive scrolling.
 
 Filters are grouped by scope, ByteDance, and practice state. Scope includes all
-problems, Hot 100, and sourced company follow-ups. ByteDance includes all,
+problems, Hot 100, and Xiaohongshu interview problems. ByteDance includes all,
 past 30 days, past 3 months, past 6 months, and more than 6 months ago. State
 includes unsolved, needs thought, and not mastered. Text search is centered on
 the problem itself: id, Chinese title, and English slug are weighted highest;
 series names, LingShen topic names, and tags are secondary; Hot 100,
-ByteDance, and LingShen collection markers are only low-weight helpers. Search
-results are ordered by relevance first, then by the active filter's normal
-order as a tie-breaker. Study-check answers, company follow-ups,
+ByteDance, Xiaohongshu, and LingShen collection markers are only low-weight
+helpers. Search results are ordered by relevance first, then by the active
+filter's normal order as a tie-breaker. Study-check answers, company follow-ups,
 implementation sources, and related-problem text no longer pull unrelated
 high-frequency rows ahead of title matches. Matching supports basic fuzziness:
 case and full-width normalization, space/hyphen equivalence, all-token matches,
@@ -541,8 +555,9 @@ submissions, failed sample runs, slow Accepted time normalized by code size,
 and manual review state. Failed full submissions are stronger than failed
 sample runs, failure rates are smoothed, and failure counts grow with
 diminishing returns. Problem value comes from Top 888 frequency, Hot 100
-membership, ByteDance company presence, recent ByteDance buckets, tag coverage,
-LingShen coverage, and related-problem centrality, so a low-value obscure problem does not
+membership, ByteDance company presence, recent ByteDance buckets, Xiaohongshu
+interview presence, tag coverage, LingShen coverage, and related-problem
+centrality, so a low-value obscure problem does not
 permanently outrank a slightly weaker high-frequency core problem. Current fit
 uses the currently open problem, shared tags, related-problem links, and nearby
 difficulty to prefer same-route transfer or reasonable progression. Fatigue
@@ -556,7 +571,8 @@ internal order.
 
 The scheduler also supports cold start. A problem can enter the recommendation
 queue without local submission stats when it is high frequency, in Hot 100,
-ByteDance-heavy, valuable for tag coverage, or manually marked for review. The
+ByteDance-heavy, in the Xiaohongshu interview list, valuable for tag coverage,
+or manually marked for review. The
 popover shows the top ranked problems, final practice score, and the main
 reason. Problems with local submission evidence still show compact row signals.
 A collapsed footer note explains the five components, stability,

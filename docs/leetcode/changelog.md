@@ -3,6 +3,15 @@
 This changelog tracks user-facing changes to the LeetCode practice page and
 its Chrome extension workflow.
 
+## 2026-06-25
+
+### Added
+
+- Added the Xiaohongshu algorithm interview list from the LeetCode China
+  `xiaohongshu-all` company favorite page, with 77 synced problems, source
+  metadata, an XHS rank column, an independent Xiaohongshu scope filter, search
+  markers, and a dedicated practice-list/category entry.
+
 ## 2026-05-24
 
 ### Added
