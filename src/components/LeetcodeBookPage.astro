@@ -2917,6 +2917,9 @@ const shortcutRows = [
     }
 
     function initializeProblemGuideIndexes(payload = {}) {
+      if (Array.isArray(payload?.series) || Array.isArray(payload?.categories)) {
+        problemGuideIndexPayload = payload;
+      }
       const seriesPayload = Array.isArray(payload?.series) ? payload.series : [];
       const categoryPayload = Array.isArray(payload?.categories)
         ? payload.categories
@@ -3023,6 +3026,10 @@ const shortcutRows = [
         problems.map((problem, index) => [problem.titleSlug, index]),
       );
       maxPageSize = problems.length || 20;
+      if (problemGuideIndexPayload && problemGuideIndexLoaded) {
+        initializeProblemGuideIndexes(problemGuideIndexPayload);
+        refreshRenderedPracticeGuides();
+      }
     }
     const list = document.getElementById("leetcode-problem-list");
     const searchInput = document.getElementById("leetcode-search");
@@ -4384,6 +4391,7 @@ const shortcutRows = [
     let problemSearchIndexPromise = null;
     let problemGuideIndexLoaded = false;
     let problemGuideIndexPromise = null;
+    let problemGuideIndexPayload = null;
     let problemGuideIdeasLoaded = false;
     let problemGuideIdeasPromise = null;
     let problemDetailPrefetchActiveCount = 0;
@@ -12706,6 +12714,16 @@ const shortcutRows = [
         </div>
       `;
       body.dataset.lazyGuideRendered = "true";
+    }
+
+    function refreshRenderedPracticeGuides() {
+      document.querySelectorAll("details[data-lazy-guide]").forEach((details) => {
+        if (!(details instanceof HTMLElement)) return;
+        if (details.dataset.lazyGuideRendered === "true") {
+          details.dataset.lazyGuideRendered = "false";
+        }
+        if (details.open) renderLazyGuide(details);
+      });
     }
 
     function renderLazyGuide(details) {

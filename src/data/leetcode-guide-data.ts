@@ -570,6 +570,9 @@ function practiceProblemRank(problem, collectionKey) {
       missingFrequencyRank
     );
   }
+  if (collectionKey === "xiaohongshu") {
+    return problem.xiaohongshuRank ?? missingFrequencyRank;
+  }
   return problemFrequencyOrder(problem);
 }
 
@@ -768,6 +771,16 @@ const leetcodePracticeCategoryCollections = [
     descriptionEn:
       "ByteDance problems split by company rank and primary algorithm tag, with each group ordered by problem number and series progression.",
     problems: leetcodeMergedProblems.filter((problem) => problem.bytedance),
+  }),
+  buildPracticeCategoryCollection({
+    key: "xiaohongshu",
+    title: "小红书算法面试题单",
+    titleEn: "Xiaohongshu Interview List",
+    description:
+      "按小红书 LeetCode 公司题单排名和主算法标签拆分，分类按公司题单顺序优先，组内按题号和系列递进顺序。",
+    descriptionEn:
+      "Xiaohongshu company-list problems split by primary algorithm tag, ordered by company-list rank with problem-number and series progression inside each group.",
+    problems: leetcodeMergedProblems.filter((problem) => problem.xiaohongshu),
   }),
   buildOrderedPracticeGroupCollection({
     key: "lingshen",

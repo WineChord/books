@@ -131,6 +131,37 @@ assert(
   Array.isArray(leetcodeGuides.categories) && leetcodeGuides.categories.length > 0,
   "LeetCode guide data is missing category entries",
 );
+const leetcodeSummarySlugIndex = leetcodeSummary.keys.indexOf("titleSlug");
+const leetcodeSummaryXiaohongshuIndex = leetcodeSummary.keys.indexOf("xiaohongshu");
+assert(
+  leetcodeSummarySlugIndex >= 0 && leetcodeSummaryXiaohongshuIndex >= 0,
+  "LeetCode summary data is missing Xiaohongshu fields",
+);
+const leetcodeSummarySlugs = leetcodeSummary.rows.map(
+  (row) => row[leetcodeSummarySlugIndex],
+);
+const leetcodeXiaohongshuSummaryCount = leetcodeSummary.rows.filter(
+  (row) => Boolean(row[leetcodeSummaryXiaohongshuIndex]),
+).length;
+const leetcodeXiaohongshuGuideCategories = leetcodeGuides.categories.filter(
+  (category) => category.collectionKey === "xiaohongshu",
+);
+const leetcodeXiaohongshuGuideSlugs = new Set(
+  leetcodeXiaohongshuGuideCategories
+    .flatMap((category) => Array.isArray(category.members) ? category.members : [])
+    .map((member) =>
+      Number.isInteger(member) ? leetcodeSummarySlugs[member] : member,
+    )
+    .filter(Boolean),
+);
+assert(
+  leetcodeXiaohongshuGuideCategories.length > 0,
+  "LeetCode guide data is missing Xiaohongshu category entries",
+);
+assert(
+  leetcodeXiaohongshuGuideSlugs.size === leetcodeXiaohongshuSummaryCount,
+  `LeetCode Xiaohongshu guide covers ${leetcodeXiaohongshuGuideSlugs.size} problems, expected ${leetcodeXiaohongshuSummaryCount}`,
+);
 for (const rel of [
   path.join("leetcode", "index.html"),
   path.join("zh", "leetcode", "index.html"),
